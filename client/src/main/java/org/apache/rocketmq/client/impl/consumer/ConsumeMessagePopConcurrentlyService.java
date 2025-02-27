@@ -153,11 +153,11 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
             result.setRemark(UtilAll.exceptionSimpleDesc(e));
 
-            log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
+            log.warn("consumeMessageDirectly exception: {} Group: {} Msgs: {} MQ: {}",
                 UtilAll.exceptionSimpleDesc(e),
                 ConsumeMessagePopConcurrentlyService.this.consumerGroup,
                 msgs,
-                mq), e);
+                mq, e);
         }
 
         result.setSpentTimeMills(System.currentTimeMillis() - beginTime);
@@ -457,6 +457,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
                 consumeMessageContext.getProps().put(MixAll.CONSUME_CONTEXT_TYPE, returnType.name());
                 consumeMessageContext.setStatus(status.toString());
                 consumeMessageContext.setSuccess(ConsumeConcurrentlyStatus.CONSUME_SUCCESS == status);
+                consumeMessageContext.setAccessChannel(defaultMQPushConsumer.getAccessChannel());
                 ConsumeMessagePopConcurrentlyService.this.defaultMQPushConsumerImpl.executeHookAfter(consumeMessageContext);
             }
 
@@ -470,7 +471,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
                     processQueue.decFoundMsg(-msgs.size());
                 }
 
-                log.warn("processQueue invalid. isDropped={}, isPopTimeout={}, messageQueue={}, msgs={}",
+                log.warn("processQueue invalid or popTimeout. isDropped={}, isPopTimeout={}, messageQueue={}, msgs={}",
                         processQueue.isDropped(), isPopTimeout(), messageQueue, msgs);
             }
         }

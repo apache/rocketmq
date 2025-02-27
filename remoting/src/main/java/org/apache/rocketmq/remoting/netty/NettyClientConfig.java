@@ -31,6 +31,8 @@ public class NettyClientConfig {
     private int connectTimeoutMillis = NettySystemConfig.connectTimeoutMillis;
     private long channelNotActiveInterval = 1000 * 60;
 
+    private boolean isScanAvailableNameSrv = true;
+
     /**
      * IdleStateEvent will be triggered when neither read nor write was performed for
      * the specified period of this time. Specify {@code 0} to disable
@@ -52,6 +54,10 @@ public class NettyClientConfig {
 
     private boolean disableCallbackExecutor = false;
     private boolean disableNettyWorkerGroup = false;
+
+    private long maxReconnectIntervalTimeSeconds = 60;
+
+    private boolean enableReconnectForGoAway = true;
 
     public boolean isClientCloseSocketIfTimeout() {
         return clientCloseSocketIfTimeout;
@@ -181,11 +187,35 @@ public class NettyClientConfig {
         this.disableNettyWorkerGroup = disableNettyWorkerGroup;
     }
 
+    public long getMaxReconnectIntervalTimeSeconds() {
+        return maxReconnectIntervalTimeSeconds;
+    }
+
+    public void setMaxReconnectIntervalTimeSeconds(long maxReconnectIntervalTimeSeconds) {
+        this.maxReconnectIntervalTimeSeconds = maxReconnectIntervalTimeSeconds;
+    }
+
+    public boolean isEnableReconnectForGoAway() {
+        return enableReconnectForGoAway;
+    }
+
+    public void setEnableReconnectForGoAway(boolean enableReconnectForGoAway) {
+        this.enableReconnectForGoAway = enableReconnectForGoAway;
+    }
+
     public String getSocksProxyConfig() {
         return socksProxyConfig;
     }
 
     public void setSocksProxyConfig(String socksProxyConfig) {
         this.socksProxyConfig = socksProxyConfig;
+    }
+
+    public boolean isScanAvailableNameSrv() {
+        return isScanAvailableNameSrv;
+    }
+
+    public void setScanAvailableNameSrv(boolean scanAvailableNameSrv) {
+        this.isScanAvailableNameSrv = scanAvailableNameSrv;
     }
 }

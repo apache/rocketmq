@@ -16,15 +16,23 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
+import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
-
+@RocketMQAction(value = RequestCode.NOTIFICATION, action = Action.SUB)
 public class NotificationRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
+    @RocketMQResource(ResourceType.GROUP)
     private String consumerGroup;
     @CFNotNull
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
     @CFNotNull
     private int queueId;
@@ -32,6 +40,9 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
     private long pollTime;
     @CFNotNull
     private long bornTime;
+
+    private Boolean order = Boolean.FALSE;
+    private String attemptId;
 
     @CFNotNull
     @Override
@@ -81,4 +92,32 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
         this.queueId = queueId;
     }
 
+    public Boolean getOrder() {
+        return order;
+    }
+
+    public void setOrder(Boolean order) {
+        this.order = order;
+    }
+
+    public String getAttemptId() {
+        return attemptId;
+    }
+
+    public void setAttemptId(String attemptId) {
+        this.attemptId = attemptId;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("topic", topic)
+            .add("queueId", queueId)
+            .add("pollTime", pollTime)
+            .add("bornTime", bornTime)
+            .add("order", order)
+            .add("attemptId", attemptId)
+            .toString();
+    }
 }

@@ -74,4 +74,20 @@ public class TransactionalMessageUtil {
 
         return msgInner;
     }
+
+    public static long getImmunityTime(String checkImmunityTimeStr, long transactionTimeout) {
+        long checkImmunityTime = 0;
+
+        try {
+            checkImmunityTime = Long.parseLong(checkImmunityTimeStr) * 1000;
+        } catch (Throwable ignored) {
+        }
+
+        //If a custom first check time is set, the minimum check time;
+        //The default check protection period is transactionTimeout
+        if (checkImmunityTime < transactionTimeout) {
+            checkImmunityTime = transactionTimeout;
+        }
+        return checkImmunityTime;
+    }
 }

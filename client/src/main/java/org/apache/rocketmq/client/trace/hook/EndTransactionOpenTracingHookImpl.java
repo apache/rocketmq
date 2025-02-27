@@ -60,7 +60,7 @@ public class EndTransactionOpenTracingHookImpl implements EndTransactionHook {
         span.setTag(Tags.MESSAGE_BUS_DESTINATION, msg.getTopic());
         span.setTag(TraceConstants.ROCKETMQ_TAGS, msg.getTags());
         span.setTag(TraceConstants.ROCKETMQ_KEYS, msg.getKeys());
-        span.setTag(TraceConstants.ROCKETMQ_SOTRE_HOST, context.getBrokerAddr());
+        span.setTag(TraceConstants.ROCKETMQ_STORE_HOST, context.getBrokerAddr());
         span.setTag(TraceConstants.ROCKETMQ_MSG_ID, context.getMsgId());
         span.setTag(TraceConstants.ROCKETMQ_MSG_TYPE, MessageType.Trans_msg_Commit.name());
         span.setTag(TraceConstants.ROCKETMQ_TRANSACTION_ID, context.getTransactionId());

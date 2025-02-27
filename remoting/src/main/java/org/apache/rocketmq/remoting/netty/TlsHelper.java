@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.cert.CertificateException;
 import java.util.Properties;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
@@ -73,7 +73,7 @@ public class TlsHelper {
         InputStream decryptPrivateKey(String privateKeyEncryptPath, boolean forClient) throws IOException;
     }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
 
     private static DecryptionStrategy decryptionStrategy = new DecryptionStrategy() {
         @Override
@@ -216,8 +216,9 @@ public class TlsHelper {
             return ClientAuth.NONE;
         }
 
+        String authModeUpper = authMode.toUpperCase();
         for (ClientAuth clientAuth : ClientAuth.values()) {
-            if (clientAuth.name().equals(authMode.toUpperCase())) {
+            if (clientAuth.name().equals(authModeUpper)) {
                 return clientAuth;
             }
         }

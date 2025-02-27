@@ -17,17 +17,6 @@
 
 package org.apache.rocketmq.acl.plain;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
@@ -43,6 +32,16 @@ import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * <p> In this class, we'll test the following scenarios, each containing several consecutive operations on ACL,
@@ -110,8 +109,8 @@ public class PlainAccessControlFlowTest {
         List<PlainAccessConfig> plainAccessConfigList = new LinkedList<>();
         plainAccessConfigList.add(producerAccessConfig);
         plainAccessConfigList.add(consumerAccessConfig);
-        Map<String, Object> ymlMap = new HashMap<>();
-        ymlMap.put(AclConstants.CONFIG_ACCOUNTS, plainAccessConfigList);
+        PlainAccessData ymlMap = new PlainAccessData();
+        ymlMap.setAccounts(plainAccessConfigList);
 
         // write prepared PlainAccessConfigs to file
         final String aclConfigFile = System.getProperty("rocketmq.home.dir") + File.separator + "conf/plain_acl.yml";

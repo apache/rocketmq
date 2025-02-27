@@ -27,8 +27,11 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.OperationResult;
+import org.apache.rocketmq.broker.transaction.TransactionMetrics;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -70,10 +73,25 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
 
+    private TransactionMetrics transactionMetrics;
+
     public TransactionalMessageServiceImpl(TransactionalMessageBridge transactionBridge) {
         this.transactionalMessageBridge = transactionBridge;
         transactionalOpBatchService = new TransactionalOpBatchService(transactionalMessageBridge.getBrokerController(), this);
         transactionalOpBatchService.start();
+        transactionMetrics = new TransactionMetrics(BrokerPathConfigHelper.getTransactionMetricsPath(
+                transactionalMessageBridge.getBrokerController().getMessageStoreConfig().getStorePathRootDir()));
+        transactionMetrics.load();
+    }
+
+    @Override
+    public TransactionMetrics getTransactionMetrics() {
+        return transactionMetrics;
+    }
+
+    @Override
+    public void setTransactionMetrics(TransactionMetrics transactionMetrics) {
+        this.transactionMetrics = transactionMetrics;
     }
 
 
@@ -185,9 +203,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         log.info("Queue={} process time reach max={}", messageQueue, MAX_PROCESS_TIME_LIMIT);
                         break;
                     }
-                    if (removeMap.containsKey(i)) {
+                    Long removedOpOffset;
+                    if ((removedOpOffset = removeMap.remove(i)) != null) {
                         log.debug("Half offset {} has been committed/rolled back", i);
-                        Long removedOpOffset = removeMap.remove(i);
                         opMsgMap.get(removedOpOffset).remove(i);
                         if (opMsgMap.get(removedOpOffset).size() == 0) {
                             opMsgMap.remove(removedOpOffset);
@@ -438,8 +456,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             if (-1 == prepareQueueOffset) {
                 return false;
             } else {
-                if (removeMap.containsKey(prepareQueueOffset)) {
-                    long tmpOpOffset = removeMap.remove(prepareQueueOffset);
+                Long tmpOpOffset;
+                if ((tmpOpOffset = removeMap.remove(prepareQueueOffset)) != null) {
                     doneOpOffset.add(tmpOpOffset);
                     log.info("removeMap contain prepareQueueOffset. real_topic={},uniqKey={},immunityTime={},offset={}",
                             msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC),
@@ -629,7 +647,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     @Override
     public void close() {
-
+        if (this.transactionalOpBatchService != null) {
+            this.transactionalOpBatchService.shutdown();
+        }
+        this.getTransactionMetrics().persist();
     }
 
     public Message getOpMessage(int queueId, String moreData) {

@@ -26,14 +26,33 @@ notifyBrokerRoleChanged = true
 
 - enableControllerInNamesrv：Nameserver中是否开启controller，默认false。
 - controllerDLegerGroup：DLedger Raft Group的名字，同一个DLedger Raft Group保持一致即可。
-- controllerDLegerPeers：DLedger Group 内各节点的端口信息，同一个 Group 内的各个节点配置必须要保证一致。
+- controllerDLegerPeers：DLedger Group 内各节点的地址信息，同一个 Group 内的各个节点配置必须要保证一致。
 - controllerDLegerSelfId：节点 id，必须属于 controllerDLegerPeers 中的一个；同 Group 内各个节点要唯一。
 - controllerStorePath：controller日志存储位置。controller是有状态的，controller重启或宕机需要依靠日志来恢复数据，该目录非常重要，不可以轻易删除。
 - enableElectUncleanMaster：是否可以从SyncStateSet以外选举Master，若为true，可能会选取数据落后的副本作为Master而丢失消息，默认为false。
 - notifyBrokerRoleChanged：当broker副本组上角色发生变化时是否主动通知，默认为true。
 - scanNotActiveBrokerInterval：扫描 Broker是否存活的时间间隔。
 
-其他一些参数可以参考ControllerConfig代码。
+- 其他一些参数可以参考ControllerConfig代码。
+
+> 5.2.0 Controller 开始支持 jRaft 内核启动，不支持 DLedger 内核到 jRaft 内核原地升级
+
+```
+controllerType = jRaft
+jRaftGroupId = jRaft-Controller
+jRaftServerId = localhost:9880
+jRaftInitConf = localhost:9880,localhost:9881,localhost:9882
+jRaftControllerRPCAddr = localhost:9770,localhost:9771,localhost:9772
+jRaftSnapshotIntervalSecs = 3600
+```
+
+jRaft 版本相关参数
+- controllerType：controllerType=jRaft的时候内核启动使用jRaft，默认为DLedger。
+- jRaftGroupId：jRaft Group的名字，同一个jRaft Group保持一致即可。
+- jRaftServerId：标志自己节点的ServerId，必须出现在 jRaftInitConf 中。
+- jRaftInitConf：jRaft Group 内部通信各节点的地址信息，用逗号分隔，是 jRaft 内部通信来做选举和复制所用的地址。
+- jRaftControllerRPCAddr：Controller 外部通信的各节点的地址信息，用逗号分隔，比如 Controller 与 Broker 通信会使用该地址。
+- jRaftSnapshotIntervalSecs：Raft Snapshot 持久化时间间隔。
 
 参数设置完成后，指定配置文件启动Nameserver即可。
 
@@ -136,3 +155,29 @@ Broker若设置enableControllerMode=false，则仍然以之前方式运行。若
 （2）原DLedger模式升级到Controller切换架构
 
 由于原DLedger模式消息数据格式与Master-Slave下数据格式存在区别，不提供带数据原地升级的路径。在部署多组Broker的情况下，可以禁写某一组Broker一段时间（只要确认存量消息被全部消费即可，比如根据消息的保存时间来决定），然后清空store目录下除config/topics.json、subscriptionGroup.json下（保留topic和订阅关系的元数据）的其他文件后，进行空盘升级。
+
+### 持久化BrokerID版本的升级注意事项
+
+目前版本支持采用了新的持久化BrokerID版本，详情可以参考[该文档](persistent_unique_broker_id.md)，从该版本前的5.x升级到当前版本需要注意如下事项。
+
+4.x版本升级遵守上述正常流程即可。
+5.x非持久化BrokerID版本升级到持久化BrokerID版本按照如下流程:
+
+**升级Controller**
+
+1. 将旧版本Controller组停机。
+2. 清除Controller数据，即默认在`~/DLedgerController`下的数据文件。
+3. 上线新版Controller组。
+
+> 在上述升级Controller流程中，Broker仍可正常运行，但无法切换。
+
+**升级Broker**
+
+1. 将Broker从节点停机。
+2. 将Broker主节点停机。
+3. 将所有的Broker的Epoch文件删除，即默认为`~/store/epochFileCheckpoint`和`~/store/epochFileCheckpoint.bak`。
+4. 将原先的主Broker先上线，等待该Broker当选为master。(可使用`admin`命令的`getSyncStateSet`来观察)
+5. 将原来的从Broker全部上线。
+
+> 建议停机时先停从再停主，上线时先上原先的主再上原先的从，这样可以保证原来的主备关系。
+> 若需要改变升级前后主备关系，则需要停机时保证主、备的CommitLog对齐，否则可能导致数据被截断而丢失。

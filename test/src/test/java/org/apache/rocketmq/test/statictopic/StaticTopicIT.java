@@ -21,8 +21,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -196,12 +194,7 @@ public class StaticTopicIT extends BaseConf {
             messagesByQueue.get(messageExt.getQueueId()).add(messageExt);
         }
         for (List<MessageExt> msgEachQueue : messagesByQueue.values()) {
-            Collections.sort(msgEachQueue, new Comparator<MessageExt>() {
-                @Override
-                public int compare(MessageExt o1, MessageExt o2) {
-                    return (int) (o1.getQueueOffset() - o2.getQueueOffset());
-                }
-            });
+            msgEachQueue.sort((o1, o2) -> (int) (o1.getQueueOffset() - o2.getQueueOffset()));
         }
         return messagesByQueue;
     }

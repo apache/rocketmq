@@ -69,7 +69,7 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
         long toTransfer = msg.count();
 
         while (true) {
-            long transferred = msg.transfered();
+            long transferred = msg.transferred();
             if (toTransfer - transferred <= 0) {
                 break;
             }

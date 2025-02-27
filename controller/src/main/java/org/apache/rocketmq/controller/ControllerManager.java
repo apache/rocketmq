@@ -16,23 +16,28 @@
  */
 package org.apache.rocketmq.controller;
 
+import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RunnableFuture;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
-import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.future.FutureTaskExt;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.DLedgerController;
-import org.apache.rocketmq.controller.impl.DefaultBrokerHeartbeatManager;
+import org.apache.rocketmq.controller.impl.JRaftController;
+import org.apache.rocketmq.controller.impl.heartbeat.RaftBrokerHeartBeatManager;
+import org.apache.rocketmq.controller.metrics.ControllerMetricsManager;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -44,10 +49,12 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
+import org.apache.rocketmq.remoting.protocol.body.RoleChangeNotifyEntry;
+import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.NotifyBrokerRoleChangedRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 
@@ -61,9 +68,11 @@ public class ControllerManager {
     private final Configuration configuration;
     private final RemotingClient remotingClient;
     private Controller controller;
-    private BrokerHeartbeatManager heartbeatManager;
+    private final BrokerHeartbeatManager heartbeatManager;
     private ExecutorService controllerRequestExecutor;
     private BlockingQueue<Runnable> controllerRequestThreadPoolQueue;
+    private final NotifyService notifyService;
+    private ControllerMetricsManager controllerMetricsManager;
 
     public ControllerManager(ControllerConfig controllerConfig, NettyServerConfig nettyServerConfig,
         NettyClientConfig nettyClientConfig) {
@@ -74,36 +83,55 @@ public class ControllerManager {
         this.configuration = new Configuration(log, this.controllerConfig, this.nettyServerConfig);
         this.configuration.setStorePathFromConfig(this.controllerConfig, "configStorePath");
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
+        this.heartbeatManager = BrokerHeartbeatManager.newBrokerHeartbeatManager(controllerConfig);
+        this.notifyService = new NotifyService();
     }
 
     public boolean initialize() {
         this.controllerRequestThreadPoolQueue = new LinkedBlockingQueue<>(this.controllerConfig.getControllerRequestThreadPoolQueueCapacity());
-        this.controllerRequestExecutor = new ThreadPoolExecutor(
+        this.controllerRequestExecutor = ThreadUtils.newThreadPoolExecutor(
             this.controllerConfig.getControllerThreadPoolNums(),
             this.controllerConfig.getControllerThreadPoolNums(),
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.controllerRequestThreadPoolQueue,
-            new ThreadFactoryImpl("ControllerRequestExecutorThread_")) {
-            @Override
-            protected <T> RunnableFuture<T> newTaskFor(final Runnable runnable, final T value) {
-                return new FutureTaskExt<>(runnable, value);
+            new ThreadFactoryImpl("ControllerRequestExecutorThread_"));
+
+        this.notifyService.initialize();
+
+        if (controllerConfig.getControllerType().equals(ControllerConfig.JRAFT_CONTROLLER)) {
+            if (StringUtils.isEmpty(this.controllerConfig.getJraftConfig().getjRaftInitConf())) {
+                throw new IllegalArgumentException("Attribute value jRaftInitConf of ControllerConfig is null or empty");
             }
-        };
-        this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
-        if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerPeers())) {
-            throw new IllegalArgumentException("Attribute value controllerDLegerPeers of ControllerConfig is null or empty");
+            if (StringUtils.isEmpty(this.controllerConfig.getJraftConfig().getjRaftServerId())) {
+                throw new IllegalArgumentException("Attribute value jRaftServerId of ControllerConfig is null or empty");
+            }
+            try {
+                this.controller = new JRaftController(controllerConfig, this.brokerHousekeepingService);
+                ((RaftBrokerHeartBeatManager) this.heartbeatManager).setController((JRaftController) this.controller);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerPeers())) {
+                throw new IllegalArgumentException("Attribute value controllerDLegerPeers of ControllerConfig is null or empty");
+            }
+            if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerSelfId())) {
+                throw new IllegalArgumentException("Attribute value controllerDLegerSelfId of ControllerConfig is null or empty");
+            }
+            this.controller = new DLedgerController(this.controllerConfig, this.heartbeatManager::isBrokerActive,
+                this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService,
+                new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo));
         }
-        if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerSelfId())) {
-            throw new IllegalArgumentException("Attribute value controllerDLegerSelfId of ControllerConfig is null or empty");
-        }
-        this.controller = new DLedgerController(this.controllerConfig, this.heartbeatManager::isBrokerActive,
-            this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService,
-            new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo));
+
+        // Initialize the basic resources
+        this.heartbeatManager.initialize();
 
         // Register broker inactive listener
-        this.heartbeatManager.addBrokerLifecycleListener(this::onBrokerInactive);
+        this.heartbeatManager.registerBrokerLifecycleListener(this::onBrokerInactive);
+        this.controller.registerBrokerLifecycleListener(this::onBrokerInactive);
         registerProcessor();
+        this.controllerMetricsManager = ControllerMetricsManager.getInstance(this);
         return true;
     }
 
@@ -112,79 +140,115 @@ public class ControllerManager {
      * something else.
      *
      * @param clusterName The cluster name of this inactive broker
-     * @param brokerName The inactive broker name
-     * @param brokerAddress The inactive broker address(ip)
-     * @param brokerId The inactive broker id
+     * @param brokerName  The inactive broker name
+     * @param brokerId    The inactive broker id, null means that the election forced to be triggered
      */
-    private void onBrokerInactive(String clusterName, String brokerName, String brokerAddress, long brokerId) {
+    private void onBrokerInactive(String clusterName, String brokerName, Long brokerId) {
+        log.info("Controller Manager received broker inactive event, clusterName: {}, brokerName: {}, brokerId: {}",
+            clusterName, brokerName, brokerId);
         if (controller.isLeaderState()) {
-            try {
-                final CompletableFuture<RemotingCommand> replicaInfoFuture = controller.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName, brokerAddress));
-                final RemotingCommand replicaInfoResponse = replicaInfoFuture.get(5, TimeUnit.SECONDS);
-                final GetReplicaInfoResponseHeader replicaInfoResponseHeader = (GetReplicaInfoResponseHeader) replicaInfoResponse.readCustomHeader();
-                // Not master broker offline
-                if (!replicaInfoResponseHeader.getMasterAddress().equals(brokerAddress)) {
-                    log.warn("The {} broker with IP address {} shutdown", brokerName, brokerAddress);
+            if (brokerId == null) {
+                // Means that force triggering election for this broker-set
+                triggerElectMaster(brokerName);
+                return;
+            }
+            final CompletableFuture<RemotingCommand> replicaInfoFuture = controller.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
+            replicaInfoFuture.whenCompleteAsync((replicaInfoResponse, err) -> {
+                if (err != null || replicaInfoResponse == null) {
+                    log.error("Failed to get replica-info for broker-set: {} when OnBrokerInactive", brokerName, err);
                     return;
                 }
-                final CompletableFuture<RemotingCommand> electMasterFuture = controller.electMaster(new ElectMasterRequestHeader(brokerName));
-                final RemotingCommand electMasterResponse = electMasterFuture.get(5, TimeUnit.SECONDS);
-                final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) electMasterResponse.readCustomHeader();
-                if (responseHeader != null) {
-                    log.info("Broker {}'s master {} shutdown, elect a new master done, result:{}", brokerName, brokerAddress, responseHeader);
-                    if (controllerConfig.isNotifyBrokerRoleChanged()) {
-                        notifyBrokerRoleChanged(responseHeader, clusterName);
-                    }
+                final GetReplicaInfoResponseHeader replicaInfoResponseHeader = (GetReplicaInfoResponseHeader) replicaInfoResponse.readCustomHeader();
+                // Not master broker offline
+                if (!brokerId.equals(replicaInfoResponseHeader.getMasterBrokerId())) {
+                    log.warn("The broker with brokerId: {} in broker-set: {} has been inactive", brokerId, brokerName);
+                    return;
+                }
+                // Trigger election
+                triggerElectMaster(brokerName);
+            });
+        } else {
+            log.warn("The broker with brokerId: {} in broker-set: {} has been inactive", brokerId, brokerName);
+        }
+    }
+
+    private CompletableFuture<Boolean> triggerElectMaster0(String brokerName) {
+        final CompletableFuture<RemotingCommand> electMasterFuture = controller.electMaster(ElectMasterRequestHeader.ofControllerTrigger(brokerName));
+        return electMasterFuture.handleAsync((electMasterResponse, err) -> {
+            if (err != null || electMasterResponse == null || electMasterResponse.getCode() != ResponseCode.SUCCESS) {
+                log.error("Failed to trigger elect-master in broker-set: {}", brokerName, err);
+                return false;
+            }
+            if (electMasterResponse.getCode() == ResponseCode.SUCCESS) {
+                log.info("Elect a new master in broker-set: {} done, result: {}", brokerName, electMasterResponse);
+                if (controllerConfig.isNotifyBrokerRoleChanged()) {
+                    notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(electMasterResponse));
+                }
+                return true;
+            }
+            //default is false
+            return false;
+        });
+    }
+
+    private void triggerElectMaster(String brokerName) {
+        int maxRetryCount = controllerConfig.getElectMasterMaxRetryCount();
+        for (int i = 0; i < maxRetryCount; i++) {
+            try {
+                Boolean electResult = triggerElectMaster0(brokerName).get(3, TimeUnit.SECONDS);
+                if (electResult) {
+                    return;
                 }
             } catch (Exception e) {
-                log.error("", e);
+                log.warn("Failed to trigger elect-master in broker-set: {}, retryCount: {}", brokerName, i, e);
             }
-        } else {
-            log.info("The {} broker with IP address {} shutdown", brokerName, brokerAddress);
         }
     }
 
     /**
      * Notify master and all slaves for a broker that the master role changed.
      */
-    public void notifyBrokerRoleChanged(final ElectMasterResponseHeader electMasterResult, final String clusterName) {
-        final BrokerMemberGroup memberGroup = electMasterResult.getBrokerMemberGroup();
+    public void notifyBrokerRoleChanged(final RoleChangeNotifyEntry entry) {
+        final BrokerMemberGroup memberGroup = entry.getBrokerMemberGroup();
         if (memberGroup != null) {
-            // First, inform the master
-            final String master = electMasterResult.getNewMasterAddress();
-            if (StringUtils.isNoneEmpty(master) && this.heartbeatManager.isBrokerActive(clusterName, master)) {
-                doNotifyBrokerRoleChanged(master, MixAll.MASTER_ID, electMasterResult);
+            final Long masterBrokerId = entry.getMasterBrokerId();
+            String clusterName = memberGroup.getCluster();
+            String brokerName = memberGroup.getBrokerName();
+            if (masterBrokerId == null) {
+                log.warn("Notify broker role change failed, because member group is not null but the new master brokerId is empty, entry:{}", entry);
+                return;
             }
-
-            // Then, inform all slaves
-            final Map<Long, String> brokerIdAddrs = memberGroup.getBrokerAddrs();
-            for (Map.Entry<Long, String> broker : brokerIdAddrs.entrySet()) {
-                if (!broker.getValue().equals(master) && this.heartbeatManager.isBrokerActive(clusterName, broker.getValue())) {
-                    doNotifyBrokerRoleChanged(broker.getValue(), broker.getKey(), electMasterResult);
-                }
-            }
-
+            // Inform all active brokers
+            final Map<Long, String> brokerAddrs = memberGroup.getBrokerAddrs();
+            brokerAddrs.entrySet().stream().filter(x -> this.heartbeatManager.isBrokerActive(clusterName, brokerName, x.getKey()))
+                .forEach(x -> this.notifyService.notifyBroker(x.getValue(), entry));
         }
     }
 
-    public void doNotifyBrokerRoleChanged(final String brokerAddr, final Long brokerId,
-        final ElectMasterResponseHeader responseHeader) {
+    /**
+     * Notify broker that there are roles-changing in controller
+     *
+     * @param brokerAddr target broker's address to notify
+     * @param entry      role change entry
+     */
+    public void doNotifyBrokerRoleChanged(final String brokerAddr, final RoleChangeNotifyEntry entry) {
         if (StringUtils.isNoneEmpty(brokerAddr)) {
-            log.info("Try notify broker {} with id {} that role changed, responseHeader:{}", brokerAddr, brokerId, responseHeader);
-            final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(responseHeader.getNewMasterAddress(),
-                responseHeader.getMasterEpoch(), responseHeader.getSyncStateSetEpoch(), brokerId);
+            log.info("Try notify broker {} that role changed, RoleChangeNotifyEntry:{}", brokerAddr, entry);
+            final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(entry.getMasterAddress(), entry.getMasterBrokerId(),
+                entry.getMasterEpoch(), entry.getSyncStateSetEpoch());
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
+            request.setBody(new SyncStateSet(entry.getSyncStateSet(), entry.getSyncStateSetEpoch()).encode());
             try {
                 this.remotingClient.invokeOneway(brokerAddr, request, 3000);
             } catch (final Exception e) {
-                log.error("Failed to notify broker {} with id {} that role changed", brokerAddr, brokerId, e);
+                log.error("Failed to notify broker {} that role changed", brokerAddr, e);
             }
         }
     }
 
     public void registerProcessor() {
         final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this);
-        final RemotingServer controllerRemotingServer = this.controller.getRemotingServer();
+        RemotingServer controllerRemotingServer = this.controller.getRemotingServer();
         assert controllerRemotingServer != null;
         controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
         controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
@@ -196,17 +260,20 @@ public class ControllerManager {
         controllerRemotingServer.registerProcessor(RequestCode.UPDATE_CONTROLLER_CONFIG, controllerRequestProcessor, this.controllerRequestExecutor);
         controllerRemotingServer.registerProcessor(RequestCode.GET_CONTROLLER_CONFIG, controllerRequestProcessor, this.controllerRequestExecutor);
         controllerRemotingServer.registerProcessor(RequestCode.CLEAN_BROKER_DATA, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_GET_NEXT_BROKER_ID, controllerRequestProcessor, this.controllerRequestExecutor);
+        controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_APPLY_BROKER_ID, controllerRequestProcessor, this.controllerRequestExecutor);
     }
 
     public void start() {
-        this.heartbeatManager.start();
         this.controller.startup();
+        this.heartbeatManager.start();
         this.remotingClient.start();
     }
 
     public void shutdown() {
         this.heartbeatManager.shutdown();
         this.controllerRequestExecutor.shutdown();
+        this.notifyService.shutdown();
         this.controller.shutdown();
         this.remotingClient.shutdown();
     }
@@ -237,5 +304,80 @@ public class ControllerManager {
 
     public Configuration getConfiguration() {
         return configuration;
+    }
+
+    class NotifyService {
+        private ExecutorService executorService;
+
+        private Map<String/*brokerAddress*/, NotifyTask/*currentNotifyTask*/> currentNotifyFutures;
+
+        public NotifyService() {
+        }
+
+        public void initialize() {
+            this.executorService = Executors.newFixedThreadPool(3, new ThreadFactoryImpl("ControllerManager_NotifyService_"));
+            this.currentNotifyFutures = new ConcurrentHashMap<>();
+        }
+
+        public void notifyBroker(String brokerAddress, RoleChangeNotifyEntry entry) {
+            int masterEpoch = entry.getMasterEpoch();
+            NotifyTask oldTask = this.currentNotifyFutures.get(brokerAddress);
+            if (oldTask != null && masterEpoch > oldTask.getMasterEpoch()) {
+                // cancel current future
+                Future oldFuture = oldTask.getFuture();
+                if (oldFuture != null && !oldFuture.isDone()) {
+                    oldFuture.cancel(true);
+                }
+            }
+            final NotifyTask task = new NotifyTask(masterEpoch, null);
+            Runnable runnable = () -> {
+                doNotifyBrokerRoleChanged(brokerAddress, entry);
+                this.currentNotifyFutures.remove(brokerAddress, task);
+            };
+            this.currentNotifyFutures.put(brokerAddress, task);
+            Future<?> future = this.executorService.submit(runnable);
+            task.setFuture(future);
+        }
+
+        public void shutdown() {
+            if (!this.executorService.isShutdown()) {
+                this.executorService.shutdownNow();
+            }
+        }
+
+        class NotifyTask extends Pair<Integer/*epochMaster*/, Future/*notifyFuture*/> {
+            public NotifyTask(Integer masterEpoch, Future future) {
+                super(masterEpoch, future);
+            }
+
+            public Integer getMasterEpoch() {
+                return super.getObject1();
+            }
+
+            public Future getFuture() {
+                return super.getObject2();
+            }
+
+            public void setFuture(Future future) {
+                super.setObject2(future);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hashCode(super.getObject1());
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                if (this == obj) {
+                    return true;
+                }
+                if (!(obj instanceof NotifyTask)) {
+                    return false;
+                }
+                NotifyTask task = (NotifyTask) obj;
+                return super.getObject1().equals(task.getObject1());
+            }
+        }
     }
 }

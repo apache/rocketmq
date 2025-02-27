@@ -1,11 +1,235 @@
-name: Snapshot Release Automation
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Snapshot Daily Release Automation
 on:
   schedule: # schedule the job to run at 12 a.m. daily
     - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'The branch to trigger the workflow, The default branch is "develop" when both branch and commit_id are empty'
+        required: false
+      commit_id:
+        description: 'The commit id to trigger the workflow. Do not set branch and commit_id together'
+        required: false
+      rocketmq_version:
+        description: 'Name of the SNAPSHOT version to be generated. The default version is "$VERSION-stable-SNAPSHOT"'
+        required: false
+
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+  DOCKER_REPO: apache/rocketmq-ci
 
 jobs:
+  dist-tar:
+    if: github.repository == 'apache/rocketmq'
+    name: Build dist tar
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout develop
+        if: github.event.inputs.branch == '' && github.event.inputs.commit_id == ''
+        uses: actions/checkout@v3
+        with:
+          ref: develop
+
+      - name: Checkout specific commit
+        if: github.event.inputs.branch == '' && github.event.inputs.commit_id != ''
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.commit_id }}
+
+      - name: Checkout specific branch
+        if: github.event.inputs.branch != '' && github.event.inputs.commit_id == ''
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "corretto"
+          java-version: "8"
+          cache: "maven"
+      - name: Build distribution tar
+        env:
+          MAVEN_SETTINGS: ${{ github.workspace }}/.github/asf-deploy-settings.xml
+        run: |
+          mvn -Prelease-all -DskipTests -Dspotbugs.skip=true clean install -U
+      - uses: actions/upload-artifact@v4
+        name: Upload distribution tar
+        with:
+          name: rocketmq
+          path: distribution/target/rocketmq*/rocketmq*
+
+  docker-build:
+    if: ${{ success() }}
+    name: Docker images
+    needs: [ dist-tar ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        base-image: [ "ubuntu" ]
+        java-version: [ "8" ]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: apache/rocketmq-docker.git
+          ref: master
+          path: rocketmq-docker
+      - uses: actions/download-artifact@v4
+        name: Download distribution tar
+        with:
+          name: rocketmq
+          path: rocketmq
+      - name: docker-login
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and save docker images
+        id: build-images
+        run: |
+          cd rocketmq-docker/image-build-ci
+          version=${{ github.event.pull_request.number || github.ref_name }}-$(uuidgen)
+          mkdir versionlist
+          touch versionlist/"${version}-`echo ${{ matrix.base-image }} | sed -e "s/:/-/g"`"
+          sh ./build-image-local.sh ${version} ${{ matrix.base-image }} ${{ matrix.java-version }} ${DOCKER_REPO}
+      - uses: actions/upload-artifact@v4
+        name: Upload distribution tar
+        with:
+          name: versionlist
+          path: rocketmq-docker/image-build-ci/versionlist/*
+
+  list-version:
+    if: >
+      github.repository == 'apache/rocketmq' && 
+      always()
+    name: List version
+    needs: [ docker-build ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version-json: ${{ steps.show_versions.outputs.version-json }}
+    steps:
+      - uses: actions/download-artifact@v4
+        name: Download versionlist
+        with:
+          name: versionlist
+          path: versionlist
+      - name: Show versions
+        id: show_versions
+        run: |
+          a=(`ls versionlist`)
+          printf '%s\n' "${a[@]}" | jq -R . | jq -s .
+          echo version-json=`printf '%s\n' "${a[@]}" | jq -R . | jq -s .` >> $GITHUB_OUTPUT
+
+  deploy-rocketmq:
+    if: ${{ success() }}
+    name: Deploy RocketMQ
+    needs: [ list-version,docker-build ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        version: ${{ fromJSON(needs.list-version.outputs.version-json) }}
+    steps:
+      - uses: apache/rocketmq-test-tool@1a646589accad17070423eabf0f54925e52b0666
+        name: Deploy rocketmq
+        with:
+          action: "deploy"
+          ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
+          test-version: "${{ matrix.version }}"
+          chart-git: "https://github.com/apache/rocketmq-docker.git"
+          chart-branch: "master"
+          chart-path: "./rocketmq-k8s-helm"
+          job-id: ${{ strategy.job-index }}
+          helm-values: |
+            nameserver:
+              image:
+                repository: ${{env.DOCKER_REPO}}
+                tag: ${{ matrix.version }}
+            broker:
+              image:
+                repository: ${{env.DOCKER_REPO}}
+                tag: ${{ matrix.version }}
+            proxy:
+              image:
+                repository: ${{env.DOCKER_REPO}}
+                tag: ${{ matrix.version }}
+
+  java-grpc-e2e-test:
+    if: ${{ success() }}
+    name: E2E Test
+    needs: [ list-version, deploy-rocketmq ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        version: ${{ fromJSON(needs.list-version.outputs.version-json) }}
+    steps:
+      - uses: apache/rocketmq-test-tool@1a646589accad17070423eabf0f54925e52b0666
+        name: e2e test
+        with:
+          action: "test"
+          ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
+          test-version: "${{ matrix.version }}"
+          test-code-git: "https://github.com/apache/rocketmq-e2e.git"
+          test-code-branch: "master"
+          test-code-path: java/e2e
+          test-cmd: "mvn -B test"
+          job-id: ${{ strategy.job-index }}
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v3
+        if: always() # always run even if the previous step fails
+        with:
+          report_paths: '**/test_report/TEST-*.xml'
+          annotate_only: true
+          include_passed: true
+          detailed_summary: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        name: Upload test log
+        with:
+          name: testlog.txt
+          path: testlog.txt
+
+  clean:
+    if: always()
+    name: Clean
+    needs: [ list-version, java-grpc-e2e-test ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        version: ${{ fromJSON(needs.list-version.outputs.version-json) }}
+    steps:
+      - uses: apache/rocketmq-test-tool@1a646589accad17070423eabf0f54925e52b0666
+        name: clean
+        with:
+          action: "clean"
+          ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
+          test-version: "${{ matrix.version }}"
+          job-id: ${{ strategy.job-index }}
+
   snapshot:
     runs-on: ubuntu-latest
+    needs: [ java-grpc-e2e-test ]
     env:
       NEXUS_DEPLOY_USERNAME: ${{ secrets.NEXUS_USER }}
       NEXUS_DEPLOY_PASSWORD: ${{ secrets.NEXUS_PW }}
@@ -16,11 +240,22 @@ jobs:
           ref: develop
           persist-credentials: false
       - name: Set up JDK
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
           java-version: 8
-          distribution: "adopt"
+          distribution: "corretto"
           cache: "maven"
+      - name: Update default pom version
+        if: github.event.inputs.rocketmq_version == ''
+        run: |
+          VERSION=$(mvn -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec)
+          VERSION=$(echo $VERSION | awk -F '-SNAPSHOT' '{print $1}')
+          VERSION=$VERSION-stable-SNAPSHOT
+          mvn versions:set -DnewVersion=$VERSION
+      - name: Update User-defined pom version
+        if: github.event.inputs.rocketmq_version != ''
+        run: |
+          mvn versions:set -DnewVersion=${{ github.event.inputs.rocketmq_version }}
       - name: Deploy to ASF Snapshots Repository
         timeout-minutes: 40
         run: mvn clean deploy -DskipTests=true --settings .github/asf-deploy-settings.xml

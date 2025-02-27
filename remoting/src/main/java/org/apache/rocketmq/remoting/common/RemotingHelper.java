@@ -22,10 +22,16 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -33,17 +39,60 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.netty.AttributeKeys;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 public class RemotingHelper {
-    public static final String ROCKETMQ_TRAFFIC = "RocketmqTraffic";
-    public static final String ROCKETMQ_REMOTING = "RocketmqRemoting";
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final String DEFAULT_CIDR_ALL = "0.0.0.0/0";
 
-    private static final Logger log = LoggerFactory.getLogger(ROCKETMQ_REMOTING);
-    private static final AttributeKey<String> REMOTE_ADDR_KEY = AttributeKey.valueOf("RemoteAddr");
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
+
+    public static final Map<Integer, String> REQUEST_CODE_MAP = new HashMap<Integer, String>() {
+        {
+            try {
+                Field[] f = RequestCode.class.getFields();
+                for (Field field : f) {
+                    if (field.getType() == int.class) {
+                        put((int) field.get(null), field.getName().toLowerCase());
+                    }
+                }
+            } catch (IllegalAccessException ignore) {
+            }
+        }
+    };
+
+    public static final Map<Integer, String> RESPONSE_CODE_MAP = new HashMap<Integer, String>() {
+        {
+            try {
+                Field[] f = ResponseCode.class.getFields();
+                for (Field field : f) {
+                    if (field.getType() == int.class) {
+                        put((int) field.get(null), field.getName().toLowerCase());
+                    }
+                }
+            } catch (IllegalAccessException ignore) {
+            }
+        }
+    };
+
+    public static <T> T getAttributeValue(AttributeKey<T> key, final Channel channel) {
+        if (channel.hasAttr(key)) {
+            Attribute<T> attribute = channel.attr(key);
+            return attribute.get();
+        }
+        return null;
+    }
+
+    public static <T> void setPropertyToAttr(final Channel channel, AttributeKey<T> attributeKey, T value) {
+        if (channel == null) {
+            return;
+        }
+        channel.attr(attributeKey).set(value);
+    }
 
     public static SocketAddress string2SocketAddress(final String addr) {
         int split = addr.lastIndexOf(":");
@@ -149,12 +198,16 @@ public class RemotingHelper {
         if (null == channel) {
             return "";
         }
-        Attribute<String> att = channel.attr(REMOTE_ADDR_KEY);
+        String addr = getProxyProtocolAddress(channel);
+        if (StringUtils.isNotBlank(addr)) {
+            return addr;
+        }
+        Attribute<String> att = channel.attr(AttributeKeys.REMOTE_ADDR_KEY);
         if (att == null) {
             // mocked in unit test
             return parseChannelRemoteAddr0(channel);
         }
-        String addr = att.get();
+        addr = att.get();
         if (addr == null) {
             addr = parseChannelRemoteAddr0(channel);
             att.set(addr);
@@ -162,8 +215,36 @@ public class RemotingHelper {
         return addr;
     }
 
+    private static String getProxyProtocolAddress(Channel channel) {
+        if (!channel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
+            return null;
+        }
+        String proxyProtocolAddr = getAttributeValue(AttributeKeys.PROXY_PROTOCOL_ADDR, channel);
+        String proxyProtocolPort = getAttributeValue(AttributeKeys.PROXY_PROTOCOL_PORT, channel);
+        if (StringUtils.isBlank(proxyProtocolAddr) || proxyProtocolPort == null) {
+            return null;
+        }
+        return proxyProtocolAddr + ":" + proxyProtocolPort;
+    }
+
     private static String parseChannelRemoteAddr0(final Channel channel) {
         SocketAddress remote = channel.remoteAddress();
+        final String addr = remote != null ? remote.toString() : "";
+
+        if (addr.length() > 0) {
+            int index = addr.lastIndexOf("/");
+            if (index >= 0) {
+                return addr.substring(index + 1);
+            }
+
+            return addr;
+        }
+
+        return "";
+    }
+
+    public static String parseChannelLocalAddr(final Channel channel) {
+        SocketAddress remote = channel.localAddress();
         final String addr = remote != null ? remote.toString() : "";
 
         if (addr.length() > 0) {
@@ -201,13 +282,12 @@ public class RemotingHelper {
         return "";
     }
 
-    public static int parseSocketAddressPort(SocketAddress socketAddress) {
+    public static Integer parseSocketAddressPort(SocketAddress socketAddress) {
         if (socketAddress instanceof InetSocketAddress) {
             return ((InetSocketAddress) socketAddress).getPort();
         }
         return -1;
     }
-
 
     public static int ipToInt(String ip) {
         String[] ips = ip.split("\\.");
@@ -273,5 +353,25 @@ public class RemotingHelper {
                 }
             });
         }
+    }
+
+    public static CompletableFuture<Void> convertChannelFutureToCompletableFuture(ChannelFuture channelFuture) {
+        CompletableFuture<Void> completableFuture = new CompletableFuture<>();
+        channelFuture.addListener((ChannelFutureListener) future -> {
+            if (future.isSuccess()) {
+                completableFuture.complete(null);
+            } else {
+                completableFuture.completeExceptionally(new RemotingConnectException(channelFuture.channel().remoteAddress().toString(), future.cause()));
+            }
+        });
+        return completableFuture;
+    }
+
+    public static String getRequestCodeDesc(int code) {
+        return REQUEST_CODE_MAP.getOrDefault(code, String.valueOf(code));
+    }
+
+    public static String getResponseCodeDesc(int code) {
+        return RESPONSE_CODE_MAP.getOrDefault(code, String.valueOf(code));
     }
 }

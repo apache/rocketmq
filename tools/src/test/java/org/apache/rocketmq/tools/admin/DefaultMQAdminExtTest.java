@@ -456,7 +456,7 @@ public class DefaultMQAdminExtTest {
         connection.setConnectionSet(connections);
         when(mQClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(connection);
         ConsumeStats consumeStats = new ConsumeStats();
-        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), isNull(), anyLong())).thenReturn(consumeStats);
+        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), (String) isNull(), anyLong())).thenReturn(consumeStats);
         List<MessageTrack> broadcastMessageTracks = defaultMQAdminExt.messageTrackDetail(messageExt);
         assertThat(broadcastMessageTracks.size()).isEqualTo(2);
         assertThat(broadcastMessageTracks.get(0).getTrackType()).isEqualTo(TrackType.CONSUME_BROADCASTING);
@@ -510,6 +510,36 @@ public class DefaultMQAdminExtTest {
     public void testSearchOffset() throws Exception {
         when(mQClientAPIImpl.searchOffset(anyString(), any(MessageQueue.class), anyLong(), anyLong())).thenReturn(101L);
         assertThat(defaultMQAdminExt.searchOffset(new MessageQueue(TOPIC1, BROKER1_NAME, 0), System.currentTimeMillis())).isEqualTo(101L);
+    }
+
+    @Test
+    public void testSearchOffsetWithSpecificBoundaryType() throws Exception {
+        // do mock
+        DefaultMQAdminExt mockDefaultMQAdminExt = mock(DefaultMQAdminExt.class);
+        when(mockDefaultMQAdminExt.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mockDefaultMQAdminExt.maxOffset(any(MessageQueue.class))).thenReturn(101L);
+        when(mockDefaultMQAdminExt.searchLowerBoundaryOffset(any(MessageQueue.class), anyLong())).thenReturn(0L);
+        when(mockDefaultMQAdminExt.searchUpperBoundaryOffset(any(MessageQueue.class), anyLong())).thenReturn(100L);
+        when(mockDefaultMQAdminExt.queryConsumeTimeSpan(anyString(), anyString())).thenReturn(mockQueryConsumeTimeSpan());
+
+        for (QueueTimeSpan timeSpan: mockDefaultMQAdminExt.queryConsumeTimeSpan(TOPIC1, "group_one")) {
+            MessageQueue mq = timeSpan.getMessageQueue();
+            long maxOffset = mockDefaultMQAdminExt.maxOffset(mq);
+            long minOffset = mockDefaultMQAdminExt.minOffset(mq);
+            // if there is at least one message in queue, the maxOffset returns the queue's latest offset + 1
+            assertThat((maxOffset == 0 ? 0 : maxOffset - 1) == mockDefaultMQAdminExt.searchUpperBoundaryOffset(mq, timeSpan.getMaxTimeStamp())).isTrue();
+            assertThat(minOffset == mockDefaultMQAdminExt.searchLowerBoundaryOffset(mq, timeSpan.getMinTimeStamp())).isTrue();
+        }
+    }
+
+    private List<QueueTimeSpan> mockQueryConsumeTimeSpan() {
+        List<QueueTimeSpan> spanSet = new ArrayList<>();
+        QueueTimeSpan timeSpan = new QueueTimeSpan();
+        timeSpan.setMessageQueue(new MessageQueue(TOPIC1, BROKER1_NAME, 0));
+        timeSpan.setMinTimeStamp(1690421253000L);
+        timeSpan.setMaxTimeStamp(1690507653000L);
+        spanSet.add(timeSpan);
+        return spanSet;
     }
 
     @Test

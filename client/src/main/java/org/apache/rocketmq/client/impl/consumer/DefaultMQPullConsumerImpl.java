@@ -54,6 +54,8 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -63,8 +65,6 @@ import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
  * This class will be removed in 2022, and a better implementation {@link DefaultLitePullConsumerImpl} is recommend to use
@@ -278,6 +278,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.executeHookBefore(consumeMessageContext);
             consumeMessageContext.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
             consumeMessageContext.setSuccess(true);
+            consumeMessageContext.setAccessChannel(defaultMQPullConsumer.getAccessChannel());
             this.executeHookAfter(consumeMessageContext);
         }
         return pullResult;
@@ -289,12 +290,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
 
         //If namespace not null , reset Topic without namespace.
-        for (MessageExt messageExt : msgList) {
-            if (null != this.getDefaultMQPullConsumer().getNamespace()) {
-                messageExt.setTopic(NamespaceUtil.withoutNamespace(messageExt.getTopic(), this.defaultMQPullConsumer.getNamespace()));
+        String namespace = this.getDefaultMQPullConsumer().getNamespace();
+        if (namespace != null) {
+            for (MessageExt messageExt : msgList) {
+                messageExt.setTopic(NamespaceUtil.withoutNamespace(messageExt.getTopic(), namespace));
             }
         }
-
     }
 
     public void subscriptionAutomatically(final String topic) {
@@ -355,6 +356,11 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     @Override
     public Set<SubscriptionData> subscriptions() {
+        Set<SubscriptionData> registerSubscriptions = defaultMQPullConsumer.getRegisterSubscriptions();
+        if (registerSubscriptions != null && !registerSubscriptions.isEmpty()) {
+            return registerSubscriptions;
+        }
+
         Set<SubscriptionData> result = new HashSet<>();
 
         Set<String> topics = this.defaultMQPullConsumer.getRegisterTopics();
@@ -380,9 +386,24 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     @Override
     public void doRebalance() {
+        if (!defaultMQPullConsumer.isEnableRebalance()) {
+            return;
+        }
         if (this.rebalanceImpl != null) {
             this.rebalanceImpl.doRebalance(false);
         }
+    }
+
+    @Override
+    public boolean tryRebalance() {
+        if (!defaultMQPullConsumer.isEnableRebalance()) {
+            return true;
+        }
+
+        if (this.rebalanceImpl != null) {
+            return this.rebalanceImpl.doRebalance(false);
+        }
+        return false;
     }
 
     @Override
@@ -580,6 +601,21 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.getDefaultMQPullConsumer().getConsumerPullTimeoutMillis());
     }
 
+    public void pullBlockIfNotFoundWithMessageSelector(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums,
+        PullCallback pullCallback)
+        throws MQClientException, RemotingException, InterruptedException {
+        SubscriptionData subscriptionData = getSubscriptionData(mq, messageSelector);
+        this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, pullCallback, true,
+            this.getDefaultMQPullConsumer().getConsumerPullTimeoutMillis());
+    }
+
+    public PullResult pullBlockIfNotFoundWithMessageSelector(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums)
+        throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
+        SubscriptionData subscriptionData = getSubscriptionData(mq, messageSelector);
+        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, this.getDefaultMQPullConsumer().getConsumerPullTimeoutMillis());
+    }
+
+
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
         this.isRunning();
@@ -617,6 +653,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             }
             String brokerAddr = (null != destBrokerName) ? this.mQClientFactory.findBrokerAddressInPublish(destBrokerName)
                 : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
+
+            if (UtilAll.isBlank(brokerAddr)) {
+                throw new MQClientException("Broker[" + destBrokerName + "] master node does not exist", null);
+            }
 
             if (UtilAll.isBlank(consumerGroup)) {
                 consumerGroup = this.defaultMQPullConsumer.getConsumerGroup();
@@ -795,10 +835,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.offsetStore.updateOffset(mq, offset, false);
     }
 
-    public MessageExt viewMessage(String msgId)
+    public MessageExt viewMessage(String topic, String msgId)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.isRunning();
-        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
+        return this.mQClientFactory.getMQAdminImpl().viewMessage(topic, msgId);
     }
 
     public void registerFilterMessageHook(final FilterMessageHook hook) {

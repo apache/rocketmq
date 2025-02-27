@@ -27,6 +27,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -77,6 +78,39 @@ public class ProducerManagerTest {
         assertThat(groupRef.get()).isEqualTo(group);
         assertThat(clientChannelInfoRef.get()).isSameAs(clientInfo);
         assertThat(producerManager.findChannel("clientId")).isNull();
+    }
+
+    @Test
+    public void scanNotActiveChannelWithSameClientId() throws Exception {
+        producerManager.registerProducer(group, clientInfo);
+        Channel channel1 = Mockito.mock(Channel.class);
+        ClientChannelInfo clientInfo1 = new ClientChannelInfo(channel1, clientInfo.getClientId(), LanguageCode.JAVA, 0);
+        producerManager.registerProducer(group, clientInfo1);
+        AtomicReference<String> groupRef = new AtomicReference<>();
+        AtomicReference<ClientChannelInfo> clientChannelInfoRef = new AtomicReference<>();
+        producerManager.appendProducerChangeListener((event, group, clientChannelInfo) -> {
+            switch (event) {
+                case GROUP_UNREGISTER:
+                    groupRef.set(group);
+                    break;
+                case CLIENT_UNREGISTER:
+                    clientChannelInfoRef.set(clientChannelInfo);
+                    break;
+                default:
+                    break;
+            }
+        });
+        assertThat(producerManager.getGroupChannelTable().get(group).get(channel)).isNotNull();
+        assertThat(producerManager.getGroupChannelTable().get(group).get(channel1)).isNotNull();
+        assertThat(producerManager.findChannel("clientId")).isNotNull();
+        Field field = ProducerManager.class.getDeclaredField("CHANNEL_EXPIRED_TIMEOUT");
+        field.setAccessible(true);
+        long channelExpiredTimeout = field.getLong(producerManager);
+        clientInfo.setLastUpdateTimestamp(System.currentTimeMillis() - channelExpiredTimeout - 10);
+        when(channel.close()).thenReturn(mock(ChannelFuture.class));
+        producerManager.scanNotActiveChannel();
+        assertThat(producerManager.getGroupChannelTable().get(group).get(channel1)).isNotNull();
+        assertThat(producerManager.findChannel("clientId")).isNotNull();
     }
 
     @Test

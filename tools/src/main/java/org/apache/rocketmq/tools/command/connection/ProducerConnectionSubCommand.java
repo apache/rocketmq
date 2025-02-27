@@ -36,7 +36,7 @@ public class ProducerConnectionSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Query producer's socket connection and client version";
+        return "Query producer's socket connection and client version.";
     }
 
     @Override

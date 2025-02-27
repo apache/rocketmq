@@ -17,7 +17,9 @@
 package org.apache.rocketmq.proxy.service;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.RemotingClient;
 
 public class ServiceManagerFactory {
     public static ServiceManager createForLocalMode(BrokerController brokerController) {
@@ -29,10 +31,14 @@ public class ServiceManagerFactory {
     }
 
     public static ServiceManager createForClusterMode() {
-        return createForClusterMode(null);
+        return createForClusterMode(null, null);
     }
 
     public static ServiceManager createForClusterMode(RPCHook rpcHook) {
-        return new ClusterServiceManager(rpcHook);
+        return createForClusterMode(rpcHook, null);
+    }
+
+    public static ServiceManager createForClusterMode(RPCHook rpcHook, ObjectCreator<RemotingClient> remotingClientCreator) {
+        return new ClusterServiceManager(rpcHook, remotingClientCreator);
     }
 }

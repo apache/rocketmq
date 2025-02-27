@@ -44,6 +44,7 @@ import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -100,7 +101,7 @@ public class RouteActivityTest extends BaseActivityTest {
             .thenReturn(createProxyTopicRouteData(2, 2, 6));
         MetadataService metadataService = Mockito.mock(LocalMetadataService.class);
         when(this.messagingProcessor.getMetadataService()).thenReturn(metadataService);
-        when(metadataService.getTopicMessageType(anyString())).thenReturn(TopicMessageType.NORMAL);
+        when(metadataService.getTopicMessageType(any(), anyString())).thenReturn(TopicMessageType.NORMAL);
 
         QueryRouteResponse response = this.routeActivity.queryRoute(
             createContext(),
@@ -191,6 +192,28 @@ public class RouteActivityTest extends BaseActivityTest {
         assertEquals(grpcEndpoints, response.getAssignments(0).getMessageQueue().getBroker().getEndpoints());
     }
 
+    @Test
+    public void testQueryFifoAssignment() throws Throwable {
+        when(this.messagingProcessor.getTopicRouteDataForProxy(any(), any(), anyString()))
+            .thenReturn(createProxyTopicRouteData(2, 2, 6));
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setConsumeMessageOrderly(true);
+        when(this.messagingProcessor.getSubscriptionGroupConfig(any(), anyString())).thenReturn(subscriptionGroupConfig);
+
+        QueryAssignmentResponse response = this.routeActivity.queryAssignment(
+            createContext(),
+            QueryAssignmentRequest.newBuilder()
+                .setEndpoints(grpcEndpoints)
+                .setTopic(GRPC_TOPIC)
+                .setGroup(GRPC_GROUP)
+                .build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertEquals(2, response.getAssignmentsCount());
+        assertEquals(grpcEndpoints, response.getAssignments(0).getMessageQueue().getBroker().getEndpoints());
+    }
+
     private static ProxyTopicRouteData createProxyTopicRouteData(int r, int w, int p) {
         ProxyTopicRouteData proxyTopicRouteData = new ProxyTopicRouteData();
         proxyTopicRouteData.getQueueDatas().add(createQueueData(r, w, p));
@@ -249,6 +272,26 @@ public class RouteActivityTest extends BaseActivityTest {
         assertEquals(4, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
         assertEquals(4, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
         assertEquals(0, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count());
+
+        // test queueData with 2 read queues, 2 write queues, and no permission, expect 2 no permission queues.
+        QueueData queueDataWith2R2WNoPerm = createQueueData(2, 2, 0);
+        List<MessageQueue> partitionWith2R2WNoPerm = this.routeActivity.genMessageQueueFromQueueData(queueDataWith2R2WNoPerm, GRPC_TOPIC, TopicMessageType.UNSPECIFIED, GRPC_BROKER);
+        assertEquals(2, partitionWith2R2WNoPerm.size());
+        assertEquals(2, partitionWith2R2WNoPerm.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.MESSAGE_TYPE_UNSPECIFIED.getNumber()).count());
+        assertEquals(2, partitionWith2R2WNoPerm.stream().filter(a -> a.getPermission() == Permission.NONE).count());
+        assertEquals(0, partitionWith2R2WNoPerm.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
+        assertEquals(0, partitionWith2R2WNoPerm.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
+        assertEquals(0, partitionWith2R2WNoPerm.stream().filter(a -> a.getPermission() == Permission.READ).count());
+
+        // test queueData with 0 read queues, 0 write queues, and no permission, expect 1 no permission queue.
+        QueueData queueDataWith0R0WNoPerm = createQueueData(0, 0, 0);
+        List<MessageQueue> partitionWith0R0WNoPerm = this.routeActivity.genMessageQueueFromQueueData(queueDataWith0R0WNoPerm, GRPC_TOPIC, TopicMessageType.UNSPECIFIED, GRPC_BROKER);
+        assertEquals(1, partitionWith0R0WNoPerm.size());
+        assertEquals(1, partitionWith0R0WNoPerm.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.MESSAGE_TYPE_UNSPECIFIED.getNumber()).count());
+        assertEquals(1, partitionWith0R0WNoPerm.stream().filter(a -> a.getPermission() == Permission.NONE).count());
+        assertEquals(0, partitionWith0R0WNoPerm.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
+        assertEquals(0, partitionWith0R0WNoPerm.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
+        assertEquals(0, partitionWith0R0WNoPerm.stream().filter(a -> a.getPermission() == Permission.READ).count());
     }
 
     private static QueueData createQueueData(int r, int w, int perm) {

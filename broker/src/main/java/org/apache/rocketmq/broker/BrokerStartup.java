@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -27,6 +28,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -86,7 +88,9 @@ public class BrokerStartup {
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         final NettyClientConfig nettyClientConfig = new NettyClientConfig();
         final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        final AuthConfig authConfig = new AuthConfig();
         nettyServerConfig.setListenPort(10911);
+        messageStoreConfig.setHaListenPort(0);
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine(
@@ -111,6 +115,7 @@ public class BrokerStartup {
             MixAll.properties2Object(properties, nettyServerConfig);
             MixAll.properties2Object(properties, nettyClientConfig);
             MixAll.properties2Object(properties, messageStoreConfig);
+            MixAll.properties2Object(properties, authConfig);
         }
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
@@ -161,7 +166,16 @@ public class BrokerStartup {
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             brokerConfig.setBrokerId(-1);
         }
-        messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
+
+        if (brokerConfig.isEnableControllerMode() && messageStoreConfig.isEnableDLegerCommitLog()) {
+            System.out.printf("The config enableControllerMode and enableDLegerCommitLog cannot both be true.%n");
+            System.exit(-4);
+        }
+
+        if (messageStoreConfig.getHaListenPort() <= 0) {
+            messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
+        }
+
         brokerConfig.setInBrokerContainer(false);
 
         System.setProperty("brokerLogDir", "");
@@ -194,8 +208,12 @@ public class BrokerStartup {
         MixAll.printObjectProperties(log, nettyClientConfig);
         MixAll.printObjectProperties(log, messageStoreConfig);
 
+        authConfig.setConfigName(brokerConfig.getBrokerName());
+        authConfig.setClusterName(brokerConfig.getBrokerClusterName());
+        authConfig.setAuthConfigPath(messageStoreConfig.getStorePathRootDir() + File.separator + "config");
+
         final BrokerController controller = new BrokerController(
-            brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig);
+            brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig, authConfig);
 
         // Remember all configs to prevent discard
         controller.getConfiguration().registerConfig(properties);

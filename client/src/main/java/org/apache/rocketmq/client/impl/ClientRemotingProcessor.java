@@ -208,7 +208,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             (ConsumeMessageDirectlyResultRequestHeader) request
                 .decodeCommandCustomHeader(ConsumeMessageDirectlyResultRequestHeader.class);
 
-        final MessageExt msg = MessageDecoder.decode(ByteBuffer.wrap(request.getBody()));
+        final MessageExt msg = MessageDecoder.clientDecode(ByteBuffer.wrap(request.getBody()), true);
 
         ConsumeMessageDirectlyResult result =
             this.mqClientFactory.consumeMessageDirectly(msg, requestHeader.getConsumerGroup(), requestHeader.getBrokerName());
@@ -288,8 +288,8 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             }
         } else {
             String bornHost = replyMsg.getBornHostString();
-            logger.warn(String.format("receive reply message, but not matched any request, CorrelationId: %s , reply from host: %s",
-                correlationId, bornHost));
+            logger.warn("receive reply message, but not matched any request, CorrelationId: {} , reply from host: {}",
+                correlationId, bornHost);
         }
     }
 }

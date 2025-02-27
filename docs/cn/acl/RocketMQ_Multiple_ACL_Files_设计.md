@@ -38,7 +38,7 @@ dataVersionMap是个Map类型，用来缓存所有ACL配置文件的DataVersion�
 ### 4.1 加载ACL配置文件
 - load()
 
-load()方法会获取"RocketMQ安装目录/conf"目录（包括该目录的子目录）和"rocketmq.acl.plain.file"下所有ACL配置文件，然后遍历这些文件读取权限数据和全局白名单。
+load()方法会获取"RocketMQ安装目录/conf/acl"目录（包括该目录的子目录）和"rocketmq.acl.plain.file"下所有ACL配置文件，然后遍历这些文件读取权限数据和全局白名单。
 - load(String aclFilePath)
 
 load(String aclFilePath)方法完成加载指定ACL配置文件内容的功能，将配置文件中的全局白名单globalWhiteRemoteAddresses和用户权限accounts加载到缓存中，
@@ -48,7 +48,7 @@ load(String aclFilePath)方法完成加载指定ACL配置文件内容的功能�
 
 （2）相同的accessKey只允许存在在一个ACL配置文件中
 ### 4.2 监控ACL配置文件
-watch()方法用来监控"RocketMQ安装目录/conf"目录下所有ACL配置文件和"rocketmq.acl.plain.file"是否发生变化，变化考虑两种情况：一种是ACL配置文件的数量发生变化，
+watch()方法用来监控"RocketMQ安装目录/conf/acl"目录下所有ACL配置文件和"rocketmq.acl.plain.file"是否发生变化，变化考虑两种情况：一种是ACL配置文件的数量发生变化，
 此时会调用load()方法重新加载所有配置文件的数据；一种是配置文件的内容发生变化；具体完成监控ACL配置文件变化的是AclFileWatchService服务，
 该服务是一个线程，当启动该服务后它会以WATCH_INTERVAL（该参数目前设置为5秒，目前还不能在Broker配置文件中设置）的时间间隔来执行其核心逻辑。在该服务中会记录其监控的ACL配置文件目录aclPath、
 ACL配置文件的数量aclFilesNum、所有ACL配置文件绝对路径fileList以及每个ACL配置文件最近一次修改的时间fileLastModifiedTime
@@ -69,9 +69,9 @@ ACL配置文件的数量aclFilesNum、所有ACL配置文件绝对路径fileList�
 再根据该路径更新aclPlainAccessResourceMap中缓存的数据，最后将该ACL配置文件中的数据写回原文件；如果不包含则会将数据写到"rocketmq.acl.plain.file"配置文件中，
 然后更新accessKeyTable和aclPlainAccessResourceMap，最后最后将该ACL配置文件中的数据写回原文件。
 
-（3）deleteAccessConfig(String accesskey)
+（3）deleteAccessConfig(String accessKey)
 
-将该方法原有的逻辑修改为：判断accessKeyTable中是否存在accesskey，如果不存在则返回false，否则将其删除并将修改后的数据写回原文件。
+将该方法原有的逻辑修改为：判断accessKeyTable中是否存在accessKey，如果不存在则返回false，否则将其删除并将修改后的数据写回原文件。
 
 （4）getAllAclConfig()
 
@@ -122,7 +122,7 @@ key表示各ACL配置文件的绝对路径，value表示对应配置文件的版
 由于PlainAccessValidator实现了AccessValidator接口，所以相应地增加了getAllAclConfigVersion()方法
 
 # 后续扩展性考虑
-1.目前的修改只支持ACL配置文件存储在"RocketMQ安装目录/conf"目录下，后续可以考虑支持多目录；
+1.目前的修改只支持ACL配置文件存储在"RocketMQ安装目录/conf/acl"目录下，后续可以考虑支持多目录；
 
 2.目前ACL配置文件路径是不支持让用户指定，后续可以考虑让用户指定指定ACL配置文件的存储路径
 

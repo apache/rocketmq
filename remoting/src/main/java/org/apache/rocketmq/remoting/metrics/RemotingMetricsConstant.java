@@ -16,15 +16,8 @@
  */
 package org.apache.rocketmq.remoting.metrics;
 
-import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.rocketmq.remoting.protocol.RequestCode;
-import org.apache.rocketmq.remoting.protocol.ResponseCode;
-
 public class RemotingMetricsConstant {
     public static final String HISTOGRAM_RPC_LATENCY = "rocketmq_rpc_latency";
-
     public static final String LABEL_PROTOCOL_TYPE = "protocol_type";
     public static final String LABEL_REQUEST_CODE = "request_code";
     public static final String LABEL_RESPONSE_CODE = "response_code";
@@ -39,31 +32,4 @@ public class RemotingMetricsConstant {
     public static final String RESULT_PROCESS_REQUEST_FAILED = "process_request_failed";
     public static final String RESULT_WRITE_CHANNEL_FAILED = "write_channel_failed";
 
-    public static final Map<Integer, String> REQUEST_CODE_MAP = new HashMap<Integer, String>() {
-        {
-            try {
-                Field[] f = RequestCode.class.getFields();
-                for (Field field : f) {
-                    if (field.getType() == int.class) {
-                        put((int) field.get(null), field.getName().toLowerCase());
-                    }
-                }
-            } catch (IllegalAccessException ignore) {
-            }
-        }
-    };
-
-    public static final Map<Integer, String> RESPONSE_CODE_MAP = new HashMap<Integer, String>() {
-        {
-            try {
-                Field[] f = ResponseCode.class.getFields();
-                for (Field field : f) {
-                    if (field.getType() == int.class) {
-                        put((int) field.get(null), field.getName().toLowerCase());
-                    }
-                }
-            } catch (IllegalAccessException ignore) {
-            }
-        }
-    };
 }

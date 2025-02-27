@@ -645,7 +645,7 @@ RocketMQ只定义了一些基本语法来支持这个特性。你也可以很容
 
 只有使用push模式的消费者才能用使用SQL92标准的sql语句，接口如下：
 ```
-public void subscribe(finalString topic, final MessageSelector messageSelector)
+public void subscribe(final String topic, final MessageSelector messageSelector)
 ```
 
 ### 5.2 使用样例
@@ -785,7 +785,7 @@ public class TransactionListenerImpl implements TransactionListener {
 3. 事务消息将在 Broker 配置文件中的参数 transactionTimeout 这样的特定时间长度之后被检查。当发送事务消息时，用户还可以通过设置用户属性 CHECK_IMMUNITY_TIME_IN_SECONDS 来改变这个限制，该参数优先于 `transactionTimeout` 参数。
 4. 事务性消息可能不止一次被检查或消费。
 5. 提交给用户的目标主题消息可能会失败，目前这依日志的记录而定。它的高可用性通过 RocketMQ 本身的高可用性机制来保证，如果希望确保事务消息不丢失、并且事务完整性得到保证，建议使用同步的双重写入机制。
-6. 事务消息的生产者 ID 不能与其他类型消息的生产者 ID 共享。与其他类型的消息不同，事务消息允许反向查询、MQ服务器能通过它们的生产者 ID 查询到消费者。
+6. 事务消息的生产者 GroupName 不能与其他类型消息的生产者 GroupName 共享。与其他类型的消息不同，事务消息允许反向查询、MQ服务器能通过它们的生产者 GroupName 查询到生产者。
 
 7 Logappender样例
 -----------------

@@ -21,13 +21,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
@@ -40,17 +40,12 @@ public class PullConsumer {
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer("please_rename_unique_group_name_5");
         consumer.setNamesrvAddr("127.0.0.1:9876");
         Set<String> topics = new HashSet<>();
-        //You would better to register topics,It will use in rebalance when starting
+        //You would be better to register topics,It will use in rebalance when starting
         topics.add("TopicTest");
         consumer.setRegisterTopics(topics);
         consumer.start();
 
-        ExecutorService executors = Executors.newFixedThreadPool(topics.size(), new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "PullConsumerThread");
-            }
-        });
+        ExecutorService executors = Executors.newFixedThreadPool(topics.size(), new ThreadFactoryImpl("PullConsumerThread"));
         for (String topic : consumer.getRegisterTopics()) {
 
             executors.execute(new Runnable() {
@@ -80,7 +75,7 @@ public class PullConsumer {
 
                                             if (msgs != null && !msgs.isEmpty()) {
                                                 this.doSomething(msgs);
-                                                //update offset to broker
+                                                //update offset to local memory, eventually to broker
                                                 consumer.updateConsumeOffset(messageQueue, pullResult.getNextBeginOffset());
                                                 //print pull tps
                                                 this.incPullTPS(topic, pullResult.getMsgFoundList().size());
@@ -137,7 +132,7 @@ public class PullConsumer {
 
                 public void incPullTPS(String topic, int pullSize) {
                     consumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getmQClientFactory()
-                            .getConsumerStatsManager().incPullTPS(consumer.getConsumerGroup(), topic, pullSize);
+                        .getConsumerStatsManager().incPullTPS(consumer.getConsumerGroup(), topic, pullSize);
                 }
             });
 

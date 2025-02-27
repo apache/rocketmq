@@ -21,9 +21,8 @@ import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -45,14 +44,7 @@ public class RemotingCodeDistributionHandlerTest {
         int count = 1000 * 1000;
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicBoolean result = new AtomicBoolean(true);
-        ExecutorService executorService = Executors.newFixedThreadPool(threadCount, new ThreadFactory() {
-            private final AtomicInteger threadIndex = new AtomicInteger(0);
-
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "RemotingCodeTest_" + this.threadIndex.incrementAndGet());
-            }
-        });
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount, new ThreadFactoryImpl("RemotingCodeTest_"));
 
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {

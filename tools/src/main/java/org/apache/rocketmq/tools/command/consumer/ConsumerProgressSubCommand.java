@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
@@ -54,7 +55,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Query consumers's progress, speed";
+        return "Query consumer's progress, speed.";
     }
 
     @Override
@@ -70,6 +71,10 @@ public class ConsumerProgressSubCommand implements SubCommand {
         Option optionShowClientIP = new Option("s", "showClientIP", true, "Show Client IP per Queue");
         optionShowClientIP.setRequired(false);
         options.addOption(optionShowClientIP);
+
+        opt = new Option("c", "cluster", true, "Cluster name or lmq parent topic, lmq is used to find the route.");
+        opt.setRequired(false);
+        options.addOption(opt);
 
         return options;
     }
@@ -108,6 +113,8 @@ public class ConsumerProgressSubCommand implements SubCommand {
             boolean showClientIP = commandLine.hasOption('s')
                 && "true".equalsIgnoreCase(commandLine.getOptionValue('s'));
 
+            String clusterName = commandLine.hasOption('c') ? commandLine.getOptionValue('c').trim() : null;
+
             if (commandLine.hasOption('g')) {
                 String consumerGroup = commandLine.getOptionValue('g').trim();
                 String topicName = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : null;
@@ -115,7 +122,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 if (topicName == null) {
                     consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
                 } else {
-                    consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup, topicName);
+                    consumeStats = defaultMQAdminExt.examineConsumeStats(clusterName, consumerGroup, topicName);
                 }
                 List<MessageQueue> mqList = new LinkedList<>(consumeStats.getOffsetTable().keySet());
                 Collections.sort(mqList);
@@ -212,7 +219,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
                 for (String topic : topicList.getTopicList()) {
                     if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                        String consumerGroup = topic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+                        String consumerGroup = KeyBuilder.parseGroup(topic);
                         try {
                             ConsumeStats consumeStats = null;
                             try {

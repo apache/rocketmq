@@ -27,7 +27,8 @@ public enum TopicMessageType {
     NORMAL("NORMAL"),
     FIFO("FIFO"),
     DELAY("DELAY"),
-    TRANSACTION("TRANSACTION");
+    TRANSACTION("TRANSACTION"),
+    MIXED("MIXED");
 
     private final String value;
     TopicMessageType(String value) {
@@ -35,7 +36,7 @@ public enum TopicMessageType {
     }
 
     public static Set<String> topicMessageTypeSet() {
-        return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value);
+        return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value, MIXED.value);
     }
 
     public String getValue() {
@@ -49,7 +50,8 @@ public enum TopicMessageType {
             return TopicMessageType.TRANSACTION;
         } else if (messageProperty.get(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
             || messageProperty.get(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null
-            || messageProperty.get(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
+            || messageProperty.get(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null
+            || messageProperty.get(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
             return TopicMessageType.DELAY;
         } else if (messageProperty.get(MessageConst.PROPERTY_SHARDING_KEY) != null) {
             return TopicMessageType.FIFO;

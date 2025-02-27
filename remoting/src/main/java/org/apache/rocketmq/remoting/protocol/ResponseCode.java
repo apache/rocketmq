@@ -55,6 +55,8 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int FILTER_DATA_NOT_LATEST = 28;
 
+    public static final int INVALID_PARAMETER = 29;
+
     public static final int TRANSACTION_SHOULD_COMMIT = 200;
 
     public static final int TRANSACTION_SHOULD_ROLLBACK = 201;
@@ -92,10 +94,14 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int NOT_LEADER_FOR_QUEUE = 501;
 
+    public static final int ILLEGAL_OPERATION = 604;
+
     public static final int RPC_UNKNOWN = -1000;
     public static final int RPC_ADDR_IS_NULL = -1002;
     public static final int RPC_SEND_TO_CHANNEL_FAILED = -1004;
     public static final int RPC_TIME_OUT = -1006;
+
+    public static final int GO_AWAY = 1500;
 
     /**
      * Controller response code
@@ -113,10 +119,21 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int CONTROLLER_INVALID_CLEAN_BROKER_METADATA = 2009;
 
-    public static final int CONTROLLER_ALTER_SYNC_STATE_SET_FAILED = 2010;
+    public static final int CONTROLLER_BROKER_NEED_TO_BE_REGISTERED = 2010;
 
-    public static final int CONTROLLER_ELECT_MASTER_FAILED = 2011;
+    public static final int CONTROLLER_MASTER_STILL_EXIST = 2011;
 
-    public static final int CONTROLLER_REGISTER_BROKER_FAILED = 2012;
+    public static final int CONTROLLER_ELECT_MASTER_FAILED = 2012;
+    
+    public static final int CONTROLLER_ALTER_SYNC_STATE_SET_FAILED = 2013;
 
+    public static final int CONTROLLER_BROKER_ID_INVALID = 2014;
+
+    public static final int CONTROLLER_JRAFT_INTERNAL_ERROR = 2015;
+
+    public static final int CONTROLLER_BROKER_LIVE_INFO_NOT_EXISTS = 2016;
+
+    public static final int USER_NOT_EXIST = 3001;
+
+    public static final int POLICY_NOT_EXIST = 3002;
 }

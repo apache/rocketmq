@@ -17,17 +17,17 @@
 package org.apache.rocketmq.proxy.service.route;
 
 import com.google.common.collect.Lists;
-import com.google.common.net.HostAndPort;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.Address;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
@@ -51,45 +51,27 @@ public class LocalTopicRouteService extends TopicRouteService {
     }
 
     @Override
-    public MessageQueueView getCurrentMessageQueueView(String topic) throws Exception {
+    public MessageQueueView getCurrentMessageQueueView(ProxyContext ctx, String topic) throws Exception {
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic);
-        return new MessageQueueView(topic, toTopicRouteData(topicConfig));
+        return new MessageQueueView(topic, toTopicRouteData(topicConfig), null);
     }
 
     @Override
-    public ProxyTopicRouteData getTopicRouteForProxy(List<Address> requestHostAndPortList,
+    public ProxyTopicRouteData getTopicRouteForProxy(ProxyContext ctx, List<Address> requestHostAndPortList,
         String topicName) throws Exception {
-        MessageQueueView messageQueueView = getAllMessageQueueView(topicName);
+        MessageQueueView messageQueueView = getAllMessageQueueView(ctx, topicName);
         TopicRouteData topicRouteData = messageQueueView.getTopicRouteData();
-
-        ProxyTopicRouteData proxyTopicRouteData = new ProxyTopicRouteData();
-        proxyTopicRouteData.setQueueDatas(topicRouteData.getQueueDatas());
-
-        for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
-            ProxyTopicRouteData.ProxyBrokerData proxyBrokerData = new ProxyTopicRouteData.ProxyBrokerData();
-            proxyBrokerData.setCluster(brokerData.getCluster());
-            proxyBrokerData.setBrokerName(brokerData.getBrokerName());
-            for (Long brokerId : brokerData.getBrokerAddrs().keySet()) {
-                String brokerAddr = brokerData.getBrokerAddrs().get(brokerId);
-                HostAndPort brokerHostAndPort = HostAndPort.fromString(brokerAddr);
-                HostAndPort grpcHostAndPort = HostAndPort.fromParts(brokerHostAndPort.getHost(), grpcPort);
-
-                proxyBrokerData.getBrokerAddrs().put(brokerId, Lists.newArrayList(new Address(Address.AddressScheme.IPv4, grpcHostAndPort)));
-            }
-            proxyTopicRouteData.getBrokerDatas().add(proxyBrokerData);
-        }
-
-        return proxyTopicRouteData;
+        return new ProxyTopicRouteData(topicRouteData, grpcPort);
     }
 
     @Override
-    public String getBrokerAddr(String brokerName) throws Exception {
+    public String getBrokerAddr(ProxyContext ctx, String brokerName) throws Exception {
         return this.brokerController.getBrokerAddr();
     }
 
     @Override
-    public AddressableMessageQueue buildAddressableMessageQueue(MessageQueue messageQueue) throws Exception {
-        String brokerAddress = getBrokerAddr(messageQueue.getBrokerName());
+    public AddressableMessageQueue buildAddressableMessageQueue(ProxyContext ctx, MessageQueue messageQueue) throws Exception {
+        String brokerAddress = getBrokerAddr(ctx, messageQueue.getBrokerName());
         return new AddressableMessageQueue(messageQueue, brokerAddress);
     }
 

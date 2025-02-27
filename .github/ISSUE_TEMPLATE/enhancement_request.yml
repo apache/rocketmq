@@ -1,0 +1,75 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+
+name: Enhancement Request
+title: "[Enhancement] Enhancement title"
+description: Suggest an enhancement for this project
+labels: [ "type/enhancement" ]
+body:
+  - type: checkboxes
+    attributes:
+      label: Before Creating the Enhancement Request
+      description: >
+        Most of issues should be classified as bug or feature request. An issue should be considered as an enhancement when it proposes improvements to
+        existing functionality or user experience, without necessarily introducing new features or fixing existing bugs.
+      options:
+        - label: >
+            I have confirmed that this should be classified as an enhancement rather than a bug/feature.
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Summary
+      placeholder: >
+        A clear and concise description of the enhancement you would like to see in the project.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Motivation
+      placeholder: >
+        Explain why you believe this enhancement is necessary, and how it benefits the project and community.
+        Include any specific use cases that you have in mind.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Describe the Solution You'd Like
+      placeholder: >
+        Describe the enhancement you propose, detailing the change and implementation steps involved.
+        If you have multiple solutions, please list them separately.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Describe Alternatives You've Considered
+      placeholder: >
+        List any alternative enhancements or implementations you have considered, and explain why they may not be as effective or appropriate.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      placeholder: >
+        Add any relevant context, screenshots, prototypes, or other supplementary information to help illustrate the enhancement.
+    validations:
+      required: false

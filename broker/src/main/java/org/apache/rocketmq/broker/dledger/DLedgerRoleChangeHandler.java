@@ -21,12 +21,12 @@ import io.openmessaging.storage.dledger.DLedgerServer;
 import io.openmessaging.storage.dledger.MemberState;
 import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -49,7 +49,7 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
         this.messageStore = messageStore;
         this.dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
         this.dLegerServer = dLedgerCommitLog.getdLedgerServer();
-        this.executorService = Executors.newSingleThreadExecutor(
+        this.executorService = ThreadUtils.newSingleThreadExecutor(
             new ThreadFactoryImpl("DLegerRoleChangeHandler_", brokerController.getBrokerIdentity()));
     }
 
@@ -77,10 +77,10 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
                                     succ = false;
                                     break;
                                 }
-                                if (dLegerServer.getdLedgerStore().getLedgerEndIndex() == -1) {
+                                if (dLegerServer.getDLedgerStore().getLedgerEndIndex() == -1) {
                                     break;
                                 }
-                                if (dLegerServer.getdLedgerStore().getLedgerEndIndex() == dLegerServer.getdLedgerStore().getCommittedIndex()
+                                if (dLegerServer.getDLedgerStore().getLedgerEndIndex() == dLegerServer.getDLedgerStore().getCommittedIndex()
                                     && messageStore.dispatchBehindBytes() == 0) {
                                     break;
                                 }

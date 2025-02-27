@@ -24,6 +24,7 @@ build --enable_platform_specific_config
 test --action_env=TEST_TMPDIR=/tmp
 
 test  --experimental_strict_java_deps=warn
+test  --experimental_ui_max_stdouterr_bytes=10485760
 build --experimental_strict_java_deps=warn
 
 test --test_output=errors
@@ -40,27 +41,16 @@ test --test_output=errors
 # for a remote machine to execute them.
 build:remote --jobs=150
 
-# Set several flags related to specifying the platform, toolchain and java
-# properties.
-# These flags should only be used as is for the rbe-ubuntu16-04 container
-# and need to be adapted to work with other toolchain containers.
-build:remote --java_runtime_version=rbe_jdk
-build:remote --tool_java_runtime_version=rbe_jdk
-build:remote --extra_toolchains=@rbe_default//java:all
-
-build:remote --crosstool_top=@rbe_default//cc:toolchain
-build:remote --action_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
-# Platform flags:
-# The toolchain container used for execution is defined in the target indicated
-# by "extra_execution_platforms", "host_platform" and "platforms".
-# More about platforms: https://docs.bazel.build/versions/master/platforms.html
-build:remote --extra_toolchains=@rbe_default//config:cc-toolchain
-build:remote --extra_execution_platforms=@rbe_default//config:platform
-build:remote --host_platform=@rbe_default//config:platform
-build:remote --platforms=@rbe_default//config:platform
-
-# Starting with Bazel 0.27.0 strategies do not need to be explicitly
-# defined. See https://github.com/bazelbuild/bazel/issues/7480
+build:remote --remote_executor=grpcs://remote.buildbuddy.io
+build:remote --host_platform=@buildbuddy_toolchain//:platform
+build:remote --platforms=@buildbuddy_toolchain//:platform
+build:remote --extra_execution_platforms=@buildbuddy_toolchain//:platform
+build:remote --crosstool_top=@buildbuddy_toolchain//:toolchain
+build:remote --extra_toolchains=@buildbuddy_toolchain//:cc_toolchain
+build:remote --javabase=@buildbuddy_toolchain//:javabase_jdk8
+build:remote --host_javabase=@buildbuddy_toolchain//:javabase_jdk8
+build:remote --java_toolchain=@buildbuddy_toolchain//:toolchain_jdk8
+build:remote --host_java_toolchain=@buildbuddy_toolchain//:toolchain_jdk8
 build:remote --define=EXECUTOR=remote
 
 # Enable remote execution so actions are performed on the remote systems.

@@ -16,20 +16,39 @@
  */
 package org.apache.rocketmq.remoting.protocol.header.controller;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.CONTROLLER_ELECT_MASTER, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class ElectMasterRequestHeader implements CommandCustomHeader {
 
     @CFNotNull
-    private String clusterName;
+    @RocketMQResource(ResourceType.CLUSTER)
+    private String clusterName = "";
 
     @CFNotNull
-    private String brokerName;
+    private String brokerName = "";
+
+    /**
+     * brokerId
+     * for brokerTrigger electMaster: this brokerId will be elected as a master when it is the first time to elect
+     * in this broker-set
+     * for adminTrigger electMaster: this brokerId is also named assignedBrokerId, which means we must prefer to elect
+     * it as a new master when this broker is valid.
+     */
+    @CFNotNull
+    private Long brokerId = -1L;
 
     @CFNotNull
-    private String brokerAddress;
+    private Boolean designateElect = false;
+
+    private Long invokeTime = System.currentTimeMillis();
 
     public ElectMasterRequestHeader() {
     }
@@ -38,10 +57,30 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
     }
 
-    public ElectMasterRequestHeader(String clusterName, String brokerName, String brokerAddress) {
+    public ElectMasterRequestHeader(String clusterName, String brokerName, Long brokerId) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
+        this.brokerId = brokerId;
+    }
+
+    public ElectMasterRequestHeader(String clusterName, String brokerName, Long brokerId, boolean designateElect) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.brokerId = brokerId;
+        this.designateElect = designateElect;
+    }
+
+    public static ElectMasterRequestHeader ofBrokerTrigger(String clusterName, String brokerName,
+        Long brokerId) {
+        return new ElectMasterRequestHeader(clusterName, brokerName, brokerId);
+    }
+
+    public static ElectMasterRequestHeader ofControllerTrigger(String brokerName) {
+        return new ElectMasterRequestHeader(brokerName);
+    }
+
+    public static ElectMasterRequestHeader ofAdminTrigger(String clusterName, String brokerName, Long brokerId) {
+        return new ElectMasterRequestHeader(clusterName, brokerName, brokerId, true);
     }
 
     public String getBrokerName() {
@@ -52,12 +91,12 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
     }
 
-    public String getBrokerAddress() {
-        return brokerAddress;
+    public Long getBrokerId() {
+        return brokerId;
     }
 
-    public void setBrokerAddress(String brokerAddress) {
-        this.brokerAddress = brokerAddress;
+    public void setBrokerId(Long brokerId) {
+        this.brokerId = brokerId;
     }
 
     public String getClusterName() {
@@ -68,13 +107,26 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         this.clusterName = clusterName;
     }
 
+    public boolean getDesignateElect() {
+        return this.designateElect;
+    }
+
+    public Long getInvokeTime() {
+        return invokeTime;
+    }
+
+    public void setInvokeTime(Long invokeTime) {
+        this.invokeTime = invokeTime;
+    }
+
     @Override
     public String toString() {
         return "ElectMasterRequestHeader{" +
-            "clusterName='" + clusterName + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            ", brokerAddress='" + brokerAddress + '\'' +
-            '}';
+                "clusterName='" + clusterName + '\'' +
+                ", brokerName='" + brokerName + '\'' +
+                ", brokerId=" + brokerId +
+                ", designateElect=" + designateElect +
+                '}';
     }
 
     @Override

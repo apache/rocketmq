@@ -41,10 +41,14 @@ maven_install(
     artifacts = [
         "junit:junit:4.13.2",
         "com.alibaba:fastjson:1.2.76",
+        "com.alibaba.fastjson2:fastjson2:2.0.43",
         "org.hamcrest:hamcrest-library:1.3",
         "io.netty:netty-all:4.1.65.Final",
         "org.assertj:assertj-core:3.22.0",
         "org.mockito:mockito-core:3.10.0",
+        "org.powermock:powermock-module-junit4:2.0.9",
+        "org.powermock:powermock-api-mockito2:2.0.9",
+        "org.powermock:powermock-core:2.0.9",
         "com.github.luben:zstd-jni:1.5.2-2",
         "org.lz4:lz4-java:1.8.0",
         "commons-validator:commons-validator:1.7",
@@ -67,7 +71,7 @@ maven_install(
         "org.bouncycastle:bcpkix-jdk15on:1.69",
         "com.google.code.gson:gson:2.8.9",
         "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2",
-        "org.apache.rocketmq:rocketmq-proto:2.0.2",
+        "org.apache.rocketmq:rocketmq-proto:2.0.4",
         "com.google.protobuf:protobuf-java:3.20.1",
         "com.google.protobuf:protobuf-java-util:3.20.1",
         "com.conversantmedia:disruptor:1.2.10",
@@ -84,17 +88,32 @@ maven_install(
         "io.grpc:grpc-stub:1.47.0",
         "io.grpc:grpc-api:1.47.0",
         "io.grpc:grpc-testing:1.47.0",
-        "org.springframework:spring-core:5.3.23",
-        "io.opentelemetry:opentelemetry-exporter-otlp:1.19.0",
-        "io.opentelemetry:opentelemetry-exporter-prometheus:1.19.0-alpha",
-        "io.opentelemetry:opentelemetry-sdk:1.19.0",
+        "org.springframework:spring-core:5.3.26",
+        "io.opentelemetry:opentelemetry-exporter-otlp:1.29.0",
+        "io.opentelemetry:opentelemetry-exporter-prometheus:1.29.0-alpha",
+        "io.opentelemetry:opentelemetry-exporter-logging:1.29.0",
+        "io.opentelemetry:opentelemetry-sdk:1.29.0",
+        "io.opentelemetry:opentelemetry-exporter-logging-otlp:1.29.0",
         "com.squareup.okio:okio-jvm:3.0.0",
-        "io.opentelemetry:opentelemetry-api:1.19.0",
-        "io.opentelemetry:opentelemetry-sdk-metrics:1.19.0",
-        "io.opentelemetry:opentelemetry-sdk-common:1.19.0",
+        "io.opentelemetry:opentelemetry-api:1.29.0",
+        "io.opentelemetry:opentelemetry-sdk-metrics:1.29.0",
+        "io.opentelemetry:opentelemetry-sdk-common:1.29.0",
         "io.github.aliyunmq:rocketmq-slf4j-api:1.0.0",
         "io.github.aliyunmq:rocketmq-logback-classic:1.0.0",
-	"org.jetbrains:annotations:23.1.0",
+        "org.slf4j:jul-to-slf4j:2.0.6",
+    	"org.jetbrains:annotations:23.1.0",
+        "io.github.aliyunmq:rocketmq-shaded-slf4j-api-bridge:1.0.0",
+        "software.amazon.awssdk:s3:2.20.29",
+        "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
+        "com.adobe.testing:s3mock-junit4:2.11.0",
+        "io.github.aliyunmq:rocketmq-grpc-netty-codec-haproxy:1.0.0",
+        "org.apache.rocketmq:rocketmq-rocksdb:1.0.2",
+        "com.alipay.sofa:jraft-core:1.3.14",
+        "com.alipay.sofa:hessian:3.3.6",
+        "io.netty:netty-tcnative-boringssl-static:2.0.48.Final",
+        "org.mockito:mockito-junit-jupiter:4.11.0",
+        "com.alibaba.fastjson2:fastjson2:2.0.43",
+        "org.junit.jupiter:junit-jupiter-api:5.9.1",
     ],
     fetch_sources = True,
     repositories = [
@@ -105,32 +124,21 @@ maven_install(
 
 http_archive(
     name = "io_buildbuddy_buildbuddy_toolchain",
-    sha256 = "a2a5cccec251211e2221b1587af2ce43c36d32a42f5d881737db3b546a536510",
-    strip_prefix = "buildbuddy-toolchain-829c8a574f706de5c96c54ca310f139f4acda7dd",
-    urls = ["https://github.com/buildbuddy-io/buildbuddy-toolchain/archive/829c8a574f706de5c96c54ca310f139f4acda7dd.tar.gz"],
+    sha256 = "b12273608db627eb14051eb75f8a2134590172cd69392086d392e25f3954ea6e",
+    strip_prefix = "buildbuddy-toolchain-8d5d18373adfca9d8e33b4812915abc9b132f1ee",
+    urls = ["https://github.com/buildbuddy-io/buildbuddy-toolchain/archive/8d5d18373adfca9d8e33b4812915abc9b132f1ee.tar.gz"],
 )
-
 load("@io_buildbuddy_buildbuddy_toolchain//:deps.bzl", "buildbuddy_deps")
-
 buildbuddy_deps()
-
 load("@io_buildbuddy_buildbuddy_toolchain//:rules.bzl", "buildbuddy")
-
 buildbuddy(name = "buildbuddy_toolchain")
 
 http_archive(
-    name = "rbe_default",
-    sha256 = "6f2bd38cce60880fd05cf373b99118ad59a0fe7df88855e229e7a9b50a003af3",
-    urls = ["https://storage.googleapis.com/rbe-toolchain/bazel-configs/rbe-ubuntu1604/latest/rbe_default.tar"],
-)
-
-http_archive(
     name = "bazel_toolchains",
-    sha256 = "56d5370eb99559b4c74f334f81bc8a298f728bd16d5a4333c865c2ad10fae3bc",
-    strip_prefix = "bazel-toolchains-dac71231098d891e5c4b74a2078fe9343feef510",
-    urls = ["https://github.com/bazelbuild/bazel-toolchains/archive/dac71231098d891e5c4b74a2078fe9343feef510.tar.gz"],
+    sha256 = "1adf5db506a7e3c465a26988514cfc3971af6d5b3c2218925cd6e71ee443fc3f",
+    strip_prefix = "bazel-toolchains-4.0.0",
+    urls = [
+        "https://github.com/bazelbuild/bazel-toolchains/releases/download/4.0.0/bazel-toolchains-4.0.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-toolchains/releases/download/4.0.0/bazel-toolchains-4.0.0.tar.gz",
+    ],
 )
-
-load("@bazel_toolchains//repositories:repositories.bzl", bazel_toolchains_repositories = "repositories")
-
-bazel_toolchains_repositories()

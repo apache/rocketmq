@@ -39,6 +39,8 @@ java_library(
         "@maven//:commons_collections_commons_collections",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
+        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
     ],
 )
 
@@ -55,7 +57,8 @@ java_library(
         "//:test_deps",
         "@maven//:org_apache_commons_commons_lang3", 
         "@maven//:io_netty_netty_all",      
-        "@maven//:commons_cli_commons_cli",         
+        "@maven//:commons_cli_commons_cli",     
+        "@maven//:org_junit_jupiter_junit_jupiter_api",    
     ],
     resources = glob(["src/test/resources/*.xml"]),
 )

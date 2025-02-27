@@ -84,7 +84,8 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
         final boolean brokerAllowSuspend,
         final MessageFilter messageFilter,
         RemotingCommand response,
-        TopicQueueMappingContext mappingContext) {
+        TopicQueueMappingContext mappingContext,
+        long beginTimeMills) {
         PullMessageProcessor processor = brokerController.getPullMessageProcessor();
         final String clientAddress = RemotingHelper.parseChannelRemoteAddr(channel);
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
@@ -137,8 +138,6 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
                 }
 
                 if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
-
-                    final long beginTimeMills = this.brokerController.getMessageStore().now();
                     final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
                     this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(),
                         requestHeader.getTopic(), requestHeader.getQueueId(),
@@ -154,8 +153,8 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
                             .addListener((ChannelFutureListener) future -> {
                                 getMessageResult.release();
                                 Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
-                                    .put(LABEL_REQUEST_CODE, RemotingMetricsManager.getRequestCodeDesc(request.getCode()))
-                                    .put(LABEL_RESPONSE_CODE, RemotingMetricsManager.getResponseCodeDesc(finalResponse.getCode()))
+                                    .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
+                                    .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(finalResponse.getCode()))
                                     .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
                                     .build();
                                 RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);

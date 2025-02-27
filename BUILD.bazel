@@ -37,10 +37,13 @@ java_library(
         "@maven//:org_assertj_assertj_core",
         "@maven//:org_hamcrest_hamcrest_library",
         "@maven//:org_mockito_mockito_core",
+        "@maven//:org_powermock_powermock_module_junit4",
+        "@maven//:org_powermock_powermock_api_mockito2",
         "@maven//:org_hamcrest_hamcrest_core",
         "@maven//:ch_qos_logback_logback_classic",
         "@maven//:org_awaitility_awaitility",
         "@maven//:org_openjdk_jmh_jmh_core",
         "@maven//:org_openjdk_jmh_jmh_generator_annprocess",
+        "@maven//:org_mockito_mockito_junit_jupiter",
     ],
 )

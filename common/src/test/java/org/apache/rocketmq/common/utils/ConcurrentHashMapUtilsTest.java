@@ -26,7 +26,6 @@ public class ConcurrentHashMapUtilsTest {
 
     @Test
     public void computeIfAbsent() {
-
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
         map.put("123", "1111");
         String value = ConcurrentHashMapUtils.computeIfAbsent(map, "123", k -> "234");

@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.acl.common;
 
-import com.alibaba.fastjson.JSONObject;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -25,6 +23,7 @@ import java.io.PrintWriter;
 import java.util.Map;
 import java.util.SortedMap;
 
+import com.alibaba.fastjson2.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -41,7 +40,7 @@ public class AclUtils {
 
     public static byte[] combineRequestContent(RemotingCommand request, SortedMap<String, String> fieldsMap) {
         try {
-            StringBuilder sb = new StringBuilder("");
+            StringBuilder sb = new StringBuilder();
             for (Map.Entry<String, String> entry : fieldsMap.entrySet()) {
                 if (!SessionCredentials.SIGNATURE.equals(entry.getKey())) {
                     sb.append(entry.getValue());
@@ -64,79 +63,78 @@ public class AclUtils {
     }
 
     public static String calSignature(byte[] data, String secretKey) {
-        String signature = AclSigner.calSignature(data, secretKey);
-        return signature;
+        return AclSigner.calSignature(data, secretKey);
     }
 
-    public static void IPv6AddressCheck(String netaddress) {
-        if (isAsterisk(netaddress) || isMinus(netaddress)) {
-            int asterisk = netaddress.indexOf("*");
-            int minus = netaddress.indexOf("-");
-//            '*' must be the end of netaddress if it exists
-            if (asterisk > -1 && asterisk != netaddress.length() - 1) {
-                throw new AclException(String.format("Netaddress examine scope Exception netaddress is %s", netaddress));
+    public static void IPv6AddressCheck(String netAddress) {
+        if (isAsterisk(netAddress) || isMinus(netAddress)) {
+            int asterisk = netAddress.indexOf("*");
+            int minus = netAddress.indexOf("-");
+            // '*' must be the end of netAddress if it exists
+            if (asterisk > -1 && asterisk != netAddress.length() - 1) {
+                throw new AclException(String.format("NetAddress examine scope Exception netAddress is %s", netAddress));
             }
 
-//            format like "2::ac5:78:1-200:*" or "2::ac5:78:1-200" is legal
+            // format like "2::ac5:78:1-200:*" or "2::ac5:78:1-200" is legal
             if (minus > -1) {
                 if (asterisk == -1) {
-                    if (minus <= netaddress.lastIndexOf(":")) {
-                        throw new AclException(String.format("Netaddress examine scope Exception netaddress is %s", netaddress));
+                    if (minus <= netAddress.lastIndexOf(":")) {
+                        throw new AclException(String.format("NetAddress examine scope Exception netAddress is %s", netAddress));
                     }
                 } else {
-                    if (minus <= netaddress.lastIndexOf(":", netaddress.lastIndexOf(":") - 1)) {
-                        throw new AclException(String.format("Netaddress examine scope Exception netaddress is %s", netaddress));
+                    if (minus <= netAddress.lastIndexOf(":", netAddress.lastIndexOf(":") - 1)) {
+                        throw new AclException(String.format("NetAddress examine scope Exception netAddress is %s", netAddress));
                     }
                 }
             }
         }
     }
 
-    public static String v6ipProcess(String netaddress) {
+    public static String v6ipProcess(String netAddress) {
         int part;
         String subAddress;
-        boolean isAsterisk = isAsterisk(netaddress);
-        boolean isMinus = isMinus(netaddress);
+        boolean isAsterisk = isAsterisk(netAddress);
+        boolean isMinus = isMinus(netAddress);
         if (isAsterisk && isMinus) {
             part = 6;
-            int lastColon = netaddress.lastIndexOf(':');
-            int secondLastColon = netaddress.substring(0, lastColon).lastIndexOf(':');
-            subAddress = netaddress.substring(0, secondLastColon);
+            int lastColon = netAddress.lastIndexOf(':');
+            int secondLastColon = netAddress.substring(0, lastColon).lastIndexOf(':');
+            subAddress = netAddress.substring(0, secondLastColon);
         } else if (!isAsterisk && !isMinus) {
             part = 8;
-            subAddress = netaddress;
+            subAddress = netAddress;
         } else {
             part = 7;
-            subAddress = netaddress.substring(0, netaddress.lastIndexOf(':'));
+            subAddress = netAddress.substring(0, netAddress.lastIndexOf(':'));
         }
         return expandIP(subAddress, part);
     }
 
-    public static void verify(String netaddress, int index) {
-        if (!AclUtils.isScope(netaddress, index)) {
-            throw new AclException(String.format("Netaddress examine scope Exception netaddress is %s", netaddress));
+    public static void verify(String netAddress, int index) {
+        if (!AclUtils.isScope(netAddress, index)) {
+            throw new AclException(String.format("NetAddress examine scope Exception netAddress is %s", netAddress));
         }
     }
 
-    public static String[] getAddresses(String netaddress, String partialAddress) {
+    public static String[] getAddresses(String netAddress, String partialAddress) {
         String[] parAddStrArray = StringUtils.split(partialAddress.substring(1, partialAddress.length() - 1), ",");
-        String address = netaddress.substring(0, netaddress.indexOf("{"));
-        String[] addreeStrArray = new String[parAddStrArray.length];
+        String address = netAddress.substring(0, netAddress.indexOf("{"));
+        String[] addressStrArray = new String[parAddStrArray.length];
         for (int i = 0; i < parAddStrArray.length; i++) {
-            addreeStrArray[i] = address + parAddStrArray[i];
+            addressStrArray[i] = address + parAddStrArray[i];
         }
-        return addreeStrArray;
+        return addressStrArray;
     }
 
-    public static boolean isScope(String netaddress, int index) {
-//        IPv6 Address
-        if (isColon(netaddress)) {
-            netaddress = expandIP(netaddress, 8);
-            String[] strArray = StringUtils.split(netaddress, ":");
+    public static boolean isScope(String netAddress, int index) {
+        // IPv6 Address
+        if (isColon(netAddress)) {
+            netAddress = expandIP(netAddress, 8);
+            String[] strArray = StringUtils.split(netAddress, ":");
             return isIPv6Scope(strArray, index);
         }
 
-        String[] strArray = StringUtils.split(netaddress, ".");
+        String[] strArray = StringUtils.split(netAddress, ".");
         if (strArray.length != 4) {
             return false;
         }
@@ -145,20 +143,16 @@ public class AclUtils {
     }
 
     public static boolean isScope(String[] num, int index) {
-        if (num.length <= index) {
-
-        }
         for (int i = 0; i < index; i++) {
             if (!isScope(num[i])) {
                 return false;
             }
         }
         return true;
-
     }
 
-    public static boolean isColon(String netaddress) {
-        return netaddress.indexOf(':') > -1;
+    public static boolean isColon(String netAddress) {
+        return netAddress.indexOf(':') > -1;
     }
 
     public static boolean isScope(String num) {
@@ -203,21 +197,21 @@ public class AclUtils {
         return num >= min && num <= max;
     }
 
-    public static String expandIP(String netaddress, int part) {
-        netaddress = netaddress.toUpperCase();
-        // expand netaddress
-        int separatorCount = StringUtils.countMatches(netaddress, ":");
+    public static String expandIP(String netAddress, int part) {
+        netAddress = netAddress.toUpperCase();
+        // expand netAddress
+        int separatorCount = StringUtils.countMatches(netAddress, ":");
         int padCount = part - separatorCount;
         if (padCount > 0) {
             StringBuilder padStr = new StringBuilder(":");
             for (int i = 0; i < padCount; i++) {
                 padStr.append(":");
             }
-            netaddress = StringUtils.replace(netaddress, "::", padStr.toString());
+            netAddress = StringUtils.replace(netAddress, "::", padStr.toString());
         }
 
-        // pad netaddress
-        String[] strArray = StringUtils.splitPreserveAllTokens(netaddress, ":");
+        // pad netAddress
+        String[] strArray = StringUtils.splitPreserveAllTokens(netAddress, ":");
         for (int i = 0; i < strArray.length; i++) {
             if (strArray[i].length() < 4) {
                 strArray[i] = StringUtils.leftPad(strArray[i], 4, '0');
@@ -254,7 +248,7 @@ public class AclUtils {
         }
     }
 
-    public static boolean writeDataObject(String path, Map<String, Object> dataMap) {
+    public static boolean writeDataObject(String path, Object dataMap) {
         Yaml yaml = new Yaml();
         try (PrintWriter pw = new PrintWriter(path, "UTF-8")) {
             String dumpAsMap = yaml.dumpAsMap(dataMap);

@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.message.MessageQueueForC;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -49,6 +50,7 @@ import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequest
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerStatusRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotifyConsumerIdsChangedRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
 public class Broker2Client {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -100,19 +102,18 @@ public class Broker2Client {
         }
     }
 
-
-    public RemotingCommand resetOffset(String topic, String group, long timeStamp, boolean isForce) {
+    public RemotingCommand resetOffset(String topic, String group, long timeStamp, boolean isForce) throws RemotingCommandException {
         return resetOffset(topic, group, timeStamp, isForce, false);
     }
 
     public RemotingCommand resetOffset(String topic, String group, long timeStamp, boolean isForce,
-        boolean isC) {
+        boolean isC) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (null == topicConfig) {
             log.error("[reset-offset] reset offset failed, no topic in this broker. topic={}", topic);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("[reset-offset] reset offset failed, no topic in this broker. topic=" + topic);
             return response;
         }
@@ -135,8 +136,11 @@ public class Broker2Client {
 
             long timeStampOffset;
             if (timeStamp == -1) {
-
-                timeStampOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
+                try {
+                    timeStampOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
+                } catch (ConsumeQueueException e) {
+                    throw new RemotingCommandException("Failed to get max offset in queue", e);
+                }
             } else {
                 timeStampOffset = this.brokerController.getMessageStore().getOffsetInQueueByTime(topic, i, timeStamp);
             }

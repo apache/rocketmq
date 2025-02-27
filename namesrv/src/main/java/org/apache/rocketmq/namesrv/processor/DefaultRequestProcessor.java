@@ -18,8 +18,11 @@ package org.apache.rocketmq.namesrv.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MQVersion;
@@ -41,7 +44,6 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.GetBrokerMemberGroupResponseBody;
-import org.apache.rocketmq.remoting.protocol.body.GetRemoteClientConfigBody;
 import org.apache.rocketmq.remoting.protocol.body.RegisterBrokerBody;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
@@ -72,8 +74,20 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
     protected final NamesrvController namesrvController;
 
+    protected Set<String> configBlackList = new HashSet<>();
+
     public DefaultRequestProcessor(NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
+        initConfigBlackList();
+    }
+
+    private void initConfigBlackList() {
+        configBlackList.add("configBlackList");
+        configBlackList.add("configStorePath");
+        configBlackList.add("kvConfigPath");
+        configBlackList.add("rocketmqHome");
+        String[] configArray = namesrvController.getNamesrvConfig().getConfigBlackList().split(";");
+        configBlackList.addAll(Arrays.asList(configArray));
     }
 
     @Override
@@ -132,8 +146,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.updateConfig(ctx, request);
             case RequestCode.GET_NAMESRV_CONFIG:
                 return this.getConfig(ctx, request);
-            case RequestCode.GET_CLIENT_CONFIG:
-                return this.getClientConfigs(ctx, request);
             default:
                 String error = " request type " + request.getCode() + " not supported";
                 return RemotingCommand.createResponseCommand(RemotingSysResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
@@ -156,6 +168,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             response.setRemark("namespace or key is null");
             return response;
         }
+
         this.namesrvController.getKvConfigManager().putKVConfig(
             requestHeader.getNamespace(),
             requestHeader.getKey(),
@@ -353,7 +366,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
     public RemotingCommand unregisterBroker(ChannelHandlerContext ctx,
-            RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final UnRegisterBrokerRequestHeader requestHeader = (UnRegisterBrokerRequestHeader) request.decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
 
@@ -373,7 +386,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final BrokerHeartbeatRequestHeader requestHeader =
             (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
-
 
         this.namesrvController.getRouteInfoManager().updateBrokerInfoUpdateTimestamp(requestHeader.getClusterName(), requestHeader.getBrokerAddr());
 
@@ -509,21 +521,21 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     private RemotingCommand getTopicsByCluster(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();
+        if (!enableTopicList) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("disable");
+            return response;
+        }
         final GetTopicsByClusterRequestHeader requestHeader =
             (GetTopicsByClusterRequestHeader) request.decodeCommandCustomHeader(GetTopicsByClusterRequestHeader.class);
 
-        boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();
-        if (enableTopicList) {
-            TopicList topicsByCluster = this.namesrvController.getRouteInfoManager().getTopicsByCluster(requestHeader.getCluster());
-            byte[] body = topicsByCluster.encode();
+        TopicList topicsByCluster = this.namesrvController.getRouteInfoManager().getTopicsByCluster(requestHeader.getCluster());
+        byte[] body = topicsByCluster.encode();
 
-            response.setBody(body);
-            response.setCode(ResponseCode.SUCCESS);
-            response.setRemark(null);
-        } else {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("disable");
-        }
+        response.setBody(body);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
 
         return response;
     }
@@ -626,6 +638,11 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 response.setRemark("string2Properties error");
                 return response;
             }
+            if (validateBlackListConfigExist(properties)) {
+                response.setCode(ResponseCode.NO_PERMISSION);
+                response.setRemark("Can not update config in black list.");
+                return response;
+            }
 
             this.namesrvController.getConfiguration().update(properties);
         }
@@ -655,25 +672,13 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getClientConfigs(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final GetRemoteClientConfigBody body = GetRemoteClientConfigBody.decode(request.getBody(), GetRemoteClientConfigBody.class);
-
-        String content = this.namesrvController.getConfiguration().getClientConfigsFormatString(body.getKeys());
-        if (StringUtils.isNotBlank(content)) {
-            try {
-                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
-            } catch (UnsupportedEncodingException e) {
-                log.error("getConfig error, ", e);
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("UnsupportedEncodingException " + e);
-                return response;
+    private boolean validateBlackListConfigExist(Properties properties) {
+        for (String blackConfig : configBlackList) {
+            if (properties.containsKey(blackConfig)) {
+                return true;
             }
         }
-
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-        return response;
+        return false;
     }
 
 }

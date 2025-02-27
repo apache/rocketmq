@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.acl.plain.PlainAccessResource;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -141,11 +142,15 @@ public class PermissionTest {
     @Test
     public void checkAdminCodeTest() {
         Set<Integer> code = new HashSet<>();
-        code.add(17);
-        code.add(25);
-        code.add(215);
-        code.add(200);
-        code.add(207);
+        code.add(RequestCode.UPDATE_AND_CREATE_TOPIC);
+        code.add(RequestCode.UPDATE_BROKER_CONFIG);
+        code.add(RequestCode.DELETE_TOPIC_IN_BROKER);
+        code.add(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP);
+        code.add(RequestCode.DELETE_SUBSCRIPTIONGROUP);
+        code.add(RequestCode.UPDATE_AND_CREATE_STATIC_TOPIC);
+        code.add(RequestCode.UPDATE_AND_CREATE_ACL_CONFIG);
+        code.add(RequestCode.DELETE_ACL_CONFIG);
+        code.add(RequestCode.GET_BROKER_CLUSTER_ACL_INFO);
 
         for (int i = 0; i < 400; i++) {
             boolean boo = Permission.needAdminPerm(i);
@@ -163,8 +168,8 @@ public class PermissionTest {
         Assert.assertEquals(aclExceptionWithMessage.getStatus(),"CAL_SIGNATURE_FAILED");
         aclException.setCode(10016);
         Assert.assertEquals(aclException.getCode(),10016);
-        aclException.setStatus("netaddress examine scope Exception netaddress");
-        Assert.assertEquals(aclException.getStatus(),"netaddress examine scope Exception netaddress");
+        aclException.setStatus("netAddress examine scope Exception netAddress");
+        Assert.assertEquals(aclException.getStatus(),"netAddress examine scope Exception netAddress");
     }
 
     @Test

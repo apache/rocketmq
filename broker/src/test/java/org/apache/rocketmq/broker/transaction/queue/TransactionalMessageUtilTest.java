@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -49,5 +50,44 @@ public class TransactionalMessageUtilTest {
         assertEquals(msgExtInner.getMsgId(), halfMessage.getMsgId());
         assertTrue(MessageSysFlag.check(msgExtInner.getSysFlag(), MessageSysFlag.TRANSACTION_PREPARED_TYPE));
         assertEquals(msgExtInner.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP), halfMessage.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP));
+    }
+
+    @Test
+    public void testGetImmunityTime() {
+        long transactionTimeout = 6 * 1000;
+
+        String checkImmunityTimeStr = "1";
+        long immunityTime = TransactionalMessageUtil.getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+        Assert.assertEquals(6 * 1000, immunityTime);
+
+        checkImmunityTimeStr = "5";
+        immunityTime = TransactionalMessageUtil.getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+        Assert.assertEquals(6 * 1000, immunityTime);
+
+        checkImmunityTimeStr = "7";
+        immunityTime = TransactionalMessageUtil.getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+        Assert.assertEquals(7 * 1000, immunityTime);
+
+
+        checkImmunityTimeStr = null;
+        immunityTime = TransactionalMessageUtil.getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+        Assert.assertEquals(6 * 1000, immunityTime);
+
+        checkImmunityTimeStr = "-1";
+        immunityTime = TransactionalMessageUtil.getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+        Assert.assertEquals(6 * 1000, immunityTime);
+
+        checkImmunityTimeStr = "60";
+        immunityTime = TransactionalMessageUtil.getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+        Assert.assertEquals(60 * 1000, immunityTime);
+
+        checkImmunityTimeStr = "100";
+        immunityTime = TransactionalMessageUtil.getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+        Assert.assertEquals(100 * 1000, immunityTime);
+
+
+        checkImmunityTimeStr = "100.5";
+        immunityTime = TransactionalMessageUtil.getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+        Assert.assertEquals(6 * 1000, immunityTime);
     }
 }

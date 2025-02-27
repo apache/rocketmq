@@ -16,21 +16,35 @@
  */
 package org.apache.rocketmq.remoting.protocol.header.controller;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     private String brokerName;
-    private String masterAddress;
-    private int masterEpoch;
+    private Long masterBrokerId;
+    private Integer masterEpoch;
+    private long invokeTime = System.currentTimeMillis();
 
     public AlterSyncStateSetRequestHeader() {
     }
 
-    public AlterSyncStateSetRequestHeader(String brokerName, String masterAddress, int masterEpoch) {
+    public AlterSyncStateSetRequestHeader(String brokerName, Long masterBrokerId, Integer masterEpoch) {
         this.brokerName = brokerName;
-        this.masterAddress = masterAddress;
+        this.masterBrokerId = masterBrokerId;
         this.masterEpoch = masterEpoch;
+    }
+
+    public long getInvokeTime() {
+        return invokeTime;
+    }
+
+    public void setInvokeTime(long invokeTime) {
+        this.invokeTime = invokeTime;
     }
 
     public String getBrokerName() {
@@ -41,29 +55,29 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
     }
 
-    public String getMasterAddress() {
-        return masterAddress;
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
     }
 
-    public void setMasterAddress(String masterAddress) {
-        this.masterAddress = masterAddress;
+    public void setMasterBrokerId(Long masterBrokerId) {
+        this.masterBrokerId = masterBrokerId;
     }
 
-    public int getMasterEpoch() {
+    public Integer getMasterEpoch() {
         return masterEpoch;
     }
 
-    public void setMasterEpoch(int masterEpoch) {
+    public void setMasterEpoch(Integer masterEpoch) {
         this.masterEpoch = masterEpoch;
     }
 
     @Override
     public String toString() {
         return "AlterSyncStateSetRequestHeader{" +
-            "brokerName='" + brokerName + '\'' +
-            ", masterAddress='" + masterAddress + '\'' +
-            ", masterEpoch=" + masterEpoch +
-            '}';
+                "brokerName='" + brokerName + '\'' +
+                ", masterBrokerId=" + masterBrokerId +
+                ", masterEpoch=" + masterEpoch +
+                '}';
     }
 
     @Override

@@ -597,7 +597,7 @@ The above Broker matches Slave by specifying the same BrokerName, Master's Broke
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Broker address, fomat isip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker address, format is ip:port</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>

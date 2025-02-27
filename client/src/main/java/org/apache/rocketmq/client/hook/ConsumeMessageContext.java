@@ -18,6 +18,8 @@ package org.apache.rocketmq.client.hook;
 
 import java.util.List;
 import java.util.Map;
+
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 
@@ -30,6 +32,7 @@ public class ConsumeMessageContext {
     private Object mqTraceContext;
     private Map<String, String> props;
     private String namespace;
+    private AccessChannel accessChannel;
 
     public String getConsumerGroup() {
         return consumerGroup;
@@ -93,5 +96,13 @@ public class ConsumeMessageContext {
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+    }
+
+    public AccessChannel getAccessChannel() {
+        return accessChannel;
+    }
+
+    public void setAccessChannel(AccessChannel accessChannel) {
+        this.accessChannel = accessChannel;
     }
 }

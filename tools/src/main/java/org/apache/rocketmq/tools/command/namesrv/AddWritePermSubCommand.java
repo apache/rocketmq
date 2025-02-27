@@ -34,7 +34,7 @@ public class AddWritePermSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Add write perm of broker in all name server you defined in the -n param";
+        return "Add write perm of broker in all name server you defined in the -n param.";
     }
 
     @Override

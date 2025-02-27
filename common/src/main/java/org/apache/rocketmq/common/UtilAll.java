@@ -16,20 +16,18 @@
  */
 package org.apache.rocketmq.common;
 
+import io.netty.util.internal.PlatformDependent;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
+import java.nio.file.Files;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -45,15 +43,12 @@ import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import org.apache.commons.lang3.JavaVersion;
+import java.util.Collections;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import sun.misc.Unsafe;
-import sun.nio.ch.DirectBuffer;
 
 public class UtilAll {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -306,6 +301,20 @@ public class UtilAll {
         return (int) (crc32.getValue() & 0x7FFFFFFF);
     }
 
+    public static int crc32(ByteBuffer byteBuffer) {
+        CRC32 crc32 = new CRC32();
+        crc32.update(byteBuffer);
+        return (int) (crc32.getValue() & 0x7FFFFFFF);
+    }
+
+    public static int crc32(ByteBuffer[] byteBuffers) {
+        CRC32 crc32 = new CRC32();
+        for (ByteBuffer buffer : byteBuffers) {
+            crc32.update(buffer);
+        }
+        return (int) (crc32.getValue() & 0x7FFFFFFF);
+    }
+
     public static String bytes2string(byte[] src) {
         char[] hexChars = new char[src.length * 2];
         for (int j = 0; j < src.length; j++) {
@@ -317,16 +326,14 @@ public class UtilAll {
     }
 
     public static void writeInt(char[] buffer, int pos, int value) {
-        char[] hexArray = HEX_ARRAY;
         for (int moveBits = 28; moveBits >= 0; moveBits -= 4) {
-            buffer[pos++] = hexArray[(value >>> moveBits) & 0x0F];
+            buffer[pos++] = HEX_ARRAY[(value >>> moveBits) & 0x0F];
         }
     }
 
     public static void writeShort(char[] buffer, int pos, int value) {
-        char[] hexArray = HEX_ARRAY;
         for (int moveBits = 12; moveBits >= 0; moveBits -= 4) {
-            buffer[pos++] = hexArray[(value >>> moveBits) & 0x0F];
+            buffer[pos++] = HEX_ARRAY[(value >>> moveBits) & 0x0F];
         }
     }
 
@@ -527,25 +534,18 @@ public class UtilAll {
         } else if (ip[0] == (byte) 127) {
             return true;
         } else if (ip[0] == (byte) 172) {
-            if (ip[1] >= (byte) 16 && ip[1] <= (byte) 31) {
-                return true;
-            }
+            return ip[1] >= (byte) 16 && ip[1] <= (byte) 31;
         } else if (ip[0] == (byte) 192) {
-            if (ip[1] == (byte) 168) {
-                return true;
-            }
+            return ip[1] == (byte) 168;
         }
         return false;
     }
 
     public static boolean isInternalV6IP(InetAddress inetAddr) {
-        if (inetAddr.isAnyLocalAddress() // Wild card ipv6
+        return inetAddr.isAnyLocalAddress() // Wild card ipv6
             || inetAddr.isLinkLocalAddress() // Single broadcast ipv6 address: fe80:xx:xx...
             || inetAddr.isLoopbackAddress() //Loopback ipv6 address
-            || inetAddr.isSiteLocalAddress()) { // Site local ipv6 address: fec0:xx:xx...
-            return true;
-        }
-        return false;
+            || inetAddr.isSiteLocalAddress();// Site local ipv6 address: fec0:xx:xx...
     }
 
     private static boolean ipCheck(byte[] ip) {
@@ -596,15 +596,15 @@ public class UtilAll {
 
     public static byte[] getIP() {
         try {
-            Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
-            InetAddress ip = null;
+            Enumeration<NetworkInterface> allNetInterfaces = NetworkInterface.getNetworkInterfaces();
+            InetAddress ip;
             byte[] internalIP = null;
             while (allNetInterfaces.hasMoreElements()) {
-                NetworkInterface netInterface = (NetworkInterface) allNetInterfaces.nextElement();
-                Enumeration addresses = netInterface.getInetAddresses();
+                NetworkInterface netInterface = allNetInterfaces.nextElement();
+                Enumeration<InetAddress> addresses = netInterface.getInetAddresses();
                 while (addresses.hasMoreElements()) {
-                    ip = (InetAddress) addresses.nextElement();
-                    if (ip != null && ip instanceof Inet4Address) {
+                    ip =  addresses.nextElement();
+                    if (ip instanceof Inet4Address) {
                         byte[] ipByte = ip.getAddress();
                         if (ipByte.length == 4) {
                             if (ipCheck(ipByte)) {
@@ -615,7 +615,7 @@ public class UtilAll {
                                 }
                             }
                         }
-                    } else if (ip != null && ip instanceof Inet6Address) {
+                    } else if (ip instanceof Inet6Address) {
                         byte[] ipByte = ip.getAddress();
                         if (ipByte.length == 16) {
                             if (ipV6Check(ipByte)) {
@@ -673,6 +673,10 @@ public class UtilAll {
             return null;
         }
 
+        if (StringUtils.isBlank(str)) {
+            return Collections.EMPTY_LIST;
+        }
+
         String[] addrArray = str.split(splitter);
         return Arrays.asList(addrArray);
     }
@@ -691,58 +695,20 @@ public class UtilAll {
         }
     }
 
+    /**
+     * Free direct-buffer's memory actively.
+     * @param buffer Direct buffer to free.
+     */
     public static void cleanBuffer(final ByteBuffer buffer) {
-        if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0) {
+        if (null == buffer) {
             return;
         }
-        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
-            try {
-                Field field = Unsafe.class.getDeclaredField("theUnsafe");
-                field.setAccessible(true);
-                Unsafe unsafe = (Unsafe) field.get(null);
-                Method cleaner = method(unsafe, "invokeCleaner", new Class[] {ByteBuffer.class});
-                cleaner.invoke(unsafe, viewed(buffer));
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
-            }
-        } else {
-            invoke(invoke(viewed(buffer), "cleaner"), "clean");
-        }
-    }
 
-    public static Object invoke(final Object target, final String methodName, final Class<?>... args) {
-        return AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-                try {
-                    Method method = method(target, methodName, args);
-                    method.setAccessible(true);
-                    return method.invoke(target);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
-    }
-
-    public static Method method(Object target, String methodName, Class<?>[] args) throws NoSuchMethodException {
-        try {
-            return target.getClass().getMethod(methodName, args);
-        } catch (NoSuchMethodException e) {
-            return target.getClass().getDeclaredMethod(methodName, args);
-        }
-    }
-
-    private static ByteBuffer viewed(ByteBuffer buffer) {
         if (!buffer.isDirect()) {
-            throw new IllegalArgumentException("buffer is non-direct");
+            return;
         }
-        ByteBuffer viewedBuffer = (ByteBuffer) ((DirectBuffer) buffer).attachment();
-        if (viewedBuffer == null) {
-            return buffer;
-        } else {
-            return viewed(viewedBuffer);
-        }
+
+        PlatformDependent.freeDirectBuffer(buffer);
     }
 
     public static void ensureDirOK(final String dirName) {
@@ -764,5 +730,31 @@ public class UtilAll {
             boolean result = f.mkdirs();
             STORE_LOG.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
         }
+    }
+
+    public static long calculateFileSizeInPath(File path) {
+        long size = 0;
+        try {
+            if (!path.exists() || Files.isSymbolicLink(path.toPath())) {
+                return 0;
+            }
+            if (path.isFile()) {
+                return path.length();
+            }
+            if (path.isDirectory()) {
+                File[] files = path.listFiles();
+                if (files != null && files.length > 0) {
+                    for (File file : files) {
+                        long fileSize = calculateFileSizeInPath(file);
+                        if (fileSize == -1) return -1;
+                        size += fileSize;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("calculate all file size in: {} error", path.getAbsolutePath(), e);
+            return -1;
+        }
+        return size;
     }
 }

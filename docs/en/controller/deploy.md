@@ -108,3 +108,30 @@ From the compatibility statements above, it can be seen that NameServer can be u
 2. Upgrade from DLedger mode to Controller switching architecture
 
    Due to the differences in the format of message data in DLedger mode and Master-Slave mode, there is no in-place upgrade with data. In the case of deploying multiple groups of Brokers, it is possible to disable writing to a group of Brokers for a certain period of time (as long as it is confirmed that all existing messages have been consumed), and then upgrade and deploy the Controller and new Brokers. In this way, the new Brokers will consume messages from the existing Brokers and the existing Brokers will consume messages from the new Brokers until the consumption is balanced, and then the existing Brokers can be decommissioned.
+
+### Upgrade considerations for persistent BrokerID version
+
+The current version supports a new high-availability architecture with persistent BrokerID version. Upgrading from version 5.x to the current version requires the following considerations:
+
+For version 4.x, follow the above procedure to upgrade.
+
+For upgrading from non-persistent BrokerID version in 5.x to persistent BrokerID version, follow the procedure below:
+
+**Upgrade Controller**
+
+1. Stop the old version Controller group.
+2. Clear Controller data, i.e., data files located in `~/DLedgerController` by default.
+3. Bring up the new version Controller group. 
+
+> During the Controller upgrade process, Broker can still run normally but cannot failover.
+
+**Upgrade Broker**
+
+1. Stop the secondary Broker.
+2. Stop the primary Broker.
+3. Delete all Epoch files of all Brokers, i.e., `~/store/epochFileCheckpoint` and `~/store/epochFileCheckpoint.bak` by default.
+4. Bring up the original primary Broker and wait for it to be elected as master (you can use the `getSyncStateSet` command of admin to observe).
+5. Bring up all the original secondary Brokers.
+
+> It is recommended to stop the secondary Broker before stopping the primary Broker and bring up the original primary Broker before the original secondary during the online process. This can ensure the original primary-secondary relationship.
+> If you need to change the primary-secondary relationship before and after the upgrade, make sure that the CommitLog of the primary and secondary are aligned when shutting down. Otherwise, data may be truncated and lost.

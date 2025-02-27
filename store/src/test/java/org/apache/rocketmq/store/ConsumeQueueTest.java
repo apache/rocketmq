@@ -24,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
@@ -151,7 +152,7 @@ public class ConsumeQueueTest {
                     long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
                 }
             }
-            , brokerConfig);
+            , brokerConfig, new ConcurrentHashMap<>());
 
         assertThat(master.load()).isTrue();
 
@@ -179,7 +180,7 @@ public class ConsumeQueueTest {
                     long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
                 }
             }
-            , brokerConfig);
+            , brokerConfig, new ConcurrentHashMap<>());
 
         assertThat(master.load()).isTrue();
 

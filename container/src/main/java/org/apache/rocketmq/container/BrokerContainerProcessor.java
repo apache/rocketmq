@@ -19,6 +19,9 @@ package org.apache.rocketmq.container;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import java.util.Properties;
 import org.apache.rocketmq.broker.BrokerController;
@@ -45,8 +48,19 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
     private final BrokerContainer brokerContainer;
     private List<BrokerBootHook> brokerBootHookList;
 
+    private final Set<String> configBlackList = new HashSet<>();
+
     public BrokerContainerProcessor(BrokerContainer brokerContainer) {
         this.brokerContainer = brokerContainer;
+        initConfigBlackList();
+    }
+
+    private void initConfigBlackList() {
+        configBlackList.add("brokerConfigPaths");
+        configBlackList.add("rocketmqHome");
+        configBlackList.add("configBlackList");
+        String[] configArray = brokerContainer.getBrokerContainerConfig().getConfigBlackList().split(";");
+        configBlackList.addAll(Arrays.asList(configArray));
     }
 
     @Override
@@ -72,7 +86,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
     }
 
     private synchronized RemotingCommand addBroker(ChannelHandlerContext ctx,
-        RemotingCommand request) throws Exception {
+                                                   RemotingCommand request) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final AddBrokerRequestHeader requestHeader = (AddBrokerRequestHeader) request.decodeCommandCustomHeader(AddBrokerRequestHeader.class);
 
@@ -91,11 +105,10 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
                 LOGGER.error("addBroker load config from {} failed, {}", configPath, e);
             }
         } else {
-            byte[] body = request.getBody();
-            if (body != null) {
-                String bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
-                brokerProperties = MixAll.string2Properties(bodyStr);
-            }
+            LOGGER.error("addBroker config path is empty");
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("addBroker config path is empty");
+            return response;
         }
 
         if (brokerProperties == null) {
@@ -111,10 +124,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         MixAll.properties2Object(brokerProperties, messageStoreConfig);
 
         messageStoreConfig.setHaListenPort(brokerConfig.getListenPort() + 1);
-
-        if (configPath != null && !configPath.isEmpty()) {
-            brokerConfig.setBrokerConfigPath(configPath);
-        }
+        brokerConfig.setBrokerConfigPath(configPath);
 
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
             if (!brokerConfig.isEnableControllerMode()) {
@@ -233,15 +243,24 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
             try {
                 String bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
                 Properties properties = MixAll.string2Properties(bodyStr);
-                if (properties != null) {
-                    LOGGER.info("updateSharedBrokerConfig, new config: [{}] client: {} ", properties, ctx.channel().remoteAddress());
-                    this.brokerContainer.getConfiguration().update(properties);
-                } else {
+
+                if (properties == null) {
                     LOGGER.error("string2Properties error");
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("string2Properties error");
                     return response;
                 }
+
+                if (validateBlackListConfigExist(properties)) {
+                    response.setCode(ResponseCode.NO_PERMISSION);
+                    response.setRemark("Can not update config in black list.");
+                    return response;
+                }
+
+
+                LOGGER.info("updateBrokerContainerConfig, new config: [{}] client: {} ", properties, ctx.channel().remoteAddress());
+                this.brokerContainer.getConfiguration().update(properties);
+
             } catch (UnsupportedEncodingException e) {
                 LOGGER.error("", e);
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -253,6 +272,15 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
+    }
+
+    private boolean validateBlackListConfigExist(Properties properties) {
+        for (String blackConfig : configBlackList) {
+            if (properties.containsKey(blackConfig)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private RemotingCommand getBrokerConfig(ChannelHandlerContext ctx, RemotingCommand request) {

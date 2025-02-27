@@ -64,10 +64,6 @@ public class GrpcConverter {
         return instance;
     }
 
-    public String wrapResourceWithNamespace(Resource resource) {
-        return NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
-    }
-
     public MessageQueue buildMessageQueue(MessageExt messageExt, String brokerName) {
         Broker broker = Broker.getDefaultInstance();
         if (!StringUtils.isEmpty(brokerName)) {
@@ -140,6 +136,11 @@ public class GrpcConverter {
 
         // message_id
         String uniqKey = messageExt.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+
+        if (uniqKey == null) {
+            uniqKey = messageExt.getMsgId();
+        }
+
         if (uniqKey != null) {
             systemPropertiesBuilder.setMessageId(uniqKey);
         }

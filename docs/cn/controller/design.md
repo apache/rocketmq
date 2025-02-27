@@ -121,13 +121,13 @@ nextTransferFromWhere + size > currentTransferEpochEndOffset，则将 selectMapp
 
 ![示意图](../image/controller/controller_design_3.png)
 
-`current state(4byte) + Two flags(4byte) + slaveAddressLength(4byte) + slaveAddress(50byte)`
+`current state(4byte) + Two flags(4byte) + slaveBrokerId(8byte)`
 
 - Current state 代表当前的 HAConnectionState，也即 HANDSHAKE。
 
-- Two falgs 是两个状态标志位，其中，isSyncFromLastFile 代表是否要从 Master 的最后一个文件开始复制，isAsyncLearner 代表该 Slave 是否是异步复制，并以 Learner 的形式接入 Master。
+- Two flags 是两个状态标志位，其中，isSyncFromLastFile 代表是否要从 Master 的最后一个文件开始复制，isAsyncLearner 代表该 Slave 是否是异步复制，并以 Learner 的形式接入 Master。
 
-- slaveAddressLength 与 slaveAddress 代表了该 Slave 的地址，用于后续加入 SyncStateSet 。
+- slaveBrokerId 代表了该 Slave 的 brokerId，用于后续加入 SyncStateSet 。
 
 2.AutoSwitchHaConnection (Master) 会向 Slave 回送 HandShake 包，如下：
 

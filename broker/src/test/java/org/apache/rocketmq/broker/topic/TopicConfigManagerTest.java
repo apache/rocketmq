@@ -16,37 +16,42 @@
  */
 package org.apache.rocketmq.broker.topic;
 
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.attribute.Attribute;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.attribute.Attribute;
 import org.apache.rocketmq.common.attribute.BooleanAttribute;
+import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.EnumAttribute;
 import org.apache.rocketmq.common.attribute.LongRangeAttribute;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.common.attribute.CQType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TopicConfigManagerTest {
+
+    private final String basePath = Paths.get(System.getProperty("user.home"),
+            "unit-test-store", UUID.randomUUID().toString().substring(0, 16).toUpperCase()).toString();
     private TopicConfigManager topicConfigManager;
     @Mock
     private BrokerController brokerController;
@@ -59,8 +64,9 @@ public class TopicConfigManagerTest {
         BrokerConfig brokerConfig = new BrokerConfig();
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(basePath);
         when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-        when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
+        Mockito.lenient().when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
         when(defaultMessageStore.getStateMachineVersion()).thenReturn(0L);
         topicConfigManager = new TopicConfigManager(brokerController);
     }
@@ -318,7 +324,6 @@ public class TopicConfigManagerTest {
             supportedAttributes.put(supportAttribute.getName(), supportAttribute);
         }
 
-        topicConfigManager = spy(topicConfigManager);
-        when(topicConfigManager.allAttributes()).thenReturn(supportedAttributes);
+        TopicAttributes.ALL.putAll(supportedAttributes);
     }
 }

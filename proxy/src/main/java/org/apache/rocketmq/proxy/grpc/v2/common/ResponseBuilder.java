@@ -21,6 +21,8 @@ import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -28,7 +30,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyException;
-import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.service.route.TopicRouteHelper;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -84,6 +86,9 @@ public class ResponseBuilder {
         if (t instanceof RemotingTimeoutException) {
             return buildStatus(Code.PROXY_TIMEOUT, t.getMessage());
         }
+        if (t instanceof AuthenticationException || t instanceof AuthorizationException) {
+            return buildStatus(Code.UNAUTHORIZED, t.getMessage());
+        }
 
         log.error("internal server error", t);
         return buildStatus(Code.INTERNAL_SERVER_ERROR, ExceptionUtils.getErrorDetailMessage(t));
@@ -92,7 +97,7 @@ public class ResponseBuilder {
     public Status buildStatus(Code code, String message) {
         return Status.newBuilder()
             .setCode(code)
-            .setMessage(message)
+            .setMessage(message != null ? message : code.name())
             .build();
     }
 

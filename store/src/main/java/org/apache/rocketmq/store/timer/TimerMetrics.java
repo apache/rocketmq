@@ -38,6 +38,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -78,7 +80,8 @@ public class TimerMetrics extends ConfigManager {
         return distPair.getCount().addAndGet(value);
     }
 
-    public long addAndGet(String topic, int value) {
+    public long addAndGet(MessageExt msg, int value) {
+        String topic = msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
         Metric pair = getTopicPair(topic);
         getDataVersion().nextVersion();
         pair.setTimeStamp(System.currentTimeMillis());

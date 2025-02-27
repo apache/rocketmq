@@ -19,10 +19,10 @@ package org.apache.rocketmq.common.message;
 
 public enum MessageType {
     Normal_Msg("Normal"),
-    Order_Msg("Order"),
     Trans_Msg_Half("Trans"),
     Trans_msg_Commit("TransCommit"),
-    Delay_Msg("Delay");
+    Delay_Msg("Delay"),
+    Order_Msg("Order");
 
     private final String shortName;
 

@@ -22,19 +22,19 @@ import java.util.Set;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class SyncStateSet extends RemotingSerializable {
-    private Set<String> syncStateSet;
+    private Set<Long> syncStateSet;
     private int syncStateSetEpoch;
 
-    public SyncStateSet(Set<String> syncStateSet, int syncStateSetEpoch) {
+    public SyncStateSet(Set<Long> syncStateSet, int syncStateSetEpoch) {
         this.syncStateSet = new HashSet<>(syncStateSet);
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    public Set<String> getSyncStateSet() {
+    public Set<Long> getSyncStateSet() {
         return new HashSet<>(syncStateSet);
     }
 
-    public void setSyncStateSet(Set<String> syncStateSet) {
+    public void setSyncStateSet(Set<Long> syncStateSet) {
         this.syncStateSet = new HashSet<>(syncStateSet);
     }
 

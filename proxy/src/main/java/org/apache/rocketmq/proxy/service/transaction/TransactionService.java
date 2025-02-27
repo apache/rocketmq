@@ -22,21 +22,21 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 
 public interface TransactionService {
 
-    void addTransactionSubscription(String group, List<String> topicList);
+    void addTransactionSubscription(ProxyContext ctx, String group, List<String> topicList);
 
-    void addTransactionSubscription(String group, String topic);
+    void addTransactionSubscription(ProxyContext ctx, String group, String topic);
 
-    void replaceTransactionSubscription(String group, List<String> topicList);
+    void replaceTransactionSubscription(ProxyContext ctx, String group, List<String> topicList);
 
-    void unSubscribeAllTransactionTopic(String group);
+    void unSubscribeAllTransactionTopic(ProxyContext ctx, String group);
 
-    TransactionData addTransactionDataByBrokerAddr(String brokerAddr, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
+    TransactionData addTransactionDataByBrokerAddr(ProxyContext ctx, String brokerAddr, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
         Message message);
 
-    TransactionData addTransactionDataByBrokerName(String brokerName, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
+    TransactionData addTransactionDataByBrokerName(ProxyContext ctx, String brokerName, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
         Message message);
 
-    EndTransactionRequestData genEndTransactionRequestHeader(String producerGroup, Integer commitOrRollback,
+    EndTransactionRequestData genEndTransactionRequestHeader(ProxyContext ctx, String topic, String producerGroup, Integer commitOrRollback,
         boolean fromTransactionCheck, String msgId, String transactionId);
 
     void onSendCheckTransactionStateFailed(ProxyContext context, String producerGroup, TransactionData transactionData);

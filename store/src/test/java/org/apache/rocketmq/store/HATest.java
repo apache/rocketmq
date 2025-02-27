@@ -27,6 +27,7 @@ import java.net.SocketAddress;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -212,12 +213,15 @@ public class HATest {
             assertEquals(PutMessageStatus.PUT_OK, result.getPutMessageStatus());
             //message has been replicated to slave's commitLog, but maybe not dispatch to ConsumeQueue yet
             //so direct read from commitLog by physical offset
-            MessageExt slaveMsg = slaveMessageStore.lookMessageByOffset(result.getAppendMessageResult().getWroteOffset());
-            assertNotNull(slaveMsg);
-            assertArrayEquals(msg.getBody(), slaveMsg.getBody());
-            assertEquals(msg.getTopic(), slaveMsg.getTopic());
-            assertEquals(msg.getTags(), slaveMsg.getTags());
-            assertEquals(msg.getKeys(), slaveMsg.getKeys());
+            final MessageExt[] slaveMsg = {null};
+            await().atMost(Duration.ofSeconds(3)).until(() -> {
+                slaveMsg[0] = slaveMessageStore.lookMessageByOffset(result.getAppendMessageResult().getWroteOffset());
+                return slaveMsg[0] != null;
+            });
+            assertArrayEquals(msg.getBody(), slaveMsg[0].getBody());
+            assertEquals(msg.getTopic(), slaveMsg[0].getTopic());
+            assertEquals(msg.getTags(), slaveMsg[0].getTags());
+            assertEquals(msg.getKeys(), slaveMsg[0].getKeys());
         }
 
         //shutdown slave, putMessage should return IN_SYNC_REPLICAS_NOT_ENOUGH
@@ -250,7 +254,7 @@ public class HATest {
     private MessageStore buildMessageStore(MessageStoreConfig messageStoreConfig, long brokerId) throws Exception {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
-        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
+        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig, new ConcurrentHashMap<>());
     }
 
     private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig) {

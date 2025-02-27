@@ -73,7 +73,7 @@ public class AclFileWatchService extends ServiceThread {
             return;
         }
         File[] files = file.listFiles();
-        for (int i = 0; i < files.length; i++) {
+        for (int i = 0; files != null && i < files.length; i++) {
             String fileName = files[i].getAbsolutePath();
             File f = new File(fileName);
             if (fileName.equals(aclPath + File.separator + "tools.yml")) {

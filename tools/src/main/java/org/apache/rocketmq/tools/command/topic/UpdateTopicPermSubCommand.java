@@ -44,7 +44,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Update topic perm";
+        return "Update topic perm.";
     }
 
     @Override

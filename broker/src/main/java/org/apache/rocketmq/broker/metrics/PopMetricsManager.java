@@ -27,6 +27,7 @@ import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -38,8 +39,11 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
@@ -56,6 +60,7 @@ import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.LABEL_QUEUE_
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.LABEL_REVIVE_MESSAGE_TYPE;
 
 public class PopMetricsManager {
+    private static final Logger log = LoggerFactory.getLogger(PopMetricsManager.class);
     public static Supplier<AttributesBuilder> attributesBuilderSupplier;
 
     private static LongHistogram popBufferScanTimeConsume = new NopLongHistogram();
@@ -63,7 +68,7 @@ public class PopMetricsManager {
     private static LongCounter popReviveGetTotal = new NopLongCounter();
     private static LongCounter popReviveRetryMessageTotal = new NopLongCounter();
 
-    public static List<Pair<InstrumentSelector, View>> getMetricsView() {
+    public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
         List<Double> rpcCostTimeBuckets = Arrays.asList(
             (double) Duration.ofMillis(1).toMillis(),
             (double) Duration.ofMillis(10).toMillis(),
@@ -76,10 +81,10 @@ public class PopMetricsManager {
             .setType(InstrumentType.HISTOGRAM)
             .setName(HISTOGRAM_POP_BUFFER_SCAN_TIME_CONSUME)
             .build();
-        View popBufferScanTimeConsumeView = View.builder()
-            .setAggregation(Aggregation.explicitBucketHistogram(rpcCostTimeBuckets))
-            .build();
-        return Lists.newArrayList(new Pair<>(popBufferScanTimeConsumeSelector, popBufferScanTimeConsumeView));
+        ViewBuilder popBufferScanTimeConsumeViewBuilder = View.builder()
+            .setAggregation(Aggregation.explicitBucketHistogram(rpcCostTimeBuckets));
+
+        return Lists.newArrayList(new Pair<>(popBufferScanTimeConsumeSelector, popBufferScanTimeConsumeViewBuilder));
     }
 
     public static void initMetrics(Meter meter, BrokerController brokerController,
@@ -137,9 +142,13 @@ public class PopMetricsManager {
         ObservableLongMeasurement measurement) {
         PopReviveService[] popReviveServices = brokerController.getAckMessageProcessor().getPopReviveServices();
         for (PopReviveService popReviveService : popReviveServices) {
-            measurement.record(popReviveService.getReviveBehindMillis(), newAttributesBuilder()
-                .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
-                .build());
+            try {
+                measurement.record(popReviveService.getReviveBehindMillis(), newAttributesBuilder()
+                    .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
+                    .build());
+            } catch (ConsumeQueueException e) {
+                log.error("Failed to get revive behind duration", e);
+            }
         }
     }
 
@@ -147,9 +156,13 @@ public class PopMetricsManager {
         ObservableLongMeasurement measurement) {
         PopReviveService[] popReviveServices = brokerController.getAckMessageProcessor().getPopReviveServices();
         for (PopReviveService popReviveService : popReviveServices) {
-            measurement.record(popReviveService.getReviveBehindMessages(), newAttributesBuilder()
-                .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
-                .build());
+            try {
+                measurement.record(popReviveService.getReviveBehindMessages(), newAttributesBuilder()
+                    .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
+                    .build());
+            } catch (ConsumeQueueException e) {
+                log.error("Failed to get revive behind message count", e);
+            }
         }
     }
 

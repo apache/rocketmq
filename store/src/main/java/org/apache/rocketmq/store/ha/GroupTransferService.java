@@ -41,10 +41,10 @@ public class GroupTransferService extends ServiceThread {
 
     private final WaitNotifyObject notifyTransferObject = new WaitNotifyObject();
     private final PutMessageSpinLock lock = new PutMessageSpinLock();
+    private final DefaultMessageStore defaultMessageStore;
+    private final HAService haService;
     private volatile List<CommitLog.GroupCommitRequest> requestsWrite = new LinkedList<>();
     private volatile List<CommitLog.GroupCommitRequest> requestsRead = new LinkedList<>();
-    private HAService haService;
-    private DefaultMessageStore defaultMessageStore;
 
     public GroupTransferService(final HAService haService, final DefaultMessageStore defaultMessageStore) {
         this.haService = haService;
@@ -86,7 +86,7 @@ public class GroupTransferService extends ServiceThread {
 
                 for (int i = 0; !transferOK && deadLine - System.nanoTime() > 0; i++) {
                     if (i > 0) {
-                        this.notifyTransferObject.waitForRunning(1000);
+                        this.notifyTransferObject.waitForRunning(1);
                     }
 
                     if (!allAckInSyncStateSet && req.getAckNums() <= 1) {
@@ -95,9 +95,9 @@ public class GroupTransferService extends ServiceThread {
                     }
 
                     if (allAckInSyncStateSet && this.haService instanceof AutoSwitchHAService) {
-                        // In this mode, we must wait for all replicas that in InSyncStateSet.
+                        // In this mode, we must wait for all replicas that in SyncStateSet.
                         final AutoSwitchHAService autoSwitchHAService = (AutoSwitchHAService) this.haService;
-                        final Set<String> syncStateSet = autoSwitchHAService.getSyncStateSet();
+                        final Set<Long> syncStateSet = autoSwitchHAService.getSyncStateSet();
                         if (syncStateSet.size() <= 1) {
                             // Only master
                             transferOK = true;
@@ -108,7 +108,7 @@ public class GroupTransferService extends ServiceThread {
                         int ackNums = 1;
                         for (HAConnection conn : haService.getConnectionList()) {
                             final AutoSwitchHAConnection autoSwitchHAConnection = (AutoSwitchHAConnection) conn;
-                            if (syncStateSet.contains(autoSwitchHAConnection.getSlaveAddress()) && autoSwitchHAConnection.getSlaveAckOffset() >= req.getNextOffset()) {
+                            if (syncStateSet.contains(autoSwitchHAConnection.getSlaveId()) && autoSwitchHAConnection.getSlaveAckOffset() >= req.getNextOffset()) {
                                 ackNums++;
                             }
                             if (ackNums >= syncStateSet.size()) {

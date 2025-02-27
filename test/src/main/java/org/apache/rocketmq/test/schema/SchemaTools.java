@@ -166,19 +166,9 @@ public class SchemaTools {
                 continue;
             }
             Class<?>[] parameterTypes = method.getParameterTypes();
-            Arrays.sort(parameterTypes, new Comparator<Class<?>>() {
-                @Override
-                public int compare(Class<?> o1, Class<?> o2) {
-                    return o1.getName().compareTo(o2.getName());
-                }
-            });
+            Arrays.sort(parameterTypes, Comparator.comparing(Class::getName));
             Class<?>[] exceptionTypes = method.getExceptionTypes();
-            Arrays.sort(exceptionTypes, new Comparator<Class<?>>() {
-                @Override
-                public int compare(Class<?> o1, Class<?> o2) {
-                    return o1.getName().compareTo(o2.getName());
-                }
-            });
+            Arrays.sort(exceptionTypes, Comparator.comparing(Class::getName));
             String key = String.format("Method %s(%s)", method.getName(), Arrays.stream(parameterTypes).map(Class::getName).collect(Collectors.joining(",")));
             String value = String.format("%s throws (%s): %s",
                 isPublicOrPrivate(method.getModifiers()),

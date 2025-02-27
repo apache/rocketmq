@@ -28,6 +28,7 @@ public class RequestCode {
     public static final int QUERY_CONSUMER_OFFSET = 14;
     public static final int UPDATE_CONSUMER_OFFSET = 15;
     public static final int UPDATE_AND_CREATE_TOPIC = 17;
+    public static final int UPDATE_AND_CREATE_TOPIC_LIST = 18;
     public static final int GET_ALL_TOPIC_CONFIG = 21;
     public static final int GET_TOPIC_CONFIG_LIST = 22;
 
@@ -80,6 +81,7 @@ public class RequestCode {
 
     public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG = 53;
 
+    @Deprecated
     public static final int GET_BROKER_CLUSTER_ACL_CONFIG = 54;
 
     public static final int GET_TIMER_CHECK_POINT = 60;
@@ -88,10 +90,12 @@ public class RequestCode {
 
     public static final int POP_MESSAGE = 200050;
     public static final int ACK_MESSAGE = 200051;
+    public static final int BATCH_ACK_MESSAGE = 200151;
     public static final int PEEK_MESSAGE = 200052;
     public static final int CHANGE_MESSAGE_INVISIBLETIME = 200053;
     public static final int NOTIFICATION = 200054;
     public static final int POLLING_INFO = 200055;
+    public static final int POP_ROLLBACK = 200056;
 
     public static final int PUT_KV_CONFIG = 100;
 
@@ -144,6 +148,8 @@ public class RequestCode {
     public static final int QUERY_TOPIC_CONSUME_BY_WHO = 300;
 
     public static final int GET_TOPICS_BY_CLUSTER = 224;
+
+    public static final int UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_LIST = 225;
 
     public static final int QUERY_TOPICS_BY_CONSUMER = 343;
     public static final int QUERY_SUBSCRIPTION_BY_CONSUMER = 345;
@@ -207,13 +213,20 @@ public class RequestCode {
     public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
 
     public static final int ADD_WRITE_PERM_OF_BROKER = 327;
+    
+    public static final int GET_ALL_PRODUCER_INFO = 328;
+    
+    public static final int DELETE_EXPIRED_COMMITLOG = 329;
 
     public static final int GET_TOPIC_CONFIG = 351;
 
     public static final int GET_SUBSCRIPTIONGROUP_CONFIG = 352;
     public static final int UPDATE_AND_GET_GROUP_FORBIDDEN = 353;
+    public static final int CHECK_ROCKSDB_CQ_WRITE_PROGRESS = 354;
+    public static final int EXPORT_ROCKSDB_CONFIG_TO_JSON = 355;
 
     public static final int LITE_PULL_MESSAGE = 361;
+    public static final int RECALL_MESSAGE = 370;
 
     public static final int QUERY_ASSIGNMENT = 400;
     public static final int SET_MESSAGE_REQUEST_MODE = 401;
@@ -236,10 +249,6 @@ public class RequestCode {
     public static final int GET_BROKER_HA_STATUS = 907;
 
     public static final int RESET_MASTER_FLUSH_OFFSET = 908;
-
-    public static final int GET_ALL_PRODUCER_INFO = 328;
-
-    public static final int DELETE_EXPIRED_COMMITLOG = 329;
 
     /**
      * Controller code
@@ -274,6 +283,29 @@ public class RequestCode {
      * clean broker data
      */
     public static final int CLEAN_BROKER_DATA = 1011;
+    public static final int CONTROLLER_GET_NEXT_BROKER_ID = 1012;
 
+    public static final int CONTROLLER_APPLY_BROKER_ID = 1013;
+    public static final short BROKER_CLOSE_CHANNEL_REQUEST = 1014;
+    public static final short CHECK_NOT_ACTIVE_BROKER_REQUEST = 1015;
+    public static final short GET_BROKER_LIVE_INFO_REQUEST = 1016;
+    public static final short GET_SYNC_STATE_DATA_REQUEST = 1017;
+    public static final short RAFT_BROKER_HEART_BEAT_EVENT_REQUEST = 1018;
 
+    public static final int UPDATE_COLD_DATA_FLOW_CTR_CONFIG = 2001;
+    public static final int REMOVE_COLD_DATA_FLOW_CTR_CONFIG = 2002;
+    public static final int GET_COLD_DATA_FLOW_CTR_INFO = 2003;
+    public static final int SET_COMMITLOG_READ_MODE = 2004;
+
+    public static final int AUTH_CREATE_USER = 3001;
+    public static final int AUTH_UPDATE_USER = 3002;
+    public static final int AUTH_DELETE_USER = 3003;
+    public static final int AUTH_GET_USER = 3004;
+    public static final int AUTH_LIST_USER = 3005;
+
+    public static final int AUTH_CREATE_ACL = 3006;
+    public static final int AUTH_UPDATE_ACL = 3007;
+    public static final int AUTH_DELETE_ACL = 3008;
+    public static final int AUTH_GET_ACL = 3009;
+    public static final int AUTH_LIST_ACL = 3010;
 }

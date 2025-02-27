@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.BrokerAddrInfo;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -68,7 +67,7 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 
 public class RouteInfoManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
-    private final static long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
+    private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Map<String/* topic */, Map<String, QueueData>> topicQueueTable;
     private final Map<String/* brokerName */, BrokerData> brokerAddrTable;
@@ -122,9 +121,18 @@ public class RouteInfoManager {
         if (queueDatas == null || queueDatas.isEmpty()) {
             return;
         }
+
         try {
             this.lock.writeLock().lockInterruptibly();
             if (this.topicQueueTable.containsKey(topic)) {
+                Map<String, QueueData> queueDataMap  = this.topicQueueTable.get(topic);
+                for (QueueData queueData : queueDatas) {
+                    if (!this.brokerAddrTable.containsKey(queueData.getBrokerName())) {
+                        log.warn("Register topic contains illegal broker, {}, {}", topic, queueData);
+                        return;
+                    }
+                    queueDataMap.put(queueData.getBrokerName(), queueData);
+                }
                 log.info("Topic route already exist.{}, {}", topic, this.topicQueueTable.get(topic));
             } else {
                 // check and construct queue data map
@@ -273,7 +281,7 @@ public class RouteInfoManager {
                     long oldStateVersion = oldBrokerInfo.getDataVersion().getStateVersion();
                     long newStateVersion = topicConfigWrapper.getDataVersion().getStateVersion();
                     if (oldStateVersion > newStateVersion) {
-                        log.warn("Registered Broker conflicts with the existed one, just ignore.: Cluster:{}, BrokerName:{}, BrokerId:{}, " +
+                        log.warn("Registering Broker conflicts with the existed one, just ignore.: Cluster:{}, BrokerName:{}, BrokerId:{}, " +
                                 "Old BrokerAddr:{}, Old Version:{}, New BrokerAddr:{}, New Version:{}.",
                             clusterName, brokerName, brokerId, oldBrokerAddr, oldStateVersion, brokerAddr, newStateVersion);
                         //Remove the rejected brokerAddr from brokerLiveTable.
@@ -293,6 +301,7 @@ public class RouteInfoManager {
             registerFirst = registerFirst || (StringUtils.isEmpty(oldAddr));
 
             boolean isMaster = MixAll.MASTER_ID == brokerId;
+
             boolean isPrimeSlave = !isOldVersionBroker && !isMaster
                 && brokerId == Collections.min(brokerAddrsMap.keySet());
 
@@ -300,32 +309,56 @@ public class RouteInfoManager {
 
                 ConcurrentMap<String, TopicConfig> tcTable =
                     topicConfigWrapper.getTopicConfigTable();
+
                 if (tcTable != null) {
+
+                    TopicConfigAndMappingSerializeWrapper mappingSerializeWrapper = TopicConfigAndMappingSerializeWrapper.from(topicConfigWrapper);
+                    Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = mappingSerializeWrapper.getTopicQueueMappingInfoMap();
+
+                    // Delete the topics that don't exist in tcTable from the current broker
+                    // Static topic is not supported currently
+                    if (namesrvConfig.isDeleteTopicWithBrokerRegistration() && topicQueueMappingInfoMap.isEmpty()) {
+                        final Set<String> oldTopicSet = topicSetOfBrokerName(brokerName);
+                        final Set<String> newTopicSet = tcTable.keySet();
+                        final Sets.SetView<String> toDeleteTopics = Sets.difference(oldTopicSet, newTopicSet);
+                        for (final String toDeleteTopic : toDeleteTopics) {
+                            Map<String, QueueData> queueDataMap = topicQueueTable.get(toDeleteTopic);
+                            final QueueData removedQD = queueDataMap.remove(brokerName);
+                            if (removedQD != null) {
+                                log.info("deleteTopic, remove one broker's topic {} {} {}", brokerName, toDeleteTopic, removedQD);
+                            }
+
+                            if (queueDataMap.isEmpty()) {
+                                log.info("deleteTopic, remove the topic all queue {}", toDeleteTopic);
+                                topicQueueTable.remove(toDeleteTopic);
+                            }
+                        }
+                    }
+
                     for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
                         if (registerFirst || this.isTopicConfigChanged(clusterName, brokerAddr,
                             topicConfigWrapper.getDataVersion(), brokerName,
                             entry.getValue().getTopicName())) {
                             final TopicConfig topicConfig = entry.getValue();
-                            if (isPrimeSlave) {
+                            // In Slave Acting Master mode, Namesrv will regard the surviving Slave with the smallest brokerId as the "agent" Master, and modify the brokerPermission to read-only.
+                            if (isPrimeSlave && brokerData.isEnableActingMaster()) {
                                 // Wipe write perm for prime slave
                                 topicConfig.setPerm(topicConfig.getPerm() & (~PermName.PERM_WRITE));
                             }
                             this.createAndUpdateQueueData(brokerName, topicConfig);
                         }
                     }
-                }
 
-                if (this.isBrokerTopicConfigChanged(clusterName, brokerAddr, topicConfigWrapper.getDataVersion()) || registerFirst) {
-                    TopicConfigAndMappingSerializeWrapper mappingSerializeWrapper = TopicConfigAndMappingSerializeWrapper.from(topicConfigWrapper);
-                    Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = mappingSerializeWrapper.getTopicQueueMappingInfoMap();
-                    //the topicQueueMappingInfoMap should never be null, but can be empty
-                    for (Map.Entry<String, TopicQueueMappingInfo> entry : topicQueueMappingInfoMap.entrySet()) {
-                        if (!topicQueueMappingInfoTable.containsKey(entry.getKey())) {
-                            topicQueueMappingInfoTable.put(entry.getKey(), new HashMap<>());
+                    if (this.isBrokerTopicConfigChanged(clusterName, brokerAddr, topicConfigWrapper.getDataVersion()) || registerFirst) {
+                        //the topicQueueMappingInfoMap should never be null, but can be empty
+                        for (Map.Entry<String, TopicQueueMappingInfo> entry : topicQueueMappingInfoMap.entrySet()) {
+                            if (!topicQueueMappingInfoTable.containsKey(entry.getKey())) {
+                                topicQueueMappingInfoTable.put(entry.getKey(), new HashMap<>());
+                            }
+                            //Note asset brokerName equal entry.getValue().getBname()
+                            //here use the mappingDetail.bname
+                            topicQueueMappingInfoTable.get(entry.getKey()).put(entry.getValue().getBname(), entry.getValue());
                         }
-                        //Note asset brokerName equal entry.getValue().getBname()
-                        //here use the mappingDetail.bname
-                        topicQueueMappingInfoTable.get(entry.getKey()).put(entry.getValue().getBname(), entry.getValue());
                     }
                 }
             }
@@ -373,6 +406,16 @@ public class RouteInfoManager {
         }
 
         return result;
+    }
+
+    private Set<String> topicSetOfBrokerName(final String brokerName) {
+        Set<String> topicOfBroker = new HashSet<>();
+        for (final Entry<String, Map<String, QueueData>> entry : this.topicQueueTable.entrySet()) {
+            if (entry.getValue().containsKey(brokerName)) {
+                topicOfBroker.add(entry.getKey());
+            }
+        }
+        return topicOfBroker;
     }
 
     public BrokerMemberGroup getBrokerMemberGroup(String clusterName, String brokerName) {
@@ -481,7 +524,7 @@ public class RouteInfoManager {
                 this.lock.writeLock().unlock();
             }
         } catch (Exception e) {
-            log.error("wipeWritePermOfBrokerByLock Exception", e);
+            log.error("addWritePermOfBrokerByLock Exception", e);
         }
         return 0;
     }
@@ -1067,6 +1110,70 @@ public class RouteInfoManager {
         }
 
         return topicList;
+    }
+}
+
+/**
+ * broker address information
+ */
+class BrokerAddrInfo {
+    private String clusterName;
+    private String brokerAddr;
+
+    private int hash;
+
+    public BrokerAddrInfo(String clusterName, String brokerAddr) {
+        this.clusterName = clusterName;
+        this.brokerAddr = brokerAddr;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerAddr() {
+        return brokerAddr;
+    }
+
+    public boolean isEmpty() {
+        return clusterName.isEmpty() && brokerAddr.isEmpty();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+
+        if (obj instanceof BrokerAddrInfo) {
+            BrokerAddrInfo addr = (BrokerAddrInfo) obj;
+            return clusterName.equals(addr.clusterName) && brokerAddr.equals(addr.brokerAddr);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        int h = hash;
+        if (h == 0 && clusterName.length() + brokerAddr.length() > 0) {
+            for (int i = 0; i < clusterName.length(); i++) {
+                h = 31 * h + clusterName.charAt(i);
+            }
+            h = 31 * h + '_';
+            for (int i = 0; i < brokerAddr.length(); i++) {
+                h = 31 * h + brokerAddr.charAt(i);
+            }
+            hash = h;
+        }
+        return h;
+    }
+
+    @Override
+    public String toString() {
+        return "BrokerIdentityInfo [clusterName=" + clusterName + ", brokerAddr=" + brokerAddr + "]";
     }
 }
 

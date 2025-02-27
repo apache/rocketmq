@@ -22,12 +22,12 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
@@ -36,7 +36,7 @@ public class ThreadPoolMonitor {
     private static Logger waterMarkLogger = LoggerFactory.getLogger(ThreadPoolMonitor.class);
 
     private static final List<ThreadPoolWrapper> MONITOR_EXECUTOR = new CopyOnWriteArrayList<>();
-    private static final ScheduledExecutorService MONITOR_SCHEDULED = Executors.newSingleThreadScheduledExecutor(
+    private static final ScheduledExecutorService MONITOR_SCHEDULED = ThreadUtils.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat("ThreadPoolMonitor-%d").build()
     );
 
@@ -81,7 +81,7 @@ public class ThreadPoolMonitor {
         String name,
         int queueCapacity,
         List<ThreadPoolStatusMonitor> threadPoolStatusMonitors) {
-        ThreadPoolExecutor executor = new FutureTaskExtThreadPoolExecutor(
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) ThreadUtils.newThreadPoolExecutor(
             corePoolSize,
             maximumPoolSize,
             keepAliveTime,
@@ -105,10 +105,9 @@ public class ThreadPoolMonitor {
             List<ThreadPoolStatusMonitor> monitors = threadPoolWrapper.getStatusPrinters();
             for (ThreadPoolStatusMonitor monitor : monitors) {
                 double value = monitor.value(threadPoolWrapper.getThreadPoolExecutor());
-                waterMarkLogger.info("\t{}\t{}\t{}", threadPoolWrapper.getName(),
-                    monitor.describe(),
-                    value);
-
+                String nameFormatted = String.format("%-40s", threadPoolWrapper.getName());
+                String descFormatted = String.format("%-12s", monitor.describe());
+                waterMarkLogger.info("{}{}{}", nameFormatted, descFormatted, value);
                 if (enablePrintJstack) {
                     if (monitor.needPrintJstack(threadPoolWrapper.getThreadPoolExecutor(), value) &&
                         System.currentTimeMillis() - jstackTime > jstackPeriodTime) {

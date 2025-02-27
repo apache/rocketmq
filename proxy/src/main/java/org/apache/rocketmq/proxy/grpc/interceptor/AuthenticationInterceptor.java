@@ -32,6 +32,8 @@ import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AuthenticationHeader;
 import org.apache.rocketmq.acl.plain.PlainAccessResource;
+import org.apache.rocketmq.common.constant.GrpcConstants;
+import org.apache.rocketmq.proxy.common.utils.GrpcUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 
 public class AuthenticationInterceptor implements ServerInterceptor {
@@ -48,19 +50,20 @@ public class AuthenticationInterceptor implements ServerInterceptor {
             @Override
             public void onMessage(R message) {
                 GeneratedMessageV3 messageV3 = (GeneratedMessageV3) message;
-                headers.put(InterceptorConstants.RPC_NAME, messageV3.getDescriptorForType().getFullName());
+                GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.RPC_NAME, messageV3.getDescriptorForType().getFullName());
+                GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.SIMPLE_RPC_NAME, messageV3.getDescriptorForType().getName());
                 if (ConfigurationManager.getProxyConfig().isEnableACL()) {
                     try {
                         AuthenticationHeader authenticationHeader = AuthenticationHeader.builder()
-                            .remoteAddress(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REMOTE_ADDRESS))
-                            .namespace(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.NAMESPACE_ID))
-                            .authorization(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.AUTHORIZATION))
-                            .datetime(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.DATE_TIME))
-                            .sessionToken(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.SESSION_TOKEN))
-                            .requestId(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.REQUEST_ID))
-                            .language(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.LANGUAGE))
-                            .clientVersion(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.CLIENT_VERSION))
-                            .protocol(InterceptorConstants.METADATA.get(Context.current()).get(InterceptorConstants.PROTOCOL_VERSION))
+                            .remoteAddress(GrpcConstants.METADATA.get(Context.current()).get(GrpcConstants.REMOTE_ADDRESS))
+                            .namespace(GrpcConstants.METADATA.get(Context.current()).get(GrpcConstants.NAMESPACE_ID))
+                            .authorization(GrpcConstants.METADATA.get(Context.current()).get(GrpcConstants.AUTHORIZATION))
+                            .datetime(GrpcConstants.METADATA.get(Context.current()).get(GrpcConstants.DATE_TIME))
+                            .sessionToken(GrpcConstants.METADATA.get(Context.current()).get(GrpcConstants.SESSION_TOKEN))
+                            .requestId(GrpcConstants.METADATA.get(Context.current()).get(GrpcConstants.REQUEST_ID))
+                            .language(GrpcConstants.METADATA.get(Context.current()).get(GrpcConstants.LANGUAGE))
+                            .clientVersion(GrpcConstants.METADATA.get(Context.current()).get(GrpcConstants.CLIENT_VERSION))
+                            .protocol(GrpcConstants.METADATA.get(Context.current()).get(GrpcConstants.PROTOCOL_VERSION))
                             .requestCode(RequestMapping.map(messageV3.getDescriptorForType().getFullName()))
                             .build();
 
@@ -83,7 +86,7 @@ public class AuthenticationInterceptor implements ServerInterceptor {
 
             if (accessResource instanceof PlainAccessResource) {
                 PlainAccessResource plainAccessResource = (PlainAccessResource) accessResource;
-                headers.put(InterceptorConstants.AUTHORIZATION_AK, plainAccessResource.getAccessKey());
+                GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.AUTHORIZATION_AK, plainAccessResource.getAccessKey());
             }
         }
     }

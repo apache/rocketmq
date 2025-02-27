@@ -35,6 +35,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MixAll;
@@ -49,6 +51,7 @@ import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
+import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
@@ -62,15 +65,19 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class SendMessageActivityTest extends BaseActivityTest {
 
     protected static final String BROKER_NAME = "broker";
+    protected static final String BROKER_NAME2 = "broker2";
     protected static final String CLUSTER_NAME = "cluster";
     protected static final String BROKER_ADDR = "127.0.0.1:10911";
+    protected static final String BROKER_ADDR2 = "127.0.0.1:10912";
     private static final String TOPIC = "topic";
     private static final String CONSUMER_GROUP = "consumerGroup";
+    MQFaultStrategy mqFaultStrategy;
 
     private SendMessageActivity sendMessageActivity;
 
@@ -229,7 +236,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
             Resource.newBuilder().setName(TOPIC).build()).get(0);
 
         assertEquals(MessageClientIDSetter.getUniqID(messageExt), msgId);
-        assertEquals(String.valueOf(2), messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL));
+        assertEquals(deliveryTime, Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS)));
     }
 
     @Test
@@ -262,7 +269,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
-    public void testSendOrderMessageQueueSelector() {
+    public void testSendOrderMessageQueueSelector() throws Exception {
         TopicRouteData topicRouteData = new TopicRouteData();
         QueueData queueData = new QueueData();
         BrokerData brokerData = new BrokerData();
@@ -277,7 +284,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         brokerData.setBrokerAddrs(brokerAddrs);
         topicRouteData.setBrokerDatas(Lists.newArrayList(brokerData));
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, null);
         SendMessageActivity.SendMessageQueueSelector selector1 = new SendMessageActivity.SendMessageQueueSelector(
             SendMessageRequest.newBuilder()
                 .addMessages(Message.newBuilder()
@@ -287,6 +294,12 @@ public class SendMessageActivityTest extends BaseActivityTest {
                     .build())
                 .build()
         );
+
+        TopicRouteService topicRouteService = mock(TopicRouteService.class);
+        MQFaultStrategy mqFaultStrategy = mock(MQFaultStrategy.class);
+        when(topicRouteService.getAllMessageQueueView(any(), any())).thenReturn(messageQueueView);
+        when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
+        when(mqFaultStrategy.isSendLatencyFaultEnable()).thenReturn(false);
 
         SendMessageActivity.SendMessageQueueSelector selector2 = new SendMessageActivity.SendMessageQueueSelector(
             SendMessageRequest.newBuilder()
@@ -328,12 +341,17 @@ public class SendMessageActivityTest extends BaseActivityTest {
         brokerData.setBrokerAddrs(brokerAddrs);
         topicRouteData.setBrokerDatas(Lists.newArrayList(brokerData));
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+
         SendMessageActivity.SendMessageQueueSelector selector = new SendMessageActivity.SendMessageQueueSelector(
             SendMessageRequest.newBuilder()
                 .addMessages(Message.newBuilder().build())
                 .build()
         );
+        TopicRouteService topicRouteService = mock(TopicRouteService.class);
+        MQFaultStrategy mqFaultStrategy = mock(MQFaultStrategy.class);
+        when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
+        when(mqFaultStrategy.isSendLatencyFaultEnable()).thenReturn(false);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService.getMqFaultStrategy());
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
         AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
@@ -343,6 +361,45 @@ public class SendMessageActivityTest extends BaseActivityTest {
         assertNotEquals(firstSelect, secondSelect);
     }
 
+    @Test
+    public void testSendNormalMessageQueueSelectorPipeLine() throws Exception {
+        TopicRouteData topicRouteData = new TopicRouteData();
+        int queueNums = 2;
+
+        QueueData queueData = createQueueData(BROKER_NAME, queueNums);
+        QueueData queueData2 = createQueueData(BROKER_NAME2, queueNums);
+        topicRouteData.setQueueDatas(Lists.newArrayList(queueData,queueData2));
+
+
+        BrokerData brokerData = createBrokerData(CLUSTER_NAME, BROKER_NAME, BROKER_ADDR);
+        BrokerData brokerData2 = createBrokerData(CLUSTER_NAME, BROKER_NAME2, BROKER_ADDR2);
+        topicRouteData.setBrokerDatas(Lists.newArrayList(brokerData, brokerData2));
+
+        SendMessageActivity.SendMessageQueueSelector selector = new SendMessageActivity.SendMessageQueueSelector(
+                SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder().build())
+                        .build()
+        );
+
+        ClientConfig cc = new ClientConfig();
+        this.mqFaultStrategy = new MQFaultStrategy(cc, null, null);
+        mqFaultStrategy.setSendLatencyFaultEnable(true);
+        mqFaultStrategy.updateFaultItem(BROKER_NAME2, 1000, true, true);
+        mqFaultStrategy.updateFaultItem(BROKER_NAME, 1000, true, false);
+
+        TopicRouteService topicRouteService = mock(TopicRouteService.class);
+        when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService.getMqFaultStrategy());
+
+
+        AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
+        assertEquals(firstSelect.getBrokerName(), BROKER_NAME2);
+
+        mqFaultStrategy.updateFaultItem(BROKER_NAME2, 1000, true, false);
+        mqFaultStrategy.updateFaultItem(BROKER_NAME, 1000, true, true);
+        AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
+        assertEquals(secondSelect.getBrokerName(), BROKER_NAME);
+    }
     @Test
     public void testParameterValidate() {
         // too large message body
@@ -849,5 +906,24 @@ public class SendMessageActivityTest extends BaseActivityTest {
             sb.append("a");
         }
         return sb.toString();
+    }
+
+    private static QueueData createQueueData(String brokerName, int writeQueueNums) {
+        QueueData queueData = new QueueData();
+        queueData.setBrokerName(brokerName);
+        queueData.setWriteQueueNums(writeQueueNums);
+        queueData.setPerm(PermName.PERM_WRITE);
+        return queueData;
+    }
+
+    private static BrokerData createBrokerData(String clusterName, String brokerName, String brokerAddrs) {
+        BrokerData brokerData = new BrokerData();
+        brokerData.setCluster(clusterName);
+        brokerData.setBrokerName(brokerName);
+        HashMap<Long, String> brokerAddrsMap = new HashMap<>();
+        brokerAddrsMap.put(MixAll.MASTER_ID, brokerAddrs);
+        brokerData.setBrokerAddrs(brokerAddrsMap);
+
+        return brokerData;
     }
 }

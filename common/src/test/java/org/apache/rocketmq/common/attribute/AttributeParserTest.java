@@ -17,18 +17,84 @@
 package org.apache.rocketmq.common.attribute;
 
 import com.google.common.collect.Maps;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.Assert;
+import org.junit.Test;
 
 import static com.google.common.collect.Maps.newHashMap;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class AttributeParserTest {
+
+    @Test
+    public void parseToMap_EmptyString_ReturnsEmptyMap() {
+        String attributesModification = "";
+        Map<String, String> result = AttributeParser.parseToMap(attributesModification);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void parseToMap_NullString_ReturnsEmptyMap() {
+        String attributesModification = null;
+        Map<String, String> result = AttributeParser.parseToMap(attributesModification);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void parseToMap_ValidAttributesModification_ReturnsExpectedMap() {
+        String attributesModification = "+key1=value1,+key2=value2,-key3,+key4=value4";
+        Map<String, String> result = AttributeParser.parseToMap(attributesModification);
+
+        Map<String, String> expectedMap = new HashMap<>();
+        expectedMap.put("+key1", "value1");
+        expectedMap.put("+key2", "value2");
+        expectedMap.put("-key3", "");
+        expectedMap.put("+key4", "value4");
+
+        assertEquals(expectedMap, result);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void parseToMap_InvalidAddAttributeFormat_ThrowsRuntimeException() {
+        String attributesModification = "+key1=value1,key2=value2,-key3,+key4=value4";
+        AttributeParser.parseToMap(attributesModification);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void parseToMap_InvalidDeleteAttributeFormat_ThrowsRuntimeException() {
+        String attributesModification = "+key1=value1,+key2=value2,key3,+key4=value4";
+        AttributeParser.parseToMap(attributesModification);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void parseToMap_DuplicateKey_ThrowsRuntimeException() {
+        String attributesModification = "+key1=value1,+key1=value2";
+        AttributeParser.parseToMap(attributesModification);
+    }
+
+    @Test
+    public void parseToString_EmptyMap_ReturnsEmptyString() {
+        Map<String, String> attributes = new HashMap<>();
+        String result = AttributeParser.parseToString(attributes);
+        assertEquals("", result);
+    }
+
+    @Test
+    public void parseToString_ValidAttributes_ReturnsExpectedString() {
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("key1", "value1");
+        attributes.put("key2", "value2");
+        attributes.put("key3", "");
+
+        String result = AttributeParser.parseToString(attributes);
+        String expectedString = "key1=value1,key2=value2,key3";
+        assertEquals(expectedString, result);
+    }
+
     @Test
     public void testParseToMap() {
         Assert.assertEquals(0, AttributeParser.parseToMap(null).size());

@@ -44,7 +44,7 @@ public class BrokerStatusSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch broker runtime status data";
+        return "Fetch broker runtime status data.";
     }
 
     @Override

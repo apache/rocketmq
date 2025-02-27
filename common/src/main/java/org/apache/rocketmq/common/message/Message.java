@@ -108,6 +108,13 @@ public class Message implements Serializable {
         return this.properties.get(name);
     }
 
+    public boolean hasProperty(final String name) {
+        if (null == this.properties) {
+            return false;
+        }
+        return this.properties.containsKey(name);
+    }
+
     public String getTopic() {
         return topic;
     }
@@ -218,14 +225,36 @@ public class Message implements Serializable {
     public void setDelayTimeSec(long sec) {
         this.putProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC, String.valueOf(sec));
     }
+
+    public long getDelayTimeSec() {
+        String t = this.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC);
+        if (t != null) {
+            return Long.parseLong(t);
+        }
+        return 0;
+    }
+
     public void setDelayTimeMs(long timeMs) {
         this.putProperty(MessageConst.PROPERTY_TIMER_DELAY_MS, String.valueOf(timeMs));
     }
+
+    public long getDelayTimeMs() {
+        String t = this.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS);
+        if (t != null) {
+            return Long.parseLong(t);
+        }
+        return 0;
+    }
+
     public void setDeliverTimeMs(long timeMs) {
         this.putProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS, String.valueOf(timeMs));
     }
 
     public long getDeliverTimeMs() {
-        return Long.parseLong(this.getUserProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS));
+        String t = this.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS);
+        if (t != null) {
+            return Long.parseLong(t);
+        }
+        return 0;
     }
 }

@@ -115,10 +115,10 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         response.addExtField(MessageConst.PROPERTY_TRACE_SWITCH, String.valueOf(this.brokerController.getBrokerConfig().isTraceOn()));
 
         log.debug("receive SendReplyMessage request command, {}", request);
-        final long startTimstamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
-        if (this.brokerController.getMessageStore().now() < startTimstamp) {
+        final long startTimestamp = this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp();
+        if (this.brokerController.getMessageStore().now() < startTimestamp) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimstamp)));
+            response.setRemark(String.format("broker unable to service, until %s", UtilAll.timeMillisToHumanString2(startTimestamp)));
             return response;
         }
 
@@ -234,7 +234,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         } else {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
-            //set to zore to avoid client decoding exception
+            //set to zero to avoid client decoding exception
             responseHeader.setMsgId("0");
             responseHeader.setQueueId(queueIdInt);
             responseHeader.setQueueOffset(0L);

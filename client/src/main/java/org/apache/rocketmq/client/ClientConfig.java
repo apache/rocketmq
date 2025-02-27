@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -38,12 +39,17 @@ public class ClientConfig {
     public static final String SOCKS_PROXY_CONFIG = "com.rocketmq.socks.proxy.config";
     public static final String DECODE_READ_BODY = "com.rocketmq.read.body";
     public static final String DECODE_DECOMPRESS_BODY = "com.rocketmq.decompress.body";
+    public static final String SEND_LATENCY_ENABLE = "com.rocketmq.sendLatencyEnable";
+    public static final String START_DETECTOR_ENABLE = "com.rocketmq.startDetectorEnable";
+    public static final String HEART_BEAT_V2 = "com.rocketmq.heartbeat.v2";
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
     private String clientIP = NetworkUtil.getLocalAddress();
     private String instanceName = System.getProperty("rocketmq.client.name", "DEFAULT");
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
+    @Deprecated
     protected String namespace;
     private boolean namespaceInitialized = false;
+    protected String namespaceV2;
     protected AccessChannel accessChannel = AccessChannel.LOCAL;
 
     /**
@@ -59,17 +65,22 @@ public class ClientConfig {
      */
     private int persistConsumerOffsetInterval = 1000 * 5;
     private long pullTimeDelayMillsWhenException = 1000;
+
+    private int traceMsgBatchNum = 10;
     private boolean unitMode = false;
     private String unitName;
     private boolean decodeReadBody = Boolean.parseBoolean(System.getProperty(DECODE_READ_BODY, "true"));
     private boolean decodeDecompressBody = Boolean.parseBoolean(System.getProperty(DECODE_DECOMPRESS_BODY, "true"));
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false"));
+    private boolean useHeartbeatV2 = Boolean.parseBoolean(System.getProperty(HEART_BEAT_V2, "false"));
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;
 
     private String socksProxyConfig = System.getProperty(SOCKS_PROXY_CONFIG, "{}");
 
     private int mqClientApiTimeout = 3 * 1000;
+    private int detectTimeout = 200;
+    private int detectInterval = 2 * 1000;
 
     private LanguageCode language = LanguageCode.JAVA;
 
@@ -78,6 +89,27 @@ public class ClientConfig {
      * And it will also generate a different client id to prevent unexpected reuses of MQClientInstance.
      */
     protected boolean enableStreamRequestType = false;
+
+    /**
+     * Enable the fault tolerance mechanism of the client sending process.
+     * DO NOT OPEN when ORDER messages are required.
+     * Turning on will interfere with the queue selection functionality,
+     * possibly conflicting with the order message.
+     */
+    private boolean sendLatencyEnable = Boolean.parseBoolean(System.getProperty(SEND_LATENCY_ENABLE, "false"));
+    private boolean startDetectorEnable = Boolean.parseBoolean(System.getProperty(START_DETECTOR_ENABLE, "false"));
+
+    private boolean enableHeartbeatChannelEventListener = true;
+
+    /**
+     * The switch for message trace
+     */
+    protected boolean enableTrace = false;
+
+    /**
+     * The name value of message trace topic. If not set, the default trace topic name will be used.
+     */
+    protected String traceTopic;
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
@@ -96,6 +128,14 @@ public class ClientConfig {
         }
 
         return sb.toString();
+    }
+
+    public int getTraceMsgBatchNum() {
+        return traceMsgBatchNum;
+    }
+
+    public void setTraceMsgBatchNum(int traceMsgBatchNum) {
+        this.traceMsgBatchNum = traceMsgBatchNum;
     }
 
     public String getClientIP() {
@@ -120,10 +160,12 @@ public class ClientConfig {
         }
     }
 
+    @Deprecated
     public String withNamespace(String resource) {
         return NamespaceUtil.wrapNamespace(this.getNamespace(), resource);
     }
 
+    @Deprecated
     public Set<String> withNamespace(Set<String> resourceSet) {
         Set<String> resourceWithNamespace = new HashSet<>();
         for (String resource : resourceSet) {
@@ -132,10 +174,12 @@ public class ClientConfig {
         return resourceWithNamespace;
     }
 
+    @Deprecated
     public String withoutNamespace(String resource) {
         return NamespaceUtil.withoutNamespace(resource, this.getNamespace());
     }
 
+    @Deprecated
     public Set<String> withoutNamespace(Set<String> resourceSet) {
         Set<String> resourceWithoutNamespace = new HashSet<>();
         for (String resource : resourceSet) {
@@ -144,6 +188,7 @@ public class ClientConfig {
         return resourceWithoutNamespace;
     }
 
+    @Deprecated
     public MessageQueue queueWithNamespace(MessageQueue queue) {
         if (StringUtils.isEmpty(this.getNamespace())) {
             return queue;
@@ -151,6 +196,7 @@ public class ClientConfig {
         return new MessageQueue(withNamespace(queue.getTopic()), queue.getBrokerName(), queue.getQueueId());
     }
 
+    @Deprecated
     public Collection<MessageQueue> queuesWithNamespace(Collection<MessageQueue> queues) {
         if (StringUtils.isEmpty(this.getNamespace())) {
             return queues;
@@ -183,6 +229,15 @@ public class ClientConfig {
         this.decodeReadBody = cc.decodeReadBody;
         this.decodeDecompressBody = cc.decodeDecompressBody;
         this.enableStreamRequestType = cc.enableStreamRequestType;
+        this.useHeartbeatV2 = cc.useHeartbeatV2;
+        this.startDetectorEnable = cc.startDetectorEnable;
+        this.sendLatencyEnable = cc.sendLatencyEnable;
+        this.enableHeartbeatChannelEventListener = cc.enableHeartbeatChannelEventListener;
+        this.detectInterval = cc.detectInterval;
+        this.detectTimeout = cc.detectTimeout;
+        this.namespaceV2 = cc.namespaceV2;
+        this.enableTrace = cc.enableTrace;
+        this.traceTopic = cc.traceTopic;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -206,6 +261,15 @@ public class ClientConfig {
         cc.decodeReadBody = decodeReadBody;
         cc.decodeDecompressBody = decodeDecompressBody;
         cc.enableStreamRequestType = enableStreamRequestType;
+        cc.useHeartbeatV2 = useHeartbeatV2;
+        cc.startDetectorEnable = startDetectorEnable;
+        cc.enableHeartbeatChannelEventListener = enableHeartbeatChannelEventListener;
+        cc.sendLatencyEnable = sendLatencyEnable;
+        cc.detectInterval = detectInterval;
+        cc.detectTimeout = detectTimeout;
+        cc.namespaceV2 = namespaceV2;
+        cc.enableTrace = enableTrace;
+        cc.traceTopic = traceTopic;
         return cc;
     }
 
@@ -330,6 +394,7 @@ public class ClientConfig {
         this.decodeDecompressBody = decodeDecompressBody;
     }
 
+    @Deprecated
     public String getNamespace() {
         if (namespaceInitialized) {
             return namespace;
@@ -348,9 +413,18 @@ public class ClientConfig {
         return namespace;
     }
 
+    @Deprecated
     public void setNamespace(String namespace) {
         this.namespace = namespace;
         this.namespaceInitialized = true;
+    }
+
+    public String getNamespaceV2() {
+        return namespaceV2;
+    }
+
+    public void setNamespaceV2(String namespaceV2) {
+        this.namespaceV2 = namespaceV2;
     }
 
     public AccessChannel getAccessChannel() {
@@ -377,20 +451,103 @@ public class ClientConfig {
         this.enableStreamRequestType = enableStreamRequestType;
     }
 
+    public boolean isSendLatencyEnable() {
+        return sendLatencyEnable;
+    }
+
+    public void setSendLatencyEnable(boolean sendLatencyEnable) {
+        this.sendLatencyEnable = sendLatencyEnable;
+    }
+
+    public boolean isStartDetectorEnable() {
+        return startDetectorEnable;
+    }
+
+    public void setStartDetectorEnable(boolean startDetectorEnable) {
+        this.startDetectorEnable = startDetectorEnable;
+    }
+
+    public boolean isEnableHeartbeatChannelEventListener() {
+        return enableHeartbeatChannelEventListener;
+    }
+
+    public void setEnableHeartbeatChannelEventListener(boolean enableHeartbeatChannelEventListener) {
+        this.enableHeartbeatChannelEventListener = enableHeartbeatChannelEventListener;
+    }
+
+    public int getDetectTimeout() {
+        return this.detectTimeout;
+    }
+
+    public void setDetectTimeout(int detectTimeout) {
+        this.detectTimeout = detectTimeout;
+    }
+
+    public int getDetectInterval() {
+        return this.detectInterval;
+    }
+
+    public void setDetectInterval(int detectInterval) {
+        this.detectInterval = detectInterval;
+    }
+
+    public boolean isUseHeartbeatV2() {
+        return useHeartbeatV2;
+    }
+
+    public void setUseHeartbeatV2(boolean useHeartbeatV2) {
+        this.useHeartbeatV2 = useHeartbeatV2;
+    }
+
+    public boolean isEnableTrace() {
+        return enableTrace;
+    }
+
+    public void setEnableTrace(boolean enableTrace) {
+        this.enableTrace = enableTrace;
+    }
+
+    public String getTraceTopic() {
+        return traceTopic;
+    }
+
+    public void setTraceTopic(String traceTopic) {
+        this.traceTopic = traceTopic;
+    }
+
     @Override
     public String toString() {
-        return "ClientConfig [namesrvAddr=" + namesrvAddr
-            + ", clientIP=" + clientIP + ", instanceName=" + instanceName
-            + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads
-            + ", pollNameServerInterval=" + pollNameServerInterval
-            + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval
-            + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval
-            + ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException
-            + ", unitMode=" + unitMode + ", unitName=" + unitName
-            + ", vipChannelEnabled=" + vipChannelEnabled + ", useTLS=" + useTLS
-            + ", socksProxyConfig=" + socksProxyConfig + ", language=" + language.name()
-            + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout
-            + ", decodeReadBody=" + decodeReadBody + ", decodeDecompressBody=" + decodeDecompressBody
-            + ", enableStreamRequestType=" + enableStreamRequestType + "]";
+        return "ClientConfig{" +
+            "namesrvAddr='" + namesrvAddr + '\'' +
+            ", clientIP='" + clientIP + '\'' +
+            ", instanceName='" + instanceName + '\'' +
+            ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads +
+            ", namespace='" + namespace + '\'' +
+            ", namespaceInitialized=" + namespaceInitialized +
+            ", namespaceV2='" + namespaceV2 + '\'' +
+            ", accessChannel=" + accessChannel +
+            ", pollNameServerInterval=" + pollNameServerInterval +
+            ", heartbeatBrokerInterval=" + heartbeatBrokerInterval +
+            ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval +
+            ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException +
+            ", unitMode=" + unitMode +
+            ", unitName='" + unitName + '\'' +
+            ", decodeReadBody=" + decodeReadBody +
+            ", decodeDecompressBody=" + decodeDecompressBody +
+            ", vipChannelEnabled=" + vipChannelEnabled +
+            ", useHeartbeatV2=" + useHeartbeatV2 +
+            ", useTLS=" + useTLS +
+            ", socksProxyConfig='" + socksProxyConfig + '\'' +
+            ", mqClientApiTimeout=" + mqClientApiTimeout +
+            ", detectTimeout=" + detectTimeout +
+            ", detectInterval=" + detectInterval +
+            ", language=" + language +
+            ", enableStreamRequestType=" + enableStreamRequestType +
+            ", sendLatencyEnable=" + sendLatencyEnable +
+            ", startDetectorEnable=" + startDetectorEnable +
+            ", enableHeartbeatChannelEventListener=" + enableHeartbeatChannelEventListener +
+            ", enableTrace=" + enableTrace +
+            ", traceTopic='" + traceTopic + '\'' +
+            '}';
     }
 }

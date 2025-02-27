@@ -31,6 +31,22 @@ import org.apache.rocketmq.remoting.netty.NettySystemConfig;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 public class DefaultHAConnection implements HAConnection {
+
+    /**
+     * Transfer Header buffer size. Schema: physic offset and body size. Format:
+     *
+     * <pre>
+     * ┌───────────────────────────────────────────────┬───────────────────────┐
+     * │                  physicOffset                 │         bodySize      │
+     * │                    (8bytes)                   │         (4bytes)      │
+     * ├───────────────────────────────────────────────┴───────────────────────┤
+     * │                                                                       │
+     * │                           Transfer Header                             │
+     * </pre>
+     * <p>
+     */
+    public static final int TRANSFER_HEADER_SIZE = 8 + 4;
+
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final DefaultHAService haService;
     private final SocketChannel socketChannel;
@@ -179,6 +195,8 @@ public class DefaultHAConnection implements HAConnection {
                 log.error("", e);
             }
 
+            flowMonitor.shutdown(true);
+
             log.info(this.getServiceName() + " service end");
         }
 
@@ -204,8 +222,8 @@ public class DefaultHAConnection implements HAConnection {
                     if (readSize > 0) {
                         readSizeZeroTimes = 0;
                         this.lastReadTimestamp = DefaultHAConnection.this.haService.getDefaultMessageStore().getSystemClock().now();
-                        if ((this.byteBufferRead.position() - this.processPosition) >= 8) {
-                            int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % 8);
+                        if ((this.byteBufferRead.position() - this.processPosition) >= DefaultHAClient.REPORT_HEADER_SIZE) {
+                            int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % DefaultHAClient.REPORT_HEADER_SIZE);
                             long readOffset = this.byteBufferRead.getLong(pos - 8);
                             this.processPosition = pos;
 
@@ -239,8 +257,7 @@ public class DefaultHAConnection implements HAConnection {
         private final Selector selector;
         private final SocketChannel socketChannel;
 
-        private final int headerSize = 8 + 4;
-        private final ByteBuffer byteBufferHeader = ByteBuffer.allocate(headerSize);
+        private final ByteBuffer byteBufferHeader = ByteBuffer.allocate(TRANSFER_HEADER_SIZE);
         private long nextTransferFromWhere = -1;
         private SelectMappedBufferResult selectMappedBufferResult;
         private boolean lastWriteOver = true;
@@ -298,7 +315,7 @@ public class DefaultHAConnection implements HAConnection {
 
                             // Build Header
                             this.byteBufferHeader.position(0);
-                            this.byteBufferHeader.limit(headerSize);
+                            this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
                             this.byteBufferHeader.putLong(this.nextTransferFromWhere);
                             this.byteBufferHeader.putInt(0);
                             this.byteBufferHeader.flip();
@@ -340,7 +357,7 @@ public class DefaultHAConnection implements HAConnection {
 
                         // Build Header
                         this.byteBufferHeader.position(0);
-                        this.byteBufferHeader.limit(headerSize);
+                        this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
                         this.byteBufferHeader.putLong(thisOffset);
                         this.byteBufferHeader.putInt(size);
                         this.byteBufferHeader.flip();
@@ -382,6 +399,8 @@ public class DefaultHAConnection implements HAConnection {
             } catch (IOException e) {
                 DefaultHAConnection.log.error("", e);
             }
+
+            flowMonitor.shutdown(true);
 
             DefaultHAConnection.log.info(this.getServiceName() + " service end");
         }

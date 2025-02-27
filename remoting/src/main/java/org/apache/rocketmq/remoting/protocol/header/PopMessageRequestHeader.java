@@ -17,14 +17,22 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
+@RocketMQAction(value = RequestCode.POP_MESSAGE, action = Action.SUB)
 public class PopMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
+    @RocketMQResource(ResourceType.GROUP)
     private String consumerGroup;
     @CFNotNull
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
     @CFNotNull
     private int queueId;
@@ -49,6 +57,8 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
      * 3. not append check point, because no retry
      */
     private Boolean order = Boolean.FALSE;
+
+    private String attemptId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -154,6 +164,14 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
         return this.order != null && this.order.booleanValue();
     }
 
+    public String getAttemptId() {
+        return attemptId;
+    }
+
+    public void setAttemptId(String attemptId) {
+        this.attemptId = attemptId;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -168,6 +186,7 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
             .add("expType", expType)
             .add("exp", exp)
             .add("order", order)
+            .add("attemptId", attemptId)
             .toString();
     }
 }

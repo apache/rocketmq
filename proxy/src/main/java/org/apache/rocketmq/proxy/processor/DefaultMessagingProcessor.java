@@ -16,14 +16,18 @@
  */
 package org.apache.rocketmq.proxy.processor;
 
+import com.alibaba.fastjson2.JSON;
 import io.netty.channel.Channel;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclUtils;
+import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -39,13 +43,15 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
+import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.ServiceManagerFactory;
+import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
@@ -64,11 +70,12 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     protected TransactionProcessor transactionProcessor;
     protected ClientProcessor clientProcessor;
     protected RequestBrokerProcessor requestBrokerProcessor;
+    protected ReceiptHandleProcessor receiptHandleProcessor;
 
     protected ThreadPoolExecutor producerProcessorExecutor;
     protected ThreadPoolExecutor consumerProcessorExecutor;
     protected static final String ROCKETMQ_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-            System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     protected DefaultMessagingProcessor(ServiceManager serviceManager) {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
@@ -95,6 +102,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         this.transactionProcessor = new TransactionProcessor(this, serviceManager);
         this.clientProcessor = new ClientProcessor(this, serviceManager);
         this.requestBrokerProcessor = new RequestBrokerProcessor(this, serviceManager);
+        this.receiptHandleProcessor = new ReceiptHandleProcessor(this, serviceManager);
 
         this.init();
     }
@@ -109,7 +117,17 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     public static DefaultMessagingProcessor createForClusterMode() {
         RPCHook rpcHook = null;
-        if (ConfigurationManager.getProxyConfig().isEnableAclRpcHookForClusterMode()) {
+        if (!ConfigurationManager.getProxyConfig().isEnableAclRpcHookForClusterMode()) {
+            return createForClusterMode(rpcHook);
+        }
+        AuthConfig authConfig = ConfigurationManager.getAuthConfig();
+        if (StringUtils.isNotBlank(authConfig.getInnerClientAuthenticationCredentials())) {
+            SessionCredentials sessionCredentials =
+                JSON.parseObject(authConfig.getInnerClientAuthenticationCredentials(), SessionCredentials.class);
+            if (StringUtils.isNotBlank(sessionCredentials.getAccessKey()) && StringUtils.isNotBlank(sessionCredentials.getSecretKey())) {
+                rpcHook = new AclClientRPCHook(sessionCredentials);
+            }
+        } else {
             rpcHook = AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE);
         }
         return createForClusterMode(rpcHook);
@@ -127,13 +145,13 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     @Override
     public SubscriptionGroupConfig getSubscriptionGroupConfig(ProxyContext ctx, String consumerGroupName) {
-        return this.serviceManager.getMetadataService().getSubscriptionGroupConfig(consumerGroupName);
+        return this.serviceManager.getMetadataService().getSubscriptionGroupConfig(ctx, consumerGroupName);
     }
 
     @Override
     public ProxyTopicRouteData getTopicRouteDataForProxy(ProxyContext ctx, List<Address> requestHostAndPortList,
         String topicName) throws Exception {
-        return this.serviceManager.getTopicRouteService().getTopicRouteForProxy(requestHostAndPortList, topicName);
+        return this.serviceManager.getTopicRouteService().getTopicRouteForProxy(ctx, requestHostAndPortList, topicName);
     }
 
     @Override
@@ -149,10 +167,11 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public CompletableFuture<Void> endTransaction(ProxyContext ctx, String transactionId, String messageId, String producerGroup,
+    public CompletableFuture<Void> endTransaction(ProxyContext ctx, String topic, String transactionId,
+        String messageId, String producerGroup,
         TransactionStatus transactionStatus, boolean fromTransactionCheck,
         long timeoutMillis) {
-        return this.transactionProcessor.endTransaction(ctx, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, timeoutMillis);
+        return this.transactionProcessor.endTransaction(ctx, topic, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, timeoutMillis);
     }
 
     @Override
@@ -168,16 +187,23 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     ) {
         return this.consumerProcessor.popMessage(ctx, queueSelector, consumerGroup, topic, maxMsgNums,
-            invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, timeoutMillis);
+            invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, attemptId, timeoutMillis);
     }
 
     @Override
     public CompletableFuture<AckResult> ackMessage(ProxyContext ctx, ReceiptHandle handle, String messageId,
         String consumerGroup, String topic, long timeoutMillis) {
         return this.consumerProcessor.ackMessage(ctx, handle, messageId, consumerGroup, topic, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<List<BatchAckResult>> batchAckMessage(ProxyContext ctx,
+        List<ReceiptHandleMessage> handleMessageList, String consumerGroup, String topic, long timeoutMillis) {
+        return this.consumerProcessor.batchAckMessage(ctx, handleMessageList, consumerGroup, topic, timeoutMillis);
     }
 
     @Override
@@ -198,6 +224,12 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, MessageQueue messageQueue,
         String consumerGroup, long commitOffset, long timeoutMillis) {
         return this.consumerProcessor.updateConsumerOffset(ctx, messageQueue, consumerGroup, commitOffset, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<Void> updateConsumerOffsetAsync(ProxyContext ctx, MessageQueue messageQueue,
+        String consumerGroup, long commitOffset, long timeoutMillis) {
+        return this.consumerProcessor.updateConsumerOffsetAsync(ctx, messageQueue, consumerGroup, commitOffset, timeoutMillis);
     }
 
     @Override
@@ -230,15 +262,31 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public CompletableFuture<String> recallMessage(ProxyContext ctx, String topic,
+                                                   String recallHandle, long timeoutMillis) {
+        return this.producerProcessor.recallMessage(ctx, topic, recallHandle, timeoutMillis);
+    }
+
+    @Override
     public CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
         long timeoutMillis) {
-        return this.requestBrokerProcessor.request(ctx, brokerName, request, timeoutMillis);
+        int originalRequestOpaque = request.getOpaque();
+        request.setOpaque(RemotingCommand.createNewRequestId());
+        return this.requestBrokerProcessor.request(ctx, brokerName, request, timeoutMillis).thenApply(r -> {
+            request.setOpaque(originalRequestOpaque);
+            return r;
+        });
     }
 
     @Override
     public CompletableFuture<Void> requestOneway(ProxyContext ctx, String brokerName, RemotingCommand request,
         long timeoutMillis) {
-        return this.requestBrokerProcessor.requestOneway(ctx, brokerName, request, timeoutMillis);
+        int originalRequestOpaque = request.getOpaque();
+        request.setOpaque(RemotingCommand.createNewRequestId());
+        return this.requestBrokerProcessor.requestOneway(ctx, brokerName, request, timeoutMillis).thenApply(r -> {
+            request.setOpaque(originalRequestOpaque);
+            return r;
+        });
     }
 
     @Override
@@ -289,8 +337,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup) {
-        return this.clientProcessor.getConsumerGroupInfo(consumerGroup);
+    public ConsumerGroupInfo getConsumerGroupInfo(ProxyContext ctx, String consumerGroup) {
+        return this.clientProcessor.getConsumerGroupInfo(ctx, consumerGroup);
     }
 
     @Override
@@ -306,5 +354,17 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public MetadataService getMetadataService() {
         return this.serviceManager.getMetadataService();
+    }
+
+    @Override
+    public void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
+        MessageReceiptHandle messageReceiptHandle) {
+        receiptHandleProcessor.addReceiptHandle(ctx, channel, group, msgID, messageReceiptHandle);
+    }
+
+    @Override
+    public MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
+        String receiptHandle) {
+        return receiptHandleProcessor.removeReceiptHandle(ctx, channel, group, msgID, receiptHandle);
     }
 }

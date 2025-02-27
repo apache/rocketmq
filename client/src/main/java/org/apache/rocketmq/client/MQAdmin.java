@@ -29,8 +29,8 @@ import java.util.Map;
  */
 public interface MQAdmin {
     /**
-     * Creates an topic
-     *  @param key accesskey
+     * Creates a topic
+     *  @param key accessKey
      * @param newTopic topic name
      * @param queueNum topic's queue number
      * @param attributes
@@ -39,8 +39,8 @@ public interface MQAdmin {
         throws MQClientException;
 
     /**
-     * Creates an topic
-     *  @param key accesskey
+     * Creates a topic
+     *  @param key accessKey
      * @param newTopic topic name
      * @param queueNum topic's queue number
      * @param topicSysFlag topic system flag
@@ -82,15 +82,6 @@ public interface MQAdmin {
      * @return the time in microseconds
      */
     long earliestMsgStoreTime(final MessageQueue mq) throws MQClientException;
-
-    /**
-     * Query message according to message id
-     *
-     * @param offsetMsgId message id
-     * @return message
-     */
-    MessageExt viewMessage(final String offsetMsgId) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
 
     /**
      * Query messages

@@ -25,13 +25,12 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
-import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -92,7 +91,7 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
 
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
-        ProxyContext context = createContext(ctx, request);
+        ProxyContext context = createContext();
         try {
             this.requestPipeline.execute(ctx, request, context);
             RemotingCommand response = this.processRequest0(ctx, request, context);
@@ -114,15 +113,8 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
     protected abstract RemotingCommand processRequest0(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception;
 
-    protected ProxyContext createContext(ChannelHandlerContext ctx, RemotingCommand request) {
-        ProxyContext context = ProxyContext.create();
-        context.setAction("Remoting" + request.getCode())
-            .setLanguage(request.getLanguage().name())
-            .setChannel(ctx.channel())
-            .setLocalAddress(NetworkUtil.socketAddress2String(ctx.channel().localAddress()))
-            .setRemoteAddress(NetworkUtil.socketAddress2String(ctx.channel().remoteAddress()));
-
-        return context;
+    protected ProxyContext createContext() {
+        return ProxyContext.create();
     }
 
     protected void writeErrResponse(ChannelHandlerContext ctx, final ProxyContext context,

@@ -22,7 +22,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -63,18 +62,15 @@ public class TopicQueueMappingUtils {
             //reduce the remapping
             if (brokerNumMapBeforeRemapping != null
                     && !brokerNumMapBeforeRemapping.isEmpty()) {
-                Collections.sort(leastBrokers, new Comparator<String>() {
-                    @Override
-                    public int compare(String o1, String o2) {
-                        int i1 = 0, i2 = 0;
-                        if (brokerNumMapBeforeRemapping.containsKey(o1)) {
-                            i1 = brokerNumMapBeforeRemapping.get(o1);
-                        }
-                        if (brokerNumMapBeforeRemapping.containsKey(o2)) {
-                            i2 = brokerNumMapBeforeRemapping.get(o2);
-                        }
-                        return i1 - i2;
+                leastBrokers.sort((o1, o2) -> {
+                    int i1 = 0, i2 = 0;
+                    if (brokerNumMapBeforeRemapping.containsKey(o1)) {
+                        i1 = brokerNumMapBeforeRemapping.get(o1);
                     }
+                    if (brokerNumMapBeforeRemapping.containsKey(o2)) {
+                        i2 = brokerNumMapBeforeRemapping.get(o2);
+                    }
+                    return i1 - i2;
                 });
             } else {
                 //reduce the imbalance
@@ -176,21 +172,21 @@ public class TopicQueueMappingUtils {
 
             if (scope != null
                 && !scope.equals(mappingDetail.getScope())) {
-                throw new RuntimeException(String.format("scope dose not match %s != %s in %s", mappingDetail.getScope(), scope, broker));
+                throw new RuntimeException(String.format("scope does not match %s != %s in %s", mappingDetail.getScope(), scope, broker));
             } else {
                 scope = mappingDetail.getScope();
             }
 
             if (maxEpoch != -1
                 && maxEpoch != mappingDetail.getEpoch()) {
-                throw new RuntimeException(String.format("epoch dose not match %d != %d in %s", maxEpoch, mappingDetail.getEpoch(), mappingDetail.getBname()));
+                throw new RuntimeException(String.format("epoch does not match %d != %d in %s", maxEpoch, mappingDetail.getEpoch(), mappingDetail.getBname()));
             } else {
                 maxEpoch = mappingDetail.getEpoch();
             }
 
             if (maxNum != -1
                 && maxNum != mappingDetail.getTotalQueues()) {
-                throw new RuntimeException(String.format("total queue number dose not match %d != %d in %s", maxNum, mappingDetail.getTotalQueues(), mappingDetail.getBname()));
+                throw new RuntimeException(String.format("total queue number does not match %d != %d in %s", maxNum, mappingDetail.getTotalQueues(), mappingDetail.getBname()));
             } else {
                 maxNum = mappingDetail.getTotalQueues();
             }
@@ -270,7 +266,7 @@ public class TopicQueueMappingUtils {
                 throw new RuntimeException("The non-latest item has negative logic offset");
             }
             if (lastGen != -1 && item.getGen() >= lastGen) {
-                throw new RuntimeException("The gen dose not increase monotonically");
+                throw new RuntimeException("The gen does not increase monotonically");
             }
 
             if (item.getEndOffset() != -1
@@ -280,10 +276,10 @@ public class TopicQueueMappingUtils {
 
             if (lastOffset != -1 && item.getLogicOffset() != -1) {
                 if (item.getLogicOffset() >= lastOffset) {
-                    throw new RuntimeException("The base logic offset dose not increase monotonically");
+                    throw new RuntimeException("The base logic offset does not increase monotonically");
                 }
                 if (item.computeMaxStaticQueueOffset() >= lastOffset) {
-                    throw new RuntimeException("The max logic offset dose not increase monotonically");
+                    throw new RuntimeException("The max logic offset does not increase monotonically");
                 }
             }
             lastGen = item.getGen();
@@ -325,11 +321,11 @@ public class TopicQueueMappingUtils {
             for (List<LogicQueueMappingItem> items: configMapping.getMappingDetail().getHostedQueues().values()) {
                 for (LogicQueueMappingItem item: items) {
                     if (item.getStartOffset() != 0) {
-                        throw new RuntimeException("The start offset dose not begin from 0");
+                        throw new RuntimeException("The start offset does not begin from 0");
                     }
                     TopicConfig topicConfig = brokerConfigMap.get(item.getBname());
                     if (topicConfig == null) {
-                        throw new RuntimeException("The broker of item dose not exist");
+                        throw new RuntimeException("The broker of item does not exist");
                     }
                     if (item.getQueueId() >= topicConfig.getWriteQueueNums()) {
                         throw new RuntimeException("The physical queue id is overflow the write queues");
@@ -342,12 +338,7 @@ public class TopicQueueMappingUtils {
 
 
     public static Map<Integer, TopicQueueMappingOne> checkAndBuildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
-        Collections.sort(mappingDetailList, new Comparator<TopicQueueMappingDetail>() {
-            @Override
-            public int compare(TopicQueueMappingDetail o1, TopicQueueMappingDetail o2) {
-                return (int)(o2.getEpoch() - o1.getEpoch());
-            }
-        });
+        mappingDetailList.sort((o1, o2) -> (int) (o2.getEpoch() - o1.getEpoch()));
 
         int maxNum = 0;
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<>();
@@ -374,7 +365,7 @@ public class TopicQueueMappingUtils {
         }
         if (checkConsistence) {
             if (maxNum != globalIdMap.size()) {
-                throw new RuntimeException(String.format("The total queue number in config dose not match the real hosted queues %d != %d", maxNum, globalIdMap.size()));
+                throw new RuntimeException(String.format("The total queue number in config does not match the real hosted queues %d != %d", maxNum, globalIdMap.size()));
             }
             for (int i = 0; i < maxNum; i++) {
                 if (!globalIdMap.containsKey(i)) {
@@ -426,7 +417,7 @@ public class TopicQueueMappingUtils {
                 continue;
             }
             if (!targetBrokers.contains(broker)) {
-                throw new RuntimeException("The existed broker " + broker + " dose not in target brokers ");
+                throw new RuntimeException("The existed broker " + broker + " does not in target brokers ");
             }
         }
     }

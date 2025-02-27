@@ -21,29 +21,37 @@ import io.opentelemetry.sdk.OpenTelemetrySdk;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import org.apache.commons.io.FileUtils;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.Configuration;
-import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
-import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
-import org.apache.rocketmq.tieredstore.common.BoundaryType;
-import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
-import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
-import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.tieredstore.core.MessageStoreFetcher;
+import org.apache.rocketmq.tieredstore.file.FlatFileStore;
+import org.apache.rocketmq.tieredstore.file.FlatMessageFile;
+import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
+import org.apache.rocketmq.tieredstore.util.MessageFormatUtil;
+import org.apache.rocketmq.tieredstore.util.MessageFormatUtilTest;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtilTest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -55,181 +63,231 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TieredMessageStoreTest {
-    private MessageStoreConfig storeConfig;
-    private MessageQueue mq;
-    private MessageStore nextStore;
-    private TieredMessageStore store;
-    private TieredMessageFetcher fetcher;
+
+    private final String brokerName = "brokerName";
+    private final String storePath = MessageStoreUtilTest.getRandomStorePath();
+    private final MessageQueue mq = new MessageQueue("MessageStoreTest", brokerName, 0);
+
     private Configuration configuration;
-    private TieredContainerManager containerManager;
+    private DefaultMessageStore defaultStore;
+    private TieredMessageStore currentStore;
+    private FlatFileStore flatFileStore;
+    private MessageStoreFetcher fetcher;
 
     @Before
-    public void setUp() {
-        storeConfig = new MessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
-        mq = new MessageQueue("TieredMessageStoreTest", "broker", 0);
-
-        nextStore = Mockito.mock(DefaultMessageStore.class);
-        CommitLog commitLog = mock(CommitLog.class);
-        when(commitLog.getMinOffset()).thenReturn(100L);
-        when(nextStore.getCommitLog()).thenReturn(commitLog);
-
+    public void init() throws Exception {
         BrokerConfig brokerConfig = new BrokerConfig();
-        brokerConfig.setBrokerName("broker");
-        configuration = new Configuration(LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME), "/tmp/rmqut/config", storeConfig, brokerConfig);
+        brokerConfig.setBrokerName(brokerName);
+
         Properties properties = new Properties();
-        properties.setProperty("tieredBackendServiceProvider", "org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
+        properties.setProperty("recordGetMessageResult", Boolean.TRUE.toString().toLowerCase(Locale.ROOT));
+        properties.setProperty("tieredBackendServiceProvider", PosixFileSegment.class.getName());
+
+        configuration = new Configuration(LoggerFactory.getLogger(
+            MessageStoreUtil.TIERED_STORE_LOGGER_NAME), storePath + File.separator + "conf",
+            new org.apache.rocketmq.tieredstore.MessageStoreConfig(), brokerConfig);
         configuration.registerConfig(properties);
-        MessageStorePluginContext context = new MessageStorePluginContext(new MessageStoreConfig(), null, null, brokerConfig, configuration);
 
-        store = new TieredMessageStore(context, nextStore);
+        MessageStorePluginContext context = new MessageStorePluginContext(
+            new MessageStoreConfig(), null, null, brokerConfig, configuration);
 
-        fetcher = Mockito.mock(TieredMessageFetcher.class);
+        defaultStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(defaultStore.load()).thenReturn(true);
+
+        currentStore = new TieredMessageStore(context, defaultStore);
+        Assert.assertNotNull(currentStore.getStoreConfig());
+        Assert.assertNotNull(currentStore.getBrokerName());
+        Assert.assertEquals(defaultStore, currentStore.getDefaultStore());
+        Assert.assertNotNull(currentStore.getMetadataStore());
+        Assert.assertNotNull(currentStore.getTopicFilter());
+        Assert.assertNotNull(currentStore.getStoreExecutor());
+        Assert.assertNotNull(currentStore.getFlatFileStore());
+        Assert.assertNotNull(currentStore.getIndexService());
+
+        fetcher = Mockito.spy(currentStore.fetcher);
         try {
-            Field field = store.getClass().getDeclaredField("fetcher");
+            Field field = currentStore.getClass().getDeclaredField("fetcher");
             field.setAccessible(true);
-            field.set(store, fetcher);
+            field.set(currentStore, fetcher);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             Assert.fail(e.getClass().getCanonicalName() + ": " + e.getMessage());
         }
 
-        TieredContainerManager.getInstance(store.getStoreConfig()).getOrCreateMQContainer(mq);
+        flatFileStore = currentStore.getFlatFileStore();
+
+        Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
+        Mockito.when(defaultStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(200L);
+        ConsumeQueueInterface cq = Mockito.mock(ConsumeQueueInterface.class);
+        Mockito.when(defaultStore.getConsumeQueue(anyString(), anyInt())).thenReturn(cq);
+
+        ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+        Mockito.when(cq.get(anyLong())).thenReturn(
+            new CqUnit(100, 1000, buffer.remaining(), 0L));
+        Mockito.when(defaultStore.selectOneMessageByOffset(anyLong(), anyInt())).thenReturn(
+            new SelectMappedBufferResult(0L, buffer.asReadOnlyBuffer(), buffer.remaining(), null));
+        currentStore.load();
+
+        FlatMessageFile flatFile = currentStore.getFlatFileStore().computeIfAbsent(mq);
+        Assert.assertNotNull(flatFile);
+        currentStore.dispatcher.doScheduleDispatch(flatFile, true).join();
+
+        for (int i = 100; i < 200; i++) {
+            SelectMappedBufferResult bufferResult = new SelectMappedBufferResult(
+                0L, buffer, buffer.remaining(), null);
+            DispatchRequest request = new DispatchRequest(mq.getTopic(), mq.getQueueId(),
+                MessageFormatUtil.getCommitLogOffset(buffer), buffer.remaining(), 0L,
+                MessageFormatUtil.getStoreTimeStamp(buffer), 0L,
+                "", "", 0, 0L, new HashMap<>());
+            flatFile.appendCommitLog(bufferResult);
+            flatFile.appendConsumeQueue(request);
+        }
+        currentStore.dispatcher.doScheduleDispatch(flatFile, true).join();
     }
 
     @After
-    public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
-        TieredStoreUtil.getMetadataStore(store.getStoreConfig()).destroy();
-        TieredContainerManager.getInstance(store.getStoreConfig()).cleanup();
-    }
-
-    private void mockContainer() {
-        containerManager = Mockito.mock(TieredContainerManager.class);
-        TieredMessageQueueContainer container = Mockito.mock(TieredMessageQueueContainer.class);
-        when(container.getConsumeQueueCommitOffset()).thenReturn(Long.MAX_VALUE);
-        when(containerManager.getMQContainer(mq)).thenReturn(container);
-        try {
-            Field field = store.getClass().getDeclaredField("containerManager");
-            field.setAccessible(true);
-            field.set(store, containerManager);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            Assert.fail(e.getClass().getCanonicalName() + ": " + e.getMessage());
-        }
+    public void shutdown() throws IOException {
+        currentStore.shutdown();
+        currentStore.destroy();
+        MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 
     @Test
     public void testViaTieredStorage() {
-        mockContainer();
         Properties properties = new Properties();
+
         // TieredStorageLevel.DISABLE
         properties.setProperty("tieredStorageLevel", "0");
         configuration.update(properties);
-        Assert.assertFalse(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertFalse(currentStore.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         // TieredStorageLevel.NOT_IN_DISK
         properties.setProperty("tieredStorageLevel", "1");
         configuration.update(properties);
-        when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(false);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        when(defaultStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(false);
+        Assert.assertTrue(currentStore.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
-        when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
-        Assert.assertFalse(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        when(defaultStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
+        Assert.assertFalse(currentStore.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         // TieredStorageLevel.NOT_IN_MEM
         properties.setProperty("tieredStorageLevel", "2");
         configuration.update(properties);
-        Mockito.when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(false);
-        Mockito.when(nextStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(true);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Mockito.when(defaultStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(false);
+        Mockito.when(defaultStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(true);
+        Assert.assertTrue(currentStore.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
-        Mockito.when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
-        Mockito.when(nextStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(false);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Mockito.when(defaultStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
+        Mockito.when(defaultStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(false);
+        Assert.assertTrue(currentStore.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
-        Mockito.when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
-        Mockito.when(nextStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(true);
-        Assert.assertFalse(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Mockito.when(defaultStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
+        Mockito.when(defaultStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(true);
+        Assert.assertFalse(currentStore.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         // TieredStorageLevel.FORCE
         properties.setProperty("tieredStorageLevel", "3");
         configuration.update(properties);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertTrue(currentStore.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
     }
 
     @Test
     public void testGetMessageAsync() {
-        mockContainer();
-        GetMessageResult result1 = new GetMessageResult();
-        result1.setStatus(GetMessageStatus.FOUND);
-        GetMessageResult result2 = new GetMessageResult();
-        result2.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
+        GetMessageResult expect = new GetMessageResult();
+        expect.setStatus(GetMessageStatus.FOUND);
+        expect.setMinOffset(100L);
+        expect.setMaxOffset(200L);
 
-        when(fetcher.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(result1));
-        when(nextStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(result2);
-        Assert.assertSame(result1, store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null));
+        // topic filter
+        Mockito.when(defaultStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any()))
+            .thenReturn(CompletableFuture.completedFuture(expect));
+        String groupName = "groupName";
+        GetMessageResult result = currentStore.getMessage(
+            groupName, TopicValidator.SYSTEM_TOPIC_PREFIX, mq.getQueueId(), 100, 0, null);
+        Assert.assertSame(expect, result);
 
-        result1.setStatus(GetMessageStatus.NO_MATCHED_LOGIC_QUEUE);
-        Assert.assertSame(result1, store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null));
+        // fetch from default
+        Mockito.when(fetcher.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any()))
+            .thenReturn(CompletableFuture.completedFuture(expect));
 
-        result1.setStatus(GetMessageStatus.OFFSET_OVERFLOW_ONE);
-        Assert.assertSame(result1, store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null));
+        result = currentStore.getMessage(
+            groupName, mq.getTopic(), mq.getQueueId(), 100, 0, null);
+        Assert.assertSame(expect, result);
 
-        result1.setStatus(GetMessageStatus.OFFSET_OVERFLOW_BADLY);
-        Assert.assertSame(result1, store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null));
+        expect.setStatus(GetMessageStatus.NO_MATCHED_LOGIC_QUEUE);
+        Assert.assertSame(expect, currentStore.getMessage(
+            groupName, mq.getTopic(), mq.getQueueId(), 0, 0, null));
 
-        // TieredStorageLevel.FORCE
-        Properties properties = new Properties();
-        properties.setProperty("tieredStorageLevel", "3");
-        configuration.update(properties);
-        when(nextStore.checkInDiskByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
-        Assert.assertSame(result2, store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null));
+        expect.setStatus(GetMessageStatus.OFFSET_OVERFLOW_ONE);
+        Assert.assertSame(expect, currentStore.getMessage(
+            groupName, mq.getTopic(), mq.getQueueId(), 0, 0, null));
+
+        expect.setStatus(GetMessageStatus.OFFSET_OVERFLOW_BADLY);
+        Assert.assertSame(expect, currentStore.getMessage(
+            groupName, mq.getTopic(), mq.getQueueId(), 0, 0, null));
+
+        expect.setStatus(GetMessageStatus.OFFSET_RESET);
+        Assert.assertSame(expect, currentStore.getMessage(
+            groupName, mq.getTopic(), mq.getQueueId(), 0, 0, null));
+    }
+
+    @Test
+    public void testGetMinOffsetInQueue() {
+        FlatMessageFile flatFile = flatFileStore.getFlatFile(mq);
+        Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
+        Assert.assertEquals(100L, currentStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
+
+        Mockito.when(flatFile.getConsumeQueueMinOffset()).thenReturn(10L);
+        Assert.assertEquals(10L, currentStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
     }
 
     @Test
     public void testGetEarliestMessageTimeAsync() {
         when(fetcher.getEarliestMessageTimeAsync(anyString(), anyInt())).thenReturn(CompletableFuture.completedFuture(1L));
-        Assert.assertEquals(1, (long) store.getEarliestMessageTimeAsync(mq.getTopic(), mq.getQueueId()).join());
+        Assert.assertEquals(1, (long) currentStore.getEarliestMessageTimeAsync(mq.getTopic(), mq.getQueueId()).join());
 
         when(fetcher.getEarliestMessageTimeAsync(anyString(), anyInt())).thenReturn(CompletableFuture.completedFuture(-1L));
-        when(nextStore.getEarliestMessageTime(anyString(), anyInt())).thenReturn(2L);
-        Assert.assertEquals(2, (long) store.getEarliestMessageTimeAsync(mq.getTopic(), mq.getQueueId()).join());
+        when(defaultStore.getEarliestMessageTime(anyString(), anyInt())).thenReturn(2L);
+        Assert.assertEquals(2, (long) currentStore.getEarliestMessageTimeAsync(mq.getTopic(), mq.getQueueId()).join());
     }
 
     @Test
     public void testGetMessageStoreTimeStampAsync() {
-        mockContainer();
         // TieredStorageLevel.DISABLE
         Properties properties = new Properties();
         properties.setProperty("tieredStorageLevel", "DISABLE");
         configuration.update(properties);
         when(fetcher.getMessageStoreTimeStampAsync(anyString(), anyInt(), anyLong())).thenReturn(CompletableFuture.completedFuture(1L));
-        when(nextStore.getMessageStoreTimeStampAsync(anyString(), anyInt(), anyLong())).thenReturn(CompletableFuture.completedFuture(2L));
-        when(nextStore.getMessageStoreTimeStamp(anyString(), anyInt(), anyLong())).thenReturn(3L);
-        Assert.assertEquals(2, (long) store.getMessageStoreTimeStampAsync(mq.getTopic(), mq.getQueueId(), 0).join());
+        when(defaultStore.getMessageStoreTimeStampAsync(anyString(), anyInt(), anyLong())).thenReturn(CompletableFuture.completedFuture(2L));
+        when(defaultStore.getMessageStoreTimeStamp(anyString(), anyInt(), anyLong())).thenReturn(3L);
+        Assert.assertEquals(2, (long) currentStore.getMessageStoreTimeStampAsync(mq.getTopic(), mq.getQueueId(), 0).join());
 
         // TieredStorageLevel.FORCE
         properties.setProperty("tieredStorageLevel", "FORCE");
         configuration.update(properties);
-        Assert.assertEquals(1, (long) store.getMessageStoreTimeStampAsync(mq.getTopic(), mq.getQueueId(), 0).join());
+        Assert.assertEquals(1, (long) currentStore.getMessageStoreTimeStampAsync(mq.getTopic(), mq.getQueueId(), 0).join());
 
         Mockito.when(fetcher.getMessageStoreTimeStampAsync(anyString(), anyInt(), anyLong())).thenReturn(CompletableFuture.completedFuture(-1L));
-        Assert.assertEquals(3, (long) store.getMessageStoreTimeStampAsync(mq.getTopic(), mq.getQueueId(), 0).join());
+        Assert.assertEquals(3, (long) currentStore.getMessageStoreTimeStampAsync(mq.getTopic(), mq.getQueueId(), 0).join());
     }
 
     @Test
     public void testGetOffsetInQueueByTime() {
+        Properties properties = new Properties();
+        properties.setProperty("tieredStorageLevel", "FORCE");
+        configuration.update(properties);
+
         Mockito.when(fetcher.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), eq(BoundaryType.LOWER))).thenReturn(1L);
-        Mockito.when(nextStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong())).thenReturn(2L);
-        Mockito.when(nextStore.getEarliestMessageTime()).thenReturn(100L);
-        Assert.assertEquals(1, store.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
-        Assert.assertEquals(2, store.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 1000, BoundaryType.LOWER));
+        Mockito.when(defaultStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong())).thenReturn(2L);
+        Mockito.when(defaultStore.getEarliestMessageTime()).thenReturn(100L);
+        Assert.assertEquals(1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 1000, BoundaryType.LOWER));
+        Assert.assertEquals(1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
 
         Mockito.when(fetcher.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), eq(BoundaryType.LOWER))).thenReturn(-1L);
-        Assert.assertEquals(2, store.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
+        Assert.assertEquals(-1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertEquals(-1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
     }
 
     @Test
@@ -240,55 +298,36 @@ public class TieredMessageStoreTest {
         when(fetcher.queryMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(CompletableFuture.completedFuture(result1));
         QueryMessageResult result2 = new QueryMessageResult();
         result2.addMessage(new SelectMappedBufferResult(0, null, 0, null));
-        when(nextStore.queryMessage(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(result2);
-        when(nextStore.getEarliestMessageTime()).thenReturn(100L);
-        Assert.assertEquals(2, store.queryMessage(mq.getTopic(), "key", 32, 0, 99).getMessageMapedList().size());
-        Assert.assertEquals(1, store.queryMessage(mq.getTopic(), "key", 32, 100, 200).getMessageMapedList().size());
-        Assert.assertEquals(3, store.queryMessage(mq.getTopic(), "key", 32, 0, 200).getMessageMapedList().size());
-    }
-
-    @Test
-    public void testGetMinOffsetInQueue() {
-        mockContainer();
-        TieredMessageQueueContainer container = containerManager.getMQContainer(mq);
-        when(nextStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
-        when(containerManager.getMQContainer(mq)).thenReturn(null);
-        Assert.assertEquals(100L, store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
-
-        when(containerManager.getMQContainer(mq)).thenReturn(container);
-        when(container.getConsumeQueueMinOffset()).thenReturn(10L);
-        Assert.assertEquals(10L, store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
+        when(defaultStore.queryMessage(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(result2);
+        when(defaultStore.getEarliestMessageTime()).thenReturn(100L);
+        Assert.assertEquals(2, currentStore.queryMessage(mq.getTopic(), "key", 32, 0, 99).getMessageMapedList().size());
+        Assert.assertEquals(1, currentStore.queryMessage(mq.getTopic(), "key", 32, 100, 200).getMessageMapedList().size());
+        Assert.assertEquals(3, currentStore.queryMessage(mq.getTopic(), "key", 32, 0, 200).getMessageMapedList().size());
     }
 
     @Test
     public void testCleanUnusedTopics() {
         Set<String> topicSet = new HashSet<>();
-        store.cleanUnusedTopic(topicSet);
-        Assert.assertNull(TieredContainerManager.getInstance(store.getStoreConfig()).getMQContainer(mq));
-        Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getTopic(mq.getTopic()));
-        Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getQueue(mq));
+        currentStore.cleanUnusedTopic(topicSet);
+        Assert.assertNull(flatFileStore.getFlatFile(mq));
+        Assert.assertNull(flatFileStore.getMetadataStore().getTopic(mq.getTopic()));
+        Assert.assertNull(flatFileStore.getMetadataStore().getQueue(mq));
     }
 
     @Test
     public void testDeleteTopics() {
         Set<String> topicSet = new HashSet<>();
         topicSet.add(mq.getTopic());
-        store.deleteTopics(topicSet);
-        Assert.assertNull(TieredContainerManager.getInstance(store.getStoreConfig()).getMQContainer(mq));
-        Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getTopic(mq.getTopic()));
-        Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getQueue(mq));
+        currentStore.deleteTopics(topicSet);
+        Assert.assertNull(flatFileStore.getFlatFile(mq));
+        Assert.assertNull(flatFileStore.getMetadataStore().getTopic(mq.getTopic()));
+        Assert.assertNull(flatFileStore.getMetadataStore().getQueue(mq));
     }
 
     @Test
     public void testMetrics() {
-        store.getMetricsView();
-        store.initMetrics(OpenTelemetrySdk.builder().build().getMeter(""),
-            Attributes::builder);
-    }
-
-    @Test
-    public void testShutdownAndDestroy() {
-        store.destroy();
-//        store.shutdown();
+        currentStore.getMetricsView();
+        currentStore.initMetrics(
+            OpenTelemetrySdk.builder().build().getMeter(""), Attributes::builder);
     }
 }

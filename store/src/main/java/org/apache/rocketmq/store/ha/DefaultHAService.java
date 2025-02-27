@@ -342,7 +342,7 @@ public class DefaultHAService implements HAService {
 
                     if (selected != null) {
                         for (SelectionKey k : selected) {
-                            if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
+                            if (k.isAcceptable()) {
                                 SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
 
                                 if (sc != null) {
@@ -350,8 +350,8 @@ public class DefaultHAService implements HAService {
                                         + sc.socket().getRemoteSocketAddress());
                                     try {
                                         HAConnection conn = createConnection(sc);
-                                        conn.start();
                                         DefaultHAService.this.addConnection(conn);
+                                        conn.start();
                                     } catch (Exception e) {
                                         log.error("new HAConnection exception", e);
                                         sc.close();

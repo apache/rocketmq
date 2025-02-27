@@ -21,7 +21,10 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
 import com.google.common.base.MoreObjects;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelConfig;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelMetadata;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +34,8 @@ import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
-import org.apache.rocketmq.proxy.common.utils.FutureUtils;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.processor.channel.ChannelExtendAttributeGetter;
 import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
@@ -92,6 +96,21 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
     }
 
     @Override
+    public ChannelFuture close() {
+        return this.parent().close();
+    }
+
+    @Override
+    public ChannelConfig config() {
+        return this.parent().config();
+    }
+
+    @Override
+    public ChannelMetadata metadata() {
+        return this.parent().metadata();
+    }
+
+    @Override
     protected CompletableFuture<Void> processOtherMessage(Object msg) {
         this.parent().writeAndFlush(msg);
         return CompletableFuture.completedFuture(null);
@@ -104,6 +123,7 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
         CompletableFuture<Void> writeFuture = new CompletableFuture<>();
         try {
             CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
+            requestHeader.setTopic(messageExt.getTopic());
             requestHeader.setCommitLogOffset(transactionData.getCommitLogOffset());
             requestHeader.setTranStateTableOffset(transactionData.getTranStateTableOffset());
             requestHeader.setTransactionId(transactionData.getTransactionId());
@@ -140,10 +160,15 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
                     if (response.getCode() == ResponseCode.SUCCESS) {
                         ConsumerRunningInfo consumerRunningInfo = ConsumerRunningInfo.decode(response.getBody(), ConsumerRunningInfo.class);
                         responseFuture.complete(new ProxyRelayResult<>(ResponseCode.SUCCESS, "", consumerRunningInfo));
+                    } else {
+                        String errMsg = String.format("get consumer running info failed, code:%s remark:%s", response.getCode(), response.getRemark());
+                        RuntimeException e = new RuntimeException(errMsg);
+                        responseFuture.completeExceptionally(e);
                     }
-                    String errMsg = String.format("get consumer running info failed, code:%s remark:%s", response.getCode(), response.getRemark());
-                    RuntimeException e = new RuntimeException(errMsg);
-                    responseFuture.completeExceptionally(e);
+                })
+                .exceptionally(t -> {
+                    responseFuture.completeExceptionally(ExceptionUtils.getRealException(t));
+                    return null;
                 });
             return CompletableFuture.completedFuture(null);
         } catch (Throwable t) {
@@ -165,10 +190,15 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
                     if (response.getCode() == ResponseCode.SUCCESS) {
                         ConsumeMessageDirectlyResult result = ConsumeMessageDirectlyResult.decode(response.getBody(), ConsumeMessageDirectlyResult.class);
                         responseFuture.complete(new ProxyRelayResult<>(ResponseCode.SUCCESS, "", result));
+                    } else {
+                        String errMsg = String.format("consume message directly failed, code:%s remark:%s", response.getCode(), response.getRemark());
+                        RuntimeException e = new RuntimeException(errMsg);
+                        responseFuture.completeExceptionally(e);
                     }
-                    String errMsg = String.format("consume message directly failed, code:%s remark:%s", response.getCode(), response.getRemark());
-                    RuntimeException e = new RuntimeException(errMsg);
-                    responseFuture.completeExceptionally(e);
+                })
+                .exceptionally(t -> {
+                    responseFuture.completeExceptionally(ExceptionUtils.getRealException(t));
+                    return null;
                 });
             return CompletableFuture.completedFuture(null);
         } catch (Throwable t) {

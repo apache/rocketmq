@@ -96,6 +96,18 @@ public class DefaultMappedFile extends AbstractMappedFile {
     protected long swapMapTime = 0L;
     protected long mappedByteBufferAccessCountSinceLastSwap = 0L;
 
+    /**
+     * If this mapped file belongs to consume queue, this field stores store-timestamp of first message referenced by
+     * this logical queue.
+     */
+    private long startTimestamp = -1;
+
+    /**
+     * If this mapped file belongs to consume queue, this field stores store-timestamp of last message referenced by
+     * this logical queue.
+     */
+    private long stopTimestamp = -1;
+
     static {
         WROTE_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "wrotePosition");
         COMMITTED_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "committedPosition");
@@ -339,6 +351,24 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
             WROTE_POSITION_UPDATER.addAndGet(this, length);
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean appendMessageUsingFileChannel(byte[] data) {
+        int currentPos = WROTE_POSITION_UPDATER.get(this);
+
+        if ((currentPos + data.length) <= this.fileSize) {
+            try {
+                this.fileChannel.position(currentPos);
+                this.fileChannel.write(ByteBuffer.wrap(data, 0, data.length));
+            } catch (Throwable e) {
+                log.error("Error occurred when append message to mappedFile.", e);
+            }
+            WROTE_POSITION_UPDATER.addAndGet(this, data.length);
             return true;
         }
 
@@ -810,6 +840,22 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public String toString() {
         return this.fileName;
+    }
+
+    public long getStartTimestamp() {
+        return startTimestamp;
+    }
+
+    public void setStartTimestamp(long startTimestamp) {
+        this.startTimestamp = startTimestamp;
+    }
+
+    public long getStopTimestamp() {
+        return stopTimestamp;
+    }
+
+    public void setStopTimestamp(long stopTimestamp) {
+        this.stopTimestamp = stopTimestamp;
     }
 
     public Iterator<SelectMappedBufferResult> iterator(int startPos) {

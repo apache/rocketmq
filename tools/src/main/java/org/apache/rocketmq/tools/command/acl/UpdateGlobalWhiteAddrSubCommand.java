@@ -37,7 +37,7 @@ public class UpdateGlobalWhiteAddrSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Update global white address for acl Config File in broker";
+        return "Update global white address for acl Config File in broker.";
     }
 
     @Override
