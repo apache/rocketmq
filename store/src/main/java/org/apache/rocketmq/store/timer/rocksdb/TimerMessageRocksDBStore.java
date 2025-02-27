@@ -43,6 +43,7 @@ import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
+import org.apache.rocketmq.store.util.PerfCounter;
 import org.rocksdb.RocksDB;
 
 import java.nio.ByteBuffer;
@@ -73,12 +74,15 @@ public class TimerMessageRocksDBStore {
     public static final String TIMER_ROLL_TIMES = MessageConst.PROPERTY_TIMER_ROLL_TIMES;
     public static final String TIMER_DEQUEUE_MS = MessageConst.PROPERTY_TIMER_DEQUEUE_MS;
     public static final String TIMER_ENQUEUE_MS = MessageConst.PROPERTY_TIMER_ENQUEUE_MS;
+    private static final String ENQUEUE_PUT = "enqueue_put";
+    private static final String DEQUEUE_PUT = "dequeue_put";
 
     private final TimerMessageKVStore timerMessageKVStore;
     private final MessageStore messageStore;
     private final BrokerStatsManager brokerStatsManager;
     private final MessageStoreConfig storeConfig;
     private final TimerMetrics timerMetrics;
+    private final PerfCounter.Ticks perfCounterTicks = new PerfCounter.Ticks(log);
 
     private final int slotSize;
     private final int precisionMs;
@@ -343,6 +347,7 @@ public class TimerMessageRocksDBStore {
             List<TimerMessageRecord> expired = new ArrayList<>();
 
             for (TimerMessageRecord tr : trs) {
+                perfCounterTicks.startTick(ENQUEUE_PUT);
                 long delayTime = tr.getDelayTime();
                 int flag = tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_FLAG) == null ?
                     0 : Integer.parseInt(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_FLAG));
@@ -362,6 +367,7 @@ public class TimerMessageRocksDBStore {
                     increaseMetric.computeIfAbsent(delayTime % metricsIntervalMs, k -> new ArrayList<>()).add(tr);
                     increase.computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
                 }
+                perfCounterTicks.endTick(ENQUEUE_PUT);
             }
 
             while (!expired.isEmpty() && !dequeueGetQueue.offer(expired, 100, TimeUnit.MILLISECONDS)) {
@@ -371,6 +377,7 @@ public class TimerMessageRocksDBStore {
             }
             for (Map.Entry<Integer, List<TimerMessageRecord>> entry : delete.entrySet()) {
                 timerMessageKVStore.deleteAssignRecords(getColumnFamily(entry.getKey()), entry.getValue(), -1);
+                perfCounterTicks.getCounter("dequeue_delete").flow(entry.getValue().size());
             }
             // sync cq read offset
             timerMessageKVStore.writeAssignRecords(getColumnFamily(0), new ArrayList<>(), commitOffset.addAndGet(trs.size()));
@@ -410,12 +417,18 @@ public class TimerMessageRocksDBStore {
                         continue;
                     }
                     for (TimerMessageRecord record : timerMessageRecord) {
+                        long start = System.currentTimeMillis();
                         MessageExt messageExt = getMessageByCommitOffset(record.getOffsetPY(), record.getSizeReal());
+                        if (null == messageExt) {
+                            perfCounterTicks.getCounter("dequeue_get_msg_miss").flow(System.currentTimeMillis() - start);
+                            continue;
+                        }
                         long delayedTime = Long.parseLong(messageExt.getProperty(TIMER_OUT_MS));
                         record.setMessageExt(messageExt);
                         record.setDelayTime(delayedTime);
                         record.setUniqueKey(MessageClientIDSetter.getUniqID(messageExt));
                         record.setRoll(delayedTime >= System.currentTimeMillis() + precisionMs * 3L);
+                        perfCounterTicks.getCounter("dequeue_get_msg").flow(System.currentTimeMillis() - start);
                     }
 
                     while (!dequeuePutQueue.offer(timerMessageRecord, 3, TimeUnit.SECONDS)) {
@@ -446,6 +459,7 @@ public class TimerMessageRocksDBStore {
                         continue;
                     }
                     for (TimerMessageRecord record : timerMessageRecord) {
+                        perfCounterTicks.startTick(DEQUEUE_PUT);
                         MessageExt msg = record.getMessageExt();
                         MessageExtBrokerInner messageExtBrokerInner = convert(msg, record.isRoll());
                         if (delayTime == -1) {
@@ -478,6 +492,7 @@ public class TimerMessageRocksDBStore {
                         }
                         addMetric(msg, -1);
                         addMetric((int) (Long.parseLong(msg.getProperty(TIMER_OUT_MS)) / precisionMs % slotSize), -1);
+                        perfCounterTicks.endTick(DEQUEUE_PUT);
                     }
                     timerMessageKVStore.syncMetric(delayTime % metricsIntervalMs, -timerMessageRecord.size());
                     timerMessageKVStore.deleteAssignRecords(getColumnFamily(flag), timerMessageRecord, timerMessageRecord.get(0).getReadOffset());
@@ -581,6 +596,7 @@ public class TimerMessageRocksDBStore {
             int i = 0;
             while (iterator.hasNext()) {
                 i++;
+                perfCounterTicks.startTick("enqueue_get");
                 try {
                     CqUnit cqUnit = iterator.next();
                     long offsetPy = cqUnit.getPos();
@@ -600,11 +616,15 @@ public class TimerMessageRocksDBStore {
                         Attributes attributes = DefaultStoreMetricsManager.newAttributesBuilder()
                             .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
                         DefaultStoreMetricsManager.timerMessageSetLatency.record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
+                    } else {
+                        perfCounterTicks.getCounter("enqueue_get_miss");
                     }
                 } catch (Exception e) {
                     // here may cause the message loss
                     log.warn("Unknown error in skipped in enqueuing", e);
                     throw e;
+                } finally {
+                    perfCounterTicks.endTick("enqueue_get");
                 }
                 readOffset.incrementAndGet();
             }
@@ -822,10 +842,10 @@ public class TimerMessageRocksDBStore {
     }
 
     public float getEnqueueTps() {
-        // TODO get enqueue tps
+        return perfCounterTicks.getCounter(ENQUEUE_PUT).getLastTps();
     }
 
     public float getDequeueTps() {
-        // TODO get dequeue tps
+        return perfCounterTicks.getCounter(DEQUEUE_PUT).getLastTps();
     }
 }
