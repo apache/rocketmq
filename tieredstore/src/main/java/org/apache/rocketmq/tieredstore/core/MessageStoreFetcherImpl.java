@@ -375,20 +375,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     @Override
     public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
         FlatMessageFile flatFile = flatFileStore.getFlatFile(new MessageQueue(topic, brokerName, queueId));
-
-        if (flatFile == null) {
-            return CompletableFuture.completedFuture(-1L);
-        }
-
-        int length = MessageFormatUtil.STORE_TIMESTAMP_POSITION + 8;
-        if (flatFile.getConsumeQueueCommitOffset() <= flatFile.getConsumeQueueMinOffset() ||
-            flatFile.getCommitLogCommitOffset() - flatFile.getCommitLogMinOffset() <= length) {
-            return CompletableFuture.completedFuture(-1L);
-        }
-
-        // read from timestamp to timestamp + length
-        return flatFile.getCommitLogAsync(flatFile.getCommitLogMinOffset(), length)
-            .thenApply(MessageFormatUtil::getStoreTimeStamp);
+        return CompletableFuture.completedFuture(flatFile == null ? -1L : flatFile.getMinStoreTimestamp());
     }
 
     @Override
