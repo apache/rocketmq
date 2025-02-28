@@ -318,12 +318,14 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         return fetcher.getEarliestMessageTimeAsync(topic, queueId)
             .thenApply(time -> {
                 Attributes latencyAttributes = TieredStoreMetricsManager.newAttributesBuilder()
-                    .put(TieredStoreMetricsConstant.LABEL_OPERATION, TieredStoreMetricsConstant.OPERATION_API_GET_EARLIEST_MESSAGE_TIME)
+                    .put(TieredStoreMetricsConstant.LABEL_OPERATION,
+                        TieredStoreMetricsConstant.OPERATION_API_GET_EARLIEST_MESSAGE_TIME)
                     .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
                     .build();
                 TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
                 if (time < 0) {
-                    log.debug("GetEarliestMessageTimeAsync failed, try to get earliest message time from next store: topic: {}, queue: {}",
+                    log.debug("GetEarliestMessageTimeAsync failed, " +
+                            "try to get earliest message time from next store: topic: {}, queue: {}",
                         topic, queueId);
                     return finalNextEarliestMessageTime != Long.MAX_VALUE ? finalNextEarliestMessageTime : -1;
                 }
