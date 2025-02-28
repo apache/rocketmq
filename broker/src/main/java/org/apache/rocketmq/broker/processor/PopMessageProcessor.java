@@ -234,7 +234,6 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         final PopMessageRequestHeader requestHeader =
             request.decodeCommandCustomHeader(PopMessageRequestHeader.class, true);
         final PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
-        requestHeader.setBornTime(System.currentTimeMillis());
 
         // Pop mode only supports consumption in cluster load balancing mode
         brokerController.getConsumerManager().compensateBasicConsumerInfo(
