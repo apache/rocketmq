@@ -311,6 +311,11 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         return getEarliestMessageTimeAsync(topic, queueId).join();
     }
 
+    /**
+     * In the original design, getting the earliest time of the first message
+     * would generate two RPC requests. However, using the timestamp stored in the metadata
+     * avoids these requests, although this approach might introduce some level of inaccuracy.
+     */
     @Override
     public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
         long localMinTime = next.getEarliestMessageTime(topic, queueId);
