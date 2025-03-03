@@ -161,8 +161,11 @@ public class NotificationProcessor implements NettyRequestProcessor {
         }
 
         if (!hasMsg) {
-            if (popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader)) == PollingResult.POLLING_SUC) {
+            PollingResult pollingResult = popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader));
+            if (pollingResult == PollingResult.POLLING_SUC) {
                 return null;
+            } else if (pollingResult == PollingResult.POLLING_FULL) {
+                responseHeader.setPollingFull(true);
             }
         }
         response.setCode(ResponseCode.SUCCESS);
