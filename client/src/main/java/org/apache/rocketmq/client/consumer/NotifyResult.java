@@ -14,19 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.header;
+package org.apache.rocketmq.client.consumer;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-
-public class NotificationResponseHeader implements CommandCustomHeader {
-
-
-    @CFNotNull
-    private boolean hasMsg = false;
-
-    private boolean pollingFull = false;
+public class NotifyResult {
+    private boolean hasMsg;
+    private boolean pollingFull;
 
     public boolean isHasMsg() {
         return hasMsg;
@@ -36,15 +28,18 @@ public class NotificationResponseHeader implements CommandCustomHeader {
         return pollingFull;
     }
 
-    public void setPollingFull(boolean pollingFull) {
-        this.pollingFull = pollingFull;
-    }
-
     public void setHasMsg(boolean hasMsg) {
         this.hasMsg = hasMsg;
     }
 
-    @Override
-    public void checkFields() throws RemotingCommandException {
+    public void setPollingFull(boolean pollingFull) {
+        this.pollingFull = pollingFull;
+    }
+
+    @Override public String toString() {
+        return "NotifyResult{" +
+            "hasMsg=" + hasMsg +
+            ", pollingFull=" + pollingFull +
+            '}';
     }
 }

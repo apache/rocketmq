@@ -178,16 +178,20 @@ public class FlatMessageFile implements FlatFileInterface {
         return consumeQueue.append(buffer, request.getStoreTimestamp());
     }
 
-
-
     @Override
     public void release() {
-
     }
 
     @Override
     public long getMinStoreTimestamp() {
-        return commitLog.getMinTimestamp();
+        long minStoreTime = -1L;
+        if (Long.MAX_VALUE != commitLog.getMinTimestamp()) {
+            minStoreTime = Math.max(minStoreTime, commitLog.getMinTimestamp());
+        }
+        if (Long.MAX_VALUE != consumeQueue.getMinTimestamp()) {
+            minStoreTime = Math.max(minStoreTime, consumeQueue.getMinTimestamp());
+        }
+        return minStoreTime;
     }
 
     @Override

@@ -78,7 +78,6 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         return true;
     }
 
-
     private boolean merge() {
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
             log.info("subGroup json file does not exist, so skip merge");

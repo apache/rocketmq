@@ -246,7 +246,7 @@ public class TieredMessageStoreTest {
     @Test
     public void testGetEarliestMessageTimeAsync() {
         when(fetcher.getEarliestMessageTimeAsync(anyString(), anyInt())).thenReturn(CompletableFuture.completedFuture(1L));
-        Assert.assertEquals(1, (long) currentStore.getEarliestMessageTimeAsync(mq.getTopic(), mq.getQueueId()).join());
+        Assert.assertEquals(0, (long) currentStore.getEarliestMessageTimeAsync(mq.getTopic(), mq.getQueueId()).join());
 
         when(fetcher.getEarliestMessageTimeAsync(anyString(), anyInt())).thenReturn(CompletableFuture.completedFuture(-1L));
         when(defaultStore.getEarliestMessageTime(anyString(), anyInt())).thenReturn(2L);

@@ -143,7 +143,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         this.persist();
     }
 
-    protected void updateSubscriptionGroupConfigWithoutPersist(SubscriptionGroupConfig config) {
+    public void updateSubscriptionGroupConfigWithoutPersist(SubscriptionGroupConfig config) {
         Map<String, String> newAttributes = request(config);
         Map<String, String> currentAttributes = current(config.getGroupName());
 

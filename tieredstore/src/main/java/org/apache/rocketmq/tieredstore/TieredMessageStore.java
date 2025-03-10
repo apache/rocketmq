@@ -62,6 +62,7 @@ import org.slf4j.LoggerFactory;
 public class TieredMessageStore extends AbstractPluginMessageStore {
 
     protected static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
+    protected static final long MIN_STORE_TIME = -1L;
 
     protected final String brokerName;
     protected final MessageStore defaultStore;
@@ -310,24 +311,21 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         return getEarliestMessageTimeAsync(topic, queueId).join();
     }
 
+    /**
+     * In the original design, getting the earliest time of the first message
+     * would generate two RPC requests. However, using the timestamp stored in the metadata
+     * avoids these requests, although this approach might introduce some level of inaccuracy.
+     */
     @Override
     public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
-        long nextEarliestMessageTime = next.getEarliestMessageTime(topic, queueId);
-        long finalNextEarliestMessageTime = nextEarliestMessageTime > 0 ? nextEarliestMessageTime : Long.MAX_VALUE;
-        Stopwatch stopwatch = Stopwatch.createStarted();
+        long localMinTime = next.getEarliestMessageTime(topic, queueId);
         return fetcher.getEarliestMessageTimeAsync(topic, queueId)
-            .thenApply(time -> {
-                Attributes latencyAttributes = TieredStoreMetricsManager.newAttributesBuilder()
-                    .put(TieredStoreMetricsConstant.LABEL_OPERATION, TieredStoreMetricsConstant.OPERATION_API_GET_EARLIEST_MESSAGE_TIME)
-                    .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
-                    .build();
-                TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
-                if (time < 0) {
-                    log.debug("GetEarliestMessageTimeAsync failed, try to get earliest message time from next store: topic: {}, queue: {}",
-                        topic, queueId);
-                    return finalNextEarliestMessageTime != Long.MAX_VALUE ? finalNextEarliestMessageTime : -1;
+            .thenApply(remoteMinTime -> {
+                if (localMinTime > MIN_STORE_TIME && remoteMinTime > MIN_STORE_TIME) {
+                    return Math.min(localMinTime, remoteMinTime);
                 }
-                return Math.min(finalNextEarliestMessageTime, time);
+                return localMinTime > MIN_STORE_TIME ? localMinTime :
+                    (remoteMinTime > MIN_STORE_TIME ? remoteMinTime : MIN_STORE_TIME);
             });
     }
 

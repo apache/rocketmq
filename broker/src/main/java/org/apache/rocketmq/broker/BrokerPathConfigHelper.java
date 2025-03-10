@@ -32,43 +32,47 @@ public class BrokerPathConfigHelper {
     }
 
     public static String getTopicConfigPath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "topics.json";
+        return getConfigDir(rootDir) + "topics.json";
     }
 
     public static String getTopicQueueMappingPath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "topicQueueMapping.json";
+        return getConfigDir(rootDir) + "topicQueueMapping.json";
     }
 
     public static String getConsumerOffsetPath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "consumerOffset.json";
+        return getConfigDir(rootDir) + "consumerOffset.json";
     }
 
     public static String getLmqConsumerOffsetPath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "lmqConsumerOffset.json";
+        return getConfigDir(rootDir) + "lmqConsumerOffset.json";
     }
 
     public static String getConsumerOrderInfoPath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "consumerOrderInfo.json";
+        return getConfigDir(rootDir) + "consumerOrderInfo.json";
     }
 
     public static String getSubscriptionGroupPath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "subscriptionGroup.json";
+        return getConfigDir(rootDir) + "subscriptionGroup.json";
     }
     public static String getTimerCheckPath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "timercheck";
+        return getConfigDir(rootDir) + "timercheck";
     }
     public static String getTimerMetricsPath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "timermetrics";
+        return getConfigDir(rootDir) + "timermetrics";
     }
     public static String getTransactionMetricsPath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "transactionMetrics";
+        return getConfigDir(rootDir) + "transactionMetrics";
     }
 
     public static String getConsumerFilterPath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "consumerFilter.json";
+        return getConfigDir(rootDir) + "consumerFilter.json";
     }
 
     public static String getMessageRequestModePath(final String rootDir) {
-        return rootDir + File.separator + "config" + File.separator + "messageRequestMode.json";
+        return getConfigDir(rootDir) + "messageRequestMode.json";
+    }
+
+    private static String getConfigDir(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator;
     }
 }

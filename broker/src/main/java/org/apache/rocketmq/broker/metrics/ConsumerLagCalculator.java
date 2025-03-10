@@ -348,7 +348,7 @@ public class ConsumerLagCalculator {
             brokerOffset = 0;
         }
 
-        if (isPop) {
+        if (isPop && !brokerConfig.isPopConsumerKVServiceEnable()) {
             long pullOffset = popBufferMergeService.getLatestOffset(topic, group, queueId);
             if (pullOffset < 0) {
                 pullOffset = offsetManager.queryOffset(group, topic, queueId);
@@ -401,7 +401,7 @@ public class ConsumerLagCalculator {
 
     public Pair<Long, Long> getInFlightMsgStats(String group, String topic, int queueId, boolean isPop)
         throws ConsumeQueueException {
-        if (isPop) {
+        if (isPop && !brokerConfig.isPopConsumerKVServiceEnable()) {
             long inflight = popInflightMessageCounter.getGroupPopInFlightMessageNum(topic, group, queueId);
             long pullOffset = popBufferMergeService.getLatestOffset(topic, group, queueId);
             if (pullOffset < 0) {
@@ -456,13 +456,10 @@ public class ConsumerLagCalculator {
         }
 
         long pullOffset;
-        if (isPop) {
+        if (isPop && !brokerConfig.isPopConsumerKVServiceEnable()) {
             pullOffset = popBufferMergeService.getLatestOffset(topic, group, queueId);
             if (pullOffset < 0) {
                 pullOffset = offsetManager.queryOffset(group, topic, queueId);
-            }
-            if (pullOffset < 0) {
-                pullOffset = brokerOffset;
             }
         } else {
             pullOffset = offsetManager.queryPullOffset(group, topic, queueId);
