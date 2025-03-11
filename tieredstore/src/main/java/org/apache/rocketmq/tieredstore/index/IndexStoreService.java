@@ -229,6 +229,8 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         CompletableFuture<List<IndexItem>> future = new CompletableFuture<>();
         try {
             readWriteLock.readLock().lock();
+            beginTime = this.timeStoreTable.lowerKey(beginTime) == null ? this.timeStoreTable.firstKey() : this.timeStoreTable.lowerKey(beginTime);
+            endTime = this.timeStoreTable.higherKey(endTime) == null ? this.timeStoreTable.lastKey() : this.timeStoreTable.higherKey(endTime);
             ConcurrentNavigableMap<Long, IndexFile> pendingMap =
                 this.timeStoreTable.subMap(beginTime, true, endTime, true);
             List<CompletableFuture<Void>> futureList = new ArrayList<>(pendingMap.size());
