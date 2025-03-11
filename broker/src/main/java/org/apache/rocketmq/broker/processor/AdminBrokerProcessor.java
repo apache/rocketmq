@@ -1884,8 +1884,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        response.setCode(ResponseCode.CONSUMER_NOT_ONLINE);
-        response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] not online");
+        response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
+        response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] not exist");
         return response;
     }
 
