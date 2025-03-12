@@ -1855,6 +1855,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final GetConsumerConnectionListRequestHeader requestHeader =
             (GetConsumerConnectionListRequestHeader) request.decodeCommandCustomHeader(GetConsumerConnectionListRequestHeader.class);
 
+        if (!this.brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(requestHeader.getConsumerGroup())) {
+            response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
+            response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] not exist");
+            return response;
+        }
+
         ConsumerGroupInfo consumerGroupInfo =
             this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
         if (consumerGroupInfo != null) {
@@ -1884,8 +1890,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
-        response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] not exist");
+        response.setCode(ResponseCode.CONSUMER_NOT_ONLINE);
+        response.setRemark("the consumer group[" + requestHeader.getConsumerGroup() + "] not online");
         return response;
     }
 
