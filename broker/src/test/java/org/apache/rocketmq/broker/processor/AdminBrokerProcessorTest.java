@@ -38,6 +38,7 @@ import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -681,7 +682,10 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_CONNECTION_LIST, null);
         request.addExtField("consumerGroup", "GID-group-test");
         consumerManager = mock(ConsumerManager.class);
+        SubscriptionGroupManager subscriptionGroupManager = mock(SubscriptionGroupManager.class);
         when(brokerController.getConsumerManager()).thenReturn(consumerManager);
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
+        when(subscriptionGroupManager.containsSubscriptionGroup(anyString())).thenReturn(true);
         ConsumerGroupInfo consumerGroupInfo = new ConsumerGroupInfo("GID-group-test", ConsumeType.CONSUME_ACTIVELY, MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         when(consumerManager.getConsumerGroupInfo(anyString())).thenReturn(consumerGroupInfo);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
