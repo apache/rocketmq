@@ -1197,6 +1197,8 @@ public class BrokerController {
         this.fastRemotingServer.registerProcessor(RequestCode.QUERY_ASSIGNMENT, queryAssignmentProcessor, loadBalanceExecutor);
         this.remotingServer.registerProcessor(RequestCode.SET_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
         this.fastRemotingServer.registerProcessor(RequestCode.SET_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
+        this.remotingServer.registerProcessor(RequestCode.GET_ALL_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.GET_ALL_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
 
         /**
          * EndTransactionProcessor
