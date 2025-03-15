@@ -383,7 +383,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             CompletableFuture<PopConsumerContext> popAsyncFuture = brokerController.getPopConsumerService().popAsync(
                 RemotingHelper.parseChannelRemoteAddr(channel), beginTimeMills, requestHeader.getInvisibleTime(),
                 requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(),
-                requestHeader.getMaxMsgNums(), requestHeader.isOrder(), requestHeader.getAttemptId(), messageFilter);
+                requestHeader.getMaxMsgNums(), requestHeader.isOrder(),
+                requestHeader.getAttemptId(), requestHeader.getInitMode(), messageFilter);
 
             popAsyncFuture.thenApply(result -> {
                 if (result.isFound()) {
@@ -888,7 +889,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    private long getInitOffset(String topic, String group, int queueId, int initMode, boolean init)
+    public long getInitOffset(String topic, String group, int queueId, int initMode, boolean init)
         throws ConsumeQueueException {
         long offset;
         if (ConsumeInitMode.MIN == initMode || topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
