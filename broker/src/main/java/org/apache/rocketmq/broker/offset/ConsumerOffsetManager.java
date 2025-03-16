@@ -60,6 +60,10 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     private final transient AtomicLong versionChangeCounter = new AtomicLong(0);
 
+    // Optimized HashMap for faster lookups
+    private final ConcurrentMap<String, Set<String>> groupToTopics = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Set<String>> topicToGroups = new ConcurrentHashMap<>();
+
     public ConsumerOffsetManager() {
     }
 
@@ -68,111 +72,108 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     protected void removeConsumerOffset(String topicAtGroup) {
+        // Also remove from precomputed mappings
+        String[] parts = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+        if (parts.length == 2) {
+            String topic = parts[0];
+            String group = parts[1];
 
+            groupToTopics.computeIfPresent(group, (k, v) -> {
+                v.remove(topic);
+                return v.isEmpty() ? null : v;
+            });
+
+            topicToGroups.computeIfPresent(topic, (k, v) -> {
+                v.remove(group);
+                return v.isEmpty() ? null : v;
+            });
+        }
     }
 
     public void cleanOffset(String group) {
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            if (topicAtGroup.contains(group)) {
-                String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-                if (arrays.length == 2 && group.equals(arrays[1])) {
-                    it.remove();
-                    removeConsumerOffset(topicAtGroup);
-                    LOG.warn("Clean group's offset, {}, {}", topicAtGroup, next.getValue());
-                }
+        Set<String> keysToRemove = new HashSet<>();
+        for (String topicAtGroup : offsetTable.keySet()) {
+            String[] parts = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+            if (parts.length == 2 && group.equals(parts[1])) {
+                keysToRemove.add(topicAtGroup);
             }
+        }
+        for (String key : keysToRemove) {
+            offsetTable.remove(key);
+            removeConsumerOffset(key);
+            LOG.warn("Cleaned group's offset: {}", key);
         }
     }
 
     public void cleanOffsetByTopic(String topic) {
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            if (topicAtGroup.contains(topic)) {
-                String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-                if (arrays.length == 2 && topic.equals(arrays[0])) {
-                    it.remove();
-                    removeConsumerOffset(topicAtGroup);
-                    LOG.warn("Clean topic's offset, {}, {}", topicAtGroup, next.getValue());
-                }
+        Set<String> keysToRemove = new HashSet<>();
+        for (String topicAtGroup : offsetTable.keySet()) {
+            String[] parts = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+            if (parts.length == 2 && topic.equals(parts[0])) {
+                keysToRemove.add(topicAtGroup);
             }
+        }
+        for (String key : keysToRemove) {
+            offsetTable.remove(key);
+            removeConsumerOffset(key);
+            LOG.warn("Cleaned topic's offset: {}", key);
         }
     }
 
     public void scanUnsubscribedTopic() {
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-            if (arrays.length == 2) {
-                String topic = arrays[0];
-                String group = arrays[1];
+        Set<String> keysToRemove = new HashSet<>();
+        for (Map.Entry<String, ConcurrentMap<Integer, Long>> entry : offsetTable.entrySet()) {
+            String topicAtGroup = entry.getKey();
+            String[] parts = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+            if (parts.length == 2) {
+                String topic = parts[0];
+                String group = parts[1];
 
-                if (null == brokerController.getConsumerManager().findSubscriptionData(group, topic)
-                    && this.offsetBehindMuchThanData(topic, next.getValue())) {
-                    it.remove();
-                    removeConsumerOffset(topicAtGroup);
-                    LOG.warn("remove topic offset, {}", topicAtGroup);
+                if (brokerController.getConsumerManager().findSubscriptionData(group, topic) == null
+                    && offsetBehindMuchThanData(topic, entry.getValue())) {
+                    keysToRemove.add(topicAtGroup);
                 }
             }
+        }
+        for (String key : keysToRemove) {
+            offsetTable.remove(key);
+            removeConsumerOffset(key);
+            LOG.warn("Removed topic offset: {}", key);
         }
     }
 
     private boolean offsetBehindMuchThanData(final String topic, ConcurrentMap<Integer, Long> table) {
-        Iterator<Entry<Integer, Long>> it = table.entrySet().iterator();
-        boolean result = !table.isEmpty();
-
-        while (it.hasNext() && result) {
-            Entry<Integer, Long> next = it.next();
-            long minOffsetInStore = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, next.getKey());
-            long offsetInPersist = next.getValue();
-            result = offsetInPersist <= minOffsetInStore;
+        for (Map.Entry<Integer, Long> entry : table.entrySet()) {
+            long minOffsetInStore = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, entry.getKey());
+            if (entry.getValue() > minOffsetInStore) {
+                return false;
+            }
         }
-
-        return result;
+        return true;
     }
 
     public Set<String> whichTopicByConsumer(final String group) {
-        Set<String> topics = new HashSet<>();
-
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-            if (arrays.length == 2) {
-                if (group.equals(arrays[1])) {
-                    topics.add(arrays[0]);
-                }
-            }
-        }
-
-        return topics;
+        return groupToTopics.getOrDefault(group, Collections.emptySet());
     }
 
     public Set<String> whichGroupByTopic(final String topic) {
-        Set<String> groups = new HashSet<>();
-
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-            if (arrays.length == 2) {
-                if (topic.equals(arrays[0])) {
-                    groups.add(arrays[1]);
-                }
-            }
-        }
-
-        return groups;
+        return topicToGroups.getOrDefault(topic, Collections.emptySet());
     }
 
+    // New method to keep track of topic-group mappings
+    public void updateOffsetTable(String topicAtGroup, ConcurrentMap<Integer, Long> offsets) {
+        offsetTable.put(topicAtGroup, offsets);
+
+        String[] parts = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+        if (parts.length == 2) {
+            String topic = parts[0];
+            String group = parts[1];
+
+            groupToTopics.computeIfAbsent(group, k -> new HashSet<>()).add(topic);
+            topicToGroups.computeIfAbsent(topic, k -> new HashSet<>()).add(group);
+        }
+    }
+    
     public Map<String, Set<String>> getGroupTopicMap() {
         Map<String, Set<String>> retMap = new HashMap<>(128);
 
