@@ -120,12 +120,27 @@ public class TopicPublishInfo {
         }
     }
 
-    public MessageQueue selectOneMessageQueue() {
+    private MessageQueue getMessageQueue() {
         int index = this.sendWhichQueue.incrementAndGet();
         int pos = index % this.messageQueueList.size();
-
         return this.messageQueueList.get(pos);
     }
+    
+    public MessageQueue selectOneMessageQueue() {
+        return getMessageQueue();
+    }
+
+    // Adding additional logic, filter by broker name
+    public MessageQueue selectOneMessageQueueWithCondition(String lastBrokerName) {
+        for (int i = 0; i < this.messageQueueList.size(); i++) {
+            MessageQueue mq = getMessageQueue();
+            if (!mq.getBrokerName().equals(lastBrokerName)) {
+                return mq;
+            }
+        }
+        return null; // Or handle appropriately if no queue matches
+    }
+        
 
     public int getWriteQueueNumsByBroker(final String brokerName) {
         for (int i = 0; i < topicRouteData.getQueueDatas().size(); i++) {
