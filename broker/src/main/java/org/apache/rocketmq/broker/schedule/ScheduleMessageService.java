@@ -474,7 +474,7 @@ public class ScheduleMessageService extends ConfigManager {
                     }
 
                     if (!deliverSuc) {
-                        this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
+                        this.scheduleNextTimerTask(currOffset, DELAY_FOR_A_WHILE);
                         return;
                     }
                 }
