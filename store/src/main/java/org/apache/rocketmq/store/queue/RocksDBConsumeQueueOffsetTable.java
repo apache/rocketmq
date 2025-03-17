@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.apache.rocketmq.common.MixAll;
@@ -563,7 +562,7 @@ public class RocksDBConsumeQueueOffsetTable {
         return this.topicQueueMaxCqOffset.remove(topicQueueId);
     }
 
-    private void updateCqOffset(final String topic, final int queueId, final long phyOffset,
+    public void updateCqOffset(final String topic, final int queueId, final long phyOffset,
         final long cqOffset, boolean max) throws RocksDBException {
         if (!this.rocksDBStorage.hold()) {
             return;
