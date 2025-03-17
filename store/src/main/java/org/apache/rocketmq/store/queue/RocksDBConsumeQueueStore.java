@@ -29,7 +29,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import org.apache.commons.io.FileUtils;
@@ -46,7 +45,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.exception.StoreException;
@@ -265,13 +263,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             this.rocksDBStorage.batchPut(writeBatch);
 
             this.rocksDBConsumeQueueOffsetTable.putHeapMaxCqOffset(tempTopicQueueMaxOffsetMap);
-
-            long storeTimeStamp = requests.get(size - 1).getStoreTimestamp();
-            if (this.messageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE
-                || this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
-                this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimeStamp);
-            }
-            this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(storeTimeStamp);
             notifyMessageArriveAndClear(requests);
             return true;
         } catch (Exception e) {
