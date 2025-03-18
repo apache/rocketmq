@@ -1581,6 +1581,9 @@ public class TimerMessageStore {
         public void run() {
             setState(AbstractStateService.START);
             TimerMessageStore.LOGGER.info(this.getServiceName() + " service start");
+            //Mark different rounds
+            boolean isRound = true;
+            Map<String ,MessageExt> avoidDeleteLose = new HashMap<>();
             while (!this.isStopped()) {
                 try {
                     setState(AbstractStateService.WAITING);
@@ -1597,9 +1600,18 @@ public class TimerMessageStore {
                             MessageExt msgExt = getMessageByCommitOffset(tr.getOffsetPy(), tr.getSizePy());
                             if (null != msgExt) {
                                 if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {
+                                    //Clearing is performed once in each round.
+                                    //The deletion message is received first and the common message is received once
+                                    if (!isRound) {
+                                        isRound = true;
+                                        for (MessageExt messageExt: avoidDeleteLose.values()) {
+                                            addMetric(messageExt, 1);
+                                        }
+                                        avoidDeleteLose.clear();
+                                    }
                                     if (msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null && tr.getDeleteList() != null) {
-                                        //Execute metric plus one for messages that fail to be deleted
-                                        addMetric(msgExt, 1);
+
+                                        avoidDeleteLose.put(msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY), msgExt);
                                         tr.getDeleteList().add(msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
                                     }
                                     tr.idempotentRelease();
@@ -1609,10 +1621,13 @@ public class TimerMessageStore {
                                     if (null == uniqueKey) {
                                         LOGGER.warn("No uniqueKey for msg:{}", msgExt);
                                     }
+                                    //Mark ready for next round
+                                    if (isRound) {
+                                        isRound = false;
+                                    }
                                     if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0
                                         && tr.getDeleteList().contains(buildDeleteKey(getRealTopic(msgExt), uniqueKey))) {
-                                        //Normally, it cancels out with the +1 above
-                                        addMetric(msgExt, -1);
+                                        avoidDeleteLose.remove(uniqueKey);
                                         doRes = true;
                                         tr.idempotentRelease();
                                         perfCounterTicks.getCounter("dequeue_delete").flow(1);

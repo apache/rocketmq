@@ -41,6 +41,7 @@ import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -190,7 +191,7 @@ public class PopConsumerServiceTest {
     @Test
     public void addGetMessageResultTest() {
         PopConsumerContext context = new PopConsumerContext(
-            clientHost, System.currentTimeMillis(), 20000, groupId, false, attemptId);
+            clientHost, System.currentTimeMillis(), 20000, groupId, false, ConsumeInitMode.MIN, attemptId);
         GetMessageResult result = new GetMessageResult();
         result.setStatus(GetMessageStatus.FOUND);
         result.getMessageQueueOffset().add(100L);
@@ -231,7 +232,7 @@ public class PopConsumerServiceTest {
 
         // fifo block
         PopConsumerContext context = new PopConsumerContext(
-            clientHost, System.currentTimeMillis(), 20000, groupId, false, attemptId);
+            clientHost, System.currentTimeMillis(), 20000, groupId, false, ConsumeInitMode.MIN, attemptId);
         consumerService.setFifoBlocked(context, groupId, topicId, queueId, Collections.singletonList(100L));
         Mockito.when(brokerController.getConsumerOrderInfoManager()
             .checkBlock(anyString(), anyString(), anyString(), anyInt(), anyLong())).thenReturn(true);
@@ -257,7 +258,7 @@ public class PopConsumerServiceTest {
 
         // fifo block test
         context = new PopConsumerContext(
-            clientHost, System.currentTimeMillis(), 20000, groupId, true, attemptId);
+            clientHost, System.currentTimeMillis(), 20000, groupId, true, ConsumeInitMode.MIN, attemptId);
         future = CompletableFuture.completedFuture(context);
         Assert.assertEquals(0L, consumerService.getMessageAsync(future, clientHost, groupId, topicId, queueId,
             10, null, PopConsumerRecord.RetryType.NORMAL_TOPIC).join().getRestCount());
@@ -306,7 +307,7 @@ public class PopConsumerServiceTest {
 
         // pop broker
         consumerServiceSpy.popAsync(clientHost, System.currentTimeMillis(),
-            20000, groupId, topicId, -1, 10, false, attemptId, null).join();
+            20000, groupId, topicId, -1, 10, false, attemptId, ConsumeInitMode.MIN, null).join();
     }
 
     @Test

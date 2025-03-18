@@ -35,6 +35,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
@@ -59,6 +60,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
@@ -2102,6 +2104,48 @@ public class MQClientAPIImplTest {
                 }
             });
         done.await();
+    }
+
+    @Test
+    public void testMQClientAPIImplWithoutObjectCreator() {
+        MQClientAPIImpl clientAPI = new MQClientAPIImpl(
+            new NettyClientConfig(),
+            null,
+            null,
+            new ClientConfig(),
+            null,
+            null
+        );
+        RemotingClient remotingClient1 = clientAPI.getRemotingClient();
+        Assert.assertTrue(remotingClient1 instanceof NettyRemotingClient);
+    }
+
+    @Test
+    public void testMQClientAPIImplWithObjectCreator() {
+        ObjectCreator<RemotingClient> clientObjectCreator = args -> new MockRemotingClientTest((NettyClientConfig) args[0]);
+        final NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        MQClientAPIImpl clientAPI = new MQClientAPIImpl(
+            nettyClientConfig,
+            null,
+            null,
+            new ClientConfig(),
+            null,
+            clientObjectCreator
+        );
+        RemotingClient remotingClient1 = clientAPI.getRemotingClient();
+        Assert.assertTrue(remotingClient1 instanceof MockRemotingClientTest);
+        MockRemotingClientTest remotingClientTest = (MockRemotingClientTest) remotingClient1;
+        Assert.assertSame(remotingClientTest.getNettyClientConfig(), nettyClientConfig);
+    }
+
+    private static class MockRemotingClientTest extends NettyRemotingClient {
+        public MockRemotingClientTest(NettyClientConfig nettyClientConfig) {
+            super(nettyClientConfig);
+        }
+
+        public NettyClientConfig getNettyClientConfig() {
+            return nettyClientConfig;
+        }
     }
 
     private Properties createProperties() {
