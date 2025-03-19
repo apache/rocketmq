@@ -118,7 +118,7 @@ public class MQClientInstance {
     private final Lock lockHeartbeat = new ReentrantLock();
 
     /**
-     * The container which stores the brokerClusterInfo. The key of the map is the brokerCluster name.
+     * The container which stores the brokerClusterInfo. The key of the map is the broker name.
      * And the value is the broker instance list that belongs to the broker cluster.
      * For the sub map, the key is the id of single broker instance, and the value is the address.
      */
