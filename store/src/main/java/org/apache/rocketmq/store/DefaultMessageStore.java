@@ -522,7 +522,6 @@ public class DefaultMessageStore implements MessageStore {
             }
             this.flushConsumeQueueService.shutdown();
             this.allocateMappedFileService.shutdown();
-            this.storeCheckpoint.flush();
             this.storeCheckpoint.shutdown();
 
             this.perfs.shutdown();
