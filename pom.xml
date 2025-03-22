@@ -397,6 +397,7 @@
                     <excludes>
                         <exclude>**/IT*.java</exclude>
                     </excludes>
+                    <argLine>--add-opens java.base/jdk.internal.ref=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
             <plugin>
