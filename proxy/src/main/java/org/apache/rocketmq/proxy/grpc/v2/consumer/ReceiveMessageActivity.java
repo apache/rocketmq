@@ -39,6 +39,7 @@ import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
@@ -138,7 +139,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                         if (PopStatus.FOUND.equals(popResult.getPopStatus())) {
                             GrpcClientChannel clientChannel = grpcChannelManager.getChannel(ctx.getClientID());
                             if (clientChannel == null) {
-                                RuntimeException e = new RuntimeException(
+                                GrpcProxyException e = new GrpcProxyException(Code.MESSAGE_NOT_FOUND,
                                     String.format("The client [%s] is disconnected.", ctx.getClientID()));
                                 popResult.getMsgFoundList().forEach(messageExt ->
                                     writer.processThrowableWhenWriteMessage(e, ctx, request, messageExt));
