@@ -38,6 +38,7 @@ import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.entity.QueueMetadata;
 import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
+import org.apache.rocketmq.tieredstore.provider.FileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtil;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
 import org.slf4j.Logger;
@@ -302,9 +303,26 @@ public class FlatMessageFile implements FlatFileInterface {
             return CompletableFuture.completedFuture(cqMin);
         }
 
+        // get correct consume queue file by binary search
+        List<FileSegment> consumeQueueFileList = this.consumeQueue.getFileSegmentList();
+        int low = 0, high = consumeQueueFileList.size() - 1;
+        int mid = low + (high - low) / 2;
+        while (low <= high) {
+            FileSegment fileSegment = consumeQueueFileList.get(mid);
+            if (fileSegment.getMinTimestamp() <= timestamp && timestamp <= fileSegment.getMaxTimestamp()) {
+                break;
+            } else if (timestamp < fileSegment.getMinTimestamp()) {
+                high = mid - 1;
+            } else {
+                low = mid + 1;
+            }
+            mid = low + (high - low) / 2;
+        }
+        FileSegment target = consumeQueueFileList.get(mid);
+
         // binary search lower bound index in a sorted array
-        long minOffset = cqMin;
-        long maxOffset = cqMax;
+        long minOffset = target.getBaseOffset() / MessageFormatUtil.CONSUME_QUEUE_UNIT_SIZE;
+        long maxOffset = target.getCommitOffset() / MessageFormatUtil.CONSUME_QUEUE_UNIT_SIZE - 1;
         List<String> queryLog = new ArrayList<>();
         while (minOffset < maxOffset) {
             long middle = minOffset + (maxOffset - minOffset) / 2;
