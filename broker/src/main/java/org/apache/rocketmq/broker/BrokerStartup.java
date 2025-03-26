@@ -140,11 +140,6 @@ public class BrokerStartup {
             }
         }
 
-        if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
-            int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
-            messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
-        }
-
         // Set broker role according to ha config
         if (!brokerConfig.isEnableControllerMode()) {
             switch (messageStoreConfig.getBrokerRole()) {
