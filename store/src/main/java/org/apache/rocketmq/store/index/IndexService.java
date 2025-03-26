@@ -164,11 +164,10 @@ public class IndexService {
     }
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
-        List<Long> phyOffsets = new ArrayList<>(maxNum);
-
         long indexLastUpdateTimestamp = 0;
         long indexLastUpdatePhyoffset = 0;
         maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
+        List<Long> phyOffsets = new ArrayList<>(maxNum);
         try {
             this.readWriteLock.readLock().lock();
             if (!this.indexFileList.isEmpty()) {
