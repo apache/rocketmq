@@ -187,7 +187,7 @@ public class ColdDataCgCtrService extends ServiceThread {
         if (!this.messageStoreConfig.isColdDataFlowControlEnable()) {
             return false;
         }
-        if (MixAll.isSysConsumerGroupForNoColdReadLimit(consumerGroup)) {
+        if (MixAll.isSysConsumerGroupPullMessage(consumerGroup)) {
             return false;
         }
         AccAndTimeStamp accAndTimeStamp = cgColdThresholdMapRuntime.get(consumerGroup);

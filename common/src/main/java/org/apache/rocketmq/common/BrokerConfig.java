@@ -455,6 +455,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean recallMessageEnable = false;
 
+    private boolean enableCreateSysGroup = true;
+
     public String getConfigBlackList() {
         return configBlackList;
     }
@@ -2005,5 +2007,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setRecallMessageEnable(boolean recallMessageEnable) {
         this.recallMessageEnable = recallMessageEnable;
+    }
+
+    public boolean isEnableCreateSysGroup() {
+        return enableCreateSysGroup;
+    }
+
+    public void setEnableCreateSysGroup(boolean enableCreateSysGroup) {
+        this.enableCreateSysGroup = enableCreateSysGroup;
     }
 }
