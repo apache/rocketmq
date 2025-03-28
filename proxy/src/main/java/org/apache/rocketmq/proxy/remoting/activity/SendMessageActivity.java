@@ -101,7 +101,7 @@ public class SendMessageActivity extends AbstractRemotingActivity {
         if (request.getExtFields() == null) {
             return;
         }
-        String propertiesField = request.getCode() == RequestCode.SEND_MESSAGE_V2 ? "i" : "properties";
+        String propertiesField = request.getCode() == RequestCode.SEND_MESSAGE ? "properties" : "i";
         String propertiesString = request.getExtFields().get(propertiesField);
         if (propertiesString == null) {
             return;
