@@ -455,6 +455,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean recallMessageEnable = false;
 
+    private boolean enableRegisterProducer = true;
+
     public String getConfigBlackList() {
         return configBlackList;
     }
@@ -2005,5 +2007,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setRecallMessageEnable(boolean recallMessageEnable) {
         this.recallMessageEnable = recallMessageEnable;
+    }
+
+    public boolean isEnableRegisterProducer() {
+        return enableRegisterProducer;
+    }
+
+    public void setEnableRegisterProducer(boolean enableRegisterProducer) {
+        this.enableRegisterProducer = enableRegisterProducer;
     }
 }

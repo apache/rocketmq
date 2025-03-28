@@ -22,6 +22,8 @@ import java.lang.reflect.Field;
 import java.util.Map;
 
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.junit.Before;
 import org.junit.Test;
@@ -148,6 +150,20 @@ public class ProducerManagerTest {
         assertThat(channel1).isNotNull();
         assertThat(channelMap.get(channel)).isEqualTo(clientInfo);
         assertThat(channel1).isEqualTo(channel);
+    }
+
+    @Test
+    public void testRegisterProducerWhenRegisterProducerIsNotEnabled() throws Exception {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setEnableRegisterProducer(false);
+        brokerConfig.setRejectTransactionMessage(true);
+        ProducerManager producerManager = new ProducerManager(null, brokerConfig);
+
+        producerManager.registerProducer(group, clientInfo);
+        Map<Channel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
+        Channel channel1 = producerManager.findChannel("clientId");
+        assertThat(channelMap).isNull();
+        assertThat(channel1).isNull();
     }
 
     @Test

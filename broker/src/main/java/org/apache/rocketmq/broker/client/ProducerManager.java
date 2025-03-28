@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.rocketmq.broker.util.PositiveAtomicCounter;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -44,15 +45,23 @@ public class ProducerManager {
         new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Channel> clientChannelTable = new ConcurrentHashMap<>();
     protected final BrokerStatsManager brokerStatsManager;
+    private final BrokerConfig brokerConfig;
     private final PositiveAtomicCounter positiveAtomicCounter = new PositiveAtomicCounter();
     private final List<ProducerChangeListener> producerChangeListenerList = new CopyOnWriteArrayList<>();
 
     public ProducerManager() {
         this.brokerStatsManager = null;
+        this.brokerConfig = null;
     }
 
     public ProducerManager(final BrokerStatsManager brokerStatsManager) {
         this.brokerStatsManager = brokerStatsManager;
+        this.brokerConfig = null;
+    }
+
+    public ProducerManager(final BrokerStatsManager brokerStatsManager, final BrokerConfig brokerConfig) {
+        this.brokerStatsManager = brokerStatsManager;
+        this.brokerConfig = brokerConfig;
     }
 
     public int groupSize() {
@@ -162,9 +171,33 @@ public class ProducerManager {
     }
 
     public void registerProducer(final String group, final ClientChannelInfo clientChannelInfo) {
+
+        long start = System.currentTimeMillis();
         ClientChannelInfo clientChannelInfoFound;
 
         ConcurrentMap<Channel, ClientChannelInfo> channelTable = this.groupChannelTable.get(group);
+        // note that we must take care of the exist groups and channels,
+        // only can return when groups or channels not exist.
+        if (this.brokerConfig != null
+                && !this.brokerConfig.isEnableRegisterProducer()
+                && this.brokerConfig.isRejectTransactionMessage()) {
+            boolean needRegister = true;
+            if (null == channelTable) {
+                needRegister = false;
+            } else {
+                clientChannelInfoFound = channelTable.get(clientChannelInfo.getChannel());
+                if (null == clientChannelInfoFound) {
+                    needRegister = false;
+                }
+            }
+            if (!needRegister) {
+                if (null != this.brokerStatsManager) {
+                    this.brokerStatsManager.incProducerRegisterTime((int) (System.currentTimeMillis() - start));
+                }
+                return;
+            }
+        }
+
         if (null == channelTable) {
             channelTable = new ConcurrentHashMap<>();
             // Make sure channelTable will NOT be cleaned by #scanNotActiveChannel
