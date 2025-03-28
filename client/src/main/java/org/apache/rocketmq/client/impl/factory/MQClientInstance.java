@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -73,6 +74,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.HeartbeatV2Result;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
@@ -141,6 +143,7 @@ public class MQClientInstance {
     private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
     private final Random random = new Random();
+    private final AtomicInteger namesrvHealthCheckFailCount = new AtomicInteger(0);
 
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId) {
         this(clientConfig, instanceIndex, clientId, null);
@@ -345,7 +348,16 @@ public class MQClientInstance {
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             try {
                 MQClientInstance.this.updateTopicRouteInfoFromNameServer();
+                namesrvHealthCheckFailCount.set(0);
             } catch (Throwable t) {
+                if (clientConfig.isEnableNamesrvCheck()) {
+                    int failedCnt = namesrvHealthCheckFailCount.incrementAndGet();
+                    if (failedCnt >= clientConfig.getMaxClientNamesrvCheckFailedCnt()) {
+                        NettyRemotingClient nettyRemotingClient = (NettyRemotingClient) mQClientAPIImpl.getRemotingClient();
+                        nettyRemotingClient.closeUnHealthyNamesrvChannel();
+                        namesrvHealthCheckFailCount.set(0);
+                    }
+                }
                 log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", t);
             }
         }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);

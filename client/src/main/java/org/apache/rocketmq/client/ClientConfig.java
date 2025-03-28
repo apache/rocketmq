@@ -75,6 +75,8 @@ public class ClientConfig {
     private boolean useHeartbeatV2 = Boolean.parseBoolean(System.getProperty(HEART_BEAT_V2, "false"));
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;
+    private boolean enableNamesrvCheck = false;
+    private int maxClientNamesrvCheckFailedCnt = 3;
 
     private String socksProxyConfig = System.getProperty(SOCKS_PROXY_CONFIG, "{}");
 
@@ -515,6 +517,22 @@ public class ClientConfig {
         this.traceTopic = traceTopic;
     }
 
+    public boolean isEnableNamesrvCheck() {
+        return enableNamesrvCheck;
+    }
+
+    public void setEnableNamesrvCheck(boolean enableNamesrvCheck) {
+        this.enableNamesrvCheck = enableNamesrvCheck;
+    }
+
+    public int getMaxClientNamesrvCheckFailedCnt() {
+        return maxClientNamesrvCheckFailedCnt;
+    }
+
+    public void setMaxClientNamesrvCheckFailedCnt(int maxClientNamesrvCheckFailedCnt) {
+        this.maxClientNamesrvCheckFailedCnt = maxClientNamesrvCheckFailedCnt;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig{" +
@@ -548,6 +566,8 @@ public class ClientConfig {
             ", enableHeartbeatChannelEventListener=" + enableHeartbeatChannelEventListener +
             ", enableTrace=" + enableTrace +
             ", traceTopic='" + traceTopic + '\'' +
+            ", enableNamesrvCheck=" + enableNamesrvCheck +
+            ", maxClientNamesrvCheckFailedCnt=" + maxClientNamesrvCheckFailedCnt +
             '}';
     }
 }

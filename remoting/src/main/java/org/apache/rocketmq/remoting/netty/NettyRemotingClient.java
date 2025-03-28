@@ -1216,4 +1216,18 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         }
     }
+
+    public void closeUnHealthyNamesrvChannel() {
+        String namesrvAddr = namesrvAddrChoosed.get();
+        // Namesrv is not selected, no need to check
+        if (namesrvAddr == null) {
+            return;
+        }
+        NettyRemotingClient.ChannelWrapper cw = this.channelTables.get(namesrvAddr);
+        // No connection is established, no need to be removed cache
+        if (cw == null) {
+            return;
+        }
+        this.closeChannel(namesrvAddr, cw.getChannelFuture().channel());
+    }
 }
