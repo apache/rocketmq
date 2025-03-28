@@ -223,6 +223,10 @@ public class ProducerManager {
         if (clientChannelInfoFound != null) {
             clientChannelInfoFound.setLastUpdateTimestamp(System.currentTimeMillis());
         }
+
+        if (null != this.brokerStatsManager) {
+            this.brokerStatsManager.incProducerRegisterTime((int) (System.currentTimeMillis() - start));
+        }
     }
 
     public void unregisterProducer(final String group, final ClientChannelInfo clientChannelInfo) {
