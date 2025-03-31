@@ -581,6 +581,10 @@ public class BrokerStatsManager {
         this.statsTable.get(Stats.SNDBCK_PUT_NUMS).addValue(statsKey, 1, 1);
     }
 
+    public double tpsTopicPutNums(final String topic){
+        return this.statsTable.get(TOPIC_PUT_NUMS).getStatsDataInMinute(topic).getTps();
+    }
+
     public double tpsGroupGetNums(final String group, final String topic) {
         final String statsKey = buildStatsKey(topic, group);
         return this.statsTable.get(Stats.GROUP_GET_NUMS).getStatsDataInMinute(statsKey).getTps();
