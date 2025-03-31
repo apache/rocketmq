@@ -380,6 +380,13 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
         if (properties.containsKey(MessageConst.PROPERTY_SHARDING_KEY)) {
             sendMessageContext.setMsgType(MessageType.Order_Msg);
+        } else if (properties.containsKey(MessageConst.PROPERTY_DELAY_TIME_LEVEL)
+                || properties.containsKey(MessageConst.PROPERTY_TIMER_DELIVER_MS)
+                || properties.containsKey(MessageConst.PROPERTY_TIMER_DELAY_SEC)
+                || properties.containsKey(MessageConst.PROPERTY_TIMER_DELAY_MS)) {
+            sendMessageContext.setMsgType(MessageType.Delay_Msg);
+        } else if (Boolean.parseBoolean(properties.get(MessageConst.PROPERTY_TRANSACTION_PREPARED))) {
+            sendMessageContext.setMsgType(MessageType.Trans_Msg_Half);
         } else {
             sendMessageContext.setMsgType(MessageType.Normal_Msg);
         }
