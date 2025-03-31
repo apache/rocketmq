@@ -27,11 +27,13 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -43,6 +45,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessValidator;
@@ -56,6 +59,7 @@ import org.apache.rocketmq.auth.authorization.enums.PolicyType;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.auth.authorization.model.Resource;
+import org.apache.rocketmq.broker.AdminAsyncTaskManager;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.auth.converter.AclConverter;
 import org.apache.rocketmq.broker.auth.converter.UserConverter;
@@ -72,6 +76,7 @@ import org.apache.rocketmq.broker.metrics.InvocationStatus;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
+import org.apache.rocketmq.common.AsyncTask;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
@@ -149,6 +154,8 @@ import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerialize
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.CheckAsyncTaskStatusRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CheckAsyncTaskStatusResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
@@ -245,9 +252,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     protected final BrokerController brokerController;
     protected Set<String> configBlackList = new HashSet<>();
     private final ExecutorService asyncExecuteWorker = new ThreadPoolExecutor(0, 4, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
+    private final AdminAsyncTaskManager asyncTaskManager;
 
     public AdminBrokerProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
+        this.asyncTaskManager = initAsyncTaskManager(brokerController.getBrokerConfig());
         initConfigBlackList();
     }
 
@@ -257,6 +266,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         configBlackList.add("configBlackList");
         String[] configArray = brokerController.getBrokerConfig().getConfigBlackList().split(";");
         configBlackList.addAll(Arrays.asList(configArray));
+    }
+
+    private AdminAsyncTaskManager initAsyncTaskManager(BrokerConfig brokerConfig) {
+        if (brokerConfig.isEnableAsyncTaskCheck()) {
+            return new AdminAsyncTaskManager(brokerConfig);
+        }
+        return null;
     }
 
     @Override
@@ -415,6 +431,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.listAcl(ctx, request);
             case RequestCode.POP_ROLLBACK:
                 return this.transferPopToFsStore(ctx, request);
+            case RequestCode.CHECK_ASYNC_TASK_STATUS:
+                return this.checkAsyncTaskStatus(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -487,19 +505,35 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand checkRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) {
         CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
         result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_IN_PROGRESS.getValue());
-        Runnable runnable = () -> {
+
+        CompletableFuture<CheckRocksdbCqWriteResult> future = CompletableFuture.supplyAsync(() -> {
             try {
                 CheckRocksdbCqWriteResult checkResult = doCheckRocksdbCqWriteProgress(ctx, request);
                 LOGGER.info("checkRocksdbCqWriteProgress result: {}", JSON.toJSONString(checkResult));
+                return checkResult;
             } catch (Exception e) {
                 LOGGER.error("checkRocksdbCqWriteProgress error", e);
+                throw new CompletionException(e);
             }
-        };
-        asyncExecuteWorker.submit(runnable);
+        }, asyncExecuteWorker);
+
+        if (brokerController.getBrokerConfig().isEnableAsyncTaskCheck()) {
+            String taskId = registerAsyncTask("checkRocksdbCqWriteProgress", future);
+            result.setTaskId(taskId);
+        }
+
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
         response.setBody(JSON.toJSONBytes(result));
         return response;
+    }
+
+    private String registerAsyncTask(String taskName, CompletableFuture<?> future) {
+        if (asyncTaskManager == null) {
+            LOGGER.warn("asyncTaskManager not initialized, task registration skipped (enableAsyncTaskCheck config disabled). taskName={}", taskName);
+            return null;
+        }
+        return asyncTaskManager.createTask(taskName, future);
     }
 
     private RemotingCommand exportRocksDBConfigToJson(ChannelHandlerContext ctx,
@@ -3617,5 +3651,52 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setRemark(e.getMessage());
         }
         return response;
+    }
+
+    private RemotingCommand checkAsyncTaskStatus(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        if (!brokerController.getBrokerConfig().isEnableAsyncTaskCheck()) {
+            throw new RemotingCommandException("async task check is not enabled");
+        }
+
+        final CheckAsyncTaskStatusRequestHeader requestHeader = request.decodeCommandCustomHeader(CheckAsyncTaskStatusRequestHeader.class);
+        String taskId = requestHeader.getTaskId();
+        String taskName = requestHeader.getTaskName();
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(CheckAsyncTaskStatusResponseHeader.class);
+        // If the taskId is not empty, query the async task with the specified taskId.
+        if (StringUtils.isNotBlank(taskId)) {
+            AsyncTask asyncTask = asyncTaskManager.getTaskStatus(requestHeader.getTaskId());
+            if (asyncTask == null) {
+                throw new RemotingCommandException("taskId: " + requestHeader.getTaskId() + " not found");
+            }
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(JSON.toJSONBytes(asyncTask));
+            return response;
+        }
+
+        List<String> taskIds = asyncTaskManager.getTaskIdsByName(taskName);
+        if (CollectionUtils.isEmpty(taskIds)) {
+            throw new RemotingCommandException("taskName: " + requestHeader.getTaskName() + " not found");
+        }
+
+        try {
+            int maxResults = Math.min(requestHeader.getMaxLimit(), 200);
+            Integer filterStatus = requestHeader.getTaskStatus();
+
+            List<AsyncTask> asyncTasks = taskIds.stream()
+                .map(asyncTaskManager::getTaskStatus)
+                .filter(Objects::nonNull)
+                .filter(task -> filterStatus == null || task.getStatus() == filterStatus)
+                .sorted(Comparator.comparing(AsyncTask::getCreateTime).reversed())
+                .limit(maxResults)
+                .collect(Collectors.toList());
+
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(JSON.toJSONBytes(asyncTasks));
+            return response;
+        } catch (Exception e) {
+            LOGGER.error("checkAsyncTaskStatus error", e);
+            return RemotingCommand.createResponseCommand(ResponseCode.SYSTEM_ERROR, e.getMessage());
+        }
     }
 }

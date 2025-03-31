@@ -22,6 +22,8 @@ public class CheckRocksdbCqWriteResult {
 
     int checkStatus;
 
+    String taskId;
+
     public enum CheckStatus {
         CHECK_OK(0),
         CHECK_NOT_OK(1),
@@ -53,5 +55,13 @@ public class CheckRocksdbCqWriteResult {
 
     public void setCheckStatus(int checkStatus) {
         this.checkStatus = checkStatus;
+    }
+
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
     }
 }

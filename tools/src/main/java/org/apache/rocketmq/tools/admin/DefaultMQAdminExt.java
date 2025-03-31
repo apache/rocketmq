@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.AsyncTask;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.Pair;
@@ -66,6 +67,7 @@ import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CheckAsyncTaskStatusRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -1017,5 +1019,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public void exportPopRecords(String brokerAddr, long timeout) throws RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         defaultMQAdminExtImpl.exportPopRecords(brokerAddr, timeout);
+    }
+
+    public List<AsyncTask> checkAsyncTaskStatus(String brokerAddr, CheckAsyncTaskStatusRequestHeader requestHeader)
+            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return defaultMQAdminExtImpl.checkAsyncTaskStatus(brokerAddr, requestHeader);
     }
 }

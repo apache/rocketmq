@@ -41,6 +41,7 @@ import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -73,6 +74,8 @@ import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.CheckAsyncTaskStatusRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
@@ -230,7 +233,8 @@ public class AdminBrokerProcessorTest {
         field.set(brokerController, broker2Client);
 
         //doReturn(sendMessageProcessor).when(brokerController).getSendMessageProcessor();
-
+        BrokerConfig config = brokerController.getBrokerConfig();
+        config.setEnableAsyncTaskCheck(true);
         adminBrokerProcessor = new AdminBrokerProcessor(brokerController);
 
         systemTopicSet = Sets.newHashSet(
@@ -1326,6 +1330,44 @@ public class AdminBrokerProcessorTest {
         request.makeCustomHeaderToNet();
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testCheckAsyncTaskStatusByTaskId() throws RemotingCommandException {
+        CheckRocksdbCqWriteProgressRequestHeader  requestHeader = new CheckRocksdbCqWriteProgressRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHECK_ROCKSDB_CQ_WRITE_PROGRESS, requestHeader);
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        CheckRocksdbCqWriteResult results = RemotingSerializable.decode(response.getBody(), CheckRocksdbCqWriteResult.class);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        CheckAsyncTaskStatusRequestHeader requestHeader1 = new CheckAsyncTaskStatusRequestHeader();
+        requestHeader1.setTaskId(results.getTaskId());
+        RemotingCommand request1 = RemotingCommand.createRequestCommand(RequestCode.CHECK_ASYNC_TASK_STATUS, requestHeader1);
+        HashMap<String, String> extFields = new HashMap<>();
+        extFields.put("taskId",results.getTaskId());
+        request1.setExtFields(extFields);
+        RemotingCommand response1 = adminBrokerProcessor.processRequest(handlerContext, request1);
+        assertThat(response1.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testCheckAsyncTaskStatusByTaskName() throws RemotingCommandException {
+        CheckRocksdbCqWriteProgressRequestHeader  requestHeader = new CheckRocksdbCqWriteProgressRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHECK_ROCKSDB_CQ_WRITE_PROGRESS, requestHeader);
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        String taskName = "checkRocksdbCqWriteProgress";
+        CheckAsyncTaskStatusRequestHeader requestHeader1 = new CheckAsyncTaskStatusRequestHeader();
+        requestHeader1.setTaskName(taskName);
+        RemotingCommand request1 = RemotingCommand.createRequestCommand(RequestCode.CHECK_ASYNC_TASK_STATUS, requestHeader1);
+        HashMap<String, String> extFields = new HashMap<>();
+        extFields.put("taskName",taskName);
+        request1.setExtFields(extFields);
+        RemotingCommand response1 = adminBrokerProcessor.processRequest(handlerContext, request1);
+        assertThat(response1.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
     private ResetOffsetRequestHeader createRequestHeader(String topic,String group,long timestamp,boolean force,long offset,int queueId) {
