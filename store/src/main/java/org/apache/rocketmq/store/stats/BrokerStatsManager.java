@@ -18,6 +18,8 @@ package org.apache.rocketmq.store.stats;
 
 import java.util.HashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -121,6 +123,8 @@ public class BrokerStatsManager {
     public static final String CHANNEL_ACTIVITY_IDLE = "IDLE";
     public static final String CHANNEL_ACTIVITY_EXCEPTION = "EXCEPTION";
     public static final String CHANNEL_ACTIVITY_CLOSE = "CLOSE";
+    private static final String[] NEED_CLEAN_STATS_SET =
+            new String[] {TOPIC_PUT_NUMS, TOPIC_PUT_SIZE, GROUP_GET_NUMS, GROUP_GET_SIZE, SNDBCK_PUT_NUMS, GROUP_GET_LATENCY};
 
     /**
      * read disk follow stats
@@ -134,6 +138,7 @@ public class BrokerStatsManager {
     private ScheduledExecutorService scheduledExecutorService;
     private ScheduledExecutorService commercialExecutor;
     private ScheduledExecutorService accountExecutor;
+    private ScheduledExecutorService cleanResourceExecutor;
 
     private final HashMap<String, StatsItemSet> statsTable = new HashMap<>();
     private final String clusterName;
@@ -277,6 +282,12 @@ public class BrokerStatsManager {
                 return false;
             }
         });
+        cleanResourceExecutor.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                cleanAllResource();
+            }
+        }, 10, 10, TimeUnit.MINUTES);
     }
 
     private void initScheduleService() {
@@ -286,6 +297,8 @@ public class BrokerStatsManager {
             ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CommercialStatsThread", true, brokerConfig));
         this.accountExecutor =
             ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("AccountStatsThread", true, brokerConfig));
+        this.cleanResourceExecutor =
+                ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CleanStatsResourceThread", true, brokerConfig));
     }
 
     public MomentStatsItemSet getMomentStatsItemSetFallSize() {
@@ -318,6 +331,7 @@ public class BrokerStatsManager {
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
         this.commercialExecutor.shutdown();
+        this.cleanResourceExecutor.shutdown();
     }
 
     public StatsItem getStatsItem(final String statsName, final String statsKey) {
@@ -589,13 +603,13 @@ public class BrokerStatsManager {
     public void recordDiskFallBehindTime(final String group, final String topic, final int queueId,
         final long fallBehind) {
         final String statsKey = buildStatsKey(queueId, topic, group);
-        this.momentStatsItemSetFallTime.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
+        this.momentStatsItemSetFallTime.setValue(statsKey, fallBehind);
     }
 
     public void recordDiskFallBehindSize(final String group, final String topic, final int queueId,
         final long fallBehind) {
         final String statsKey = buildStatsKey(queueId, topic, group);
-        this.momentStatsItemSetFallSize.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
+        this.momentStatsItemSetFallSize.setValue(statsKey, fallBehind);
     }
 
     public void incDLQStatValue(final String key, final String owner, final String group,
@@ -762,6 +776,31 @@ public class BrokerStatsManager {
 
     public interface StateGetter {
         boolean online(String instanceId, String group, String topic);
+    }
+
+
+    private void cleanAllResource() {
+        try {
+            int maxStatsIdleTimeInMinutes = brokerConfig != null ? brokerConfig.getMaxStatsIdleTimeInMinutes() : -1;
+            if (maxStatsIdleTimeInMinutes < 0) {
+                COMMERCIAL_LOG.info("[BrokerStatsManager#cleanAllResource] maxStatsIdleTimeInMinutes={}, no need to clean resource", maxStatsIdleTimeInMinutes);
+                return;
+            }
+            if (maxStatsIdleTimeInMinutes <= 10 && maxStatsIdleTimeInMinutes >= 0) {
+                maxStatsIdleTimeInMinutes = 30;
+            }
+            for (String statsKind : NEED_CLEAN_STATS_SET) {
+                StatsItemSet statsItemSet = this.statsTable.get(statsKind);
+                if (null == statsItemSet) {
+                    continue;
+                }
+                statsItemSet.cleanResource(maxStatsIdleTimeInMinutes);
+            }
+            momentStatsItemSetFallSize.cleanResource(maxStatsIdleTimeInMinutes);
+            momentStatsItemSetFallTime.cleanResource(maxStatsIdleTimeInMinutes);
+        } catch (Throwable throwable) {
+            COMMERCIAL_LOG.error("[BrokerStatsManager#cleanAllResource] clean resource error", throwable);
+        }
     }
 
     public enum StatsType {
