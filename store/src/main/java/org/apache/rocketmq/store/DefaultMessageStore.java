@@ -966,6 +966,12 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.storeStatsService.getGetMessageTimesTotalMiss().add(1);
         }
+
+        if (this.messageStoreConfig.isDiskFallRecorded() && GetMessageStatus.OFFSET_OVERFLOW_ONE == status) {
+            brokerStatsManager.recordDiskFallBehindSize(group, topic, queueId, 0);
+            brokerStatsManager.recordDiskFallBehindTime(group, topic, queueId, 0);
+        }
+
         long elapsedTime = this.getSystemClock().now() - beginTime;
         this.storeStatsService.setGetMessageEntireTimeMax(elapsedTime);
 
