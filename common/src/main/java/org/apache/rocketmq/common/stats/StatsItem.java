@@ -38,6 +38,7 @@ public class StatsItem {
 
     private final String statsName;
     private final String statsKey;
+    private long lastUpdateTimestamp = System.currentTimeMillis();
     private final ScheduledExecutorService scheduledExecutorService;
 
     private final Logger logger;
@@ -228,6 +229,14 @@ public class StatsItem {
 
     public LongAdder getTimes() {
         return times;
+    }
+
+    public long getLastUpdateTimestamp() {
+        return lastUpdateTimestamp;
+    }
+
+    public void setLastUpdateTimestamp(long lastUpdateTimestamp) {
+        this.lastUpdateTimestamp = lastUpdateTimestamp;
     }
 }
 
