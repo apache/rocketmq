@@ -581,7 +581,7 @@ public class BrokerStatsManager {
         this.statsTable.get(Stats.SNDBCK_PUT_NUMS).addValue(statsKey, 1, 1);
     }
 
-    public double tpsTopicPutNums(final String topic){
+    public double tpsTopicPutNums(final String topic) {
         return this.statsTable.get(TOPIC_PUT_NUMS).getStatsDataInMinute(topic).getTps();
     }
 
