@@ -713,6 +713,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             context.setAccountOwnerParent(ownerParent);
             context.setAccountOwnerSelf(ownerSelf);
             context.setNamespace(NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic()));
+            context.setFilterMessageCount(getMessageResult.getFilterMessageCount());
 
             switch (responseCode) {
                 case ResponseCode.SUCCESS:
