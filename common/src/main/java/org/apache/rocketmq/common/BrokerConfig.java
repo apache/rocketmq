@@ -130,6 +130,8 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean accountStatsEnable = true;
     private boolean accountStatsPrintZeroValues = true;
 
+    private int maxStatsIdleTimeInMinutes = -1;
+
     private boolean transferMsgByHeap = true;
 
     private String regionId = MixAll.DEFAULT_TRACE_REGION_ID;
@@ -1533,6 +1535,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setAccountStatsPrintZeroValues(boolean accountStatsPrintZeroValues) {
         this.accountStatsPrintZeroValues = accountStatsPrintZeroValues;
+    }
+
+    public int getMaxStatsIdleTimeInMinutes() {
+        return maxStatsIdleTimeInMinutes;
+    }
+
+    public void setMaxStatsIdleTimeInMinutes(int maxStatsIdleTimeInMinutes) {
+        this.maxStatsIdleTimeInMinutes = maxStatsIdleTimeInMinutes;
     }
 
     public boolean isLockInStrictMode() {
