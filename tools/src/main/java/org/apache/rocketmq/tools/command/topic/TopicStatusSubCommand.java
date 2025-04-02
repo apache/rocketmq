@@ -113,6 +113,8 @@ public class TopicStatusSubCommand implements SubCommand {
                     humanTimestamp
                 );
             }
+            System.out.printf("%n");
+            System.out.printf("Topic Put TPS: %s%n", topicStatsTable.getTopicPutTps());
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {

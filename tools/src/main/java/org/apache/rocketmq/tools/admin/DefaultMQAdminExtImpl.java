@@ -367,6 +367,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                 if (addr != null) {
                                     TopicStatsTable tst = mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, timeoutMillis);
                                     topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+                                    topicStatsTable.setTopicPutTps(topicStatsTable.getTopicPutTps() + tst.getTopicPutTps());
                                 }
                             } catch (Exception e) {
                                 logger.error("getTopicStatsInfo error. topic={}", topic, e);

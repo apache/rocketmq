@@ -1837,6 +1837,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 topicStatsTable.getOffsetTable().put(mq, topicOffset);
             }
 
+            topicStatsTable.setTopicPutTps(this.brokerController.getBrokerStatsManager().tpsTopicPutNums(requestHeader.getTopic()));
             byte[] body = topicStatsTable.encode();
             response.setBody(body);
             response.setCode(ResponseCode.SUCCESS);
