@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.config.v2;
 
+import com.google.common.base.Strings;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.internal.PlatformDependent;
 import java.nio.ByteBuffer;
@@ -424,5 +425,31 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
             keyBuf.release();
         }
         return -1;
+    }
+
+    @Override
+    public void assignResetOffset(String topic, String group, int queueId, long offset) {
+        if (Strings.isNullOrEmpty(topic) || Strings.isNullOrEmpty(group) || queueId < 0 || offset < 0) {
+            LOG.warn("Illegal arguments when assigning reset offset. Topic={}, group={}, queueId={}, offset={}",
+                    topic, group, queueId, offset);
+            return;
+        }
+        if (!MixAll.isLmq(group) || !MixAll.isLmq(topic)) {
+            super.assignResetOffset(topic, group, queueId, offset);
+            return;
+        }
+
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
+        if (null == map) {
+            map = new ConcurrentHashMap<>();
+            ConcurrentMap<Integer, Long> previous = resetOffsetTable.putIfAbsent(key, map);
+            if (null != previous) {
+                map = previous;
+            }
+        }
+        map.put(queueId, offset);
+
+        this.commitOffset(null, topic, group, queueId, offset);
     }
 }
