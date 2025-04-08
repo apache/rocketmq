@@ -436,19 +436,18 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
         }
         if (!MixAll.isLmq(group) || !MixAll.isLmq(topic)) {
             super.assignResetOffset(topic, group, queueId, offset);
-            return;
-        }
-
-        String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
-        if (null == map) {
-            map = new ConcurrentHashMap<>();
-            ConcurrentMap<Integer, Long> previous = resetOffsetTable.putIfAbsent(key, map);
-            if (null != previous) {
-                map = previous;
+        } else {
+            String key = topic + TOPIC_GROUP_SEPARATOR + group;
+            ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
+            if (null == map) {
+                map = new ConcurrentHashMap<>();
+                ConcurrentMap<Integer, Long> previous = resetOffsetTable.putIfAbsent(key, map);
+                if (null != previous) {
+                    map = previous;
+                }
             }
+            map.put(queueId, offset);
         }
-        map.put(queueId, offset);
 
         this.commitOffset(null, topic, group, queueId, offset);
     }
