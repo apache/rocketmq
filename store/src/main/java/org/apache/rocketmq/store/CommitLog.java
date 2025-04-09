@@ -64,6 +64,9 @@ import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLockImpl;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
 
@@ -2442,16 +2445,15 @@ public class CommitLog implements Swappable {
                 return false;
             }
             try {
-                ConsumeQueue consumeQueue = (ConsumeQueue) defaultMessageStore.findConsumeQueue(topic, queueId);
+                ConsumeQueueInterface consumeQueue = defaultMessageStore.findConsumeQueue(topic, queueId);
                 if (null == consumeQueue) {
                     return false;
                 }
-                SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(offset);
-                if (null == bufferConsumeQueue || null == bufferConsumeQueue.getByteBuffer()) {
+                ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(offset, 1);
+                if (null == bufferConsumeQueue || !bufferConsumeQueue.hasNext()) {
                     return false;
                 }
-                long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                return defaultMessageStore.checkInColdAreaByCommitOffset(offsetPy, getMaxOffset());
+                return defaultMessageStore.checkInColdAreaByCommitOffset(bufferConsumeQueue.next().getPos(), getMaxOffset());
             } catch (Exception e) {
                 log.error("isMsgInColdArea group: {}, topic: {}, queueId: {}, offset: {}",
                     group, topic, queueId, offset, e);

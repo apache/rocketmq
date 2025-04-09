@@ -816,6 +816,7 @@ public class DefaultMessageStore implements MessageStore {
         long maxOffset = 0;
 
         GetMessageResult getResult = new GetMessageResult();
+        int filterMessageCount = 0;
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
@@ -916,7 +917,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
-                            if (messageStoreConfig.isColdDataFlowControlEnable() && !MixAll.isSysConsumerGroupForNoColdReadLimit(group) && !selectResult.isInCache()) {
+                            if (messageStoreConfig.isColdDataFlowControlEnable() && !MixAll.isSysConsumerGroupPullMessage(group) && !selectResult.isInCache()) {
                                 getResult.setColdDataSum(getResult.getColdDataSum() + sizePy);
                             }
 
@@ -927,6 +928,7 @@ public class DefaultMessageStore implements MessageStore {
                                 }
                                 // release...
                                 selectResult.release();
+                                filterMessageCount++;
                                 continue;
                             }
                             this.storeStatsService.getGetMessageTransferredMsgCount().add(cqUnit.getBatchNum());
@@ -964,6 +966,12 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.storeStatsService.getGetMessageTimesTotalMiss().add(1);
         }
+
+        if (this.messageStoreConfig.isDiskFallRecorded() && GetMessageStatus.OFFSET_OVERFLOW_ONE == status) {
+            brokerStatsManager.recordDiskFallBehindSize(group, topic, queueId, 0);
+            brokerStatsManager.recordDiskFallBehindTime(group, topic, queueId, 0);
+        }
+
         long elapsedTime = this.getSystemClock().now() - beginTime;
         this.storeStatsService.setGetMessageEntireTimeMax(elapsedTime);
 
@@ -976,6 +984,7 @@ public class DefaultMessageStore implements MessageStore {
         getResult.setNextBeginOffset(nextBeginOffset);
         getResult.setMaxOffset(maxOffset);
         getResult.setMinOffset(minOffset);
+        getResult.setFilterMessageCount(filterMessageCount);
         return getResult;
     }
 

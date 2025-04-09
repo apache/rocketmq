@@ -130,6 +130,8 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean accountStatsEnable = true;
     private boolean accountStatsPrintZeroValues = true;
 
+    private int maxStatsIdleTimeInMinutes = -1;
+
     private boolean transferMsgByHeap = true;
 
     private String regionId = MixAll.DEFAULT_TRACE_REGION_ID;
@@ -460,6 +462,8 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean recallMessageEnable = false;
 
     private boolean enableRegisterProducer = true;
+
+    private boolean enableCreateSysGroup = true;
 
     public String getConfigBlackList() {
         return configBlackList;
@@ -1541,6 +1545,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.accountStatsPrintZeroValues = accountStatsPrintZeroValues;
     }
 
+    public int getMaxStatsIdleTimeInMinutes() {
+        return maxStatsIdleTimeInMinutes;
+    }
+
+    public void setMaxStatsIdleTimeInMinutes(int maxStatsIdleTimeInMinutes) {
+        this.maxStatsIdleTimeInMinutes = maxStatsIdleTimeInMinutes;
+    }
+
     public boolean isLockInStrictMode() {
         return lockInStrictMode;
     }
@@ -2043,5 +2055,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableRegisterProducer(boolean enableRegisterProducer) {
         this.enableRegisterProducer = enableRegisterProducer;
+    }
+
+    public boolean isEnableCreateSysGroup() {
+        return enableCreateSysGroup;
+    }
+
+    public void setEnableCreateSysGroup(boolean enableCreateSysGroup) {
+        this.enableCreateSysGroup = enableCreateSysGroup;
     }
 }

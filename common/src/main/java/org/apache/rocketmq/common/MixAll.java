@@ -178,6 +178,10 @@ public class MixAll {
         return consumerGroup.startsWith(CID_RMQ_SYS_PREFIX);
     }
 
+    public static boolean isSysConsumerGroupAndEnableCreate(final String consumerGroup, final boolean isEnableCreateSysGroup) {
+        return isEnableCreateSysGroup && isSysConsumerGroup(consumerGroup);
+    }
+
     public static boolean isPredefinedGroup(final String consumerGroup) {
         return PREDEFINE_GROUP_SET.contains(consumerGroup);
     }
@@ -530,7 +534,7 @@ public class MixAll {
         return path.normalize().toString();
     }
 
-    public static boolean isSysConsumerGroupForNoColdReadLimit(String consumerGroup) {
+    public static boolean isSysConsumerGroupPullMessage(String consumerGroup) {
         if (DEFAULT_CONSUMER_GROUP.equals(consumerGroup)
             || TOOLS_CONSUMER_GROUP.equals(consumerGroup)
             || SCHEDULE_CONSUMER_GROUP.equals(consumerGroup)
