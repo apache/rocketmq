@@ -58,7 +58,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private static final int PULL_MSG_RETRY_NUMBER = 1;
 
-    private static final int MAX_PROCESS_TIME_LIMIT = 60000;
+    /**
+     * keep equals to transactionCheckInterval
+     */
+    private static final int MAX_PROCESS_TIME_LIMIT = 30 * 1000;
     private static final int MAX_RETRY_TIMES_FOR_ESCAPE = 10;
 
     private static final int MAX_RETRY_COUNT_WHEN_HALF_NULL = 1;
