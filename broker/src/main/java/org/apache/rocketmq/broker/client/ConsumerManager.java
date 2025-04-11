@@ -48,12 +48,14 @@ public class ConsumerManager {
     protected final BrokerStatsManager brokerStatsManager;
     private final long channelExpiredTimeout;
     private final long subscriptionExpiredTimeout;
+    private final BrokerConfig brokerConfig;
 
     public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener, long expiredTimeout) {
         this.consumerIdsChangeListenerList.add(consumerIdsChangeListener);
         this.brokerStatsManager = null;
         this.channelExpiredTimeout = expiredTimeout;
         this.subscriptionExpiredTimeout = expiredTimeout;
+        this.brokerConfig = null;
     }
 
     public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener,
@@ -62,6 +64,7 @@ public class ConsumerManager {
         this.brokerStatsManager = brokerStatsManager;
         this.channelExpiredTimeout = brokerConfig.getChannelExpiredTimeout();
         this.subscriptionExpiredTimeout = brokerConfig.getSubscriptionExpiredTimeout();
+        this.brokerConfig = brokerConfig;
     }
 
     public ClientChannelInfo findChannel(final String group, final String clientId) {
@@ -130,12 +133,43 @@ public class ConsumerManager {
 
     public boolean doChannelCloseEvent(final String remoteAddr, final Channel channel) {
         boolean removed = false;
+        if (this.brokerConfig != null && this.brokerConfig.isEnableFastChannelEventProcess()) {
+            List<String> groups = ClientChannelAttributeHelper.getConsumerGroups(channel);
+            if (this.brokerConfig.isPrintChannelGroups() && groups.size() >= 5 && groups.size() >= this.brokerConfig.getPrintChannelGroupsMinNum()) {
+                LOGGER.warn("channel close event, too many consumer groups one channel, {}, {}, {}", groups.size(), remoteAddr, groups);
+            }
+            for (String group : groups) {
+                if (null == group || group.length() == 0) {
+                    continue;
+                }
+                ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
+                if (null == consumerGroupInfo) {
+                    continue;
+                }
+                ClientChannelInfo clientChannelInfo = consumerGroupInfo.doChannelCloseEvent(remoteAddr, channel);
+                if (clientChannelInfo != null) {
+                    removed = true;
+                    callConsumerIdsChangeListener(ConsumerGroupEvent.CLIENT_UNREGISTER, group, clientChannelInfo, consumerGroupInfo.getSubscribeTopics());
+                    if (consumerGroupInfo.getChannelInfoTable().isEmpty()) {
+                        ConsumerGroupInfo remove = this.consumerTable.remove(group);
+                        if (remove != null) {
+                            LOGGER.info("unregister consumer ok, no any connection, and remove consumer group, {}",
+                                    group);
+                            callConsumerIdsChangeListener(ConsumerGroupEvent.UNREGISTER, group);
+                        }
+                    }
+                    callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
+                }
+            }
+            return removed;
+        }
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ConsumerGroupInfo> next = it.next();
             ConsumerGroupInfo info = next.getValue();
             ClientChannelInfo clientChannelInfo = info.doChannelCloseEvent(remoteAddr, channel);
             if (clientChannelInfo != null) {
+                removed = true;
                 callConsumerIdsChangeListener(ConsumerGroupEvent.CLIENT_UNREGISTER, next.getKey(), clientChannelInfo, info.getSubscribeTopics());
                 if (info.getChannelInfoTable().isEmpty()) {
                     ConsumerGroupInfo remove = this.consumerTable.remove(next.getKey());
@@ -201,6 +235,11 @@ public class ConsumerManager {
                 callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }
+
+        if (this.brokerConfig != null && this.brokerConfig.isEnableFastChannelEventProcess() && r1) {
+            ClientChannelAttributeHelper.addConsumerGroup(clientChannelInfo.getChannel(), group);
+        }
+
         if (null != this.brokerStatsManager) {
             this.brokerStatsManager.incConsumerRegisterTime((int) (System.currentTimeMillis() - start));
         }

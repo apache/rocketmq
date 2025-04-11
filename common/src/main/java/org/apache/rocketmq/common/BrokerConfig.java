@@ -428,6 +428,10 @@ public class BrokerConfig extends BrokerIdentity {
     private long popInflightMessageThreshold = 10000;
     private boolean enablePopMessageThreshold = false;
 
+    private boolean enableFastChannelEventProcess = false;
+    private boolean printChannelGroups = false;
+    private int printChannelGroupsMinNum = 5;
+
     private int splitRegistrationSize = 800;
 
     /**
@@ -456,6 +460,8 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean allowRecallWhenBrokerNotWriteable = true;
 
     private boolean recallMessageEnable = false;
+
+    private boolean enableRegisterProducer = true;
 
     private boolean enableCreateSysGroup = true;
 
@@ -1915,6 +1921,30 @@ public class BrokerConfig extends BrokerIdentity {
         this.enableSplitRegistration = enableSplitRegistration;
     }
 
+    public boolean isEnableFastChannelEventProcess() {
+        return enableFastChannelEventProcess;
+    }
+
+    public void setEnableFastChannelEventProcess(boolean enableFastChannelEventProcess) {
+        this.enableFastChannelEventProcess = enableFastChannelEventProcess;
+    }
+
+    public boolean isPrintChannelGroups() {
+        return printChannelGroups;
+    }
+
+    public void setPrintChannelGroups(boolean printChannelGroups) {
+        this.printChannelGroups = printChannelGroups;
+    }
+
+    public int getPrintChannelGroupsMinNum() {
+        return printChannelGroupsMinNum;
+    }
+
+    public void setPrintChannelGroupsMinNum(int printChannelGroupsMinNum) {
+        this.printChannelGroupsMinNum = printChannelGroupsMinNum;
+    }
+
     public int getSplitRegistrationSize() {
         return splitRegistrationSize;
     }
@@ -2017,6 +2047,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setRecallMessageEnable(boolean recallMessageEnable) {
         this.recallMessageEnable = recallMessageEnable;
+    }
+
+    public boolean isEnableRegisterProducer() {
+        return enableRegisterProducer;
+    }
+
+    public void setEnableRegisterProducer(boolean enableRegisterProducer) {
+        this.enableRegisterProducer = enableRegisterProducer;
     }
 
     public boolean isEnableCreateSysGroup() {
