@@ -430,7 +430,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean enableFastChannelEventProcess = false;
     private boolean printChannelGroups = false;
-    private int  printChannelGroupsMinNum = 5;
+    private int printChannelGroupsMinNum = 5;
 
     private int splitRegistrationSize = 800;
 
