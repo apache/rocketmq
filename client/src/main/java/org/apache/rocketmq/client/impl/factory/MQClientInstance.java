@@ -1395,6 +1395,14 @@ public class MQClientInstance {
         return clientConfig;
     }
 
+    public ConcurrentMap<String, MQProducerInner> getProducerTable() {
+        return producerTable;
+    }
+
+    public ConcurrentMap<String, MQConsumerInner> getConsumerTable() {
+        return consumerTable;
+    }
+
     public TopicRouteData queryTopicRouteData(String topic) {
         TopicRouteData data = this.getAnExistTopicRouteData(topic);
         if (data == null) {
