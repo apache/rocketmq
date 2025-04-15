@@ -16,7 +16,8 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -34,10 +35,10 @@ import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
-import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
-import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -73,6 +74,7 @@ import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
@@ -87,11 +89,13 @@ import org.apache.rocketmq.remoting.protocol.header.GetConsumerStatusRequestHead
 import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetSubscriptionGroupConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListAclsRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListUsersRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryConsumeQueueRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryCorrectionOffsetHeader;
 import org.apache.rocketmq.remoting.protocol.header.QuerySubscriptionByConsumerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryTopicConsumeByWhoRequestHeader;
@@ -104,6 +108,7 @@ import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -111,6 +116,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
@@ -145,6 +151,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.LongAdder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -717,7 +725,7 @@ public class AdminBrokerProcessorTest {
         consumerOffsetManager = mock(ConsumerOffsetManager.class);
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
         ConsumerOffsetManager consumerOffset = new ConsumerOffsetManager();
-        when(consumerOffsetManager.encode()).thenReturn(JSON.toJSONString(consumerOffset, false));
+        when(consumerOffsetManager.encode()).thenReturn(JSON.toJSONString(consumerOffset));
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_CONSUMER_OFFSET, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
@@ -1326,6 +1334,69 @@ public class AdminBrokerProcessorTest {
         request.makeCustomHeaderToNet();
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetSubscriptionGroup() throws RemotingCommandException {
+        brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().put("group", new SubscriptionGroupConfig());
+        GetSubscriptionGroupConfigRequestHeader requestHeader = new GetSubscriptionGroupConfigRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_SUBSCRIPTIONGROUP_CONFIG, requestHeader);
+        requestHeader.setGroup("group");
+        request.makeCustomHeaderToNet();
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+    }
+
+    @Test
+    public void testCheckRocksdbCqWriteProgress() throws RemotingCommandException {
+        CheckRocksdbCqWriteProgressRequestHeader requestHeader = new CheckRocksdbCqWriteProgressRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHECK_ROCKSDB_CQ_WRITE_PROGRESS, requestHeader);
+        requestHeader.setTopic("topic");
+        request.makeCustomHeaderToNet();
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+    }
+
+    @Test
+    public void testQueryConsumeQueue() throws RemotingCommandException {
+        messageStore = mock(MessageStore.class);
+        ConsumeQueueInterface consumeQueue = mock(ConsumeQueueInterface.class);
+        when(consumeQueue.getMinOffsetInQueue()).thenReturn(0L);
+        when(consumeQueue.getMaxOffsetInQueue()).thenReturn(1L);
+        when(messageStore.getConsumeQueue(anyString(), anyInt())).thenReturn(consumeQueue);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        QueryConsumeQueueRequestHeader requestHeader = new QueryConsumeQueueRequestHeader();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUME_QUEUE, requestHeader);
+        requestHeader.setTopic("topic");
+        requestHeader.setQueueId(0);
+        request.makeCustomHeaderToNet();
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+    }
+
+    @Test
+    public void testProcessRequest_GetTopicConfig() throws Exception {
+        GetTopicConfigRequestHeader requestHeader = new GetTopicConfigRequestHeader();
+        requestHeader.setTopic("testTopic");
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_CONFIG, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setTopicName("testTopic");
+        TopicConfigManager topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        when(topicConfigManager.selectTopicConfig("testTopic"))
+                .thenReturn(topicConfig);
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertNotNull(response);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+
+        String responseBody = new String(response.getBody(), StandardCharsets.UTF_8);
+        TopicConfigAndQueueMapping result = JSONObject.parseObject(responseBody, TopicConfigAndQueueMapping.class);
+        assertEquals("testTopic", result.getTopicName());
     }
 
     private ResetOffsetRequestHeader createRequestHeader(String topic,String group,long timestamp,boolean force,long offset,int queueId) {
