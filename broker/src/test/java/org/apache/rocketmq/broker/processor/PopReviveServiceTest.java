@@ -273,7 +273,6 @@ public class PopReviveServiceTest {
         when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenAnswer(invocation -> {
             MessageExtBrokerInner msg = invocation.getArgument(0);
             actualReviveTopic.append(msg.getTopic());
-            System.out.println(new String(msg.getBody()));
             PopCheckPoint rewriteCK = JSON.parseObject(msg.getBody(), PopCheckPoint.class);
             actualInvisibleTime.set(rewriteCK.getReviveTime());
             return new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK));
