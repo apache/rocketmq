@@ -49,6 +49,7 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -320,9 +321,10 @@ public abstract class NettyRemotingAbstract {
         return () -> {
             Exception exception = null;
             RemotingCommand response;
+            String remoteAddr = null;
 
             try {
-                String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                 try {
                     doBeforeRpcHooks(remoteAddr, cmd);
                 } catch (AbortProcessException e) {
@@ -359,7 +361,7 @@ public abstract class NettyRemotingAbstract {
                 response.setOpaque(opaque);
                 writeResponse(ctx.channel(), cmd, response);
             } catch (Throwable e) {
-                log.error("process request exception", e);
+                log.error("process request exception, remoteAddr: {}", remoteAddr, e);
                 log.error(cmd.toString());
 
                 if (!cmd.isOnewayRPC()) {
@@ -601,7 +603,7 @@ public abstract class NettyRemotingAbstract {
             })
             .thenAccept(responseFuture -> invokeCallback.operationSucceed(responseFuture.getResponseCommand()))
             .exceptionally(t -> {
-                invokeCallback.operationFail(t);
+                invokeCallback.operationFail(ExceptionUtils.getRealException(t));
                 return null;
             });
     }
@@ -669,6 +671,10 @@ public abstract class NettyRemotingAbstract {
                 throw new RemotingTimeoutException(info);
             }
         }
+    }
+
+    public HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>> getProcessorTable() {
+        return processorTable;
     }
 
     class NettyEventExecutor extends ServiceThread {

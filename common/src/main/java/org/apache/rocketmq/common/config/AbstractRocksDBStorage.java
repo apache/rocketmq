@@ -18,7 +18,16 @@ package org.apache.rocketmq.common.config;
 
 import com.google.common.collect.Maps;
 import io.netty.buffer.PooledByteBufAllocator;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ThreadUtils;
@@ -42,16 +51,6 @@ import org.rocksdb.Statistics;
 import org.rocksdb.Status;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
-
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractRocksDBStorage {
     protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
@@ -121,14 +120,16 @@ public abstract class AbstractRocksDBStorage {
         this.writeOptions = new WriteOptions();
         this.writeOptions.setSync(false);
         this.writeOptions.setDisableWAL(true);
-        this.writeOptions.setNoSlowdown(true);
+        // https://github.com/facebook/rocksdb/wiki/Write-Stalls
+        this.writeOptions.setNoSlowdown(false);
     }
 
     protected void initAbleWalWriteOptions() {
         this.ableWalWriteOptions = new WriteOptions();
         this.ableWalWriteOptions.setSync(false);
         this.ableWalWriteOptions.setDisableWAL(false);
-        this.ableWalWriteOptions.setNoSlowdown(true);
+        // https://github.com/facebook/rocksdb/wiki/Write-Stalls
+        this.ableWalWriteOptions.setNoSlowdown(false);
     }
 
     protected void initReadOptions() {
@@ -363,7 +364,7 @@ public abstract class AbstractRocksDBStorage {
         }
         if (postLoad()) {
             this.loaded = true;
-            LOGGER.info("start OK. {}", this.dbPath);
+            LOGGER.info("RocksDB [{}] starts OK", this.dbPath);
             this.closed = false;
             return true;
         } else {
@@ -379,6 +380,7 @@ public abstract class AbstractRocksDBStorage {
     public synchronized boolean shutdown() {
         try {
             if (!this.loaded) {
+                LOGGER.info("RocksDBStorage is not loaded, shutdown OK. dbPath={}, readOnly={}", this.dbPath, this.readOnly);
                 return true;
             }
 
@@ -435,9 +437,9 @@ public abstract class AbstractRocksDBStorage {
             this.options = null;
 
             this.loaded = false;
-            LOGGER.info("shutdown OK. {}", this.dbPath);
+            LOGGER.info("RocksDB shutdown OK. {}", this.dbPath);
         } catch (Exception e) {
-            LOGGER.error("shutdown Failed. {}", this.dbPath, e);
+            LOGGER.error("RocksDB shutdown failed. {}", this.dbPath, e);
             return false;
         }
         return true;
@@ -560,7 +562,15 @@ public abstract class AbstractRocksDBStorage {
 
     public void statRocksdb(Logger logger) {
         try {
+            // Log Memory Usage
+            String blockCacheMemUsage = this.db.getProperty("rocksdb.block-cache-usage");
+            String indexesAndFilterBlockMemUsage = this.db.getProperty("rocksdb.estimate-table-readers-mem");
+            String memTableMemUsage = this.db.getProperty("rocksdb.cur-size-all-mem-tables");
+            String blocksPinnedByIteratorMemUsage = this.db.getProperty("rocksdb.block-cache-pinned-usage");
+            logger.info("RocksDB Memory Usage: BlockCache: {}, IndexesAndFilterBlock: {}, MemTable: {}, BlocksPinnedByIterator: {}",
+                blockCacheMemUsage, indexesAndFilterBlockMemUsage, memTableMemUsage, blocksPinnedByIteratorMemUsage);
 
+            // Log file metadata by level
             List<LiveFileMetaData> liveFileMetaDataList = this.getCompactionStatus();
             if (liveFileMetaDataList == null || liveFileMetaDataList.isEmpty()) {
                 return;
@@ -570,21 +580,13 @@ public abstract class AbstractRocksDBStorage {
                 StringBuilder sb = map.computeIfAbsent(metaData.level(), k -> new StringBuilder(256));
                 sb.append(new String(metaData.columnFamilyName(), StandardCharsets.UTF_8)).append(SPACE).
                     append(metaData.fileName()).append(SPACE).
-                    append("s: ").append(metaData.size()).append(SPACE).
-                    append("a: ").append(metaData.numEntries()).append(SPACE).
-                    append("r: ").append(metaData.numReadsSampled()).append(SPACE).
-                    append("d: ").append(metaData.numDeletions()).append(SPACE).
-                    append(metaData.beingCompacted()).append("\n");
+                    append("file-size: ").append(metaData.size()).append(SPACE).
+                    append("number-of-entries: ").append(metaData.numEntries()).append(SPACE).
+                    append("file-read-times: ").append(metaData.numReadsSampled()).append(SPACE).
+                    append("deletions: ").append(metaData.numDeletions()).append(SPACE).
+                    append("being-compacted: ").append(metaData.beingCompacted()).append("\n");
             }
-
             map.forEach((key, value) -> logger.info("level: {}\n{}", key, value.toString()));
-
-            String blockCacheMemUsage = this.db.getProperty("rocksdb.block-cache-usage");
-            String indexesAndFilterBlockMemUsage = this.db.getProperty("rocksdb.estimate-table-readers-mem");
-            String memTableMemUsage = this.db.getProperty("rocksdb.cur-size-all-mem-tables");
-            String blocksPinnedByIteratorMemUsage = this.db.getProperty("rocksdb.block-cache-pinned-usage");
-            logger.info("MemUsage. blockCache: {}, indexesAndFilterBlock: {}, MemTable: {}, blocksPinnedByIterator: {}",
-                blockCacheMemUsage, indexesAndFilterBlockMemUsage, memTableMemUsage, blocksPinnedByIteratorMemUsage);
         } catch (Exception ignored) {
         }
     }

@@ -177,13 +177,13 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         }
 
         if (queueId == null) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("QueueId is null, topic is " + topic);
             return response;
         }
 
         if (offset == null) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("Offset is null, topic is " + topic);
             return response;
         }

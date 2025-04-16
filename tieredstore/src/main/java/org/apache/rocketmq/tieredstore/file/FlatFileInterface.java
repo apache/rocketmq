@@ -17,7 +17,6 @@
 package org.apache.rocketmq.tieredstore.file;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.Lock;
 import org.apache.rocketmq.common.BoundaryType;
@@ -57,8 +56,6 @@ public interface FlatFileInterface {
      * @return append result
      */
     AppendResult appendConsumeQueue(DispatchRequest request);
-
-    List<DispatchRequest> getDispatchRequestList();
 
     void release();
 
@@ -142,6 +139,8 @@ public interface FlatFileInterface {
      * @return Returns the offset of the message in the consume queue
      */
     CompletableFuture<Long> getQueueOffsetByTimeAsync(long timestamp, BoundaryType boundaryType);
+
+    boolean isClosed();
 
     /**
      * Shutdown process

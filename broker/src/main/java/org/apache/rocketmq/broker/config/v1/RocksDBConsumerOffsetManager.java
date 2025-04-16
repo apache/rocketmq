@@ -16,12 +16,8 @@
  */
 package org.apache.rocketmq.broker.config.v1;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-import java.io.File;
-import java.util.Iterator;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentMap;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.RocksDBConfigManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
@@ -34,11 +30,16 @@ import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.rocksdb.CompressionType;
 import org.rocksdb.WriteBatch;
 
+import java.io.File;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentMap;
+
 public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    protected RocksDBConfigManager rocksDBConfigManager;
+    protected transient RocksDBConfigManager rocksDBConfigManager;
 
     public RocksDBConsumerOffsetManager(BrokerController brokerController) {
         super(brokerController);
@@ -100,7 +101,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             byte[] keyBytes = topicAtGroup.getBytes(DataConverter.CHARSET_UTF8);
             this.rocksDBConfigManager.delete(keyBytes);
         } catch (Exception e) {
-            LOG.error("kv remove consumerOffset Failed, {}", topicAtGroup);
+            log.error("kv remove consumerOffset Failed, {}", topicAtGroup);
         }
     }
 
@@ -109,7 +110,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         RocksDBOffsetSerializeWrapper wrapper = JSON.parseObject(body, RocksDBOffsetSerializeWrapper.class);
 
         this.offsetTable.put(topicAtGroup, wrapper.getOffsetTable());
-        LOG.info("load exist local offset, {}, {}", topicAtGroup, wrapper.getOffsetTable());
+        log.info("load exist local offset, {}, {}", topicAtGroup, wrapper.getOffsetTable());
     }
 
     public String rocksdbConfigFilePath() {
@@ -132,17 +133,22 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             this.rocksDBConfigManager.batchPutWithWal(writeBatch);
             this.rocksDBConfigManager.flushWAL();
         } catch (Exception e) {
-            LOG.error("consumer offset persist Failed", e);
+            log.error("consumer offset persist Failed", e);
         } finally {
             writeBatch.close();
         }
+    }
+
+    public synchronized void exportToJson() {
+        log.info("RocksDBConsumerOffsetManager export consumer offset to json file");
+        super.persist();
     }
 
     private void putWriteBatch(final WriteBatch writeBatch, final String topicGroupName, final ConcurrentMap<Integer, Long> offsetMap) throws Exception {
         byte[] keyBytes = topicGroupName.getBytes(DataConverter.CHARSET_UTF8);
         RocksDBOffsetSerializeWrapper wrapper = new RocksDBOffsetSerializeWrapper();
         wrapper.setOffsetTable(offsetMap);
-        byte[] valueBytes = JSON.toJSONBytes(wrapper, SerializerFeature.BrowserCompatible);
+        byte[] valueBytes = JSON.toJSONBytes(wrapper, JSONWriter.Feature.BrowserCompatible);
         writeBatch.put(keyBytes, valueBytes);
     }
 

@@ -18,6 +18,7 @@
 package org.apache.rocketmq.client.impl.mqclient;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -29,8 +30,11 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -107,5 +111,48 @@ public class MQClientAPIExtTest {
             assertEquals(customEx.getResponseCode(), ResponseCode.SYSTEM_ERROR);
             assertEquals(customEx.getErrorMessage(), "QueueId is null, topic is testTopic");
         }
+    }
+
+    @Test
+    public void testRecallMessageAsync_success() {
+        String msgId = "msgId";
+        RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+        requestHeader.setProducerGroup("group");
+        requestHeader.setTopic("topic");
+        requestHeader.setRecallHandle("handle");
+        requestHeader.setBrokerName("brokerName");
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(RecallMessageResponseHeader.class);
+        response.setCode(ResponseCode.SUCCESS);
+        RecallMessageResponseHeader responseHeader = (RecallMessageResponseHeader) response.readCustomHeader();
+        responseHeader.setMsgId(msgId);
+        response.makeCustomHeaderToNet();
+        CompletableFuture<RemotingCommand> remotingFuture = new CompletableFuture<>();
+        remotingFuture.complete(response);
+        doReturn(remotingFuture).when(remotingClientMock).invoke(anyString(), any(RemotingCommand.class), anyLong());
+
+        String resultId =
+            mqClientAPIExt.recallMessageAsync("brokerAddr", requestHeader, 3000L).join();
+        Assert.assertEquals(msgId, resultId);
+    }
+
+    @Test
+    public void testRecallMessageAsync_fail() {
+        RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+        requestHeader.setProducerGroup("group");
+        requestHeader.setTopic("topic");
+        requestHeader.setRecallHandle("handle");
+        requestHeader.setBrokerName("brokerName");
+
+        CompletableFuture<RemotingCommand> remotingFuture = new CompletableFuture<>();
+        remotingFuture.complete(RemotingCommand.createResponseCommand(ResponseCode.SERVICE_NOT_AVAILABLE, ""));
+        doReturn(remotingFuture).when(remotingClientMock).invoke(anyString(), any(RemotingCommand.class), anyLong());
+
+        CompletionException exception = Assert.assertThrows(CompletionException.class, () -> {
+            mqClientAPIExt.recallMessageAsync("brokerAddr", requestHeader, 3000L).join();
+        });
+        Assert.assertTrue(exception.getCause() instanceof MQBrokerException);
+        MQBrokerException cause = (MQBrokerException) exception.getCause();
+        Assert.assertEquals(ResponseCode.SERVICE_NOT_AVAILABLE, cause.getResponseCode());
     }
 }

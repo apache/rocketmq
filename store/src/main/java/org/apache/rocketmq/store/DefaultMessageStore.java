@@ -517,14 +517,11 @@ public class DefaultMessageStore implements MessageStore {
             if (this.compactionService != null) {
                 this.compactionService.shutdown();
             }
-
-            if (messageStoreConfig.isRocksdbCQDoubleWriteEnable()) {
+            if (this.rocksDBMessageStore != null && this.rocksDBMessageStore.consumeQueueStore != null) {
                 this.rocksDBMessageStore.consumeQueueStore.shutdown();
             }
-
             this.flushConsumeQueueService.shutdown();
             this.allocateMappedFileService.shutdown();
-            this.storeCheckpoint.flush();
             this.storeCheckpoint.shutdown();
 
             this.perfs.shutdown();
@@ -819,6 +816,7 @@ public class DefaultMessageStore implements MessageStore {
         long maxOffset = 0;
 
         GetMessageResult getResult = new GetMessageResult();
+        int filterMessageCount = 0;
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
@@ -919,7 +917,7 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
-                            if (messageStoreConfig.isColdDataFlowControlEnable() && !MixAll.isSysConsumerGroupForNoColdReadLimit(group) && !selectResult.isInCache()) {
+                            if (messageStoreConfig.isColdDataFlowControlEnable() && !MixAll.isSysConsumerGroupPullMessage(group) && !selectResult.isInCache()) {
                                 getResult.setColdDataSum(getResult.getColdDataSum() + sizePy);
                             }
 
@@ -930,6 +928,7 @@ public class DefaultMessageStore implements MessageStore {
                                 }
                                 // release...
                                 selectResult.release();
+                                filterMessageCount++;
                                 continue;
                             }
                             this.storeStatsService.getGetMessageTransferredMsgCount().add(cqUnit.getBatchNum());
@@ -967,6 +966,12 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.storeStatsService.getGetMessageTimesTotalMiss().add(1);
         }
+
+        if (this.messageStoreConfig.isDiskFallRecorded() && GetMessageStatus.OFFSET_OVERFLOW_ONE == status) {
+            brokerStatsManager.recordDiskFallBehindSize(group, topic, queueId, 0);
+            brokerStatsManager.recordDiskFallBehindTime(group, topic, queueId, 0);
+        }
+
         long elapsedTime = this.getSystemClock().now() - beginTime;
         this.storeStatsService.setGetMessageEntireTimeMax(elapsedTime);
 
@@ -979,6 +984,7 @@ public class DefaultMessageStore implements MessageStore {
         getResult.setNextBeginOffset(nextBeginOffset);
         getResult.setMaxOffset(maxOffset);
         getResult.setMinOffset(minOffset);
+        getResult.setFilterMessageCount(filterMessageCount);
         return getResult;
     }
 
@@ -1555,6 +1561,10 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public long dispatchBehindBytes() {
         return this.reputMessageService.behind();
+    }
+    @Override
+    public long dispatchBehindMilliseconds() {
+        return this.reputMessageService.behindMs();
     }
 
     public long flushBehindBytes() {
@@ -2793,6 +2803,7 @@ public class DefaultMessageStore implements MessageStore {
     class ReputMessageService extends ServiceThread {
 
         protected volatile long reputFromOffset = 0;
+        protected volatile long currentReputTimestamp = System.currentTimeMillis();
 
         public long getReputFromOffset() {
             return reputFromOffset;
@@ -2800,6 +2811,10 @@ public class DefaultMessageStore implements MessageStore {
 
         public void setReputFromOffset(long reputFromOffset) {
             this.reputFromOffset = reputFromOffset;
+        }
+
+        public long getCurrentReputTimestamp() {
+            return currentReputTimestamp;
         }
 
         @Override
@@ -2824,6 +2839,15 @@ public class DefaultMessageStore implements MessageStore {
             return DefaultMessageStore.this.getConfirmOffset() - this.reputFromOffset;
         }
 
+        public long behindMs() {
+            long lastCommitLogFileTimeStamp = System.currentTimeMillis();
+            MappedFile lastMappedFile = DefaultMessageStore.this.commitLog.getMappedFileQueue().getLastMappedFile();
+            if (lastMappedFile != null) {
+                lastCommitLogFileTimeStamp = lastMappedFile.getStoreTimestamp();
+            }
+            return Math.max(0, lastCommitLogFileTimeStamp - this.currentReputTimestamp);
+        }
+
         public boolean isCommitLogAvailable() {
             return this.reputFromOffset < getReputEndOffset();
         }
@@ -2838,7 +2862,11 @@ public class DefaultMessageStore implements MessageStore {
                     this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
                 this.reputFromOffset = DefaultMessageStore.this.commitLog.getMinOffset();
             }
-            for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
+            boolean isCommitLogAvailable = isCommitLogAvailable();
+            if (!isCommitLogAvailable) {
+                currentReputTimestamp = System.currentTimeMillis();
+            }
+            for (boolean doNext = true; isCommitLogAvailable && doNext; ) {
 
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
 
@@ -2861,6 +2889,7 @@ public class DefaultMessageStore implements MessageStore {
 
                         if (dispatchRequest.isSuccess()) {
                             if (size > 0) {
+                                currentReputTimestamp = dispatchRequest.getStoreTimestamp();
                                 DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                 if (!notifyMessageArriveInBatch) {

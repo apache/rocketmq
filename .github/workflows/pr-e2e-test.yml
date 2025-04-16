@@ -188,8 +188,9 @@ jobs:
           test-cmd: |
             cd ../common &&  mvn -Prelease -DskipTests clean package -U
             cd ../rocketmq-admintools && source bin/env.sh
-            wget https://go.dev/dl/go1.22.6.linux-amd64.tar.gz && \
-            rm -rf /usr/local/go && tar -C /usr/local -xzf go1.22.6.linux-amd64.tar.gz
+            LATEST_GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | awk 'NR==1')
+            wget "https://go.dev/dl/${LATEST_GO_VERSION}.linux-amd64.tar.gz" && \
+            rm -rf /usr/local/go && tar -C /usr/local -xzf ${LATEST_GO_VERSION}.linux-amd64.tar.gz
             cd ../golang && go get -u github.com/apache/rocketmq-clients/golang && gotestsum --junitfile ./target/surefire-reports/TEST-report.xml ./mqgotest/... -timeout 2m  -v
           job-id: 0
       - name: Publish Test Report

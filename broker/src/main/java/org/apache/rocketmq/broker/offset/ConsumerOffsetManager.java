@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.offset;
 
+import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Strings;
 
+import java.util.function.Function;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -394,19 +396,29 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public void removeOffset(final String group) {
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            if (topicAtGroup.contains(group)) {
-                String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-                if (arrays.length == 2 && group.equals(arrays[1])) {
-                    it.remove();
-                    removeConsumerOffset(topicAtGroup);
-                    LOG.warn("clean group offset {}", topicAtGroup);
+        Function<Iterator<Entry<String, ConcurrentMap<Integer, Long>>>, Boolean> deleteFunction = it -> {
+            boolean removed = false;
+            while (it.hasNext()) {
+                Entry<String, ConcurrentMap<Integer, Long>> entry = it.next();
+                String topicAtGroup = entry.getKey();
+                if (topicAtGroup.contains(group)) {
+                    String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+                    if (arrays.length == 2 && group.equals(arrays[1])) {
+                        it.remove();
+                        removeConsumerOffset(topicAtGroup);
+                        removed = true;
+                    }
                 }
             }
-        }
+            return removed;
+        };
+
+        boolean clearOffset = deleteFunction.apply(this.offsetTable.entrySet().iterator());
+        boolean clearReset = deleteFunction.apply(this.resetOffsetTable.entrySet().iterator());
+        boolean clearPull = deleteFunction.apply(this.pullOffsetTable.entrySet().iterator());
+
+        LOG.info("Consumer offset manager clean group offset, groupName={}, " +
+            "offsetTable={}, resetOffsetTable={}, pullOffsetTable={}", group, clearOffset, clearReset, clearPull);
     }
 
     public void assignResetOffset(String topic, String group, int queueId, long offset) {
@@ -417,27 +429,14 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
 
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
-        if (null == map) {
-            map = new ConcurrentHashMap<Integer, Long>();
-            ConcurrentMap<Integer, Long> previous = resetOffsetTable.putIfAbsent(key, map);
-            if (null != previous) {
-                map = previous;
-            }
-        }
-
-        map.put(queueId, offset);
-        LOG.debug("Reset offset OK. Topic={}, group={}, queueId={}, resetOffset={}",
-            topic, group, queueId, offset);
+        resetOffsetTable.computeIfAbsent(key, k -> Maps.newConcurrentMap()).put(queueId, offset);
+        LOG.debug("Reset offset OK. Topic={}, group={}, queueId={}, resetOffset={}", topic, group, queueId, offset);
 
         // Two things are important here:
         // 1, currentOffsetMap might be null if there is no previous records;
         // 2, Our overriding here may get overridden by the client instantly in concurrent cases; But it still makes
         // sense in cases like clients are offline.
-        ConcurrentMap<Integer, Long> currentOffsetMap = offsetTable.get(key);
-        if (null != currentOffsetMap) {
-            currentOffsetMap.put(queueId, offset);
-        }
+        offsetTable.computeIfAbsent(key, k -> Maps.newConcurrentMap()).put(queueId, offset);
     }
 
     public boolean hasOffsetReset(String topic, String group, int queueId) {

@@ -103,6 +103,7 @@ import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGroupForbiddenRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
@@ -127,24 +128,6 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     private static final String SOCKS_PROXY_JSON = "socksProxyJson";
-    private static final Set<String> SYSTEM_GROUP_SET = new HashSet<>();
-
-    static {
-        SYSTEM_GROUP_SET.add(MixAll.DEFAULT_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.DEFAULT_PRODUCER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.TOOLS_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.SCHEDULE_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.FILTERSRV_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.MONITOR_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.CLIENT_INNER_PRODUCER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.SELF_TEST_PRODUCER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.SELF_TEST_CONSUMER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.ONS_HTTP_PROXY_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.CID_ONSAPI_PERMISSION_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.CID_ONSAPI_OWNER_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.CID_ONSAPI_PULL_GROUP);
-        SYSTEM_GROUP_SET.add(MixAll.CID_SYS_RMQ_TRANS);
-    }
 
     private final Logger logger = LoggerFactory.getLogger(DefaultMQAdminExtImpl.class);
     private final DefaultMQAdminExt defaultMQAdminExt;
@@ -384,6 +367,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                                 if (addr != null) {
                                     TopicStatsTable tst = mqClientInstance.getMQClientAPIImpl().getTopicStatsInfo(addr, topic, timeoutMillis);
                                     topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+                                    topicStatsTable.setTopicPutTps(topicStatsTable.getTopicPutTps() + tst.getTopicPutTps());
                                 }
                             } catch (Exception e) {
                                 logger.error("getTopicStatsInfo error. topic={}", topic, e);
@@ -1697,7 +1681,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         Iterator<Entry<String, SubscriptionGroupConfig>> iterator = subscriptionGroupWrapper.getSubscriptionGroupTable().entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, SubscriptionGroupConfig> configEntry = iterator.next();
-            if (MixAll.isSysConsumerGroup(configEntry.getKey()) || SYSTEM_GROUP_SET.contains(configEntry.getKey())) {
+            if (MixAll.isSysConsumerGroup(configEntry.getKey()) || MixAll.isPredefinedGroup(configEntry.getKey())) {
                 iterator.remove();
             }
         }
@@ -1822,6 +1806,13 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public CheckRocksdbCqWriteResult checkRocksdbCqWriteProgress(String brokerAddr, String topic, long checkStoreTime)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
         return this.mqClientInstance.getMQClientAPIImpl().checkRocksdbCqWriteProgress(brokerAddr, topic, checkStoreTime, timeoutMillis);
+    }
+
+    @Override
+    public void exportRocksDBConfigToJson(String brokerAddr,
+        List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configType)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().exportRocksDBConfigToJson(brokerAddr, configType, timeoutMillis);
     }
 
     @Override
@@ -2084,5 +2075,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public List<AclInfo> listAcl(String brokerAddr, String subjectFilter,
         String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         return this.mqClientInstance.getMQClientAPIImpl().listAcl(brokerAddr, subjectFilter, resourceFilter, timeoutMillis);
+    }
+
+    @Override
+    public void exportPopRecords(String brokerAddr, long timeout) throws RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        this.mqClientInstance.getMQClientAPIImpl().exportPopRecord(brokerAddr, timeout);
     }
 }

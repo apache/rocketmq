@@ -74,6 +74,7 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.FutureUtils;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -86,6 +87,7 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.proxy.SocksProxyConfig;
 
@@ -97,7 +99,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private static final long MIN_CLOSE_TIMEOUT_MILLIS = 100;
 
-    private final NettyClientConfig nettyClientConfig;
+    protected final NettyClientConfig nettyClientConfig;
     private final Bootstrap bootstrap = new Bootstrap();
     private final EventLoopGroup eventLoopGroupWorker;
     private final Lock lockChannelTables = new ReentrantLock();
@@ -287,6 +289,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return null;
     }
 
+    protected ChannelFuture doConnect(String addr) {
+        String[] hostAndPort = getHostAndPort(addr);
+        String host = hostAndPort[0];
+        int port = Integer.parseInt(hostAndPort[1]);
+        return fetchBootstrap(addr).connect(host, port);
+    }
+
     private Bootstrap fetchBootstrap(String addr) {
         Map.Entry<String, SocksProxyConfig> proxyEntry = getProxy(addr);
         if (proxyEntry == null) {
@@ -358,7 +367,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     // Do not use RemotingHelper.string2SocketAddress(), it will directly resolve the domain
-    private String[] getHostAndPort(String address) {
+    protected String[] getHostAndPort(String address) {
         int split = address.lastIndexOf(":");
         return split < 0 ? new String[]{address} : new String[]{address.substring(0, split), address.substring(split + 1)};
     }
@@ -596,7 +605,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
             String remoteAddr = RemotingHelper.parseChannelRemoteAddr(responseFuture.getChannel());
             // interrupt only pull message request
-            if (brokerAddrSet.contains(remoteAddr) && (cmd.getCode() == 11 || cmd.getCode() == 361)) {
+            if (brokerAddrSet.contains(remoteAddr) && (cmd.getCode() == RequestCode.PULL_MESSAGE || cmd.getCode() == RequestCode.LITE_PULL_MESSAGE)) {
                 LOGGER.info("interrupt {}", cmd);
                 responseFuture.interrupt();
             }
@@ -711,9 +720,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     private ChannelWrapper createChannel(String addr) {
-        String[] hostAndPort = getHostAndPort(addr);
-        ChannelFuture channelFuture = fetchBootstrap(addr)
-            .connect(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
+        ChannelFuture channelFuture = doConnect(addr);
         LOGGER.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
         ChannelWrapper cw = new ChannelWrapper(addr, channelFuture);
         this.channelTables.put(addr, cw);
@@ -1046,9 +1053,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 try {
                     if (isWrapperOf(channel)) {
                         channelToClose = channelFuture;
-                        String[] hostAndPort = getHostAndPort(channelAddress);
-                        channelFuture = fetchBootstrap(channelAddress)
-                            .connect(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
+                        channelFuture = doConnect(channelAddress);
                         return true;
                     } else {
                         LOGGER.warn("channelWrapper has reconnect, so do nothing, now channelId={}, input channelId={}",getChannel().id(), channel.id());
@@ -1118,19 +1123,18 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    class NettyClientHandler extends SimpleChannelInboundHandler<RemotingCommand> {
-
+    public class NettyClientHandler extends SimpleChannelInboundHandler<RemotingCommand> {
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
             processMessageReceived(ctx, msg);
         }
     }
 
-    class NettyConnectManageHandler extends ChannelDuplexHandler {
+    public class NettyConnectManageHandler extends ChannelDuplexHandler {
         @Override
         public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress,
             ChannelPromise promise) throws Exception {
-            final String local = localAddress == null ? "UNKNOWN" : RemotingHelper.parseSocketAddressAddr(localAddress);
+            final String local = localAddress == null ? NetworkUtil.getLocalAddress() : RemotingHelper.parseSocketAddressAddr(localAddress);
             final String remote = remoteAddress == null ? "UNKNOWN" : RemotingHelper.parseSocketAddressAddr(remoteAddress);
             LOGGER.info("NETTY CLIENT PIPELINE: CONNECT  {} => {}", local, remote);
 

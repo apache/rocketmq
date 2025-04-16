@@ -75,9 +75,7 @@ public class GrpcServerBuilder {
         serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
                 .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
 
-        log.info(
-            "grpc server has built. port: {}, tlsKeyPath: {}, tlsCertPath: {}, threadPool: {}, queueCapacity: {}, "
-                + "boosLoop: {}, workerLoop: {}, maxInboundMessageSize: {}",
+        log.info("grpc server has built. port: {}, bossLoopNum: {}, workerLoopNum: {}, maxInboundMessageSize: {}",
             port, bossLoopNum, workerLoopNum, maxInboundMessageSize);
     }
 

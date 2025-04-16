@@ -130,6 +130,8 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean accountStatsEnable = true;
     private boolean accountStatsPrintZeroValues = true;
 
+    private int maxStatsIdleTimeInMinutes = -1;
+
     private boolean transferMsgByHeap = true;
 
     private String regionId = MixAll.DEFAULT_TRACE_REGION_ID;
@@ -236,6 +238,13 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean retrieveMessageFromPopRetryTopicV1 = true;
     private boolean enableRetryTopicV2 = false;
     private int popFromRetryProbability = 20;
+    private boolean popConsumerFSServiceInit = true;
+    private boolean popConsumerKVServiceLog = false;
+    private boolean popConsumerKVServiceInit = false;
+    private boolean popConsumerKVServiceEnable = false;
+    private int popReviveMaxReturnSizePerRead = 16 * 1024;
+    private int popReviveMaxAttemptTimes = 16;
+
     private boolean realTimeNotifyConsumerChange = true;
 
     private boolean litePullMessageEnable = true;
@@ -419,6 +428,10 @@ public class BrokerConfig extends BrokerIdentity {
     private long popInflightMessageThreshold = 10000;
     private boolean enablePopMessageThreshold = false;
 
+    private boolean enableFastChannelEventProcess = false;
+    private boolean printChannelGroups = false;
+    private int printChannelGroupsMinNum = 5;
+
     private int splitRegistrationSize = 800;
 
     /**
@@ -435,10 +448,22 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean appendCkAsync = false;
 
+    private boolean clearRetryTopicWhenDeleteTopic = true;
+
+    private boolean enableLmqStats = false;
+
     /**
      * V2 is recommended in cases where LMQ feature is extensively used.
      */
     private String configManagerVersion = ConfigManagerVersion.V1.getVersion();
+
+    private boolean allowRecallWhenBrokerNotWriteable = true;
+
+    private boolean recallMessageEnable = false;
+
+    private boolean enableRegisterProducer = true;
+
+    private boolean enableCreateSysGroup = true;
 
     public String getConfigBlackList() {
         return configBlackList;
@@ -584,6 +609,53 @@ public class BrokerConfig extends BrokerIdentity {
         this.popFromRetryProbability = popFromRetryProbability;
     }
 
+    public boolean isPopConsumerFSServiceInit() {
+        return popConsumerFSServiceInit;
+    }
+
+    public void setPopConsumerFSServiceInit(boolean popConsumerFSServiceInit) {
+        this.popConsumerFSServiceInit = popConsumerFSServiceInit;
+    }
+
+    public boolean isPopConsumerKVServiceLog() {
+        return popConsumerKVServiceLog;
+    }
+
+    public void setPopConsumerKVServiceLog(boolean popConsumerKVServiceLog) {
+        this.popConsumerKVServiceLog = popConsumerKVServiceLog;
+    }
+
+    public boolean isPopConsumerKVServiceInit() {
+        return popConsumerKVServiceInit;
+    }
+
+    public void setPopConsumerKVServiceInit(boolean popConsumerKVServiceInit) {
+        this.popConsumerKVServiceInit = popConsumerKVServiceInit;
+    }
+
+    public boolean isPopConsumerKVServiceEnable() {
+        return popConsumerKVServiceEnable;
+    }
+
+    public void setPopConsumerKVServiceEnable(boolean popConsumerKVServiceEnable) {
+        this.popConsumerKVServiceEnable = popConsumerKVServiceEnable;
+    }
+
+    public int getPopReviveMaxReturnSizePerRead() {
+        return popReviveMaxReturnSizePerRead;
+    }
+
+    public void setPopReviveMaxReturnSizePerRead(int popReviveMaxReturnSizePerRead) {
+        this.popReviveMaxReturnSizePerRead = popReviveMaxReturnSizePerRead;
+    }
+
+    public int getPopReviveMaxAttemptTimes() {
+        return popReviveMaxAttemptTimes;
+    }
+
+    public void setPopReviveMaxAttemptTimes(int popReviveMaxAttemptTimes) {
+        this.popReviveMaxAttemptTimes = popReviveMaxAttemptTimes;
+    }
 
     public boolean isTraceOn() {
         return traceOn;
@@ -1473,6 +1545,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.accountStatsPrintZeroValues = accountStatsPrintZeroValues;
     }
 
+    public int getMaxStatsIdleTimeInMinutes() {
+        return maxStatsIdleTimeInMinutes;
+    }
+
+    public void setMaxStatsIdleTimeInMinutes(int maxStatsIdleTimeInMinutes) {
+        this.maxStatsIdleTimeInMinutes = maxStatsIdleTimeInMinutes;
+    }
+
     public boolean isLockInStrictMode() {
         return lockInStrictMode;
     }
@@ -1841,6 +1921,30 @@ public class BrokerConfig extends BrokerIdentity {
         this.enableSplitRegistration = enableSplitRegistration;
     }
 
+    public boolean isEnableFastChannelEventProcess() {
+        return enableFastChannelEventProcess;
+    }
+
+    public void setEnableFastChannelEventProcess(boolean enableFastChannelEventProcess) {
+        this.enableFastChannelEventProcess = enableFastChannelEventProcess;
+    }
+
+    public boolean isPrintChannelGroups() {
+        return printChannelGroups;
+    }
+
+    public void setPrintChannelGroups(boolean printChannelGroups) {
+        this.printChannelGroups = printChannelGroups;
+    }
+
+    public int getPrintChannelGroupsMinNum() {
+        return printChannelGroupsMinNum;
+    }
+
+    public void setPrintChannelGroupsMinNum(int printChannelGroupsMinNum) {
+        this.printChannelGroupsMinNum = printChannelGroupsMinNum;
+    }
+
     public int getSplitRegistrationSize() {
         return splitRegistrationSize;
     }
@@ -1905,11 +2009,59 @@ public class BrokerConfig extends BrokerIdentity {
         this.appendCkAsync = appendCkAsync;
     }
 
+    public boolean isClearRetryTopicWhenDeleteTopic() {
+        return clearRetryTopicWhenDeleteTopic;
+    }
+
+    public void setClearRetryTopicWhenDeleteTopic(boolean clearRetryTopicWhenDeleteTopic) {
+        this.clearRetryTopicWhenDeleteTopic = clearRetryTopicWhenDeleteTopic;
+    }
+
+    public boolean isEnableLmqStats() {
+        return enableLmqStats;
+    }
+
+    public void setEnableLmqStats(boolean enableLmqStats) {
+        this.enableLmqStats = enableLmqStats;
+    }
+
     public String getConfigManagerVersion() {
         return configManagerVersion;
     }
 
     public void setConfigManagerVersion(String configManagerVersion) {
         this.configManagerVersion = configManagerVersion;
+    }
+
+    public boolean isAllowRecallWhenBrokerNotWriteable() {
+        return allowRecallWhenBrokerNotWriteable;
+    }
+
+    public void setAllowRecallWhenBrokerNotWriteable(boolean allowRecallWhenBrokerNotWriteable) {
+        this.allowRecallWhenBrokerNotWriteable = allowRecallWhenBrokerNotWriteable;
+    }
+
+    public boolean isRecallMessageEnable() {
+        return recallMessageEnable;
+    }
+
+    public void setRecallMessageEnable(boolean recallMessageEnable) {
+        this.recallMessageEnable = recallMessageEnable;
+    }
+
+    public boolean isEnableRegisterProducer() {
+        return enableRegisterProducer;
+    }
+
+    public void setEnableRegisterProducer(boolean enableRegisterProducer) {
+        this.enableRegisterProducer = enableRegisterProducer;
+    }
+
+    public boolean isEnableCreateSysGroup() {
+        return enableCreateSysGroup;
+    }
+
+    public void setEnableCreateSysGroup(boolean enableCreateSysGroup) {
+        this.enableCreateSysGroup = enableCreateSysGroup;
     }
 }

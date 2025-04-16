@@ -148,6 +148,10 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
             if (result.getMessageCount() == maxCount) {
                 break;
             }
+            long maxTransferBytes = messageStore.getMessageStoreConfig().getMaxTransferBytesOnMessageInMemory();
+            if (result.getBufferTotalSize() >= maxTransferBytes) {
+                break;
+            }
         }
         result.setStatus(result.getMessageCount() > 0 ?
             GetMessageStatus.FOUND : GetMessageStatus.NO_MATCHED_MESSAGE);
@@ -371,14 +375,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     @Override
     public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
         FlatMessageFile flatFile = flatFileStore.getFlatFile(new MessageQueue(topic, brokerName, queueId));
-        if (flatFile == null) {
-            return CompletableFuture.completedFuture(-1L);
-        }
-
-        // read from timestamp to timestamp + length
-        int length = MessageFormatUtil.STORE_TIMESTAMP_POSITION + 8;
-        return flatFile.getCommitLogAsync(flatFile.getCommitLogMinOffset(), length)
-            .thenApply(MessageFormatUtil::getStoreTimeStamp);
+        return CompletableFuture.completedFuture(flatFile == null ? -1L : flatFile.getMinStoreTimestamp());
     }
 
     @Override

@@ -64,6 +64,9 @@ import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLockImpl;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
 
@@ -326,22 +329,26 @@ public class CommitLog implements Swappable {
         boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
-            // Began to recover from the last third file
-            int index = mappedFiles.size() - 3;
-            if (index < 0) {
-                index = 0;
+            int index = mappedFiles.size() - 1;
+            while (index > 0) {
+                MappedFile mappedFile = mappedFiles.get(index);
+                if (mappedFile.getFileFromOffset() <= maxPhyOffsetOfConsumeQueue) {
+                    // It's safe to recover from this mapped file
+                    break;
+                }
+                index--;
             }
+            // TODO: Discuss if we need to load more commit-log mapped files into memory.
 
             MappedFile mappedFile = mappedFiles.get(index);
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
             long mappedFileOffset = 0;
             long lastValidMsgPhyOffset = this.getConfirmOffset();
-            // normal recover doesn't require dispatching
-            boolean doDispatch = false;
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
                 int size = dispatchRequest.getMsgSize();
+                boolean doDispatch = dispatchRequest.getCommitLogOffset() > maxPhyOffsetOfConsumeQueue;
                 // Normal data
                 if (dispatchRequest.isSuccess() && size > 0) {
                     lastValidMsgPhyOffset = processOffset + mappedFileOffset;
@@ -428,8 +435,14 @@ public class CommitLog implements Swappable {
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
         final boolean checkDupInfo, final boolean readBody) {
         try {
+            if (byteBuffer.remaining() <= 4) {
+                return new DispatchRequest(-1, false /* fail */);
+            }
             // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
+            if (byteBuffer.remaining() < totalSize - 4) {
+                return new DispatchRequest(-1, false /* fail */);
+            }
 
             // 2 MAGIC CODE
             int magicCode = byteBuffer.getInt();
@@ -573,7 +586,7 @@ public class CommitLog implements Swappable {
                             }
                         }
                     }
-                    if (expectedCRC > 0) {
+                    if (expectedCRC >= 0) {
                         ByteBuffer tmpBuffer = byteBuffer.duplicate();
                         tmpBuffer.position(tmpBuffer.position() - totalSize);
                         tmpBuffer.limit(tmpBuffer.position() + totalSize - CommitLog.CRC32_RESERVED_LEN);
@@ -624,6 +637,7 @@ public class CommitLog implements Swappable {
 
             return dispatchRequest;
         } catch (Exception e) {
+            log.error("checkMessageAndReturnSize failed, may can not dispatch", e);
         }
 
         return new DispatchRequest(-1, false /* success */);
@@ -2431,16 +2445,15 @@ public class CommitLog implements Swappable {
                 return false;
             }
             try {
-                ConsumeQueue consumeQueue = (ConsumeQueue) defaultMessageStore.findConsumeQueue(topic, queueId);
+                ConsumeQueueInterface consumeQueue = defaultMessageStore.findConsumeQueue(topic, queueId);
                 if (null == consumeQueue) {
                     return false;
                 }
-                SelectMappedBufferResult bufferConsumeQueue = consumeQueue.getIndexBuffer(offset);
-                if (null == bufferConsumeQueue || null == bufferConsumeQueue.getByteBuffer()) {
+                ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(offset, 1);
+                if (null == bufferConsumeQueue || !bufferConsumeQueue.hasNext()) {
                     return false;
                 }
-                long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
-                return defaultMessageStore.checkInColdAreaByCommitOffset(offsetPy, getMaxOffset());
+                return defaultMessageStore.checkInColdAreaByCommitOffset(bufferConsumeQueue.next().getPos(), getMaxOffset());
             } catch (Exception e) {
                 log.error("isMsgInColdArea group: {}, topic: {}, queueId: {}, offset: {}",
                     group, topic, queueId, offset, e);
