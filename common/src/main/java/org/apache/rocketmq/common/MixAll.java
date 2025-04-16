@@ -57,6 +57,10 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
+    /**
+     * unify the home dir
+     */
+    public static final String ROCKETMQ_HOME_DIR = System.getProperty(ROCKETMQ_HOME_PROPERTY, System.getenv(ROCKETMQ_HOME_ENV));
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
     public static final String MESSAGE_COMPRESS_TYPE = "rocketmq.message.compressType";
