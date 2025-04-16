@@ -875,7 +875,7 @@ public class DefaultMessageStore implements MessageStore {
 
                             boolean isInMem = estimateInMemByCommitOffset(offsetPy, maxOffsetPy);
 
-                            if ((cqUnit.getQueueOffset() - offset) * consumeQueue.getUnitSize() > maxFilterMessageSize) {
+                            if ((cqUnit.getQueueOffset() - offset) * consumeQueue.getUnitSize() >= maxFilterMessageSize) {
                                 break;
                             }
 
