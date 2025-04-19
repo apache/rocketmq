@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.offset;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
 import org.junit.Before;
@@ -27,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.mockito.Mockito;
 
+import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ConsumerOffsetManagerTest {
@@ -63,6 +65,18 @@ public class ConsumerOffsetManagerTest {
     public void cleanOffsetByTopic_Exist() {
         consumerOffsetManager.cleanOffsetByTopic("FooBar");
         assertThat(!consumerOffsetManager.getOffsetTable().containsKey(KEY)).isTrue();
+    }
+
+    @Test
+    public void removeOffsetByGroupTest() {
+        String topic = "TopicName";
+        String group = "GroupName";
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
+        consumerOffsetManager.commitOffset("Commit", group, topic, 0, 100);
+        consumerOffsetManager.assignResetOffset(topic, group, 0, 100);
+        consumerOffsetManager.commitPullOffset("Pull", group, topic, 0, 100);
+        consumerOffsetManager.removeOffset(group);
+        Assert.assertFalse(consumerOffsetManager.getOffsetTable().containsKey(topic + TOPIC_GROUP_SEPARATOR + group));
     }
 
     @Test

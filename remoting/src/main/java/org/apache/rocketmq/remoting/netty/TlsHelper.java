@@ -197,18 +197,16 @@ public class TlsHelper {
     private static void logTheFinalUsedTlsConfig() {
         LOGGER.info("Log the final used tls related configuration");
         LOGGER.info("{} = {}", TLS_TEST_MODE_ENABLE, tlsTestModeEnable);
-        LOGGER.info("{} = {}", TLS_SERVER_NEED_CLIENT_AUTH, tlsServerNeedClientAuth);
-        LOGGER.info("{} = {}", TLS_SERVER_KEYPATH, tlsServerKeyPath);
-        LOGGER.info("{} = {}", TLS_SERVER_KEYPASSWORD, tlsServerKeyPassword);
-        LOGGER.info("{} = {}", TLS_SERVER_CERTPATH, tlsServerCertPath);
-        LOGGER.info("{} = {}", TLS_SERVER_AUTHCLIENT, tlsServerAuthClient);
-        LOGGER.info("{} = {}", TLS_SERVER_TRUSTCERTPATH, tlsServerTrustCertPath);
+        LOGGER.debug("{} = {}", TLS_SERVER_NEED_CLIENT_AUTH, tlsServerNeedClientAuth);
+        LOGGER.debug("{} = {}", TLS_SERVER_KEYPATH, tlsServerKeyPath);
+        LOGGER.debug("{} = {}", TLS_SERVER_CERTPATH, tlsServerCertPath);
+        LOGGER.debug("{} = {}", TLS_SERVER_AUTHCLIENT, tlsServerAuthClient);
+        LOGGER.debug("{} = {}", TLS_SERVER_TRUSTCERTPATH, tlsServerTrustCertPath);
 
-        LOGGER.info("{} = {}", TLS_CLIENT_KEYPATH, tlsClientKeyPath);
-        LOGGER.info("{} = {}", TLS_CLIENT_KEYPASSWORD, tlsClientKeyPassword);
-        LOGGER.info("{} = {}", TLS_CLIENT_CERTPATH, tlsClientCertPath);
-        LOGGER.info("{} = {}", TLS_CLIENT_AUTHSERVER, tlsClientAuthServer);
-        LOGGER.info("{} = {}", TLS_CLIENT_TRUSTCERTPATH, tlsClientTrustCertPath);
+        LOGGER.debug("{} = {}", TLS_CLIENT_KEYPATH, tlsClientKeyPath);
+        LOGGER.debug("{} = {}", TLS_CLIENT_CERTPATH, tlsClientCertPath);
+        LOGGER.debug("{} = {}", TLS_CLIENT_AUTHSERVER, tlsClientAuthServer);
+        LOGGER.debug("{} = {}", TLS_CLIENT_TRUSTCERTPATH, tlsClientTrustCertPath);
     }
 
     private static ClientAuth parseClientAuthMode(String authMode) {
@@ -216,8 +214,9 @@ public class TlsHelper {
             return ClientAuth.NONE;
         }
 
+        String authModeUpper = authMode.toUpperCase();
         for (ClientAuth clientAuth : ClientAuth.values()) {
-            if (clientAuth.name().equals(authMode.toUpperCase())) {
+            if (clientAuth.name().equals(authModeUpper)) {
                 return clientAuth;
             }
         }

@@ -69,8 +69,8 @@ public abstract class AbstractMQConsumer implements MQConsumer {
         return listener;
     }
 
-    public void setListener(AbstractListener listner) {
-        this.listener = listner;
+    public void setListener(AbstractListener listener) {
+        this.listener = listener;
     }
 
     public String getNsAddr() {

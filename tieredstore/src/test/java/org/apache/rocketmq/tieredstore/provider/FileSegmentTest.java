@@ -74,7 +74,7 @@ public class FileSegmentTest {
     public void fileAttributesTest() {
         int baseOffset = 1000;
         FileSegment fileSegment = new PosixFileSegment(
-            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), baseOffset);
+            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), baseOffset, storeExecutor);
 
         // for default value check
         Assert.assertEquals(baseOffset, fileSegment.getBaseOffset());
@@ -104,9 +104,9 @@ public class FileSegmentTest {
     @Test
     public void fileSortByOffsetTest() {
         FileSegment fileSegment1 = new PosixFileSegment(
-            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), 200L);
+            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), 200L, storeExecutor);
         FileSegment fileSegment2 = new PosixFileSegment(
-            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), 100L);
+            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), 100L, storeExecutor);
         FileSegment[] fileSegments = new FileSegment[] {fileSegment1, fileSegment2};
         Arrays.sort(fileSegments);
         Assert.assertEquals(fileSegments[0], fileSegment2);
@@ -116,17 +116,17 @@ public class FileSegmentTest {
     @Test
     public void fileMaxSizeTest() {
         FileSegment fileSegment = new PosixFileSegment(
-            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), 100L);
+            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), 100L, storeExecutor);
         Assert.assertEquals(storeConfig.getTieredStoreCommitLogMaxSize(), fileSegment.getMaxSize());
         fileSegment.destroyFile();
 
         fileSegment = new PosixFileSegment(
-            storeConfig, FileSegmentType.CONSUME_QUEUE, MessageStoreUtil.toFilePath(mq), 100L);
+            storeConfig, FileSegmentType.CONSUME_QUEUE, MessageStoreUtil.toFilePath(mq), 100L, storeExecutor);
         Assert.assertEquals(storeConfig.getTieredStoreConsumeQueueMaxSize(), fileSegment.getMaxSize());
         fileSegment.destroyFile();
 
         fileSegment = new PosixFileSegment(
-            storeConfig, FileSegmentType.INDEX, MessageStoreUtil.toFilePath(mq), 100L);
+            storeConfig, FileSegmentType.INDEX, MessageStoreUtil.toFilePath(mq), 100L, storeExecutor);
         Assert.assertEquals(Long.MAX_VALUE, fileSegment.getMaxSize());
         fileSegment.destroyFile();
     }
@@ -134,7 +134,7 @@ public class FileSegmentTest {
     @Test
     public void unexpectedCaseTest() {
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig);
+        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig, new MessageStoreExecutor());
         FileSegment fileSegment = factory.createCommitLogFileSegment(MessageStoreUtil.toFilePath(mq), baseOffset);
 
         fileSegment.initPosition(fileSegment.getSize());
@@ -157,7 +157,7 @@ public class FileSegmentTest {
     @Test
     public void commitLogTest() throws InterruptedException {
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig);
+        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig, new MessageStoreExecutor());
         FileSegment fileSegment = factory.createCommitLogFileSegment(MessageStoreUtil.toFilePath(mq), baseOffset);
         long lastSize = fileSegment.getSize();
         fileSegment.initPosition(fileSegment.getSize());
@@ -225,7 +225,7 @@ public class FileSegmentTest {
     @Test
     public void consumeQueueTest() throws ClassNotFoundException, NoSuchMethodException {
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig);
+        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig, new MessageStoreExecutor());
         FileSegment fileSegment = factory.createConsumeQueueFileSegment(MessageStoreUtil.toFilePath(mq), baseOffset);
 
         long storeTimestamp = System.currentTimeMillis();
@@ -258,7 +258,7 @@ public class FileSegmentTest {
     @Test
     public void fileSegmentReadTest() throws ClassNotFoundException, NoSuchMethodException {
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig);
+        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig, new MessageStoreExecutor());
         FileSegment fileSegment = factory.createConsumeQueueFileSegment(MessageStoreUtil.toFilePath(mq), baseOffset);
 
         long storeTimestamp = System.currentTimeMillis();
@@ -292,7 +292,7 @@ public class FileSegmentTest {
     @Test
     public void commitFailedThenSuccessTest() {
         MemoryFileSegment segment = new MemoryFileSegment(
-            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), baseOffset);
+            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), baseOffset, storeExecutor);
 
         long lastSize = segment.getSize();
         segment.setCheckSize(false);
@@ -352,7 +352,7 @@ public class FileSegmentTest {
     public void commitFailedMoreTimes() {
         long startTime = System.currentTimeMillis();
         MemoryFileSegment segment = new MemoryFileSegment(
-            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), baseOffset);
+            storeConfig, FileSegmentType.COMMIT_LOG, MessageStoreUtil.toFilePath(mq), baseOffset, storeExecutor);
 
         long lastSize = segment.getSize();
         segment.setCheckSize(false);
@@ -419,7 +419,7 @@ public class FileSegmentTest {
     @Test
     public void handleCommitExceptionTest() {
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig);
+        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig, storeExecutor);
 
         {
             FileSegment fileSegment = factory.createCommitLogFileSegment(MessageStoreUtil.toFilePath(mq), baseOffset);

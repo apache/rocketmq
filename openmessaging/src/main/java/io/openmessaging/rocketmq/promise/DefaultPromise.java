@@ -82,7 +82,7 @@ public class DefaultPromise<V> implements Promise<V> {
                         try {
                             lock.wait(waitTime);
                         } catch (InterruptedException e) {
-                            LOG.error("promise get value interrupted,excepiton:{}", e.getMessage());
+                            LOG.error("promise get value interrupted,exception:{}", e.getMessage());
                         }
 
                         if (!isDoing()) {

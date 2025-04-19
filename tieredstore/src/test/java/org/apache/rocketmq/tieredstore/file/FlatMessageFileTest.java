@@ -177,13 +177,35 @@ public class FlatMessageFileTest {
         // append message to consume queue
         flatFile.consumeQueue.initOffset(50 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
-        for (int i = 0; i < 5; i++) {
-            AppendResult appendResult = flatFile.appendConsumeQueue(new DispatchRequest(
-                mq.getTopic(), mq.getQueueId(), MessageFormatUtilTest.MSG_LEN * i,
-                MessageFormatUtilTest.MSG_LEN, 0, timestamp1, 50 + i,
+        AppendResult appendResult = flatFile.appendConsumeQueue(new DispatchRequest(
+                mq.getTopic(), mq.getQueueId(), 0,
+                MessageFormatUtilTest.MSG_LEN, 0, timestamp1, 50,
                 "", "", 0, 0, null));
-            Assert.assertEquals(AppendResult.SUCCESS, appendResult);
-        }
+        Assert.assertEquals(AppendResult.SUCCESS, appendResult);
+
+        appendResult = flatFile.appendConsumeQueue(new DispatchRequest(
+                mq.getTopic(), mq.getQueueId(), MessageFormatUtilTest.MSG_LEN,
+                MessageFormatUtilTest.MSG_LEN, 0, timestamp2, 51,
+                "", "", 0, 0, null));
+        Assert.assertEquals(AppendResult.SUCCESS, appendResult);
+
+        appendResult = flatFile.appendConsumeQueue(new DispatchRequest(
+                mq.getTopic(), mq.getQueueId(), MessageFormatUtilTest.MSG_LEN * 2,
+                MessageFormatUtilTest.MSG_LEN, 0, timestamp2, 52,
+                "", "", 0, 0, null));
+        Assert.assertEquals(AppendResult.SUCCESS, appendResult);
+
+        appendResult = flatFile.appendConsumeQueue(new DispatchRequest(
+                mq.getTopic(), mq.getQueueId(), MessageFormatUtilTest.MSG_LEN * 3,
+                MessageFormatUtilTest.MSG_LEN, 0, timestamp2, 53,
+                "", "", 0, 0, null));
+        Assert.assertEquals(AppendResult.SUCCESS, appendResult);
+
+        appendResult = flatFile.appendConsumeQueue(new DispatchRequest(
+                mq.getTopic(), mq.getQueueId(), MessageFormatUtilTest.MSG_LEN * 4,
+                MessageFormatUtilTest.MSG_LEN, 0, timestamp3, 54,
+                "", "", 0, 0, null));
+        Assert.assertEquals(AppendResult.SUCCESS, appendResult);
 
         // commit message will increase max consume queue offset
         Assert.assertTrue(flatFile.commitAsync().join());
@@ -215,5 +237,13 @@ public class FlatMessageFileTest {
         Assert.assertEquals(55, flatFile.getQueueOffsetByTimeAsync(timestamp3 + 1, BoundaryType.UPPER).join().longValue());
 
         flatFile.destroy();
+    }
+
+    @Test
+    public void testCommitLock() {
+        String topic = "CommitLogTest";
+        FlatMessageFile flatFile = new FlatMessageFile(flatFileFactory, topic, 0);
+        flatFile.getCommitLock().drainPermits();
+        Assert.assertFalse(flatFile.commitAsync().join());
     }
 }

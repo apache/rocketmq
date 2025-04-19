@@ -727,8 +727,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         Map<String, String> prop = request.getPropertiesMap();
         String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String multiQueueOffset = prop.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
-        String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
-        String[] queueOffsets = multiQueueOffset.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+        String[] queues = multiDispatchQueue.split(MixAll.LMQ_DISPATCH_SEPARATOR);
+        String[] queueOffsets = multiQueueOffset.split(MixAll.LMQ_DISPATCH_SEPARATOR);
         if (queues.length != queueOffsets.length) {
             log.error("[bug] queues.length!=queueOffsets.length ", request.getTopic());
             return;
@@ -816,7 +816,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
 
                 if (expectLogicOffset < currentLogicOffset) {
-                    log.warn("Build  consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                    log.warn("Build consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
                         expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
                     return true;
                 }
@@ -833,7 +833,13 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 }
             }
             this.setMaxPhysicOffset(offset + size);
-            return mappedFile.appendMessage(this.byteBufferIndex.array());
+            boolean appendResult;
+            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                appendResult = mappedFile.appendMessageUsingFileChannel(this.byteBufferIndex.array());
+            } else {
+                appendResult = mappedFile.appendMessage(this.byteBufferIndex.array());
+            }
+            return appendResult;
         }
         return false;
     }
@@ -846,7 +852,12 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
         int until = (int) (untilWhere % this.mappedFileQueue.getMappedFileSize());
         for (int i = 0; i < until; i += CQ_STORE_UNIT_SIZE) {
-            mappedFile.appendMessage(byteBuffer.array());
+            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                mappedFile.appendMessageUsingFileChannel(byteBuffer.array());
+            } else {
+                mappedFile.appendMessage(byteBuffer.array());
+            }
+
         }
     }
 

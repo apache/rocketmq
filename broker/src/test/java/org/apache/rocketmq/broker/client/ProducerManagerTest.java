@@ -22,6 +22,8 @@ import java.lang.reflect.Field;
 import java.util.Map;
 
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +38,8 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProducerManagerTest {
+
+    private BrokerConfig brokerConfig;
     private ProducerManager producerManager;
     private String group = "FooBar";
     private ClientChannelInfo clientInfo;
@@ -45,7 +49,8 @@ public class ProducerManagerTest {
 
     @Before
     public void init() {
-        producerManager = new ProducerManager();
+        brokerConfig = new BrokerConfig();
+        producerManager = new ProducerManager(null, brokerConfig);
         clientInfo = new ClientChannelInfo(channel, "clientId", LanguageCode.JAVA, 0);
     }
 
@@ -140,10 +145,20 @@ public class ProducerManagerTest {
     }
 
     @Test
-    public void testRegisterProducer() throws Exception {
+    public void testRegisterProducer() {
+        brokerConfig.setEnableRegisterProducer(false);
+        brokerConfig.setRejectTransactionMessage(true);
         producerManager.registerProducer(group, clientInfo);
         Map<Channel, ClientChannelInfo> channelMap = producerManager.getGroupChannelTable().get(group);
         Channel channel1 = producerManager.findChannel("clientId");
+        assertThat(channelMap).isNull();
+        assertThat(channel1).isNull();
+
+        brokerConfig.setEnableRegisterProducer(true);
+        brokerConfig.setRejectTransactionMessage(false);
+        producerManager.registerProducer(group, clientInfo);
+        channelMap = producerManager.getGroupChannelTable().get(group);
+        channel1 = producerManager.findChannel("clientId");
         assertThat(channelMap).isNotNull();
         assertThat(channel1).isNotNull();
         assertThat(channelMap.get(channel)).isEqualTo(clientInfo);

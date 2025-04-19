@@ -19,8 +19,14 @@ package org.apache.rocketmq.broker.processor;
 import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.PopMetricsManager;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
+import org.apache.rocketmq.broker.pop.PopConsumerLockService;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -28,19 +34,19 @@ import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
-import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
@@ -67,6 +73,35 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
+
+        CompletableFuture<RemotingCommand> responseFuture = processRequestAsync(channel, request, brokerAllowSuspend);
+
+        if (brokerController.getBrokerConfig().isAppendCkAsync() && brokerController.getBrokerConfig().isAppendAckAsync()) {
+            responseFuture.thenAccept(response -> doResponse(channel, request, response)).exceptionally(throwable -> {
+                RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setOpaque(request.getOpaque());
+                doResponse(channel, request, response);
+                POP_LOGGER.error("append checkpoint or ack origin failed", throwable);
+                return null;
+            });
+        } else {
+            RemotingCommand response;
+            try {
+                response = responseFuture.get(3000, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setOpaque(request.getOpaque());
+                POP_LOGGER.error("append checkpoint or ack origin failed", e);
+            }
+            return response;
+        }
+        return null;
+    }
+
+    public CompletableFuture<RemotingCommand> processRequestAsync(final Channel channel, RemotingCommand request,
+        boolean brokerAllowSuspend) throws RemotingCommandException {
         final ChangeInvisibleTimeRequestHeader requestHeader = (ChangeInvisibleTimeRequestHeader) request.decodeCommandCustomHeader(ChangeInvisibleTimeRequestHeader.class);
         RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
         response.setCode(ResponseCode.SUCCESS);
@@ -77,7 +112,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             POP_LOGGER.error("The topic {} not exist, consumer: {} ", requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(channel));
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark(String.format("topic[%s] not exist, apply first please! %s", requestHeader.getTopic(), FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL)));
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         if (requestHeader.getQueueId() >= topicConfig.getReadQueueNums() || requestHeader.getQueueId() < 0) {
@@ -86,46 +121,105 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             POP_LOGGER.warn(errorInfo);
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             response.setRemark(errorInfo);
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
         long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
-        long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
-        if (requestHeader.getOffset() < minOffset || requestHeader.getOffset() > maxOffset) {
+        long maxOffset;
+        try {
+            maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
+        } catch (ConsumeQueueException e) {
+            throw new RemotingCommandException("Failed to get max consume offset", e);
+        }
+        if (requestHeader.getOffset() < minOffset || requestHeader.getOffset() >= maxOffset) {
             response.setCode(ResponseCode.NO_MESSAGE);
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
+        if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
+            if (ExtraInfoUtil.isOrder(extraInfo)) {
+                return this.processChangeInvisibleTimeForOrderNew(
+                    requestHeader, extraInfo, response, responseHeader);
+            }
+            try {
+                long current = System.currentTimeMillis();
+                brokerController.getPopConsumerService().changeInvisibilityDuration(
+                    ExtraInfoUtil.getPopTime(extraInfo), ExtraInfoUtil.getInvisibleTime(extraInfo), current,
+                    requestHeader.getInvisibleTime(), requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                    requestHeader.getQueueId(), requestHeader.getOffset());
+                responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
+                responseHeader.setPopTime(current);
+                responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+            } catch (Exception e) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+            }
+            return CompletableFuture.completedFuture(response);
+        }
 
         if (ExtraInfoUtil.isOrder(extraInfo)) {
-            return processChangeInvisibleTimeForOrder(requestHeader, extraInfo, response, responseHeader);
+            return CompletableFuture.completedFuture(
+                processChangeInvisibleTimeForOrder(requestHeader, extraInfo, response, responseHeader));
         }
 
         // add new ck
         long now = System.currentTimeMillis();
-        PutMessageResult ckResult = appendCheckPoint(requestHeader, ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now, ExtraInfoUtil.getBrokerName(extraInfo));
+        CompletableFuture<Boolean> futureResult = appendCheckPointThenAckOrigin(requestHeader,
+            ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now, extraInfo);
 
-        if (ckResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
-            && ckResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
-            && ckResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
-            && ckResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
-            POP_LOGGER.error("change Invisible, put new ck error: {}", ckResult);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            return response;
+        return futureResult.thenCompose(result -> {
+            if (result) {
+                responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
+                responseHeader.setPopTime(now);
+                responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+            } else {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+            }
+            return CompletableFuture.completedFuture(response);
+        });
+    }
+
+    @SuppressWarnings({"StatementWithEmptyBody", "DuplicatedCode"})
+    public CompletableFuture<RemotingCommand> processChangeInvisibleTimeForOrderNew(
+        ChangeInvisibleTimeRequestHeader requestHeader, String[] extraInfo,
+        RemotingCommand response, ChangeInvisibleTimeResponseHeader responseHeader) {
+
+        String groupId = requestHeader.getConsumerGroup();
+        String topicId = requestHeader.getTopic();
+        Integer queueId = requestHeader.getQueueId();
+        long popTime = ExtraInfoUtil.getPopTime(extraInfo);
+
+        PopConsumerLockService consumerLockService =
+            this.brokerController.getPopConsumerService().getConsumerLockService();
+        ConsumerOffsetManager consumerOffsetManager = this.brokerController.getConsumerOffsetManager();
+        ConsumerOrderInfoManager consumerOrderInfoManager = brokerController.getConsumerOrderInfoManager();
+
+        long oldOffset = consumerOffsetManager.queryOffset(groupId, topicId, queueId);
+        if (requestHeader.getOffset() < oldOffset) {
+            return CompletableFuture.completedFuture(response);
         }
 
-        // ack old msg.
+        while (!consumerLockService.tryLock(groupId, topicId)) {
+        }
+
         try {
-            ackOrigin(requestHeader, extraInfo);
-        } catch (Throwable e) {
-            POP_LOGGER.error("change Invisible, put ack msg error: {}, {}", requestHeader.getExtraInfo(), e.getMessage());
-            // cancel new ck?
+            // double check
+            oldOffset = consumerOffsetManager.queryOffset(groupId, topicId, queueId);
+            if (requestHeader.getOffset() < oldOffset) {
+                return CompletableFuture.completedFuture(response);
+            }
+
+            long visibilityTimeout = System.currentTimeMillis() + requestHeader.getInvisibleTime();
+            consumerOrderInfoManager.updateNextVisibleTime(
+                topicId, groupId, queueId, requestHeader.getOffset(), popTime, visibilityTimeout);
+
+            responseHeader.setInvisibleTime(visibilityTimeout - popTime);
+            responseHeader.setPopTime(popTime);
+            responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+        } finally {
+            consumerLockService.unlock(groupId, topicId);
         }
 
-        responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
-        responseHeader.setPopTime(now);
-        responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
-        return response;
+        return CompletableFuture.completedFuture(response);
     }
 
     protected RemotingCommand processChangeInvisibleTimeForOrder(ChangeInvisibleTimeRequestHeader requestHeader,
@@ -158,7 +252,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private void ackOrigin(final ChangeInvisibleTimeRequestHeader requestHeader, String[] extraInfo) {
+    private CompletableFuture<Boolean> ackOrigin(final ChangeInvisibleTimeRequestHeader requestHeader,
+        String[] extraInfo) {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         AckMsg ackMsg = new AckMsg();
 
@@ -176,11 +271,11 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         this.brokerController.getBrokerStatsManager().incGroupAckNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
 
         if (brokerController.getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
-            return;
+            return CompletableFuture.completedFuture(true);
         }
 
         msgInner.setTopic(reviveTopic);
-        msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.CHARSET_UTF8));
+        msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(rqId);
         msgInner.setTags(PopAckConstants.ACK_TAG);
         msgInner.setBornTimestamp(System.currentTimeMillis());
@@ -189,18 +284,25 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         msgInner.setDeliverTimeMs(ExtraInfoUtil.getPopTime(extraInfo) + ExtraInfoUtil.getInvisibleTime(extraInfo));
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genAckUniqueId(ackMsg));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-        PutMessageResult putMessageResult = this.brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
-        if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
-            && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
-            && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
-            && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
-            POP_LOGGER.error("change Invisible, put ack msg fail: {}, {}", ackMsg, putMessageResult);
-        }
-        PopMetricsManager.incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
+        return this.brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenCompose(putMessageResult -> {
+            if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
+                && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
+                && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
+                && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
+                POP_LOGGER.error("change Invisible, put ack msg fail: {}, {}", ackMsg, putMessageResult);
+            }
+            PopMetricsManager.incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
+            return CompletableFuture.completedFuture(true);
+        }).exceptionally(e -> {
+            POP_LOGGER.error("change Invisible, put ack msg error: {}, {}", requestHeader.getExtraInfo(), e.getMessage());
+            return false;
+        });
     }
 
-    private PutMessageResult appendCheckPoint(final ChangeInvisibleTimeRequestHeader requestHeader, int reviveQid,
-        int queueId, long offset, long popTime, String brokerName) {
+    private CompletableFuture<Boolean> appendCheckPointThenAckOrigin(
+        final ChangeInvisibleTimeRequestHeader requestHeader,
+        int reviveQid,
+        int queueId, long offset, long popTime, String[] extraInfo) {
         // add check point msg to revive log
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(reviveTopic);
@@ -214,9 +316,9 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         ck.setTopic(requestHeader.getTopic());
         ck.setQueueId(queueId);
         ck.addDiff(0);
-        ck.setBrokerName(brokerName);
+        ck.setBrokerName(ExtraInfoUtil.getBrokerName(extraInfo));
 
-        msgInner.setBody(JSON.toJSONString(ck).getBytes(DataConverter.CHARSET_UTF8));
+        msgInner.setBody(JSON.toJSONString(ck).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(reviveQid);
         msgInner.setTags(PopAckConstants.CK_TAG);
         msgInner.setBornTimestamp(System.currentTimeMillis());
@@ -225,21 +327,36 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         msgInner.setDeliverTimeMs(ck.getReviveTime() - PopAckConstants.ackTimeInterval);
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genCkUniqueId(ck));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-        PutMessageResult putMessageResult = this.brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
-
-        if (brokerController.getBrokerConfig().isEnablePopLog()) {
-            POP_LOGGER.info("change Invisible , appendCheckPoint, topic {}, queueId {},reviveId {}, cid {}, startOffset {}, rt {}, result {}", requestHeader.getTopic(), queueId, reviveQid, requestHeader.getConsumerGroup(), offset,
-                ck.getReviveTime(), putMessageResult);
-        }
-
-        if (putMessageResult != null) {
-            PopMetricsManager.incPopReviveCkPutCount(ck, putMessageResult.getPutMessageStatus());
-            if (putMessageResult.isOk()) {
-                this.brokerController.getBrokerStatsManager().incBrokerCkNums(1);
-                this.brokerController.getBrokerStatsManager().incGroupCkNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
+        return this.brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenCompose(putMessageResult -> {
+            if (brokerController.getBrokerConfig().isEnablePopLog()) {
+                POP_LOGGER.info("change Invisible, appendCheckPoint, topic {}, queueId {},reviveId {}, cid {}, startOffset {}, rt {}, result {}", requestHeader.getTopic(), queueId, reviveQid, requestHeader.getConsumerGroup(), offset,
+                    ck.getReviveTime(), putMessageResult);
             }
-        }
 
-        return putMessageResult;
+            if (putMessageResult != null) {
+                PopMetricsManager.incPopReviveCkPutCount(ck, putMessageResult.getPutMessageStatus());
+                if (putMessageResult.isOk()) {
+                    this.brokerController.getBrokerStatsManager().incBrokerCkNums(1);
+                    this.brokerController.getBrokerStatsManager().incGroupCkNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
+                }
+            }
+            if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
+                && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
+                && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
+                && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
+                POP_LOGGER.error("change invisible, put new ck error: {}", putMessageResult);
+                return CompletableFuture.completedFuture(false);
+            } else {
+                return ackOrigin(requestHeader, extraInfo);
+            }
+        }).exceptionally(throwable -> {
+            POP_LOGGER.error("change invisible, put new ck error", throwable);
+            return null;
+        });
+    }
+
+    protected void doResponse(Channel channel, RemotingCommand request,
+        final RemotingCommand response) {
+        NettyRemotingAbstract.writeResponse(channel, request, response);
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.auth.authentication.chain;
 
+import java.security.MessageDigest;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
@@ -62,7 +63,8 @@ public class DefaultAuthenticationHandler implements Handler<DefaultAuthenticati
             throw new AuthenticationException("User:{} is disabled.", context.getUsername());
         }
         String signature = AclSigner.calSignature(context.getContent(), user.getPassword());
-        if (!StringUtils.equals(signature, context.getSignature())) {
+        if (context.getSignature() == null
+            || !MessageDigest.isEqual(signature.getBytes(AclSigner.DEFAULT_CHARSET), context.getSignature().getBytes(AclSigner.DEFAULT_CHARSET))) {
             throw new AuthenticationException("check signature failed.");
         }
     }

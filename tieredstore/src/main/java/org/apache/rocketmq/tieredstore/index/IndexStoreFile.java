@@ -38,7 +38,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
-import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.provider.FileSegment;
 import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
@@ -261,54 +260,55 @@ public class IndexStoreFile implements IndexFile {
     protected CompletableFuture<List<IndexItem>> queryAsyncFromUnsealedFile(
         String key, int maxCount, long beginTime, long endTime) {
 
-        return CompletableFuture.supplyAsync(() -> {
-            List<IndexItem> result = new ArrayList<>();
-            try {
-                fileReadWriteLock.readLock().lock();
-                if (!UNSEALED.equals(this.fileStatus.get()) && !SEALED.equals(this.fileStatus.get())) {
-                    return result;
-                }
-
-                if (mappedFile == null || !mappedFile.hold()) {
-                    return result;
-                }
-
-                int hashCode = this.hashCode(key);
-                int slotPosition = this.getSlotPosition(hashCode % this.hashSlotMaxCount);
-                int slotValue = this.getSlotValue(slotPosition);
-
-                int left = MAX_QUERY_COUNT;
-                while (left > 0 &&
-                    slotValue > INVALID_INDEX &&
-                    slotValue <= this.indexItemCount.get()) {
-
-                    byte[] bytes = new byte[IndexItem.INDEX_ITEM_SIZE];
-                    ByteBuffer buffer = this.byteBuffer.duplicate();
-                    buffer.position(this.getItemPosition(slotValue));
-                    buffer.get(bytes);
-                    IndexItem indexItem = new IndexItem(bytes);
-                    if (hashCode == indexItem.getHashCode()) {
-                        result.add(indexItem);
-                        if (result.size() > maxCount) {
-                            break;
-                        }
-                    }
-                    slotValue = indexItem.getItemIndex();
-                    left--;
-                }
-
-                log.debug("IndexStoreFile query from unsealed mapped file, timestamp: {}, result size: {}, " +
-                        "key: {}, hashCode: {}, maxCount: {}, timestamp={}-{}",
-                    getTimestamp(), result.size(), key, hashCode, maxCount, beginTime, endTime);
-            } catch (Exception e) {
-                log.error("IndexStoreFile query from unsealed mapped file error, timestamp: {}, " +
-                    "key: {}, maxCount: {}, timestamp={}-{}", getTimestamp(), key, maxCount, beginTime, endTime, e);
-            } finally {
-                fileReadWriteLock.readLock().unlock();
-                mappedFile.release();
+        List<IndexItem> result = new ArrayList<>();
+        try {
+            fileReadWriteLock.readLock().lock();
+            if (!UNSEALED.equals(this.fileStatus.get()) && !SEALED.equals(this.fileStatus.get())) {
+                return CompletableFuture.completedFuture(result);
             }
-            return result;
-        }, MessageStoreExecutor.getInstance().bufferFetchExecutor);
+
+            if (mappedFile == null || !mappedFile.hold()) {
+                return CompletableFuture.completedFuture(result);
+            }
+
+            int hashCode = this.hashCode(key);
+            int slotPosition = this.getSlotPosition(hashCode % this.hashSlotMaxCount);
+            int slotValue = this.getSlotValue(slotPosition);
+
+            int left = MAX_QUERY_COUNT;
+            while (left > 0 &&
+                slotValue > INVALID_INDEX &&
+                slotValue <= this.indexItemCount.get()) {
+
+                byte[] bytes = new byte[IndexItem.INDEX_ITEM_SIZE];
+                ByteBuffer buffer = this.byteBuffer.duplicate();
+                buffer.position(this.getItemPosition(slotValue));
+                buffer.get(bytes);
+                IndexItem indexItem = new IndexItem(bytes);
+                long storeTimestamp = indexItem.getTimeDiff() + beginTimestamp.get();
+                if (hashCode == indexItem.getHashCode() &&
+                    beginTime <= storeTimestamp && storeTimestamp <= endTime) {
+                    result.add(indexItem);
+                    if (result.size() > maxCount) {
+                        break;
+                    }
+                }
+                slotValue = indexItem.getItemIndex();
+                left--;
+            }
+
+            log.debug("IndexStoreFile query from unsealed mapped file, timestamp: {}, result size: {}, " +
+                    "key: {}, hashCode: {}, maxCount: {}, timestamp={}-{}",
+                getTimestamp(), result.size(), key, hashCode, maxCount, beginTime, endTime);
+        } catch (Exception e) {
+            log.error("IndexStoreFile query from unsealed mapped file error, timestamp: {}, " +
+                "key: {}, maxCount: {}, timestamp={}-{}", getTimestamp(), key, maxCount, beginTime, endTime, e);
+        } finally {
+            fileReadWriteLock.readLock().unlock();
+            mappedFile.release();
+        }
+
+        return CompletableFuture.completedFuture(result);
     }
 
     protected CompletableFuture<List<IndexItem>> queryAsyncFromSegmentFile(
@@ -463,7 +463,7 @@ public class IndexStoreFile implements IndexFile {
             fileReadWriteLock.writeLock().lock();
             this.fileStatus.set(IndexStatusEnum.SHUTDOWN);
             if (this.fileSegment != null && this.fileSegment instanceof PosixFileSegment) {
-                ((PosixFileSegment) this.fileSegment).close();
+                this.fileSegment.close();
             }
             if (this.mappedFile != null) {
                 this.mappedFile.shutdown(TimeUnit.SECONDS.toMillis(10));

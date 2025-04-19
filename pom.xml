@@ -28,7 +28,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>5.2.1-SNAPSHOT</version>
+    <version>5.3.3-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -100,7 +100,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <commons-cli.version>1.5.0</commons-cli.version>
-        <netty.version>4.1.65.Final</netty.version>
+        <netty.version>4.1.114.Final</netty.version>
         <netty.tcnative.version>2.0.53.Final</netty.tcnative.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
         <fastjson.version>1.2.83</fastjson.version>
@@ -108,7 +108,7 @@
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
-        <commons-io.version>2.7</commons-io.version>
+        <commons-io.version>2.14.0</commons-io.version>
         <guava.version>32.0.1-jre</guava.version>
         <gson.version>2.9.0</gson.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
@@ -121,12 +121,12 @@
         <zstd-jni.version>1.5.2-2</zstd-jni.version>
         <lz4-java.version>1.8.0</lz4-java.version>
         <opentracing.version>0.33.0</opentracing.version>
-        <jaeger.version>1.6.0</jaeger.version>
+        <jaeger.version>1.8.1</jaeger.version>
         <dleger.version>0.3.1.2</dleger.version>
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
-        <rocketmq-proto.version>2.0.3</rocketmq-proto.version>
+        <rocketmq-proto.version>2.0.4</rocketmq-proto.version>
         <grpc.version>1.53.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
@@ -526,6 +526,21 @@
                 <sonar.host.url>https://builds.apache.org/analysis</sonar.host.url>
             </properties>
         </profile>
+        <profile>
+            <id>skip-unit-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven-surefire-plugin.version}</version>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <dependencyManagement>
@@ -626,16 +641,8 @@
                 <version>${rocketmq-proto.version}</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-protobuf</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-stub</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-netty-shaded</artifactId>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -1081,6 +1088,12 @@
                         <groupId>com.fasterxml.jackson.dataformat</groupId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>jakarta.annotation</groupId>
+                <artifactId>jakarta.annotation-api</artifactId>
+                <version>1.3.5</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

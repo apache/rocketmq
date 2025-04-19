@@ -16,13 +16,26 @@
  */
 package org.apache.rocketmq.store.dledger;
 
+import io.openmessaging.storage.dledger.AppendFuture;
+import io.openmessaging.storage.dledger.BatchAppendFuture;
+import io.openmessaging.storage.dledger.DLedgerConfig;
+import io.openmessaging.storage.dledger.DLedgerServer;
+import io.openmessaging.storage.dledger.entry.DLedgerEntry;
+import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
+import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
+import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
+import io.openmessaging.storage.dledger.protocol.DLedgerResponseCode;
+import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
+import io.openmessaging.storage.dledger.store.file.MmapFile;
+import io.openmessaging.storage.dledger.store.file.MmapFileList;
+import io.openmessaging.storage.dledger.store.file.SelectMmapBufferResult;
+import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -42,21 +55,6 @@ import org.apache.rocketmq.store.StoreStatsService;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.rocksdb.RocksDBException;
-
-import io.openmessaging.storage.dledger.AppendFuture;
-import io.openmessaging.storage.dledger.BatchAppendFuture;
-import io.openmessaging.storage.dledger.DLedgerConfig;
-import io.openmessaging.storage.dledger.DLedgerServer;
-import io.openmessaging.storage.dledger.entry.DLedgerEntry;
-import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
-import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
-import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
-import io.openmessaging.storage.dledger.protocol.DLedgerResponseCode;
-import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
-import io.openmessaging.storage.dledger.store.file.MmapFile;
-import io.openmessaging.storage.dledger.store.file.MmapFileList;
-import io.openmessaging.storage.dledger.store.file.SelectMmapBufferResult;
-import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -428,7 +426,7 @@ public class DLedgerCommitLog extends CommitLog {
         log.info("Will set the initial commitlog offset={} for dledger", dividedCommitlogOffset);
     }
 
-    private boolean isMmapFileMatchedRecover(final MmapFile mmapFile) {
+    private boolean isMmapFileMatchedRecover(final MmapFile mmapFile) throws RocksDBException {
         ByteBuffer byteBuffer = mmapFile.sliceByteBuffer();
 
         int magicCode = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.MESSAGE_MAGIC_CODE_POSITION);
@@ -436,39 +434,46 @@ public class DLedgerCommitLog extends CommitLog {
             return false;
         }
 
-        int storeTimestampPosition;
-        int sysFlag = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.SYSFLAG_POSITION);
-        if ((sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0) {
-            storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION;
+        if (this.defaultMessageStore.getMessageStoreConfig().isEnableRocksDBStore()) {
+            final long maxPhyOffsetInConsumeQueue = this.defaultMessageStore.getQueueStore().getMaxPhyOffsetInConsumeQueue();
+            long phyOffset = byteBuffer.getLong(DLedgerEntry.BODY_OFFSET + MessageDecoder.MESSAGE_PHYSIC_OFFSET_POSITION);
+            if (phyOffset <= maxPhyOffsetInConsumeQueue) {
+                log.info("find check. beginPhyOffset: {}, maxPhyOffsetInConsumeQueue: {}", phyOffset, maxPhyOffsetInConsumeQueue);
+                return true;
+            }
         } else {
-            // v6 address is 12 byte larger than v4
-            storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 12;
-        }
+            int storeTimestampPosition;
+            int sysFlag = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.SYSFLAG_POSITION);
+            if ((sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0) {
+                storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION;
+            } else {
+                // v6 address is 12 byte larger than v4
+                storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 12;
+            }
 
-        long storeTimestamp = byteBuffer.getLong(DLedgerEntry.BODY_OFFSET + storeTimestampPosition);
-        if (storeTimestamp == 0) {
-            return false;
-        }
+            long storeTimestamp = byteBuffer.getLong(DLedgerEntry.BODY_OFFSET + storeTimestampPosition);
+            if (storeTimestamp == 0) {
+                return false;
+            }
 
-        if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
+            if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
                 && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
-            if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
-                log.info("dledger find check timestamp, {} {}",
-                    storeTimestamp,
-                    UtilAll.timeMillisToHumanString(storeTimestamp));
-                return true;
-            }
-        } else {
-            if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
-                log.info("dledger find check timestamp, {} {}",
-                    storeTimestamp,
-                    UtilAll.timeMillisToHumanString(storeTimestamp));
-                return true;
+                if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
+                    log.info("dledger find check timestamp, {} {}",
+                        storeTimestamp,
+                        UtilAll.timeMillisToHumanString(storeTimestamp));
+                    return true;
+                }
+            } else {
+                if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
+                    log.info("dledger find check timestamp, {} {}",
+                        storeTimestamp,
+                        UtilAll.timeMillisToHumanString(storeTimestamp));
+                    return true;
+                }
             }
         }
-
         return false;
-
     }
 
     @Override
@@ -568,15 +573,16 @@ public class DLedgerCommitLog extends CommitLog {
         AppendFuture<AppendEntryResponse> dledgerFuture;
         EncodeResult encodeResult;
 
+        encodeResult = this.messageSerializer.serialize(msg);
+        if (encodeResult.status != AppendMessageStatus.PUT_OK) {
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
+        }
+
         String topicQueueKey = msg.getTopic() + "-" + msg.getQueueId();
         topicQueueLock.lock(topicQueueKey);
         try {
             defaultMessageStore.assignOffset(msg);
 
-            encodeResult = this.messageSerializer.serialize(msg);
-            if (encodeResult.status != AppendMessageStatus.PUT_OK) {
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
-            }
             putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
             long elapsedTimeInLock;
             long queueOffset;

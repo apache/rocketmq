@@ -27,6 +27,7 @@ import io.grpc.ServerInterceptor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
 import org.apache.rocketmq.common.constant.GrpcConstants;
+import org.apache.rocketmq.proxy.common.utils.GrpcUtils;
 import org.apache.rocketmq.proxy.grpc.constant.AttributeKeys;
 
 import java.net.InetSocketAddress;
@@ -44,11 +45,11 @@ public class HeaderInterceptor implements ServerInterceptor {
             SocketAddress remoteSocketAddress = call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
             remoteAddress = parseSocketAddress(remoteSocketAddress);
         }
-        headers.put(GrpcConstants.REMOTE_ADDRESS, remoteAddress);
+        GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.REMOTE_ADDRESS, remoteAddress);
 
         SocketAddress localSocketAddress = call.getAttributes().get(Grpc.TRANSPORT_ATTR_LOCAL_ADDR);
         String localAddress = parseSocketAddress(localSocketAddress);
-        headers.put(GrpcConstants.LOCAL_ADDRESS, localAddress);
+        GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.LOCAL_ADDRESS, localAddress);
 
         for (Attributes.Key<?> key : call.getAttributes().keys()) {
             if (!StringUtils.startsWith(key.toString(), HAProxyConstants.PROXY_PROTOCOL_PREFIX)) {
@@ -57,12 +58,12 @@ public class HeaderInterceptor implements ServerInterceptor {
             Metadata.Key<String> headerKey
                     = Metadata.Key.of(key.toString(), Metadata.ASCII_STRING_MARSHALLER);
             String headerValue = String.valueOf(call.getAttributes().get(key));
-            headers.put(headerKey, headerValue);
+            GrpcUtils.putHeaderIfNotExist(headers, headerKey, headerValue);
         }
 
         String channelId = call.getAttributes().get(AttributeKeys.CHANNEL_ID);
         if (StringUtils.isNotBlank(channelId)) {
-            headers.put(GrpcConstants.CHANNEL_ID, channelId);
+            GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.CHANNEL_ID, channelId);
         }
 
         return next.startCall(call, headers);
