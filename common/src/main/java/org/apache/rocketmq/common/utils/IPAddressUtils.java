@@ -35,6 +35,14 @@ public class IPAddressUtils {
         return VALIDATOR.isValid(ip);
     }
 
+    public static boolean isValidIPv4(String ip) {
+        return VALIDATOR.isValidInet4Address(ip);
+    }
+
+    public static boolean isValidIPv6(String ip) {
+        return VALIDATOR.isValidInet6Address(ip);
+    }
+
     public static boolean isValidCidr(String cidr) {
         return isValidIPv4Cidr(cidr) || isValidIPv6Cidr(cidr);
     }

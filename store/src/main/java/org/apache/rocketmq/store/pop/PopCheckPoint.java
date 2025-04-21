@@ -43,6 +43,8 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     private List<Integer> queueOffsetDiff;
     @JSONField(name = "bn")
     String brokerName;
+    @JSONField(name = "rp")
+    String rePutTimes; // ck rePut times
 
     public long getReviveOffset() {
         return reviveOffset;
@@ -136,6 +138,14 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         this.brokerName = brokerName;
     }
 
+    public String getRePutTimes() {
+        return rePutTimes;
+    }
+
+    public void setRePutTimes(String rePutTimes) {
+        this.rePutTimes = rePutTimes;
+    }
+
     public void addDiff(int diff) {
         if (this.queueOffsetDiff == null) {
             this.queueOffsetDiff = new ArrayList<>(8);
@@ -171,10 +181,21 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         return startOffset + queueOffsetDiff.get(index);
     }
 
+    public int parseRePutTimes() {
+        if (null == rePutTimes) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(rePutTimes);
+        } catch (Exception e) {
+        }
+        return Byte.MAX_VALUE;
+    }
+
     @Override
     public String toString() {
         return "PopCheckPoint [topic=" + topic + ", cid=" + cid + ", queueId=" + queueId + ", startOffset=" + startOffset + ", bitMap=" + bitMap + ", num=" + num + ", reviveTime=" + getReviveTime()
-            + ", reviveOffset=" + reviveOffset + ", diff=" + queueOffsetDiff + ", brokerName=" + brokerName + "]";
+            + ", reviveOffset=" + reviveOffset + ", diff=" + queueOffsetDiff + ", brokerName=" + brokerName + ", rePutTimes=" + rePutTimes + "]";
     }
 
     @Override

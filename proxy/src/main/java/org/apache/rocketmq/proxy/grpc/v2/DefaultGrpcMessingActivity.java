@@ -32,6 +32,8 @@ import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
+import apache.rocketmq.v2.RecallMessageRequest;
+import apache.rocketmq.v2.RecallMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
@@ -51,6 +53,7 @@ import org.apache.rocketmq.proxy.grpc.v2.consumer.AckMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.ChangeInvisibleDurationActivity;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.ReceiveMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.producer.ForwardMessageToDLQActivity;
+import org.apache.rocketmq.proxy.grpc.v2.producer.RecallMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.producer.SendMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.route.RouteActivity;
 import org.apache.rocketmq.proxy.grpc.v2.transaction.EndTransactionActivity;
@@ -65,6 +68,7 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     protected AckMessageActivity ackMessageActivity;
     protected ChangeInvisibleDurationActivity changeInvisibleDurationActivity;
     protected SendMessageActivity sendMessageActivity;
+    protected RecallMessageActivity recallMessageActivity;
     protected ForwardMessageToDLQActivity forwardMessageToDLQActivity;
     protected EndTransactionActivity endTransactionActivity;
     protected RouteActivity routeActivity;
@@ -82,6 +86,7 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
         this.ackMessageActivity = new AckMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.sendMessageActivity = new SendMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.recallMessageActivity = new RecallMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.endTransactionActivity = new EndTransactionActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.routeActivity = new RouteActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
@@ -143,6 +148,12 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     public CompletableFuture<ChangeInvisibleDurationResponse> changeInvisibleDuration(ProxyContext ctx,
         ChangeInvisibleDurationRequest request) {
         return this.changeInvisibleDurationActivity.changeInvisibleDuration(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<RecallMessageResponse> recallMessage(ProxyContext ctx,
+        RecallMessageRequest request) {
+        return this.recallMessageActivity.recallMessage(ctx, request);
     }
 
     @Override

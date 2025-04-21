@@ -19,10 +19,15 @@ package org.apache.rocketmq.acl.plain;
 
 import java.util.HashMap;
 import java.util.Map;
+import apache.rocketmq.v2.RecallMessageRequest;
+import apache.rocketmq.v2.Resource;
+import com.google.protobuf.GeneratedMessageV3;
+import org.apache.rocketmq.acl.common.AuthenticationHeader;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.junit.Assert;
@@ -33,6 +38,8 @@ public class PlainAccessResourceTest {
     public static final String DEFAULT_PRODUCER_GROUP = "PID_acl";
     public static final String DEFAULT_CONSUMER_GROUP = "GID_acl";
     public static final String DEFAULT_REMOTE_ADDR = "192.128.1.1";
+    public static final String AUTH_HEADER =
+        "Signature Credential=1234567890/test, SignedHeaders=host, Signature=1234567890";
 
     @Test
     public void testParseSendNormal() {
@@ -92,5 +99,35 @@ public class PlainAccessResourceTest {
         permMap.put(MixAll.getRetryTopic(DEFAULT_CONSUMER_GROUP), Permission.SUB);
 
         Assert.assertEquals(permMap, accessResource.getResourcePermMap());
+    }
+
+    @Test
+    public void testParseRecallMessage() {
+        // remoting
+        RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+        requestHeader.setTopic(DEFAULT_TOPIC);
+        requestHeader.setProducerGroup(DEFAULT_PRODUCER_GROUP);
+        requestHeader.setRecallHandle("handle");
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RECALL_MESSAGE, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        PlainAccessResource accessResource = PlainAccessResource.parse(request, DEFAULT_REMOTE_ADDR);
+        Assert.assertTrue(Permission.PUB == accessResource.getResourcePermMap().get(DEFAULT_TOPIC));
+
+        // grpc
+        GeneratedMessageV3 grpcRequest = RecallMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName(DEFAULT_TOPIC).build())
+            .setRecallHandle("handle")
+            .build();
+        accessResource = PlainAccessResource.parse(grpcRequest, mockAuthenticationHeader());
+        Assert.assertTrue(Permission.PUB == accessResource.getResourcePermMap().get(DEFAULT_TOPIC));
+    }
+
+    private AuthenticationHeader mockAuthenticationHeader() {
+        return AuthenticationHeader.builder()
+            .remoteAddress(DEFAULT_REMOTE_ADDR)
+            .authorization(AUTH_HEADER)
+            .datetime("datetime")
+            .build();
     }
 }

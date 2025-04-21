@@ -22,6 +22,8 @@ import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
+import org.rocksdb.CompressionType;
+import org.rocksdb.util.SizeUnit;
 
 public class MessageStoreConfig {
 
@@ -97,6 +99,7 @@ public class MessageStoreConfig {
     private boolean timerSkipUnknownError = false;
     private boolean timerWarmEnable = false;
     private boolean timerStopDequeue = false;
+    private boolean timerEnableRetryUntilSuccess = false;
     private int timerCongestNumEachSlot = Integer.MAX_VALUE;
 
     private int timerMetricSmallThreshold = 1000000;
@@ -105,6 +108,7 @@ public class MessageStoreConfig {
     // default, defaultRocksDB
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
+
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -418,6 +422,64 @@ public class MessageStoreConfig {
      * For example, reput offset exceeding the flush offset during synchronous disk flushing.
      */
     private boolean readUnCommitted = false;
+
+    private boolean putConsumeQueueDataByFileChannel = true;
+
+    private boolean rocksdbCQDoubleWriteEnable = false;
+
+    /**
+     * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
+     * The following values are valid:
+     * <ul>
+     *     <li>snappy</li>
+     *     <li>z</li>
+     *     <li>bzip2</li>
+     *     <li>lz4</li>
+     *     <li>lz4hc</li>
+     *     <li>xpress</li>
+     *     <li>zstd</li>
+     * </ul>
+     *
+     * LZ4 is the recommended one.
+     */
+    private String bottomMostCompressionTypeForConsumeQueueStore = CompressionType.ZSTD_COMPRESSION.getLibraryName();
+
+    private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
+
+    /**
+     * Flush RocksDB WAL frequency, aka, flush WAL every N write ops.
+     */
+    private int rocksdbFlushWalFrequency = 1024;
+
+    private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
+
+    public String getRocksdbCompressionType() {
+        return rocksdbCompressionType;
+    }
+
+    public void setRocksdbCompressionType(String compressionType) {
+        this.rocksdbCompressionType = compressionType;
+    }
+
+    /**
+     * Spin number in the retreat strategy of spin lock
+     * Default is 1000
+     */
+    private int spinLockCollisionRetreatOptimalDegree = 1000;
+
+    /**
+     * Use AdaptiveBackOffLock
+     **/
+    private boolean useABSLock = false;
+
+    public boolean isRocksdbCQDoubleWriteEnable() {
+        return rocksdbCQDoubleWriteEnable;
+    }
+
+    public void setRocksdbCQDoubleWriteEnable(boolean rocksdbWriteEnable) {
+        this.rocksdbCQDoubleWriteEnable = rocksdbWriteEnable;
+    }
+
 
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
@@ -1628,6 +1690,14 @@ public class MessageStoreConfig {
         this.timerSkipUnknownError = timerSkipUnknownError;
     }
 
+    public boolean isTimerEnableRetryUntilSuccess() {
+        return timerEnableRetryUntilSuccess;
+    }
+
+    public void setTimerEnableRetryUntilSuccess(boolean timerEnableRetryUntilSuccess) {
+        this.timerEnableRetryUntilSuccess = timerEnableRetryUntilSuccess;
+    }
+
     public boolean isTimerWarmEnable() {
         return timerWarmEnable;
     }
@@ -1831,5 +1901,53 @@ public class MessageStoreConfig {
 
     public void setReadUnCommitted(boolean readUnCommitted) {
         this.readUnCommitted = readUnCommitted;
+    }
+
+    public boolean isPutConsumeQueueDataByFileChannel() {
+        return putConsumeQueueDataByFileChannel;
+    }
+
+    public void setPutConsumeQueueDataByFileChannel(boolean putConsumeQueueDataByFileChannel) {
+        this.putConsumeQueueDataByFileChannel = putConsumeQueueDataByFileChannel;
+    }
+
+    public String getBottomMostCompressionTypeForConsumeQueueStore() {
+        return bottomMostCompressionTypeForConsumeQueueStore;
+    }
+
+    public void setBottomMostCompressionTypeForConsumeQueueStore(String bottomMostCompressionTypeForConsumeQueueStore) {
+        this.bottomMostCompressionTypeForConsumeQueueStore = bottomMostCompressionTypeForConsumeQueueStore;
+    }
+
+    public int getRocksdbFlushWalFrequency() {
+        return rocksdbFlushWalFrequency;
+    }
+
+    public void setRocksdbFlushWalFrequency(int rocksdbFlushWalFrequency) {
+        this.rocksdbFlushWalFrequency = rocksdbFlushWalFrequency;
+    }
+
+    public long getRocksdbWalFileRollingThreshold() {
+        return rocksdbWalFileRollingThreshold;
+    }
+
+    public void setRocksdbWalFileRollingThreshold(long rocksdbWalFileRollingThreshold) {
+        this.rocksdbWalFileRollingThreshold = rocksdbWalFileRollingThreshold;
+    }
+
+    public int getSpinLockCollisionRetreatOptimalDegree() {
+        return spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setSpinLockCollisionRetreatOptimalDegree(int spinLockCollisionRetreatOptimalDegree) {
+        this.spinLockCollisionRetreatOptimalDegree = spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setUseABSLock(boolean useABSLock) {
+        this.useABSLock = useABSLock;
+    }
+
+    public boolean getUseABSLock() {
+        return useABSLock;
     }
 }

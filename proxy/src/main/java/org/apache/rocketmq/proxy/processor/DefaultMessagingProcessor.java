@@ -75,7 +75,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     protected ThreadPoolExecutor producerProcessorExecutor;
     protected ThreadPoolExecutor consumerProcessorExecutor;
     protected static final String ROCKETMQ_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-            System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
     protected DefaultMessagingProcessor(ServiceManager serviceManager) {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
@@ -167,7 +167,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public CompletableFuture<Void> endTransaction(ProxyContext ctx, String topic, String transactionId, String messageId, String producerGroup,
+    public CompletableFuture<Void> endTransaction(ProxyContext ctx, String topic, String transactionId,
+        String messageId, String producerGroup,
         TransactionStatus transactionStatus, boolean fromTransactionCheck,
         long timeoutMillis) {
         return this.transactionProcessor.endTransaction(ctx, topic, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, timeoutMillis);
@@ -226,6 +227,12 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public CompletableFuture<Void> updateConsumerOffsetAsync(ProxyContext ctx, MessageQueue messageQueue,
+        String consumerGroup, long commitOffset, long timeoutMillis) {
+        return this.consumerProcessor.updateConsumerOffsetAsync(ctx, messageQueue, consumerGroup, commitOffset, timeoutMillis);
+    }
+
+    @Override
     public CompletableFuture<Long> queryConsumerOffset(ProxyContext ctx, MessageQueue messageQueue,
         String consumerGroup, long timeoutMillis) {
         return this.consumerProcessor.queryConsumerOffset(ctx, messageQueue, consumerGroup, timeoutMillis);
@@ -252,6 +259,12 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public CompletableFuture<Long> getMinOffset(ProxyContext ctx, MessageQueue messageQueue, long timeoutMillis) {
         return this.consumerProcessor.getMinOffset(ctx, messageQueue, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<String> recallMessage(ProxyContext ctx, String topic,
+                                                   String recallHandle, long timeoutMillis) {
+        return this.producerProcessor.recallMessage(ctx, topic, recallHandle, timeoutMillis);
     }
 
     @Override

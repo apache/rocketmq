@@ -53,6 +53,7 @@ import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
@@ -103,7 +104,7 @@ public class ScheduleMessageService extends ConfigManager {
         return delayLevel - 1;
     }
 
-    public void buildRunningStats(HashMap<String, String> stats) {
+    public void buildRunningStats(HashMap<String, String> stats) throws ConsumeQueueException {
         for (Map.Entry<Integer, Long> next : this.offsetTable.entrySet()) {
             int queueId = delayLevel2QueueId(next.getKey());
             long delayOffset = next.getValue();
@@ -473,7 +474,7 @@ public class ScheduleMessageService extends ConfigManager {
                     }
 
                     if (!deliverSuc) {
-                        this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
+                        this.scheduleNextTimerTask(currOffset, DELAY_FOR_A_WHILE);
                         return;
                     }
                 }

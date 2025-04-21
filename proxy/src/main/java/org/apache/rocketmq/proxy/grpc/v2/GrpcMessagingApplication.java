@@ -35,6 +35,8 @@ import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
+import apache.rocketmq.v2.RecallMessageRequest;
+import apache.rocketmq.v2.RecallMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
@@ -364,6 +366,25 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
                 request,
                 () -> grpcMessingActivity.changeInvisibleDuration(context, request)
                     .whenComplete((response, throwable) -> writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
+    }
+
+    @Override
+    public void recallMessage(RecallMessageRequest request, StreamObserver<RecallMessageResponse> responseObserver) {
+        Function<Status, RecallMessageResponse> statusResponseCreator =
+            status -> RecallMessageResponse.newBuilder().setStatus(status).build();
+        ProxyContext context = createContext();
+        try {
+            this.addExecutor(this.producerThreadPoolExecutor, // reuse producer thread pool
+                context,
+                request,
+                () -> grpcMessingActivity.recallMessage(context, request)
+                    .whenComplete((response, throwable) ->
+                        writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
                 responseObserver,
                 statusResponseCreator);
         } catch (Throwable t) {

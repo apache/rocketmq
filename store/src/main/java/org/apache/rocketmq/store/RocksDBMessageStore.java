@@ -16,16 +16,16 @@
  */
 package org.apache.rocketmq.store;
 
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
-
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
@@ -38,6 +38,8 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.rocksdb.RocksDBException;
 
 public class RocksDBMessageStore extends DefaultMessageStore {
+
+    private CommitLogDispatcherBuildRocksdbConsumeQueue dispatcherBuildRocksdbConsumeQueue;
 
     public RocksDBMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable) throws
@@ -75,15 +77,6 @@ public class RocksDBMessageStore extends DefaultMessageStore {
     @Override
     public void recoverTopicQueueTable() {
         this.consumeQueueStore.setTopicQueueTable(new ConcurrentHashMap<>());
-    }
-
-    @Override
-    public void finishCommitLogDispatch() {
-        try {
-            putMessagePositionInfo(null);
-        } catch (RocksDBException e) {
-            ERROR_LOG.info("try to finish commitlog dispatch error.", e);
-        }
     }
 
     @Override
@@ -167,15 +160,49 @@ public class RocksDBMessageStore extends DefaultMessageStore {
     }
 
     @Override
-    public long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter) {
-        // todo
-        return 0;
-    }
-
-    @Override
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
         DefaultStoreMetricsManager.init(meter, attributesBuilderSupplier, this);
         // Also add some metrics for rocksdb's monitoring.
         RocksDBStoreMetricsManager.init(meter, attributesBuilderSupplier, this);
     }
+
+    public CommitLogDispatcherBuildRocksdbConsumeQueue getDispatcherBuildRocksdbConsumeQueue() {
+        return dispatcherBuildRocksdbConsumeQueue;
+    }
+
+    class CommitLogDispatcherBuildRocksdbConsumeQueue implements CommitLogDispatcher {
+        @Override
+        public void dispatch(DispatchRequest request) throws RocksDBException {
+            boolean enable = getMessageStoreConfig().isRocksdbCQDoubleWriteEnable();
+            if (!enable) {
+                return;
+            }
+            final int tranType = MessageSysFlag.getTransactionValue(request.getSysFlag());
+            switch (tranType) {
+                case MessageSysFlag.TRANSACTION_NOT_TYPE:
+                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+                    putMessagePositionInfo(request);
+                    break;
+                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
+                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
+                    break;
+            }
+        }
+    }
+
+    public void loadAndStartConsumerServiceOnly() {
+        try {
+            this.dispatcherBuildRocksdbConsumeQueue = new CommitLogDispatcherBuildRocksdbConsumeQueue();
+            boolean loadResult = this.consumeQueueStore.load();
+            if (!loadResult) {
+                throw new RuntimeException("load consume queue failed");
+            }
+            super.loadCheckPoint();
+            this.consumeQueueStore.start();
+        } catch (Exception e) {
+            ERROR_LOG.error("loadAndStartConsumerServiceOnly error", e);
+            throw new RuntimeException(e);
+        }
+    }
+
 }

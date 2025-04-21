@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import javax.annotation.Nonnull;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
@@ -31,6 +32,7 @@ import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.hook.SendMessageBackHook;
@@ -181,7 +183,7 @@ public interface MessageStore {
      * @param queueId Queue ID.
      * @return Maximum offset at present.
      */
-    long getMaxOffsetInQueue(final String topic, final int queueId);
+    long getMaxOffsetInQueue(final String topic, final int queueId) throws ConsumeQueueException;
 
     /**
      * Get maximum offset of the topic queue.
@@ -191,7 +193,7 @@ public interface MessageStore {
      * @param committed return the max offset in ConsumeQueue if true, or the max offset in CommitLog if false
      * @return Maximum offset at present.
      */
-    long getMaxOffsetInQueue(final String topic, final int queueId, final boolean committed);
+    long getMaxOffsetInQueue(final String topic, final int queueId, final boolean committed) throws ConsumeQueueException;
 
     /**
      * Get the minimum offset of the topic queue.
@@ -510,6 +512,13 @@ public interface MessageStore {
     long dispatchBehindBytes();
 
     /**
+     * Get number of the milliseconds that have been stored in commit log and not yet dispatched to consume queue.
+     *
+     * @return number of the milliseconds to dispatch.
+     */
+    long dispatchBehindMilliseconds();
+
+    /**
      * Flush the message store to persist all data.
      *
      * @return maximum offset flushed to persistent storage device.
@@ -627,14 +636,6 @@ public interface MessageStore {
         boolean isRecover, boolean isFileEnd) throws RocksDBException;
 
     /**
-     * Only used in rocksdb mode, because we build consumeQueue in batch(default 16 dispatchRequests)
-     * It will be triggered in two cases:
-     * @see org.apache.rocketmq.store.DefaultMessageStore.ReputMessageService#doReput
-     * @see CommitLog#recoverAbnormally
-     */
-    void finishCommitLogDispatch();
-
-    /**
      * Get the message store config
      *
      * @return the message store config
@@ -724,6 +725,7 @@ public interface MessageStore {
      *
      * @return the queue store
      */
+    @Nonnull
     ConsumeQueueStoreInterface getQueueStore();
 
     /**

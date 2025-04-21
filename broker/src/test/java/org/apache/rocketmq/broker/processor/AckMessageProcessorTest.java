@@ -47,6 +47,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -93,7 +94,7 @@ public class AckMessageProcessorTest {
     private static final long MAX_OFFSET_IN_QUEUE = 999;
 
     @Before
-    public void init() throws IllegalAccessException, NoSuchFieldException {
+    public void init() throws IllegalAccessException, NoSuchFieldException, ConsumeQueueException {
         clientInfo = new ClientChannelInfo(channel, "127.0.0.1", LanguageCode.JAVA, 0);
         brokerController.setMessageStore(messageStore);
         Field field = BrokerController.class.getDeclaredField("broker2Client");

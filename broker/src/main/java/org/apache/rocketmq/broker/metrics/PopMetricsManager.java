@@ -39,8 +39,11 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
@@ -57,6 +60,7 @@ import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.LABEL_QUEUE_
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.LABEL_REVIVE_MESSAGE_TYPE;
 
 public class PopMetricsManager {
+    private static final Logger log = LoggerFactory.getLogger(PopMetricsManager.class);
     public static Supplier<AttributesBuilder> attributesBuilderSupplier;
 
     private static LongHistogram popBufferScanTimeConsume = new NopLongHistogram();
@@ -138,9 +142,13 @@ public class PopMetricsManager {
         ObservableLongMeasurement measurement) {
         PopReviveService[] popReviveServices = brokerController.getAckMessageProcessor().getPopReviveServices();
         for (PopReviveService popReviveService : popReviveServices) {
-            measurement.record(popReviveService.getReviveBehindMillis(), newAttributesBuilder()
-                .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
-                .build());
+            try {
+                measurement.record(popReviveService.getReviveBehindMillis(), newAttributesBuilder()
+                    .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
+                    .build());
+            } catch (ConsumeQueueException e) {
+                log.error("Failed to get revive behind duration", e);
+            }
         }
     }
 
@@ -148,9 +156,13 @@ public class PopMetricsManager {
         ObservableLongMeasurement measurement) {
         PopReviveService[] popReviveServices = brokerController.getAckMessageProcessor().getPopReviveServices();
         for (PopReviveService popReviveService : popReviveServices) {
-            measurement.record(popReviveService.getReviveBehindMessages(), newAttributesBuilder()
-                .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
-                .build());
+            try {
+                measurement.record(popReviveService.getReviveBehindMessages(), newAttributesBuilder()
+                    .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
+                    .build());
+            } catch (ConsumeQueueException e) {
+                log.error("Failed to get revive behind message count", e);
+            }
         }
     }
 

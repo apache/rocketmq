@@ -18,7 +18,6 @@ package org.apache.rocketmq.store.queue;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.attribute.CQType;
@@ -223,9 +222,46 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public long estimateMessageCount(long from, long to, MessageFilter filter) {
-        // todo
-        return 0;
+        // Check from and to offset validity
+        Pair<CqUnit, Long> fromUnit = getCqUnitAndStoreTime(from);
+        if (fromUnit == null) {
+            return -1;
+        }
+
+        if (from >= to) {
+            return -1;
+        }
+
+        if (to > getMaxOffsetInQueue()) {
+            to = getMaxOffsetInQueue();
+        }
+
+        int maxSampleSize = messageStore.getMessageStoreConfig().getMaxConsumeQueueScan();
+        int sampleSize = to - from > maxSampleSize ? maxSampleSize : (int) (to - from);
+
+        int matchThreshold = messageStore.getMessageStoreConfig().getSampleCountThreshold();
+        int matchSize = 0;
+
+        for (int i = 0; i < sampleSize; i++) {
+            long index = from + i;
+            Pair<CqUnit, Long> pair = getCqUnitAndStoreTime(index);
+            if (pair == null) {
+                continue;
+            }
+            CqUnit cqUnit = pair.getObject1();
+            if (filter.isMatchedByConsumeQueue(cqUnit.getTagsCode(), cqUnit.getCqExtUnit())) {
+                matchSize++;
+                // if matchSize is plenty, early exit estimate
+                if (matchSize > matchThreshold) {
+                    sampleSize = i;
+                    break;
+                }
+            }
+        }
+        // Make sure the second half is a floating point number, otherwise it will be truncated to 0
+        return sampleSize == 0 ? 0 : (long) ((to - from) * (matchSize / (sampleSize * 1.0)));
     }
+
 
     @Override
     public long getMinOffsetInQueue() {
@@ -235,22 +271,17 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
     private int pullNum(long cqOffset, long maxCqOffset) {
         long diffLong = maxCqOffset - cqOffset;
         if (diffLong < Integer.MAX_VALUE) {
-            int diffInt = (int) diffLong;
-            return diffInt > 16 ? 16 : diffInt;
+            return (int) diffLong;
         }
-        return 16;
+        return Integer.MAX_VALUE;
     }
 
     @Override
     public ReferredIterator<CqUnit> iterateFrom(final long startIndex) {
-        try {
-            long maxCqOffset = getMaxOffsetInQueue();
-            if (startIndex < maxCqOffset) {
-                int num = pullNum(startIndex, maxCqOffset);
-                return iterateFrom0(startIndex, num);
-            }
-        } catch (RocksDBException e) {
-            log.error("[RocksDBConsumeQueue] iterateFrom error!", e);
+        long maxCqOffset = getMaxOffsetInQueue();
+        if (startIndex < maxCqOffset) {
+            int num = pullNum(startIndex, maxCqOffset);
+            return new LargeRocksDBConsumeQueueIterator(startIndex, num);
         }
         return null;
     }
@@ -311,7 +342,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
     public CqUnit getLatestUnit() {
         try {
             long maxOffset = this.messageStore.getQueueStore().getMaxOffsetInQueue(topic, queueId);
-            return get(maxOffset);
+            return get(maxOffset > 0 ? maxOffset - 1 : maxOffset);
         } catch (RocksDBException e) {
             ERROR_LOG.error("getLatestUnit Failed. topic: {}, queueId: {}, {}", topic, queueId, e.getMessage());
         }
@@ -369,6 +400,63 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
             }
             final int currentIndex = this.currentIndex;
             final ByteBuffer byteBuffer = this.byteBufferList.get(currentIndex);
+            CqUnit cqUnit = new CqUnit(this.startIndex + currentIndex, byteBuffer.getLong(), byteBuffer.getInt(), byteBuffer.getLong());
+            this.currentIndex++;
+            return cqUnit;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove");
+        }
+
+        @Override
+        public void release() {
+        }
+
+        @Override
+        public CqUnit nextAndRelease() {
+            try {
+                return next();
+            } finally {
+                release();
+            }
+        }
+    }
+
+    private class LargeRocksDBConsumeQueueIterator implements ReferredIterator<CqUnit> {
+        private final long startIndex;
+        private final int totalCount;
+        private int currentIndex;
+
+        public LargeRocksDBConsumeQueueIterator(final long startIndex, final int num) {
+            this.startIndex = startIndex;
+            this.totalCount = num;
+            this.currentIndex = 0;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return this.currentIndex < this.totalCount;
+        }
+
+
+        @Override
+        public CqUnit next() {
+            if (!hasNext()) {
+                return null;
+            }
+
+            final ByteBuffer byteBuffer;
+            try {
+                byteBuffer = messageStore.getQueueStore().get(topic, queueId, startIndex + currentIndex);
+            } catch (RocksDBException e) {
+                ERROR_LOG.error("get cq from rocksdb failed. topic: {}, queueId: {}", topic, queueId, e);
+                return null;
+            }
+            if (byteBuffer == null || byteBuffer.remaining() < RocksDBConsumeQueueTable.CQ_UNIT_SIZE) {
+                return null;
+            }
             CqUnit cqUnit = new CqUnit(this.startIndex + currentIndex, byteBuffer.getLong(), byteBuffer.getInt(), byteBuffer.getLong());
             this.currentIndex++;
             return cqUnit;

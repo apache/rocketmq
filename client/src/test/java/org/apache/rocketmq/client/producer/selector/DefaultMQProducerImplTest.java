@@ -33,11 +33,13 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.junit.Before;
@@ -61,9 +63,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -86,9 +90,14 @@ public class DefaultMQProducerImplTest {
     @Mock
     private MQClientInstance mQClientFactory;
 
+    @Mock
+    private MQClientAPIImpl mQClientAPIImpl;
+
     private DefaultMQProducerImpl defaultMQProducerImpl;
 
     private final long defaultTimeout = 30000L;
+
+    private final String defaultBrokerName = "broker-0";
 
     private final String defaultBrokerAddr = "127.0.0.1:10911";
 
@@ -104,7 +113,6 @@ public class DefaultMQProducerImplTest {
         when(clientConfig.queueWithNamespace(any())).thenReturn(messageQueue);
         when(mQClientFactory.getClientConfig()).thenReturn(clientConfig);
         when(mQClientFactory.getTopicRouteTable()).thenReturn(mock(ConcurrentMap.class));
-        MQClientAPIImpl mQClientAPIImpl = mock(MQClientAPIImpl.class);
         when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mQClientAPIImpl);
         when(mQClientFactory.findBrokerAddressInPublish(or(isNull(), anyString()))).thenReturn(defaultBrokerAddr);
         when(message.getTopic()).thenReturn(defaultTopic);
@@ -311,6 +319,39 @@ public class DefaultMQProducerImplTest {
     @Test
     public void assertCheckListener() {
         assertNull(defaultMQProducerImpl.checkListener());
+    }
+
+    @Test
+    public void testRecallMessage_invalid() {
+        assertThrows(MQClientException.class, () -> {
+            defaultMQProducerImpl.recallMessage(MixAll.REPLY_TOPIC_POSTFIX + defaultTopic, "handle");
+        });
+        assertThrows(MQClientException.class, () -> {
+            defaultMQProducerImpl.recallMessage(MixAll.DLQ_GROUP_TOPIC_PREFIX + defaultTopic, "handle");
+        });
+        assertThrows(MQClientException.class, () -> {
+            defaultMQProducerImpl.recallMessage(defaultTopic, "handle");
+        });
+    }
+
+    @Test
+    public void testRecallMessage_addressNotFound() {
+        String handle = RecallMessageHandle.HandleV1.buildHandle(defaultTopic, defaultBrokerName, "1", "id");
+        when(mQClientFactory.findBrokerAddressInPublish(defaultBrokerName)).thenReturn(null);
+        MQClientException e = assertThrows(MQClientException.class, () -> {
+            defaultMQProducerImpl.recallMessage(defaultTopic, handle);
+        });
+        assertEquals("The broker service address not found", e.getErrorMessage());
+    }
+
+    @Test
+    public void testRecallMessage_success()
+        throws RemotingException, MQClientException, MQBrokerException, InterruptedException {
+        String handle = RecallMessageHandle.HandleV1.buildHandle(defaultTopic, defaultBrokerName, "1", "id");
+        when(mQClientFactory.findBrokerAddressInPublish(defaultBrokerName)).thenReturn(defaultBrokerAddr);
+        when(mQClientAPIImpl.recallMessage(any(), any(), anyLong())).thenReturn("id");
+        String result = defaultMQProducerImpl.recallMessage(defaultTopic, handle);
+        assertEquals("id", result);
     }
 
     private void setMQClientFactory() throws IllegalAccessException, NoSuchFieldException {
