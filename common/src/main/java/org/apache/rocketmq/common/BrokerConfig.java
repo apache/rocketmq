@@ -1289,10 +1289,6 @@ public class BrokerConfig extends BrokerIdentity {
         this.traceTopicEnable = traceTopicEnable;
     }
 
-    public boolean isAclEnable() {
-        return aclEnable;
-    }
-
     public void setAclEnable(boolean aclEnable) {
         this.aclEnable = aclEnable;
     }

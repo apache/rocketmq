@@ -67,7 +67,7 @@ java_library(
     name = "tests",
     srcs = glob(["src/test/java/**/*.java"]),
     resources = [
-        "src/test/resources/META-INF/service/org.apache.rocketmq.acl.AccessValidator",
+        "src/test/resources/META-INF/service/org.apache.rocketmq.auth.migration.AccessValidator",
         "src/test/resources/META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener",
         "src/test/resources/META-INF/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService",
         "src/test/resources/rmq.logback-test.xml",
