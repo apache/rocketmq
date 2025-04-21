@@ -206,13 +206,17 @@ public class ProducerManager {
     }
 
     public Channel getAvailableChannel(String groupId) {
+        return getAvailableChannel(groupId, null);
+    }
+
+    public Channel getAvailableChannel(String groupId, String clientId) {
         if (groupId == null) {
             return null;
         }
-        List<Channel> channelList;
+        List<ClientChannelInfo> channelList;
         ConcurrentHashMap<Channel, ClientChannelInfo> channelClientChannelInfoHashMap = groupChannelTable.get(groupId);
         if (channelClientChannelInfoHashMap != null) {
-            channelList = new ArrayList<>(channelClientChannelInfoHashMap.keySet());
+            channelList = new ArrayList<>(channelClientChannelInfoHashMap.values());
         } else {
             log.warn("Check transaction failed, channel table is empty. groupId={}", groupId);
             return null;
@@ -224,25 +228,35 @@ public class ProducerManager {
             return null;
         }
 
-        Channel lastActiveChannel = null;
+        Channel firstChannel = null;
+        Channel secondChannel = null;
 
         int index = positiveAtomicCounter.incrementAndGet() % size;
-        Channel channel = channelList.get(index);
+        ClientChannelInfo clientChannel = channelList.get(index);
         int count = 0;
-        boolean isOk = channel.isActive() && channel.isWritable();
+        boolean isOk = clientChannel.isActive() && clientChannel.isWritable();
+        boolean isSendClient = clientChannel.getClientId().equals(clientId);
+
         while (count++ < GET_AVAILABLE_CHANNEL_RETRY_COUNT) {
-            if (isOk) {
-                return channel;
+            if (isOk && isSendClient) {
+                return clientChannel.getChannel();
             }
-            if (channel.isActive()) {
-                lastActiveChannel = channel;
+            if (isOk) {
+                firstChannel = clientChannel.getChannel();
+            }
+            if (clientChannel.isActive()) {
+                secondChannel = clientChannel.getChannel();
+            }
+            if (clientChannel.isActive() && isSendClient) {
+                secondChannel = clientChannel.getChannel();
             }
             index = (++index) % size;
-            channel = channelList.get(index);
-            isOk = channel.isActive() && channel.isWritable();
+            clientChannel = channelList.get(index);
+            isOk = clientChannel.isActive() && clientChannel.isWritable();
+            isSendClient = clientChannel.getClientId().equals(clientId);
         }
 
-        return lastActiveChannel;
+        return firstChannel != null ? firstChannel : secondChannel;
     }
 
     public Channel findChannel(String clientId) {
