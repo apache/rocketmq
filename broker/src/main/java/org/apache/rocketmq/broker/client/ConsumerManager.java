@@ -42,6 +42,8 @@ public class ConsumerManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ConcurrentMap<String, ConsumerGroupInfo> consumerTable =
         new ConcurrentHashMap<>(1024);
+    private final ConcurrentMap<String, Set<String>> topicGroupTable =
+            new ConcurrentHashMap<>(1024);
     private final ConcurrentMap<String, ConsumerGroupInfo> consumerCompensationTable =
         new ConcurrentHashMap<>(1024);
     private final List<ConsumerIdsChangeListener> consumerIdsChangeListenerList = new CopyOnWriteArrayList<>();
@@ -156,6 +158,7 @@ public class ConsumerManager {
                             LOGGER.info("unregister consumer ok, no any connection, and remove consumer group, {}",
                                     group);
                             callConsumerIdsChangeListener(ConsumerGroupEvent.UNREGISTER, group);
+                            clearTopicGroupTable(remove);
                         }
                     }
                     callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
@@ -177,6 +180,7 @@ public class ConsumerManager {
                         LOGGER.info("unregister consumer ok, no any connection, and remove consumer group, {}",
                             next.getKey());
                         callConsumerIdsChangeListener(ConsumerGroupEvent.UNREGISTER, next.getKey());
+                        clearTopicGroupTable(remove);
                     }
                 }
                 if (!isBroadcastMode(info.getMessageModel())) {
@@ -185,6 +189,18 @@ public class ConsumerManager {
             }
         }
         return removed;
+    }
+
+    private void clearTopicGroupTable(final ConsumerGroupInfo groupInfo) {
+        for (String subscribeTopic : groupInfo.getSubscribeTopics()) {
+            Set<String> groups = this.topicGroupTable.get(subscribeTopic);
+            if (groups != null) {
+                groups.remove(groupInfo.getGroupName());
+            }
+            if (groups != null && groups.isEmpty()) {
+                this.topicGroupTable.remove(subscribeTopic);
+            }
+        }
     }
 
     // compensate consumer info for consumer without heartbeat
@@ -216,6 +232,16 @@ public class ConsumerManager {
             ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);
             ConsumerGroupInfo prev = this.consumerTable.putIfAbsent(group, tmp);
             consumerGroupInfo = prev != null ? prev : tmp;
+        }
+
+        for (SubscriptionData subscriptionData : subList) {
+            Set<String> groups = this.topicGroupTable.get(subscriptionData.getTopic());
+            if (groups == null) {
+                Set<String> tmp = new HashSet<>();
+                Set<String> prev = this.topicGroupTable.putIfAbsent(subscriptionData.getTopic(), tmp);
+                groups = prev != null ? prev : tmp;
+            }
+            groups.add(subscriptionData.getTopic());
         }
 
         boolean r1 =
@@ -258,6 +284,17 @@ public class ConsumerManager {
             ConsumerGroupInfo prev = this.consumerTable.putIfAbsent(group, tmp);
             consumerGroupInfo = prev != null ? prev : tmp;
         }
+
+        for (SubscriptionData subscriptionData : consumerGroupInfo.getSubscriptionTable().values()) {
+            Set<String> groups = this.topicGroupTable.get(subscriptionData.getTopic());
+            if (groups == null) {
+                Set<String> tmp = new HashSet<>();
+                Set<String> prev = this.topicGroupTable.putIfAbsent(subscriptionData.getTopic(), tmp);
+                groups = prev != null ? prev : tmp;
+            }
+            groups.add(subscriptionData.getTopic());
+        }
+
         boolean updateChannelRst = consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel, consumeFromWhere);
         if (updateChannelRst && isNotifyConsumerIdsChangedEnable && !isBroadcastMode(consumerGroupInfo.getMessageModel())) {
             callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
@@ -282,6 +319,7 @@ public class ConsumerManager {
                     LOGGER.info("unregister consumer ok, no any connection, and remove consumer group, {}", group);
 
                     callConsumerIdsChangeListener(ConsumerGroupEvent.UNREGISTER, group);
+                    clearTopicGroupTable(remove);
                 }
             }
             if (isNotifyConsumerIdsChangedEnable && !isBroadcastMode(consumerGroupInfo.getMessageModel())) {
@@ -349,14 +387,8 @@ public class ConsumerManager {
 
     public HashSet<String> queryTopicConsumeByWho(final String topic) {
         HashSet<String> groups = new HashSet<>();
-        Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConsumerGroupInfo> entry = it.next();
-            ConcurrentMap<String, SubscriptionData> subscriptionTable =
-                entry.getValue().getSubscriptionTable();
-            if (subscriptionTable.containsKey(topic)) {
-                groups.add(entry.getKey());
-            }
+        if (this.topicGroupTable.get(topic) != null) {
+            groups.addAll(this.topicGroupTable.get(topic));
         }
         return groups;
     }
