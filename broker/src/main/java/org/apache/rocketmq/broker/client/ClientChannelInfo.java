@@ -62,11 +62,11 @@ public class ClientChannelInfo {
     }
 
     public boolean isActive() {
-        return getChannel().isActive();
+        return channel != null && channel.isActive();
     }
 
     public boolean isWritable() {
-        return getChannel().isWritable();
+        return channel != null && channel.isWritable();
     }
 
     @Override
