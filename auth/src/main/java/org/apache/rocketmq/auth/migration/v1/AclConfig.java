@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common;
+package org.apache.rocketmq.auth.migration.v1;
 
 import java.util.List;
 

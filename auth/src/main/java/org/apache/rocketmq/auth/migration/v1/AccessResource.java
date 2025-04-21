@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.auth.migration;
+package org.apache.rocketmq.auth.migration.v1;
 
 public interface AccessResource {
 }

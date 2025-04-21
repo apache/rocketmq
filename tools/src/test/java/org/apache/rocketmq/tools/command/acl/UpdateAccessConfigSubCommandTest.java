@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.auth.migration.v1.PlainAccessConfig;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.junit.Assert;
 import org.junit.Test;

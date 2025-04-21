@@ -17,7 +17,8 @@
 package org.apache.rocketmq.auth.migration.plain;
 
 import org.apache.rocketmq.acl.common.Permission;
-import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.auth.migration.v1.PlainAccessResource;
+import org.apache.rocketmq.auth.migration.v1.PlainPermissionManager;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,15 +32,11 @@ import java.util.Set;
 public class PlainPermissionManagerTest {
 
     PlainPermissionManager plainPermissionManager;
-    PlainAccessResource pubPlainAccessResource;
-    PlainAccessResource subPlainAccessResource;
-    PlainAccessResource anyPlainAccessResource;
-    PlainAccessResource denyPlainAccessResource;
-    PlainAccessResource plainAccessResource = new PlainAccessResource();
-    PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
-    Set<Integer> adminCode = new HashSet<>();
-
-    private static final String DEFAULT_TOPIC = "topic-acl";
+    PlainAccessResource    pubPlainAccessResource;
+    PlainAccessResource    subPlainAccessResource;
+    PlainAccessResource    anyPlainAccessResource;
+    PlainAccessResource    denyPlainAccessResource;
+    Set<Integer>           adminCode = new HashSet<>();
 
     private File confHome;
 

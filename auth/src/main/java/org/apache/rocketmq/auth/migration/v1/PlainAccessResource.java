@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.auth.migration.plain;
+package org.apache.rocketmq.auth.migration.v1;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.rocketmq.auth.migration.AccessResource;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 
