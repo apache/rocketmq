@@ -50,6 +50,7 @@ java_library(
         "//:test_deps",
         "//common",
         "//remoting",
+        "//client",
         "@maven//:commons_codec_commons_codec",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_collections_commons_collections",

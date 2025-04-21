@@ -37,7 +37,6 @@ import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
@@ -360,68 +359,6 @@ public class MQClientAPIImplTest {
                         assertThat(e).hasMessage("Interrupted Exception in Test");
                     }
                 }, null, null, 0, sendMessageContext, defaultMQProducerImpl);
-    }
-
-    @Test
-    public void testCreatePlainAccessConfig_Success() throws InterruptedException, RemotingException {
-        doAnswer(mock -> {
-            RemotingCommand request = mock.getArgument(1);
-            return createSuccessResponse4UpdateAclConfig(request);
-        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
-
-        PlainAccessConfig config = createUpdateAclConfig();
-
-        try {
-            mqClientAPI.createPlainAccessConfig(brokerAddr, config, 3 * 1000);
-        } catch (MQClientException ignored) {
-
-        }
-    }
-
-    @Test
-    public void testCreatePlainAccessConfig_Exception() throws InterruptedException, RemotingException {
-        doAnswer(mock -> {
-            RemotingCommand request = mock.getArgument(1);
-            return createErrorResponse4UpdateAclConfig(request);
-        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
-
-        PlainAccessConfig config = createUpdateAclConfig();
-        try {
-            mqClientAPI.createPlainAccessConfig(brokerAddr, config, 3 * 1000);
-        } catch (MQClientException ex) {
-            assertThat(ex.getResponseCode()).isEqualTo(209);
-            assertThat(ex.getErrorMessage()).isEqualTo("corresponding to accessConfig has been updated failed");
-        }
-    }
-
-    @Test
-    public void testDeleteAccessConfig_Success() throws InterruptedException, RemotingException {
-        doAnswer(mock -> {
-            RemotingCommand request = mock.getArgument(1);
-            return createSuccessResponse4DeleteAclConfig(request);
-        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
-
-        String accessKey = "1234567";
-        try {
-            mqClientAPI.deleteAccessConfig(brokerAddr, accessKey, 3 * 1000);
-        } catch (MQClientException ignored) {
-
-        }
-    }
-
-    @Test
-    public void testDeleteAccessConfig_Exception() throws InterruptedException, RemotingException {
-        doAnswer(mock -> {
-            RemotingCommand request = mock.getArgument(1);
-            return createErrorResponse4DeleteAclConfig(request);
-        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
-
-        try {
-            mqClientAPI.deleteAccessConfig(brokerAddr, "11111", 3 * 1000);
-        } catch (MQClientException ex) {
-            assertThat(ex.getResponseCode()).isEqualTo(210);
-            assertThat(ex.getErrorMessage()).isEqualTo("corresponding to accessConfig has been deleted failed");
-        }
     }
 
     @Test
@@ -1024,35 +961,6 @@ public class MQClientAPIImplTest {
         return response;
     }
 
-    private RemotingCommand createErrorResponse4UpdateAclConfig(RemotingCommand request) {
-        RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
-        response.setOpaque(request.getOpaque());
-        response.markResponseType();
-        response.setRemark("corresponding to accessConfig has been updated failed");
-        return response;
-    }
-
-    private RemotingCommand createErrorResponse4DeleteAclConfig(RemotingCommand request) {
-        RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
-        response.setOpaque(request.getOpaque());
-        response.markResponseType();
-        response.setRemark("corresponding to accessConfig has been deleted failed");
-        return response;
-    }
-
-    private PlainAccessConfig createUpdateAclConfig() {
-        PlainAccessConfig config = new PlainAccessConfig();
-        config.setAccessKey("Rocketmq111");
-        config.setSecretKey("123456789");
-        config.setAdmin(true);
-        config.setWhiteRemoteAddress("127.0.0.1");
-        config.setDefaultTopicPerm("DENY");
-        config.setDefaultGroupPerm("SUB");
-        return config;
-    }
-
     private SendMessageRequestHeader createSendMessageRequestHeader() {
         SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
         requestHeader.setBornTimestamp(System.currentTimeMillis());
@@ -1113,29 +1021,6 @@ public class MQClientAPIImplTest {
     @Test
     public void assertOnNameServerAddressChange() {
         assertEquals(defaultNsAddr, mqClientAPI.onNameServerAddressChange(defaultNsAddr));
-    }
-
-    @Test(expected = AssertionError.class)
-    public void testUpdateGlobalWhiteAddrsConfig() throws MQBrokerException, RemotingException, InterruptedException, MQClientException {
-        mqClientAPI.updateGlobalWhiteAddrsConfig(defaultNsAddr, "", "", defaultTimeout);
-    }
-
-    @Test
-    public void assertGetBrokerClusterAclInfo() throws MQBrokerException, RemotingException, InterruptedException {
-        mockInvokeSync();
-        GetBrokerAclConfigResponseHeader responseHeader = mock(GetBrokerAclConfigResponseHeader.class);
-        when(responseHeader.getBrokerName()).thenReturn(brokerName);
-        when(responseHeader.getBrokerAddr()).thenReturn(defaultBrokerAddr);
-        when(responseHeader.getClusterName()).thenReturn(clusterName);
-        when(responseHeader.getAllAclFileVersion()).thenReturn("{\"key\":{\"stateVersion\":1}}");
-        setResponseHeader(responseHeader);
-        ClusterAclVersionInfo actual = mqClientAPI.getBrokerClusterAclInfo(defaultNsAddr, defaultTimeout);
-        assertNotNull(actual);
-        assertEquals(brokerName, actual.getBrokerName());
-        assertEquals(defaultBrokerAddr, actual.getBrokerAddr());
-        assertEquals(clusterName, actual.getClusterName());
-        assertEquals(1, actual.getAllAclConfigDataVersion().size());
-        assertNull(actual.getAclConfigDataVersion());
     }
 
     @Test
