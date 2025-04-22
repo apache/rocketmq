@@ -16,13 +16,7 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import com.alibaba.fastjson.JSON;
-import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import com.alibaba.fastjson2.JSON;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
@@ -40,12 +34,13 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.store.AppendMessageResult;
+import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
-import org.apache.rocketmq.store.AppendMessageResult;
-import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.pop.AckMsg;
+import org.apache.rocketmq.store.pop.BatchAckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.junit.Assert;
@@ -56,18 +51,27 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class PopReviveServiceTest {
@@ -403,6 +407,59 @@ public class PopReviveServiceTest {
         popReviveService.mergeAndRevive(reviveObj);
         verify(escapeBridge, times(0)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
         verify(messageStore, times(1)).putMessage(any(MessageExtBrokerInner.class)); // rewrite CK
+    }
+
+    @Test
+    public void testReviveMsgFromBatchAck() throws Throwable {
+        brokerConfig.setEnableSkipLongAwaitingAck(true);
+        when(consumerOffsetManager.queryOffset(PopAckConstants.REVIVE_GROUP, REVIVE_TOPIC, REVIVE_QUEUE_ID)).thenReturn(0L);
+        List<MessageExt> reviveMessageExtList = new ArrayList<>();
+        long basePopTime = System.currentTimeMillis();
+        reviveMessageExtList.add(buildBatchAckMsg(buildBatchAckMsg(Arrays.asList(1L, 2L, 3L), basePopTime), 1, 1, basePopTime));
+        doReturn(reviveMessageExtList, new ArrayList<>()).when(popReviveService).getReviveMessage(anyLong(), anyInt());
+
+        PopReviveService.ConsumeReviveObj consumeReviveObj = new PopReviveService.ConsumeReviveObj();
+        popReviveService.consumeReviveMessage(consumeReviveObj);
+        assertEquals(1, consumeReviveObj.map.size());
+
+        ArgumentCaptor<Long> commitOffsetCaptor = ArgumentCaptor.forClass(Long.class);
+        doNothing().when(consumerOffsetManager).commitOffset(anyString(), anyString(), anyString(), anyInt(), commitOffsetCaptor.capture());
+        popReviveService.mergeAndRevive(consumeReviveObj);
+        assertEquals(1, commitOffsetCaptor.getValue().longValue());
+    }
+
+    public static MessageExtBrokerInner buildBatchAckMsg(BatchAckMsg batchAckMsg, long deliverMs, long reviveOffset, long deliverTime) {
+        MessageExtBrokerInner result = buildBatchAckInnerMessage(REVIVE_TOPIC, batchAckMsg, REVIVE_QUEUE_ID, STORE_HOST, deliverMs, PopMessageProcessor.genAckUniqueId(batchAckMsg));
+        result.setQueueOffset(reviveOffset);
+        result.setDeliverTimeMs(deliverMs);
+        result.setStoreTimestamp(deliverTime);
+        return result;
+    }
+
+    public static BatchAckMsg buildBatchAckMsg(Collection<Long> offsets, long popTime) {
+        BatchAckMsg result = new BatchAckMsg();
+        result.setConsumerGroup(GROUP);
+        result.setTopic(TOPIC);
+        result.setQueueId(0);
+        result.setPopTime(popTime);
+        result.setBrokerName("broker-a");
+        result.getAckOffsetList().addAll(offsets);
+        return result;
+    }
+
+    public static MessageExtBrokerInner buildBatchAckInnerMessage(String reviveTopic, AckMsg ackMsg, int reviveQid, SocketAddress host, long deliverMs, String ackUniqueId) {
+        MessageExtBrokerInner result = new MessageExtBrokerInner();
+        result.setTopic(reviveTopic);
+        result.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.CHARSET_UTF8));
+        result.setQueueId(reviveQid);
+        result.setTags(PopAckConstants.BATCH_ACK_TAG);
+        result.setBornTimestamp(System.currentTimeMillis());
+        result.setBornHost(host);
+        result.setStoreHost(host);
+        result.setDeliverTimeMs(deliverMs);
+        result.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, ackUniqueId);
+        result.setPropertiesString(MessageDecoder.messageProperties2String(result.getProperties()));
+        return result;
     }
 
     public static PopCheckPoint buildPopCheckPoint(long startOffset, long popTime, long reviveOffset) {
