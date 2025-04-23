@@ -204,8 +204,6 @@ public class ProxyConfig implements ConfigFile {
     private long renewMaxTimeMillis = TimeUnit.HOURS.toMillis(3);
     private long renewSchedulePeriodMillis = TimeUnit.SECONDS.toMillis(5);
 
-    private boolean enableACL = false;
-
     private boolean enableAclRpcHookForClusterMode = false;
 
     private boolean useDelayLevel = false;
@@ -1045,10 +1043,6 @@ public class ProxyConfig implements ConfigFile {
 
     public void setLongPollingReserveTimeInMillis(long longPollingReserveTimeInMillis) {
         this.longPollingReserveTimeInMillis = longPollingReserveTimeInMillis;
-    }
-
-    public void setEnableACL(boolean enableACL) {
-        this.enableACL = enableACL;
     }
 
     public boolean isEnableAclRpcHookForClusterMode() {
