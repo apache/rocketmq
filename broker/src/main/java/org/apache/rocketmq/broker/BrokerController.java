@@ -1454,10 +1454,19 @@ public class BrokerController {
             this.popConsumerService.shutdown();
         }
 
-        {
+        if (this.popMessageProcessor.getPopLongPollingService() != null) {
             this.popMessageProcessor.getPopLongPollingService().shutdown();
+        }
+
+        if (this.popMessageProcessor.getQueueLockManager() != null) {
             this.popMessageProcessor.getQueueLockManager().shutdown();
+        }
+
+        if (this.popMessageProcessor.getPopBufferMergeService() != null) {
             this.popMessageProcessor.getPopBufferMergeService().shutdown();
+        }
+
+        if (this.ackMessageProcessor.getPopReviveServices() != null) {
             this.ackMessageProcessor.shutdownPopReviveService();
         }
 
@@ -1572,7 +1581,7 @@ public class BrokerController {
         }
 
         if (this.escapeBridge != null) {
-            escapeBridge.shutdown();
+            this.escapeBridge.shutdown();
         }
 
         if (this.topicRouteInfoManager != null) {
@@ -1609,8 +1618,13 @@ public class BrokerController {
             this.consumerOffsetManager.stop();
         }
 
-        if (null != configStorage) {
-            configStorage.shutdown();
+        if (this.consumerOrderInfoManager != null) {
+            this.consumerOrderInfoManager.persist();
+            this.consumerOrderInfoManager.shutdown();
+        }
+
+        if (this.configStorage != null) {
+            this.configStorage.shutdown();
         }
 
         if (this.authenticationMetadataManager != null) {
