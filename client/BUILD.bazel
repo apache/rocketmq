@@ -53,6 +53,7 @@ java_library(
         "@maven//:io_opentracing_opentracing_mock",   
         "@maven//:org_awaitility_awaitility",
         "@maven//:org_mockito_mockito_junit_jupiter",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )
