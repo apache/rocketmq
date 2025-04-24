@@ -54,6 +54,8 @@ java_library(
         "@maven//:org_awaitility_awaitility",
         "@maven//:org_mockito_mockito_junit_jupiter",
         "@maven//:com_alibaba_fastjson2_fastjson2",
+        "@maven//:commons_codec_commons_codec",
+        "@maven//:org_yaml_snakeyaml",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )
