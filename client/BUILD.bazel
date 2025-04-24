@@ -43,7 +43,6 @@ java_library(
 java_library(
     name = "tests",
     srcs = glob(["src/test/java/**/*.java"]),
-    resources = glob(["src/test/resources/**/*.yml"]),
     visibility = ["//visibility:public"],
     deps = [
         ":client",
@@ -58,7 +57,7 @@ java_library(
         "@maven//:org_mockito_mockito_junit_jupiter",
         "@maven//:com_alibaba_fastjson2_fastjson2",
     ],
-    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"]) + glob(["src/test/resources/**/*.yml"])
 )
 
 GenTestRules(
