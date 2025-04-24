@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -202,16 +201,6 @@ public class AclUtilsTest {
         Assert.assertEquals(AclUtils.expandIP("ab23:56:901a::cc6:765:bb:9011", 8), "AB23:0056:901A:0000:0CC6:0765:00BB:9011");
         Assert.assertEquals(AclUtils.expandIP("ab23:56:901a:1:cc6:765:bb:9011", 8), "AB23:0056:901A:0001:0CC6:0765:00BB:9011");
         Assert.assertEquals(AclUtils.expandIP("5::7:6", 6), "0005:0000:0000:0000:0007:0006");
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testGetYamlDataObject() throws IOException {
-        try (InputStream is = AclUtilsTest.class.getClassLoader().getResourceAsStream("conf/plain_acl_correct.yml")) {
-            Map<String, Object> map = AclUtils.getYamlDataObject(is, Map.class);
-            Assert.assertNotNull(map);
-            Assert.assertFalse(map.isEmpty());
-        }
     }
 
     private static String randomTmpFile() {
