@@ -24,6 +24,7 @@ java_library(
         "//common",
         "//remoting",
         "//srvutil",
+        "//client",
         "@maven//:commons_codec_commons_codec",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_collections_commons_collections",
