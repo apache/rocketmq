@@ -24,7 +24,6 @@ import org.junit.Assert;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.JarURLConnection;
@@ -139,7 +138,7 @@ public final class AclTestHelper {
         
         for (File file : files) {
             String path = file.getAbsolutePath();
-            try (InputStream inputStream = new FileInputStream(file)) {
+            try (InputStream inputStream = Files.newInputStream(file.toPath())) {
                 copyTo(path, inputStream, destDir, folderName, into);
             }
         }
@@ -158,6 +157,15 @@ public final class AclTestHelper {
                 String entryName = entry.getName();
                 
                 if (entryName.startsWith(folderPath) && !entry.isDirectory()) {
+                    // Sanitize the entry name to prevent Zip Slip
+                    File destFile = new File(destDir, entryName);
+                    String destDirPath = destDir.getCanonicalPath();
+                    String destFilePath = destFile.getCanonicalPath();
+                    
+                    if (!destFilePath.startsWith(destDirPath + File.separator)) {
+                        throw new IOException("Entry is outside of the target dir: " + entryName);
+                    }
+                    
                     try (InputStream inputStream = jar.getInputStream(entry)) {
                         copyTo(entryName, inputStream, destDir, folderName, into);
                     }
