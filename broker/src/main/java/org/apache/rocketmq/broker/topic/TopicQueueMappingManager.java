@@ -16,13 +16,8 @@
  */
 package org.apache.rocketmq.broker.topic;
 
-import com.alibaba.fastjson.JSON;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -39,6 +34,13 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
+
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -149,7 +151,10 @@ public class TopicQueueMappingManager extends ConfigManager {
         TopicQueueMappingSerializeWrapper wrapper = new TopicQueueMappingSerializeWrapper();
         wrapper.setTopicQueueMappingInfoMap(topicQueueMappingTable);
         wrapper.setDataVersion(this.dataVersion);
-        return JSON.toJSONString(wrapper, pretty);
+        if (pretty) {
+            return JSON.toJSONString(wrapper, JSONWriter.Feature.PrettyFormat);
+        }
+        return JSON.toJSONString(wrapper);
     }
 
     @Override
