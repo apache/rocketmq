@@ -142,7 +142,7 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
                     topic, group, queueId, offset);
             return;
         }
-        if (!MixAll.isLmq(topic)) {
+        if (!MixAll.isLmq(topic) || !MixAll.isLmq(group)) {
             super.assignResetOffset(topic, group, queueId, offset);
             return;
         }
