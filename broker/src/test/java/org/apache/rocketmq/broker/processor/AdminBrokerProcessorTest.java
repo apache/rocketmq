@@ -159,6 +159,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -259,6 +260,8 @@ public class AdminBrokerProcessorTest {
 
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig(topic));
         brokerController.getMessageStoreConfig().setTimerWheelEnable(false);
+        when(this.brokerController.getMessageStore().getTimerMessageStore()).thenReturn(timerMessageStore);
+        when(this.timerMessageStore.getTimerMetrics()).thenReturn(timerMetrics);
     }
 
     @After

@@ -198,8 +198,14 @@ public class TimerMetrics extends ConfigManager {
         }
     }
 
-    public void removeTimingCount(String topic) {
-        timingCount.remove(topic);
+    public boolean removeTimingCount(String topic) {
+        try {
+            timingCount.remove(topic);
+        } catch (Exception e) {
+            log.error("removeTimingCount error", e);
+            return false;
+        }
+        return true;
     }
 
     public static class TimerMetricsSerializeWrapper extends RemotingSerializable {
