@@ -184,7 +184,8 @@ public class TimerMetrics extends ConfigManager {
         while (iterator.hasNext()) {
             Map.Entry<String, Metric> entry = iterator.next();
             final String topic = entry.getKey();
-            if (topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)) {
+            if (topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)
+                    || topic.startsWith(MixAll.LMQ_PREFIX)) {
                 continue;
             }
             if (topics.contains(topic)) {
@@ -194,6 +195,10 @@ public class TimerMetrics extends ConfigManager {
             iterator.remove();
             log.info("clean timer metrics, because not in topic config, {}", topic);
         }
+    }
+
+    public void removeTimingCount(String topic) {
+        timingCount.remove(topic);
     }
 
     public static class TimerMetricsSerializeWrapper extends RemotingSerializable {
