@@ -692,6 +692,18 @@ public class BrokerController {
         }, 10, 1, TimeUnit.SECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    BrokerController.this.messageStore.getTimerMessageStore().getTimerMetrics()
+                            .cleanMetrics(BrokerController.this.topicConfigManager.getTopicConfigTable().keySet());
+                } catch (Throwable e) {
+                    LOG.error("BrokerController: failed to clean unused timer metrics.", e);
+                }
+            }
+        }, 3, 3, TimeUnit.MINUTES);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
