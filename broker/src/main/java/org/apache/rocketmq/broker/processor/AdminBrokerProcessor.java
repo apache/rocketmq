@@ -825,6 +825,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         this.brokerController.getConsumerOffsetManager().cleanOffsetByTopic(topic);
         this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNumByTopicName(topic);
         this.brokerController.getMessageStore().deleteTopics(Sets.newHashSet(topic));
+        this.brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().removeTimingCount(topic);
     }
 
     private synchronized RemotingCommand updateAndCreateAccessConfig(ChannelHandlerContext ctx, RemotingCommand request) {
