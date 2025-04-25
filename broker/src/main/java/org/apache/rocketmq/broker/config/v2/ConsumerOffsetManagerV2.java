@@ -434,7 +434,7 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
                     topic, group, queueId, offset);
             return;
         }
-        if (!MixAll.isLmq(group) || !MixAll.isLmq(topic)) {
+        if (!MixAll.isLmq(topic)) {
             super.assignResetOffset(topic, group, queueId, offset);
         } else {
             String key = topic + TOPIC_GROUP_SEPARATOR + group;
