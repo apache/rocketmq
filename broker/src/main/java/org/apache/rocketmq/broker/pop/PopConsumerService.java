@@ -16,25 +16,9 @@
  */
 package org.apache.rocketmq.broker.pop;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
-import java.nio.ByteBuffer;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
@@ -64,6 +48,23 @@ import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PopConsumerService extends ServiceThread {
 
@@ -162,17 +163,15 @@ public class PopConsumerService extends ServiceThread {
         return result;
     }
 
-    public PopConsumerContext addGetMessageResult(PopConsumerContext context, GetMessageResult result,
+    public PopConsumerContext handleGetMessageResult(PopConsumerContext context, GetMessageResult result,
         String topicId, int queueId, PopConsumerRecord.RetryType retryType, long offset) {
 
-        if (result.getStatus() == GetMessageStatus.FOUND && !result.getMessageQueueOffset().isEmpty()) {
+        if (GetMessageStatus.FOUND.equals(result.getStatus()) && !result.getMessageQueueOffset().isEmpty()) {
             if (context.isFifo()) {
                 this.setFifoBlocked(context, context.getGroupId(), topicId, queueId, result.getMessageQueueOffset());
             }
-
-            // build request header here
+            // build response header here
             context.addGetMessageResult(result, topicId, queueId, retryType, offset);
-
             if (brokerConfig.isPopConsumerKVServiceLog()) {
                 log.info("PopConsumerService pop, time={}, invisible={}, " +
                         "groupId={}, topic={}, queueId={}, offset={}, attemptId={}",
@@ -181,20 +180,23 @@ public class PopConsumerService extends ServiceThread {
             }
         }
 
-        if (!context.isFifo() && result.getNextBeginOffset() > OFFSET_NOT_EXIST) {
+        long commitOffset = offset;
+        if (context.isFifo()) {
+            if (!GetMessageStatus.FOUND.equals(result.getStatus())) {
+                commitOffset = result.getNextBeginOffset();
+            }
+        } else {
             this.brokerController.getConsumerOffsetManager().commitPullOffset(
                 context.getClientHost(), context.getGroupId(), topicId, queueId, result.getNextBeginOffset());
-            long commitOffset = result.getStatus() == GetMessageStatus.FOUND ? offset : result.getNextBeginOffset();
             if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
                 long minOffset = popConsumerCache.getMinOffsetInCache(context.getGroupId(), topicId, queueId);
                 if (minOffset != OFFSET_NOT_EXIST) {
                     commitOffset = minOffset;
                 }
             }
-            this.brokerController.getConsumerOffsetManager().commitOffset(
-                context.getClientHost(), context.getGroupId(), topicId, queueId, commitOffset);
         }
-
+        this.brokerController.getConsumerOffsetManager().commitOffset(
+            context.getClientHost(), context.getGroupId(), topicId, queueId, commitOffset);
         return context;
     }
 
@@ -310,7 +312,7 @@ public class PopConsumerService extends ServiceThread {
             } else {
                 final long consumeOffset = this.getPopOffset(groupId, topicId, queueId, result.getInitMode());
                 return getMessageAsync(clientHost, groupId, topicId, queueId, consumeOffset, remain, filter)
-                    .thenApply(getMessageResult -> addGetMessageResult(
+                    .thenApply(getMessageResult -> handleGetMessageResult(
                         result, getMessageResult, topicId, queueId, retryType, consumeOffset));
             }
         });
