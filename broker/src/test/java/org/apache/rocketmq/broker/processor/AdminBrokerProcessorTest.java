@@ -259,6 +259,8 @@ public class AdminBrokerProcessorTest {
 
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig(topic));
         brokerController.getMessageStoreConfig().setTimerWheelEnable(false);
+        when(this.brokerController.getMessageStore().getTimerMessageStore()).thenReturn(timerMessageStore);
+        when(this.timerMessageStore.getTimerMetrics()).thenReturn(timerMetrics);
     }
 
     @After
