@@ -31,7 +31,7 @@ It offers a variety of features:
 * Feature-rich administrative dashboard for configuration, metrics and monitoring
 * Authentication and authorization
 * Free open source connectors, for both sources and sinks
-* Lightweight real-time computing
+* Lightweight real-time computing 
 ----------
 
 
