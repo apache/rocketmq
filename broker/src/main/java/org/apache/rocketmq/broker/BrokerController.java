@@ -1555,10 +1555,6 @@ public class BrokerController {
             this.consumerFilterManager.persist();
         }
 
-        if (this.consumerOrderInfoManager != null) {
-            this.consumerOrderInfoManager.persist();
-        }
-
         if (this.scheduleMessageService != null) {
             this.scheduleMessageService.persist();
             this.scheduleMessageService.shutdown();

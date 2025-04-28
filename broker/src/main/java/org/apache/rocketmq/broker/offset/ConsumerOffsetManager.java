@@ -283,6 +283,10 @@ public class ConsumerOffsetManager extends ConfigManager {
         return offset;
     }
 
+    public void clearPullOffset(final String group, final String topic) {
+        this.pullOffsetTable.remove(topic + TOPIC_GROUP_SEPARATOR + group);
+    }
+
     @Override
     public String encode() {
         return this.encode(false);
