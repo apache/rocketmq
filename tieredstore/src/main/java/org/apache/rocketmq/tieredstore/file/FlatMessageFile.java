@@ -25,7 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.StringUtils;
@@ -59,7 +58,6 @@ public class FlatMessageFile implements FlatFileInterface {
     protected final MetadataStore metadataStore;
     protected final FlatCommitLogFile commitLog;
     protected final FlatConsumeQueueFile consumeQueue;
-    protected final AtomicLong lastDestroyTime;
 
     protected final ConcurrentMap<String, CompletableFuture<?>> inFlightRequestMap;
 
@@ -77,7 +75,6 @@ public class FlatMessageFile implements FlatFileInterface {
         this.metadataStore = fileFactory.getMetadataStore();
         this.commitLog = fileFactory.createFlatFileForCommitLog(filePath);
         this.consumeQueue = fileFactory.createFlatFileForConsumeQueue(filePath);
-        this.lastDestroyTime = new AtomicLong();
         this.inFlightRequestMap = new ConcurrentHashMap<>();
     }
 
@@ -388,8 +385,8 @@ public class FlatMessageFile implements FlatFileInterface {
         closed = true;
         fileLock.lock();
         try {
-            commitLog.shutdown();
             consumeQueue.shutdown();
+            commitLog.shutdown();
         } finally {
             fileLock.unlock();
         }
@@ -399,8 +396,8 @@ public class FlatMessageFile implements FlatFileInterface {
     public void destroyExpiredFile(long timestamp) {
         fileLock.lock();
         try {
-            commitLog.destroyExpiredFile(timestamp);
             consumeQueue.destroyExpiredFile(timestamp);
+            commitLog.destroyExpiredFile(timestamp);
         } finally {
             fileLock.unlock();
         }
@@ -410,8 +407,8 @@ public class FlatMessageFile implements FlatFileInterface {
         this.shutdown();
         fileLock.lock();
         try {
-            commitLog.destroyExpiredFile(Long.MAX_VALUE);
             consumeQueue.destroyExpiredFile(Long.MAX_VALUE);
+            commitLog.destroyExpiredFile(Long.MAX_VALUE);
             if (queueMetadata != null) {
                 metadataStore.deleteQueue(queueMetadata.getQueue());
             }
