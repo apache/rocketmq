@@ -77,6 +77,10 @@ public class ConsumerOffsetManagerTest {
         consumerOffsetManager.commitPullOffset("Pull", group, topic, 0, 100);
         consumerOffsetManager.removeOffset(group);
         Assert.assertFalse(consumerOffsetManager.getOffsetTable().containsKey(topic + TOPIC_GROUP_SEPARATOR + group));
+
+        consumerOffsetManager.commitPullOffset("Pull", group, topic, 0, 100);
+        consumerOffsetManager.clearPullOffset(group, topic);
+        Assert.assertEquals(-1L, consumerOffsetManager.queryPullOffset(group, topic, 0));
     }
 
     @Test
