@@ -2262,8 +2262,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
             if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
                 brokerController.getPopConsumerService().clearCache(group, topic, entry.getKey());
-                brokerController.getConsumerOffsetManager().commitPullOffset(
-                    "ResetOffsetInner", group, topic, entry.getKey(), entry.getValue());
+                brokerController.getConsumerOffsetManager().clearPullOffset(group, topic);
             }
             body.getOffsetTable().put(new MessageQueue(topic, brokerName, entry.getKey()), entry.getValue());
         }
