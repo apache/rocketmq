@@ -27,14 +27,19 @@ import static org.apache.rocketmq.acl.common.SessionCredentials.SECURITY_TOKEN;
 import static org.apache.rocketmq.acl.common.SessionCredentials.SIGNATURE;
 
 public class AclClientRPCHook implements RPCHook {
-    private final SessionCredentials sessionCredentials;
+    private final SessionCredentialsProvider sessionCredentialsProvider;
 
     public AclClientRPCHook(SessionCredentials sessionCredentials) {
-        this.sessionCredentials = sessionCredentials;
+        this.sessionCredentialsProvider = new StaticSessionCredentialsProvider(sessionCredentials);
+    }
+
+    public AclClientRPCHook(SessionCredentialsProvider sessionCredentialsProvider) {
+        this.sessionCredentialsProvider = sessionCredentialsProvider;
     }
 
     @Override
     public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+        SessionCredentials sessionCredentials = this.sessionCredentialsProvider.getSessionCredentials();
         // Add AccessKey and SecurityToken into signature calculating.
         request.addExtField(ACCESS_KEY, sessionCredentials.getAccessKey());
         // The SecurityToken value is unnecessary,user can choose this one.
@@ -59,6 +64,6 @@ public class AclClientRPCHook implements RPCHook {
     }
 
     public SessionCredentials getSessionCredentials() {
-        return sessionCredentials;
+        return this.sessionCredentialsProvider.getSessionCredentials();
     }
 }
