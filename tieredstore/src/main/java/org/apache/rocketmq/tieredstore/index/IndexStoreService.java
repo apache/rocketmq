@@ -18,6 +18,20 @@ package org.apache.rocketmq.tieredstore.index;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.store.logfile.DefaultMappedFile;
+import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.AppendResult;
+import org.apache.rocketmq.tieredstore.file.FlatAppendFile;
+import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
+import org.apache.rocketmq.tieredstore.provider.FileSegment;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
@@ -35,19 +49,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.store.logfile.DefaultMappedFile;
-import org.apache.rocketmq.store.logfile.MappedFile;
-import org.apache.rocketmq.tieredstore.MessageStoreConfig;
-import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.file.FlatAppendFile;
-import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
-import org.apache.rocketmq.tieredstore.provider.FileSegment;
-import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class IndexStoreService extends ServiceThread implements IndexService {
 
@@ -224,15 +225,17 @@ public class IndexStoreService extends ServiceThread implements IndexService {
 
     @Override
     public CompletableFuture<List<IndexItem>> queryAsync(
-        String topic, String key, int maxCount, long beginTime, long endTime) {
+            String topic, String key, int maxCount, long beginTime, long endTime) {
+
+        if (beginTime > endTime) {
+            return CompletableFuture.completedFuture(new ArrayList<>());
+        }
 
         CompletableFuture<List<IndexItem>> future = new CompletableFuture<>();
         try {
             readWriteLock.readLock().lock();
-            long firstFileTimeStamp = this.timeStoreTable.lowerKey(beginTime) == null ?
-                this.timeStoreTable.firstKey() : this.timeStoreTable.lowerKey(beginTime);
             ConcurrentNavigableMap<Long, IndexFile> pendingMap =
-                this.timeStoreTable.subMap(firstFileTimeStamp, true, endTime, true);
+                    this.timeStoreTable.subMap(beginTime, true, endTime, true);
             List<CompletableFuture<Void>> futureList = new ArrayList<>(pendingMap.size());
             ConcurrentHashMap<String /* queueId-offset */, IndexItem> result = new ConcurrentHashMap<>();
 
@@ -260,6 +263,8 @@ public class IndexStoreService extends ServiceThread implements IndexService {
                     }
                 });
         } catch (Exception e) {
+            log.error("IndexStoreService#queryAsync, topicId={}, key={}, maxCount={}, timestamp={}-{}",
+                    topic, key, maxCount, beginTime, endTime, e);
             future.completeExceptionally(e);
         } finally {
             readWriteLock.readLock().unlock();
