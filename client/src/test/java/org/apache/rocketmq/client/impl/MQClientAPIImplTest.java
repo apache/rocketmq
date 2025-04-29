@@ -391,7 +391,7 @@ public class MQClientAPIImplTest {
         try {
             mqClientAPI.createPlainAccessConfig(brokerAddr, config, 3 * 1000);
         } catch (MQClientException ex) {
-            assertThat(ex.getResponseCode()).isEqualTo(209);
+            assertThat(ex.getResponseCode()).isEqualTo(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
             assertThat(ex.getErrorMessage()).isEqualTo("corresponding to accessConfig has been updated failed");
         }
     }
@@ -421,7 +421,7 @@ public class MQClientAPIImplTest {
         try {
             mqClientAPI.deleteAccessConfig(brokerAddr, "11111", 3 * 1000);
         } catch (MQClientException ex) {
-            assertThat(ex.getResponseCode()).isEqualTo(210);
+            assertThat(ex.getResponseCode()).isEqualTo(ResponseCode.DELETE_ACL_CONFIG_FAILED);
             assertThat(ex.getErrorMessage()).isEqualTo("corresponding to accessConfig has been deleted failed");
         }
     }
