@@ -124,17 +124,17 @@ public class FlatAppendFile {
 
     public long getMinOffset() {
         List<FileSegment> list = this.fileSegmentTable;
-        return list.isEmpty() ? GET_FILE_SIZE_ERROR : list.get(0).getBaseOffset();
+        return list.isEmpty() ? 0L : list.get(0).getBaseOffset();
     }
 
     public long getCommitOffset() {
         List<FileSegment> list = this.fileSegmentTable;
-        return list.isEmpty() ? GET_FILE_SIZE_ERROR : list.get(list.size() - 1).getCommitOffset();
+        return list.isEmpty() ? 0L : list.get(list.size() - 1).getCommitOffset();
     }
 
     public long getAppendOffset() {
         List<FileSegment> list = this.fileSegmentTable;
-        return list.isEmpty() ? GET_FILE_SIZE_ERROR : list.get(list.size() - 1).getAppendOffset();
+        return list.isEmpty() ? 0L : list.get(list.size() - 1).getAppendOffset();
     }
 
     public long getMinTimestamp() {
