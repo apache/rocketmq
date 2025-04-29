@@ -74,8 +74,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     protected ThreadPoolExecutor producerProcessorExecutor;
     protected ThreadPoolExecutor consumerProcessorExecutor;
-    protected static final String ROCKETMQ_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    protected static final String ROCKETMQ_HOME = MixAll.ROCKETMQ_HOME_DIR;
 
     protected DefaultMessagingProcessor(ServiceManager serviceManager) {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();

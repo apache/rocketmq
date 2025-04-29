@@ -53,8 +53,7 @@ public class PlainPermissionManager {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
-    private String fileHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String fileHome = MixAll.ROCKETMQ_HOME_DIR;
 
     private String defaultAclDir;
 
