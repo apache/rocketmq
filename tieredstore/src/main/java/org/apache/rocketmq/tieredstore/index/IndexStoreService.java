@@ -226,13 +226,15 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     public CompletableFuture<List<IndexItem>> queryAsync(
         String topic, String key, int maxCount, long beginTime, long endTime) {
 
+        if (beginTime > endTime) {
+            return CompletableFuture.completedFuture(new ArrayList<>());
+        }
+
         CompletableFuture<List<IndexItem>> future = new CompletableFuture<>();
         try {
             readWriteLock.readLock().lock();
-            long firstFileTimeStamp = this.timeStoreTable.lowerKey(beginTime) == null ?
-                this.timeStoreTable.firstKey() : this.timeStoreTable.lowerKey(beginTime);
             ConcurrentNavigableMap<Long, IndexFile> pendingMap =
-                this.timeStoreTable.subMap(firstFileTimeStamp, true, endTime, true);
+                this.timeStoreTable.subMap(beginTime, true, endTime, true);
             List<CompletableFuture<Void>> futureList = new ArrayList<>(pendingMap.size());
             ConcurrentHashMap<String /* queueId-offset */, IndexItem> result = new ConcurrentHashMap<>();
 
@@ -260,6 +262,8 @@ public class IndexStoreService extends ServiceThread implements IndexService {
                     }
                 });
         } catch (Exception e) {
+            log.error("IndexStoreService#queryAsync, topicId={}, key={}, maxCount={}, timestamp={}-{}",
+                topic, key, maxCount, beginTime, endTime, e);
             future.completeExceptionally(e);
         } finally {
             readWriteLock.readLock().unlock();
