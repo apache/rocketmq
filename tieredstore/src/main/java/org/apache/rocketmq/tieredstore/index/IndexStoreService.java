@@ -235,7 +235,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         try {
             readWriteLock.readLock().lock();
             ConcurrentNavigableMap<Long, IndexFile> pendingMap =
-                    this.timeStoreTable.subMap(beginTime, true, endTime, true);
+                this.timeStoreTable.subMap(beginTime, true, endTime, true);
             List<CompletableFuture<Void>> futureList = new ArrayList<>(pendingMap.size());
             ConcurrentHashMap<String /* queueId-offset */, IndexItem> result = new ConcurrentHashMap<>();
 
