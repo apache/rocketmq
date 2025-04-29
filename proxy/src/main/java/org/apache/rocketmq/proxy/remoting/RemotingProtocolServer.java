@@ -31,7 +31,6 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.thread.ThreadPoolStatusMonitor;
-import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -53,6 +52,7 @@ import org.apache.rocketmq.proxy.remoting.pipeline.AuthenticationPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.AuthorizationPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
+import org.apache.rocketmq.proxy.spi.ProxyServerBase;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingServer;
@@ -65,7 +65,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
-public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOutClient {
+public class RemotingProtocolServer extends ProxyServerBase implements RemotingProxyOutClient {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected final MessagingProcessor messagingProcessor;
