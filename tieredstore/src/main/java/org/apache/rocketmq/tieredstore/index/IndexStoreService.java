@@ -225,7 +225,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
 
     @Override
     public CompletableFuture<List<IndexItem>> queryAsync(
-            String topic, String key, int maxCount, long beginTime, long endTime) {
+        String topic, String key, int maxCount, long beginTime, long endTime) {
 
         if (beginTime > endTime) {
             return CompletableFuture.completedFuture(new ArrayList<>());
@@ -264,7 +264,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
                 });
         } catch (Exception e) {
             log.error("IndexStoreService#queryAsync, topicId={}, key={}, maxCount={}, timestamp={}-{}",
-                    topic, key, maxCount, beginTime, endTime, e);
+                topic, key, maxCount, beginTime, endTime, e);
             future.completeExceptionally(e);
         } finally {
             readWriteLock.readLock().unlock();
