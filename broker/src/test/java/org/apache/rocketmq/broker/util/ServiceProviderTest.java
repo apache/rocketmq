@@ -17,15 +17,12 @@
 
 package org.apache.rocketmq.broker.util;
 
-import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.List;
 
 public class ServiceProviderTest {
 
@@ -40,11 +37,5 @@ public class ServiceProviderTest {
         AbstractTransactionalMessageCheckListener listener = ServiceProvider.loadClass(
                 AbstractTransactionalMessageCheckListener.class);
         assertThat(listener).isNotNull();
-    }
-    
-    @Test
-    public void loadAccessValidatorTest() {
-        List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
-        assertThat(accessValidators).isNotNull();
     }
 }

@@ -193,7 +193,6 @@
         <module>test</module>
         <module>distribution</module>
         <module>openmessaging</module>
-        <module>acl</module>
         <module>auth</module>
         <module>example</module>
         <module>container</module>
@@ -545,11 +544,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-acl</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-auth</artifactId>

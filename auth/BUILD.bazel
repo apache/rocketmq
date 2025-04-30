@@ -21,10 +21,10 @@ java_library(
     srcs = glob(["src/main/java/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
-        "//acl",
         "//common",
         "//remoting",
         "//srvutil",
+        "//client",
         "@maven//:commons_codec_commons_codec",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_collections_commons_collections",
@@ -48,10 +48,10 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         ":auth",
-        "//acl",
         "//:test_deps",
         "//common",
         "//remoting",
+        "//client",
         "@maven//:commons_codec_commons_codec",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_collections_commons_collections",

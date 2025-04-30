@@ -24,18 +24,16 @@ import io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
-import java.util.List;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.GlobalExceptionInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
+
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class GrpcServerBuilder {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -104,16 +102,11 @@ public class GrpcServerBuilder {
         return new GrpcServer(this.serverBuilder.build(), time, unit);
     }
 
-    public GrpcServerBuilder configInterceptor(List<AccessValidator> accessValidators) {
-        // grpc interceptors, including acl, logging etc.
-        this.serverBuilder
-            .intercept(new AuthenticationInterceptor(accessValidators));
-
+    public GrpcServerBuilder configInterceptor() {
         this.serverBuilder
             .intercept(new GlobalExceptionInterceptor())
             .intercept(new ContextInterceptor())
             .intercept(new HeaderInterceptor());
-
         return this;
     }
 }

@@ -38,7 +38,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-acl</artifactId>
+            <artifactId>rocketmq-auth</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
