@@ -16,14 +16,9 @@
  */
 package org.apache.rocketmq.auth.migration;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclConstants;
-import org.apache.rocketmq.acl.plain.PlainPermissionManager;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
@@ -38,8 +33,9 @@ import org.apache.rocketmq.auth.authorization.model.Policy;
 import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.config.AuthConfig;
-import org.apache.rocketmq.common.AclConfig;
-import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.auth.migration.v1.PlainPermissionManager;
+import org.apache.rocketmq.auth.migration.v1.AclConfig;
+import org.apache.rocketmq.auth.migration.v1.PlainAccessConfig;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -47,6 +43,11 @@ import org.apache.rocketmq.common.resource.ResourcePattern;
 import org.apache.rocketmq.common.resource.ResourceType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 public class AuthMigrator {
 

@@ -59,10 +59,6 @@
             <artifactId>rocketmq-filter</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-acl</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-auth</artifactId>
         </dependency>
