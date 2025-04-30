@@ -21,7 +21,6 @@ java_library(
     srcs = glob(["src/main/java/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
-        "//acl",
         "//auth",
         "//client",
         "//common",
@@ -52,6 +51,7 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_sdk_common",
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
         "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_codec_commons_codec",
         "@maven//:org_lz4_lz4_java",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
@@ -66,7 +66,6 @@ java_library(
     name = "tests",
     srcs = glob(["src/test/java/**/*.java"]),
     resources = [
-        "src/test/resources/META-INF/service/org.apache.rocketmq.acl.AccessValidator",
         "src/test/resources/META-INF/service/org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener",
         "src/test/resources/META-INF/service/org.apache.rocketmq.broker.transaction.TransactionalMessageService",
         "src/test/resources/rmq.logback-test.xml",
@@ -75,7 +74,6 @@ java_library(
     deps = [
         ":broker",
         "//:test_deps",
-        "//acl",
         "//auth",
         "//client",
         "//common",
@@ -84,15 +82,19 @@ java_library(
         "//store",
         "//tieredstore",
         "@maven//:com_alibaba_fastjson2_fastjson2",
+        "@maven//:org_slf4j_slf4j_api",
         "@maven//:com_google_guava_guava",
         "@maven//:io_netty_netty_all",
         "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_codec_commons_codec",
+        "@maven//:commons_io_commons_io",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:org_powermock_powermock_core",
         "@maven//:io_opentelemetry_opentelemetry_api",
         "@maven//:com_googlecode_concurrentlinkedhashmap_concurrentlinkedhashmap_lru",
         "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
         "@maven//:commons_collections_commons_collections",
+        "@maven//:org_junit_jupiter_junit_jupiter_api",
     ],
 )
 

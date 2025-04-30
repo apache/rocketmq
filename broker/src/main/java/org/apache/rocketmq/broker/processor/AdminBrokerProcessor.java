@@ -24,9 +24,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.opentelemetry.api.common.Attributes;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.common.AclException;
-import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.model.Subject;
@@ -59,7 +56,6 @@ import org.apache.rocketmq.common.LockCallback;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UnlockCallback;
@@ -87,7 +83,6 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -131,11 +126,9 @@ import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.DeleteAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
@@ -147,7 +140,6 @@ import org.apache.rocketmq.remoting.protocol.header.GetAllMessageRequestModeHead
 import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.GetBrokerAclConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetBrokerConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsInBrokerHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsRequestHeader;
@@ -181,7 +173,6 @@ import org.apache.rocketmq.remoting.protocol.header.ResumeCheckHalfMessageReques
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGroupForbiddenRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ViewBrokerStatsDataRequestHeader;
@@ -369,14 +360,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.updateAndGetGroupForbidden(ctx, request);
             case RequestCode.GET_SUBSCRIPTIONGROUP_CONFIG:
                 return this.getSubscriptionGroup(ctx, request);
-            case RequestCode.UPDATE_AND_CREATE_ACL_CONFIG:
-                return updateAndCreateAccessConfig(ctx, request);
-            case RequestCode.DELETE_ACL_CONFIG:
-                return deleteAccessConfig(ctx, request);
-            case RequestCode.GET_BROKER_CLUSTER_ACL_INFO:
-                return getBrokerAclConfigVersion(ctx, request);
-            case RequestCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG:
-                return updateGlobalWhiteAddrsConfig(ctx, request);
             case RequestCode.RESUME_CHECK_HALF_MESSAGE:
                 return resumeCheckHalfMessage(ctx, request);
             case RequestCode.GET_TOPIC_CONFIG:
@@ -827,148 +810,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNumByTopicName(topic);
         this.brokerController.getMessageStore().deleteTopics(Sets.newHashSet(topic));
         this.brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().removeTimingCount(topic);
-    }
-
-    private synchronized RemotingCommand updateAndCreateAccessConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        try {
-            ensureAclEnabled();
-
-            final CreateAccessConfigRequestHeader requestHeader = request.decodeCommandCustomHeader(CreateAccessConfigRequestHeader.class);
-            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (accessValidator.updateAccessConfig(createAccessConfig(requestHeader))) {
-                response.setCode(ResponseCode.SUCCESS);
-                response.setOpaque(request.getOpaque());
-                response.markResponseType();
-                response.setRemark(null);
-                NettyRemotingAbstract.writeResponse(ctx.channel(), request, response);
-            } else {
-                String errorMsg = "The accessKey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been updated failed.";
-                LOGGER.warn(errorMsg);
-                response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
-                response.setRemark(errorMsg);
-                return response;
-            }
-        } catch (Exception e) {
-            LOGGER.error("Failed to generate a proper update accessValidator response", e);
-            response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
-            response.setRemark(e.getMessage());
-            return response;
-        }
-
-        return null;
-    }
-
-    private PlainAccessConfig createAccessConfig(final CreateAccessConfigRequestHeader requestHeader) {
-        PlainAccessConfig accessConfig = new PlainAccessConfig();
-        accessConfig.setAccessKey(requestHeader.getAccessKey());
-        accessConfig.setSecretKey(requestHeader.getSecretKey());
-        accessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
-        accessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
-        accessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
-        accessConfig.setTopicPerms(UtilAll.split(requestHeader.getTopicPerms(), ","));
-        accessConfig.setGroupPerms(UtilAll.split(requestHeader.getGroupPerms(), ","));
-        accessConfig.setAdmin(requestHeader.isAdmin());
-        return accessConfig;
-    }
-
-    private synchronized RemotingCommand deleteAccessConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        LOGGER.info("DeleteAccessConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-
-        try {
-            ensureAclEnabled();
-
-            final DeleteAccessConfigRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteAccessConfigRequestHeader.class);
-            String accessKey = requestHeader.getAccessKey();
-            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (accessValidator.deleteAccessConfig(accessKey)) {
-                response.setCode(ResponseCode.SUCCESS);
-                response.setOpaque(request.getOpaque());
-                response.markResponseType();
-                response.setRemark(null);
-                NettyRemotingAbstract.writeResponse(ctx.channel(), request, response);
-            } else {
-                String errorMsg = "The accessKey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been deleted failed.";
-                LOGGER.warn(errorMsg);
-                response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
-                response.setRemark(errorMsg);
-                return response;
-            }
-
-        } catch (Exception e) {
-            LOGGER.error("Failed to generate a proper delete accessValidator response", e);
-            response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
-            response.setRemark(e.getMessage());
-            return response;
-        }
-
-        return null;
-    }
-
-    private synchronized RemotingCommand updateGlobalWhiteAddrsConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        try {
-            ensureAclEnabled();
-
-            final UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader = request.decodeCommandCustomHeader(UpdateGlobalWhiteAddrsConfigRequestHeader.class);
-            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (accessValidator.updateGlobalWhiteAddrsConfig(UtilAll.split(requestHeader.getGlobalWhiteAddrs(), ","),
-                requestHeader.getAclFileFullPath())) {
-                response.setCode(ResponseCode.SUCCESS);
-                response.setOpaque(request.getOpaque());
-                response.markResponseType();
-                response.setRemark(null);
-                NettyRemotingAbstract.writeResponse(ctx.channel(), request, response);
-            } else {
-                String errorMsg = "The globalWhiteAddresses[" + requestHeader.getGlobalWhiteAddrs() + "] has been updated failed.";
-                LOGGER.warn(errorMsg);
-                response.setCode(ResponseCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED);
-                response.setRemark(errorMsg);
-                return response;
-            }
-        } catch (Exception e) {
-            LOGGER.error("Failed to generate a proper update globalWhiteAddresses response", e);
-            response.setCode(ResponseCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED);
-            response.setRemark(e.getMessage());
-            return response;
-        }
-
-        return null;
-    }
-
-    private RemotingCommand getBrokerAclConfigVersion(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerAclConfigResponseHeader.class);
-
-        try {
-            ensureAclEnabled();
-
-            final GetBrokerAclConfigResponseHeader responseHeader = (GetBrokerAclConfigResponseHeader) response.readCustomHeader();
-            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-
-            responseHeader.setVersion(accessValidator.getAclConfigVersion());
-            responseHeader.setBrokerAddr(this.brokerController.getBrokerAddr());
-            responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
-            responseHeader.setClusterName(this.brokerController.getBrokerConfig().getBrokerClusterName());
-
-            response.setCode(ResponseCode.SUCCESS);
-            response.setRemark(null);
-            return response;
-        } catch (Exception e) {
-            LOGGER.error("Failed to generate a proper getBrokerAclConfigVersion response", e);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(e.getMessage());
-            return response;
-        }
-    }
-
-    private void ensureAclEnabled() {
-        if (!brokerController.getBrokerConfig().isAclEnable()) {
-            throw new AclException("The broker does not enable acl.");
-        }
     }
 
     private RemotingCommand getUnknownCmdResponse(ChannelHandlerContext ctx, RemotingCommand request) {
