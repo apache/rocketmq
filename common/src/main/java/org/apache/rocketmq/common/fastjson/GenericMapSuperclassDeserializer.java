@@ -17,11 +17,10 @@
 
 package org.apache.rocketmq.common.fastjson;
 
-import com.alibaba.fastjson.JSONException;
-import com.alibaba.fastjson.parser.DefaultJSONParser;
-import com.alibaba.fastjson.parser.JSONToken;
-import com.alibaba.fastjson.parser.deserializer.MapDeserializer;
-import com.alibaba.fastjson.parser.deserializer.ObjectDeserializer;
+import com.alibaba.fastjson2.JSONException;
+import com.alibaba.fastjson2.JSONReader;
+import com.alibaba.fastjson2.reader.ObjectReader;
+
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Map;
@@ -29,32 +28,40 @@ import java.util.Map;
 /**
  * workaround https://github.com/alibaba/fastjson/issues/3730
  */
-public class GenericMapSuperclassDeserializer implements ObjectDeserializer {
+public class GenericMapSuperclassDeserializer implements ObjectReader<Object> {
     public static final GenericMapSuperclassDeserializer INSTANCE = new GenericMapSuperclassDeserializer();
-
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
-    public <T> T deserialze(DefaultJSONParser parser, Type type, Object fieldName) {
+    public Object readObject(JSONReader reader, Type type, Object fieldName, long features) {
         Class<?> clz = (Class<?>) type;
         Type genericSuperclass = clz.getGenericSuperclass();
         Map map;
         try {
-            map = (Map) clz.newInstance();
+            map = (Map) clz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            throw new JSONException("unsupport type " + type, e);
+            throw new com.alibaba.fastjson2.JSONException("unsupport type " + type, e);
         }
         ParameterizedType parameterizedType = (ParameterizedType) genericSuperclass;
         Type keyType = parameterizedType.getActualTypeArguments()[0];
         Type valueType = parameterizedType.getActualTypeArguments()[1];
-        if (String.class == keyType) {
-            return (T) MapDeserializer.parseMap(parser, (Map<String, Object>) map, valueType, fieldName);
-        } else {
-            return (T) MapDeserializer.parseMap(parser, map, keyType, valueType, fieldName);
-        }
-    }
 
-    @Override
-    public int getFastMatchToken() {
-        return JSONToken.LBRACE;
+        if (!reader.nextIfObjectStart()) {
+            throw new JSONException(reader.info("expect '{', but " + reader.current()));
+        }
+
+        while (!reader.nextIfObjectEnd()) {
+            Object key;
+            if (keyType == String.class) {
+                key = reader.readFieldName();
+            } else {
+                key = reader.getContext().getProvider().getObjectReader(keyType).readObject(reader, keyType, fieldName, features);
+                reader.nextIfMatch(':');
+            }
+
+            Object value = reader.getContext().getProvider().getObjectReader(valueType).readObject(reader, valueType, fieldName, features);
+            map.put(key, value);
+            reader.nextIfComma();
+        }
+        return map;
     }
 }
