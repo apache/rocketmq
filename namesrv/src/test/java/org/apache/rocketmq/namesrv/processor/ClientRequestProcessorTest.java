@@ -168,9 +168,8 @@ public class ClientRequestProcessorTest {
     }
 
     private TopicRouteData createMockTopicRouteData() {
-        TopicRouteData topicRouteData = new TopicRouteData();
+        TopicRouteData result = new TopicRouteData();
 
-        // 设置队列数据
         List<QueueData> queueDataList = new ArrayList<>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("broker-a");
@@ -179,9 +178,8 @@ public class ClientRequestProcessorTest {
         queueData.setPerm(6);
         queueData.setTopicSysFlag(0);
         queueDataList.add(queueData);
-        topicRouteData.setQueueDatas(queueDataList);
+        result.setQueueDatas(queueDataList);
 
-        // 设置broker数据
         List<BrokerData> brokerDataList = new ArrayList<>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("broker-a");
@@ -190,8 +188,8 @@ public class ClientRequestProcessorTest {
         brokerAddrs.put(0L, "127.0.0.1:10911");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDataList);
+        result.setBrokerDatas(brokerDataList);
 
-        return topicRouteData;
+        return result;
     }
 }
