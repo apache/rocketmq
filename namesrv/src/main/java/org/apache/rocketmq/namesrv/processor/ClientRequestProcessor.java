@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.namesrv.processor;
 
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSONWriter;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -81,9 +81,8 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
             byte[] content;
             Boolean standardJsonOnly = Optional.ofNullable(requestHeader.getAcceptStandardJsonOnly()).orElse(false);
             if (request.getVersion() >= MQVersion.Version.V4_9_4.ordinal() || standardJsonOnly) {
-                content = topicRouteData.encode(SerializerFeature.BrowserCompatible,
-                    SerializerFeature.QuoteFieldNames, SerializerFeature.SkipTransientField,
-                    SerializerFeature.MapSortField);
+                content = topicRouteData.encode(JSONWriter.Feature.BrowserCompatible,
+                        JSONWriter.Feature.MapSortField);
             } else {
                 content = topicRouteData.encode();
             }
