@@ -86,8 +86,7 @@ public class EventSerializerTest {
     @Test
     public void testDeserializeBytesLessThanTwoReturnsNull() {
         byte[] bytes = new byte[1];
-        EventMessage result = eventSerializer.deserialize(bytes);
-        assertNull(result);
+        assertNull(eventSerializer.deserialize(bytes));
     }
 
     @Test
