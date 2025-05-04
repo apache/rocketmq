@@ -62,7 +62,7 @@ public class ConsumerConnectionSubCommandTest {
     private ServerResponseMocker startOneBroker() {
         ConsumerConnection consumerConnection = new ConsumerConnection();
         HashSet<Connection> connectionSet = new HashSet<>();
-        Connection connection = mock(Connection.class);
+        Connection connection = new Connection();
         connectionSet.add(connection);
         consumerConnection.setConnectionSet(connectionSet);
         // start broker
