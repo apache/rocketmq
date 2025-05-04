@@ -36,9 +36,9 @@ public abstract class RemotingSerializable {
 
     public static String toJson(final Object obj, boolean prettyFormat) {
         if (prettyFormat) {
-            return JSON.toJSONString(obj, JSONWriter.Feature.PrettyFormat);
+            return JSON.toJSONString(obj, JSONWriter.Feature.PrettyFormat, JSONWriter.Feature.WriteNonStringKeyAsString);
         }
-        return JSON.toJSONString(obj);
+        return JSON.toJSONString(obj, JSONWriter.Feature.WriteNonStringKeyAsString);
     }
 
     public static <T> T decode(final byte[] data, Class<T> classOfT) {
