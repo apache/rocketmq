@@ -70,9 +70,4 @@ public class TopicQueueMappingTest {
             Assert.assertEquals(mappingDetailJson, RemotingSerializable.toJson(mappingDetailFromJson, false));
         }
     }
-
-    @Test
-    public void test() {
-
-    }
 }
