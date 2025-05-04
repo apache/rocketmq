@@ -100,6 +100,7 @@ public class SubscriptionGroupManagerTest {
         subscriptionGroupConfig.setGroupName(group);
         Map<String, String> attr = ImmutableMap.of("+test", "true");
         subscriptionGroupConfig.setAttributes(attr);
+        SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerControllerMock);
         subscriptionGroupManager.updateSubscriptionGroupConfig(subscriptionGroupConfig);
         SubscriptionGroupConfig result = subscriptionGroupManager.getSubscriptionGroupTable().get(group);
         assertThat(result).isNotNull();
