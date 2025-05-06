@@ -254,12 +254,12 @@ public class IndexStoreService extends ServiceThread implements IndexService {
                 .whenComplete((v, t) -> {
                     // Try to return the query results as much as possible here
                     // rather than directly throwing exceptions
-                    if (result.isEmpty() && t != null) {
-                        future.completeExceptionally(t);
-                    } else {
-                        List<IndexItem> resultList = new ArrayList<>(result.values());
-                        future.complete(resultList.subList(0, Math.min(resultList.size(), maxCount)));
+                    if (t != null) {
+                        log.error("IndexStoreService#queryAsync, topicId={}, key={}, maxCount={}, timestamp={}-{}",
+                            topic, key, maxCount, beginTime, endTime, t);
                     }
+                    List<IndexItem> resultList = new ArrayList<>(result.values());
+                    future.complete(resultList.subList(0, Math.min(resultList.size(), maxCount)));
                 });
         } catch (Exception e) {
             log.error("IndexStoreService#queryAsync, topicId={}, key={}, maxCount={}, timestamp={}-{}",
@@ -344,10 +344,15 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         // delete file in time store table
         readWriteLock.writeLock().lock();
         try {
-            timeStoreTable.entrySet().removeIf(entry ->
-                entry.getKey() < expireTimestamp &&
-                    IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()));
             flatAppendFile.destroyExpiredFile(expireTimestamp);
+            timeStoreTable.entrySet().removeIf(entry ->
+                IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()) &&
+                    entry.getKey() < flatAppendFile.getMinTimestamp());
+            int tableSize = (int) timeStoreTable.entrySet().stream()
+                .filter(entry -> IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()))
+                .count();
+            log.info("IndexStoreService delete file, timestamp={}, remote={}, table={}, all={}",
+                expireTimestamp, flatAppendFile.getFileSegmentList().size(), tableSize, timeStoreTable.size());
         } finally {
             readWriteLock.writeLock().unlock();
         }
