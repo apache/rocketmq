@@ -16,8 +16,11 @@
  */
 package org.apache.rocketmq.broker.config.v1;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONWriter;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import java.io.File;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.RocksDBConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
@@ -26,10 +29,6 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.rocksdb.CompressionType;
-
-import java.io.File;
-import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 
 public class RocksDBTopicConfigManager extends TopicConfigManager {
 
@@ -114,7 +113,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         TopicConfig oldTopicConfig = this.topicConfigTable.put(topicName, topicConfig);
         try {
             byte[] keyBytes = topicName.getBytes(DataConverter.CHARSET_UTF8);
-            byte[] valueBytes = JSON.toJSONBytes(topicConfig, JSONWriter.Feature.BrowserCompatible);
+            byte[] valueBytes = JSON.toJSONBytes(topicConfig, SerializerFeature.BrowserCompatible);
             this.rocksDBConfigManager.put(keyBytes, keyBytes.length, valueBytes);
         } catch (Exception e) {
             log.error("kv put topic Failed, {}", topicConfig.toString(), e);
