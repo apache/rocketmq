@@ -253,7 +253,7 @@ public class FlatAppendFile {
                 FileSegment fileSegment = fileSegmentTable.get(0);
 
                 if (fileSegment.getMaxTimestamp() != Long.MAX_VALUE &&
-                    fileSegment.getMaxTimestamp() > expireTimestamp) {
+                    fileSegment.getMaxTimestamp() >= expireTimestamp) {
                     log.debug("FileSegment has not expired, filePath={}, fileType={}, " +
                             "offset={}, expireTimestamp={}, maxTimestamp={}", filePath, fileType,
                         fileSegment.getBaseOffset(), expireTimestamp, fileSegment.getMaxTimestamp());

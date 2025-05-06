@@ -344,10 +344,15 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         // delete file in time store table
         readWriteLock.writeLock().lock();
         try {
-            timeStoreTable.entrySet().removeIf(entry ->
-                entry.getKey() < expireTimestamp &&
-                    IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()));
             flatAppendFile.destroyExpiredFile(expireTimestamp);
+            timeStoreTable.entrySet().removeIf(entry ->
+                IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()) &&
+                    entry.getKey() < flatAppendFile.getMinTimestamp());
+            int tableSize = (int) timeStoreTable.entrySet().stream()
+                .filter(entry -> IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()))
+                .count();
+            log.info("IndexStoreService delete file, timestamp={}, remote={}, table={}, all={}",
+                expireTimestamp, flatAppendFile.getFileSegmentList().size(), tableSize, timeStoreTable.size());
         } finally {
             readWriteLock.writeLock().unlock();
         }
