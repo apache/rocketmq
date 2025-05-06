@@ -254,12 +254,12 @@ public class IndexStoreService extends ServiceThread implements IndexService {
                 .whenComplete((v, t) -> {
                     // Try to return the query results as much as possible here
                     // rather than directly throwing exceptions
-                    if (result.isEmpty() && t != null) {
-                        future.completeExceptionally(t);
-                    } else {
-                        List<IndexItem> resultList = new ArrayList<>(result.values());
-                        future.complete(resultList.subList(0, Math.min(resultList.size(), maxCount)));
+                    if (t != null) {
+                        log.error("IndexStoreService#queryAsync, topicId={}, key={}, maxCount={}, timestamp={}-{}",
+                            topic, key, maxCount, beginTime, endTime, t);
                     }
+                    List<IndexItem> resultList = new ArrayList<>(result.values());
+                    future.complete(resultList.subList(0, Math.min(resultList.size(), maxCount)));
                 });
         } catch (Exception e) {
             log.error("IndexStoreService#queryAsync, topicId={}, key={}, maxCount={}, timestamp={}-{}",
