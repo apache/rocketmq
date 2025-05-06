@@ -17,11 +17,15 @@
 
 package org.apache.rocketmq.broker.topic;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.remoting.protocol.body.TopicQueueMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicRemappingDetailWrapper;
@@ -33,16 +37,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -85,9 +79,9 @@ public class TopicQueueMappingManagerTest {
                 String topic = UUID.randomUUID().toString();
                 int queueNum = 10;
                 TopicRemappingDetailWrapper topicRemappingDetailWrapper  = TopicQueueMappingUtils.createTopicConfigMapping(topic, queueNum, brokers, new HashMap<>());
-                assertEquals(1, topicRemappingDetailWrapper.getBrokerConfigMap().size());
+                Assert.assertEquals(1, topicRemappingDetailWrapper.getBrokerConfigMap().size());
                 TopicQueueMappingDetail topicQueueMappingDetail  = topicRemappingDetailWrapper.getBrokerConfigMap().values().iterator().next().getMappingDetail();
-                assertEquals(queueNum, topicQueueMappingDetail.getHostedQueues().size());
+                Assert.assertEquals(queueNum, topicQueueMappingDetail.getHostedQueues().size());
                 mappingDetailMap.put(topic, topicQueueMappingDetail);
             }
         }
@@ -95,7 +89,7 @@ public class TopicQueueMappingManagerTest {
         {
             topicQueueMappingManager = new TopicQueueMappingManager(brokerController);
             Assert.assertTrue(topicQueueMappingManager.load());
-            assertEquals(0, topicQueueMappingManager.getTopicQueueMappingTable().size());
+            Assert.assertEquals(0, topicQueueMappingManager.getTopicQueueMappingTable().size());
             for (TopicQueueMappingDetail mappingDetail : mappingDetailMap.values()) {
                 for (int i = 0; i < 10; i++) {
                     topicQueueMappingManager.updateTopicQueueMapping(mappingDetail, false, false, true);
@@ -107,49 +101,11 @@ public class TopicQueueMappingManagerTest {
         {
             topicQueueMappingManager = new TopicQueueMappingManager(brokerController);
             Assert.assertTrue(topicQueueMappingManager.load());
-            assertEquals(mappingDetailMap.size(), topicQueueMappingManager.getTopicQueueMappingTable().size());
+            Assert.assertEquals(mappingDetailMap.size(), topicQueueMappingManager.getTopicQueueMappingTable().size());
             for (TopicQueueMappingDetail topicQueueMappingDetail: topicQueueMappingManager.getTopicQueueMappingTable().values()) {
-                assertEquals(topicQueueMappingDetail, mappingDetailMap.get(topicQueueMappingDetail.getTopic()));
+                Assert.assertEquals(topicQueueMappingDetail, mappingDetailMap.get(topicQueueMappingDetail.getTopic()));
             }
         }
         delete(topicQueueMappingManager);
-    }
-
-    @Test
-    public void testEncodePretty() {
-        TopicQueueMappingManager topicQueueMappingManager = new TopicQueueMappingManager(null);
-        TopicQueueMappingDetail detail = new TopicQueueMappingDetail();
-        detail.setTopic("testTopic");
-        detail.setBname("testBroker");
-
-        topicQueueMappingManager.getTopicQueueMappingTable().put("testTopic", detail);
-        topicQueueMappingManager.getDataVersion().nextVersion();
-
-        String actual = topicQueueMappingManager.encode(true);
-        TopicQueueMappingSerializeWrapper expectedWrapper = new TopicQueueMappingSerializeWrapper();
-        expectedWrapper.setTopicQueueMappingInfoMap(new ConcurrentHashMap<>(topicQueueMappingManager.getTopicQueueMappingTable()));
-        expectedWrapper.setDataVersion(topicQueueMappingManager.getDataVersion());
-        String expected = JSON.toJSONString(expectedWrapper, JSONWriter.Feature.PrettyFormat);
-
-        assertEquals(expected, actual);
-    }
-
-    @Test
-    public void testEncodeNonPretty() {
-        TopicQueueMappingManager topicQueueMappingManager = new TopicQueueMappingManager(null);
-        TopicQueueMappingDetail detail = new TopicQueueMappingDetail();
-        detail.setTopic("testTopic");
-        detail.setBname("testBroker");
-
-        topicQueueMappingManager.getTopicQueueMappingTable().put("testTopic", detail);
-        topicQueueMappingManager.getDataVersion().nextVersion();
-
-        String actual = topicQueueMappingManager.encode(false);
-        TopicQueueMappingSerializeWrapper expectedWrapper = new TopicQueueMappingSerializeWrapper();
-        expectedWrapper.setTopicQueueMappingInfoMap(new ConcurrentHashMap<>(topicQueueMappingManager.getTopicQueueMappingTable()));
-        expectedWrapper.setDataVersion(topicQueueMappingManager.getDataVersion());
-        String expected = JSON.toJSONString(expectedWrapper);
-
-        assertEquals(expected, actual);
     }
 }
