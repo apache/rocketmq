@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.store.pop;
 
-import com.alibaba.fastjson2.annotation.JSONField;
+import com.alibaba.fastjson.annotation.JSONField;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +35,7 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     private int queueId;
     @JSONField(name = "t")
     private String topic;
+    @JSONField(name = "c")
     private String cid;
     @JSONField(name = "ro")
     private long reviveOffset;
@@ -113,12 +114,10 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         this.topic = topic;
     }
 
-    @JSONField(name = "c")
     public String getCId() {
         return cid;
     }
 
-    @JSONField(name = "c")
     public void setCId(String cid) {
         this.cid = cid;
     }
