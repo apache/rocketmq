@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>5.3.3</version>
+        <version>5.3.4-SNAPSHOT</version>
     </parent>
     <artifactId>rocketmq-auth</artifactId>
     <name>rocketmq-auth ${project.version}</name>
