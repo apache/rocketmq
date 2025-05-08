@@ -2,39 +2,44 @@ name: SonarCloud Analysis
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened]
+    branches: [main]
 
 jobs:
   sonarcloud:
-    name: SonarCloud
+    name: Analyze with SonarCloud
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '22'  # Match your local Java version
+          java-version: '22'
+          distribution: 'oracle'
 
       - name: Cache SonarCloud packages
-        uses: actions/cache@v4
+        uses: actions/cache@v3
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Run SonarCloud analysis (skip build/test)
-        run: mvn validate sonar:sonar \
-          -Dsonar.projectKey=Madhu14123_rocketmq \
-          -Dsonar.organization=madhu14123 \
-          -Dsonar.host.url=https://sonarcloud.io \
-          -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-          -Dmaven.test.skip=true \
-          -Dmaven.compile.skip=true \
-          -Dsonar.skipTests=true
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven
+
+      - name: Compile only (no tests)
+        run: mvn compile -DskipTests
+
+      - name: Run SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn sonar:sonar -Dsonar.token=$SONAR_TOKEN
