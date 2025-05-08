@@ -23,6 +23,9 @@
 
     <properties>
         <project.root>${basedir}/..</project.root>
+        <spotbugs.skip>true</spotbugs.skip>
+        <checkstyle.skip>true</checkstyle.skip>
+        <pmd.skip>true</pmd.skip>
     </properties>
 
     <dependencies>

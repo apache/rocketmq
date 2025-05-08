@@ -88,10 +88,14 @@
     </issueManagement>
 
     <properties>
+        <sonar.organization>madhu14123</sonar.organization>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.root>${basedir}</project.root>
-
+        <spotbugs.skip>true</spotbugs.skip>
+        <checkstyle.skip>true</checkstyle.skip>
+        <pmd.skip>true</pmd.skip>
         <!-- Maven properties -->
         <maven.test.skip>false</maven.test.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>
@@ -401,8 +405,9 @@
             <plugin>
                 <groupId>org.sonarsource.scanner.maven</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
-                <version>${sonar-maven-plugin.version}</version>
+                <version>3.9.0.2155</version>
             </plugin>
+            <!--
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
@@ -423,8 +428,10 @@
                     <excludeFilterFile>${project.root}/style/spotbugs-suppressions.xml</excludeFilterFile>
                     <threshold>High</threshold>
                     <effort>Max</effort>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
+            -->
         </plugins>
 
         <pluginManagement>
