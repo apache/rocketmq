@@ -103,7 +103,6 @@
         <netty.version>4.1.114.Final</netty.version>
         <netty.tcnative.version>2.0.53.Final</netty.tcnative.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
-        <fastjson.version>1.2.83</fastjson.version>
         <fastjson2.version>2.0.43</fastjson2.version>
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
@@ -656,11 +655,6 @@
                 <scope>runtime</scope>
                 <type>jar</type>
                 <version>${bcpkix-jdk15on.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>fastjson</artifactId>
-                <version>${fastjson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba.fastjson2</groupId>

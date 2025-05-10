@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.proxy.config;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter.Feature;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -59,6 +59,6 @@ public class ConfigurationManager {
 
     public static String formatProxyConfig() {
         return JSON.toJSONString(ConfigurationManager.getProxyConfig(),
-                SerializerFeature.PrettyFormat, SerializerFeature.WriteMapNullValue, SerializerFeature.WriteDateUseDateFormat, SerializerFeature.WriteNullListAsEmpty);
+                Feature.PrettyFormat, Feature.WriteMapNullValue, Feature.WriteNullListAsEmpty);
     }
 }

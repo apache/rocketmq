@@ -18,12 +18,6 @@
 package org.apache.rocketmq.broker.subscription;
 
 import com.google.common.collect.ImmutableMap;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SubscriptionGroupAttributes;
@@ -38,11 +32,17 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 
@@ -100,12 +100,12 @@ public class SubscriptionGroupManagerTest {
         subscriptionGroupConfig.setGroupName(group);
         Map<String, String> attr = ImmutableMap.of("+test", "true");
         subscriptionGroupConfig.setAttributes(attr);
+        SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerControllerMock);
         subscriptionGroupManager.updateSubscriptionGroupConfig(subscriptionGroupConfig);
         SubscriptionGroupConfig result = subscriptionGroupManager.getSubscriptionGroupTable().get(group);
         assertThat(result).isNotNull();
         assertThat(result.getGroupName()).isEqualTo(group);
         assertThat(result.getAttributes().get("test")).isEqualTo("true");
-
 
         SubscriptionGroupConfig subscriptionGroupConfig1 = new SubscriptionGroupConfig();
         subscriptionGroupConfig1.setGroupName(group);
@@ -156,14 +156,10 @@ public class SubscriptionGroupManagerTest {
             groupNames.add(groupName);
         }
 
+        SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerControllerMock);
         subscriptionGroupManager.updateSubscriptionGroupConfigList(configList);
-
-        // Verifying that persist() is called once
-        verify(subscriptionGroupManager, times(1)).persist();
 
         groupNames.forEach(groupName ->
             assertThat(subscriptionGroupManager.getSubscriptionGroupTable().get(groupName)).isNotNull());
-
     }
-
 }

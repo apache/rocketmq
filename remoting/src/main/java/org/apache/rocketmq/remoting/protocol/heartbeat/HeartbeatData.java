@@ -20,10 +20,11 @@
  */
 package org.apache.rocketmq.remoting.protocol.heartbeat;
 
+import com.alibaba.fastjson2.JSON;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+
 import java.util.HashSet;
 import java.util.Set;
-import com.alibaba.fastjson.JSON;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class HeartbeatData extends RemotingSerializable {
     private String clientID;
