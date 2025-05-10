@@ -30,8 +30,9 @@ public class PopProcessQueueTest {
 
     @Test
     public void testPopProcessQueue() {
-        PopProcessQueue popRequest1 = createPopProcessQueue();
-        PopProcessQueue popRequest2 = createPopProcessQueue();
+        long currentTime = System.currentTimeMillis();
+        PopProcessQueue popRequest1 = createPopProcessQueue(currentTime);
+        PopProcessQueue popRequest2 = createPopProcessQueue(currentTime);
         assertEquals(popRequest1.getLastPopTimestamp(), popRequest2.getLastPopTimestamp());
         assertEquals(popRequest1.toString(), popRequest2.toString());
         assertEquals(popRequest1.getWaiAckMsgCount(), popRequest2.getWaiAckMsgCount());
@@ -42,12 +43,13 @@ public class PopProcessQueueTest {
         assertEquals(popProcessQueueInfo.getWaitAckCount(), popRequest1.getWaiAckMsgCount() + popRequest2.getWaiAckMsgCount());
     }
 
-    private PopProcessQueue createPopProcessQueue() {
+    private PopProcessQueue createPopProcessQueue(final long currentTime) {
         PopProcessQueue result = new PopProcessQueue();
         long curTime = System.currentTimeMillis();
         result.setLastPopTimestamp(curTime);
         result.incFoundMsg(1);
         result.decFoundMsg(1);
+        result.setLastPopTimestamp(currentTime);
         result.fillPopProcessQueueInfo(popProcessQueueInfo);
         return result;
     }

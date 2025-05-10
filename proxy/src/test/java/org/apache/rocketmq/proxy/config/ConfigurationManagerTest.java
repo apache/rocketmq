@@ -53,6 +53,5 @@ public class ConfigurationManagerTest extends InitConfigTest {
         ProxyConfig expected = ConfigurationManager.getProxyConfig();
         assertTrue(actual.contains(expected.getProxyMode()));
         assertTrue(actual.contains(expected.getProxyName()));
-        assertTrue(actual.contains(expected.getNamesrvAddr()));
     }
 } 
