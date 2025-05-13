@@ -1238,16 +1238,16 @@ public class CommitLog {
                     req.wakeupCustomer(flushOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_DISK_TIMEOUT);
                 }
 
-                long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
-                if (storeTimestamp > 0) {
-                    CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
-                }
-
                 this.requestsRead = new LinkedList<>();
             } else {
                 // Because of individual messages is set to not sync flush, it
                 // will come to this process
                 CommitLog.this.mappedFileQueue.flush(0);
+            }
+
+            long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
+            if (storeTimestamp > 0) {
+                CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
             }
         }
 
