@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.kv;
 
 import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 import java.io.File;
@@ -42,11 +43,11 @@ public class CompactionPositionMgr extends ConfigManager {
     }
 
     public void setOffset(String topic, int queueId, final long offset) {
-        queueOffsetMap.put(topic + "_" + queueId, offset);
+        queueOffsetMap.put(KeyBuilder.buildCompactionLogKey(topic, queueId), offset);
     }
 
     public long getOffset(String topic, int queueId) {
-        return queueOffsetMap.getOrDefault(topic + "_" + queueId, -1L);
+        return queueOffsetMap.getOrDefault(KeyBuilder.buildCompactionLogKey(topic, queueId), -1L);
     }
 
     public boolean isEmpty() {

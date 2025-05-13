@@ -32,6 +32,7 @@ import java.nio.channels.OverlappingFileLockException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.attribute.CleanupPolicy;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -66,6 +69,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.apache.rocketmq.common.TopicAttributes.CLEANUP_POLICY_ATTRIBUTE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -74,6 +78,7 @@ import static org.junit.Assert.assertTrue;
 public class DefaultMessageStoreTest {
     private final String storeMessage = "Once, there was a chance for me!";
     private final String messageTopic = "FooBar";
+    private final String compactionTopic = "CT";
     private int queueTotal = 100;
     private AtomicInteger queueId = new AtomicInteger(0);
     private SocketAddress bornHost;
@@ -146,10 +151,17 @@ public class DefaultMessageStoreTest {
             storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-" + uuid.toString();
         }
         messageStoreConfig.setStorePathRootDir(storePathRootDir);
+        // build compaction topic config
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CLEANUP_POLICY_ATTRIBUTE.getName(), CleanupPolicy.COMPACTION.name());
+        TopicConfig topicConfig = new TopicConfig(compactionTopic);
+        topicConfig.setAttributes(attributes);
+        ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        topicConfigTable.put(compactionTopic, topicConfig);
         return new DefaultMessageStore(messageStoreConfig,
             new BrokerStatsManager("simpleTest", true),
             new MyMessageArrivingListener(),
-            new BrokerConfig(), new ConcurrentHashMap<>());
+            new BrokerConfig(), topicConfigTable);
     }
 
     @Test
@@ -540,15 +552,22 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void testMaxOffset() throws InterruptedException, ConsumeQueueException {
-        int firstBatchMessages = 3;
+    public void testMinOffset() throws InterruptedException {
+        testMinOffset(messageTopic);
+    }
+
+    @Test
+    public void testCompactionTopicMinOffset() throws InterruptedException {
+        testMinOffset(compactionTopic);
+    }
+
+    private void testMinOffset(String topic) throws InterruptedException {
+        int batchMessages = 2;
         int queueId = 0;
         messageBody = storeMessage.getBytes();
 
-        assertThat(messageStore.getMaxOffsetInQueue(messageTopic, queueId)).isEqualTo(0);
-
-        for (int i = 0; i < firstBatchMessages; i++) {
-            final MessageExtBrokerInner msg = buildMessage();
+        for (int i = 0; i < batchMessages; i++) {
+            final MessageExtBrokerInner msg = buildMessage(messageBody, topic);
             msg.setQueueId(queueId);
             messageStore.putMessage(msg);
         }
@@ -557,7 +576,37 @@ public class DefaultMessageStoreTest {
             TimeUnit.MILLISECONDS.sleep(1);
         }
 
-        assertThat(messageStore.getMaxOffsetInQueue(messageTopic, queueId)).isEqualTo(firstBatchMessages);
+        assertThat(messageStore.getMinOffsetInQueue(topic, queueId)).isEqualTo(0);
+    }
+
+    @Test
+    public void testMaxOffset() throws InterruptedException, ConsumeQueueException {
+        testMaxOffset(messageTopic);
+    }
+
+    @Test
+    public void testCompactionTopicMaxOffset() throws InterruptedException, ConsumeQueueException {
+        testMaxOffset(compactionTopic);
+    }
+
+    private void testMaxOffset(String topic) throws InterruptedException, ConsumeQueueException {
+        int firstBatchMessages = 3;
+        int queueId = 0;
+        messageBody = storeMessage.getBytes();
+
+        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId)).isEqualTo(0);
+
+        for (int i = 0; i < firstBatchMessages; i++) {
+            final MessageExtBrokerInner msg = buildMessage(messageBody, topic);
+            msg.setQueueId(queueId);
+            messageStore.putMessage(msg);
+        }
+
+        while (messageStore.dispatchBehindBytes() != 0) {
+            TimeUnit.MILLISECONDS.sleep(1);
+        }
+
+        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId)).isEqualTo(firstBatchMessages);
 
         // Disable the dispatcher
         messageStore.getDispatcherList().clear();
@@ -565,14 +614,44 @@ public class DefaultMessageStoreTest {
         int secondBatchMessages = 2;
 
         for (int i = 0; i < secondBatchMessages; i++) {
-            final MessageExtBrokerInner msg = buildMessage();
+            final MessageExtBrokerInner msg = buildMessage(messageBody, topic);
             msg.setQueueId(queueId);
             messageStore.putMessage(msg);
         }
 
-        assertThat(messageStore.getMaxOffsetInQueue(messageTopic, queueId)).isEqualTo(firstBatchMessages);
-        assertThat(messageStore.getMaxOffsetInQueue(messageTopic, queueId, true)).isEqualTo(firstBatchMessages);
-        assertThat(messageStore.getMaxOffsetInQueue(messageTopic, queueId, false)).isEqualTo(firstBatchMessages + secondBatchMessages);
+        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId)).isEqualTo(firstBatchMessages);
+        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId, true)).isEqualTo(firstBatchMessages);
+        assertThat(messageStore.getMaxOffsetInQueue(topic, queueId, false)).isEqualTo(firstBatchMessages + secondBatchMessages);
+    }
+
+    @Test
+    public void testOffsetByTime() throws InterruptedException {
+        testOffsetByTime(messageTopic);
+    }
+
+    @Test
+    public void testCompactionTopicOffsetByTime() throws InterruptedException {
+        testOffsetByTime(compactionTopic);
+    }
+
+    private void testOffsetByTime(String topic) throws InterruptedException {
+        int batchMessages = 3;
+        int queueId = 0;
+        messageBody = storeMessage.getBytes();
+
+        long timestamp = System.currentTimeMillis();
+        for (int i = 0; i < batchMessages; i++) {
+            final MessageExtBrokerInner msg = buildMessage(messageBody, topic);
+            msg.setQueueId(queueId);
+            messageStore.putMessage(msg);
+            TimeUnit.SECONDS.sleep(1);
+        }
+
+        while (messageStore.dispatchBehindBytes() != 0) {
+            TimeUnit.MILLISECONDS.sleep(1);
+        }
+
+        assertThat(messageStore.getOffsetInQueueByTime(topic, queueId, timestamp + 1000L)).isEqualTo(1);
     }
 
     private MessageExtBrokerInner buildIPv6HostMessage() {
