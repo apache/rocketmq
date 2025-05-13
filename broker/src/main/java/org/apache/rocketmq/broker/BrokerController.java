@@ -1124,7 +1124,6 @@ public class BrokerController {
             if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);
             }
-            this.slaveSynchronize.setMasterAddr(null);
             slaveSyncFuture = this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
