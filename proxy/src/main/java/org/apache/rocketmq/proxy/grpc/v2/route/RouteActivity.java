@@ -20,6 +20,7 @@ import apache.rocketmq.v2.Address;
 import apache.rocketmq.v2.AddressScheme;
 import apache.rocketmq.v2.Assignment;
 import apache.rocketmq.v2.Broker;
+import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Endpoints;
 import apache.rocketmq.v2.MessageQueue;
@@ -30,6 +31,7 @@ import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
 import com.google.common.net.HostAndPort;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,8 +73,12 @@ public class RouteActivity extends AbstractMessingActivity {
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
-
             TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(ctx, topicName);
+
+            Settings clientSettings = grpcClientSettingsManager.getClientSettings(ctx);
+            boolean returnPhysicalQueues = !(clientSettings != null &&
+                ClientType.SIMPLE_CONSUMER.equals(clientSettings.getClientType()) && !clientSettings.getSubscription().getFifo());
+
             for (QueueData queueData : proxyTopicRouteData.getQueueDatas()) {
                 String brokerName = queueData.getBrokerName();
                 Map<Long, Broker> brokerIdMap = brokerMap.get(brokerName);
@@ -80,7 +86,8 @@ public class RouteActivity extends AbstractMessingActivity {
                     break;
                 }
                 for (Broker broker : brokerIdMap.values()) {
-                    messageQueueList.addAll(this.genMessageQueueFromQueueData(queueData, request.getTopic(), topicMessageType, broker));
+                    messageQueueList.addAll(this.genMessageQueueFromQueueData(
+                        queueData, request.getTopic(), topicMessageType, broker, returnPhysicalQueues));
                 }
             }
 
@@ -235,6 +242,30 @@ public class RouteActivity extends AbstractMessingActivity {
             brokerMap.put(brokerName, brokerIdMap);
         }
         return brokerMap;
+    }
+
+    protected List<MessageQueue> genMessageQueueFromQueueDataOnlyBrokerInfo(QueueData queueData, Resource topic,
+        TopicMessageType topicMessageType, Broker broker) {
+        List<MessageQueue> messageQueueList = new ArrayList<>();
+
+        if (PermName.isReadable(queueData.getPerm())) {
+            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+                .setId(-1)
+                .setPermission(Permission.READ)
+                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                .build();
+            messageQueueList.add(messageQueue);
+        }
+        return messageQueueList;
+    }
+
+    protected List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic,
+        TopicMessageType topicMessageType, Broker broker, boolean returnPhysicalQueues) {
+        if (returnPhysicalQueues) {
+            return genMessageQueueFromQueueData(queueData, topic, topicMessageType, broker);
+        } else {
+            return genMessageQueueFromQueueDataOnlyBrokerInfo(queueData, topic, topicMessageType, broker);
+        }
     }
 
     protected List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic,
