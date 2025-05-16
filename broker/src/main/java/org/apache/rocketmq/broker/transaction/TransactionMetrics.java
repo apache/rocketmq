@@ -215,7 +215,7 @@ public class TransactionMetrics extends ConfigManager {
                 Files.copy(configFile, new File(backup));
                 Path backupPath = Paths.get(backup);
                 try (FileChannel channel = FileChannel.open(backupPath, StandardOpenOption.WRITE)) {
-                    channel.force(true); // 强制刷盘，删除前必须确保bak文件已经完全落盘。
+                    channel.force(true); // force flush before deleting original file.
                 }
                 configFile.delete();
             }
