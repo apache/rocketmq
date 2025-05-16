@@ -267,6 +267,10 @@ public class TimerMetrics extends ConfigManager {
             File configFile = new File(config);
             if (configFile.exists()) {
                 Files.copy(configFile, new File(backup));
+                Path backupPath = Paths.get(backup);
+                try (FileChannel channel = FileChannel.open(backupPath, StandardOpenOption.WRITE)) {
+                    channel.force(true); // 强制刷盘，删除前必须确保bak文件已经完全落盘。
+                }
                 configFile.delete();
             }
 
