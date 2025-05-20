@@ -75,9 +75,11 @@ public class RouteActivity extends AbstractMessingActivity {
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
             TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(ctx, topicName);
 
+            // Return -1 queueId for non-fifo simple consumer, so that it can pop all queues in the broker and
+            // improve the real-time consumption
             Settings clientSettings = grpcClientSettingsManager.getClientSettings(ctx);
-            boolean returnPhysicalQueues = !(clientSettings != null &&
-                ClientType.SIMPLE_CONSUMER.equals(clientSettings.getClientType()) && !clientSettings.getSubscription().getFifo());
+            boolean simpleConsumerNonFifo = clientSettings != null &&
+                ClientType.SIMPLE_CONSUMER.equals(clientSettings.getClientType()) && !clientSettings.getSubscription().getFifo();
 
             for (QueueData queueData : proxyTopicRouteData.getQueueDatas()) {
                 String brokerName = queueData.getBrokerName();
@@ -87,7 +89,7 @@ public class RouteActivity extends AbstractMessingActivity {
                 }
                 for (Broker broker : brokerIdMap.values()) {
                     messageQueueList.addAll(this.genMessageQueueFromQueueData(
-                        queueData, request.getTopic(), topicMessageType, broker, returnPhysicalQueues));
+                        queueData, request.getTopic(), topicMessageType, broker, !simpleConsumerNonFifo));
                 }
             }
 
