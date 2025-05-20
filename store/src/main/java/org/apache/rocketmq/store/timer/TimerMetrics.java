@@ -25,7 +25,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -263,6 +267,10 @@ public class TimerMetrics extends ConfigManager {
             File configFile = new File(config);
             if (configFile.exists()) {
                 Files.copy(configFile, new File(backup));
+                Path backupPath = Paths.get(backup);
+                try (FileChannel channel = FileChannel.open(backupPath, StandardOpenOption.WRITE)) {
+                    channel.force(true); // force flush before deleting original file.
+                }
                 configFile.delete();
             }
 
