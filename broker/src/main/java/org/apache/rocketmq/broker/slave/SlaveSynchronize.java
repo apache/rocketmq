@@ -99,8 +99,8 @@ public class SlaveSynchronize {
                     }
 
                     //update
-                    newTopicConfigTable.values().forEach(topicConfigManager::updateSingleTopicConfigWithoutPersist);
-
+                    newTopicConfigTable.values().forEach(topicConfigManager::putTopicConfig);
+                    topicConfigManager.updateDataVersion();
                     topicConfigManager.persist();
                 }
                 if (topicWrapper.getTopicQueueMappingDetailMap() != null
