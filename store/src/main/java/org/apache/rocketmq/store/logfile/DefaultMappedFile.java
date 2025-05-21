@@ -18,11 +18,11 @@ package org.apache.rocketmq.store.logfile;
 
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
+import io.netty.util.internal.PlatformDependent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -55,14 +56,10 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
-import sun.misc.Unsafe;
-import sun.nio.ch.DirectBuffer;
 
 public class DefaultMappedFile extends AbstractMappedFile {
-    public static final int OS_PAGE_SIZE = 1024 * 4;
-    public static final Unsafe UNSAFE = getUnsafe();
     private static final Method IS_LOADED_METHOD;
-    public static final int UNSAFE_PAGE_SIZE = UNSAFE == null ? OS_PAGE_SIZE : UNSAFE.pageSize();
+    public static final long OS_PAGE_SIZE = MixAll.SYSTEM_INFO.getHardware().getMemory().getPageSize();
 
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -754,7 +751,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public void mlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
+        final long address = PlatformDependent.directBufferAddress(this.mappedByteBuffer);
         Pointer pointer = new Pointer(address);
         {
             int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize));
@@ -770,7 +767,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public void munlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
+        final long address = PlatformDependent.directBufferAddress(this.mappedByteBuffer);
         Pointer pointer = new Pointer(address);
         int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
@@ -862,25 +859,14 @@ public class DefaultMappedFile extends AbstractMappedFile {
         return new Itr(startPos);
     }
 
-    public static Unsafe getUnsafe() {
-        try {
-            Field f = Unsafe.class.getDeclaredField("theUnsafe");
-            f.setAccessible(true);
-            return (Unsafe) f.get(null);
-        } catch (Exception ignore) {
-
-        }
-        return null;
-    }
-
     public static long mappingAddr(long addr) {
-        long offset = addr % UNSAFE_PAGE_SIZE;
-        offset = (offset >= 0) ? offset : (UNSAFE_PAGE_SIZE + offset);
+        long offset = addr % OS_PAGE_SIZE;
+        offset = (offset >= 0) ? offset : (OS_PAGE_SIZE + offset);
         return addr - offset;
     }
 
     public static int pageCount(long size) {
-        return (int) (size + (long) UNSAFE_PAGE_SIZE - 1L) / UNSAFE_PAGE_SIZE;
+        return (int) ((size + OS_PAGE_SIZE - 1L) / OS_PAGE_SIZE);
     }
 
     @Override
@@ -889,7 +875,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             return true;
         }
         try {
-            long addr = ((DirectBuffer) mappedByteBuffer).address() + position;
+            long addr = PlatformDependent.directBufferAddress(mappedByteBuffer) + position;
             return (boolean) IS_LOADED_METHOD.invoke(mappedByteBuffer, mappingAddr(addr), size, pageCount(size));
         } catch (Exception e) {
             log.info("invoke isLoaded0 of file {} error:", file.getAbsolutePath(), e);

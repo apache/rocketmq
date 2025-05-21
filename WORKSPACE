@@ -114,6 +114,7 @@ maven_install(
         "org.mockito:mockito-junit-jupiter:4.11.0",
         "com.alibaba.fastjson2:fastjson2:2.0.43",
         "org.junit.jupiter:junit-jupiter-api:5.9.1",
+        "com.github.oshi:oshi-core:6.6.5",
     ],
     fetch_sources = True,
     repositories = [

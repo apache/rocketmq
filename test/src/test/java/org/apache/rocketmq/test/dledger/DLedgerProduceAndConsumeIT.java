@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.test.dledger;
 
+import java.io.File;
 import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
@@ -38,8 +39,6 @@ import org.apache.rocketmq.test.factory.ProducerFactory;
 import org.junit.Assert;
 import org.junit.Test;
 
-import static sun.util.locale.BaseLocale.SEP;
-
 public class DLedgerProduceAndConsumeIT {
 
     public BrokerConfig buildBrokerConfig(String cluster, String brokerName) {
@@ -55,7 +54,7 @@ public class DLedgerProduceAndConsumeIT {
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         String baseDir =  IntegrationTestBase.createBaseDir();
         storeConfig.setStorePathRootDir(baseDir);
-        storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
+        storeConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
         storeConfig.setHaListenPort(0);
         storeConfig.setMappedFileSizeCommitLog(10 * 1024 * 1024);
         storeConfig.setEnableDLegerCommitLog(true);

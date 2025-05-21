@@ -18,6 +18,7 @@ package org.apache.rocketmq.store;
 
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
+import io.netty.util.internal.PlatformDependent;
 import java.nio.ByteBuffer;
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -25,7 +26,6 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.util.LibC;
-import sun.nio.ch.DirectBuffer;
 
 public class TransientStorePool {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -47,8 +47,7 @@ public class TransientStorePool {
     public void init() {
         for (int i = 0; i < poolSize; i++) {
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(fileSize);
-
-            final long address = ((DirectBuffer) byteBuffer).address();
+            final long address = PlatformDependent.directBufferAddress(byteBuffer);
             Pointer pointer = new Pointer(address);
             LibC.INSTANCE.mlock(pointer, new NativeLong(fileSize));
 
@@ -58,7 +57,7 @@ public class TransientStorePool {
 
     public void destroy() {
         for (ByteBuffer byteBuffer : availableBuffers) {
-            final long address = ((DirectBuffer) byteBuffer).address();
+            final long address = PlatformDependent.directBufferAddress(byteBuffer);
             Pointer pointer = new Pointer(address);
             LibC.INSTANCE.munlock(pointer, new NativeLong(fileSize));
         }
