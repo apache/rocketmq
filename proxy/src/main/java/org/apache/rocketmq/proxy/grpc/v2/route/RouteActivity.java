@@ -248,17 +248,13 @@ public class RouteActivity extends AbstractMessingActivity {
 
     protected List<MessageQueue> genMessageQueueFromQueueDataOnlyBrokerInfo(QueueData queueData, Resource topic,
         TopicMessageType topicMessageType, Broker broker) {
-        List<MessageQueue> messageQueueList = new ArrayList<>();
-
-        if (PermName.isReadable(queueData.getPerm())) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(-1)
-                .setPermission(Permission.READ)
-                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
-                .build();
-            messageQueueList.add(messageQueue);
-        }
-        return messageQueueList;
+        // queue id is -1 which means pop request will pop all queues in this broker
+        MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+            .setId(-1)
+            .setPermission(convertToPermission(queueData.getPerm()))
+            .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+            .build();
+        return Collections.singletonList(messageQueue);
     }
 
     protected List<MessageQueue> genMessageQueueFromQueueData(QueueData queueData, Resource topic,
