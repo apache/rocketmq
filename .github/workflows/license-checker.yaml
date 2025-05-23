@@ -19,7 +19,8 @@ name: License checker
 on:
   pull_request:
     branches:
-      - release-4.9.8
+      - develop
+      - master
 
 jobs:
   check-license:
