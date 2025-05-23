@@ -19,8 +19,7 @@ name: License checker
 on:
   pull_request:
     branches:
-      - develop
-      - master
+      - '*'
 
 jobs:
   check-license:
