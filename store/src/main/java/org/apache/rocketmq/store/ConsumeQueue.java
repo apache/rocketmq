@@ -176,7 +176,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                         log.info("recover next consume queue file {} ", mappedFile.getFileName());
                     }
                 } else {
-                    log.info("recover current consume queue over, {} totalMessageCount={}", mappedFile.getFileName(), (processOffset + mappedFileOffset));
+                    log.info("recover current consume queue over, {} totalMessageCount={}", mappedFile.getFileName(), processOffset + mappedFileOffset);
                     break;
                 }
             }
