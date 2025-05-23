@@ -176,6 +176,8 @@ public class RequestCode {
 
     public static final int QUERY_DATA_VERSION = 322;
 
+    public static final int GET_NAMESERVER_STARTUP_ID = 323;
+
     /**
      * resume logic of checking half messages that have been put in TRANS_CHECK_MAXTIME_TOPIC before
      */

@@ -19,6 +19,7 @@ package org.apache.rocketmq.namesrv.processor;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.HashSet;
@@ -146,6 +147,8 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                 return this.updateConfig(ctx, request);
             case RequestCode.GET_NAMESRV_CONFIG:
                 return this.getConfig(ctx, request);
+            case RequestCode.GET_NAMESERVER_STARTUP_ID:
+                return getStartupIdResponse();
             default:
                 break;
         }
@@ -636,6 +639,16 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
             }
         }
 
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
+    }
+
+
+    private RemotingCommand getStartupIdResponse() {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        String startupId = this.namesrvController.getKvConfigManager().getKVConfig("ROCKETMQ_NS", "nameserverStartupId");
+        response.setBody(startupId.getBytes(StandardCharsets.UTF_8));
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;

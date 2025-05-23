@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.out;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -387,5 +388,18 @@ public class BrokerOuterAPI {
 
     public void registerRPCHook(RPCHook rpcHook) {
         remotingClient.registerRPCHook(rpcHook);
+    }
+
+    public String getNameserverStartupId(String namesrvAddr, long timeoutMillis) {
+        try {
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_NAMESERVER_STARTUP_ID, null);
+            RemotingCommand response = this.remotingClient.invokeSync(namesrvAddr, request, timeoutMillis);
+            if (response != null && response.getCode() == ResponseCode.SUCCESS) {
+                return new String(response.getBody(), StandardCharsets.UTF_8);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch startupId from nameserver {}", namesrvAddr, e);
+        }
+        return null;
     }
 }

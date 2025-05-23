@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -173,6 +174,8 @@ public class BrokerController {
     private TransactionalMessageService transactionalMessageService;
     private AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
     private Future<?> slaveSyncFuture;
+
+    private final Map<String, String> namesrvStartupIdMap = new ConcurrentHashMap<>();
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -630,7 +633,8 @@ public class BrokerController {
 
     public void protectBroker() {
         if (this.brokerConfig.isDisableConsumeIfConsumerReadSlowly()) {
-            final Iterator<Map.Entry<String, MomentStatsItem>> it = this.brokerStatsManager.getMomentStatsItemSetFallSize().getStatsItemTable().entrySet().iterator();
+            final Iterator<Map.Entry<String, MomentStatsItem>>
+                    it = this.brokerStatsManager.getMomentStatsItemSetFallSize().getStatsItemTable().entrySet().iterator();
             while (it.hasNext()) {
                 final Map.Entry<String, MomentStatsItem> next = it.next();
                 final long fallBehindBytes = next.getValue().getValue().get();
@@ -890,6 +894,10 @@ public class BrokerController {
                 }
             }
         }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            detectAndRegisterIfNameserverRestarted();
+        }, 0, 3_000, TimeUnit.MILLISECONDS);
 
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.start();
@@ -1230,5 +1238,31 @@ public class BrokerController {
 
     public ExecutorService getPutMessageFutureExecutor() {
         return putMessageFutureExecutor;
+    }
+
+    private void detectAndRegisterIfNameserverRestarted() {
+        try {
+            String nameServerAddrs = this.brokerConfig.getNamesrvAddr();
+            if (nameServerAddrs == null || nameServerAddrs.isEmpty()) {
+                log.warn("[NamesrvDetect] No NameServer address found.");
+                return;
+            }
+            for (String namesrvAddr : Arrays.asList(nameServerAddrs.split(";"))) {
+                String currentStartupId = this.brokerOuterAPI.getNameserverStartupId(namesrvAddr, 3000);
+                if (currentStartupId == null) continue;
+                String previous = namesrvStartupIdMap.get(namesrvAddr);
+                if (previous == null || !currentStartupId.equals(previous)) {
+                    log.info("[NamesrvDetect] Detected restart of NameServer {}, triggering full registerBrokerAll()", namesrvAddr);
+                    namesrvStartupIdMap.put(namesrvAddr, currentStartupId);
+                    try {
+                        this.registerBrokerAll(true, false, true);
+                    } catch (Exception e) {
+                        log.warn("Failed to registerBrokerAll after detecting NameServer restart", e);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("[NamesrvDetect] Error during NameServer restart detection", ex);
+        }
     }
 }
