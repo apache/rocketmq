@@ -38,6 +38,7 @@ import org.mockito.ArgumentCaptor;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
@@ -67,7 +68,7 @@ public class EndTransactionActivityTest extends BaseActivityTest {
     public void testEndTransaction() throws Throwable {
         ArgumentCaptor<TransactionStatus> transactionStatusCaptor = ArgumentCaptor.forClass(TransactionStatus.class);
         ArgumentCaptor<Boolean> fromTransactionCheckCaptor = ArgumentCaptor.forClass(Boolean.class);
-        when(this.messagingProcessor.endTransaction(any(), any(), anyString(), anyString(), anyString(),
+        when(this.messagingProcessor.endTransaction(any(), any(), anyString(), anyString(), anyString(),  isNull(),  isNull(),
             transactionStatusCaptor.capture(),
             fromTransactionCheckCaptor.capture())).thenReturn(CompletableFuture.completedFuture(null));
 
