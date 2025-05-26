@@ -127,20 +127,10 @@ public class BrokerOuterAPI {
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
 
-            final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
-            requestHeader.setBrokerAddr(brokerAddr);
-            requestHeader.setBrokerId(brokerId);
-            requestHeader.setBrokerName(brokerName);
-            requestHeader.setClusterName(clusterName);
-            requestHeader.setHaServerAddr(haServerAddr);
-            requestHeader.setCompressed(compressed);
-
-            RegisterBrokerBody requestBody = new RegisterBrokerBody();
-            requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
-            requestBody.setFilterServerList(filterServerList);
-            final byte[] body = requestBody.encode(compressed);
-            final int bodyCrc32 = UtilAll.crc32(body);
-            requestHeader.setBodyCrc32(bodyCrc32);
+            byte[] body = buildRegisterBrokerBody(topicConfigWrapper, filterServerList, compressed);
+            int bodyCrc32 = UtilAll.crc32(body);
+            RegisterBrokerRequestHeader requestHeader = buildRegisterBrokerRequestHeader(
+                    clusterName, brokerAddr, brokerName, brokerId, haServerAddr, compressed, bodyCrc32);
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(() -> {
@@ -167,6 +157,38 @@ public class BrokerOuterAPI {
 
         return registerBrokerResultList;
     }
+
+    public RegisterBrokerResult registerBrokerSingle(
+            final String namesrvAddr,
+            final String clusterName,
+            final String brokerAddr,
+            final String brokerName,
+            final long brokerId,
+            final String haServerAddr,
+            final TopicConfigSerializeWrapper topicConfigWrapper,
+            final List<String> filterServerList,
+            final boolean oneway,
+            final int timeoutMills,
+            final boolean compressed
+    ) {
+
+        byte[] body = buildRegisterBrokerBody(topicConfigWrapper, filterServerList, compressed);
+        int bodyCrc32 = UtilAll.crc32(body);
+        RegisterBrokerRequestHeader requestHeader = buildRegisterBrokerRequestHeader(
+                clusterName, brokerAddr, brokerName, brokerId, haServerAddr, compressed, bodyCrc32);
+
+        try {
+            RegisterBrokerResult result = registerBroker(
+                    namesrvAddr, oneway, timeoutMills, requestHeader, body
+            );
+            log.info("Register broker[{}] to NameServer [{}] success.", brokerId, namesrvAddr);
+            return result;
+        } catch (Exception e) {
+            log.warn("Register broker[{}] to NameServer [{}] failed.", brokerId, namesrvAddr, e);
+            return null;
+        }
+    }
+
 
     private RegisterBrokerResult registerBroker(
         final String namesrvAddr,
@@ -402,4 +424,36 @@ public class BrokerOuterAPI {
         }
         return null;
     }
+
+    private RegisterBrokerRequestHeader buildRegisterBrokerRequestHeader(
+            String clusterName,
+            String brokerAddr,
+            String brokerName,
+            long brokerId,
+            String haServerAddr,
+            boolean compressed,
+            int bodyCrc32
+    ) {
+        RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
+        requestHeader.setBrokerAddr(brokerAddr);
+        requestHeader.setBrokerId(brokerId);
+        requestHeader.setBrokerName(brokerName);
+        requestHeader.setClusterName(clusterName);
+        requestHeader.setHaServerAddr(haServerAddr);
+        requestHeader.setCompressed(compressed);
+        requestHeader.setBodyCrc32(bodyCrc32);
+        return requestHeader;
+    }
+
+    private byte[] buildRegisterBrokerBody(
+            TopicConfigSerializeWrapper topicConfigWrapper,
+            List<String> filterServerList,
+            boolean compressed
+    ) {
+        RegisterBrokerBody requestBody = new RegisterBrokerBody();
+        requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
+        requestBody.setFilterServerList(filterServerList);
+        return requestBody.encode(compressed);
+    }
+
 }

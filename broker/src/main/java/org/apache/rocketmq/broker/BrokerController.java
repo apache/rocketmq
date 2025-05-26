@@ -933,13 +933,7 @@ public class BrokerController {
 
         if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
             || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
-            ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
-            for (TopicConfig topicConfig : topicConfigWrapper.getTopicConfigTable().values()) {
-                TopicConfig tmp =
-                    new TopicConfig(topicConfig.getTopicName(), topicConfig.getReadQueueNums(), topicConfig.getWriteQueueNums(),
-                        this.brokerConfig.getBrokerPermission());
-                topicConfigTable.put(topicConfig.getTopicName(), tmp);
-            }
+            ConcurrentHashMap<String, TopicConfig> topicConfigTable = getTopicConfigConcurrentHashMap(topicConfigWrapper);
             topicConfigWrapper.setTopicConfigTable(topicConfigTable);
         }
 
@@ -950,6 +944,29 @@ public class BrokerController {
             this.brokerConfig.getRegisterBrokerTimeoutMills())) {
             doRegisterBrokerAll(checkOrderConfig, oneway, topicConfigWrapper);
         }
+    }
+
+    public synchronized void registerBrokerSingle(String namesrvAddr, final boolean checkOrderConfig, boolean oneway) {
+        TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
+
+        if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
+                || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
+            ConcurrentHashMap<String, TopicConfig> topicConfigTable = getTopicConfigConcurrentHashMap(topicConfigWrapper);
+            topicConfigWrapper.setTopicConfigTable(topicConfigTable);
+        }
+
+        doRegisterBrokerSingle(namesrvAddr, checkOrderConfig, oneway, topicConfigWrapper);
+    }
+
+    private ConcurrentHashMap<String, TopicConfig> getTopicConfigConcurrentHashMap(TopicConfigSerializeWrapper topicConfigWrapper) {
+        ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        for (TopicConfig topicConfig : topicConfigWrapper.getTopicConfigTable().values()) {
+            TopicConfig tmp =
+                    new TopicConfig(topicConfig.getTopicName(), topicConfig.getReadQueueNums(), topicConfig.getWriteQueueNums(),
+                            this.brokerConfig.getBrokerPermission());
+            topicConfigTable.put(topicConfig.getTopicName(), tmp);
+        }
+        return topicConfigTable;
     }
 
     private void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
@@ -980,6 +997,35 @@ public class BrokerController {
                 }
             }
         }
+    }
+
+    private void doRegisterBrokerSingle(String namesrvAddr, boolean checkOrderConfig, boolean oneway,
+                                     TopicConfigSerializeWrapper topicConfigWrapper) {
+        RegisterBrokerResult registerBrokerResult = this.brokerOuterAPI.registerBrokerSingle(
+                namesrvAddr,
+                brokerConfig.getBrokerClusterName(),
+                this.getBrokerAddr(),
+                this.brokerConfig.getBrokerName(),
+                this.brokerConfig.getBrokerId(),
+                this.getHAServerAddr(),
+                topicConfigWrapper,
+                Lists.newArrayList(),
+                oneway,
+                this.brokerConfig.getRegisterBrokerTimeoutMills(),
+                this.brokerConfig.isCompressedRegister());
+
+        if (registerBrokerResult != null) {
+            if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
+                this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
+            }
+
+            this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
+
+            if (checkOrderConfig) {
+                this.getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
+            }
+        }
+
     }
 
     private boolean needRegister(final String clusterName,
@@ -1252,12 +1298,12 @@ public class BrokerController {
                 if (currentStartupId == null) continue;
                 String previous = namesrvStartupIdMap.get(namesrvAddr);
                 if (previous == null || !currentStartupId.equals(previous)) {
-                    log.info("[NamesrvDetect] Detected restart of NameServer {}, triggering full registerBrokerAll()", namesrvAddr);
+                    log.info("[NamesrvDetect] Detected restart of NameServer {}, triggering registerBrokerSingle()", namesrvAddr);
                     namesrvStartupIdMap.put(namesrvAddr, currentStartupId);
                     try {
-                        this.registerBrokerAll(true, false, true);
+                        this.registerBrokerSingle(namesrvAddr, true, false);
                     } catch (Exception e) {
-                        log.warn("Failed to registerBrokerAll after detecting NameServer restart", e);
+                        log.warn("Failed to registerBrokerSingle after detecting NameServer restart", e);
                     }
                 }
             }
