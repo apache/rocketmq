@@ -216,52 +216,50 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     "#TPS",
                     "#Diff Total"
                 );
-                TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
+                TopicList topicList = defaultMQAdminExt.fetchAllRetryTopicList();
                 for (String topic : topicList.getTopicList()) {
-                    if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                        String consumerGroup = KeyBuilder.parseGroup(topic);
+                    String consumerGroup = KeyBuilder.parseGroup(topic);
+                    try {
+                        ConsumeStats consumeStats = null;
                         try {
-                            ConsumeStats consumeStats = null;
-                            try {
-                                consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
-                            } catch (Exception e) {
-                                log.warn("examineConsumeStats exception, " + consumerGroup, e);
-                            }
-
-                            ConsumerConnection cc = null;
-                            try {
-                                cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
-                            } catch (Exception e) {
-                                log.warn("examineConsumerConnectionInfo exception, " + consumerGroup, e);
-                            }
-
-                            GroupConsumeInfo groupConsumeInfo = new GroupConsumeInfo();
-                            groupConsumeInfo.setGroup(consumerGroup);
-
-                            if (consumeStats != null) {
-                                groupConsumeInfo.setConsumeTps((int) consumeStats.getConsumeTps());
-                                groupConsumeInfo.setDiffTotal(consumeStats.computeTotalDiff());
-                            }
-
-                            if (cc != null) {
-                                groupConsumeInfo.setCount(cc.getConnectionSet().size());
-                                groupConsumeInfo.setMessageModel(cc.getMessageModel());
-                                groupConsumeInfo.setConsumeType(cc.getConsumeType());
-                                groupConsumeInfo.setVersion(cc.computeMinVersion());
-                            }
-
-                            System.out.printf("%-64s  %-6d  %-24s %-5s  %-14s  %-7d  %d%n",
-                                UtilAll.frontStringAtLeast(groupConsumeInfo.getGroup(), 64),
-                                groupConsumeInfo.getCount(),
-                                groupConsumeInfo.getCount() > 0 ? groupConsumeInfo.versionDesc() : "OFFLINE",
-                                groupConsumeInfo.consumeTypeDesc(),
-                                groupConsumeInfo.messageModelDesc(),
-                                groupConsumeInfo.getConsumeTps(),
-                                groupConsumeInfo.getDiffTotal()
-                            );
+                            consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
                         } catch (Exception e) {
-                            log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, " + consumerGroup, e);
+                            log.warn("examineConsumeStats exception, " + consumerGroup, e);
                         }
+
+                        ConsumerConnection cc = null;
+                        try {
+                            cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
+                        } catch (Exception e) {
+                            log.warn("examineConsumerConnectionInfo exception, " + consumerGroup, e);
+                        }
+
+                        GroupConsumeInfo groupConsumeInfo = new GroupConsumeInfo();
+                        groupConsumeInfo.setGroup(consumerGroup);
+
+                        if (consumeStats != null) {
+                            groupConsumeInfo.setConsumeTps((int) consumeStats.getConsumeTps());
+                            groupConsumeInfo.setDiffTotal(consumeStats.computeTotalDiff());
+                        }
+
+                        if (cc != null) {
+                            groupConsumeInfo.setCount(cc.getConnectionSet().size());
+                            groupConsumeInfo.setMessageModel(cc.getMessageModel());
+                            groupConsumeInfo.setConsumeType(cc.getConsumeType());
+                            groupConsumeInfo.setVersion(cc.computeMinVersion());
+                        }
+
+                        System.out.printf("%-64s  %-6d  %-24s %-5s  %-14s  %-7d  %d%n",
+                            UtilAll.frontStringAtLeast(groupConsumeInfo.getGroup(), 64),
+                            groupConsumeInfo.getCount(),
+                            groupConsumeInfo.getCount() > 0 ? groupConsumeInfo.versionDesc() : "OFFLINE",
+                            groupConsumeInfo.consumeTypeDesc(),
+                            groupConsumeInfo.messageModelDesc(),
+                            groupConsumeInfo.getConsumeTps(),
+                            groupConsumeInfo.getDiffTotal()
+                        );
+                    } catch (Exception e) {
+                        log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, " + consumerGroup, e);
                     }
                 }
             }

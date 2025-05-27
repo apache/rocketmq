@@ -118,6 +118,8 @@ public interface MQAdminExt extends MQAdmin {
     AdminToolResult<TopicStatsTable> examineTopicStatsConcurrent(String topic);
 
     TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException;
+    
+    TopicList fetchAllRetryTopicList() throws RemotingException, MQClientException, InterruptedException;
 
     TopicList fetchTopicsByCLuster(
         String clusterName) throws RemotingException, MQClientException, InterruptedException;

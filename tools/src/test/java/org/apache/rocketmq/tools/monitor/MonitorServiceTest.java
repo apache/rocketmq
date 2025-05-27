@@ -106,10 +106,10 @@ public class MonitorServiceTest {
 
         TopicList topicList = new TopicList();
         Set<String> topicSet = new HashSet<>();
-        topicSet.add("topic_one");
-        topicSet.add("topic_two");
+        topicSet.add("%RETRY%group1");
+        topicSet.add("%RETRY%group2");
         topicList.setTopicList(topicSet);
-        when(mQClientAPIImpl.getTopicListFromNameServer(anyLong())).thenReturn(topicList);
+        when(mQClientAPIImpl.getRetryTopicListFromNameServer(anyLong())).thenReturn(topicList);
 
         TopicRouteData topicRouteData = new TopicRouteData();
         List<BrokerData> brokerDatas = new ArrayList<>();

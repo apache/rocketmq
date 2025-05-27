@@ -426,6 +426,29 @@ public class RequestProcessorTest {
 
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
     }
+    
+    @Test
+    public void testGetAllRetryTopicList() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        Channel channel = mock(Channel.class);
+        when(channel.remoteAddress()).thenReturn(null);
+        when(ctx.channel()).thenReturn(channel);
+        
+        namesrvController.getNamesrvConfig().setEnableAllTopicList(true);
+        
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_RETRY_TOPIC_LIST_FROM_NAMESERVER, null);
+        
+        RemotingCommand response = defaultRequestProcessor.processRequest(ctx, request);
+        
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(response.getRemark()).isNull();
+        
+        namesrvController.getNamesrvConfig().setEnableAllTopicList(false);
+        
+        response = defaultRequestProcessor.processRequest(ctx, request);
+        
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
 
     @Test
     public void testGetRouteInfoByTopic() throws Exception {
@@ -499,6 +522,16 @@ public class RequestProcessorTest {
         when(ctx.channel()).thenReturn(mock(Channel.class));
         when(ctx.channel().remoteAddress()).thenReturn(new InetSocketAddress(123));
         RemotingCommand request = getRemotingCommand(RequestCode.GET_ALL_TOPIC_LIST_FROM_NAMESERVER);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+    
+    @Test
+    public void testGetAllRetryTopicListFromNameserver() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(mock(Channel.class));
+        when(ctx.channel().remoteAddress()).thenReturn(new InetSocketAddress(123));
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_ALL_RETRY_TOPIC_LIST_FROM_NAMESERVER);
         RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
         assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
