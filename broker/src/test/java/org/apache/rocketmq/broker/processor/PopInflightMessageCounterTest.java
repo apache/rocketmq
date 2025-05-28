@@ -30,7 +30,7 @@ public class PopInflightMessageCounterTest {
     public void testNum() {
         BrokerController brokerController = mock(BrokerController.class);
         long brokerStartTime = System.currentTimeMillis();
-        when(brokerController.getShouldStartTime()).thenReturn(brokerStartTime);
+        when(brokerController.getStartupTime()).thenReturn(brokerStartTime);
         PopInflightMessageCounter counter = new PopInflightMessageCounter(brokerController);
 
         final String topic = "topic";
@@ -67,7 +67,7 @@ public class PopInflightMessageCounterTest {
     public void testClearInFlightMessageNum() {
         BrokerController brokerController = mock(BrokerController.class);
         long brokerStartTime = System.currentTimeMillis();
-        when(brokerController.getShouldStartTime()).thenReturn(brokerStartTime);
+        when(brokerController.getStartupTime()).thenReturn(brokerStartTime);
         PopInflightMessageCounter counter = new PopInflightMessageCounter(brokerController);
 
         final String topic = "topic";
