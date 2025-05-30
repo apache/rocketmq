@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.broker.client;
 
+import com.google.common.collect.ImmutableSet;
 import io.netty.channel.Channel;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
@@ -179,6 +180,7 @@ public class ConsumerManagerTest {
         register();
         final HashSet<String> consumeGroup = consumerManager.queryTopicConsumeByWho(TOPIC);
         assertFalse(consumeGroup.isEmpty());
+        assertThat(consumerManager.queryTopicConsumeByWho(TOPIC)).isEqualTo(ImmutableSet.of(GROUP));
     }
 
     @Test
