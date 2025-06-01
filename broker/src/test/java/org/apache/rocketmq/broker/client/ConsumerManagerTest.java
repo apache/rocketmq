@@ -210,4 +210,24 @@ public class ConsumerManagerTest {
         assertThat(consumerManager.findSubscriptionData(GROUP, TOPIC)).isNull();
         assertThat(consumerManager.findSubscriptionData(GROUP, TOPIC + "_1")).isNotNull();
     }
+    
+    @Test
+    public void testRegisterConsumerWithoutSub() {
+        ConsumerGroupInfo groupInfo = new ConsumerGroupInfo(GROUP, ConsumeType.CONSUME_PASSIVELY,
+                MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        SubscriptionData subscriptionData = new SubscriptionData(TOPIC, "*");
+        groupInfo.getSubscriptionTable().put(TOPIC, subscriptionData);
+        consumerManager.getConsumerTable().put(GROUP, groupInfo);
+        
+        consumerManager.registerConsumerWithoutSub(GROUP,
+                clientChannelInfo,
+                ConsumeType.CONSUME_PASSIVELY,
+                MessageModel.CLUSTERING,
+                ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET,
+                true);
+        
+        Set<String> actual = consumerManager.queryTopicConsumeByWho(TOPIC);
+        assertThat(actual).contains(GROUP);
+        assertThat(actual).doesNotContain(TOPIC);
+    }
 }
