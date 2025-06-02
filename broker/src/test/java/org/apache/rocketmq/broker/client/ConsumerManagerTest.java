@@ -37,6 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType.CONSUME_PASSIVELY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -115,7 +116,7 @@ public class ConsumerManagerTest {
         final Set<SubscriptionData> subList = new HashSet<>();
         SubscriptionData subscriptionData = new SubscriptionData(TOPIC, "*");
         subList.add(subscriptionData);
-        consumerManager.registerConsumer(GROUP, clientChannelInfo, ConsumeType.CONSUME_PASSIVELY,
+        consumerManager.registerConsumer(GROUP, clientChannelInfo, CONSUME_PASSIVELY,
             MessageModel.BROADCASTING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET, subList, true);
         verify(consumerManager, never()).callConsumerIdsChangeListener(eq(ConsumerGroupEvent.CHANGE), any(), any());
         assertThat(consumerManager.getConsumerTable().get(GROUP)).isNotNull();
@@ -195,7 +196,7 @@ public class ConsumerManagerTest {
         final Set<SubscriptionData> subList = new HashSet<>();
         SubscriptionData subscriptionData = new SubscriptionData(TOPIC, "*");
         subList.add(subscriptionData);
-        consumerManager.registerConsumer(GROUP, clientChannelInfo, ConsumeType.CONSUME_PASSIVELY,
+        consumerManager.registerConsumer(GROUP, clientChannelInfo, CONSUME_PASSIVELY,
             MessageModel.BROADCASTING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET, subList, true);
     }
 
@@ -213,7 +214,7 @@ public class ConsumerManagerTest {
     
     @Test
     public void testRegisterConsumerWithoutSub() {
-        ConsumerGroupInfo groupInfo = new ConsumerGroupInfo(GROUP, ConsumeType.CONSUME_PASSIVELY,
+        ConsumerGroupInfo groupInfo = new ConsumerGroupInfo(GROUP, CONSUME_PASSIVELY,
                 MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         SubscriptionData subscriptionData = new SubscriptionData(TOPIC, "*");
         groupInfo.getSubscriptionTable().put(TOPIC, subscriptionData);
@@ -221,7 +222,7 @@ public class ConsumerManagerTest {
         
         consumerManager.registerConsumerWithoutSub(GROUP,
                 clientChannelInfo,
-                ConsumeType.CONSUME_PASSIVELY,
+                CONSUME_PASSIVELY,
                 MessageModel.CLUSTERING,
                 ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET,
                 true);
