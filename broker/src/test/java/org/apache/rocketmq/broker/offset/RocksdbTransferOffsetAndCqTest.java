@@ -28,15 +28,18 @@ import org.apache.commons.collections.MapUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.store.RocksDBMessageStore;
+import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.queue.CombineConsumeQueueStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
@@ -81,9 +84,8 @@ public class RocksdbTransferOffsetAndCqTest {
         Mockito.lenient().when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         Mockito.lenient().when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
 
-        defaultMessageStore = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("aaa", true), null,
-            brokerConfig, new ConcurrentHashMap<String, TopicConfig>());
-        defaultMessageStore.enableRocksdbCQWrite();
+        defaultMessageStore = new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("for-test", true), null,
+            brokerConfig, new ConcurrentHashMap<>());
         defaultMessageStore.loadCheckPoint();
 
         consumerOffsetManager = new ConsumerOffsetManager(brokerController);
@@ -134,16 +136,25 @@ public class RocksdbTransferOffsetAndCqTest {
         if (notToBeExecuted()) {
             return;
         }
-        RocksDBMessageStore kvStore = defaultMessageStore.getRocksDBMessageStore();
-        ConsumeQueueStoreInterface store = kvStore.getConsumeQueueStore();
-        store.start();
-        ConsumeQueueInterface rocksdbCq = defaultMessageStore.getRocksDBMessageStore().findConsumeQueue(topic, queueId);
-        ConsumeQueueInterface fileCq = defaultMessageStore.findConsumeQueue(topic, queueId);
+        long startTimestamp = System.currentTimeMillis();
+
+        ConsumeQueueStoreInterface combineConsumeQueueStore = defaultMessageStore.getQueueStore();
+        Assert.assertTrue(combineConsumeQueueStore instanceof CombineConsumeQueueStore);
+        combineConsumeQueueStore.load();
+        combineConsumeQueueStore.recover(false);
+        combineConsumeQueueStore.start();
+
+        RocksDBConsumeQueueStore rocksDBConsumeQueueStore = ((CombineConsumeQueueStore) combineConsumeQueueStore).getRocksDBConsumeQueueStore();
+        ConsumeQueueStore consumeQueueStore = ((CombineConsumeQueueStore) combineConsumeQueueStore).getConsumeQueueStore();
+
         for (int i = 0; i < 200; i++) {
             DispatchRequest request = new DispatchRequest(topic, queueId, i, 200, 0, System.currentTimeMillis(), i, "", "", 0, 0, new HashMap<>());
-            fileCq.putMessagePositionInfoWrapper(request);
-            store.putMessagePositionInfoWrapper(request);
+            combineConsumeQueueStore.putMessagePositionInfoWrapper(request);
         }
+
+        ConsumeQueueInterface rocksdbCq = rocksDBConsumeQueueStore.findOrCreateConsumeQueue(topic, queueId);
+        ConsumeQueueInterface fileCq = consumeQueueStore.findOrCreateConsumeQueue(topic, queueId);
+
         Awaitility.await()
             .pollInterval(100, TimeUnit.MILLISECONDS)
             .atMost(3, TimeUnit.SECONDS)
@@ -151,6 +162,9 @@ public class RocksdbTransferOffsetAndCqTest {
         Pair<CqUnit, Long> unit = rocksdbCq.getCqUnitAndStoreTime(100);
         Pair<CqUnit, Long> unit1 = fileCq.getCqUnitAndStoreTime(100);
         Assert.assertEquals(unit.getObject1().getPos(), unit1.getObject1().getPos());
+
+        CheckRocksdbCqWriteResult result = ((CombineConsumeQueueStore) combineConsumeQueueStore).doCheckCqWriteProgress(topic, startTimestamp, StoreType.DEFAULT, StoreType.DEFAULT_ROCKSDB);
+        Assert.assertEquals(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue(), result.getCheckStatus());
     }
 
     /**

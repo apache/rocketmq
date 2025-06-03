@@ -17,7 +17,6 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
-
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.StoreType;
@@ -426,6 +425,18 @@ public class MessageStoreConfig {
     private boolean putConsumeQueueDataByFileChannel = true;
 
     private boolean rocksdbCQDoubleWriteEnable = false;
+
+    /**
+     * CombineConsumeQueueStore
+     * combineCQLoadingCQTypes is used to configure the loading types of CQ. load / recover / start order: [default -> defaultRocksDB]
+     * combineCQPreferCQType is used to configure the preferred CQ type when reading. Make sure the CQ type is included in combineCQLoadingCQTypes
+     * combineAssignOffsetCQType is used to configure the CQ type when assign offset. Make sure the CQ type is included in combineCQLoadingCQTypes
+     */
+    private String combineCQLoadingCQTypes = StoreType.DEFAULT.getStoreType() + ";" + StoreType.DEFAULT_ROCKSDB.getStoreType();
+    private String combineCQPreferCQType = StoreType.DEFAULT.getStoreType();
+    private String combineAssignOffsetCQType = StoreType.DEFAULT.getStoreType();
+    private boolean combineCQEnableCheckSelf = false;
+    private int combineCQMaxExtraSearchCommitLogFiles = 3;
 
     /**
      * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
@@ -1949,5 +1960,45 @@ public class MessageStoreConfig {
 
     public boolean getUseABSLock() {
         return useABSLock;
+    }
+
+    public String getCombineCQPreferCQType() {
+        return combineCQPreferCQType;
+    }
+
+    public void setCombineCQPreferCQType(String combineCQPreferCQType) {
+        this.combineCQPreferCQType = combineCQPreferCQType;
+    }
+
+    public String getCombineCQLoadingCQTypes() {
+        return combineCQLoadingCQTypes;
+    }
+
+    public void setCombineCQLoadingCQTypes(String combineCQLoadingCQTypes) {
+        this.combineCQLoadingCQTypes = combineCQLoadingCQTypes;
+    }
+
+    public String getCombineAssignOffsetCQType() {
+        return combineAssignOffsetCQType;
+    }
+
+    public void setCombineAssignOffsetCQType(String combineAssignOffsetCQType) {
+        this.combineAssignOffsetCQType = combineAssignOffsetCQType;
+    }
+
+    public boolean isCombineCQEnableCheckSelf() {
+        return combineCQEnableCheckSelf;
+    }
+
+    public void setCombineCQEnableCheckSelf(boolean combineCQEnableCheckSelf) {
+        this.combineCQEnableCheckSelf = combineCQEnableCheckSelf;
+    }
+
+    public int getCombineCQMaxExtraSearchCommitLogFiles() {
+        return combineCQMaxExtraSearchCommitLogFiles;
+    }
+
+    public void setCombineCQMaxExtraSearchCommitLogFiles(int combineCQMaxExtraSearchCommitLogFiles) {
+        this.combineCQMaxExtraSearchCommitLogFiles = combineCQMaxExtraSearchCommitLogFiles;
     }
 }
