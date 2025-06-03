@@ -472,6 +472,17 @@ public class MessageStoreConfig {
      **/
     private boolean useABSLock = false;
 
+    /**
+     * Maximum number of messages to be read each time
+     * -1 : read all messages
+     */
+    private int readCountTimerOnRocksDB = -1;
+
+    /**
+     * When enabled, the scheduled message is using rocksdb
+     */
+    private boolean enableTimerMessageOnRocksDB = false;
+
     public boolean isRocksdbCQDoubleWriteEnable() {
         return rocksdbCQDoubleWriteEnable;
     }
@@ -1638,6 +1649,22 @@ public class MessageStoreConfig {
         this.timerPrecisionMs = candidates[candidates.length - 1];
     }
 
+    // visible for test
+    public void setTimerPrecision(int timerPrecisionMs) {
+        if (enableTimerMessageOnRocksDB) {
+            this.timerPrecisionMs = timerPrecisionMs;
+            return;
+        }
+        int[] candidates = {100, 200, 500, 1000};
+        for (int i = 1; i < candidates.length; i++) {
+            if (timerPrecisionMs < candidates[i]) {
+                this.timerPrecisionMs = candidates[i - 1];
+                return;
+            }
+        }
+        this.timerPrecisionMs = candidates[candidates.length - 1];
+    }
+
     public int getTimerRollWindowSlot() {
         return timerRollWindowSlot;
     }
@@ -1712,6 +1739,10 @@ public class MessageStoreConfig {
 
     public boolean isTimerStopDequeue() {
         return timerStopDequeue;
+    }
+
+    public void setTimerStopDequeue(boolean timerStopDequeue) {
+        this.timerStopDequeue = timerStopDequeue;
     }
 
     public int getTimerMetricSmallThreshold() {
@@ -1949,5 +1980,21 @@ public class MessageStoreConfig {
 
     public boolean getUseABSLock() {
         return useABSLock;
+    }
+
+    public void setReadCountTimerOnRocksDB(int readCountTimerOnRocksDB) {
+        this.readCountTimerOnRocksDB = readCountTimerOnRocksDB;
+    }
+
+    public int getReadCountTimerOnRocksDB() {
+        return readCountTimerOnRocksDB;
+    }
+
+    public void setEnableTimerMessageOnRocksDB(boolean enableTimerMessageOnRocksDB) {
+        this.enableTimerMessageOnRocksDB = enableTimerMessageOnRocksDB;
+    }
+
+    public boolean getEnableTimerMessageOnRocksDB() {
+        return enableTimerMessageOnRocksDB;
     }
 }

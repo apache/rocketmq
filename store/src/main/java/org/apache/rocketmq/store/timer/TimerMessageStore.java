@@ -71,6 +71,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 
 public class TimerMessageStore {
@@ -158,6 +159,7 @@ public class TimerMessageStore {
     protected volatile boolean shouldRunningDequeue;
     private final BrokerStatsManager brokerStatsManager;
     private Function<MessageExtBrokerInner, PutMessageResult> escapeBridgeHook;
+    private TimerMessageRocksDBStore timerRocksDBStore;
 
     public TimerMessageStore(final MessageStore messageStore, final MessageStoreConfig storeConfig,
         TimerCheckpoint timerCheckpoint, TimerMetrics timerMetrics,
@@ -212,6 +214,7 @@ public class TimerMessageStore {
             dequeuePutQueue = new LinkedBlockingDeque<>(DEFAULT_CAPACITY);
         }
         this.brokerStatsManager = brokerStatsManager;
+        this.timerRocksDBStore = new TimerMessageRocksDBStore(messageStore, storeConfig, timerMetrics, brokerStatsManager);
     }
 
     public void initService() {
@@ -238,6 +241,7 @@ public class TimerMessageStore {
         this.initService();
         boolean load = timerLog.load();
         load = load && this.timerMetrics.load();
+        load = load && timerRocksDBStore.load();
         recover();
         calcTimerDistribution();
         return load;
@@ -464,6 +468,7 @@ public class TimerMessageStore {
     }
 
     public void start() {
+        timerRocksDBStore.start();
         this.shouldStartTime = storeConfig.getDisappearTimeAfterStart() + System.currentTimeMillis();
         maybeMoveWriteTime();
         enqueueGetService.start();
@@ -504,7 +509,11 @@ public class TimerMessageStore {
                         long curr = System.currentTimeMillis();
                         if (curr - lastTimeOfCheckMetrics > 70 * 60 * 1000) {
                             lastTimeOfCheckMetrics = curr;
-                            checkAndReviseMetrics();
+                            if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+                                timerRocksDBStore.checkAndReviseMetrics();
+                            } else {
+                                checkAndReviseMetrics();
+                            }
                             LOGGER.info("[CheckAndReviseMetrics]Timer do check timer metrics cost {} ms",
                                 System.currentTimeMillis() - curr);
                         }
@@ -552,6 +561,7 @@ public class TimerMessageStore {
         timerWheel.shutdown(false);
 
         this.scheduler.shutdown();
+        this.timerRocksDBStore.shutdown();
         UtilAll.cleanBuffer(this.bufferLocal.get());
         this.bufferLocal.remove();
     }
@@ -653,7 +663,7 @@ public class TimerMessageStore {
     }
 
     public boolean enqueue(int queueId) {
-        if (storeConfig.isTimerStopEnqueue()) {
+        if (storeConfig.isTimerStopEnqueue() || storeConfig.getEnableTimerMessageOnRocksDB()) {
             return false;
         }
         if (!isRunningEnqueue()) {
@@ -1742,14 +1752,23 @@ public class TimerMessageStore {
     }
 
     public long getAllCongestNum() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getAllCongestNum();
+        }
         return timerWheel.getAllNum(currReadTimeMs);
     }
 
     public long getCongestNum(long deliverTimeMs) {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getCongestNum(deliverTimeMs);
+        }
         return timerWheel.getNum(deliverTimeMs);
     }
 
     public boolean isReject(long deliverTimeMs) {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.isReject(deliverTimeMs);
+        }
         long congestNum = timerWheel.getNum(deliverTimeMs);
         if (congestNum <= storeConfig.getTimerCongestNumEachSlot()) {
             return false;
@@ -1764,6 +1783,9 @@ public class TimerMessageStore {
     }
 
     public long getEnqueueBehindMessages() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getEnqueueBehindMessages();
+        }
         long tmpQueueOffset = currQueueOffset;
         ConsumeQueueInterface cq = messageStore.getConsumeQueue(TIMER_TOPIC, 0);
         long maxOffsetInQueue = cq == null ? 0 : cq.getMaxOffsetInQueue();
@@ -1771,6 +1793,9 @@ public class TimerMessageStore {
     }
 
     public long getEnqueueBehindMillis() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getEnqueueBehindMillis();
+        }
         if (System.currentTimeMillis() - lastEnqueueButExpiredTime < 2000) {
             return System.currentTimeMillis() - lastEnqueueButExpiredStoreTime;
         }
@@ -1782,10 +1807,13 @@ public class TimerMessageStore {
     }
 
     public long getDequeueBehindMessages() {
-        return timerWheel.getAllNum(currReadTimeMs);
+        return getAllCongestNum();
     }
 
     public long getDequeueBehindMillis() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getDequeueBehindMillis();
+        }
         return System.currentTimeMillis() - currReadTimeMs;
     }
 
@@ -1794,10 +1822,16 @@ public class TimerMessageStore {
     }
 
     public float getEnqueueTps() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getEnqueueTps();
+        }
         return perfCounterTicks.getCounter(ENQUEUE_PUT).getLastTps();
     }
 
     public float getDequeueTps() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getDequeueTps();
+        }
         return perfCounterTicks.getCounter("dequeue_put").getLastTps();
     }
 
@@ -1929,5 +1963,13 @@ public class TimerMessageStore {
     // identify a message by topic + uk, like query operation
     public static String buildDeleteKey(String realTopic, String uniqueKey) {
         return realTopic + "+" + uniqueKey;
+    }
+
+    public static String extractUniqueKey(String deleteKey) {
+        int separatorIndex = deleteKey.indexOf('+');
+        if (separatorIndex == -1) {
+            throw new IllegalArgumentException("Invalid deleteKey format");
+        }
+        return deleteKey.substring(separatorIndex + 1);
     }
 }
