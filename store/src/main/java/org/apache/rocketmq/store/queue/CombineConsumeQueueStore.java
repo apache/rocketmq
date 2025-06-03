@@ -58,15 +58,26 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     // consume queue store for assign offset and increase offset.
     private final AbstractConsumeQueueStore assignOffsetStore;
 
-    // used for search recover form which commitLog mappedFile.
-    // when assignOffsetStore allow recovering from here, but other do not allow, toleranceFailuresNum will minus 1.
-    // if toleranceFailuresNum is 0, only pay attention to whether assignOffsetStore is allowed
-    private final AtomicInteger toleranceLookBackFailuresNum;
+
+    /**
+     * ConsumeQueueStore recovers through commitlog dispatch, so it needs to search which file in the commitLog to
+     * start recovery from. It might not be possible for all inner consumeQueueStores in CombineConsumeQueueStore to
+     * fully recover (for example, a newly consumeQueueStore needs to start dispatch from the first file, which
+     * could be very time-consuming).
+     * <p>
+     * However, we need to ensure that assignOffsetStore can be fully recovered to guarantee the correctness of
+     * commitlog. When assignOffsetStore can be fully recovered but other stores cannot, we need to use
+     * extraSearchCommitLogFilesForRecovery to control whether to continue searching forward for positions that might
+     * satisfy the recovery of other stores.
+     */
+
+    private final AtomicInteger extraSearchCommitLogFilesForRecovery;
 
     public CombineConsumeQueueStore(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
         this.messageStoreConfig = messageStore.getMessageStoreConfig();
-        toleranceLookBackFailuresNum = new AtomicInteger(messageStoreConfig.getCombineCQMaxExtraLookBackCommitLogFiles());
+        extraSearchCommitLogFilesForRecovery =
+            new AtomicInteger(messageStoreConfig.getCombineCQMaxExtraSearchCommitLogFiles());
 
         Set<StoreType> loadingConsumeQueueTypeSet = StoreType.fromString(messageStoreConfig.getCombineCQLoadingCQTypes());
         if (loadingConsumeQueueTypeSet.isEmpty()) {
@@ -93,13 +104,15 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
 
         assignOffsetStore = getInnerStoreByString(messageStoreConfig.getCombineAssignOffsetCQType());
         if (assignOffsetStore == null) {
-            log.error("CombineConsumeQueue chooseAssignOffsetStore fail, prefer={}", messageStoreConfig.getCombineAssignOffsetCQType());
+            log.error("CombineConsumeQueueStore chooseAssignOffsetStore fail, config={}",
+                messageStoreConfig.getCombineAssignOffsetCQType());
             throw new IllegalArgumentException("CombineConsumeQueue chooseAssignOffsetStore fail");
         }
 
         currentReadStore = getInnerStoreByString(messageStoreConfig.getCombineCQPreferCQType());
         if (currentReadStore == null) {
-            log.error("CombineConsumeQueue choosePreferCQ fail, prefer={}", messageStoreConfig.getCombineCQPreferCQType());
+            log.error("CombineConsumeQueueStore choosePreferCQ fail, config={}",
+                messageStoreConfig.getCombineCQPreferCQType());
             throw new IllegalArgumentException("CombineConsumeQueue choosePreferCQ fail");
         }
 
@@ -130,6 +143,7 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     @Override
     public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
         boolean recoverNormally) throws RocksDBException {
+        // make sure assignOffsetStore can be fully recovered
         if (!assignOffsetStore.isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally)) {
             return false;
         }
@@ -138,9 +152,9 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
             if (store == assignOffsetStore || store.isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally)) {
                 continue;
             }
-
-            if (toleranceLookBackFailuresNum.getAndIncrement() <= 0) {
-                // toleranceLookBackFailuresNum <= 0, so only can read from assignOffsetStore
+            // if other store is not matched for fully recovery, extraSearchCommitLogFilesForRecovery will minus 1
+            if (extraSearchCommitLogFilesForRecovery.getAndIncrement() <= 0) {
+                // extraSearchCommitLogFilesForRecovery <= 0, only can read from assignOffsetStore
                 if (assignOffsetStore != currentReadStore) {
                     log.error("CombineConsumeQueueStore currentReadStore not satisfied readable conditions, assignOffsetStore={}, currentReadStore={}",
                         assignOffsetStore.getClass().getSimpleName(), currentReadStore.getClass().getSimpleName());
@@ -202,7 +216,7 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
         for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> entry : assignOffsetStore.getConsumeQueueTable().entrySet()) {
             for (Map.Entry<Integer, ConsumeQueueInterface> entry0 : entry.getValue().entrySet()) {
                 String topic = entry.getKey();
-                Integer queueId = entry0.getKey();
+                int queueId = entry0.getKey();
                 long maxOffsetInAssign = entry0.getValue().getMaxOffsetInQueue();
 
                 for (AbstractConsumeQueueStore abstractConsumeQueueStore : innerConsumeQueueStoreList) {

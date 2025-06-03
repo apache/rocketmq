@@ -79,22 +79,13 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private volatile long minLogicOffset = 0;
     private ConsumeQueueExt consumeQueueExt = null;
 
-    public ConsumeQueue(
-        final String topic,
-        final int queueId,
-        final String storePath,
-        final int mappedFileSize,
+    public ConsumeQueue(final String topic, final int queueId, final String storePath, final int mappedFileSize,
         final MessageStore messageStore) {
         this(topic, queueId, storePath, mappedFileSize, messageStore, (ConsumeQueueStore) messageStore.getQueueStore());
     }
 
-    public ConsumeQueue(
-        final String topic,
-        final int queueId,
-        final String storePath,
-        final int mappedFileSize,
-        final MessageStore messageStore,
-        final ConsumeQueueStore consumeQueueStore) {
+    public ConsumeQueue(final String topic, final int queueId, final String storePath, final int mappedFileSize,
+        final MessageStore messageStore, final ConsumeQueueStore consumeQueueStore) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.messageStore = messageStore;

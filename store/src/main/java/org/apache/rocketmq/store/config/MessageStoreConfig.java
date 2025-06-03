@@ -436,7 +436,7 @@ public class MessageStoreConfig {
     private String combineCQPreferCQType = StoreType.DEFAULT.getStoreType();
     private String combineAssignOffsetCQType = StoreType.DEFAULT.getStoreType();
     private boolean combineCQEnableCheckSelf = false;
-    private int combineCQMaxExtraLookBackCommitLogFiles = 3;
+    private int combineCQMaxExtraSearchCommitLogFiles = 3;
 
     /**
      * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
@@ -1994,11 +1994,11 @@ public class MessageStoreConfig {
         this.combineCQEnableCheckSelf = combineCQEnableCheckSelf;
     }
 
-    public int getCombineCQMaxExtraLookBackCommitLogFiles() {
-        return combineCQMaxExtraLookBackCommitLogFiles;
+    public int getCombineCQMaxExtraSearchCommitLogFiles() {
+        return combineCQMaxExtraSearchCommitLogFiles;
     }
 
-    public void setCombineCQMaxExtraLookBackCommitLogFiles(int combineCQMaxExtraLookBackCommitLogFiles) {
-        this.combineCQMaxExtraLookBackCommitLogFiles = combineCQMaxExtraLookBackCommitLogFiles;
+    public void setCombineCQMaxExtraSearchCommitLogFiles(int combineCQMaxExtraSearchCommitLogFiles) {
+        this.combineCQMaxExtraSearchCommitLogFiles = combineCQMaxExtraSearchCommitLogFiles;
     }
 }
