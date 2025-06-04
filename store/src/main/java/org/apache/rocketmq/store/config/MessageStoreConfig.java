@@ -16,13 +16,14 @@
  */
 package org.apache.rocketmq.store.config;
 
-import java.io.File;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
 import org.rocksdb.CompressionType;
 import org.rocksdb.util.SizeUnit;
+
+import java.io.File;
 
 public class MessageStoreConfig {
 
@@ -225,7 +226,7 @@ public class MessageStoreConfig {
     private long flushDelayOffsetInterval = 1000 * 10;
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
-    private boolean warmMapedFileEnable = false;
+    private boolean warmMappedFileEnable = false;
     private boolean offsetCheckInSlave = false;
     private boolean debugLockEnable = false;
     private boolean duplicationEnable = false;
@@ -532,12 +533,12 @@ public class MessageStoreConfig {
         this.diskFallRecorded = diskFallRecorded;
     }
 
-    public boolean isWarmMapedFileEnable() {
-        return warmMapedFileEnable;
+    public boolean isWarmMappedFileEnable() {
+        return warmMappedFileEnable;
     }
 
-    public void setWarmMapedFileEnable(boolean warmMapedFileEnable) {
-        this.warmMapedFileEnable = warmMapedFileEnable;
+    public void setWarmMappedFileEnable(boolean warmMappedFileEnable) {
+        this.warmMappedFileEnable = warmMappedFileEnable;
     }
 
     public int getCompactionMappedFileSize() {
