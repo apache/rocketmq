@@ -198,4 +198,12 @@ public interface ConsumeQueueInterface extends FileQueueLifeCycle {
      * @return Number of matching records.
      */
     long estimateMessageCount(long from, long to, MessageFilter filter);
+
+    /**
+     * Initialize cq and set max offset and min offset to given offset
+     *
+     * @param offset       set max and min offset to given offset
+     * @param minPhyOffset min physical offset, used to correct min offset
+     */
+    void initializeWithOffset(long offset, long minPhyOffset);
 }

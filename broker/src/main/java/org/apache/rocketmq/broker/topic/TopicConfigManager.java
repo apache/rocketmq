@@ -497,7 +497,7 @@ public class TopicConfigManager extends ConfigManager {
         }
     }
 
-    protected void updateSingleTopicConfigWithoutPersist(final TopicConfig topicConfig) {
+    public void updateSingleTopicConfigWithoutPersist(final TopicConfig topicConfig) {
         checkNotNull(topicConfig, "topicConfig shouldn't be null");
 
         Map<String, String> newAttributes = request(topicConfig);

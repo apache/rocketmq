@@ -116,6 +116,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private int sendMsgTimeout = 3000;
 
     /**
+     * Max timeout for sending messages per request.
+     */
+    private int sendMsgMaxTimeoutPerRequest = -1;
+
+    /**
      * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
      */
     private int compressMsgBodyOverHowmuch = 1024 * 4;
@@ -165,9 +170,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * on BackpressureForAsyncMode, limit maximum number of on-going sending async messages
-     * default is 10000
+     * default is 1024
      */
-    private int backPressureForAsyncSendNum = 10000;
+    private int backPressureForAsyncSendNum = 1024;
 
     /**
      * on BackpressureForAsyncMode, limit maximum message size of on-going sending async messages
@@ -1257,6 +1262,14 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     public void setSendMsgTimeout(int sendMsgTimeout) {
         this.sendMsgTimeout = sendMsgTimeout;
+    }
+
+    public int getSendMsgMaxTimeoutPerRequest() {
+        return sendMsgMaxTimeoutPerRequest;
+    }
+
+    public void setSendMsgMaxTimeoutPerRequest(int sendMsgMaxTimeoutPerRequest) {
+        this.sendMsgMaxTimeoutPerRequest = sendMsgMaxTimeoutPerRequest;
     }
 
     public int getCompressMsgBodyOverHowmuch() {

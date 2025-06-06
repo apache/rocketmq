@@ -16,6 +16,19 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -31,23 +44,10 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
-
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.rocketmq.client.trace.TraceConstants.TRACE_INSTANCE_NAME;
 
@@ -55,6 +55,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private static final Logger log = LoggerFactory.getLogger(AsyncTraceDispatcher.class);
     private static final AtomicInteger COUNTER = new AtomicInteger();
     private static final AtomicInteger INSTANCE_NUM = new AtomicInteger(0);
+    private static final long WAIT_FOR_SHUTDOWN = 5000L;
     private volatile boolean stopped = false;
     private final int traceInstanceId = INSTANCE_NUM.getAndIncrement();
     private final int batchNum;
@@ -191,23 +192,19 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
     @Override
     public void flush() {
-        long end = System.currentTimeMillis() + 500;
-        while (traceContextQueue.size() > 0 || appenderQueue.size() > 0 && System.currentTimeMillis() <= end) {
+        while (traceContextQueue.size() > 0) {
             try {
                 flushTraceContext(true);
             } catch (Throwable throwable) {
                 log.error("flushTraceContext error", throwable);
             }
         }
-        if (appenderQueue.size() > 0) {
-            log.error("There are still some traces that haven't been sent " + traceContextQueue.size() + "   " + appenderQueue.size());
-        }
     }
 
     @Override
     public void shutdown() {
         flush();
-        this.traceExecutor.shutdown();
+        ThreadUtils.shutdownGracefully(this.traceExecutor, WAIT_FOR_SHUTDOWN, TimeUnit.MILLISECONDS);
         if (isStarted.get()) {
             traceProducer.shutdown();
         }
@@ -254,9 +251,10 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 } catch (Throwable e) {
                     log.error("flushTraceContext error", e);
                 }
-            }
-            if (AsyncTraceDispatcher.this.stopped) {
-                this.stopped = true;
+
+                if (AsyncTraceDispatcher.this.stopped) {
+                    this.stopped = true;
+                }
             }
         }
     }

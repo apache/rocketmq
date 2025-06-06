@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.apache.rocketmq.common.MixAll;
@@ -144,7 +143,7 @@ public class RocksDBConsumeQueueOffsetTable {
         Function<OffsetEntry, Boolean> predicate = entry -> entry.type == OffsetEntryType.MAXIMUM;
         Consumer<OffsetEntry> fn = entry -> {
             topicQueueMaxCqOffset.putIfAbsent(entry.topic + "-" + entry.queueId, entry.offset);
-            ROCKSDB_LOG.info("Max {}:{} --> {}|{}", entry.topic, entry.queueId, entry.offset, entry.commitLogOffset);
+            log.info("LoadMaxConsumeQueueOffsets Max {}:{} --> {}|{}", entry.topic, entry.queueId, entry.offset, entry.commitLogOffset);
         };
         try {
             forEach(predicate, fn);
@@ -563,7 +562,7 @@ public class RocksDBConsumeQueueOffsetTable {
         return this.topicQueueMaxCqOffset.remove(topicQueueId);
     }
 
-    private void updateCqOffset(final String topic, final int queueId, final long phyOffset,
+    public void updateCqOffset(final String topic, final int queueId, final long phyOffset,
         final long cqOffset, boolean max) throws RocksDBException {
         if (!this.rocksDBStorage.hold()) {
             return;

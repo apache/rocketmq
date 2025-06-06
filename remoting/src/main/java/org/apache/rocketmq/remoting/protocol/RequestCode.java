@@ -73,17 +73,6 @@ public class RequestCode {
 
     public static final int GET_CLIENT_CONFIG = 47;
 
-    public static final int UPDATE_AND_CREATE_ACL_CONFIG = 50;
-
-    public static final int DELETE_ACL_CONFIG = 51;
-
-    public static final int GET_BROKER_CLUSTER_ACL_INFO = 52;
-
-    public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG = 53;
-
-    @Deprecated
-    public static final int GET_BROKER_CLUSTER_ACL_CONFIG = 54;
-
     public static final int GET_TIMER_CHECK_POINT = 60;
 
     public static final int GET_TIMER_METRICS = 61;
@@ -213,12 +202,17 @@ public class RequestCode {
     public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
 
     public static final int ADD_WRITE_PERM_OF_BROKER = 327;
+    
+    public static final int GET_ALL_PRODUCER_INFO = 328;
+    
+    public static final int DELETE_EXPIRED_COMMITLOG = 329;
 
     public static final int GET_TOPIC_CONFIG = 351;
 
     public static final int GET_SUBSCRIPTIONGROUP_CONFIG = 352;
     public static final int UPDATE_AND_GET_GROUP_FORBIDDEN = 353;
     public static final int CHECK_ROCKSDB_CQ_WRITE_PROGRESS = 354;
+    public static final int EXPORT_ROCKSDB_CONFIG_TO_JSON = 355;
 
     public static final int LITE_PULL_MESSAGE = 361;
     public static final int RECALL_MESSAGE = 370;
@@ -244,10 +238,6 @@ public class RequestCode {
     public static final int GET_BROKER_HA_STATUS = 907;
 
     public static final int RESET_MASTER_FLUSH_OFFSET = 908;
-
-    public static final int GET_ALL_PRODUCER_INFO = 328;
-
-    public static final int DELETE_EXPIRED_COMMITLOG = 329;
 
     /**
      * Controller code

@@ -16,11 +16,6 @@
  */
 package org.apache.rocketmq.tools.admin;
 
-import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -28,7 +23,6 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -47,7 +41,6 @@ import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
@@ -65,6 +58,7 @@ import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -75,6 +69,12 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 import org.apache.rocketmq.tools.admin.api.BrokerOperatorResult;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
+
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     private final DefaultMQAdminExtImpl defaultMQAdminExtImpl;
@@ -206,37 +206,6 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public void createAndUpdateTopicConfigList(String addr,
         List<TopicConfig> topicConfigList) throws InterruptedException, RemotingException, MQClientException {
         defaultMQAdminExtImpl.createAndUpdateTopicConfigList(addr, topicConfigList);
-    }
-
-    @Override
-    public void createAndUpdatePlainAccessConfig(String addr,
-        PlainAccessConfig config) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        defaultMQAdminExtImpl.createAndUpdatePlainAccessConfig(addr, config);
-    }
-
-    @Override
-    public void deletePlainAccessConfig(String addr,
-        String accessKey) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        defaultMQAdminExtImpl.deletePlainAccessConfig(addr, accessKey);
-    }
-
-    @Override
-    public void updateGlobalWhiteAddrConfig(String addr,
-        String globalWhiteAddrs) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        defaultMQAdminExtImpl.updateGlobalWhiteAddrConfig(addr, globalWhiteAddrs);
-    }
-
-    @Override
-    public void updateGlobalWhiteAddrConfig(String addr,
-        String globalWhiteAddrs,
-        String aclFileFullPath) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        defaultMQAdminExtImpl.updateGlobalWhiteAddrConfig(addr, globalWhiteAddrs, aclFileFullPath);
-    }
-
-    @Override
-    public ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
-        String addr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return defaultMQAdminExtImpl.examineBrokerClusterAclVersionInfo(addr);
     }
 
     @Override
@@ -776,6 +745,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public CheckRocksdbCqWriteResult checkRocksdbCqWriteProgress(String brokerAddr, String topic, long checkStoreTime)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
         return this.defaultMQAdminExtImpl.checkRocksdbCqWriteProgress(brokerAddr, topic, checkStoreTime);
+    }
+
+    @Override
+    public void exportRocksDBConfigToJson(String brokerAddr,
+        List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configType)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+        this.defaultMQAdminExtImpl.exportRocksDBConfigToJson(brokerAddr, configType);
     }
 
     @Override

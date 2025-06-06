@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.io.FileUtils;
@@ -40,6 +41,7 @@ import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -189,11 +191,11 @@ public class PopConsumerServiceTest {
     @Test
     public void addGetMessageResultTest() {
         PopConsumerContext context = new PopConsumerContext(
-            clientHost, System.currentTimeMillis(), 20000, groupId, false, attemptId);
+            clientHost, System.currentTimeMillis(), 20000, groupId, false, ConsumeInitMode.MIN, attemptId);
         GetMessageResult result = new GetMessageResult();
         result.setStatus(GetMessageStatus.FOUND);
         result.getMessageQueueOffset().add(100L);
-        consumerService.addGetMessageResult(
+        consumerService.handleGetMessageResult(
             context, result, topicId, queueId, PopConsumerRecord.RetryType.NORMAL_TOPIC, 100);
         Assert.assertEquals(1, context.getGetMessageResultList().size());
     }
@@ -230,7 +232,7 @@ public class PopConsumerServiceTest {
 
         // fifo block
         PopConsumerContext context = new PopConsumerContext(
-            clientHost, System.currentTimeMillis(), 20000, groupId, false, attemptId);
+            clientHost, System.currentTimeMillis(), 20000, groupId, false, ConsumeInitMode.MIN, attemptId);
         consumerService.setFifoBlocked(context, groupId, topicId, queueId, Collections.singletonList(100L));
         Mockito.when(brokerController.getConsumerOrderInfoManager()
             .checkBlock(anyString(), anyString(), anyString(), anyInt(), anyLong())).thenReturn(true);
@@ -256,7 +258,7 @@ public class PopConsumerServiceTest {
 
         // fifo block test
         context = new PopConsumerContext(
-            clientHost, System.currentTimeMillis(), 20000, groupId, true, attemptId);
+            clientHost, System.currentTimeMillis(), 20000, groupId, true, ConsumeInitMode.MIN, attemptId);
         future = CompletableFuture.completedFuture(context);
         Assert.assertEquals(0L, consumerService.getMessageAsync(future, clientHost, groupId, topicId, queueId,
             10, null, PopConsumerRecord.RetryType.NORMAL_TOPIC).join().getRestCount());
@@ -305,7 +307,7 @@ public class PopConsumerServiceTest {
 
         // pop broker
         consumerServiceSpy.popAsync(clientHost, System.currentTimeMillis(),
-            20000, groupId, topicId, -1, 10, false, attemptId, null).join();
+            20000, groupId, topicId, -1, 10, false, attemptId, ConsumeInitMode.MIN, null).join();
     }
 
     @Test
@@ -371,17 +373,53 @@ public class PopConsumerServiceTest {
 
         Mockito.doReturn(CompletableFuture.completedFuture(null))
             .when(consumerServiceSpy).getMessageAsync(any(PopConsumerRecord.class));
-        consumerServiceSpy.revive(20 * 1000, 1);
+        consumerServiceSpy.revive(new AtomicLong(20 * 1000), 1);
 
         Mockito.doReturn(CompletableFuture.completedFuture(
                 Triple.of(null, "GetMessageResult is null", false)))
             .when(consumerServiceSpy).getMessageAsync(any(PopConsumerRecord.class));
-        consumerServiceSpy.revive(20 * 1000, 1);
+        consumerServiceSpy.revive(new AtomicLong(20 * 1000), 1);
 
         Mockito.doReturn(CompletableFuture.completedFuture(
                 Triple.of(Mockito.mock(MessageExt.class), null, false)))
             .when(consumerServiceSpy).getMessageAsync(any(PopConsumerRecord.class));
-        consumerServiceSpy.revive(20 * 1000, 1);
+        consumerServiceSpy.revive(new AtomicLong(20 * 1000), 1);
+        consumerService.shutdown();
+    }
+
+    @Test
+    public void reviveBackoffRetryTest() {
+        Mockito.when(brokerController.getEscapeBridge()).thenReturn(Mockito.mock(EscapeBridge.class));
+        PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
+
+        consumerService.getPopConsumerStore().start();
+
+        long popTime = 1000000000L;
+        long invisibleTime = 60 * 1000L;
+        PopConsumerRecord record = new PopConsumerRecord();
+        record.setPopTime(popTime);
+        record.setInvisibleTime(invisibleTime);
+        record.setTopicId("topic");
+        record.setGroupId("group");
+        record.setQueueId(0);
+        record.setOffset(0);
+        consumerService.getPopConsumerStore().writeRecords(Collections.singletonList(record));
+
+        Mockito.doReturn(CompletableFuture.completedFuture(Triple.of(Mockito.mock(MessageExt.class), "", false)))
+            .when(consumerServiceSpy).getMessageAsync(any(PopConsumerRecord.class));
+        Mockito.when(brokerController.getEscapeBridge().putMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenReturn(
+            new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))
+        );
+
+        long visibleTimestamp = popTime + invisibleTime;
+
+        // revive fails
+        Assert.assertEquals(1, consumerServiceSpy.revive(new AtomicLong(visibleTimestamp), 1));
+        // should be invisible now
+        Assert.assertEquals(0, consumerService.getPopConsumerStore().scanExpiredRecords(0, visibleTimestamp, 1).size());
+        // will be visible again in 10 seconds
+        Assert.assertEquals(1, consumerService.getPopConsumerStore().scanExpiredRecords(visibleTimestamp, System.currentTimeMillis() + visibleTimestamp + 10 * 1000, 1).size());
+
         consumerService.shutdown();
     }
 

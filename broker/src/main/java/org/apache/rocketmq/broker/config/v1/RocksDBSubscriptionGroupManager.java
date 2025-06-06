@@ -37,7 +37,7 @@ import org.rocksdb.RocksIterator;
 
 public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
-    protected RocksDBConfigManager rocksDBConfigManager;
+    protected transient RocksDBConfigManager rocksDBConfigManager;
 
     public RocksDBSubscriptionGroupManager(BrokerController brokerController) {
         super(brokerController, false);
@@ -77,7 +77,6 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         }
         return true;
     }
-
 
     private boolean merge() {
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
@@ -182,6 +181,11 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         if (brokerController.getMessageStoreConfig().isRealTimePersistRocksDBConfig()) {
             this.rocksDBConfigManager.flushWAL();
         }
+    }
+
+    public synchronized void exportToJson() {
+        log.info("RocksDBSubscriptionGroupManager export subscription group to json file");
+        super.persist();
     }
 
     public String rocksdbConfigFilePath() {

@@ -49,10 +49,13 @@ public interface PopConsumerKVStore {
     void deleteRecords(List<PopConsumerRecord> consumerRecordList);
 
     /**
-     * Scans and returns a list of expired consumer records before the current time.
-     * @param currentTime The current revive checkpoint timestamp.
+     * Scans and returns a list of expired consumer records within the specified time range.
+     * @param lowerTime The start time (inclusive) of the time range to search, in milliseconds.
+     * @param upperTime The end time (exclusive) of the time range to search, in milliseconds.
      * @param maxCount The maximum number of records to return.
-     * @return A list of expired consumer records.
+     *                 Even if more records match the criteria, only this many will be returned.
+     * @return A list of expired consumer records within the specified time range.
+     *         If no matching records are found, an empty list is returned.
      */
-    List<PopConsumerRecord> scanExpiredRecords(long currentTime, int maxCount);
+    List<PopConsumerRecord> scanExpiredRecords(long lowerTime, long upperTime, int maxCount);
 }

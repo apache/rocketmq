@@ -16,17 +16,11 @@
  */
 package org.apache.rocketmq.tools.admin;
 
-import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
 import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -43,7 +37,6 @@ import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
@@ -61,6 +54,7 @@ import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -71,6 +65,12 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 import org.apache.rocketmq.tools.admin.api.BrokerOperatorResult;
 import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.admin.common.AdminToolResult;
+
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 public interface MQAdminExt extends MQAdmin {
     void start() throws MQClientException;
@@ -95,25 +95,6 @@ public interface MQAdminExt extends MQAdmin {
 
     void createAndUpdateTopicConfigList(final String addr,
         final List<TopicConfig> topicConfigList) throws InterruptedException, RemotingException, MQClientException;
-
-    void createAndUpdatePlainAccessConfig(final String addr,
-        final PlainAccessConfig plainAccessConfig) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    void deletePlainAccessConfig(final String addr, final String accessKey) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    void updateGlobalWhiteAddrConfig(final String addr,
-        final String globalWhiteAddrs) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    void updateGlobalWhiteAddrConfig(final String addr, final String globalWhiteAddrs,
-        String aclFileFullPath) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
-        final String addr) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
 
     void createAndUpdateSubscriptionGroupConfig(final String addr,
         final SubscriptionGroupConfig config) throws RemotingException,
@@ -390,6 +371,10 @@ public interface MQAdminExt extends MQAdmin {
     QueryConsumeQueueResponseBody queryConsumeQueue(final String brokerAddr,
         final String topic, final int queueId,
         final long index, final int count, final String consumerGroup)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
+
+    void exportRocksDBConfigToJson(String brokerAddr,
+        List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configType)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
 
     boolean resumeCheckHalfMessage(final String topic,

@@ -44,6 +44,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -120,6 +121,23 @@ public class MixAll {
 
     private static final String OS = System.getProperty("os.name").toLowerCase();
 
+    private static final Set<String> PREDEFINE_GROUP_SET = ImmutableSet.of(
+        DEFAULT_CONSUMER_GROUP,
+        DEFAULT_PRODUCER_GROUP,
+        TOOLS_CONSUMER_GROUP,
+        SCHEDULE_CONSUMER_GROUP,
+        FILTERSRV_CONSUMER_GROUP,
+        MONITOR_CONSUMER_GROUP,
+        CLIENT_INNER_PRODUCER_GROUP,
+        SELF_TEST_PRODUCER_GROUP,
+        SELF_TEST_CONSUMER_GROUP,
+        ONS_HTTP_PROXY_GROUP,
+        CID_ONSAPI_PERMISSION_GROUP,
+        CID_ONSAPI_OWNER_GROUP,
+        CID_ONSAPI_PULL_GROUP,
+        CID_SYS_RMQ_TRANS
+    );
+
     public static boolean isWindows() {
         return OS.contains("win");
     }
@@ -162,6 +180,14 @@ public class MixAll {
 
     public static boolean isSysConsumerGroup(final String consumerGroup) {
         return consumerGroup.startsWith(CID_RMQ_SYS_PREFIX);
+    }
+
+    public static boolean isSysConsumerGroupAndEnableCreate(final String consumerGroup, final boolean isEnableCreateSysGroup) {
+        return isEnableCreateSysGroup && isSysConsumerGroup(consumerGroup);
+    }
+
+    public static boolean isPredefinedGroup(final String consumerGroup) {
+        return PREDEFINE_GROUP_SET.contains(consumerGroup);
     }
 
     public static String getDLQTopic(final String consumerGroup) {
@@ -512,7 +538,7 @@ public class MixAll {
         return path.normalize().toString();
     }
 
-    public static boolean isSysConsumerGroupForNoColdReadLimit(String consumerGroup) {
+    public static boolean isSysConsumerGroupPullMessage(String consumerGroup) {
         if (DEFAULT_CONSUMER_GROUP.equals(consumerGroup)
             || TOOLS_CONSUMER_GROUP.equals(consumerGroup)
             || SCHEDULE_CONSUMER_GROUP.equals(consumerGroup)
@@ -534,5 +560,14 @@ public class MixAll {
         return !topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
             && !topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)
             && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
+    }
+
+    public static String adjustConfigForPlatform(String config) {
+        if (StringUtils.isNotBlank(config)) {
+            if (isWindows()) {
+                config = StringUtils.replace(config, "\\", "\\\\");
+            }
+        }
+        return config;
     }
 }

@@ -197,12 +197,12 @@ public class PopBufferMergeService extends ServiceThread {
             String topic = keyArray[0];
             String cid = keyArray[1];
             if (brokerController.getTopicConfigManager().selectTopicConfig(topic) == null) {
-                POP_LOGGER.info("[PopBuffer]remove not exit topic {} in buffer!", topic);
+                POP_LOGGER.info("[PopBuffer]remove nonexistent topic {} in buffer!", topic);
                 iterator.remove();
                 continue;
             }
-            if (!brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(cid)) {
-                POP_LOGGER.info("[PopBuffer]remove not exit sub {} of topic {} in buffer!", cid, topic);
+            if (!brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(cid)) {
+                POP_LOGGER.info("[PopBuffer]remove nonexistent subscription group {} of topic {} in buffer!", cid, topic);
                 iterator.remove();
                 continue;
             }

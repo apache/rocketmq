@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.pop;
 
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -29,7 +30,7 @@ public class PopConsumerContextTest {
     public void consumerContextTest() {
         long popTime = System.currentTimeMillis();
         PopConsumerContext context = new PopConsumerContext("127.0.0.1:6789",
-            popTime, 20_000, "GroupId", true, "attemptId");
+            popTime, 20_000, "GroupId", true, ConsumeInitMode.MIN, "attemptId");
 
         Assert.assertFalse(context.isFound());
         Assert.assertEquals("127.0.0.1:6789", context.getClientHost());
