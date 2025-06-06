@@ -404,6 +404,18 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
+    public boolean deleteTopic(String topic) {
+        // find or create consume queue to avoid dirty CQ in RocksDBConsumeQueue
+        try {
+            Set<Integer> queueIds = rocksDBConsumeQueueOffsetTable.scanAllQueueIdInTopic(topic);
+            queueIds.forEach(queueId -> findOrCreateConsumeQueue(topic, queueId));
+        } catch (RocksDBException e) {
+            ERROR_LOG.error("Failed to scan queueIds for topic. topic={}", topic, e);
+        }
+        return super.deleteTopic(topic);
+    }
+
+    @Override
     public void flush() throws StoreException {
         try (FlushOptions flushOptions = new FlushOptions()) {
             flushOptions.setWaitForFlush(true);
