@@ -216,7 +216,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
 
                 // search cache, avoiding unnecessary allocate
                 int popShareQueueNum = setMessageRequestModeRequestBody.getPopShareQueueNum();
-                assignedQueueSet = this.popRebalanceCacheManager.getLoadBalanceDate(mqAll, cidAll, topic, clientId, strategyName, popShareQueueNum);
+                assignedQueueSet = this.popRebalanceCacheManager.getLoadBalanceData(mqAll, cidAll, topic, clientId, strategyName, popShareQueueNum);
                 if (assignedQueueSet != null) {
                     return assignedQueueSet;
                 }

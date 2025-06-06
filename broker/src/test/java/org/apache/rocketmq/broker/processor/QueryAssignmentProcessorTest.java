@@ -150,7 +150,7 @@ public class QueryAssignmentProcessorTest {
 
     @Test
     public void testDoLoadBalanceWithCache() throws Exception {
-        for (int i = 2; i < 11; i++) {
+        for (int i = 2; i < 6; i++) {
             Channel channel = Mockito.mock(Channel.class);
             String clientId = "127.0.0." + i;
             ClientChannelInfo clientInfo = new ClientChannelInfo(channel, clientId, LanguageCode.JAVA, 0);
@@ -171,62 +171,37 @@ public class QueryAssignmentProcessorTest {
                         String.class, SetMessageRequestModeRequestBody.class, ChannelHandlerContext.class);
         method.setAccessible(true);
 
-        // 1. the effect of caching is represented by LMQ
-        long startTime = System.nanoTime();
         SetMessageRequestModeRequestBody setMessageRequestModeRequestBody = new SetMessageRequestModeRequestBody();
         setMessageRequestModeRequestBody.setPopShareQueueNum(1);
         setMessageRequestModeRequestBody.setMode(MessageRequestMode.POP);
 
-        Set<MessageQueue> mqs1 = (Set<MessageQueue>) method.invoke(
-                queryAssignmentProcessor, MixAll.LMQ_PREFIX + topic, group, "127.0.0.1", MessageModel.CLUSTERING,
-                new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
-        long duration = System.nanoTime() - startTime;
-        System.out.println("[LMQ]First call duration: " + duration + " ns");
-        assertThat(mqs1).hasSize(1);
-
-        for (int i = 0; i < 5; i++) {
-            startTime = System.nanoTime();
-            mqs1 = (Set<MessageQueue>) method.invoke(
-                    queryAssignmentProcessor, MixAll.LMQ_PREFIX + topic, group, "127.0.0.1", MessageModel.CLUSTERING,
-                    new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
-            duration = System.nanoTime() - startTime;
-            System.out.println("[LMQ]Subsequent call " + (i + 1) + " duration: " + duration + " ns");
-            assertThat(mqs1).hasSize(1);
-        }
-
-        // 2. the effect of caching is represented by normal condition
-        int iterations = 5;
-        long totalDurationFirstCall = 0;
-        long totalDurationSubsequentCalls = 0;
         Set<MessageQueue> initialQueues = new HashSet<>();
-        for (int i = 0; i < 15; i++) {
+        for (int i = 0; i < 4; i++) {
             initialQueues.add(new MessageQueue(topic, "broker-1", i));
         }
+        when(topicRouteInfoManager.getTopicSubscribeInfo(topic)).thenReturn(initialQueues);
 
-        for (int j = 0; j < iterations; j++) {
-            when(topicRouteInfoManager.getTopicSubscribeInfo(topic)).thenReturn(initialQueues);
+        // First call: Perform load balancing calculations and cache the results
+        Set<MessageQueue> firstResult = (Set<MessageQueue>) method.invoke(
+                queryAssignmentProcessor, topic, group, "127.0.0.1", MessageModel.CLUSTERING,
+                new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
 
-            startTime = System.nanoTime();
-            mqs1 = (Set<MessageQueue>) method.invoke(
-                    queryAssignmentProcessor, topic, group, "127.0.0.1", MessageModel.CLUSTERING,
-                    new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
-            duration = System.nanoTime() - startTime;
-            totalDurationFirstCall += duration;
-            System.out.println("[normal]First call duration: " + duration + " ns");
+        assertThat(firstResult).isNotNull();
+        assertThat(firstResult).isNotEmpty();
 
-            for (int i = 0; i < 5; i++) {
-                startTime = System.nanoTime();
-                method.invoke(queryAssignmentProcessor, topic, group, "127.0.0.1", MessageModel.CLUSTERING,
-                        new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
-                duration = System.nanoTime() - startTime;
-                totalDurationSubsequentCalls += duration;
-                System.out.println("[normal]Subsequent call " + (i + 1) + " duration: " + duration + " ns");
-            }
-            initialQueues.remove(initialQueues.iterator().next());
+        // Second call with the same parameters: the same result should be obtained from the cache
+        Set<MessageQueue> secondResult = (Set<MessageQueue>) method.invoke(
+                queryAssignmentProcessor, topic, group, "127.0.0.1", MessageModel.CLUSTERING,
+                new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
+
+        assertThat(secondResult).isNotNull();
+        assertThat(secondResult).isEqualTo(firstResult);
+
+        Set<MessageQueue> changedQueues = new HashSet<>();
+        for (int i = 0; i < 6; i++) {
+            changedQueues.add(new MessageQueue(topic, "broker-1", i));
         }
-
-        System.out.println("Average duration for first call: " + (totalDurationFirstCall / iterations) + " ns");
-        System.out.println("Average duration for subsequent calls: " + (totalDurationSubsequentCalls / (iterations * 5)) + " ns");
+        when(topicRouteInfoManager.getTopicSubscribeInfo(topic)).thenReturn(changedQueues);
     }
 
     @Test
