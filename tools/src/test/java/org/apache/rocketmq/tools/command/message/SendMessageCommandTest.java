@@ -42,6 +42,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
+
+
 public class SendMessageCommandTest {
 
     private static SendMessageCommand sendMessageCommand = new SendMessageCommand();
@@ -85,7 +88,7 @@ public class SendMessageCommandTest {
             sendMessageCommand.buildCommandlineOptions(options), new DefaultParser());
         sendMessageCommand.execute(commandLine, options, null);
         System.setOut(out);
-        String s = new String(bos.toByteArray());
+        String s = new String(bos.toByteArray(),StandardCharsets.UTF_8);
         Assert.assertTrue(s.contains("SEND_OK"));
     }
 }
