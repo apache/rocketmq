@@ -46,7 +46,7 @@ public class BitsArray implements Cloneable {
             temp++;
         }
         bytes = new byte[temp];
-        Arrays.fill(bytes, (byte) 0x00); // 替换为 Arrays.fill()
+        Arrays.fill(bytes, (byte) 0x00); 
     }
 
     private BitsArray(byte[] bytes, int bitLength) {
