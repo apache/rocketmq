@@ -405,10 +405,11 @@ public class BrokerContainerStartup {
         }
 
         public Properties loadConfig() throws Exception {
-            InputStream in = new BufferedInputStream(new FileInputStream(file));
             Properties properties = new Properties();
-            properties.load(in);
-            in.close();
+
+            try (InputStream in = new BufferedInputStream(new FileInputStream(file))) {
+                properties.load(in);
+            }
             return properties;
         }
 
