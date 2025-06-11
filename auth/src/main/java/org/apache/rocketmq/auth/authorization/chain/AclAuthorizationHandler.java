@@ -139,13 +139,13 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
             if (r1.getResourcePattern() == ResourcePattern.LITERAL) {
                 compare = 1;
             }
-            if (r1.getResourcePattern() == ResourcePattern.LITERAL) {
+            if (r2.getResourcePattern() == ResourcePattern.LITERAL) {
                 compare = -1;
             }
             if (r1.getResourcePattern() == ResourcePattern.PREFIXED) {
                 compare = 1;
             }
-            if (r1.getResourcePattern() == ResourcePattern.PREFIXED) {
+            if (r2.getResourcePattern() == ResourcePattern.PREFIXED) {
                 compare = -1;
             }
         }
