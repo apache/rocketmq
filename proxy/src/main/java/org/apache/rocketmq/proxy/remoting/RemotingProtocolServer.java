@@ -30,6 +30,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.grpc.ProxyAndTlsProtocolNegotiator;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.remoting.activity.AckMessageActivity;
 import org.apache.rocketmq.proxy.remoting.activity.ChangeInvisibleTimeActivity;
@@ -57,7 +58,10 @@ import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.srvutil.FileWatchService;
 
+import java.io.IOException;
+import java.security.cert.CertificateException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -88,8 +92,10 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     protected final ThreadPoolExecutor topicRouteExecutor;
     protected final ThreadPoolExecutor defaultExecutor;
     protected final ScheduledExecutorService timerExecutor;
+    protected final FileWatchService fileWatchService;
 
-    public RemotingProtocolServer(MessagingProcessor messagingProcessor) {
+
+    public RemotingProtocolServer(MessagingProcessor messagingProcessor) throws Exception {
         this.messagingProcessor = messagingProcessor;
         this.remotingChannelManager = new RemotingChannelManager(this, messagingProcessor.getProxyRelayService());
 
@@ -189,6 +195,46 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         this.timerExecutor.scheduleAtFixedRate(this::cleanExpireRequest, 10, 10, TimeUnit.SECONDS);
 
         this.registerRemotingServer(this.defaultRemotingServer);
+
+        this.fileWatchService = this.initGrpcCertKeyWatchService();
+    }
+
+    protected FileWatchService initGrpcCertKeyWatchService() throws Exception {
+        return new FileWatchService(
+                new String[] {
+                        TlsSystemConfig.tlsServerCertPath,
+                        TlsSystemConfig.tlsServerKeyPath,
+                        TlsSystemConfig.tlsServerTrustCertPath
+                },
+                new FileWatchService.Listener() {
+                    boolean certChanged, keyChanged = false;
+
+                    @Override
+                    public void onChanged(String path) {
+                        if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
+                            log.info("The trust certificate changed, reload the ssl context");
+                            reloadServerSslContext();
+                        }
+                        if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
+                            certChanged = true;
+                        }
+                        if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
+                            keyChanged = true;
+                        }
+                        if (certChanged && keyChanged) {
+                            log.info("The certificate and private key changed, reload the ssl context");
+                            certChanged = keyChanged = false;
+                            reloadServerSslContext();
+                        }
+                    }
+
+                    private void reloadServerSslContext() {
+                        if (defaultRemotingServer instanceof NettyRemotingServer) {
+                            ((NettyRemotingServer)defaultRemotingServer).loadSslContext();
+                        }
+                    }
+                }
+        );
     }
 
     protected void registerRemotingServer(RemotingServer remotingServer) {

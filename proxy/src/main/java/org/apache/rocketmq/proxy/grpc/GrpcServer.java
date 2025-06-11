@@ -17,12 +17,16 @@
 
 package org.apache.rocketmq.proxy.grpc;
 
+import java.io.IOException;
+import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 import io.grpc.Server;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
+import org.apache.rocketmq.srvutil.FileWatchService;
 
 public class GrpcServer implements StartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -33,23 +37,78 @@ public class GrpcServer implements StartAndShutdown {
 
     private final TimeUnit unit;
 
-    protected GrpcServer(Server server, long timeout, TimeUnit unit) {
+    private final FileWatchService fileWatchService;
+
+    protected GrpcServer(Server server, long timeout, TimeUnit unit) throws Exception {
         this.server = server;
         this.timeout = timeout;
         this.unit = unit;
+
+        this.fileWatchService = initGrpcCertKeyWatchService();
     }
 
     public void start() throws Exception {
         this.server.start();
+
+        if (fileWatchService != null) {
+            fileWatchService.start();
+        }
+
         log.info("grpc server start successfully.");
     }
 
     public void shutdown() {
         try {
             this.server.shutdown().awaitTermination(timeout, unit);
+
+            if (fileWatchService != null) {
+                fileWatchService.shutdown();
+            }
+
             log.info("grpc server shutdown successfully.");
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private FileWatchService initGrpcCertKeyWatchService() throws Exception {
+        return new FileWatchService(
+                new String[] {
+                        TlsSystemConfig.tlsServerCertPath,
+                        TlsSystemConfig.tlsServerKeyPath,
+                        TlsSystemConfig.tlsServerTrustCertPath
+                },
+                new FileWatchService.Listener() {
+                    boolean certChanged, keyChanged = false;
+
+                    @Override
+                    public void onChanged(String path) {
+                        if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
+                            log.info("The trust certificate changed, reload the ssl context");
+                            reloadServerSslContext();
+                        }
+                        if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
+                            certChanged = true;
+                        }
+                        if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
+                            keyChanged = true;
+                        }
+                        if (certChanged && keyChanged) {
+                            log.info("The certificate and private key changed, reload the ssl context");
+                            certChanged = keyChanged = false;
+                            reloadServerSslContext();
+                        }
+                    }
+
+                    private void reloadServerSslContext() {
+                        try {
+                            ProxyAndTlsProtocolNegotiator.loadSslContext();
+                            log.info("SSLContext reloaded for grpc server");
+                        } catch (CertificateException | IOException e) {
+                            log.error("Failed to reloaded SSLContext for server", e);
+                        }
+                    }
+                }
+        );
     }
 }
