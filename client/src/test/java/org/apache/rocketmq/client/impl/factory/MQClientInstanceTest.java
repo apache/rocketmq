@@ -16,10 +16,18 @@
  */
 package org.apache.rocketmq.client.impl.factory;
 
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -42,7 +50,6 @@ import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
 import org.apache.rocketmq.client.impl.consumer.RebalanceImpl;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -64,7 +71,6 @@ import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,23 +78,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -97,6 +87,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -106,13 +97,6 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientInstanceTest {
-    private MQClientInstance mqClientInstance;
-    
-    private String topic = "FooBar";
-    
-    private String group = "FooBarGroup";
-    
-    private ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
 
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
@@ -139,49 +123,10 @@ public class MQClientInstanceTest {
 
     private final ConcurrentMap<String, TopicRouteData> topicRouteTable = new ConcurrentHashMap<>();
 
-    private final ClientConfig clientConfig = new ClientConfig();
-
     @Before
     public void init() throws Exception {
-        mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(clientConfig);
         when(mQClientAPIImpl.getRemotingClient()).thenReturn(remotingClient);
         FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
-    }
-    
-    @After
-    public void clearMqClientInstance() {
-        MQClientManager.getInstance().removeClientFactory(clientConfig.buildMQClientId());
-    }
-
-    @Test
-    public void testTopicRouteData2TopicPublishInfo() {
-        TopicRouteData topicRouteData = new TopicRouteData();
-
-        topicRouteData.setFilterServerTable(new HashMap<>());
-        List<BrokerData> brokerDataList = new ArrayList<>();
-        BrokerData brokerData = new BrokerData();
-        brokerData.setBrokerName("BrokerA");
-        brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(0L, "127.0.0.1:10911");
-        brokerData.setBrokerAddrs(brokerAddrs);
-        brokerDataList.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDataList);
-
-        List<QueueData> queueDataList = new ArrayList<>();
-        QueueData queueData = new QueueData();
-        queueData.setBrokerName("BrokerA");
-        queueData.setPerm(6);
-        queueData.setReadQueueNums(3);
-        queueData.setWriteQueueNums(4);
-        queueData.setTopicSysFlag(0);
-        queueDataList.add(queueData);
-        topicRouteData.setQueueDatas(queueDataList);
-
-        TopicPublishInfo topicPublishInfo = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
-
-        assertThat(topicPublishInfo.isHaveTopicRouterInfo()).isFalse();
-        assertThat(topicPublishInfo.getMessageQueueList().size()).isEqualTo(4);
         FieldUtils.writeDeclaredField(mqClientInstance, "mQClientAPIImpl", mQClientAPIImpl, true);
         FieldUtils.writeDeclaredField(mqClientInstance, "consumerTable", consumerTable, true);
         FieldUtils.writeDeclaredField(mqClientInstance, "clientConfig", clientConfig, true);
@@ -280,6 +225,100 @@ public class MQClientInstanceTest {
     }
 
     @Test
+    public void testTopicRouteData2TopicPublishInfo() {
+        TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, createTopicRouteData());
+        assertThat(actual.isHaveTopicRouterInfo()).isFalse();
+        assertThat(actual.getMessageQueueList().size()).isEqualTo(4);
+    }
+
+    @Test
+    public void testTopicRouteData2TopicPublishInfoWithOrderTopicConf() {
+        TopicRouteData topicRouteData = createTopicRouteData();
+        when(topicRouteData.getOrderTopicConf()).thenReturn("127.0.0.1:4");
+        TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
+        assertFalse(actual.isHaveTopicRouterInfo());
+        assertEquals(4, actual.getMessageQueueList().size());
+    }
+
+    @Test
+    public void testTopicRouteData2TopicPublishInfoWithTopicQueueMappingByBroker() {
+        TopicRouteData topicRouteData = createTopicRouteData();
+        when(topicRouteData.getTopicQueueMappingByBroker()).thenReturn(Collections.singletonMap(topic, new TopicQueueMappingInfo()));
+        TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
+        assertFalse(actual.isHaveTopicRouterInfo());
+        assertEquals(0, actual.getMessageQueueList().size());
+    }
+
+    @Test
+    public void testTopicRouteData2TopicSubscribeInfo() {
+        TopicRouteData topicRouteData = createTopicRouteData();
+        when(topicRouteData.getTopicQueueMappingByBroker()).thenReturn(Collections.singletonMap(topic, new TopicQueueMappingInfo()));
+        Set<MessageQueue> actual = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
+        assertNotNull(actual);
+        assertEquals(0, actual.size());
+    }
+
+    @Test
+    public void testParseOffsetTableFromBroker() {
+        Map<MessageQueue, Long> offsetTable = new HashMap<>();
+        offsetTable.put(new MessageQueue(), 0L);
+        Map<MessageQueue, Long> actual = mqClientInstance.parseOffsetTableFromBroker(offsetTable, "defaultNamespace");
+        assertNotNull(actual);
+        assertEquals(1, actual.size());
+    }
+
+    @Test
+    public void testCheckClientInBroker() throws MQClientException, RemotingSendRequestException, RemotingConnectException, RemotingTimeoutException, InterruptedException {
+        doThrow(new MQClientException("checkClientInBroker exception", null)).when(mQClientAPIImpl).checkClientInBroker(
+            any(),
+            any(),
+            any(),
+            any(SubscriptionData.class),
+            anyLong());
+        topicRouteTable.put(topic, createTopicRouteData());
+        MQConsumerInner mqConsumerInner = createMQConsumerInner();
+        mqConsumerInner.subscriptions().clear();
+        SubscriptionData subscriptionData = new SubscriptionData();
+        subscriptionData.setTopic(topic);
+        subscriptionData.setExpressionType("type");
+        mqConsumerInner.subscriptions().add(subscriptionData);
+        consumerTable.put(group, mqConsumerInner);
+        Throwable thrown = assertThrows(MQClientException.class, mqClientInstance::checkClientInBroker);
+        assertTrue(thrown.getMessage().contains("checkClientInBroker exception"));
+    }
+
+    @Test
+    public void testSendHeartbeatToBrokerV1() {
+        consumerTable.put(group, createMQConsumerInner());
+        assertTrue(mqClientInstance.sendHeartbeatToBroker(0L, defaultBroker, defaultBrokerAddr));
+    }
+
+    @Test
+    public void testSendHeartbeatToBrokerV2() throws MQBrokerException, RemotingException, InterruptedException {
+        consumerTable.put(group, createMQConsumerInner());
+        when(clientConfig.isUseHeartbeatV2()).thenReturn(true);
+        HeartbeatV2Result heartbeatV2Result = mock(HeartbeatV2Result.class);
+        when(heartbeatV2Result.isSupportV2()).thenReturn(true);
+        when(mQClientAPIImpl.sendHeartbeatV2(any(), any(HeartbeatData.class), anyLong())).thenReturn(heartbeatV2Result);
+        assertTrue(mqClientInstance.sendHeartbeatToBroker(0L, defaultBroker, defaultBrokerAddr));
+    }
+
+    @Test
+    public void testSendHeartbeatToAllBrokerWithLockV1() {
+        brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
+        consumerTable.put(group, createMQConsumerInner());
+        assertTrue(mqClientInstance.sendHeartbeatToAllBrokerWithLock());
+    }
+
+    @Test
+    public void testSendHeartbeatToAllBrokerWithLockV2() {
+        brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
+        consumerTable.put(group, createMQConsumerInner());
+        when(clientConfig.isUseHeartbeatV2()).thenReturn(true);
+        assertTrue(mqClientInstance.sendHeartbeatToAllBrokerWithLock());
+    }
+
+    @Test
     public void testUpdateTopicRouteInfoFromNameServer() throws Exception {
 
         MQClientAPIImpl mqClientAPI = mock(MQClientAPIImpl.class);
@@ -340,110 +379,6 @@ public class MQClientInstanceTest {
     }
 
     @Test
-    public void testTopicRouteData2TopicPublishInfo() {
-        TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, createTopicRouteData());
-        assertThat(actual.isHaveTopicRouterInfo()).isFalse();
-        assertThat(actual.getMessageQueueList().size()).isEqualTo(4);
-    }
-
-    @Test
-    public void testTopicRouteData2TopicPublishInfoWithOrderTopicConf() {
-        TopicRouteData topicRouteData = createTopicRouteData();
-        when(topicRouteData.getOrderTopicConf()).thenReturn("127.0.0.1:4");
-        TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
-        assertFalse(actual.isHaveTopicRouterInfo());
-        assertEquals(4, actual.getMessageQueueList().size());
-    }
-
-    @Test
-    public void testTopicRouteData2TopicPublishInfoWithTopicQueueMappingByBroker() {
-        TopicRouteData topicRouteData = createTopicRouteData();
-        when(topicRouteData.getTopicQueueMappingByBroker()).thenReturn(Collections.singletonMap(topic, new TopicQueueMappingInfo()));
-        TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
-        assertFalse(actual.isHaveTopicRouterInfo());
-        assertEquals(0, actual.getMessageQueueList().size());
-    }
-
-    @Test
-    public void testTopicRouteData2TopicSubscribeInfo() {
-        TopicRouteData topicRouteData = createTopicRouteData();
-        when(topicRouteData.getTopicQueueMappingByBroker()).thenReturn(Collections.singletonMap(topic, new TopicQueueMappingInfo()));
-        Set<MessageQueue> actual = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
-        assertNotNull(actual);
-        assertEquals(0, actual.size());
-    }
-
-    @Test
-    public void testParseOffsetTableFromBroker() {
-        Map<MessageQueue, Long> offsetTable = new HashMap<>();
-        offsetTable.put(new MessageQueue(), 0L);
-        Map<MessageQueue, Long> actual = mqClientInstance.parseOffsetTableFromBroker(offsetTable, "defaultNamespace");
-        assertNotNull(actual);
-        assertEquals(1, actual.size());
-    }
-
-    @Test
-    public void testCheckClientInBroker() throws MQClientException, RemotingSendRequestException, RemotingConnectException, RemotingTimeoutException, InterruptedException {
-        doThrow(new MQClientException("checkClientInBroker exception", null)).when(mQClientAPIImpl).checkClientInBroker(
-                any(),
-                any(),
-                any(),
-                any(SubscriptionData.class),
-                anyLong());
-        topicRouteTable.put(topic, createTopicRouteData());
-        MQConsumerInner mqConsumerInner = createMQConsumerInner();
-        mqConsumerInner.subscriptions().clear();
-        SubscriptionData subscriptionData = new SubscriptionData();
-        subscriptionData.setTopic(topic);
-        subscriptionData.setExpressionType("type");
-        mqConsumerInner.subscriptions().add(subscriptionData);
-        consumerTable.put(group, mqConsumerInner);
-        Throwable thrown = assertThrows(MQClientException.class, mqClientInstance::checkClientInBroker);
-        assertTrue(thrown.getMessage().contains("checkClientInBroker exception"));
-    }
-
-    @Test
-    public void testSendHeartbeatToBrokerV1() {
-        consumerTable.put(group, createMQConsumerInner());
-        assertTrue(mqClientInstance.sendHeartbeatToBroker(0L, defaultBroker, defaultBrokerAddr));
-    }
-
-    @Test
-    public void testSendHeartbeatToBrokerV2() throws MQBrokerException, RemotingException, InterruptedException {
-        consumerTable.put(group, createMQConsumerInner());
-        when(clientConfig.isUseHeartbeatV2()).thenReturn(true);
-        HeartbeatV2Result heartbeatV2Result = mock(HeartbeatV2Result.class);
-        when(heartbeatV2Result.isSupportV2()).thenReturn(true);
-        when(mQClientAPIImpl.sendHeartbeatV2(any(), any(HeartbeatData.class), anyLong())).thenReturn(heartbeatV2Result);
-        assertTrue(mqClientInstance.sendHeartbeatToBroker(0L, defaultBroker, defaultBrokerAddr));
-    }
-
-    @Test
-    public void testSendHeartbeatToAllBrokerWithLockV1() {
-        brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
-        consumerTable.put(group, createMQConsumerInner());
-        assertTrue(mqClientInstance.sendHeartbeatToAllBrokerWithLock());
-    }
-
-    @Test
-    public void testSendHeartbeatToAllBrokerWithLockV2() {
-        brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
-        consumerTable.put(group, createMQConsumerInner());
-        when(clientConfig.isUseHeartbeatV2()).thenReturn(true);
-        assertTrue(mqClientInstance.sendHeartbeatToAllBrokerWithLock());
-    }
-
-    @Test
-    public void testUpdateTopicRouteInfoFromNameServer() throws RemotingException, InterruptedException, MQClientException {
-        brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
-        consumerTable.put(group, createMQConsumerInner());
-        DefaultMQProducer defaultMQProducer = mock(DefaultMQProducer.class);
-        TopicRouteData topicRouteData = createTopicRouteData();
-        when(mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(anyLong())).thenReturn(topicRouteData);
-        assertFalse(mqClientInstance.updateTopicRouteInfoFromNameServer(topic, true, defaultMQProducer));
-    }
-
-    @Test
     public void testFindBrokerAddressInAdmin() {
         brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
         consumerTable.put(group, createMQConsumerInner());
@@ -500,9 +435,9 @@ public class MQClientInstanceTest {
         verify(consumer).suspend();
         verify(consumer).resume();
         verify(consumer, times(1))
-                .updateConsumeOffset(
-                        any(MessageQueue.class),
-                        eq(0L));
+            .updateConsumeOffset(
+                any(MessageQueue.class),
+                eq(0L));
     }
 
     @Test
