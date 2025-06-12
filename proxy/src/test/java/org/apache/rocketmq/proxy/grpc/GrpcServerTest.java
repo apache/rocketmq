@@ -39,7 +39,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-// Extend with MockitoExtension for JUnit 5
 @ExtendWith(MockitoExtension.class)
 public class GrpcServerTest {
     // Mock gRPC Server instance
