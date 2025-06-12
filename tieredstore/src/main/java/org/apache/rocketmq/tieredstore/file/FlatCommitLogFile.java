@@ -19,6 +19,7 @@ package org.apache.rocketmq.tieredstore.file;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
+import org.apache.rocketmq.tieredstore.provider.FileSegment;
 import org.apache.rocketmq.tieredstore.provider.FileSegmentFactory;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtil;
 
@@ -33,10 +34,19 @@ public class FlatCommitLogFile extends FlatAppendFile {
         this.initOffset(0L);
     }
 
+    /**
+     * Two rules are set here:
+     * 1. Single file must be saved for more than one day as default.
+     * 2. Single file must reach the minimum size before switching.
+     * When calculating storage space, due to the limitation of condition 2,
+     * the actual usage of storage space may be slightly higher than expected.
+     */
     public boolean tryRollingFile(long interval) {
-        long timestamp = this.getFileToWrite().getMinTimestamp();
-        if (timestamp != Long.MAX_VALUE &&
-            timestamp + interval < System.currentTimeMillis()) {
+        FileSegment fileSegment = this.getFileToWrite();
+        long timestamp = fileSegment.getMinTimestamp();
+        if (timestamp != Long.MAX_VALUE && timestamp + interval < System.currentTimeMillis() &&
+            fileSegment.getAppendPosition() >=
+                fileSegmentFactory.getStoreConfig().getCommitLogRollingMinimumSize()) {
             this.rollingNewFile(this.getAppendOffset());
             return true;
         }
@@ -67,7 +77,7 @@ public class FlatCommitLogFile extends FlatAppendFile {
         super.destroyExpiredFile(expireTimestamp);
         long afterOffset = this.getMinOffset();
 
-        if (beforeOffset != afterOffset) {
+        if (beforeOffset != afterOffset && afterOffset > 0) {
             log.info("CommitLog min cq offset reset, filePath={}, offset={}, expireTimestamp={}, change={}-{}",
                 filePath, firstOffset.get(), expireTimestamp, beforeOffset, afterOffset);
             firstOffset.set(GET_OFFSET_ERROR);

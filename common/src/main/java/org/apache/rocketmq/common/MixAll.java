@@ -44,10 +44,12 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.IOTinyUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -99,8 +101,8 @@ public class MixAll {
     public static final String ACL_CONF_TOOLS_FILE = "/conf/tools.yml";
     public static final String REPLY_MESSAGE_FLAG = "reply";
     public static final String LMQ_PREFIX = "%LMQ%";
-    public static final long LMQ_QUEUE_ID = 0;
-    public static final String MULTI_DISPATCH_QUEUE_SPLITTER = ",";
+    public static final int LMQ_QUEUE_ID = 0;
+    public static final String LMQ_DISPATCH_SEPARATOR = ",";
     public static final String REQ_T = "ReqT";
     public static final String ROCKETMQ_ZONE_ENV = "ROCKETMQ_ZONE";
     public static final String ROCKETMQ_ZONE_PROPERTY = "rocketmq.zone";
@@ -119,22 +121,39 @@ public class MixAll {
 
     private static final String OS = System.getProperty("os.name").toLowerCase();
 
+    private static final Set<String> PREDEFINE_GROUP_SET = ImmutableSet.of(
+        DEFAULT_CONSUMER_GROUP,
+        DEFAULT_PRODUCER_GROUP,
+        TOOLS_CONSUMER_GROUP,
+        SCHEDULE_CONSUMER_GROUP,
+        FILTERSRV_CONSUMER_GROUP,
+        MONITOR_CONSUMER_GROUP,
+        CLIENT_INNER_PRODUCER_GROUP,
+        SELF_TEST_PRODUCER_GROUP,
+        SELF_TEST_CONSUMER_GROUP,
+        ONS_HTTP_PROXY_GROUP,
+        CID_ONSAPI_PERMISSION_GROUP,
+        CID_ONSAPI_OWNER_GROUP,
+        CID_ONSAPI_PULL_GROUP,
+        CID_SYS_RMQ_TRANS
+    );
+
     public static boolean isWindows() {
-        return OS.indexOf("win") >= 0;
+        return OS.contains("win");
     }
 
     public static boolean isMac() {
-        return OS.indexOf("mac") >= 0;
+        return OS.contains("mac");
     }
 
     public static boolean isUnix() {
-        return OS.indexOf("nix") >= 0
-                || OS.indexOf("nux") >= 0
-                || OS.indexOf("aix") > 0;
+        return OS.contains("nix")
+            || OS.contains("nux")
+            || OS.contains("aix");
     }
 
     public static boolean isSolaris() {
-        return OS.indexOf("sunos") >= 0;
+        return OS.contains("sunos");
     }
 
     public static String getWSAddr() {
@@ -157,6 +176,14 @@ public class MixAll {
 
     public static boolean isSysConsumerGroup(final String consumerGroup) {
         return consumerGroup.startsWith(CID_RMQ_SYS_PREFIX);
+    }
+
+    public static boolean isSysConsumerGroupAndEnableCreate(final String consumerGroup, final boolean isEnableCreateSysGroup) {
+        return isEnableCreateSysGroup && isSysConsumerGroup(consumerGroup);
+    }
+
+    public static boolean isPredefinedGroup(final String consumerGroup) {
+        return PREDEFINE_GROUP_SET.contains(consumerGroup);
     }
 
     public static String getDLQTopic(final String consumerGroup) {
@@ -205,7 +232,7 @@ public class MixAll {
         if (fileParent != null) {
             fileParent.mkdirs();
         }
-        IOTinyUtils.writeStringToFile(file, str, "UTF-8");
+        IOTinyUtils.writeStringToFile(file, str, DEFAULT_CHARSET);
     }
 
     public static String file2String(final String fileName) throws IOException {
@@ -224,7 +251,7 @@ public class MixAll {
             }
 
             if (result) {
-                return new String(data, "UTF-8");
+                return new String(data, DEFAULT_CHARSET);
             }
         }
         return null;
@@ -364,9 +391,9 @@ public class MixAll {
                     String property = p.getProperty(key);
                     if (property != null) {
                         Class<?>[] pt = method.getParameterTypes();
-                        if (pt != null && pt.length > 0) {
+                        if (pt.length > 0) {
                             String cn = pt[0].getSimpleName();
-                            Object arg = null;
+                            Object arg;
                             if (cn.equals("int") || cn.equals("Integer")) {
                                 arg = Integer.parseInt(property);
                             } else if (cn.equals("long") || cn.equals("Long")) {
@@ -464,7 +491,7 @@ public class MixAll {
             return candidatesHost.get(0);
         }
 
-        // Fallback to loopback 
+        // Fallback to loopback
         return localhost();
     }
 
@@ -507,7 +534,7 @@ public class MixAll {
         return path.normalize().toString();
     }
 
-    public static boolean isSysConsumerGroupForNoColdReadLimit(String consumerGroup) {
+    public static boolean isSysConsumerGroupPullMessage(String consumerGroup) {
         if (DEFAULT_CONSUMER_GROUP.equals(consumerGroup)
             || TOOLS_CONSUMER_GROUP.equals(consumerGroup)
             || SCHEDULE_CONSUMER_GROUP.equals(consumerGroup)
@@ -523,5 +550,20 @@ public class MixAll {
             return true;
         }
         return false;
+    }
+
+    public static boolean topicAllowsLMQ(String topic) {
+        return !topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+            && !topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)
+            && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
+    }
+
+    public static String adjustConfigForPlatform(String config) {
+        if (StringUtils.isNotBlank(config)) {
+            if (isWindows()) {
+                config = StringUtils.replace(config, "\\", "\\\\");
+            }
+        }
+        return config;
     }
 }

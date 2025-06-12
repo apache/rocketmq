@@ -36,6 +36,7 @@ public class NettyServerConfig implements Cloneable {
     private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;
     private int writeBufferLowWaterMark = NettySystemConfig.writeBufferLowWaterMark;
     private int serverSocketBacklog = NettySystemConfig.socketBacklog;
+    private boolean serverNettyWorkerGroupEnable = true;
     private boolean serverPooledByteBufAllocatorEnable = true;
 
     private boolean enableShutdownGracefully = false;
@@ -173,6 +174,14 @@ public class NettyServerConfig implements Cloneable {
 
     public void setWriteBufferHighWaterMark(int writeBufferHighWaterMark) {
         this.writeBufferHighWaterMark = writeBufferHighWaterMark;
+    }
+
+    public boolean isServerNettyWorkerGroupEnable() {
+        return serverNettyWorkerGroupEnable;
+    }
+
+    public void setServerNettyWorkerGroupEnable(boolean serverNettyWorkerGroupEnable) {
+        this.serverNettyWorkerGroupEnable = serverNettyWorkerGroupEnable;
     }
 
     public boolean isEnableShutdownGracefully() {

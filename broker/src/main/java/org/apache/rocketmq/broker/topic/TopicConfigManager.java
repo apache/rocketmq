@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.topic;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -51,6 +52,7 @@ import org.apache.rocketmq.remoting.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
@@ -64,7 +66,7 @@ public class TopicConfigManager extends ConfigManager {
 
     private transient final Lock topicConfigTableLock = new ReentrantLock();
     protected ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>(1024);
-    private DataVersion dataVersion = new DataVersion();
+    protected DataVersion dataVersion = new DataVersion();
     protected transient BrokerController brokerController;
 
     public TopicConfigManager() {
@@ -210,9 +212,20 @@ public class TopicConfigManager extends ConfigManager {
             topicConfig.setWriteQueueNums(1);
             putTopicConfig(topicConfig);
         }
+
+        {
+            if (this.brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
+                String topic = TimerMessageStore.TIMER_TOPIC;
+                TopicConfig topicConfig = new TopicConfig(topic);
+                TopicValidator.addSystemTopic(topic);
+                topicConfig.setReadQueueNums(1);
+                topicConfig.setWriteQueueNums(1);
+                this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+            }
+        }
     }
 
-    protected TopicConfig putTopicConfig(TopicConfig topicConfig) {
+    public TopicConfig putTopicConfig(TopicConfig topicConfig) {
         return this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
     }
 
@@ -280,8 +293,7 @@ public class TopicConfigManager extends ConfigManager {
 
                         putTopicConfig(topicConfig);
 
-                        long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-                        dataVersion.nextVersion(stateMachineVersion);
+                        updateDataVersion();
 
                         createNew = true;
 
@@ -324,8 +336,7 @@ public class TopicConfigManager extends ConfigManager {
                     }
                     log.info("Create new topic [{}] config:[{}]", topicConfig.getTopicName(), topicConfig);
                     putTopicConfig(topicConfig);
-                    long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-                    dataVersion.nextVersion(stateMachineVersion);
+                    updateDataVersion();
                     createNew = true;
                     this.persist();
                 } finally {
@@ -384,8 +395,7 @@ public class TopicConfigManager extends ConfigManager {
                     log.info("create new topic {}", topicConfig);
                     putTopicConfig(topicConfig);
                     createNew = true;
-                    long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-                    dataVersion.nextVersion(stateMachineVersion);
+                    updateDataVersion();
                     this.persist();
                 } finally {
                     this.topicConfigTableLock.unlock();
@@ -425,8 +435,7 @@ public class TopicConfigManager extends ConfigManager {
                     log.info("create new topic {}", topicConfig);
                     putTopicConfig(topicConfig);
                     createNew = true;
-                    long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-                    dataVersion.nextVersion(stateMachineVersion);
+                    updateDataVersion();
                     this.persist();
                 } finally {
                     this.topicConfigTableLock.unlock();
@@ -459,8 +468,7 @@ public class TopicConfigManager extends ConfigManager {
 
             putTopicConfig(topicConfig);
 
-            long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            dataVersion.nextVersion(stateMachineVersion);
+            updateDataVersion();
 
             this.persist();
             registerBrokerData(topicConfig);
@@ -482,20 +490,18 @@ public class TopicConfigManager extends ConfigManager {
 
             putTopicConfig(topicConfig);
 
-            long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            dataVersion.nextVersion(stateMachineVersion);
+            updateDataVersion();
 
             this.persist();
             registerBrokerData(topicConfig);
         }
     }
 
-    public void updateTopicConfig(final TopicConfig topicConfig) {
+    public void updateSingleTopicConfigWithoutPersist(final TopicConfig topicConfig) {
         checkNotNull(topicConfig, "topicConfig shouldn't be null");
 
         Map<String, String> newAttributes = request(topicConfig);
         Map<String, String> currentAttributes = current(topicConfig.getTopicName());
-
 
         Map<String, String> finalAttributes = AttributeUtil.alterCurrentAttributes(
             this.topicConfigTable.get(topicConfig.getTopicName()) == null,
@@ -513,10 +519,17 @@ public class TopicConfigManager extends ConfigManager {
             log.info("create new topic [{}]", topicConfig);
         }
 
-        long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-        dataVersion.nextVersion(stateMachineVersion);
+        updateDataVersion();
+    }
 
+    public void updateTopicConfig(final TopicConfig topicConfig) {
+        updateSingleTopicConfigWithoutPersist(topicConfig);
         this.persist(topicConfig.getTopicName(), topicConfig);
+    }
+
+    public void updateTopicConfigList(final List<TopicConfig> topicConfigList) {
+        topicConfigList.forEach(this::updateSingleTopicConfigWithoutPersist);
+        this.persist();
     }
 
     private synchronized void updateTieredStoreTopicMetadata(final TopicConfig topicConfig, Map<String, String> newAttributes) {
@@ -560,25 +573,8 @@ public class TopicConfigManager extends ConfigManager {
                 }
             }
 
-            // We don't have a mandatory rule to maintain the validity of order conf in NameServer,
-            // so we may overwrite the order field mistakenly.
-            // To avoid the above case, we comment the below codes, please use mqadmin API to update
-            // the order filed.
-            /*for (Map.Entry<String, TopicConfig> entry : this.topicConfigTable.entrySet()) {
-                String topic = entry.getKey();
-                if (!orderTopics.contains(topic)) {
-                    TopicConfig topicConfig = entry.getValue();
-                    if (topicConfig.isOrder()) {
-                        topicConfig.setOrder(false);
-                        isChange = true;
-                        log.info("update order topic config, topic={}, order={}", topic, false);
-                    }
-                }
-            }*/
-
             if (isChange) {
-                long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-                dataVersion.nextVersion(stateMachineVersion);
+                updateDataVersion();
                 this.persist();
             }
         }
@@ -602,8 +598,7 @@ public class TopicConfigManager extends ConfigManager {
         TopicConfig old = removeTopicConfig(topic);
         if (old != null) {
             log.info("delete topic config OK, topic: {}", old);
-            long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            dataVersion.nextVersion(stateMachineVersion);
+            updateDataVersion();
             this.persist();
         } else {
             log.warn("delete topic config failed, topic: {} not exists", topic);
@@ -640,6 +635,26 @@ public class TopicConfigManager extends ConfigManager {
     @Override
     public String encode() {
         return encode(false);
+    }
+
+    public boolean loadDataVersion() {
+        String fileName = null;
+        try {
+            fileName = this.configFilePath();
+            String jsonString = MixAll.file2String(fileName);
+            if (jsonString != null) {
+                TopicConfigSerializeWrapper topicConfigSerializeWrapper =
+                    TopicConfigSerializeWrapper.fromJson(jsonString, TopicConfigSerializeWrapper.class);
+                if (topicConfigSerializeWrapper != null) {
+                    this.dataVersion.assignNewOne(topicConfigSerializeWrapper.getDataVersion());
+                    log.info("load topic metadata dataVersion success {}, {}", fileName, topicConfigSerializeWrapper.getDataVersion());
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("load topic metadata dataVersion failed" + fileName, e);
+            return false;
+        }
     }
 
     @Override
@@ -717,6 +732,12 @@ public class TopicConfigManager extends ConfigManager {
     public boolean containsTopic(String topic) {
         return topicConfigTable.containsKey(topic);
     }
+
+    public void updateDataVersion() {
+        long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
+        dataVersion.nextVersion(stateMachineVersion);
+    }
+
 
 
 }

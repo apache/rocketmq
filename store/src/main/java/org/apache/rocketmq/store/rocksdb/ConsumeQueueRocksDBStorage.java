@@ -16,53 +16,44 @@
  */
 package org.apache.rocketmq.store.rocksdb;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
-import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.store.MessageStore;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
-import org.rocksdb.CompactRangeOptions;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteBatch;
-import org.rocksdb.WriteOptions;
 
 public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
+
+    public static final byte[] OFFSET_COLUMN_FAMILY = "offset".getBytes(StandardCharsets.UTF_8);
+
     private final MessageStore messageStore;
     private volatile ColumnFamilyHandle offsetCFHandle;
 
-    public ConsumeQueueRocksDBStorage(final MessageStore messageStore, final String dbPath, final int prefixLen) {
+    public ConsumeQueueRocksDBStorage(final MessageStore messageStore, final String dbPath) {
+        super(dbPath);
         this.messageStore = messageStore;
-        this.dbPath = dbPath;
         this.readOnly = false;
     }
 
-    private void initOptions() {
+    protected void initOptions() {
         this.options = RocksDBOptionsFactory.createDBOptions();
+        super.initOptions();
+    }
 
-        this.writeOptions = new WriteOptions();
-        this.writeOptions.setSync(false);
-        this.writeOptions.setDisableWAL(true);
-        this.writeOptions.setNoSlowdown(true);
-
+    @Override
+    protected void initTotalOrderReadOptions() {
         this.totalOrderReadOptions = new ReadOptions();
         this.totalOrderReadOptions.setPrefixSameAsStart(false);
         this.totalOrderReadOptions.setTotalOrderSeek(false);
-
-        this.compactRangeOptions = new CompactRangeOptions();
-        this.compactRangeOptions.setBottommostLevelCompaction(CompactRangeOptions.BottommostLevelCompaction.kForce);
-        this.compactRangeOptions.setAllowWriteStall(true);
-        this.compactRangeOptions.setExclusiveManualCompaction(false);
-        this.compactRangeOptions.setChangeLevel(true);
-        this.compactRangeOptions.setTargetLevel(-1);
-        this.compactRangeOptions.setMaxSubcompactions(4);
     }
 
     @Override
@@ -72,7 +63,7 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
 
             initOptions();
 
-            final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList();
+            final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
 
             ColumnFamilyOptions cqCfOptions = RocksDBOptionsFactory.createCQCFOptions(this.messageStore);
             this.cfOptions.add(cqCfOptions);
@@ -80,11 +71,8 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
 
             ColumnFamilyOptions offsetCfOptions = RocksDBOptionsFactory.createOffsetCFOptions();
             this.cfOptions.add(offsetCfOptions);
-            cfDescriptors.add(new ColumnFamilyDescriptor("offset".getBytes(DataConverter.CHARSET_UTF8), offsetCfOptions));
-
-            final List<ColumnFamilyHandle> cfHandles = new ArrayList();
-            open(cfDescriptors, cfHandles);
-
+            cfDescriptors.add(new ColumnFamilyDescriptor(OFFSET_COLUMN_FAMILY, offsetCfOptions));
+            open(cfDescriptors);
             this.defaultCFHandle = cfHandles.get(0);
             this.offsetCFHandle = cfHandles.get(1);
         } catch (final Exception e) {

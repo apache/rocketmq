@@ -65,15 +65,15 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
                     item.getStatObject());
                 StatisticsItem increment = snapshot.subtract(lastSnapshot);
 
-                Interceptor inteceptor = item.getInterceptor();
-                String inteceptorStr = formatInterceptor(inteceptor);
-                if (inteceptor != null) {
-                    inteceptor.reset();
+                Interceptor interceptor = item.getInterceptor();
+                String interceptorStr = formatInterceptor(interceptor);
+                if (interceptor != null) {
+                    interceptor.reset();
                 }
 
                 StatisticsItemSampleBrief brief = getSampleBrief(item.getStatKind(), item.getStatObject());
                 if (brief != null && (!increment.allZeros() || printZeroLine())) {
-                    printer.print(name, increment, inteceptorStr, brief.toString());
+                    printer.print(name, increment, interceptorStr, brief.toString());
                 }
 
                 setItemSnapshot(lastItemSnapshots, snapshot);
@@ -85,7 +85,7 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
         }, getInitialDelay(), interval, TimeUnit.MILLISECONDS);
         addFuture(item, future);
 
-        // sample every TPS_INTREVAL
+        // sample every TPS_INTERVAL
         ScheduledFuture futureSample = executor.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {

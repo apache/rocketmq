@@ -244,6 +244,7 @@ public class RouteActivity extends AbstractMessingActivity {
         int r = 0;
         int w = 0;
         int rw = 0;
+        int n = 0;
         if (PermName.isWriteable(queueData.getPerm()) && PermName.isReadable(queueData.getPerm())) {
             rw = Math.min(queueData.getWriteQueueNums(), queueData.getReadQueueNums());
             r = queueData.getReadQueueNums() - rw;
@@ -252,6 +253,8 @@ public class RouteActivity extends AbstractMessingActivity {
             w = queueData.getWriteQueueNums();
         } else if (PermName.isReadable(queueData.getPerm())) {
             r = queueData.getReadQueueNums();
+        } else if (!PermName.isAccessible(queueData.getPerm())) {
+            n = Math.max(1, Math.max(queueData.getWriteQueueNums(), queueData.getReadQueueNums()));
         }
 
         // r here means readOnly queue nums, w means writeOnly queue nums, while rw means both readable and writable queue nums.
@@ -278,6 +281,15 @@ public class RouteActivity extends AbstractMessingActivity {
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.READ_WRITE)
+                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                .build();
+            messageQueueList.add(messageQueue);
+        }
+
+        for (int i = 0; i < n; i++) {
+            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+                .setId(queueIdIndex++)
+                .setPermission(Permission.NONE)
                 .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);

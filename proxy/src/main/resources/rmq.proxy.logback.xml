@@ -52,7 +52,7 @@
             <maxFileSize>128MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
-            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8}%m%n</pattern>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
@@ -368,6 +368,31 @@
         <appender-ref ref="RocketmqAuthAuditAppender_inner"/>
     </appender>
 
+    <appender name="RocketmqTrafficAppender_inner"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>
+            ${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}proxy_traffic.log
+        </file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>
+                ${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}proxy_traffic.%i.log.gz
+            </fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>10</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>100MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+    <appender name="RocketmqTrafficAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqTrafficAppender_inner"/>
+    </appender>
+
     <appender name="RocketmqPopAppender" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="RocketmqPopAppender_inner"/>
     </appender>
@@ -454,6 +479,10 @@
 
     <logger name="RocketmqAuthAudit" additivity="false" level="INFO">
         <appender-ref ref="RocketmqAuthAuditAppender"/>
+    </logger>
+
+    <logger name="RocketmqTraffic" additivity="false" level="INFO">
+        <appender-ref ref="RocketmqTrafficAppender"/>
     </logger>
 
     <root level="INFO">

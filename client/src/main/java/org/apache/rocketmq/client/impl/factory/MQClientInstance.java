@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.impl.factory;
 
+import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import com.alibaba.fastjson.JSON;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
@@ -66,6 +66,8 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.HeartbeatV2Result;
@@ -83,8 +85,6 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.remoting.rpc.ClientMetadata.topicRouteData2EndpointsForStaticTopic;
 
@@ -118,7 +118,7 @@ public class MQClientInstance {
     private final Lock lockHeartbeat = new ReentrantLock();
 
     /**
-     * The container which stores the brokerClusterInfo. The key of the map is the brokerCluster name.
+     * The container which stores the brokerClusterInfo. The key of the map is the broker name.
      * And the value is the broker instance list that belongs to the broker cluster.
      * For the sub map, the key is the id of single broker instance, and the value is the address.
      */
@@ -152,11 +152,14 @@ public class MQClientInstance {
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
         this.nettyClientConfig.setSocksProxyConfig(clientConfig.getSocksProxyConfig());
+        this.nettyClientConfig.setScanAvailableNameSrv(false);
         ClientRemotingProcessor clientRemotingProcessor = new ClientRemotingProcessor(this);
         ChannelEventListener channelEventListener;
         if (clientConfig.isEnableHeartbeatChannelEventListener()) {
             channelEventListener = new ChannelEventListener() {
+                
                 private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = MQClientInstance.this.brokerAddrTable;
+                
                 @Override
                 public void onChannelConnect(String remoteAddr, Channel channel) {
                 }
@@ -181,7 +184,7 @@ public class MQClientInstance {
                             if (addr.equals(remoteAddr)) {
                                 long id = entry.getKey();
                                 String brokerName = addressEntry.getKey();
-                                if (sendHeartbeatToBroker(id, brokerName, addr)) {
+                                if (sendHeartbeatToBroker(id, brokerName, addr, false)) {
                                     rebalanceImmediately();
                                 }
                                 break;
@@ -590,6 +593,18 @@ public class MQClientInstance {
     }
 
     public boolean sendHeartbeatToBroker(long id, String brokerName, String addr) {
+        return sendHeartbeatToBroker(id, brokerName, addr, true);
+    }
+
+    /**
+     * @param id
+     * @param brokerName
+     * @param addr
+     * @param strictLockMode When the connection is initially established, sending a heartbeat will simultaneously trigger the onChannelActive event to acquire the lock again, causing an exception. Therefore,
+     *                       the exception that occurs when sending the heartbeat during the initial onChannelActive event can be ignored.
+     * @return
+     */
+    public boolean sendHeartbeatToBroker(long id, String brokerName, String addr, boolean strictLockMode) {
         if (this.lockHeartbeat.tryLock()) {
             final HeartbeatData heartbeatDataWithSub = this.prepareHeartbeatData(false);
             final boolean producerEmpty = heartbeatDataWithSub.getProducerDataSet().isEmpty();
@@ -614,7 +629,9 @@ public class MQClientInstance {
                 this.lockHeartbeat.unlock();
             }
         } else {
-            log.warn("lock heartBeat, but failed. [{}]", this.clientId);
+            if (strictLockMode) {
+                log.warn("lock heartBeat, but failed. [{}]", this.clientId);
+            }
         }
         return false;
     }
@@ -871,7 +888,6 @@ public class MQClientInstance {
                 consumerData.setConsumeType(impl.consumeType());
                 consumerData.setMessageModel(impl.messageModel());
                 consumerData.setConsumeFromWhere(impl.consumeFromWhere());
-                consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
                 consumerData.setUnitMode(impl.isUnitMode());
                 if (!isWithoutSub) {
                     consumerData.getSubscriptionDataSet().addAll(impl.subscriptions());
@@ -1229,7 +1245,7 @@ public class MQClientInstance {
             if (impl instanceof DefaultMQPushConsumerImpl) {
                 consumer = (DefaultMQPushConsumerImpl) impl;
             } else {
-                log.info("[reset-offset] consumer dose not exist. group={}", group);
+                log.info("[reset-offset] consumer does not exist. group={}", group);
                 return;
             }
             consumer.suspend();
@@ -1369,6 +1385,14 @@ public class MQClientInstance {
 
     public ClientConfig getClientConfig() {
         return clientConfig;
+    }
+
+    public ConcurrentMap<String, MQProducerInner> getProducerTable() {
+        return producerTable;
+    }
+
+    public ConcurrentMap<String, MQConsumerInner> getConsumerTable() {
+        return consumerTable;
     }
 
     public TopicRouteData queryTopicRouteData(String topic) {

@@ -31,6 +31,7 @@ public class MomentStatsItem {
     private final String statsKey;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Logger log;
+    private long lastUpdateTimestamp = System.currentTimeMillis();
 
     public MomentStatsItem(String statsName, String statsKey,
         ScheduledExecutorService scheduledExecutorService, Logger log) {
@@ -71,5 +72,13 @@ public class MomentStatsItem {
 
     public String getStatsName() {
         return statsName;
+    }
+
+    public long getLastUpdateTimestamp() {
+        return lastUpdateTimestamp;
+    }
+
+    public void setLastUpdateTimestamp(long lastUpdateTimestamp) {
+        this.lastUpdateTimestamp = lastUpdateTimestamp;
     }
 }

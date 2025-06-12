@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>5.2.1-SNAPSHOT</version>
+        <version>5.3.4-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -38,7 +38,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-acl</artifactId>
+            <artifactId>rocketmq-auth</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.store;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 public enum StoreType {
     DEFAULT("default"),
     DEFAULT_ROCKSDB("defaultRocksDB");
@@ -28,5 +34,27 @@ public enum StoreType {
 
     public String getStoreType() {
         return storeType;
+    }
+
+    /**
+     * convert string to set of StoreType
+     *
+     * @param str example "default;defaultRocksDB"
+     * @return set of StoreType
+     */
+    public static Set<StoreType> fromString(String str) {
+        if (str == null || str.trim().isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        return Arrays.stream(str.split(";"))
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .map(s -> Arrays.stream(StoreType.values())
+                .filter(type -> type.getStoreType().equalsIgnoreCase(s))
+                .findFirst()
+                .orElse(null))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
     }
 }

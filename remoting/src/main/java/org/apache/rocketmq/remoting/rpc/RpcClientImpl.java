@@ -174,6 +174,7 @@ public class RpcClientImpl implements RpcClient {
                             PullMessageResponseHeader responseHeader =
                                 (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
                             rpcResponsePromise.setSuccess(new RpcResponse(response.getCode(), responseHeader, response.getBody()));
+                            break;
                         default:
                             RpcResponse rpcResponse = new RpcResponse(new RpcException(response.getCode(), "unexpected remote response code"));
                             rpcResponsePromise.setSuccess(rpcResponse);

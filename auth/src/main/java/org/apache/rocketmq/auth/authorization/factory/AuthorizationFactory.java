@@ -105,7 +105,7 @@ public class AuthorizationFactory {
     public static AuthorizationStrategy getStrategy(AuthConfig config, Supplier<?> metadataService) {
         try {
             Class<? extends AuthorizationStrategy> clazz = StatelessAuthorizationStrategy.class;
-            if (StringUtils.isNotBlank(config.getAuthenticationStrategy())) {
+            if (StringUtils.isNotBlank(config.getAuthorizationStrategy())) {
                 clazz = (Class<? extends AuthorizationStrategy>) Class.forName(config.getAuthorizationStrategy());
             }
             return clazz.getDeclaredConstructor(AuthConfig.class, Supplier.class).newInstance(config, metadataService);

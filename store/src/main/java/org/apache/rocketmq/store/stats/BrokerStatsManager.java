@@ -18,6 +18,8 @@ package org.apache.rocketmq.store.stats;
 
 import java.util.HashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -69,9 +71,9 @@ public class BrokerStatsManager {
     @Deprecated public static final String COMMERCIAL_PERM_FAILURES = Stats.COMMERCIAL_PERM_FAILURES;
 
     // Send message latency
-    public static final String TOPIC_PUT_LATENCY = "TOPIC_PUT_LATENCY";
-    public static final String GROUP_ACK_NUMS = "GROUP_ACK_NUMS";
-    public static final String GROUP_CK_NUMS = "GROUP_CK_NUMS";
+    @Deprecated public static final String TOPIC_PUT_LATENCY = "TOPIC_PUT_LATENCY";
+    @Deprecated public static final String GROUP_ACK_NUMS = "GROUP_ACK_NUMS";
+    @Deprecated public static final String GROUP_CK_NUMS = "GROUP_CK_NUMS";
     public static final String DLQ_PUT_NUMS = "DLQ_PUT_NUMS";
     public static final String BROKER_ACK_NUMS = "BROKER_ACK_NUMS";
     public static final String BROKER_CK_NUMS = "BROKER_CK_NUMS";
@@ -121,6 +123,8 @@ public class BrokerStatsManager {
     public static final String CHANNEL_ACTIVITY_IDLE = "IDLE";
     public static final String CHANNEL_ACTIVITY_EXCEPTION = "EXCEPTION";
     public static final String CHANNEL_ACTIVITY_CLOSE = "CLOSE";
+    private static final String[] NEED_CLEAN_STATS_SET =
+            new String[] {TOPIC_PUT_NUMS, TOPIC_PUT_SIZE, GROUP_GET_NUMS, GROUP_GET_SIZE, SNDBCK_PUT_NUMS, GROUP_GET_LATENCY};
 
     /**
      * read disk follow stats
@@ -134,6 +138,7 @@ public class BrokerStatsManager {
     private ScheduledExecutorService scheduledExecutorService;
     private ScheduledExecutorService commercialExecutor;
     private ScheduledExecutorService accountExecutor;
+    private ScheduledExecutorService cleanResourceExecutor;
 
     private final HashMap<String, StatsItemSet> statsTable = new HashMap<>();
     private final String clusterName;
@@ -179,10 +184,10 @@ public class BrokerStatsManager {
         this.statsTable.put(Stats.TOPIC_PUT_SIZE, new StatsItemSet(Stats.TOPIC_PUT_SIZE, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.GROUP_GET_NUMS, new StatsItemSet(Stats.GROUP_GET_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.GROUP_GET_SIZE, new StatsItemSet(Stats.GROUP_GET_SIZE, this.scheduledExecutorService, log));
-        this.statsTable.put(GROUP_ACK_NUMS, new StatsItemSet(GROUP_ACK_NUMS, this.scheduledExecutorService, log));
-        this.statsTable.put(GROUP_CK_NUMS, new StatsItemSet(GROUP_CK_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.GROUP_ACK_NUMS, new StatsItemSet(Stats.GROUP_ACK_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.GROUP_CK_NUMS, new StatsItemSet(Stats.GROUP_CK_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.GROUP_GET_LATENCY, new StatsItemSet(Stats.GROUP_GET_LATENCY, this.scheduledExecutorService, log));
-        this.statsTable.put(TOPIC_PUT_LATENCY, new StatsItemSet(TOPIC_PUT_LATENCY, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.TOPIC_PUT_LATENCY, new StatsItemSet(Stats.TOPIC_PUT_LATENCY, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.SNDBCK_PUT_NUMS, new StatsItemSet(Stats.SNDBCK_PUT_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(DLQ_PUT_NUMS, new StatsItemSet(DLQ_PUT_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.BROKER_PUT_NUMS, new StatsItemSet(Stats.BROKER_PUT_NUMS, this.scheduledExecutorService, log));
@@ -277,6 +282,12 @@ public class BrokerStatsManager {
                 return false;
             }
         });
+        cleanResourceExecutor.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                cleanAllResource();
+            }
+        }, 10, 10, TimeUnit.MINUTES);
     }
 
     private void initScheduleService() {
@@ -286,6 +297,8 @@ public class BrokerStatsManager {
             ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CommercialStatsThread", true, brokerConfig));
         this.accountExecutor =
             ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("AccountStatsThread", true, brokerConfig));
+        this.cleanResourceExecutor =
+                ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CleanStatsResourceThread", true, brokerConfig));
     }
 
     public MomentStatsItemSet getMomentStatsItemSetFallSize() {
@@ -318,6 +331,7 @@ public class BrokerStatsManager {
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
         this.commercialExecutor.shutdown();
+        this.cleanResourceExecutor.shutdown();
     }
 
     public StatsItem getStatsItem(final String statsName, final String statsKey) {
@@ -338,10 +352,13 @@ public class BrokerStatsManager {
         }
         this.statsTable.get(Stats.GROUP_GET_NUMS).delValueByPrefixKey(topic, "@");
         this.statsTable.get(Stats.GROUP_GET_SIZE).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(Stats.GROUP_CK_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(Stats.GROUP_ACK_NUMS).delValueByPrefixKey(topic, "@");
         this.statsTable.get(Stats.QUEUE_GET_NUMS).delValueByPrefixKey(topic, "@");
         this.statsTable.get(Stats.QUEUE_GET_SIZE).delValueByPrefixKey(topic, "@");
         this.statsTable.get(Stats.SNDBCK_PUT_NUMS).delValueByPrefixKey(topic, "@");
         this.statsTable.get(Stats.GROUP_GET_LATENCY).delValueByInfixKey(topic, "@");
+        this.statsTable.get(Stats.TOPIC_PUT_LATENCY).delValueBySuffixKey(topic, "@");
         this.momentStatsItemSetFallSize.delValueByInfixKey(topic, "@");
         this.momentStatsItemSetFallTime.delValueByInfixKey(topic, "@");
     }
@@ -349,6 +366,8 @@ public class BrokerStatsManager {
     public void onGroupDeleted(final String group) {
         this.statsTable.get(Stats.GROUP_GET_NUMS).delValueBySuffixKey(group, "@");
         this.statsTable.get(Stats.GROUP_GET_SIZE).delValueBySuffixKey(group, "@");
+        this.statsTable.get(Stats.GROUP_CK_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(Stats.GROUP_ACK_NUMS).delValueBySuffixKey(group, "@");
         if (enableQueueStat) {
             this.statsTable.get(Stats.QUEUE_GET_NUMS).delValueBySuffixKey(group, "@");
             this.statsTable.get(Stats.QUEUE_GET_SIZE).delValueBySuffixKey(group, "@");
@@ -434,12 +453,12 @@ public class BrokerStatsManager {
 
     public void incGroupCkNums(final String group, final String topic, final int incValue) {
         final String statsKey = buildStatsKey(topic, group);
-        this.statsTable.get(GROUP_CK_NUMS).addValue(statsKey, incValue, 1);
+        this.statsTable.get(Stats.GROUP_CK_NUMS).addValue(statsKey, incValue, 1);
     }
 
     public void incGroupAckNums(final String group, final String topic, final int incValue) {
         final String statsKey = buildStatsKey(topic, group);
-        this.statsTable.get(GROUP_ACK_NUMS).addValue(statsKey, incValue, 1);
+        this.statsTable.get(Stats.GROUP_ACK_NUMS).addValue(statsKey, incValue, 1);
     }
 
     public String buildStatsKey(String topic, String group) {
@@ -509,9 +528,8 @@ public class BrokerStatsManager {
             statsKey = new StringBuilder(6);
         }
         statsKey.append(queueId).append("@").append(topic);
-        this.statsTable.get(TOPIC_PUT_LATENCY).addValue(statsKey.toString(), incValue, 1);
+        this.statsTable.get(Stats.TOPIC_PUT_LATENCY).addValue(statsKey.toString(), incValue, 1);
     }
-
     public void incBrokerPutNums() {
         this.statsTable.get(Stats.BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(1);
     }
@@ -577,6 +595,10 @@ public class BrokerStatsManager {
         this.statsTable.get(Stats.SNDBCK_PUT_NUMS).addValue(statsKey, 1, 1);
     }
 
+    public double tpsTopicPutNums(final String topic) {
+        return this.statsTable.get(TOPIC_PUT_NUMS).getStatsDataInMinute(topic).getTps();
+    }
+
     public double tpsGroupGetNums(final String group, final String topic) {
         final String statsKey = buildStatsKey(topic, group);
         return this.statsTable.get(Stats.GROUP_GET_NUMS).getStatsDataInMinute(statsKey).getTps();
@@ -585,13 +607,13 @@ public class BrokerStatsManager {
     public void recordDiskFallBehindTime(final String group, final String topic, final int queueId,
         final long fallBehind) {
         final String statsKey = buildStatsKey(queueId, topic, group);
-        this.momentStatsItemSetFallTime.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
+        this.momentStatsItemSetFallTime.setValue(statsKey, fallBehind);
     }
 
     public void recordDiskFallBehindSize(final String group, final String topic, final int queueId,
         final long fallBehind) {
         final String statsKey = buildStatsKey(queueId, topic, group);
-        this.momentStatsItemSetFallSize.getAndCreateStatsItem(statsKey).getValue().set(fallBehind);
+        this.momentStatsItemSetFallSize.setValue(statsKey, fallBehind);
     }
 
     public void incDLQStatValue(final String key, final String owner, final String group,
@@ -758,6 +780,31 @@ public class BrokerStatsManager {
 
     public interface StateGetter {
         boolean online(String instanceId, String group, String topic);
+    }
+
+
+    private void cleanAllResource() {
+        try {
+            int maxStatsIdleTimeInMinutes = brokerConfig != null ? brokerConfig.getMaxStatsIdleTimeInMinutes() : -1;
+            if (maxStatsIdleTimeInMinutes < 0) {
+                COMMERCIAL_LOG.info("[BrokerStatsManager#cleanAllResource] maxStatsIdleTimeInMinutes={}, no need to clean resource", maxStatsIdleTimeInMinutes);
+                return;
+            }
+            if (maxStatsIdleTimeInMinutes <= 10 && maxStatsIdleTimeInMinutes >= 0) {
+                maxStatsIdleTimeInMinutes = 30;
+            }
+            for (String statsKind : NEED_CLEAN_STATS_SET) {
+                StatsItemSet statsItemSet = this.statsTable.get(statsKind);
+                if (null == statsItemSet) {
+                    continue;
+                }
+                statsItemSet.cleanResource(maxStatsIdleTimeInMinutes);
+            }
+            momentStatsItemSetFallSize.cleanResource(maxStatsIdleTimeInMinutes);
+            momentStatsItemSetFallTime.cleanResource(maxStatsIdleTimeInMinutes);
+        } catch (Throwable throwable) {
+            COMMERCIAL_LOG.error("[BrokerStatsManager#cleanAllResource] clean resource error", throwable);
+        }
     }
 
     public enum StatsType {

@@ -175,11 +175,11 @@ public class MessageExtEncoder {
     public PutMessageResult encode(MessageExtBrokerInner msgInner) {
         this.byteBuf.clear();
 
-        if (messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner)) {
+        if (messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ()) {
             return encodeWithoutProperties(msgInner);
         }
 
-        /**
+        /*
          * Serialize message
          */
         final byte[] propertiesData =
@@ -290,15 +290,6 @@ public class MessageExtEncoder {
             throw new RuntimeException("message body size exceeded");
         }
 
-        // properties from MessageExtBatch
-        String batchPropStr = MessageDecoder.messageProperties2String(messageExtBatch.getProperties());
-        final byte[] batchPropData = batchPropStr.getBytes(MessageDecoder.CHARSET_UTF8);
-        int batchPropDataLen = batchPropData.length;
-        if (batchPropDataLen > Short.MAX_VALUE) {
-            CommitLog.log.warn("Properties size of messageExtBatch exceeded, properties size: {}, maxSize: {}.", batchPropDataLen, Short.MAX_VALUE);
-            throw new RuntimeException("Properties size of messageExtBatch exceeded!");
-        }
-        final short batchPropLen = (short) batchPropDataLen;
 
         int batchSize = 0;
         while (messagesByteBuff.hasRemaining()) {
@@ -320,14 +311,11 @@ public class MessageExtEncoder {
             short propertiesLen = messagesByteBuff.getShort();
             int propertiesPos = messagesByteBuff.position();
             messagesByteBuff.position(propertiesPos + propertiesLen);
-            boolean needAppendLastPropertySeparator = propertiesLen > 0 && batchPropLen > 0
-                && messagesByteBuff.get(messagesByteBuff.position() - 1) != MessageDecoder.PROPERTY_SEPARATOR;
 
             final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
 
             final int topicLength = topicData.length;
-            int totalPropLen = needAppendLastPropertySeparator ?
-                propertiesLen + batchPropLen + 1 : propertiesLen + batchPropLen;
+            int totalPropLen = propertiesLen;
 
             // properties need to add crc32
             totalPropLen += crc32ReservedLength;
@@ -385,12 +373,6 @@ public class MessageExtEncoder {
             this.byteBuf.writeShort((short) totalPropLen);
             if (propertiesLen > 0) {
                 this.byteBuf.writeBytes(messagesByteBuff.array(), propertiesPos, propertiesLen);
-            }
-            if (batchPropLen > 0) {
-                if (needAppendLastPropertySeparator) {
-                    this.byteBuf.writeByte((byte) MessageDecoder.PROPERTY_SEPARATOR);
-                }
-                this.byteBuf.writeBytes(batchPropData, 0, batchPropLen);
             }
             this.byteBuf.writerIndex(this.byteBuf.writerIndex() + crc32ReservedLength);
         }

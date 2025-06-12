@@ -52,6 +52,9 @@ public interface IndexService {
      */
     CompletableFuture<List<IndexItem>> queryAsync(String topic, String key, int maxCount, long beginTime, long endTime);
 
+    default void forceUpload() {
+    }
+
     /**
      * Shutdown the index service.
      */

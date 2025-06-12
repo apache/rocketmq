@@ -25,6 +25,7 @@ import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryRouteRequest;
+import apache.rocketmq.v2.RecallMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.Subscription;
@@ -101,6 +102,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
             }
             result = newPubContext(metadata, request.getMessages(0).getTopic());
         }
+        if (message instanceof RecallMessageRequest) {
+            RecallMessageRequest request = (RecallMessageRequest) message;
+            result = newPubContext(metadata, request.getTopic());
+        }
         if (message instanceof EndTransactionRequest) {
             EndTransactionRequest request = (EndTransactionRequest) message;
             result = newPubContext(metadata, request.getTopic());
@@ -129,7 +134,9 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         }
         if (message instanceof NotifyClientTerminationRequest) {
             NotifyClientTerminationRequest request = (NotifyClientTerminationRequest) message;
-            result = newGroupSubContexts(metadata, request.getGroup());
+            if (StringUtils.isNotBlank(request.getGroup().getName())) {
+                result = newGroupSubContexts(metadata, request.getGroup());
+            }
         }
         if (message instanceof ChangeInvisibleDurationRequest) {
             ChangeInvisibleDurationRequest request = (ChangeInvisibleDurationRequest) message;
@@ -169,14 +176,19 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                 subject = User.of(fields.get(SessionCredentials.ACCESS_KEY));
             }
             String remoteAddr = RemotingHelper.parseChannelRemoteAddr(context.channel());
-            String sourceIp = StringUtils.substringBefore(remoteAddr, CommonConstants.COLON);
+            String sourceIp = StringUtils.substringBeforeLast(remoteAddr, CommonConstants.COLON);
 
             Resource topic;
             Resource group;
             switch (command.getCode()) {
                 case RequestCode.GET_ROUTEINFO_BY_TOPIC:
-                    topic = Resource.ofTopic(fields.get(TOPIC));
-                    result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.PUB, Action.SUB, Action.GET), sourceIp));
+                    if (NamespaceUtil.isRetryTopic(fields.get(TOPIC))) {
+                        group = Resource.ofGroup(fields.get(TOPIC));
+                        result.add(DefaultAuthorizationContext.of(subject, group, Arrays.asList(Action.SUB, Action.GET), sourceIp));
+                    } else {
+                        topic = Resource.ofTopic(fields.get(TOPIC));
+                        result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.PUB, Action.SUB, Action.GET), sourceIp));
+                    }
                     break;
                 case RequestCode.SEND_MESSAGE:
                     if (NamespaceUtil.isRetryTopic(fields.get(TOPIC))) {
@@ -204,6 +216,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                         topic = Resource.ofTopic(fields.get(B));
                         result.add(DefaultAuthorizationContext.of(subject, topic, Action.PUB, sourceIp));
                     }
+                    break;
+                case RequestCode.RECALL_MESSAGE:
+                    topic = Resource.ofTopic(fields.get(TOPIC));
+                    result.add(DefaultAuthorizationContext.of(subject, topic, Action.PUB, sourceIp));
                     break;
                 case RequestCode.END_TRANSACTION:
                     if (StringUtils.isNotBlank(fields.get(TOPIC))) {
@@ -392,7 +408,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
             subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
         }
         Resource resource = Resource.ofTopic(topic.getName());
-        String sourceIp = StringUtils.substringBefore(metadata.get(GrpcConstants.REMOTE_ADDRESS), CommonConstants.COLON);
+        String sourceIp = StringUtils.substringBeforeLast(metadata.get(GrpcConstants.REMOTE_ADDRESS), CommonConstants.COLON);
         DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, Arrays.asList(Action.PUB, Action.SUB), sourceIp);
         return Collections.singletonList(context);
     }
@@ -435,7 +451,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
             subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
         }
         Resource resource = Resource.ofTopic(topic.getName());
-        String sourceIp = StringUtils.substringBefore(metadata.get(GrpcConstants.REMOTE_ADDRESS), CommonConstants.COLON);
+        String sourceIp = StringUtils.substringBeforeLast(metadata.get(GrpcConstants.REMOTE_ADDRESS), CommonConstants.COLON);
         DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, Action.PUB, sourceIp);
         return Collections.singletonList(context);
     }
@@ -481,7 +497,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         if (metadata.containsKey(GrpcConstants.AUTHORIZATION_AK)) {
             subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
         }
-        String sourceIp = StringUtils.substringBefore(metadata.get(GrpcConstants.REMOTE_ADDRESS), CommonConstants.COLON);
+        String sourceIp = StringUtils.substringBeforeLast(metadata.get(GrpcConstants.REMOTE_ADDRESS), CommonConstants.COLON);
         result.add(DefaultAuthorizationContext.of(subject, resource, Action.SUB, sourceIp));
         return result;
     }
