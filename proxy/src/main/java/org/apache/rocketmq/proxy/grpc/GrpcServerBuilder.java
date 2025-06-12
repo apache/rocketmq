@@ -98,7 +98,7 @@ public class GrpcServerBuilder {
         return this;
     }
 
-    public GrpcServer build() {
+    public GrpcServer build() throws Exception {
         return new GrpcServer(this.serverBuilder.build(), time, unit);
     }
 

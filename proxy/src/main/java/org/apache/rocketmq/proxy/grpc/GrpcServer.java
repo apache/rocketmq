@@ -67,48 +67,52 @@ public class GrpcServer implements StartAndShutdown {
 
             log.info("grpc server shutdown successfully.");
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to shutdown grpc server", e); // 使用log而不是e.printStackTrace()
         }
     }
 
-    private FileWatchService initGrpcCertKeyWatchService() throws Exception {
+    protected FileWatchService initGrpcCertKeyWatchService() throws Exception {
         return new FileWatchService(
                 new String[] {
                         TlsSystemConfig.tlsServerCertPath,
                         TlsSystemConfig.tlsServerKeyPath,
                         TlsSystemConfig.tlsServerTrustCertPath
                 },
-                new FileWatchService.Listener() {
-                    boolean certChanged, keyChanged = false;
-
-                    @Override
-                    public void onChanged(String path) {
-                        if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
-                            log.info("The trust certificate changed, reload the ssl context");
-                            reloadServerSslContext();
-                        }
-                        if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
-                            certChanged = true;
-                        }
-                        if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
-                            keyChanged = true;
-                        }
-                        if (certChanged && keyChanged) {
-                            log.info("The certificate and private key changed, reload the ssl context");
-                            certChanged = keyChanged = false;
-                            reloadServerSslContext();
-                        }
-                    }
-
-                    private void reloadServerSslContext() {
-                        try {
-                            ProxyAndTlsProtocolNegotiator.loadSslContext();
-                            log.info("SSLContext reloaded for grpc server");
-                        } catch (CertificateException | IOException e) {
-                            log.error("Failed to reloaded SSLContext for server", e);
-                        }
-                    }
-                }
+                new GrpcCertKeyFileWatchListener()
         );
+    }
+
+    protected static class GrpcCertKeyFileWatchListener implements FileWatchService.Listener {
+        private boolean certChanged = false;
+        private boolean keyChanged = false;
+
+        @Override
+        public void onChanged(String path) {
+            if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
+                log.info("The trust certificate changed, reload the ssl context");
+                reloadServerSslContext();
+            } else if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
+                certChanged = true;
+            } else if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
+                keyChanged = true;
+            }
+
+            if (certChanged && keyChanged) {
+                log.info("The certificate and private key changed, reload the ssl context");
+                reloadServerSslContext();
+
+                certChanged = false;
+                keyChanged = false;
+            }
+        }
+
+        private void reloadServerSslContext() {
+            try {
+                ProxyAndTlsProtocolNegotiator.loadSslContext();
+                log.info("SSLContext reloaded for grpc server");
+            } catch (CertificateException | IOException e) {
+                log.error("Failed to reloaded SSLContext for server", e);
+            }
+        }
     }
 }
