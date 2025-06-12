@@ -807,7 +807,6 @@ public class ReplicasManager {
             if (CollectionUtils.isNotEmpty(adders)) {
                 this.controllerAddresses = adders;
             }
-            this.controllerAddresses = brokerOuterAPI.dnsLookupAddressByDomain(this.brokerConfig.getControllerAddr());
         } else {
             final String controllerPaths = this.brokerConfig.getControllerAddr();
             final String[] controllers = controllerPaths.split(";");
