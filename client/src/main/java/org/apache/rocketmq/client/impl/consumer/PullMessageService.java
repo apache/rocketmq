@@ -135,7 +135,7 @@ public class PullMessageService extends ServiceThread {
                     this.pullMessage((PullRequest) messageRequest);
                 }
             } catch (InterruptedException ignored) {
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 logger.error("Pull Message Service Run Method exception", e);
             }
         }

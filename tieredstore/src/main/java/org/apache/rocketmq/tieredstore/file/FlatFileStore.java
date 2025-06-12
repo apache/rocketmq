@@ -50,7 +50,7 @@ public class FlatFileStore {
         this.storeConfig = storeConfig;
         this.metadataStore = metadataStore;
         this.executor = executor;
-        this.flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
+        this.flatFileFactory = new FlatFileFactory(metadataStore, storeConfig, executor);
         this.flatFileConcurrentMap = new ConcurrentHashMap<>();
     }
 
@@ -59,16 +59,6 @@ public class FlatFileStore {
         try {
             this.flatFileConcurrentMap.clear();
             this.recover();
-            this.executor.commonExecutor.scheduleWithFixedDelay(() -> {
-                for (FlatMessageFile flatFile : deepCopyFlatFileToList()) {
-                    long expiredTimeStamp = System.currentTimeMillis() -
-                        TimeUnit.HOURS.toMillis(flatFile.getFileReservedHours());
-                    flatFile.destroyExpiredFile(expiredTimeStamp);
-                    if (flatFile.consumeQueue.fileSegmentTable.isEmpty()) {
-                        this.destroyFile(flatFile.getMessageQueue());
-                    }
-                }
-            }, 60, 60, TimeUnit.SECONDS);
             log.info("FlatFileStore recover finished, total cost={}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } catch (Exception e) {
             long costTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
@@ -111,6 +101,27 @@ public class FlatFileStore {
             log.info("FlatFileStore recover file, topic={}, total={}, cost={}ms",
                 topicMetadata.getTopic(), queueCount.get(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
         }, executor.bufferCommitExecutor);
+    }
+
+    public void scheduleDeleteExpireFile() {
+        if (!storeConfig.isTieredStoreDeleteFileEnable()) {
+            return;
+        }
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        ImmutableList<FlatMessageFile> fileList = this.deepCopyFlatFileToList();
+        for (FlatMessageFile flatFile : fileList) {
+            flatFile.getFileLock().lock();
+            try {
+                flatFile.destroyExpiredFile(System.currentTimeMillis() -
+                    TimeUnit.HOURS.toMillis(flatFile.getFileReservedHours()));
+            } catch (Exception e) {
+                log.error("FlatFileStore delete expire file error", e);
+            } finally {
+                flatFile.getFileLock().unlock();
+            }
+        }
+        log.info("FlatFileStore schedule delete expired file, count={}, cost={}ms",
+            fileList.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     public MetadataStore getMetadataStore() {

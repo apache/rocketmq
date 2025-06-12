@@ -33,10 +33,10 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
@@ -217,6 +217,14 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
+    CompletableFuture<Void> updateConsumerOffsetAsync(
+        ProxyContext ctx,
+        MessageQueue messageQueue,
+        String consumerGroup,
+        long commitOffset,
+        long timeoutMillis
+    );
+
     CompletableFuture<Long> queryConsumerOffset(
         ProxyContext ctx,
         MessageQueue messageQueue,
@@ -249,6 +257,13 @@ public interface MessagingProcessor extends StartAndShutdown {
     CompletableFuture<Long> getMinOffset(
         ProxyContext ctx,
         MessageQueue messageQueue,
+        long timeoutMillis
+    );
+
+    CompletableFuture<String> recallMessage(
+        ProxyContext ctx,
+        String topic,
+        String recallHandle,
         long timeoutMillis
     );
 
@@ -321,7 +336,9 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     MetadataService getMetadataService();
 
-    void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, MessageReceiptHandle messageReceiptHandle);
+    void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
+        MessageReceiptHandle messageReceiptHandle);
 
-    MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, String receiptHandle);
+    MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
+        String receiptHandle);
 }

@@ -17,13 +17,14 @@
 package org.apache.rocketmq.tieredstore.file;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.StringUtils;
@@ -36,6 +37,7 @@ import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.entity.QueueMetadata;
 import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
+import org.apache.rocketmq.tieredstore.provider.FileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtil;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
 import org.slf4j.Logger;
@@ -51,14 +53,12 @@ public class FlatMessageFile implements FlatFileInterface {
 
     protected final String filePath;
     protected final ReentrantLock fileLock;
+    protected final Semaphore commitLock = new Semaphore(1);
     protected final MessageStoreConfig storeConfig;
     protected final MetadataStore metadataStore;
     protected final FlatCommitLogFile commitLog;
     protected final FlatConsumeQueueFile consumeQueue;
-    protected final AtomicLong lastDestroyTime;
 
-    protected final List<SelectMappedBufferResult> bufferResultList;
-    protected final List<DispatchRequest> dispatchRequestList;
     protected final ConcurrentMap<String, CompletableFuture<?>> inFlightRequestMap;
 
     public FlatMessageFile(FlatFileFactory fileFactory, String topic, int queueId) {
@@ -75,9 +75,6 @@ public class FlatMessageFile implements FlatFileInterface {
         this.metadataStore = fileFactory.getMetadataStore();
         this.commitLog = fileFactory.createFlatFileForCommitLog(filePath);
         this.consumeQueue = fileFactory.createFlatFileForConsumeQueue(filePath);
-        this.lastDestroyTime = new AtomicLong();
-        this.bufferResultList = new ArrayList<>();
-        this.dispatchRequestList = new ArrayList<>();
         this.inFlightRequestMap = new ConcurrentHashMap<>();
     }
 
@@ -127,6 +124,11 @@ public class FlatMessageFile implements FlatFileInterface {
         return this.fileLock;
     }
 
+    @VisibleForTesting
+    public Semaphore getCommitLock() {
+        return commitLock;
+    }
+
     @Override
     public boolean rollingFile(long interval) {
         return this.commitLog.tryRollingFile(interval);
@@ -156,7 +158,6 @@ public class FlatMessageFile implements FlatFileInterface {
         if (closed) {
             return AppendResult.FILE_CLOSED;
         }
-        this.bufferResultList.add(message);
         return this.appendCommitLog(message.getByteBuffer());
     }
 
@@ -172,34 +173,23 @@ public class FlatMessageFile implements FlatFileInterface {
         buffer.putLong(request.getTagsCode());
         buffer.flip();
 
-        this.dispatchRequestList.add(request);
         return consumeQueue.append(buffer, request.getStoreTimestamp());
     }
 
     @Override
-    public List<DispatchRequest> getDispatchRequestList() {
-        return dispatchRequestList;
-    }
-
-    @Override
     public void release() {
-        for (SelectMappedBufferResult bufferResult : bufferResultList) {
-            bufferResult.release();
-        }
-
-        if (queueMetadata != null) {
-            log.trace("FlatMessageFile release, topic={}, queueId={}, bufferSize={}, requestListSize={}",
-                queueMetadata.getQueue().getTopic(), queueMetadata.getQueue().getQueueId(),
-                bufferResultList.size(), dispatchRequestList.size());
-        }
-
-        bufferResultList.clear();
-        dispatchRequestList.clear();
     }
 
     @Override
     public long getMinStoreTimestamp() {
-        return commitLog.getMinTimestamp();
+        long minStoreTime = -1L;
+        if (Long.MAX_VALUE != commitLog.getMinTimestamp()) {
+            minStoreTime = Math.max(minStoreTime, commitLog.getMinTimestamp());
+        }
+        if (Long.MAX_VALUE != consumeQueue.getMinTimestamp()) {
+            minStoreTime = Math.max(minStoreTime, consumeQueue.getMinTimestamp());
+        }
+        return minStoreTime;
     }
 
     @Override
@@ -246,13 +236,18 @@ public class FlatMessageFile implements FlatFileInterface {
 
     @Override
     public CompletableFuture<Boolean> commitAsync() {
+        // acquire lock
+        if (commitLock.drainPermits() <= 0) {
+            return CompletableFuture.completedFuture(false);
+        }
+
         return this.commitLog.commitAsync()
             .thenCompose(result -> {
                 if (result) {
                     return consumeQueue.commitAsync();
                 }
                 return CompletableFuture.completedFuture(false);
-            });
+            }).whenComplete((result, throwable) -> commitLock.release());
     }
 
     @Override
@@ -305,9 +300,26 @@ public class FlatMessageFile implements FlatFileInterface {
             return CompletableFuture.completedFuture(cqMin);
         }
 
+        // get correct consume queue file by binary search
+        List<FileSegment> consumeQueueFileList = this.consumeQueue.getFileSegmentList();
+        int low = 0, high = consumeQueueFileList.size() - 1;
+        int mid = low + (high - low) / 2;
+        while (low <= high) {
+            FileSegment fileSegment = consumeQueueFileList.get(mid);
+            if (fileSegment.getMinTimestamp() <= timestamp && timestamp <= fileSegment.getMaxTimestamp()) {
+                break;
+            } else if (timestamp < fileSegment.getMinTimestamp()) {
+                high = mid - 1;
+            } else {
+                low = mid + 1;
+            }
+            mid = low + (high - low) / 2;
+        }
+        FileSegment target = consumeQueueFileList.get(mid);
+
         // binary search lower bound index in a sorted array
-        long minOffset = cqMin;
-        long maxOffset = cqMax;
+        long minOffset = target.getBaseOffset() / MessageFormatUtil.CONSUME_QUEUE_UNIT_SIZE;
+        long maxOffset = target.getCommitOffset() / MessageFormatUtil.CONSUME_QUEUE_UNIT_SIZE - 1;
         List<String> queryLog = new ArrayList<>();
         while (minOffset < maxOffset) {
             long middle = minOffset + (maxOffset - minOffset) / 2;
@@ -364,12 +376,17 @@ public class FlatMessageFile implements FlatFileInterface {
     }
 
     @Override
+    public boolean isClosed() {
+        return closed;
+    }
+
+    @Override
     public void shutdown() {
         closed = true;
         fileLock.lock();
         try {
-            commitLog.shutdown();
             consumeQueue.shutdown();
+            commitLog.shutdown();
         } finally {
             fileLock.unlock();
         }
@@ -379,8 +396,8 @@ public class FlatMessageFile implements FlatFileInterface {
     public void destroyExpiredFile(long timestamp) {
         fileLock.lock();
         try {
-            commitLog.destroyExpiredFile(timestamp);
             consumeQueue.destroyExpiredFile(timestamp);
+            commitLog.destroyExpiredFile(timestamp);
         } finally {
             fileLock.unlock();
         }
@@ -390,8 +407,8 @@ public class FlatMessageFile implements FlatFileInterface {
         this.shutdown();
         fileLock.lock();
         try {
-            commitLog.destroyExpiredFile(Long.MAX_VALUE);
             consumeQueue.destroyExpiredFile(Long.MAX_VALUE);
+            commitLog.destroyExpiredFile(Long.MAX_VALUE);
             if (queueMetadata != null) {
                 metadataStore.deleteQueue(queueMetadata.getQueue());
             }

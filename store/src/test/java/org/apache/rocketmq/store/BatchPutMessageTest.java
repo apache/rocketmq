@@ -17,6 +17,12 @@
 
 package org.apache.rocketmq.store;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.rocketmq.common.message.MessageDecoder.messageProperties2String;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
@@ -38,12 +44,6 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.rocketmq.common.message.MessageDecoder.messageProperties2String;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertTrue;
 
 public class BatchPutMessageTest {
 
@@ -108,7 +108,7 @@ public class BatchPutMessageTest {
             short propertiesLength = (short) propertiesBytes.length;
             final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
             final int topicLength = topicData.length;
-            msgLengthArr[j] = calMsgLength(msg.getBody().length, topicLength, propertiesLength + batchPropLen) + msgLengthArr[j - 1];
+            msgLengthArr[j] = calMsgLength(msg.getBody().length, topicLength, propertiesLength) + msgLengthArr[j - 1];
             j++;
         }
         byte[] batchMessageBody = MessageDecoder.encodeMessages(messages);

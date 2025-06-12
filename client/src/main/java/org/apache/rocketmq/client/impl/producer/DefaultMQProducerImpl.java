@@ -35,6 +35,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -81,6 +82,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageType;
+import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.CorrelationIdUtil;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -91,6 +93,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -194,6 +197,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         semaphoreAsyncSendSize = new Semaphore(size, true);
     }
 
+    public int getSemaphoreAsyncSendNumAvailablePermits() {
+        return semaphoreAsyncSendNum == null ? 0 : semaphoreAsyncSendNum.availablePermits();
+    }
+
+    public int getSemaphoreAsyncSendSizeAvailablePermits() {
+        return semaphoreAsyncSendSize == null ? 0 : semaphoreAsyncSendSize.availablePermits();
+    }
+
     public void initTransactionEnv() {
         TransactionMQProducer producer = (TransactionMQProducer) this.defaultMQProducer;
         if (producer.getExecutorService() != null) {
@@ -241,6 +252,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQProducer, rpcHook);
+
+                defaultMQProducer.initProduceAccumulator();
 
                 boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
                 if (!registerOK) {
@@ -563,7 +576,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     class BackpressureSendCallBack implements SendCallback {
         public boolean isSemaphoreAsyncSizeAcquired = false;
-        public boolean isSemaphoreAsyncNumbAcquired = false;
+        public boolean isSemaphoreAsyncNumAcquired = false;
         public int msgLen;
         private final SendCallback sendCallback;
 
@@ -573,24 +586,49 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         @Override
         public void onSuccess(SendResult sendResult) {
-            if (isSemaphoreAsyncSizeAcquired) {
-                semaphoreAsyncSendSize.release(msgLen);
-            }
-            if (isSemaphoreAsyncNumbAcquired) {
-                semaphoreAsyncSendNum.release();
-            }
+            semaphoreProcessor();
             sendCallback.onSuccess(sendResult);
         }
 
         @Override
         public void onException(Throwable e) {
-            if (isSemaphoreAsyncSizeAcquired) {
-                semaphoreAsyncSendSize.release(msgLen);
-            }
-            if (isSemaphoreAsyncNumbAcquired) {
-                semaphoreAsyncSendNum.release();
-            }
+            semaphoreProcessor();
             sendCallback.onException(e);
+        }
+
+        public void semaphoreProcessor() {
+            if (isSemaphoreAsyncSizeAcquired) {
+                defaultMQProducer.acquireBackPressureForAsyncSendSizeLock();
+                semaphoreAsyncSendSize.release(msgLen);
+                defaultMQProducer.releaseBackPressureForAsyncSendSizeLock();
+            }
+            if (isSemaphoreAsyncNumAcquired) {
+                defaultMQProducer.acquireBackPressureForAsyncSendNumLock();
+                semaphoreAsyncSendNum.release();
+                defaultMQProducer.releaseBackPressureForAsyncSendNumLock();
+            }
+        }
+
+        public void semaphoreAsyncAdjust(int semaphoreAsyncNum, int semaphoreAsyncSize) throws InterruptedException {
+            defaultMQProducer.acquireBackPressureForAsyncSendNumLock();
+            if (semaphoreAsyncNum > 0) {
+                semaphoreAsyncSendNum.release(semaphoreAsyncNum);
+            } else {
+                semaphoreAsyncSendNum.acquire(- semaphoreAsyncNum);
+            }
+            defaultMQProducer.setBackPressureForAsyncSendNumInsideAdjust(defaultMQProducer.getBackPressureForAsyncSendNum()
+                    + semaphoreAsyncNum);
+            defaultMQProducer.releaseBackPressureForAsyncSendNumLock();
+
+            defaultMQProducer.acquireBackPressureForAsyncSendSizeLock();
+            if (semaphoreAsyncSize > 0) {
+                semaphoreAsyncSendSize.release(semaphoreAsyncSize);
+            } else {
+                semaphoreAsyncSendSize.acquire(- semaphoreAsyncSize);
+            }
+            defaultMQProducer.setBackPressureForAsyncSendSizeInsideAdjust(defaultMQProducer.getBackPressureForAsyncSendSize()
+                    + semaphoreAsyncSize);
+            defaultMQProducer.releaseBackPressureForAsyncSendSizeLock();
         }
     }
 
@@ -599,32 +637,40 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws MQClientException, InterruptedException {
         ExecutorService executor = this.getAsyncSenderExecutor();
         boolean isEnableBackpressureForAsyncMode = this.getDefaultMQProducer().isEnableBackpressureForAsyncMode();
-        boolean isSemaphoreAsyncNumbAcquired = false;
+        boolean isSemaphoreAsyncNumAcquired = false;
         boolean isSemaphoreAsyncSizeAcquired = false;
         int msgLen = msg.getBody() == null ? 1 : msg.getBody().length;
+        sendCallback.msgLen = msgLen;
 
         try {
             if (isEnableBackpressureForAsyncMode) {
+                defaultMQProducer.acquireBackPressureForAsyncSendNumLock();
                 long costTime = System.currentTimeMillis() - beginStartTime;
-                isSemaphoreAsyncNumbAcquired = timeout - costTime > 0
+
+                isSemaphoreAsyncNumAcquired = timeout - costTime > 0
                     && semaphoreAsyncSendNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
-                if (!isSemaphoreAsyncNumbAcquired) {
+                sendCallback.isSemaphoreAsyncNumAcquired = isSemaphoreAsyncNumAcquired;
+                defaultMQProducer.releaseBackPressureForAsyncSendNumLock();
+                if (!isSemaphoreAsyncNumAcquired) {
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncNum timeout"));
                     return;
                 }
+
+                defaultMQProducer.acquireBackPressureForAsyncSendSizeLock();
                 costTime = System.currentTimeMillis() - beginStartTime;
+
                 isSemaphoreAsyncSizeAcquired = timeout - costTime > 0
                     && semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
+                sendCallback.isSemaphoreAsyncSizeAcquired = isSemaphoreAsyncSizeAcquired;
+                defaultMQProducer.releaseBackPressureForAsyncSendSizeLock();
                 if (!isSemaphoreAsyncSizeAcquired) {
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncSize timeout"));
                     return;
                 }
             }
-            sendCallback.isSemaphoreAsyncSizeAcquired = isSemaphoreAsyncSizeAcquired;
-            sendCallback.isSemaphoreAsyncNumbAcquired = isSemaphoreAsyncNumbAcquired;
-            sendCallback.msgLen = msgLen;
+
             executor.submit(runnable);
         } catch (RejectedExecutionException e) {
             if (isEnableBackpressureForAsyncMode) {
@@ -731,8 +777,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             callTimeout = true;
                             break;
                         }
-
-                        sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
+                        long curTimeout = timeout - costTime;
+                        // Get the maximum timeout allowed per request
+                        long maxSendTimeoutPerRequest = defaultMQProducer.getSendMsgMaxTimeoutPerRequest();
+                        // Determine if retries are still possible
+                        boolean canRetryAgain = times + 1 < timesTotal;
+                        // If retries are possible, and the current timeout exceeds the max allowed timeout, set the current timeout to the max allowed
+                        if (maxSendTimeoutPerRequest > -1 && canRetryAgain && curTimeout > maxSendTimeoutPerRequest) {
+                            curTimeout = maxSendTimeoutPerRequest;
+                        }
+                        sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, curTimeout);
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false, true);
                         switch (communicationMode) {
@@ -969,7 +1023,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         boolean messageCloned = false;
                         if (msgBodyCompressed) {
                             //If msg body was compressed, msgbody should be reset using prevBody.
-                            //Clone new message using commpressed message body and recover origin massage.
+                            //Clone new message using compressed message body and recover origin massage.
                             //Fix bug:https://github.com/apache/rocketmq-externals/issues/66
                             tmpMessage = MessageAccessor.cloneMessage(msg);
                             messageCloned = true;
@@ -1506,6 +1560,40 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             this.defaultMQProducer.getSendMsgTimeout());
     }
 
+    public String recallMessage(
+        String topic,
+        String recallHandle) throws RemotingException, MQClientException, MQBrokerException, InterruptedException {
+        makeSureStateOK();
+        Validators.checkTopic(topic);
+        if (NamespaceUtil.isRetryTopic(topic) || NamespaceUtil.isDLQTopic(topic)) {
+            throw new MQClientException("topic is not supported", null);
+        }
+        RecallMessageHandle.HandleV1 handleEntity;
+        try {
+            handleEntity = (RecallMessageHandle.HandleV1) RecallMessageHandle.decodeHandle(recallHandle);
+        } catch (Exception e) {
+            throw new MQClientException(e.getMessage(), null);
+        }
+
+        tryToFindTopicPublishInfo(topic);
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(handleEntity.getBrokerName());
+        brokerAddr = StringUtils.isNotEmpty(brokerAddr) ?
+            // find another address to support multi proxy endpoints,
+            // may cause failure request in proxy-less mode when the broker is temporarily unavailable
+            brokerAddr : this.mQClientFactory.findBrokerAddrByTopic(topic);
+        if (StringUtils.isEmpty(brokerAddr)) {
+            log.warn("can't find broker service address. {}", handleEntity.getBrokerName());
+            throw new MQClientException("The broker service address not found", null);
+        }
+        RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+        requestHeader.setProducerGroup(this.defaultMQProducer.getProducerGroup());
+        requestHeader.setTopic(topic);
+        requestHeader.setRecallHandle(recallHandle);
+        requestHeader.setBrokerName(handleEntity.getBrokerName());
+        return this.mQClientFactory.getMQClientAPIImpl().recallMessage(brokerAddr,
+            requestHeader, this.defaultMQProducer.getSendMsgTimeout());
+    }
+
     public void setCallbackExecutor(final ExecutorService callbackExecutor) {
         this.mQClientFactory.getMQClientAPIImpl().getRemotingClient().setCallbackExecutor(callbackExecutor);
     }
@@ -1538,6 +1626,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 @Override
                 public void onSuccess(SendResult sendResult) {
                     requestResponseFuture.setSendRequestOk(true);
+                    requestResponseFuture.acquireCountDownLatch();
                 }
 
                 @Override
@@ -1595,6 +1684,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 @Override
                 public void onSuccess(SendResult sendResult) {
                     requestResponseFuture.setSendRequestOk(true);
+                    requestResponseFuture.acquireCountDownLatch();
                 }
 
                 @Override
@@ -1652,6 +1742,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 @Override
                 public void onSuccess(SendResult sendResult) {
                     requestResponseFuture.setSendRequestOk(true);
+                    requestResponseFuture.acquireCountDownLatch();
                 }
 
                 @Override

@@ -164,10 +164,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
         this.defaultLitePullConsumer = defaultLitePullConsumer;
         this.rpcHook = rpcHook;
-        this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(
-            this.defaultLitePullConsumer.getPullThreadNums(),
-            new ThreadFactoryImpl("PullMsgThread-" + this.defaultLitePullConsumer.getConsumerGroup())
-        );
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("MonitorMessageQueueChangeThread"));
         this.pullTimeDelayMillsWhenException = defaultLitePullConsumer.getPullTimeDelayMillsWhenException();
     }
@@ -293,6 +289,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     this.defaultLitePullConsumer.changeInstanceNameToPID();
                 }
 
+                initScheduledThreadPoolExecutor();
+
                 initMQClientFactory();
 
                 initRebalanceImpl();
@@ -309,7 +307,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 log.info("the consumer [{}] start OK", this.defaultLitePullConsumer.getConsumerGroup());
 
-                operateAfterRunning();
+                try {
+                    operateAfterRunning();
+                } catch (Exception e) {
+                    shutdown();
+                    throw e;
+                }
 
                 break;
             case RUNNING:
@@ -322,6 +325,13 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             default:
                 break;
         }
+    }
+
+    private void initScheduledThreadPoolExecutor() {
+        this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(
+                this.defaultLitePullConsumer.getPullThreadNums(),
+                new ThreadFactoryImpl("PullMsgThread-" + this.defaultLitePullConsumer.getConsumerGroup())
+        );
     }
 
     private void initMQClientFactory() throws MQClientException {
@@ -1074,12 +1084,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
 
         //If namespace not null , reset Topic without namespace.
-        for (MessageExt messageExt : msgList) {
-            if (null != this.defaultLitePullConsumer.getNamespace()) {
-                messageExt.setTopic(NamespaceUtil.withoutNamespace(messageExt.getTopic(), this.defaultLitePullConsumer.getNamespace()));
+        String namespace = this.defaultLitePullConsumer.getNamespace();
+        if (namespace != null) {
+            for (MessageExt messageExt : msgList) {
+                messageExt.setTopic(NamespaceUtil.withoutNamespace(messageExt.getTopic(), namespace));
             }
         }
-
     }
 
     public void updateConsumeOffset(MessageQueue mq, long offset) {

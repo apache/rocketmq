@@ -33,15 +33,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
+import org.apache.rocketmq.tieredstore.file.FlatAppendFile;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
 import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtilTest;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -93,6 +96,7 @@ public class IndexStoreServiceTest {
     @Test
     public void basicServiceTest() throws InterruptedException {
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         for (int i = 0; i < 50; i++) {
             Assert.assertEquals(AppendResult.SUCCESS, indexService.putKey(
                 TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, i * 100, MESSAGE_SIZE, System.currentTimeMillis()));
@@ -105,6 +109,7 @@ public class IndexStoreServiceTest {
     @Test
     public void doConvertOldFormatTest() throws IOException {
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         long timestamp = indexService.getTimeStoreTable().firstKey();
         Assert.assertEquals(AppendResult.SUCCESS, indexService.putKey(
             TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, timestamp));
@@ -116,8 +121,9 @@ public class IndexStoreServiceTest {
         mappedFile.shutdown(10 * 1000);
 
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         ConcurrentSkipListMap<Long, IndexFile> timeStoreTable = indexService.getTimeStoreTable();
-        Assert.assertEquals(1, timeStoreTable.size());
+        Assert.assertEquals(2, timeStoreTable.size());
         Assert.assertEquals(Long.valueOf(timestamp), timeStoreTable.firstKey());
         mappedFile.destroy(10 * 1000);
     }
@@ -129,6 +135,7 @@ public class IndexStoreServiceTest {
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(500);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000);
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         long timestamp = System.currentTimeMillis();
 
         // first item is invalid
@@ -203,8 +210,42 @@ public class IndexStoreServiceTest {
     }
 
     @Test
+    public void deleteFileTest() throws InterruptedException, IllegalAccessException {
+        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
+
+        for (int i = 0; i < 2 * 20; i++) {
+            AppendResult result = indexService.putKey(
+                TOPIC_NAME, TOPIC_ID, QUEUE_ID, Collections.singleton(String.valueOf(i)),
+                i * 100L, MESSAGE_SIZE, System.currentTimeMillis());
+            Assert.assertEquals(AppendResult.SUCCESS, result);
+            TimeUnit.MILLISECONDS.sleep(1);
+        }
+
+        indexService.wakeup();
+        Awaitility.await().until(() -> {
+            int tableSize = (int) indexService.getTimeStoreTable().entrySet().stream()
+                .filter(entry -> IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()))
+                .count();
+            return tableSize == 2;
+        });
+
+        long timestamp = indexService.getTimeStoreTable().firstEntry().getValue().getEndTimestamp();
+        FlatAppendFile flatAppendFile = (FlatAppendFile)
+            FieldUtils.readField(indexService, "flatAppendFile", true);
+
+        indexService.destroyExpiredFile(timestamp);
+        Assert.assertEquals(2, flatAppendFile.getFileSegmentList().size());
+        Assert.assertEquals(3, indexService.getTimeStoreTable().size());
+        indexService.destroyExpiredFile(timestamp + 1);
+        Assert.assertEquals(1, flatAppendFile.getFileSegmentList().size());
+        Assert.assertEquals(2, indexService.getTimeStoreTable().size());
+    }
+
+    @Test
     public void restartServiceTest() throws InterruptedException {
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         for (int i = 0; i < 20; i++) {
             AppendResult result = indexService.putKey(
                 TOPIC_NAME, TOPIC_ID, QUEUE_ID, Collections.singleton(String.valueOf(i)),
@@ -214,10 +255,10 @@ public class IndexStoreServiceTest {
         }
         long timestamp = indexService.getTimeStoreTable().firstKey();
         indexService.shutdown();
-        indexService = new IndexStoreService(fileAllocator, filePath);
-        Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
 
+        indexService = new IndexStoreService(fileAllocator, filePath);
         indexService.start();
+        Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
         await().atMost(Duration.ofMinutes(1)).pollInterval(Duration.ofSeconds(1)).until(() -> {
             ArrayList<IndexFile> files = new ArrayList<>(indexService.getTimeStoreTable().values());
             return IndexFile.IndexStatusEnum.UPLOAD.equals(files.get(0).getFileStatus());
@@ -225,8 +266,9 @@ public class IndexStoreServiceTest {
         indexService.shutdown();
 
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
-        Assert.assertEquals(2, indexService.getTimeStoreTable().size());
+        Assert.assertEquals(4, indexService.getTimeStoreTable().size());
         Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD,
             indexService.getTimeStoreTable().firstEntry().getValue().getFileStatus());
     }
@@ -235,6 +277,7 @@ public class IndexStoreServiceTest {
     public void queryFromFileTest() throws InterruptedException, ExecutionException {
         long timestamp = System.currentTimeMillis();
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
 
         // three files, echo contains 19 items
         for (int i = 0; i < 3; i++) {

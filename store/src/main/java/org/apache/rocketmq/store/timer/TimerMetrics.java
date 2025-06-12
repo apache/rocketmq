@@ -25,7 +25,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -37,6 +41,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -184,7 +189,8 @@ public class TimerMetrics extends ConfigManager {
         while (iterator.hasNext()) {
             Map.Entry<String, Metric> entry = iterator.next();
             final String topic = entry.getKey();
-            if (topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)) {
+            if (topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)
+                    || topic.startsWith(MixAll.LMQ_PREFIX)) {
                 continue;
             }
             if (topics.contains(topic)) {
@@ -194,6 +200,16 @@ public class TimerMetrics extends ConfigManager {
             iterator.remove();
             log.info("clean timer metrics, because not in topic config, {}", topic);
         }
+    }
+
+    public boolean removeTimingCount(String topic) {
+        try {
+            timingCount.remove(topic);
+        } catch (Exception e) {
+            log.error("removeTimingCount error", e);
+            return false;
+        }
+        return true;
     }
 
     public static class TimerMetricsSerializeWrapper extends RemotingSerializable {
@@ -251,6 +267,10 @@ public class TimerMetrics extends ConfigManager {
             File configFile = new File(config);
             if (configFile.exists()) {
                 Files.copy(configFile, new File(backup));
+                Path backupPath = Paths.get(backup);
+                try (FileChannel channel = FileChannel.open(backupPath, StandardOpenOption.WRITE)) {
+                    channel.force(true); // force flush before deleting original file.
+                }
                 configFile.delete();
             }
 

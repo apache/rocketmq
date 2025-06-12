@@ -36,6 +36,7 @@ import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.DefaultMessageFilter;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -80,7 +81,7 @@ public class LagCalculationIT extends BaseConf {
         shutdown();
     }
 
-    private Pair<Long, Long> getLag(List<MessageQueue> mqs) {
+    private Pair<Long, Long> getLag(List<MessageQueue> mqs) throws ConsumeQueueException {
         long lag = 0;
         long pullLag = 0;
         for (BrokerController controller : brokerControllerList) {
@@ -120,7 +121,7 @@ public class LagCalculationIT extends BaseConf {
     }
 
     @Test
-    public void testCalculateLag() {
+    public void testCalculateLag() throws ConsumeQueueException {
         int msgSize = 10;
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);

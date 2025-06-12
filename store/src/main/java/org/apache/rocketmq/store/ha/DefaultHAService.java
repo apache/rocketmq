@@ -350,8 +350,8 @@ public class DefaultHAService implements HAService {
                                         + sc.socket().getRemoteSocketAddress());
                                     try {
                                         HAConnection conn = createConnection(sc);
-                                        conn.start();
                                         DefaultHAService.this.addConnection(conn);
+                                        conn.start();
                                     } catch (Exception e) {
                                         log.error("new HAConnection exception", e);
                                         sc.close();

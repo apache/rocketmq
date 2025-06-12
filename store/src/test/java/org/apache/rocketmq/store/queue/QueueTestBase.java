@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
@@ -23,21 +29,14 @@ import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.StoreTestBase;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class QueueTestBase extends StoreTestBase {
 
@@ -58,12 +57,17 @@ public class QueueTestBase extends StoreTestBase {
         return () -> messageStore.dispatchBehindBytes() == 0;
     }
 
-    protected MessageStore createMessageStore(String baseDir, boolean extent,  ConcurrentMap<String, TopicConfig> topicConfigTable) throws Exception {
+    protected MessageStore createMessageStore(String baseDir, boolean extent,
+        ConcurrentMap<String, TopicConfig> topicConfigTable) throws Exception {
+        return createMessageStore(baseDir, extent, topicConfigTable, new MessageStoreConfig());
+    }
+
+    protected MessageStore createMessageStore(String baseDir, boolean extent,
+        ConcurrentMap<String, TopicConfig> topicConfigTable, MessageStoreConfig messageStoreConfig) throws Exception {
         if (baseDir == null) {
             baseDir = createBaseDir();
         }
         baseDirs.add(baseDir);
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMappedFileSizeCommitLog(1024 * 8);
         messageStoreConfig.setMappedFileSizeConsumeQueue(100 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
         messageStoreConfig.setMapperFileSizeBatchConsumeQueue(20 * BatchConsumeQueue.CQ_STORE_UNIT_SIZE);
