@@ -330,7 +330,7 @@ public class DLedgerCommitLog extends CommitLog {
             MmapFile mmapFile = null;
             for (; index >= 0; index--) {
                 mmapFile = mmapFiles.get(index);
-                if (isMmapFileMatchedRecover(mmapFile)) {
+                if (isMmapFileMatchedRecover(mmapFile, false)) {
                     log.info("dledger recover from this mappFile " + mmapFile.getFileName());
                     break;
                 }
@@ -426,7 +426,7 @@ public class DLedgerCommitLog extends CommitLog {
         log.info("Will set the initial commitlog offset={} for dledger", dividedCommitlogOffset);
     }
 
-    private boolean isMmapFileMatchedRecover(final MmapFile mmapFile) throws RocksDBException {
+    private boolean isMmapFileMatchedRecover(final MmapFile mmapFile, boolean recoverNormally) throws RocksDBException {
         ByteBuffer byteBuffer = mmapFile.sliceByteBuffer();
 
         int magicCode = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.MESSAGE_MAGIC_CODE_POSITION);
@@ -434,51 +434,36 @@ public class DLedgerCommitLog extends CommitLog {
             return false;
         }
 
-        if (this.defaultMessageStore.getMessageStoreConfig().isEnableRocksDBStore()) {
-            final long maxPhyOffsetInConsumeQueue = this.defaultMessageStore.getQueueStore().getMaxPhyOffsetInConsumeQueue();
-            long phyOffset = byteBuffer.getLong(DLedgerEntry.BODY_OFFSET + MessageDecoder.MESSAGE_PHYSIC_OFFSET_POSITION);
-            if (phyOffset <= maxPhyOffsetInConsumeQueue) {
-                log.info("find check. beginPhyOffset: {}, maxPhyOffsetInConsumeQueue: {}", phyOffset, maxPhyOffsetInConsumeQueue);
-                return true;
-            }
+        int storeTimestampPosition;
+        int sysFlag = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.SYSFLAG_POSITION);
+        if ((sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0) {
+            storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION;
         } else {
-            int storeTimestampPosition;
-            int sysFlag = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.SYSFLAG_POSITION);
-            if ((sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0) {
-                storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION;
-            } else {
-                // v6 address is 12 byte larger than v4
-                storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 12;
-            }
+            // v6 address is 12 byte larger than v4
+            storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 12;
+        }
 
-            long storeTimestamp = byteBuffer.getLong(DLedgerEntry.BODY_OFFSET + storeTimestampPosition);
-            if (storeTimestamp == 0) {
+        long storeTimestamp = byteBuffer.getLong(DLedgerEntry.BODY_OFFSET + storeTimestampPosition);
+        if (storeTimestamp == 0) {
+            return false;
+        }
+        long phyOffset = byteBuffer.getLong(DLedgerEntry.BODY_OFFSET + MessageDecoder.MESSAGE_PHYSIC_OFFSET_POSITION);
+
+        if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
+            && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
+            if (storeTimestamp > this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp()) {
                 return false;
             }
-
-            if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
-                && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
-                if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
-                    log.info("dledger find check timestamp, {} {}",
-                        storeTimestamp,
-                        UtilAll.timeMillisToHumanString(storeTimestamp));
-                    return true;
-                }
-            } else {
-                if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
-                    log.info("dledger find check timestamp, {} {}",
-                        storeTimestamp,
-                        UtilAll.timeMillisToHumanString(storeTimestamp));
-                    return true;
-                }
-            }
+            log.info("DLedgerCommitLog isMmapFileMatchedRecover find satisfied MmapFile for index, " +
+                    "MmapFile storeTimestamp={}, MmapFile phyOffset={}, indexMsgTimestamp={}",
+                storeTimestamp, phyOffset, this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp());
         }
-        return false;
+        return this.defaultMessageStore.getQueueStore().isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
     }
 
     @Override
-    public void recoverNormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
-        dledgerRecoverNormally(maxPhyOffsetOfConsumeQueue);
+    public void recoverNormally(long dispatchFromPhyOffset) throws RocksDBException {
+        dledgerRecoverNormally(dispatchFromPhyOffset);
     }
 
     @Override

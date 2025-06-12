@@ -19,18 +19,17 @@ package org.apache.rocketmq.store;
 import io.openmessaging.storage.dledger.store.file.DefaultMmapFile;
 import io.openmessaging.storage.dledger.store.file.MmapFile;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.index.IndexFile;
 import org.apache.rocketmq.store.index.IndexService;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-
+import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 
 public class StoreTestUtil {
 
@@ -58,12 +57,12 @@ public class StoreTestUtil {
     }
 
     public static void flushConsumeQueue(DefaultMessageStore store) throws Exception {
-        Field field = store.getClass().getDeclaredField("flushConsumeQueueService");
+        Field field = store.getQueueStore().getClass().getDeclaredField("flushConsumeQueueService");
         field.setAccessible(true);
-        DefaultMessageStore.FlushConsumeQueueService flushService = (DefaultMessageStore.FlushConsumeQueueService) field.get(store);
+        ConsumeQueueStore.FlushConsumeQueueService flushService = (ConsumeQueueStore.FlushConsumeQueueService) field.get(store.getQueueStore());
 
         final int retryTimesOver = 3;
-        Method method = DefaultMessageStore.FlushConsumeQueueService.class.getDeclaredMethod("doFlush", int.class);
+        Method method = ConsumeQueueStore.FlushConsumeQueueService.class.getDeclaredMethod("doFlush", int.class);
         method.setAccessible(true);
         method.invoke(flushService, retryTimesOver);
     }

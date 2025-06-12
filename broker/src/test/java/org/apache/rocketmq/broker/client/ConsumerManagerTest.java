@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.broker.client;
 
+import com.google.common.collect.ImmutableSet;
 import io.netty.channel.Channel;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
@@ -36,6 +37,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType.CONSUME_PASSIVELY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -114,7 +116,7 @@ public class ConsumerManagerTest {
         final Set<SubscriptionData> subList = new HashSet<>();
         SubscriptionData subscriptionData = new SubscriptionData(TOPIC, "*");
         subList.add(subscriptionData);
-        consumerManager.registerConsumer(GROUP, clientChannelInfo, ConsumeType.CONSUME_PASSIVELY,
+        consumerManager.registerConsumer(GROUP, clientChannelInfo, CONSUME_PASSIVELY,
             MessageModel.BROADCASTING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET, subList, true);
         verify(consumerManager, never()).callConsumerIdsChangeListener(eq(ConsumerGroupEvent.CHANGE), any(), any());
         assertThat(consumerManager.getConsumerTable().get(GROUP)).isNotNull();
@@ -179,6 +181,7 @@ public class ConsumerManagerTest {
         register();
         final HashSet<String> consumeGroup = consumerManager.queryTopicConsumeByWho(TOPIC);
         assertFalse(consumeGroup.isEmpty());
+        assertThat(consumerManager.queryTopicConsumeByWho(TOPIC)).isEqualTo(ImmutableSet.of(GROUP));
     }
 
     @Test
@@ -193,7 +196,7 @@ public class ConsumerManagerTest {
         final Set<SubscriptionData> subList = new HashSet<>();
         SubscriptionData subscriptionData = new SubscriptionData(TOPIC, "*");
         subList.add(subscriptionData);
-        consumerManager.registerConsumer(GROUP, clientChannelInfo, ConsumeType.CONSUME_PASSIVELY,
+        consumerManager.registerConsumer(GROUP, clientChannelInfo, CONSUME_PASSIVELY,
             MessageModel.BROADCASTING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET, subList, true);
     }
 
@@ -207,5 +210,25 @@ public class ConsumerManagerTest {
         assertThat(consumerManager.getConsumerGroupInfo(GROUP, true)).isNotNull();
         assertThat(consumerManager.findSubscriptionData(GROUP, TOPIC)).isNull();
         assertThat(consumerManager.findSubscriptionData(GROUP, TOPIC + "_1")).isNotNull();
+    }
+    
+    @Test
+    public void testRegisterConsumerWithoutSub() {
+        ConsumerGroupInfo groupInfo = new ConsumerGroupInfo(GROUP, CONSUME_PASSIVELY,
+                MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        SubscriptionData subscriptionData = new SubscriptionData(TOPIC, "*");
+        groupInfo.getSubscriptionTable().put(TOPIC, subscriptionData);
+        consumerManager.getConsumerTable().put(GROUP, groupInfo);
+        
+        consumerManager.registerConsumerWithoutSub(GROUP,
+                clientChannelInfo,
+                CONSUME_PASSIVELY,
+                MessageModel.CLUSTERING,
+                ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET,
+                true);
+        
+        Set<String> actual = consumerManager.queryTopicConsumeByWho(TOPIC);
+        assertThat(actual).contains(GROUP);
+        assertThat(actual).doesNotContain(TOPIC);
     }
 }

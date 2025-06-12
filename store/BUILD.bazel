@@ -24,6 +24,7 @@ java_library(
         "//common",
         "//remoting",
         "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_conversantmedia_disruptor",
         "@maven//:com_google_guava_guava",
         "@maven//:commons_collections_commons_collections",

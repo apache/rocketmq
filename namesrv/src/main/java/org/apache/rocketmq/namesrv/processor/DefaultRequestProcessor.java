@@ -658,6 +658,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         String content = this.namesrvController.getConfiguration().getAllConfigsFormatString();
         if (StringUtils.isNotBlank(content)) {
             try {
+                content = MixAll.adjustConfigForPlatform(content);
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
                 log.error("getConfig error, ", e);

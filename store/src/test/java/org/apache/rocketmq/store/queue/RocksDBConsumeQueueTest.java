@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import java.nio.ByteBuffer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
-import java.nio.ByteBuffer;
 
 import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueTable.CQ_UNIT_SIZE;
 import static org.junit.Assert.assertEquals;
@@ -60,7 +59,7 @@ public class RocksDBConsumeQueueTest extends QueueTestBase {
             }
         });
 
-        RocksDBConsumeQueue consumeQueue = new RocksDBConsumeQueue(messageStore, "topic", 0);
+        RocksDBConsumeQueue consumeQueue = new RocksDBConsumeQueue(messageStore.getMessageStoreConfig(), rocksDBConsumeQueueStore, "topic", 0);
         ReferredIterator<CqUnit> it = consumeQueue.iterateFrom(9000);
         for (int i = 0; i < 1000; i++) {
             assertTrue(it.hasNext());

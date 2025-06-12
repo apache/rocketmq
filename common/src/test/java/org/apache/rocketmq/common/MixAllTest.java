@@ -85,4 +85,43 @@ public class MixAllTest {
         testLmq = "%LMQ%GID_TEST";
         assertThat(MixAll.isLmq(testLmq)).isTrue();
     }
+
+    @Test
+    public void testAdjustConfigForPlatform_OnWindows() {
+        if (MixAll.isWindows()) {
+            String configWithSingleBackslash = "data\\path\\config\\file.properties";
+            String adjusted = MixAll.adjustConfigForPlatform(configWithSingleBackslash);
+            assertThat(adjusted).isEqualTo("data\\\\path\\\\config\\\\file.properties");
+
+            String configWithMultipleBackslashes = "C:\\\\RocketMQ\\\\logs\\\\broker.log";
+            adjusted = MixAll.adjustConfigForPlatform(configWithMultipleBackslashes);
+            assertThat(adjusted).isEqualTo("C:\\\\\\\\RocketMQ\\\\\\\\logs\\\\\\\\broker.log");
+
+            String configWithoutBackslash = "listenPort=10911";
+            adjusted = MixAll.adjustConfigForPlatform(configWithoutBackslash);
+            assertThat(adjusted).isEqualTo("listenPort=10911");
+
+            String emptyConfig = "";
+            adjusted = MixAll.adjustConfigForPlatform(emptyConfig);
+            assertThat(adjusted).isEqualTo("");
+
+            adjusted = MixAll.adjustConfigForPlatform(null);
+            assertThat(adjusted).isNull();
+        } else {
+            String configWithSingleBackslash = "/home/rocketmq/conf/broker.conf";
+            String adjusted = MixAll.adjustConfigForPlatform(configWithSingleBackslash);
+            assertThat(adjusted).isEqualTo("/home/rocketmq/conf/broker.conf");
+
+            String linuxPathWithBackslash = "some\\directory\\file.txt";
+            adjusted = MixAll.adjustConfigForPlatform(linuxPathWithBackslash);
+            assertThat(adjusted).isEqualTo("some\\directory\\file.txt");
+
+            String emptyConfig = "";
+            adjusted = MixAll.adjustConfigForPlatform(emptyConfig);
+            assertThat(adjusted).isEqualTo("");
+
+            adjusted = MixAll.adjustConfigForPlatform(null);
+            assertThat(adjusted).isNull();
+        }
+    }
 }
