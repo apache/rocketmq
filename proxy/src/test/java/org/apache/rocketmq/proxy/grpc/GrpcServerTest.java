@@ -21,7 +21,11 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -104,7 +108,7 @@ public class GrpcServerTest {
     }
 
     @Test
-    void testGrpcCertKeyFileWatchListener_trustCertChange() {
+    public void testGrpcCertKeyFileWatchListener_trustCertChange() {
         // Create listener instance
         GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
 
@@ -119,7 +123,7 @@ public class GrpcServerTest {
     }
 
     @Test
-    void testGrpcCertKeyFileWatchListener_certOnlyChange() {
+    public void testGrpcCertKeyFileWatchListener_certOnlyChange() {
         // Create listener instance
         GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
 
@@ -132,7 +136,7 @@ public class GrpcServerTest {
     }
 
     @Test
-    void testGrpcCertKeyFileWatchListener_keyOnlyChange() {
+    public void testGrpcCertKeyFileWatchListener_keyOnlyChange() {
         // Create listener instance
         GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
 
@@ -145,7 +149,7 @@ public class GrpcServerTest {
     }
 
     @Test
-    void testGrpcCertKeyFileWatchListener_certThenKeyChange() {
+    public void testGrpcCertKeyFileWatchListener_certThenKeyChange() {
         // Create listener instance
         GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
 
@@ -161,7 +165,7 @@ public class GrpcServerTest {
     }
 
     @Test
-    void testGrpcCertKeyFileWatchListener_keyThenCertChange() {
+    public void testGrpcCertKeyFileWatchListener_keyThenCertChange() {
         // Create listener instance
         GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
 
@@ -177,7 +181,7 @@ public class GrpcServerTest {
     }
 
     @Test
-    void testGrpcCertKeyFileWatchListener_reloadError() {
+    public void testGrpcCertKeyFileWatchListener_reloadError() {
         // Create listener instance
         GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
 
@@ -197,7 +201,7 @@ public class GrpcServerTest {
 
 
     @Test
-    void testGrpcServerStart() throws Exception {
+    public void testGrpcServerStart() throws Exception {
         // Use our special GrpcServer which returns the mockFileWatchService
         GrpcServer grpcServer = new TestableGrpcServer(mockServer, 1, TimeUnit.SECONDS);
 
@@ -213,7 +217,7 @@ public class GrpcServerTest {
     }
 
     @Test
-    void testGrpcServerShutdown() throws Exception {
+    public void testGrpcServerShutdown() throws Exception {
         when(mockServer.shutdown()).thenReturn(mockServer);
         when(mockServer.awaitTermination(any(Long.class), any(TimeUnit.class))).thenReturn(true);
 

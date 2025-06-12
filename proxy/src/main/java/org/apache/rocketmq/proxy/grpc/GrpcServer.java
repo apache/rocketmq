@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc;
 import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
+
 import io.grpc.Server;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -67,16 +68,16 @@ public class GrpcServer implements StartAndShutdown {
 
             log.info("grpc server shutdown successfully.");
         } catch (Exception e) {
-            log.error("Failed to shutdown grpc server", e); // 使用log而不是e.printStackTrace()
+            log.error("Failed to shutdown grpc server", e);
         }
     }
 
     protected FileWatchService initGrpcCertKeyWatchService() throws Exception {
         return new FileWatchService(
-                new String[] {
-                        TlsSystemConfig.tlsServerCertPath,
-                        TlsSystemConfig.tlsServerKeyPath,
-                        TlsSystemConfig.tlsServerTrustCertPath
+                new String[]{
+                    TlsSystemConfig.tlsServerCertPath,
+                    TlsSystemConfig.tlsServerKeyPath,
+                    TlsSystemConfig.tlsServerTrustCertPath
                 },
                 new GrpcCertKeyFileWatchListener()
         );
