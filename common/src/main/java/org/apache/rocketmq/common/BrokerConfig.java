@@ -425,6 +425,9 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean enableSplitRegistration = false;
 
+    private boolean enableSplitMetadata = true;
+    private int splitMetadataSize = 2000;
+
     private long popInflightMessageThreshold = 10000;
     private boolean enablePopMessageThreshold = false;
 
@@ -2059,5 +2062,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableCreateSysGroup(boolean enableCreateSysGroup) {
         this.enableCreateSysGroup = enableCreateSysGroup;
+    }
+
+    public boolean isEnableSplitMetadata() {
+        return enableSplitMetadata;
+    }
+
+    public void setEnableSplitMetadata(boolean enableSplitMetadata) {
+        this.enableSplitMetadata = enableSplitMetadata;
+    }
+
+    public int getSplitMetadataSize() {
+        return splitMetadataSize;
+    }
+
+    public void setSplitMetadataSize(int splitMetadataSize) {
+        this.splitMetadataSize = splitMetadataSize;
     }
 }
