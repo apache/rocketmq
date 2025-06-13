@@ -680,7 +680,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         CompletableFuture<Long> future = new CompletableFuture<>();
         if (!queueLockManager.tryLock(lockKey)) {
             try {
-                restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
+                if (!requestHeader.isOrder()) {
+                    restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
+                }
                 future.complete(restNum);
             } catch (ConsumeQueueException e) {
                 future.completeExceptionally(e);

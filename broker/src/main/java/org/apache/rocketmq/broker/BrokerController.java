@@ -18,32 +18,6 @@ package org.apache.rocketmq.broker;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
-import java.net.InetSocketAddress;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
@@ -61,6 +35,15 @@ import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import org.apache.rocketmq.broker.coldctr.ColdDataCgCtrService;
 import org.apache.rocketmq.broker.coldctr.ColdDataPullRequestHoldService;
+import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBLmqSubscriptionGroupManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBLmqTopicConfigManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
+import org.apache.rocketmq.broker.config.v2.ConfigStorage;
+import org.apache.rocketmq.broker.config.v2.ConsumerOffsetManagerV2;
+import org.apache.rocketmq.broker.config.v2.SubscriptionGroupManagerV2;
+import org.apache.rocketmq.broker.config.v2.TopicConfigManagerV2;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.dledger.DLedgerRoleChangeHandler;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
@@ -77,7 +60,6 @@ import org.apache.rocketmq.broker.offset.BroadcastOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
-import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.pop.PopConsumerService;
@@ -101,16 +83,8 @@ import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
-import org.apache.rocketmq.broker.config.v1.RocksDBLmqSubscriptionGroupManager;
-import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
-import org.apache.rocketmq.broker.config.v2.ConsumerOffsetManagerV2;
-import org.apache.rocketmq.broker.config.v2.SubscriptionGroupManagerV2;
-import org.apache.rocketmq.broker.config.v2.TopicConfigManagerV2;
-import org.apache.rocketmq.broker.config.v2.ConfigStorage;
 import org.apache.rocketmq.broker.topic.LmqTopicConfigManager;
-import org.apache.rocketmq.broker.config.v1.RocksDBLmqTopicConfigManager;
-import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
@@ -154,7 +128,6 @@ import org.apache.rocketmq.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.BrokerSyncInfo;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.RequestHeaderRegistry;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
@@ -182,6 +155,30 @@ import org.apache.rocketmq.store.stats.LmqBrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
+
+import java.net.InetSocketAddress;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class BrokerController {
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -281,7 +278,6 @@ public class BrokerController {
     protected TransactionalMessageCheckService transactionalMessageCheckService;
     protected TransactionalMessageService transactionalMessageService;
     protected AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
-    protected Map<Class, AccessValidator> accessValidatorMap = new HashMap<>();
     protected volatile boolean shutdown = false;
     protected ShutdownHook shutdownHook;
     private volatile boolean isScheduleServiceStart = false;
@@ -692,6 +688,18 @@ public class BrokerController {
         }, 10, 1, TimeUnit.SECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    BrokerController.this.messageStore.getTimerMessageStore().getTimerMetrics()
+                            .cleanMetrics(BrokerController.this.topicConfigManager.getTopicConfigTable().keySet());
+                } catch (Throwable e) {
+                    LOG.error("BrokerController: failed to clean unused timer metrics.", e);
+                }
+            }
+        }, 3, 3, TimeUnit.MINUTES);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
             @Override
             public void run() {
@@ -816,9 +824,6 @@ public class BrokerController {
                 defaultMessageStore = new RocksDBMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
             } else {
                 defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
-                if (messageStoreConfig.isRocksdbCQDoubleWriteEnable()) {
-                    defaultMessageStore.enableRocksdbCQWrite();
-                }
             }
 
             if (messageStoreConfig.isEnableDLegerCommitLog()) {
@@ -904,8 +909,6 @@ public class BrokerController {
             initializeScheduledTasks();
 
             initialTransaction();
-
-            initialAcl();
 
             initialRpcHooks();
 
@@ -1038,37 +1041,6 @@ public class BrokerController {
         this.transactionMetricsFlushService = new TransactionMetricsFlushService(this);
         this.transactionMetricsFlushService.start();
 
-    }
-
-    private void initialAcl() {
-        if (!this.brokerConfig.isAclEnable()) {
-            LOG.info("The broker does not enable acl");
-            return;
-        }
-
-        List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
-        if (accessValidators.isEmpty()) {
-            LOG.info("ServiceProvider loaded no AccessValidator, using default org.apache.rocketmq.acl.plain.PlainAccessValidator");
-            accessValidators.add(new PlainAccessValidator());
-        }
-
-        for (AccessValidator accessValidator : accessValidators) {
-            final AccessValidator validator = accessValidator;
-            accessValidatorMap.put(validator.getClass(), validator);
-            this.registerServerRPCHook(new RPCHook() {
-
-                @Override
-                public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-                    //Do not catch the exception
-                    validator.validate(validator.parse(request, remoteAddr));
-                }
-
-                @Override
-                public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
-                }
-
-            });
-        }
     }
 
     private void initialRpcHooks() {
@@ -1454,10 +1426,19 @@ public class BrokerController {
             this.popConsumerService.shutdown();
         }
 
-        {
+        if (this.popMessageProcessor.getPopLongPollingService() != null) {
             this.popMessageProcessor.getPopLongPollingService().shutdown();
+        }
+
+        if (this.popMessageProcessor.getQueueLockManager() != null) {
             this.popMessageProcessor.getQueueLockManager().shutdown();
+        }
+
+        if (this.popMessageProcessor.getPopBufferMergeService() != null) {
             this.popMessageProcessor.getPopBufferMergeService().shutdown();
+        }
+
+        if (this.ackMessageProcessor.getPopReviveServices() != null) {
             this.ackMessageProcessor.shutdownPopReviveService();
         }
 
@@ -1534,10 +1515,6 @@ public class BrokerController {
             this.consumerFilterManager.persist();
         }
 
-        if (this.consumerOrderInfoManager != null) {
-            this.consumerOrderInfoManager.persist();
-        }
-
         if (this.scheduleMessageService != null) {
             this.scheduleMessageService.persist();
             this.scheduleMessageService.shutdown();
@@ -1572,7 +1549,7 @@ public class BrokerController {
         }
 
         if (this.escapeBridge != null) {
-            escapeBridge.shutdown();
+            this.escapeBridge.shutdown();
         }
 
         if (this.topicRouteInfoManager != null) {
@@ -1609,8 +1586,13 @@ public class BrokerController {
             this.consumerOffsetManager.stop();
         }
 
-        if (null != configStorage) {
-            configStorage.shutdown();
+        if (this.consumerOrderInfoManager != null) {
+            this.consumerOrderInfoManager.persist();
+            this.consumerOrderInfoManager.shutdown();
+        }
+
+        if (this.configStorage != null) {
+            this.configStorage.shutdown();
         }
 
         if (this.authenticationMetadataManager != null) {
@@ -2486,10 +2468,6 @@ public class BrokerController {
     public BlockingQueue<Runnable> getEndTransactionThreadPoolQueue() {
         return endTransactionThreadPoolQueue;
 
-    }
-
-    public Map<Class, AccessValidator> getAccessValidatorMap() {
-        return accessValidatorMap;
     }
 
     public ExecutorService getSendMessageExecutor() {
