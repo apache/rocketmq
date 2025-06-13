@@ -159,7 +159,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     }
 
     @Override
-    public void check(long transactionTimeout, int transactionCheckMax,
+    public void check(long transactionTimeout, int transactionCheckMax, long transactionCheckInterval,
         AbstractTransactionalMessageCheckListener listener) {
         try {
             String topic = TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC;
@@ -277,6 +277,14 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         String checkImmunityTimeStr = msgExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
                         if (null != checkImmunityTimeStr) {
                             checkImmunityTime = getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+                            if (checkImmunityTime > transactionCheckMax * transactionCheckInterval) {
+                                log.warn("Exceeds maximum check time range, msg will never by checked! uniqKey={}, checkImmunityTime={}",
+                                    msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX),
+                                    checkImmunityTime);
+                                newOffset = i + 1;
+                                i++;
+                                continue;
+                            }
                             if (valueOfCurrentMinusBorn < checkImmunityTime) {
                                 if (checkPrepareQueueOffset(removeMap, doneOpOffset, msgExt, checkImmunityTimeStr)) {
                                     newOffset = i + 1;

@@ -116,6 +116,7 @@ public class TransactionalMessageServiceImplTest {
         when(bridge.getBrokerController()).thenReturn(this.brokerController);
         long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
         int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
+        long checkInterval = this.brokerController.getBrokerConfig().getTransactionCheckInterval();
         final AtomicInteger checkMessage = new AtomicInteger(0);
         doAnswer(new Answer() {
             @Override
@@ -124,7 +125,7 @@ public class TransactionalMessageServiceImplTest {
                 return null;
             }
         }).when(listener).resolveDiscardMsg(any(MessageExt.class));
-        queueTransactionMsgService.check(timeOut, checkMax, listener);
+        queueTransactionMsgService.check(timeOut, checkMax, checkInterval, listener);
         assertThat(checkMessage.get()).isEqualTo(1);
     }
 
@@ -140,6 +141,7 @@ public class TransactionalMessageServiceImplTest {
                 .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
         long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
         final int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
+        final long checkInterval = this.brokerController.getBrokerConfig().getTransactionCheckInterval();
         final AtomicInteger checkMessage = new AtomicInteger(0);
         doAnswer(new Answer() {
             @Override
@@ -148,7 +150,7 @@ public class TransactionalMessageServiceImplTest {
                 return checkMessage;
             }
         }).when(listener).resolveHalfMsg(any(MessageExt.class));
-        queueTransactionMsgService.check(timeOut, checkMax, listener);
+        queueTransactionMsgService.check(timeOut, checkMax, checkInterval, listener);
         assertThat(checkMessage.get()).isEqualTo(1);
     }
 
