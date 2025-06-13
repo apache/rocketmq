@@ -121,8 +121,7 @@ import java.util.List;
 public class MQAdminStartup {
     protected static final List<SubCommand> SUB_COMMANDS = new ArrayList<>();
 
-    private static final String ROCKETMQ_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private static final String ROCKETMQ_HOME = MixAll.ROCKETMQ_HOME_DIR;
 
     public static void main(String[] args) {
         main0(args, null);
