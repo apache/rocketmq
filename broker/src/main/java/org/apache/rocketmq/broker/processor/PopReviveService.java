@@ -621,7 +621,8 @@ public class PopReviveService extends ServiceThread {
         if (currentReviveMessageTimestamp <= 0) {
             return 0;
         }
-        long diff = brokerController.getMessageStore().getMaxOffsetInQueue(reviveTopic, queueId) - reviveOffset;
+        // the next pull offset is reviveOffset + 1
+        long diff = brokerController.getMessageStore().getMaxOffsetInQueue(reviveTopic, queueId) - reviveOffset - 1;
         return Math.max(0, diff);
     }
 

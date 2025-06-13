@@ -824,9 +824,6 @@ public class BrokerController {
                 defaultMessageStore = new RocksDBMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
             } else {
                 defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
-                if (messageStoreConfig.isRocksdbCQDoubleWriteEnable()) {
-                    defaultMessageStore.enableRocksdbCQWrite();
-                }
             }
 
             if (messageStoreConfig.isEnableDLegerCommitLog()) {

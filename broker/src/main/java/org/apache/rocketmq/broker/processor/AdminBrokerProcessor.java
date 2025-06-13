@@ -49,14 +49,12 @@ import org.apache.rocketmq.broker.metrics.InvocationStatus;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
-import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.LockCallback;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UnlockCallback;
@@ -194,13 +192,14 @@ import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
-import org.apache.rocketmq.store.RocksDBMessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
+import org.apache.rocketmq.store.queue.CombineConsumeQueueStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
@@ -1068,6 +1067,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         String content = this.brokerController.getConfiguration().getAllConfigsFormatString();
         if (content != null && content.length() > 0) {
             try {
+                content = MixAll.adjustConfigForPlatform(content);
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
                 LOGGER.error("AdminBrokerProcessor#getBrokerConfig: unexpected error, caller={}",
@@ -3323,7 +3323,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private CheckRocksdbCqWriteResult doCheckRocksdbCqWriteProgress(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         CheckRocksdbCqWriteProgressRequestHeader requestHeader = request.decodeCommandCustomHeader(CheckRocksdbCqWriteProgressRequestHeader.class);
-        String requestTopic = requestHeader.getTopic();
         MessageStore messageStore = brokerController.getMessageStore();
         DefaultMessageStore defaultMessageStore;
         if (messageStore instanceof AbstractPluginMessageStore) {
@@ -3331,121 +3330,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         } else {
             defaultMessageStore = (DefaultMessageStore) messageStore;
         }
-        RocksDBMessageStore rocksDBMessageStore = defaultMessageStore.getRocksDBMessageStore();
-        CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
+        ConsumeQueueStoreInterface consumeQueueStore = defaultMessageStore.getQueueStore();
 
-        if (defaultMessageStore.getMessageStoreConfig().getStoreType().equals(StoreType.DEFAULT_ROCKSDB.getStoreType())) {
-            result.setCheckResult("storeType is DEFAULT_ROCKSDB, no need check");
+        if (!(consumeQueueStore instanceof CombineConsumeQueueStore)) {
+            CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
+            result.setCheckResult("It is not CombineConsumeQueueStore, no need check");
             result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue());
             return result;
         }
 
-        if (!defaultMessageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
-            result.setCheckResult("rocksdbCQWriteEnable is false, checkRocksdbCqWriteProgressCommand is invalid");
-            result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
-            return result;
-        }
-
-        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = defaultMessageStore.getConsumeQueueTable();
-        StringBuilder diffResult = new StringBuilder();
-        try {
-            if (StringUtils.isNotBlank(requestTopic)) {
-                boolean checkResult = processConsumeQueuesForTopic(cqTable.get(requestTopic), requestTopic, rocksDBMessageStore, diffResult, true, requestHeader.getCheckStoreTime());
-                result.setCheckResult(diffResult.toString());
-                result.setCheckStatus(checkResult ? CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue() : CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
-                return result;
-            }
-            int successNum = 0;
-            int checkSize = 0;
-            for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : cqTable.entrySet()) {
-                boolean checkResult = processConsumeQueuesForTopic(topicEntry.getValue(), topicEntry.getKey(), rocksDBMessageStore, diffResult, false, requestHeader.getCheckStoreTime());
-                successNum += checkResult ? 1 : 0;
-                checkSize++;
-            }
-            // check all topic finish, all topic is ready, checkSize: 100, currentQueueNum: 110      -> ready  (The currentQueueNum means when we do checking, new topics are added.)
-            // check all topic finish, success/all : 89/100, currentQueueNum: 110                    -> not ready
-            boolean checkReady = successNum == checkSize;
-            String checkResultString = checkReady ? String.format("all topic is ready, checkSize: %s, currentQueueNum: %s", checkSize, cqTable.size()) :
-                String.format("success/all : %s/%s, currentQueueNum: %s", successNum, checkSize, cqTable.size());
-            diffResult.append("check all topic finish, ").append(checkResultString);
-            result.setCheckResult(diffResult.toString());
-            result.setCheckStatus(checkReady ? CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue() : CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
-        } catch (Exception e) {
-            LOGGER.error("CheckRocksdbCqWriteProgressCommand error", e);
-            result.setCheckResult(e.getMessage() + Arrays.toString(e.getStackTrace()));
-            result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_ERROR.getValue());
-        }
-        return result;
-    }
-
-    private boolean processConsumeQueuesForTopic(ConcurrentMap<Integer, ConsumeQueueInterface> queueMap, String topic,
-        RocksDBMessageStore rocksDBMessageStore, StringBuilder diffResult, boolean printDetail,
-        long checkpointByStoreTime) {
-        boolean processResult = true;
-        for (Map.Entry<Integer, ConsumeQueueInterface> queueEntry : queueMap.entrySet()) {
-            Integer queueId = queueEntry.getKey();
-            ConsumeQueueInterface jsonCq = queueEntry.getValue();
-            ConsumeQueueInterface kvCq = rocksDBMessageStore.getConsumeQueue(topic, queueId);
-            if (printDetail) {
-                String format = String.format("[topic: %s, queue:  %s] \n  kvEarliest : %s |  kvLatest : %s \n fileEarliest: %s | fileEarliest: %s ",
-                    topic, queueId, kvCq.getEarliestUnit(), kvCq.getLatestUnit(), jsonCq.getEarliestUnit(), jsonCq.getLatestUnit());
-                diffResult.append(format).append("\n");
-            }
-
-            long minOffsetByTime = 0L;
-            try {
-                minOffsetByTime = rocksDBMessageStore.getConsumeQueueStore().getOffsetInQueueByTime(topic, queueId, checkpointByStoreTime, BoundaryType.UPPER);
-            } catch (Exception e) {
-                // ignore
-            }
-            long minOffsetInQueue = kvCq.getMinOffsetInQueue();
-            long checkFrom = Math.max(minOffsetInQueue, minOffsetByTime);
-            long checkTo = jsonCq.getMaxOffsetInQueue() - 1;
-            /*
-                                                            checkTo(maxOffsetInQueue - 1)
-                                                                        v
-        fileCq   +------------------------------------------------------+
-        kvCq             +----------------------------------------------+
-                         ^                ^
-                   minOffsetInQueue   minOffsetByTime
-                                   ^
-                        checkFrom = max(minOffsetInQueue, minOffsetByTime)
-             */
-            // The latest message is earlier than the check time
-            Pair<CqUnit, Long> fileLatestCq = jsonCq.getCqUnitAndStoreTime(checkTo);
-            if (fileLatestCq != null) {
-                if (fileLatestCq.getObject2() < checkpointByStoreTime) {
-                    continue;
-                }
-            }
-            for (long i = checkFrom; i <= checkTo; i++) {
-                Pair<CqUnit, Long> fileCqUnit = jsonCq.getCqUnitAndStoreTime(i);
-                Pair<CqUnit, Long> kvCqUnit = kvCq.getCqUnitAndStoreTime(i);
-                if (fileCqUnit == null || kvCqUnit == null || !checkCqUnitEqual(kvCqUnit.getObject1(), fileCqUnit.getObject1())) {
-                    LOGGER.error(String.format("[topic: %s, queue: %s, offset: %s] \n file : %s  \n  kv : %s \n",
-                        topic, queueId, i, kvCqUnit != null ? kvCqUnit.getObject1() : "null", fileCqUnit != null ? fileCqUnit.getObject1() : "null"));
-                    processResult = false;
-                    break;
-                }
-            }
-        }
-        return processResult;
-    }
-
-    private boolean checkCqUnitEqual(CqUnit cqUnit1, CqUnit cqUnit2) {
-        if (cqUnit1.getQueueOffset() != cqUnit2.getQueueOffset()) {
-            return false;
-        }
-        if (cqUnit1.getSize() != cqUnit2.getSize()) {
-            return false;
-        }
-        if (cqUnit1.getPos() != cqUnit2.getPos()) {
-            return false;
-        }
-        if (cqUnit1.getBatchNum() != cqUnit2.getBatchNum()) {
-            return false;
-        }
-        return cqUnit1.getTagsCode() == cqUnit2.getTagsCode();
+        return ((CombineConsumeQueueStore) consumeQueueStore).
+            doCheckCqWriteProgress(requestHeader.getTopic(), requestHeader.getCheckStoreTime(), StoreType.DEFAULT, StoreType.DEFAULT_ROCKSDB);
     }
 
     private RemotingCommand transferPopToFsStore(ChannelHandlerContext ctx, RemotingCommand request) {

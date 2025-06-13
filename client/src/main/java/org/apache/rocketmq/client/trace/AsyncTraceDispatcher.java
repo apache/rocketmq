@@ -226,7 +226,13 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                     }
                 }
             }, "ShutdownHookMQTrace");
-            Runtime.getRuntime().addShutdownHook(shutDownHook);
+            
+
+            try {
+                Runtime.getRuntime().addShutdownHook(shutDownHook);
+            } catch (IllegalStateException e) {
+                // ignore - VM is already shutting down
+            }
         }
     }
 

@@ -241,7 +241,7 @@ public class ConsumerManager {
                 Set<String> prev = this.topicGroupTable.putIfAbsent(subscriptionData.getTopic(), tmp);
                 groups = prev != null ? prev : tmp;
             }
-            groups.add(subscriptionData.getTopic());
+            groups.add(group);
         }
 
         boolean r1 =
@@ -292,7 +292,7 @@ public class ConsumerManager {
                 Set<String> prev = this.topicGroupTable.putIfAbsent(subscriptionData.getTopic(), tmp);
                 groups = prev != null ? prev : tmp;
             }
-            groups.add(subscriptionData.getTopic());
+            groups.add(group);
         }
 
         boolean updateChannelRst = consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel, consumeFromWhere);

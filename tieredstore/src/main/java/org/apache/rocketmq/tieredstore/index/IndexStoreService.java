@@ -146,7 +146,9 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             this.createNewIndexFile(System.currentTimeMillis());
         }
 
-        if (!this.timeStoreTable.isEmpty()) {
+        if (this.timeStoreTable.isEmpty()) {
+            this.setCompactTimestamp(Long.MAX_VALUE);
+        } else {
             this.currentWriteFile = this.timeStoreTable.lastEntry().getValue();
             this.setCompactTimestamp(this.timeStoreTable.firstKey() - 1);
         }
@@ -351,7 +353,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             int tableSize = (int) timeStoreTable.entrySet().stream()
                 .filter(entry -> IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()))
                 .count();
-            log.info("IndexStoreService delete file, timestamp={}, remote={}, table={}, all={}",
+            log.debug("IndexStoreService delete file, timestamp={}, remote={}, table={}, all={}",
                 expireTimestamp, flatAppendFile.getFileSegmentList().size(), tableSize, timeStoreTable.size());
         } finally {
             readWriteLock.writeLock().unlock();
@@ -382,7 +384,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
 
     @Override
     public String getServiceName() {
-        return IndexStoreService.class.getSimpleName();
+        return IndexStoreService.class.getSimpleName() + "_" + this.storeConfig.getBrokerName();
     }
 
     public void setCompactTimestamp(long timestamp) {

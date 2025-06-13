@@ -17,6 +17,8 @@
 package org.apache.rocketmq.store;
 
 import com.google.common.base.Strings;
+import com.sun.jna.NativeLong;
+import com.sun.jna.Pointer;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -34,8 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import com.sun.jna.NativeLong;
-import com.sun.jna.Pointer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
@@ -69,7 +69,6 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
-
 import sun.nio.ch.DirectBuffer;
 
 /**
@@ -324,7 +323,7 @@ public class CommitLog implements Swappable {
      *
      * @throws RocksDBException only in rocksdb mode
      */
-    public void recoverNormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
+    public void recoverNormally(long dispatchFromPhyOffset) throws RocksDBException {
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
@@ -332,7 +331,7 @@ public class CommitLog implements Swappable {
             int index = mappedFiles.size() - 1;
             while (index > 0) {
                 MappedFile mappedFile = mappedFiles.get(index);
-                if (mappedFile.getFileFromOffset() <= maxPhyOffsetOfConsumeQueue) {
+                if (isMappedFileMatchedRecover(mappedFile, true)) {
                     // It's safe to recover from this mapped file
                     break;
                 }
@@ -348,7 +347,7 @@ public class CommitLog implements Swappable {
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
                 int size = dispatchRequest.getMsgSize();
-                boolean doDispatch = dispatchRequest.getCommitLogOffset() > maxPhyOffsetOfConsumeQueue;
+                boolean doDispatch = dispatchRequest.getCommitLogOffset() > dispatchFromPhyOffset;
                 // Normal data
                 if (dispatchRequest.isSuccess() && size > 0) {
                     lastValidMsgPhyOffset = processOffset + mappedFileOffset;
@@ -398,10 +397,7 @@ public class CommitLog implements Swappable {
             }
 
             // Clear ConsumeQueue redundant data
-            if (maxPhyOffsetOfConsumeQueue >= processOffset) {
-                log.warn("maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, processOffset);
-                this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
-            }
+            this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
 
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
@@ -411,8 +407,7 @@ public class CommitLog implements Swappable {
             log.warn("The commitlog files are deleted, and delete the consume queue files");
             this.mappedFileQueue.setFlushedWhere(0);
             this.mappedFileQueue.setCommittedWhere(0);
-            this.defaultMessageStore.getQueueStore().destroy();
-            this.defaultMessageStore.getQueueStore().loadAfterDestroy();
+            this.defaultMessageStore.destroyConsumeQueueStore(true);
         }
     }
 
@@ -720,7 +715,7 @@ public class CommitLog implements Swappable {
             MappedFile mappedFile = null;
             for (; index >= 0; index--) {
                 mappedFile = mappedFiles.get(index);
-                if (this.isMappedFileMatchedRecover(mappedFile)) {
+                if (this.isMappedFileMatchedRecover(mappedFile, false)) {
                     log.info("recover from this mapped file " + mappedFile.getFileName());
                     break;
                 }
@@ -807,10 +802,7 @@ public class CommitLog implements Swappable {
             }
 
             // Clear ConsumeQueue redundant data
-            if (maxPhyOffsetOfConsumeQueue >= processOffset) {
-                log.warn("maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, processOffset);
-                this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
-            }
+            this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
 
             this.mappedFileQueue.setFlushedWhere(processOffset);
             this.mappedFileQueue.setCommittedWhere(processOffset);
@@ -821,8 +813,7 @@ public class CommitLog implements Swappable {
             log.warn("The commitlog files are deleted, and delete the consume queue files");
             this.mappedFileQueue.setFlushedWhere(0);
             this.mappedFileQueue.setCommittedWhere(0);
-            this.defaultMessageStore.getQueueStore().destroy();
-            this.defaultMessageStore.getQueueStore().loadAfterDestroy();
+            this.defaultMessageStore.destroyConsumeQueueStore(true);
         }
     }
 
@@ -845,7 +836,8 @@ public class CommitLog implements Swappable {
         this.getMessageStore().onCommitLogAppend(msg, result, commitLogFile);
     }
 
-    private boolean isMappedFileMatchedRecover(final MappedFile mappedFile) throws RocksDBException {
+    private boolean isMappedFileMatchedRecover(final MappedFile mappedFile,
+        boolean recoverNormally) throws RocksDBException {
         ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
 
         int magicCode = byteBuffer.getInt(MessageDecoder.MESSAGE_MAGIC_CODE_POSITION);
@@ -853,41 +845,27 @@ public class CommitLog implements Swappable {
             return false;
         }
 
-        if (this.defaultMessageStore.getMessageStoreConfig().isEnableRocksDBStore()) {
-            final long maxPhyOffsetInConsumeQueue = this.defaultMessageStore.getQueueStore().getMaxPhyOffsetInConsumeQueue();
-            long phyOffset = byteBuffer.getLong(MessageDecoder.MESSAGE_PHYSIC_OFFSET_POSITION);
-            if (phyOffset <= maxPhyOffsetInConsumeQueue) {
-                log.info("find check. beginPhyOffset: {}, maxPhyOffsetInConsumeQueue: {}", phyOffset, maxPhyOffsetInConsumeQueue);
-                return true;
-            }
-        } else {
-            int sysFlag = byteBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
-            int bornHostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
-            int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornHostLength;
-            long storeTimestamp = byteBuffer.getLong(msgStoreTimePos);
-            if (0 == storeTimestamp) {
+        int sysFlag = byteBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
+        int bornHostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
+        int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornHostLength;
+        long storeTimestamp = byteBuffer.getLong(msgStoreTimePos);
+        if (0 == storeTimestamp) {
+            return false;
+        }
+        long phyOffset = byteBuffer.getLong(MessageDecoder.MESSAGE_PHYSIC_OFFSET_POSITION);
+
+        if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable() &&
+            this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
+            if (storeTimestamp > this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp()) {
                 return false;
             }
-
-            if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
-                && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
-                if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
-                    log.info("find check timestamp, {} {}",
-                        storeTimestamp,
-                        UtilAll.timeMillisToHumanString(storeTimestamp));
-                    return true;
-                }
-            } else {
-                if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
-                    log.info("find check timestamp, {} {}",
-                        storeTimestamp,
-                        UtilAll.timeMillisToHumanString(storeTimestamp));
-                    return true;
-                }
-            }
+            log.info("CommitLog isMmapFileMatchedRecover find satisfied MmapFile for index, " +
+                    "MmapFile storeTimestamp={}, MmapFile phyOffset={}, indexMsgTimestamp={}, recoverNormally={}",
+                storeTimestamp, phyOffset, this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp(), recoverNormally);
         }
 
-        return false;
+        return this.defaultMessageStore.getQueueStore()
+            .isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
     }
 
     public boolean resetOffset(long offset) {

@@ -314,7 +314,8 @@ public class IndexStoreFile implements IndexFile {
     protected CompletableFuture<List<IndexItem>> queryAsyncFromSegmentFile(
         String key, int maxCount, long beginTime, long endTime) {
 
-        if (this.fileSegment == null || !UPLOAD.equals(this.fileStatus.get())) {
+        if (this.fileSegment == null || !UPLOAD.equals(this.fileStatus.get()) ||
+            this.fileSegment.getCommitPosition() <= this.getSlotPosition(0)) {
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
