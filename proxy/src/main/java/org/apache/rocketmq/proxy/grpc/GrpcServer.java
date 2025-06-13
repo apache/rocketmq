@@ -60,11 +60,11 @@ public class GrpcServer implements StartAndShutdown {
 
     public void shutdown() {
         try {
-            this.server.shutdown().awaitTermination(timeout, unit);
-
             if (fileWatchService != null) {
                 fileWatchService.shutdown();
             }
+
+            this.server.shutdown().awaitTermination(timeout, unit);
 
             log.info("grpc server shutdown successfully.");
         } catch (Exception e) {
@@ -74,7 +74,7 @@ public class GrpcServer implements StartAndShutdown {
 
     protected FileWatchService initGrpcCertKeyWatchService() throws Exception {
         return new FileWatchService(
-                new String[]{
+                new String[] {
                     TlsSystemConfig.tlsServerCertPath,
                     TlsSystemConfig.tlsServerKeyPath,
                     TlsSystemConfig.tlsServerTrustCertPath

@@ -35,7 +35,12 @@ import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
-import io.grpc.netty.shaded.io.netty.handler.ssl.*;
+import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
+import io.grpc.netty.shaded.io.netty.handler.ssl.OpenSsl;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslHandler;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslProvider;
+
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.grpc.netty.shaded.io.netty.util.AsciiString;
@@ -47,6 +52,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.cert.CertificateException;
 import java.util.List;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
@@ -98,7 +104,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     }
 
     public static void loadSslContext() throws CertificateException, IOException {
-        ProxyConfig  proxyConfig = ConfigurationManager.getProxyConfig();
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         SslProvider provider;
         if (OpenSsl.isAvailable()) {
             provider = SslProvider.OPENSSL;
@@ -108,12 +114,12 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
             log.info("Using JDK SSL provider");
         }
         if (proxyConfig.isTlsTestModeEnable()) {
-                SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
-                sslContext = GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
-                        .sslProvider(provider)
-                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                        .clientAuth(ClientAuth.NONE)
-                        .build();
+            SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
+            sslContext = GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
+                    .sslProvider(provider)
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .clientAuth(ClientAuth.NONE)
+                    .build();
         } else {
             String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
             String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
@@ -239,7 +245,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
             return;
         }
         Attributes.Key<String> key = AttributeKeys.valueOf(
-            HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
+                HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
         builder.set(key, new String(valueBytes, CharsetUtil.UTF_8));
     }
 
