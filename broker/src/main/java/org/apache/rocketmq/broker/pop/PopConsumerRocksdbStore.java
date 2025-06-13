@@ -103,6 +103,11 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         return true;
     }
 
+    @Override
+    public boolean load() {
+        return start();
+    }
+
     public String getFilePath() {
         return this.dbPath;
     }

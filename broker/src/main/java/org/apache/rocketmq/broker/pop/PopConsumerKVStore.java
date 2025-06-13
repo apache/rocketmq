@@ -19,6 +19,10 @@ package org.apache.rocketmq.broker.pop;
 import java.util.List;
 
 public interface PopConsumerKVStore {
+    /**
+     * Load the kv store
+     */
+    boolean load();
 
     /**
      * Starts the storage service.

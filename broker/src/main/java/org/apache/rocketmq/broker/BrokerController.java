@@ -883,6 +883,10 @@ public class BrokerController {
             result = this.messageStore.load();
         }
 
+        if (brokerConfig.isPopConsumerKVServiceInit()) {
+            result = result && popConsumerService.load();
+        }
+
         if (messageStoreConfig.isTimerWheelEnable()) {
             result = result && this.timerMessageStore.load();
         }

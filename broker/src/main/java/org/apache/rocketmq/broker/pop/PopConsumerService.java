@@ -692,6 +692,10 @@ public class PopConsumerService extends ServiceThread {
         return consumerLockService;
     }
 
+    public boolean load() {
+        return this.popConsumerStore.load();
+    }
+
     @Override
     public void start() {
         if (!this.popConsumerStore.start()) {
