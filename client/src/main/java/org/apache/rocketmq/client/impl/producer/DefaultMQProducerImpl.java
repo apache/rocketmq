@@ -997,7 +997,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 requestHeader.setSysFlag(sysFlag);
                 requestHeader.setBornTimestamp(System.currentTimeMillis());
                 requestHeader.setFlag(msg.getFlag());
-                requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
                 requestHeader.setReconsumeTimes(0);
                 requestHeader.setUnitMode(this.isUnitMode());
                 requestHeader.setBatch(msg instanceof MessageBatch);
@@ -1015,6 +1014,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_MAX_RECONSUME_TIMES);
                     }
                 }
+                requestHeader.setProperties(MessageDecoder.messageProperties2String(msg.getProperties()));
 
                 SendResult sendResult = null;
                 switch (communicationMode) {
