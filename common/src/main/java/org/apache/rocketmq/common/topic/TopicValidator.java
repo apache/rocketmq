@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.topic;
 
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 
 public class TopicValidator {
@@ -111,7 +112,9 @@ public class TopicValidator {
             return new ValidateTopicResult(false, "The specified topic contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$");
         }
 
-        if (topic.length() > TOPIC_MAX_LENGTH) {
+        if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) &&
+            !topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX) &&
+            topic.length() > TOPIC_MAX_LENGTH) {
             return new ValidateTopicResult(false, "The specified topic is longer than topic max length.");
         }
 
