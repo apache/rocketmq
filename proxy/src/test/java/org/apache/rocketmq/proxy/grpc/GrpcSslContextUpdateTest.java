@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.grpc;
 
+import io.grpc.Server;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -25,13 +26,24 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.TimeUnit;
 
 @ExtendWith(MockitoExtension.class)
 class GrpcSslContextUpdateTest {
+
+    // Mock gRPC Server instance
+    @Mock
+    private Server mockServer;
+
+    // GrpcServer instance for testing
+    private GrpcServer grpcServer;
+
     private static final Field SSL_CTX_FIELD;
+
     static {
         try {
             SSL_CTX_FIELD = ProxyAndTlsProtocolNegotiator.class
@@ -63,6 +75,8 @@ class GrpcSslContextUpdateTest {
 
     @BeforeEach
     void before() throws Exception {
+        // Create GrpcServer instance for testing
+        grpcServer = new GrpcServer(mockServer, 1, TimeUnit.SECONDS);
         ProxyAndTlsProtocolNegotiator.loadSslContext();
     }
 
@@ -72,7 +86,7 @@ class GrpcSslContextUpdateTest {
         SslContext oldCtx = (SslContext) SSL_CTX_FIELD.get(null);
 
         // Create a TLS reload listener instance directly
-        GrpcServer.GrpcTlsReloadHandler reloadHandler = new GrpcServer.GrpcTlsReloadHandler();
+        GrpcServer.GrpcTlsReloadHandler reloadHandler = grpcServer.new GrpcTlsReloadHandler();
 
         // Trigger the reload event
         reloadHandler.onTlsContextReload();

@@ -106,7 +106,8 @@ public class GrpcServerTest {
     @Test
     public void testTlsReloadHandlerSuccess() throws Exception {
         // Create a GrpcTlsReloadHandler instance from the GrpcServer
-        TlsCertificateManager.TlsContextReloadListener reloadHandler = new GrpcServer.GrpcTlsReloadHandler();
+
+        TlsCertificateManager.TlsContextReloadListener reloadHandler = grpcServer.new GrpcTlsReloadHandler();
 
         // Mock successful SSL context loading
         mockedNegotiator.when(ProxyAndTlsProtocolNegotiator::loadSslContext)
@@ -128,7 +129,7 @@ public class GrpcServerTest {
     @Test
     public void testTlsReloadHandlerCertificateException() throws Exception {
         // Create a GrpcTlsReloadHandler instance from the GrpcServer
-        TlsCertificateManager.TlsContextReloadListener reloadHandler = new GrpcServer.GrpcTlsReloadHandler();
+        TlsCertificateManager.TlsContextReloadListener reloadHandler = grpcServer.new GrpcTlsReloadHandler();
 
         // Mock CertificateException when loading SSL context
         CertificateException expectedException = new CertificateException("Test certificate exception");
@@ -151,7 +152,7 @@ public class GrpcServerTest {
     @Test
     public void testTlsReloadHandlerIOException() throws Exception {
         // Create a GrpcTlsReloadHandler instance from the GrpcServer
-        TlsCertificateManager.TlsContextReloadListener reloadHandler = new GrpcServer.GrpcTlsReloadHandler();
+        TlsCertificateManager.TlsContextReloadListener reloadHandler = grpcServer.new GrpcTlsReloadHandler();
 
         // Mock IOException when loading SSL context
         IOException expectedException = new IOException("Test IO exception");

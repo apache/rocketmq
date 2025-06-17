@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.grpc.Server;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
@@ -68,7 +69,8 @@ public class GrpcServer implements StartAndShutdown {
         }
     }
 
-    static class GrpcTlsReloadHandler implements TlsCertificateManager.TlsContextReloadListener {
+    @VisibleForTesting
+    class GrpcTlsReloadHandler implements TlsCertificateManager.TlsContextReloadListener {
         @Override
         public void onTlsContextReload() {
             try {
