@@ -17,17 +17,16 @@
 
 package org.apache.rocketmq.proxy.grpc;
 
+import io.grpc.Server;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
+
 import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
-
-import io.grpc.Server;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.common.utils.StartAndShutdown;
-import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
-import org.apache.rocketmq.srvutil.FileWatchService;
 
 public class GrpcServer implements StartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -38,31 +37,28 @@ public class GrpcServer implements StartAndShutdown {
 
     private final TimeUnit unit;
 
-    private final FileWatchService fileWatchService;
+    final GrpcTlsReloadHandler tlsReloadHandler;
 
     protected GrpcServer(Server server, long timeout, TimeUnit unit) throws Exception {
         this.server = server;
         this.timeout = timeout;
         this.unit = unit;
 
-        this.fileWatchService = initGrpcCertKeyWatchService();
+        this.tlsReloadHandler = new GrpcTlsReloadHandler();
+
+        // Register the TLS context reload handler
+        TlsCertificateManager.getInstance().registerReloadListener(this.tlsReloadHandler);
     }
 
     public void start() throws Exception {
         this.server.start();
-
-        if (fileWatchService != null) {
-            fileWatchService.start();
-        }
-
         log.info("grpc server start successfully.");
     }
 
     public void shutdown() {
         try {
-            if (fileWatchService != null) {
-                fileWatchService.shutdown();
-            }
+            // Unregister the TLS context reload handler
+            TlsCertificateManager.getInstance().unregisterReloadListener(this.tlsReloadHandler);
 
             this.server.shutdown().awaitTermination(timeout, unit);
 
@@ -72,47 +68,14 @@ public class GrpcServer implements StartAndShutdown {
         }
     }
 
-    protected FileWatchService initGrpcCertKeyWatchService() throws Exception {
-        return new FileWatchService(
-                new String[] {
-                    TlsSystemConfig.tlsServerCertPath,
-                    TlsSystemConfig.tlsServerKeyPath,
-                    TlsSystemConfig.tlsServerTrustCertPath
-                },
-                new GrpcCertKeyFileWatchListener()
-        );
-    }
-
-    protected static class GrpcCertKeyFileWatchListener implements FileWatchService.Listener {
-        private boolean certChanged = false;
-        private boolean keyChanged = false;
-
+    static class GrpcTlsReloadHandler implements TlsCertificateManager.TlsContextReloadListener {
         @Override
-        public void onChanged(String path) {
-            if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
-                log.info("The trust certificate changed, reload the ssl context");
-                reloadServerSslContext();
-            } else if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
-                certChanged = true;
-            } else if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
-                keyChanged = true;
-            }
-
-            if (certChanged && keyChanged) {
-                log.info("The certificate and private key changed, reload the ssl context");
-                reloadServerSslContext();
-
-                certChanged = false;
-                keyChanged = false;
-            }
-        }
-
-        private void reloadServerSslContext() {
+        public void onTlsContextReload() {
             try {
                 ProxyAndTlsProtocolNegotiator.loadSslContext();
                 log.info("SSLContext reloaded for grpc server");
             } catch (CertificateException | IOException e) {
-                log.error("Failed to reloaded SSLContext for server", e);
+                log.error("Failed to reload SSLContext for server", e);
             }
         }
     }

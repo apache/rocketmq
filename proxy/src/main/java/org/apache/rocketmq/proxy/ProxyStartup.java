@@ -44,6 +44,7 @@ import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.remoting.RemotingProtocolServer;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
@@ -68,6 +69,8 @@ public class ProxyStartup {
             // parse argument from command line
             CommandLineArgument commandLineArgument = parseCommandLineArgument(args);
             initConfiguration(commandLineArgument);
+
+            initTlsCertificateManager();
 
             // init thread pool monitor for proxy.
             initThreadPoolMonitor();
@@ -120,6 +123,11 @@ public class ProxyStartup {
         setConfigFromCommandLineArgument(commandLineArgument);
         log.info("Current configuration: " + ConfigurationManager.formatProxyConfig());
 
+    }
+
+    protected static void initTlsCertificateManager() {
+        TlsCertificateManager tlsCertManager = TlsCertificateManager.getInstance();
+        PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertManager);
     }
 
     protected static CommandLineArgument parseCommandLineArgument(String[] args) {

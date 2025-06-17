@@ -17,10 +17,11 @@
 package org.apache.rocketmq.proxy.grpc;
 
 import io.grpc.Server;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
-import org.apache.rocketmq.srvutil.FileWatchService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,15 +34,12 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
+import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class GrpcServerTest {
@@ -54,52 +52,45 @@ public class GrpcServerTest {
     private static MockedStatic<LoggerFactory> mockedLoggerFactory;
     private static Logger mockLogger;
 
-    // Mock for FileWatchService to test GrpcServer's start/shutdown impact
-    @Mock
-    private FileWatchService mockFileWatchService;
-
-    // A testable GrpcServer subclass to return our mock FileWatchService
-    private class TestableGrpcServer extends GrpcServer {
-        public TestableGrpcServer(Server server, long timeout, TimeUnit unit) throws Exception {
-            super(server, timeout, unit);
-        }
-
-        @Override
-        protected FileWatchService initGrpcCertKeyWatchService() {
-            // Return our mocked FileWatchService
-            return mockFileWatchService;
-        }
-    }
+    // GrpcServer instance for testing
+    private GrpcServer grpcServer;
 
     @BeforeAll
     public static void setUpAll() {
         mockLogger = mock(Logger.class);
         mockedLoggerFactory = Mockito.mockStatic(LoggerFactory.class);
-        mockedLoggerFactory.when(() -> LoggerFactory.getLogger(any(String.class))).thenReturn(mockLogger);
+        mockedLoggerFactory.when(() -> LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME)).thenReturn(mockLogger);
     }
 
     @AfterAll
     public static void tearDownAll() {
-        mockedLoggerFactory.close();
+        if (mockedLoggerFactory != null) {
+            mockedLoggerFactory.close();
+        }
     }
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws Exception {
         Mockito.clearInvocations(mockLogger);
 
         // Mock static method loadSslContext
         mockedNegotiator = Mockito.mockStatic(ProxyAndTlsProtocolNegotiator.class);
 
-        // Set static paths for TlsSystemConfig, as FileWatchService constructor uses them.
-        // For testing, we don't rely on real files, so any non-null path is fine.
+        // Set static paths for TlsSystemConfig
         TlsSystemConfig.tlsServerCertPath = "/tmp/server.pem";
         TlsSystemConfig.tlsServerKeyPath = "/tmp/server.key";
         TlsSystemConfig.tlsServerTrustCertPath = "/tmp/trust.pem";
+
+        // Create GrpcServer instance for testing
+        grpcServer = new GrpcServer(mockServer, 1, TimeUnit.SECONDS);
     }
 
     @AfterEach
-    public void tearDown() {
+    public void tearDown() throws Exception {
         mockedNegotiator.close();
+
+        // Unregister TLS reload handler and shutdown server
+        grpcServer.shutdown();
 
         // Clear TlsSystemConfig paths
         TlsSystemConfig.tlsServerCertPath = null;
@@ -108,129 +99,102 @@ public class GrpcServerTest {
     }
 
     @Test
-    public void testGrpcCertKeyFileWatchListener_trustCertChange() {
-        // Create listener instance
-        GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
+    public void testTlsReloadHandlerSuccess() throws Exception {
+        // Create a GrpcTlsReloadHandler instance from the GrpcServer
+        TlsCertificateManager.TlsContextReloadListener reloadHandler = new GrpcServer.GrpcTlsReloadHandler();
 
-        // Simulate trust certificate file change
-        listener.onChanged(TlsSystemConfig.tlsServerTrustCertPath);
-
-        // Verify loadSslContext method was called once
-        mockedNegotiator.verify(ProxyAndTlsProtocolNegotiator::loadSslContext, times(1));
-        // Verify log output
-        verify(mockLogger).info("The trust certificate changed, reload the ssl context");
-        verify(mockLogger).info("SSLContext reloaded for grpc server");
-    }
-
-    @Test
-    public void testGrpcCertKeyFileWatchListener_certOnlyChange() {
-        // Create listener instance
-        GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
-
-        // Simulate certificate file change
-        listener.onChanged(TlsSystemConfig.tlsServerCertPath);
-
-        // Verify loadSslContext method was not called
-        mockedNegotiator.verify(ProxyAndTlsProtocolNegotiator::loadSslContext, never());
-        verify(mockLogger, never()).info("The certificate and private key changed, reload the ssl context");
-    }
-
-    @Test
-    public void testGrpcCertKeyFileWatchListener_keyOnlyChange() {
-        // Create listener instance
-        GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
-
-        // Simulate private key file change
-        listener.onChanged(TlsSystemConfig.tlsServerKeyPath);
-
-        // Verify loadSslContext method was not called
-        mockedNegotiator.verify(ProxyAndTlsProtocolNegotiator::loadSslContext, never());
-        verify(mockLogger, never()).info("The certificate and private key changed, reload the ssl context");
-    }
-
-    @Test
-    public void testGrpcCertKeyFileWatchListener_certThenKeyChange() {
-        // Create listener instance
-        GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
-
-        // Simulate certificate file change
-        listener.onChanged(TlsSystemConfig.tlsServerCertPath);
-        // Simulate private key file change
-        listener.onChanged(TlsSystemConfig.tlsServerKeyPath);
-
-        // Verify loadSslContext method was called once
-        mockedNegotiator.verify(ProxyAndTlsProtocolNegotiator::loadSslContext, times(1));
-        verify(mockLogger).info("The certificate and private key changed, reload the ssl context");
-        verify(mockLogger).info("SSLContext reloaded for grpc server");
-    }
-
-    @Test
-    public void testGrpcCertKeyFileWatchListener_keyThenCertChange() {
-        // Create listener instance
-        GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
-
-        // Simulate private key file change
-        listener.onChanged(TlsSystemConfig.tlsServerKeyPath);
-        // Simulate certificate file change
-        listener.onChanged(TlsSystemConfig.tlsServerCertPath);
-
-        // Verify loadSslContext method was called once
-        mockedNegotiator.verify(ProxyAndTlsProtocolNegotiator::loadSslContext, times(1));
-        verify(mockLogger).info("The certificate and private key changed, reload the ssl context");
-        verify(mockLogger).info("SSLContext reloaded for grpc server");
-    }
-
-    @Test
-    public void testGrpcCertKeyFileWatchListener_reloadError() {
-        // Create listener instance
-        GrpcServer.GrpcCertKeyFileWatchListener listener = new GrpcServer.GrpcCertKeyFileWatchListener();
-
-        // Simulate loadSslContext throwing an exception
+        // Mock successful SSL context loading
         mockedNegotiator.when(ProxyAndTlsProtocolNegotiator::loadSslContext)
-                .thenThrow(new IOException("Test IO Exception"));
+            .thenAnswer(invocation -> null); // Method returns void
 
-        // Simulate both certificate and private key changes
-        listener.onChanged(TlsSystemConfig.tlsServerCertPath);
-        listener.onChanged(TlsSystemConfig.tlsServerKeyPath);
+        // Trigger reload
+        reloadHandler.onTlsContextReload();
 
-        // Verify loadSslContext method was called once
+        // Verify loadSslContext was called
         mockedNegotiator.verify(ProxyAndTlsProtocolNegotiator::loadSslContext, times(1));
-        // Verify error log output
-        verify(mockLogger).error(eq("Failed to reloaded SSLContext for server"), any(IOException.class));
-    }
 
+        // Verify success log was printed
+        verify(mockLogger).info("SSLContext reloaded for grpc server");
 
-    @Test
-    public void testGrpcServerStart() throws Exception {
-        // Use our special GrpcServer which returns the mockFileWatchService
-        GrpcServer grpcServer = new TestableGrpcServer(mockServer, 1, TimeUnit.SECONDS);
-
-        // Start the server
-        grpcServer.start();
-
-        // Verify that gRPC Server's start method was called
-        verify(mockServer, times(1)).start();
-        // Verify that FileWatchService's start method was called
-        verify(mockFileWatchService, times(1)).start();
-        // Verify log output
-        verify(mockLogger).info("grpc server start successfully.");
+        // Verify no error log was printed
+        verify(mockLogger, never()).error(anyString(), any(Throwable.class));
     }
 
     @Test
-    public void testGrpcServerShutdown() throws Exception {
-        when(mockServer.shutdown()).thenReturn(mockServer);
-        when(mockServer.awaitTermination(any(Long.class), any(TimeUnit.class))).thenReturn(true);
+    public void testTlsReloadHandlerCertificateException() throws Exception {
+        // Create a GrpcTlsReloadHandler instance from the GrpcServer
+        TlsCertificateManager.TlsContextReloadListener reloadHandler = new GrpcServer.GrpcTlsReloadHandler();
 
-        GrpcServer grpcServer = new TestableGrpcServer(mockServer, 1, TimeUnit.SECONDS);
+        // Mock CertificateException when loading SSL context
+        CertificateException expectedException = new CertificateException("Test certificate exception");
+        mockedNegotiator.when(ProxyAndTlsProtocolNegotiator::loadSslContext)
+            .thenThrow(expectedException);
 
-        grpcServer.shutdown();
+        // Trigger reload
+        reloadHandler.onTlsContextReload();
 
-        // Verify that gRPC Server's shutdown and awaitTermination methods were called
-        verify(mockServer, times(1)).shutdown();
-        verify(mockServer, times(1)).awaitTermination(1, TimeUnit.SECONDS);
-        // Verify that FileWatchService's shutdown method was called
-        verify(mockFileWatchService, times(1)).shutdown();
-        // Verify log output
-        verify(mockLogger).info("grpc server shutdown successfully.");
+        // Verify loadSslContext was called
+        mockedNegotiator.verify(ProxyAndTlsProtocolNegotiator::loadSslContext, times(1));
+
+        // Verify no success log was printed
+        verify(mockLogger, never()).info("SSLContext reloaded for grpc server");
+
+        // Verify error log was printed with the correct exception
+        verify(mockLogger).error(eq("Failed to reload SSLContext for server"), eq(expectedException));
+    }
+
+    @Test
+    public void testTlsReloadHandlerIOException() throws Exception {
+        // Create a GrpcTlsReloadHandler instance from the GrpcServer
+        TlsCertificateManager.TlsContextReloadListener reloadHandler = new GrpcServer.GrpcTlsReloadHandler();
+
+        // Mock IOException when loading SSL context
+        IOException expectedException = new IOException("Test IO exception");
+        mockedNegotiator.when(ProxyAndTlsProtocolNegotiator::loadSslContext)
+            .thenThrow(expectedException);
+
+        // Trigger reload
+        reloadHandler.onTlsContextReload();
+
+        // Verify loadSslContext was called
+        mockedNegotiator.verify(ProxyAndTlsProtocolNegotiator::loadSslContext, times(1));
+
+        // Verify no success log was printed
+        verify(mockLogger, never()).info("SSLContext reloaded for grpc server");
+
+        // Verify error log was printed with the correct exception
+        verify(mockLogger).error(eq("Failed to reload SSLContext for server"), eq(expectedException));
+    }
+
+    @Test
+    public void testShutdownUnregistersReloadHandler() throws Exception {
+        // Mock TlsCertificateManager instance
+        TlsCertificateManager tlsCertificateManager = mock(TlsCertificateManager.class);
+        MockedStatic<TlsCertificateManager> mockedCertManager = Mockito.mockStatic(TlsCertificateManager.class);
+        mockedCertManager.when(TlsCertificateManager::getInstance).thenReturn(tlsCertificateManager);
+
+        try {
+            when(mockServer.shutdown()).thenReturn(mockServer);
+
+            // Create a new GrpcServer
+            GrpcServer localGrpcServer = new GrpcServer(mockServer, 1, TimeUnit.SECONDS);
+
+            // Keep a reference to the reload handler
+            GrpcServer.GrpcTlsReloadHandler reloadHandler = localGrpcServer.tlsReloadHandler;
+
+            // Verify handler was registered
+            verify(tlsCertificateManager).registerReloadListener(eq(reloadHandler));
+
+            // Shutdown the server
+            localGrpcServer.shutdown();
+
+            // Verify handler was unregistered
+            verify(tlsCertificateManager).unregisterReloadListener(eq(reloadHandler));
+
+            // Verify log output
+            verify(mockLogger).info("grpc server shutdown successfully.");
+        } finally {
+            mockedCertManager.close();
+        }
     }
 }

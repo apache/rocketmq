@@ -31,21 +31,13 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.remoting.activity.AckMessageActivity;
-import org.apache.rocketmq.proxy.remoting.activity.ChangeInvisibleTimeActivity;
-import org.apache.rocketmq.proxy.remoting.activity.ClientManagerActivity;
-import org.apache.rocketmq.proxy.remoting.activity.ConsumerManagerActivity;
-import org.apache.rocketmq.proxy.remoting.activity.GetTopicRouteActivity;
-import org.apache.rocketmq.proxy.remoting.activity.PopMessageActivity;
-import org.apache.rocketmq.proxy.remoting.activity.PullMessageActivity;
-import org.apache.rocketmq.proxy.remoting.activity.RecallMessageActivity;
-import org.apache.rocketmq.proxy.remoting.activity.SendMessageActivity;
-import org.apache.rocketmq.proxy.remoting.activity.TransactionActivity;
+import org.apache.rocketmq.proxy.remoting.activity.*;
 import org.apache.rocketmq.proxy.remoting.channel.RemotingChannelManager;
 import org.apache.rocketmq.proxy.remoting.pipeline.AuthenticationPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.AuthorizationPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingServer;
@@ -57,7 +49,6 @@ import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
-import org.apache.rocketmq.srvutil.FileWatchService;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -89,7 +80,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     protected final ThreadPoolExecutor topicRouteExecutor;
     protected final ThreadPoolExecutor defaultExecutor;
     protected final ScheduledExecutorService timerExecutor;
-    protected final FileWatchService fileWatchService;
+    protected final RemotingTlsReloadHandler tlsReloadHandler;
 
 
     public RemotingProtocolServer(MessagingProcessor messagingProcessor) throws Exception {
@@ -127,111 +118,84 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         }
 
         this.sendMessageExecutor = ThreadPoolMonitor.createAndMonitor(
-                config.getRemotingSendMessageThreadPoolNums(),
-                config.getRemotingSendMessageThreadPoolNums(),
-                1000 * 60,
-                TimeUnit.MILLISECONDS,
-                "RemotingSendMessageThread",
-                config.getRemotingSendThreadPoolQueueCapacity(),
-                new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInSendQueue())
+            config.getRemotingSendMessageThreadPoolNums(),
+            config.getRemotingSendMessageThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            "RemotingSendMessageThread",
+            config.getRemotingSendThreadPoolQueueCapacity(),
+            new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInSendQueue())
         );
 
         this.pullMessageExecutor = ThreadPoolMonitor.createAndMonitor(
-                config.getRemotingPullMessageThreadPoolNums(),
-                config.getRemotingPullMessageThreadPoolNums(),
-                1000 * 60,
-                TimeUnit.MILLISECONDS,
-                "RemotingPullMessageThread",
-                config.getRemotingPullThreadPoolQueueCapacity(),
-                new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInPullQueue())
+            config.getRemotingPullMessageThreadPoolNums(),
+            config.getRemotingPullMessageThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            "RemotingPullMessageThread",
+            config.getRemotingPullThreadPoolQueueCapacity(),
+            new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInPullQueue())
         );
 
         this.updateOffsetExecutor = ThreadPoolMonitor.createAndMonitor(
-                config.getRemotingUpdateOffsetThreadPoolNums(),
-                config.getRemotingUpdateOffsetThreadPoolNums(),
-                1,
-                TimeUnit.MINUTES,
-                "RemotingUpdateOffsetThread",
-                config.getRemotingUpdateOffsetThreadPoolQueueCapacity(),
-                new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInUpdateOffsetQueue())
+            config.getRemotingUpdateOffsetThreadPoolNums(),
+            config.getRemotingUpdateOffsetThreadPoolNums(),
+            1,
+            TimeUnit.MINUTES,
+            "RemotingUpdateOffsetThread",
+            config.getRemotingUpdateOffsetThreadPoolQueueCapacity(),
+            new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInUpdateOffsetQueue())
         );
 
         this.heartbeatExecutor = ThreadPoolMonitor.createAndMonitor(
-                config.getRemotingHeartbeatThreadPoolNums(),
-                config.getRemotingHeartbeatThreadPoolNums(),
-                1000 * 60,
-                TimeUnit.MILLISECONDS,
-                "RemotingHeartbeatThread",
-                config.getRemotingHeartbeatThreadPoolQueueCapacity(),
-                new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInHeartbeatQueue())
+            config.getRemotingHeartbeatThreadPoolNums(),
+            config.getRemotingHeartbeatThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            "RemotingHeartbeatThread",
+            config.getRemotingHeartbeatThreadPoolQueueCapacity(),
+            new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInHeartbeatQueue())
         );
 
         this.topicRouteExecutor = ThreadPoolMonitor.createAndMonitor(
-                config.getRemotingTopicRouteThreadPoolNums(),
-                config.getRemotingTopicRouteThreadPoolNums(),
-                1000 * 60,
-                TimeUnit.MILLISECONDS,
-                "RemotingTopicRouteThread",
-                config.getRemotingTopicRouteThreadPoolQueueCapacity(),
-                new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInTopicRouteQueue())
+            config.getRemotingTopicRouteThreadPoolNums(),
+            config.getRemotingTopicRouteThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            "RemotingTopicRouteThread",
+            config.getRemotingTopicRouteThreadPoolQueueCapacity(),
+            new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInTopicRouteQueue())
         );
 
         this.defaultExecutor = ThreadPoolMonitor.createAndMonitor(
-                config.getRemotingDefaultThreadPoolNums(),
-                config.getRemotingDefaultThreadPoolNums(),
-                1000 * 60,
-                TimeUnit.MILLISECONDS,
-                "RemotingDefaultThread",
-                config.getRemotingDefaultThreadPoolQueueCapacity(),
-                new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInDefaultQueue())
+            config.getRemotingDefaultThreadPoolNums(),
+            config.getRemotingDefaultThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            "RemotingDefaultThread",
+            config.getRemotingDefaultThreadPoolQueueCapacity(),
+            new ThreadPoolHeadSlowTimeMillsMonitor(config.getRemotingWaitTimeMillsInDefaultQueue())
         );
 
         this.timerExecutor = ThreadUtils.newSingleThreadScheduledExecutor(
-                new ThreadFactoryBuilder().setNameFormat("RemotingServerScheduler-%d").build()
+            new ThreadFactoryBuilder().setNameFormat("RemotingServerScheduler-%d").build()
         );
         this.timerExecutor.scheduleAtFixedRate(this::cleanExpireRequest, 10, 10, TimeUnit.SECONDS);
 
-        this.registerRemotingServer(this.defaultRemotingServer);
+        this.tlsReloadHandler = new RemotingTlsReloadHandler();
+        TlsCertificateManager.getInstance().registerReloadListener(this.tlsReloadHandler);
 
-        this.fileWatchService = this.initGrpcCertKeyWatchService();
+        this.registerRemotingServer(this.defaultRemotingServer);
     }
 
-    protected FileWatchService initGrpcCertKeyWatchService() throws Exception {
-        return new FileWatchService(
-                new String[] {
-                    TlsSystemConfig.tlsServerCertPath,
-                    TlsSystemConfig.tlsServerKeyPath,
-                    TlsSystemConfig.tlsServerTrustCertPath
-                },
-                new FileWatchService.Listener() {
-                    boolean certChanged, keyChanged = false;
-
-                    @Override
-                    public void onChanged(String path) {
-                        if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
-                            log.info("The trust certificate changed, reload the ssl context");
-                            reloadServerSslContext();
-                        }
-                        if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
-                            certChanged = true;
-                        }
-                        if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
-                            keyChanged = true;
-                        }
-                        if (certChanged && keyChanged) {
-                            log.info("The certificate and private key changed, reload the ssl context");
-                            certChanged = keyChanged = false;
-                            reloadServerSslContext();
-                        }
-                    }
-
-                    private void reloadServerSslContext() {
-                        if (defaultRemotingServer instanceof NettyRemotingServer) {
-                            ((NettyRemotingServer) defaultRemotingServer).loadSslContext();
-                        }
-                    }
-                }
-        );
+    protected class RemotingTlsReloadHandler implements TlsCertificateManager.TlsContextReloadListener {
+        @Override
+        public void onTlsContextReload() {
+            if (defaultRemotingServer instanceof NettyRemotingServer) {
+                ((NettyRemotingServer) defaultRemotingServer).loadSslContext();
+                log.info("SSLContext reloaded for remoting server");
+            }
+        }
     }
 
     protected void registerRemotingServer(RemotingServer remotingServer) {
@@ -269,6 +233,9 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
 
     @Override
     public void shutdown() throws Exception {
+        // Unregister the TLS context reload handler
+        TlsCertificateManager.getInstance().unregisterReloadListener(this.tlsReloadHandler);
+
         this.defaultRemotingServer.shutdown();
         this.remotingChannelManager.shutdown();
         this.sendMessageExecutor.shutdown();
@@ -320,7 +287,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         AuthConfig authConfig = ConfigurationManager.getAuthConfig();
         if (authConfig != null) {
             pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig, messagingProcessor))
-                    .pipe(new AuthenticationPipeline(authConfig, messagingProcessor));
+                .pipe(new AuthenticationPipeline(authConfig, messagingProcessor));
         }
         return pipeline.pipe(new ContextInitPipeline());
     }
@@ -399,7 +366,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
                         if (blockingQueue.remove(runnable)) {
                             rt.setStopRun(true);
                             rt.returnResponse(ResponseCode.SYSTEM_BUSY,
-                                    String.format("[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d", behind, blockingQueue.size()));
+                                String.format("[TIMEOUT_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, size of queue: %d", behind, blockingQueue.size()));
                         }
                     } else {
                         break;
