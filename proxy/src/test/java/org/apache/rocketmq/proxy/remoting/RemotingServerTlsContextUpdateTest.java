@@ -40,125 +40,118 @@ import java.lang.reflect.Field;
 public class RemotingServerTlsContextUpdateTest {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+
     private static final String CERT = "/tmp/server.pem";
-    private static final String KEY = "/tmp/server.key";
+    private static final String KEY  = "/tmp/server.key";
 
     @Mock
     private MessagingProcessor messagingProcessor;
 
     @BeforeAll
     static void beforeAll() throws Exception {
-        // 初始化配置
+        // Initialize configuration files/environment
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
 
-        // 设置 TLS 相关配置
+        // Populate proxy configuration with TLS-related information
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         config.setTlsTestModeEnable(true);
         config.setTlsCertPath(CERT);
         config.setTlsKeyPath(KEY);
 
-        // 设置 TLS 系统配置
+        // Fill in static TLS system properties so that Netty can pick them up
         TlsSystemConfig.tlsTestModeEnable = config.isTlsTestModeEnable();
         System.setProperty(TlsSystemConfig.TLS_TEST_MODE_ENABLE, Boolean.toString(config.isTlsTestModeEnable()));
+
         TlsSystemConfig.tlsServerCertPath = config.getTlsCertPath();
         System.setProperty(TlsSystemConfig.TLS_SERVER_CERTPATH, config.getTlsCertPath());
-        TlsSystemConfig.tlsServerKeyPath = config.getTlsKeyPath();
-        System.setProperty(TlsSystemConfig.TLS_SERVER_KEYPATH, config.getTlsKeyPath());
+
+        TlsSystemConfig.tlsServerKeyPath  = config.getTlsKeyPath();
+        System.setProperty(TlsSystemConfig.TLS_SERVER_KEYPATH,  config.getTlsKeyPath());
     }
 
     @Test
     public void testRemotingServerTlsContextReload() throws Exception {
-        // 创建 RemotingProtocolServer 实例
+        // Create a RemotingProtocolServer instance
         RemotingProtocolServer remotingProtocolServer = new RemotingProtocolServer(messagingProcessor);
 
-        // 确保服务器实例是 NettyRemotingServer 类型
+        // Default server must be a NettyRemotingServer
         Assertions.assertTrue(remotingProtocolServer.defaultRemotingServer instanceof NettyRemotingServer,
             "Default remoting server should be instance of NettyRemotingServer");
-
         NettyRemotingServer nettyRemotingServer = (NettyRemotingServer) remotingProtocolServer.defaultRemotingServer;
 
-        // 获取 NettyRemotingAbstract 类的 sslContext 字段
+        // Obtain the sslContext field from NettyRemotingAbstract
         Field sslContextField = NettyRemotingAbstract.class.getDeclaredField("sslContext");
         sslContextField.setAccessible(true);
 
-        // 获取初始的 SSL 上下文
+        // Retrieve the initial SSL context (create it if necessary)
         SslContext originalSslContext = (SslContext) sslContextField.get(nettyRemotingServer);
-
-        // 为了测试，我们需要确保有初始上下文
         if (originalSslContext == null) {
             nettyRemotingServer.loadSslContext();
             originalSslContext = (SslContext) sslContextField.get(nettyRemotingServer);
         }
-
-        // 记录原始的 SSL 上下文
         log.info("Original SSL context: {}", originalSslContext);
 
-        // 触发 TLS 上下文重新加载
+        // Trigger TLS context reload through the handler
         RemotingProtocolServer.RemotingTlsReloadHandler reloadHandler = remotingProtocolServer.tlsReloadHandler;
         reloadHandler.onTlsContextReload();
 
-        // 获取重载后的 SSL 上下文
+        // Retrieve the new SSL context
         SslContext reloadedSslContext = (SslContext) sslContextField.get(nettyRemotingServer);
         log.info("Reloaded SSL context: {}", reloadedSslContext);
 
-        // 验证 SSL 上下文是否已更改
+        // Verify the context has been replaced
         Assertions.assertNotSame(originalSslContext, reloadedSslContext,
             "SSL context should be replaced after reload");
-
-        // 确保两次都有有效的 SSL 上下文
+        // Ensure both contexts are non-null
         if (originalSslContext != null) {
             Assertions.assertNotNull(reloadedSslContext, "Reloaded SSL context should not be null");
         }
 
-        // 清理资源
+        // Shutdown the server to free resources
         remotingProtocolServer.shutdown();
     }
 
     @Test
     public void testTlsCertificateManagerTriggersCorrectUpdate() throws Exception {
-        // 创建 RemotingProtocolServer 实例
+        // Create a RemotingProtocolServer instance
         RemotingProtocolServer remotingProtocolServer = new RemotingProtocolServer(messagingProcessor);
-
-        // 获取 NettyRemotingServer 实例
         NettyRemotingServer nettyRemotingServer = (NettyRemotingServer) remotingProtocolServer.defaultRemotingServer;
 
-        // 获取 sslContext 字段
+        // Access the sslContext field
         Field sslContextField = NettyRemotingAbstract.class.getDeclaredField("sslContext");
         sslContextField.setAccessible(true);
 
-        // 获取初始的 SSL 上下文
+        // Retrieve the initial SSL context (create it if necessary)
         SslContext originalSslContext = (SslContext) sslContextField.get(nettyRemotingServer);
-
-        // 为了测试，我们需要确保有初始上下文
         if (originalSslContext == null) {
             nettyRemotingServer.loadSslContext();
             originalSslContext = (SslContext) sslContextField.get(nettyRemotingServer);
         }
 
-        // 通过 TlsCertificateManager 触发重新加载
+        // Trigger reload via TlsCertificateManager
         TlsCertificateManager tlsCertificateManager = TlsCertificateManager.getInstance();
 
-        // 创建一个监听器列表的副本，以便我们可以直接调用所有监听器
+        // Read the private 'reloadListeners' field, then invoke every listener directly
         Field listenersField = TlsCertificateManager.class.getDeclaredField("reloadListeners");
         listenersField.setAccessible(true);
         @SuppressWarnings("unchecked")
         java.util.List<TlsCertificateManager.TlsContextReloadListener> listeners =
             (java.util.List<TlsCertificateManager.TlsContextReloadListener>) listenersField.get(tlsCertificateManager);
 
-        // 通知所有监听器重新加载
+        // Notify each listener
         for (TlsCertificateManager.TlsContextReloadListener listener : new java.util.ArrayList<>(listeners)) {
             listener.onTlsContextReload();
         }
 
-        // 获取重载后的 SSL 上下文
+        // Retrieve the reloaded SSL context
         SslContext reloadedSslContext = (SslContext) sslContextField.get(nettyRemotingServer);
 
-        // 验证 SSL 上下文是否已更改
+        // Verify the context has been replaced
         Assertions.assertNotSame(originalSslContext, reloadedSslContext,
             "SSL context should be replaced after TlsCertificateManager triggered reload");
 
-        // 清理资源
+        // Shutdown the server to free resources
         remotingProtocolServer.shutdown();
     }
 }
