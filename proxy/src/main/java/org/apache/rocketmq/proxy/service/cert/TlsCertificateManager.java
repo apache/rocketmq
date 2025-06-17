@@ -20,6 +20,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
 
@@ -37,9 +38,8 @@ public class TlsCertificateManager implements StartAndShutdown {
         try {
             this.fileWatchService = new FileWatchService(
                 new String[] {
-                    TlsSystemConfig.tlsServerCertPath,
-                    TlsSystemConfig.tlsServerKeyPath,
-                    TlsSystemConfig.tlsServerTrustCertPath
+                    ConfigurationManager.getProxyConfig().getTlsCertPath(),
+                    ConfigurationManager.getProxyConfig().getTlsKeyPath()
                 },
                 new CertKeyFileWatchListener()
             );
@@ -68,7 +68,11 @@ public class TlsCertificateManager implements StartAndShutdown {
     @Override
     public void start() throws Exception {
         this.fileWatchService.start();
-        log.info("TLS certificate manager started successfully");
+        log.info("TLS certificate manager started successfully, start watching: {} {} {}",
+            TlsSystemConfig.tlsServerCertPath,
+            TlsSystemConfig.tlsServerKeyPath,
+            TlsSystemConfig.tlsServerTrustCertPath
+        );
     }
 
     @Override
@@ -83,6 +87,7 @@ public class TlsCertificateManager implements StartAndShutdown {
 
         @Override
         public void onChanged(String path) {
+            log.info("cert file changed: {}", path);
             if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
                 log.info("The trust certificate changed, reload the ssl context");
                 notifyContextReload();

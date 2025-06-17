@@ -70,8 +70,6 @@ public class ProxyStartup {
             CommandLineArgument commandLineArgument = parseCommandLineArgument(args);
             initConfiguration(commandLineArgument);
 
-            initTlsCertificateManager();
-
             // init thread pool monitor for proxy.
             initThreadPoolMonitor();
 
@@ -91,6 +89,8 @@ public class ProxyStartup {
 
             RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);
+
+            initTlsCertificateManager();
 
             // start servers one by one.
             PROXY_START_AND_SHUTDOWN.start();
