@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.proxy.service.cert;
-
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -23,13 +22,16 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class TlsCertificateManager implements StartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    private static final TlsCertificateManager INSTANCE = new TlsCertificateManager();
+
+    // Static holder class for lazy initialization
+    private static class SingletonHolder {
+        private static final TlsCertificateManager INSTANCE = new TlsCertificateManager();
+    }
 
     private final FileWatchService fileWatchService;
     private final List<TlsContextReloadListener> reloadListeners = new ArrayList<>();
@@ -50,7 +52,7 @@ public class TlsCertificateManager implements StartAndShutdown {
     }
 
     public static TlsCertificateManager getInstance() {
-        return INSTANCE;
+        return TlsCertificateManager.SingletonHolder.INSTANCE;
     }
 
     public void registerReloadListener(TlsContextReloadListener listener) {
