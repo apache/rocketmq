@@ -117,8 +117,7 @@ public class TopicValidator {
             if (topic.length() > RETRY_OR_DLQ_TOPIC_MAX_LENGTH) {
                 return new ValidateTopicResult(false, "The specified topic is longer than topic max length.");
             }
-        }
-        else {
+        } else {
             if (topic.length() > TOPIC_MAX_LENGTH) {
                 return new ValidateTopicResult(false, "The specified topic is longer than topic max length.");
             }
