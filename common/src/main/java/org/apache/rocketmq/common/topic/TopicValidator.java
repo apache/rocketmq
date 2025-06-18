@@ -39,6 +39,7 @@ public class TopicValidator {
 
     public static final boolean[] VALID_CHAR_BIT_MAP = new boolean[128];
     private static final int TOPIC_MAX_LENGTH = 127;
+    private static final int RETRY_OR_DLQ_TOPIC_MAX_LENGTH = 255;
 
     private static final Set<String> SYSTEM_TOPIC_SET = new HashSet<>();
 
@@ -112,10 +113,15 @@ public class TopicValidator {
             return new ValidateTopicResult(false, "The specified topic contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$");
         }
 
-        if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) &&
-            !topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX) &&
-            topic.length() > TOPIC_MAX_LENGTH) {
-            return new ValidateTopicResult(false, "The specified topic is longer than topic max length.");
+        if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+            if (topic.length() > RETRY_OR_DLQ_TOPIC_MAX_LENGTH) {
+                return new ValidateTopicResult(false, "The specified topic is longer than topic max length.");
+            }
+        }
+        else {
+            if (topic.length() > TOPIC_MAX_LENGTH) {
+                return new ValidateTopicResult(false, "The specified topic is longer than topic max length.");
+            }
         }
 
         return new ValidateTopicResult(true, "");
