@@ -47,6 +47,10 @@ public class TlsCertificateManager implements StartAndShutdown {
         }
     }
 
+    public FileWatchService getFileWatchService() {
+        return this.fileWatchService;
+    }
+
     public void registerReloadListener(TlsContextReloadListener listener) {
         if (listener != null) {
             this.reloadListeners.add(listener);
@@ -57,6 +61,10 @@ public class TlsCertificateManager implements StartAndShutdown {
         if (listener != null) {
             this.reloadListeners.remove(listener);
         }
+    }
+
+    public List<TlsContextReloadListener> getReloadListeners() {
+        return this.reloadListeners;
     }
 
     @Override
