@@ -120,46 +120,38 @@ public class TlsCertificateManagerTest {
 
     @Test
     public void testStartAndShutdown() throws Exception {
-        // Create a spy to verify the internal fileWatchService methods are called
         TlsCertificateManager managerSpy = spy(manager);
 
-        // Get access to the internal fileWatchService
         Field watchServiceField = TlsCertificateManager.class.getDeclaredField("fileWatchService");
         watchServiceField.setAccessible(true);
         FileWatchService watchService = (FileWatchService) watchServiceField.get(managerSpy);
         FileWatchService watchServiceSpy = spy(watchService);
         watchServiceField.set(managerSpy, watchServiceSpy);
 
-        // Test start method
         managerSpy.start();
         verify(watchServiceSpy).start();
 
-        // Test shutdown method
         managerSpy.shutdown();
         verify(watchServiceSpy).shutdown();
     }
 
     @Test
     public void testRegisterAndUnregisterListener() {
-        // Test registering a listener
         manager.registerReloadListener(listener1);
 
         List<TlsCertificateManager.TlsContextReloadListener> listeners = manager.getReloadListeners();
         assertEquals(1, listeners.size());
         assertTrue(listeners.contains(listener1));
 
-        // Test registering another listener
         manager.registerReloadListener(listener2);
         assertEquals(2, listeners.size());
         assertTrue(listeners.contains(listener2));
 
-        // Test unregistering a listener
         manager.unregisterReloadListener(listener1);
         assertEquals(1, listeners.size());
         assertFalse(listeners.contains(listener1));
         assertTrue(listeners.contains(listener2));
 
-        // Test handling null listeners
         manager.registerReloadListener(null);
         assertEquals(1, listeners.size()); // Should remain unchanged
 
@@ -169,123 +161,95 @@ public class TlsCertificateManagerTest {
 
     @Test
     public void testFileChangeNotification_CertOnly() throws Exception {
-        // Setup test
         manager.registerReloadListener(listener1);
 
-        // Trigger cert file change only
         fileWatchListener.onChanged(certFile.getAbsolutePath());
 
-        // Verify listener not called yet
         verify(listener1, never()).onTlsContextReload();
     }
 
     @Test
     public void testFileChangeNotification_KeyOnly() throws Exception {
-        // Setup test
         manager.registerReloadListener(listener1);
 
-        // Trigger key file change only
         fileWatchListener.onChanged(keyFile.getAbsolutePath());
 
-        // Verify listener not called yet
         verify(listener1, never()).onTlsContextReload();
     }
 
     @Test
     public void testFileChangeNotification_BothFiles() throws Exception {
-        // Setup test
         manager.registerReloadListener(listener1);
 
-        // Trigger both file changes
         fileWatchListener.onChanged(certFile.getAbsolutePath());
         fileWatchListener.onChanged(keyFile.getAbsolutePath());
 
-        // Verify listener is called
         verify(listener1, times(1)).onTlsContextReload();
     }
 
     @Test
     public void testFileChangeNotification_MultipleListeners() throws Exception {
-        // Setup test
         manager.registerReloadListener(listener1);
         manager.registerReloadListener(listener2);
 
-        // Trigger both file changes
         fileWatchListener.onChanged(certFile.getAbsolutePath());
         fileWatchListener.onChanged(keyFile.getAbsolutePath());
 
-        // Verify both listeners are called
         verify(listener1, times(1)).onTlsContextReload();
         verify(listener2, times(1)).onTlsContextReload();
     }
 
     @Test
     public void testFileChangeNotification_BothFilesReverseOrder() throws Exception {
-        // Setup test
         manager.registerReloadListener(listener1);
 
-        // Trigger both file changes in reverse order
         fileWatchListener.onChanged(keyFile.getAbsolutePath());
         fileWatchListener.onChanged(certFile.getAbsolutePath());
 
-        // Verify listener is called
         verify(listener1, times(1)).onTlsContextReload();
     }
 
     @Test
     public void testFileChangeNotification_RepeatedChanges() throws Exception {
-        // Setup test
         manager.registerReloadListener(listener1);
 
-        // First batch of changes
         fileWatchListener.onChanged(certFile.getAbsolutePath());
         fileWatchListener.onChanged(keyFile.getAbsolutePath());
 
-        // Verify listener is called once
         verify(listener1, times(1)).onTlsContextReload();
 
-        // Second batch of changes
         fileWatchListener.onChanged(certFile.getAbsolutePath());
         fileWatchListener.onChanged(keyFile.getAbsolutePath());
 
-        // Verify listener is called again (total twice)
         verify(listener1, times(2)).onTlsContextReload();
     }
 
     @Test
     public void testFileChangeNotification_UnknownFile() throws Exception {
-        // Setup test
         manager.registerReloadListener(listener1);
 
-        // Trigger change to an unknown file
         fileWatchListener.onChanged("/unknown/file/path");
 
-        // Verify listener is not called
         verify(listener1, never()).onTlsContextReload();
     }
 
     @Test
     public void testFileChangeNotification_ListenerThrowsException() throws Exception {
-        // Setup a listener that throws an exception
         TlsCertificateManager.TlsContextReloadListener exceptionListener = mock(TlsCertificateManager.TlsContextReloadListener.class);
         doThrow(new RuntimeException("Test exception")).when(exceptionListener).onTlsContextReload();
 
-        // Register both listeners
         manager.registerReloadListener(exceptionListener);
         manager.registerReloadListener(listener1);
 
-        // Trigger both file changes
         fileWatchListener.onChanged(certFile.getAbsolutePath());
         fileWatchListener.onChanged(keyFile.getAbsolutePath());
 
-        // Verify both listeners were called despite the exception
         verify(exceptionListener, times(1)).onTlsContextReload();
         verify(listener1, times(1)).onTlsContextReload();
     }
 
     @Test
     public void testInnerCertKeyFileWatchListener() throws Exception {
-        // Get the CertKeyFileWatchListener class
         Class<?> innerClass = null;
         for (Class<?> clazz : TlsCertificateManager.class.getDeclaredClasses()) {
             if (clazz.getSimpleName().equals("CertKeyFileWatchListener")) {
@@ -296,30 +260,23 @@ public class TlsCertificateManagerTest {
 
         assertNotNull(innerClass, "CertKeyFileWatchListener class not found");
 
-        // Create a new instance
         Constructor<?> constructor = innerClass.getDeclaredConstructor(TlsCertificateManager.class);
         constructor.setAccessible(true);
         Object innerListener = constructor.newInstance(manager);
 
-        // Register a mock listener to the manager
         manager.registerReloadListener(listener1);
 
-        // Get the onChanged method
         Method onChangedMethod = innerClass.getDeclaredMethod("onChanged", String.class);
         onChangedMethod.setAccessible(true);
 
-        // Test cert file change
         onChangedMethod.invoke(innerListener, certFile.getAbsolutePath());
         verify(listener1, never()).onTlsContextReload();
 
-        // Test key file change - should trigger notification
         onChangedMethod.invoke(innerListener, keyFile.getAbsolutePath());
         verify(listener1, times(1)).onTlsContextReload();
 
-        // Test reset of flags
         reset(listener1);
 
-        // Call onChanged again for cert - should not trigger notification as flags are reset
         onChangedMethod.invoke(innerListener, certFile.getAbsolutePath());
         verify(listener1, never()).onTlsContextReload();
     }
