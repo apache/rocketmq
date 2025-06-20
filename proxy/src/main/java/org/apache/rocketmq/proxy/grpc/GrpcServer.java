@@ -38,20 +38,21 @@ public class GrpcServer implements StartAndShutdown {
 
     private final TimeUnit unit;
 
-    final GrpcTlsReloadHandler tlsReloadHandler;
+    private final TlsCertificateManager tlsCertificateManager;
+    @VisibleForTesting final GrpcTlsReloadHandler tlsReloadHandler;
 
-    protected GrpcServer(Server server, long timeout, TimeUnit unit) throws Exception {
+    protected GrpcServer(Server server, long timeout, TimeUnit unit, TlsCertificateManager tlsCertificateManager) throws Exception {
         this.server = server;
         this.timeout = timeout;
         this.unit = unit;
-
+        this.tlsCertificateManager = tlsCertificateManager;
         this.tlsReloadHandler = new GrpcTlsReloadHandler();
-
-        // Register the TLS context reload handler
-        TlsCertificateManager.getInstance().registerReloadListener(this.tlsReloadHandler);
     }
 
     public void start() throws Exception {
+        // Register the TLS context reload handler
+        tlsCertificateManager.registerReloadListener(this.tlsReloadHandler);
+
         this.server.start();
         log.info("grpc server start successfully.");
     }
@@ -59,12 +60,13 @@ public class GrpcServer implements StartAndShutdown {
     public void shutdown() {
         try {
             // Unregister the TLS context reload handler
-            TlsCertificateManager.getInstance().unregisterReloadListener(this.tlsReloadHandler);
+            tlsCertificateManager.unregisterReloadListener(this.tlsReloadHandler);
 
             this.server.shutdown().awaitTermination(timeout, unit);
 
             log.info("grpc server shutdown successfully.");
         } catch (Exception e) {
+            e.printStackTrace();
             log.error("Failed to shutdown grpc server", e);
         }
     }

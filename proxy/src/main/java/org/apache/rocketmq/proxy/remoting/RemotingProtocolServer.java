@@ -89,10 +89,11 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     protected final ThreadPoolExecutor topicRouteExecutor;
     protected final ThreadPoolExecutor defaultExecutor;
     protected final ScheduledExecutorService timerExecutor;
+    protected final TlsCertificateManager tlsCertificateManager;
     protected final RemotingTlsReloadHandler tlsReloadHandler;
 
 
-    public RemotingProtocolServer(MessagingProcessor messagingProcessor) throws Exception {
+    public RemotingProtocolServer(MessagingProcessor messagingProcessor, TlsCertificateManager tlsCertificateManager) throws Exception {
         this.messagingProcessor = messagingProcessor;
         this.remotingChannelManager = new RemotingChannelManager(this, messagingProcessor.getProxyRelayService());
 
@@ -117,6 +118,8 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         System.setProperty(TlsSystemConfig.TLS_SERVER_CERTPATH, config.getTlsCertPath());
         TlsSystemConfig.tlsServerKeyPath = config.getTlsKeyPath();
         System.setProperty(TlsSystemConfig.TLS_SERVER_KEYPATH, config.getTlsKeyPath());
+        this.tlsCertificateManager = tlsCertificateManager;
+        this.tlsReloadHandler = new RemotingTlsReloadHandler();
 
         this.clientHousekeepingService = new ClientHousekeepingService(this.clientManagerActivity);
 
@@ -191,9 +194,6 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         );
         this.timerExecutor.scheduleAtFixedRate(this::cleanExpireRequest, 10, 10, TimeUnit.SECONDS);
 
-        this.tlsReloadHandler = new RemotingTlsReloadHandler();
-        TlsCertificateManager.getInstance().registerReloadListener(this.tlsReloadHandler);
-
         this.registerRemotingServer(this.defaultRemotingServer);
     }
 
@@ -243,7 +243,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     @Override
     public void shutdown() throws Exception {
         // Unregister the TLS context reload handler
-        TlsCertificateManager.getInstance().unregisterReloadListener(this.tlsReloadHandler);
+        tlsCertificateManager.unregisterReloadListener(this.tlsReloadHandler);
 
         this.defaultRemotingServer.shutdown();
         this.remotingChannelManager.shutdown();
@@ -257,6 +257,9 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
 
     @Override
     public void start() throws Exception {
+        // Register the TLS context reload handler
+        tlsCertificateManager.registerReloadListener(this.tlsReloadHandler);
+
         this.remotingChannelManager.start();
         this.defaultRemotingServer.start();
     }

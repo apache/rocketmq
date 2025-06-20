@@ -44,12 +44,14 @@ public class GrpcServerBuilder {
 
     protected TimeUnit unit = TimeUnit.SECONDS;
 
+    protected TlsCertificateManager tlsCertificateManager;
+
     public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager) {
         return new GrpcServerBuilder(executor, port, tlsCertificateManager);
     }
 
     protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager) {
-//        tlsCertificateManager.registerReloadListener();
+        this.tlsCertificateManager = tlsCertificateManager;
         serverBuilder = NettyServerBuilder.forPort(port);
 
         serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());
@@ -101,7 +103,7 @@ public class GrpcServerBuilder {
     }
 
     public GrpcServer build() throws Exception {
-        return new GrpcServer(this.serverBuilder.build(), time, unit);
+        return new GrpcServer(this.serverBuilder.build(), time, unit, tlsCertificateManager);
     }
 
     public GrpcServerBuilder configInterceptor() {

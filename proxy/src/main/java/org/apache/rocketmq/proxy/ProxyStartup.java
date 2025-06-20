@@ -82,7 +82,8 @@ public class ProxyStartup {
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
 
             // create grpcServer
-            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor, ConfigurationManager.getProxyConfig().getGrpcServerPort())
+            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
+                    ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
                 .addService(createServiceProcessor(messagingProcessor))
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
@@ -91,7 +92,7 @@ public class ProxyStartup {
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
 
-            RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor);
+            RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor, tlsCertificateManager);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);
 
             // start servers one by one.
