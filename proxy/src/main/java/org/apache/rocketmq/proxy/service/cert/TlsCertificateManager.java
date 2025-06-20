@@ -80,7 +80,7 @@ public class TlsCertificateManager implements StartAndShutdown {
 
         @Override
         public void onChanged(String path) {
-            log.info("cert file changed: {}", path);
+            log.info("File changed: {}", path);
             if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
                 certChanged = true;
             } else if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
