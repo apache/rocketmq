@@ -77,6 +77,10 @@ public class ProxyStartup {
 
             MessagingProcessor messagingProcessor = createMessagingProcessor();
 
+            // tls cert update
+            TlsCertificateManager tlsCertificateManager = new TlsCertificateManager();
+            PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
+
             // create grpcServer
             GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor, ConfigurationManager.getProxyConfig().getGrpcServerPort())
                 .addService(createServiceProcessor(messagingProcessor))
@@ -89,8 +93,6 @@ public class ProxyStartup {
 
             RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);
-
-            initTlsCertificateManager();
 
             // start servers one by one.
             PROXY_START_AND_SHUTDOWN.start();
@@ -123,11 +125,6 @@ public class ProxyStartup {
         setConfigFromCommandLineArgument(commandLineArgument);
         log.info("Current configuration: " + ConfigurationManager.formatProxyConfig());
 
-    }
-
-    protected static void initTlsCertificateManager() {
-        TlsCertificateManager tlsCertManager = TlsCertificateManager.getInstance();
-        PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertManager);
     }
 
     protected static CommandLineArgument parseCommandLineArgument(String[] args) {

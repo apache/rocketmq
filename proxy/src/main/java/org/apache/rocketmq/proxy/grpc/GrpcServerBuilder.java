@@ -34,6 +34,7 @@ import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 
 public class GrpcServerBuilder {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -43,11 +44,12 @@ public class GrpcServerBuilder {
 
     protected TimeUnit unit = TimeUnit.SECONDS;
 
-    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port) {
-        return new GrpcServerBuilder(executor, port);
+    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager) {
+        return new GrpcServerBuilder(executor, port, tlsCertificateManager);
     }
 
-    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port) {
+    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager) {
+//        tlsCertificateManager.registerReloadListener();
         serverBuilder = NettyServerBuilder.forPort(port);
 
         serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());

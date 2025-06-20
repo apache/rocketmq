@@ -37,12 +37,17 @@ public class FileWatchService extends LifecycleAwareServiceThread {
 
     private final Map<String, String> currentHash = new HashMap<>();
     private final Listener listener;
-    private static final int WATCH_INTERVAL = 500;
+    private final int watchInterval;
     private final MessageDigest md = MessageDigest.getInstance("MD5");
 
+    public FileWatchService(final String[] watchFiles, final Listener listener) throws Exception {
+        this(watchFiles, listener, 500);
+    }
+
     public FileWatchService(final String[] watchFiles,
-        final Listener listener) throws Exception {
+        final Listener listener, int watchInterval) throws Exception {
         this.listener = listener;
+        this.watchInterval = watchInterval;
         for (String file : watchFiles) {
             if (!Strings.isNullOrEmpty(file) && new File(file).exists()) {
                 currentHash.put(file, md5Digest(file));
@@ -61,7 +66,7 @@ public class FileWatchService extends LifecycleAwareServiceThread {
 
         while (!this.isStopped()) {
             try {
-                this.waitForRunning(WATCH_INTERVAL);
+                this.waitForRunning(watchInterval);
                 for (Map.Entry<String, String> entry : currentHash.entrySet()) {
                     String newHash = md5Digest(entry.getKey());
                     if (!newHash.equals(entry.getValue())) {

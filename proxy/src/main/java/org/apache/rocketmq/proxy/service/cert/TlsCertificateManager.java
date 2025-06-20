@@ -28,31 +28,23 @@ import java.util.List;
 public class TlsCertificateManager implements StartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    // Static holder class for lazy initialization
-    private static class SingletonHolder {
-        private static final TlsCertificateManager INSTANCE = new TlsCertificateManager();
-    }
-
     private final FileWatchService fileWatchService;
     private final List<TlsContextReloadListener> reloadListeners = new ArrayList<>();
 
-    private TlsCertificateManager() {
+    public TlsCertificateManager() {
         try {
             this.fileWatchService = new FileWatchService(
                 new String[] {
                     ConfigurationManager.getProxyConfig().getTlsCertPath(),
                     ConfigurationManager.getProxyConfig().getTlsKeyPath()
                 },
-                new CertKeyFileWatchListener()
+                new CertKeyFileWatchListener(),
+                60 * 60 * 1000 /* 1 hour */
             );
         } catch (Exception e) {
             log.error("Failed to initialize TLS certificate watch service", e);
             throw new RuntimeException("Failed to initialize TLS certificate manager", e);
         }
-    }
-
-    public static TlsCertificateManager getInstance() {
-        return TlsCertificateManager.SingletonHolder.INSTANCE;
     }
 
     public void registerReloadListener(TlsContextReloadListener listener) {
@@ -70,10 +62,9 @@ public class TlsCertificateManager implements StartAndShutdown {
     @Override
     public void start() throws Exception {
         this.fileWatchService.start();
-        log.info("TLS certificate manager started successfully, start watching: {} {} {}",
-            TlsSystemConfig.tlsServerCertPath,
-            TlsSystemConfig.tlsServerKeyPath,
-            TlsSystemConfig.tlsServerTrustCertPath
+        log.info("TLS certificate manager started successfully, start watching: {} {}",
+            ConfigurationManager.getProxyConfig().getTlsCertPath(),
+            ConfigurationManager.getProxyConfig().getTlsKeyPath()
         );
     }
 
@@ -90,10 +81,7 @@ public class TlsCertificateManager implements StartAndShutdown {
         @Override
         public void onChanged(String path) {
             log.info("cert file changed: {}", path);
-            if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
-                log.info("The trust certificate changed, reload the ssl context");
-                notifyContextReload();
-            } else if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
+            if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
                 certChanged = true;
             } else if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
                 keyChanged = true;
