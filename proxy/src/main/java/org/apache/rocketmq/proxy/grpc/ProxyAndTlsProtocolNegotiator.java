@@ -93,7 +93,9 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     private static SslContext loadSslContext() {
         try {
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-            if (proxyConfig.isTlsTestModeEnable()) {
+            if (TlsSystemConfig.tlsMode == TlsMode.DISABLED) {
+                return null;
+            } else if (proxyConfig.isTlsTestModeEnable()) {
                 SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
                 return GrpcSslContexts.forServer(selfSignedCertificate.certificate(),
                                 selfSignedCertificate.privateKey())
@@ -243,10 +245,14 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         private final ChannelHandler plaintext;
 
         public TlsModeHandler(GrpcHttp2ConnectionHandler grpcHandler) {
-            this.ssl = InternalProtocolNegotiators.serverTls(sslContext)
+            if (sslContext == null) {
+                this.ssl = null;
+            } else {
+                this.ssl = InternalProtocolNegotiators.serverTls(sslContext)
                     .newHandler(grpcHandler);
+            }
             this.plaintext = InternalProtocolNegotiators.serverPlaintext()
-                    .newHandler(grpcHandler);
+                .newHandler(grpcHandler);
         }
 
         @Override
