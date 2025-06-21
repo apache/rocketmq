@@ -153,7 +153,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
         DefaultMQPushConsumerImpl pushConsumerImpl = pushConsumer.getDefaultMQPushConsumerImpl();
 
         // suppress updateTopicRouteInfoFromNameServer
-        pushConsumer.changeInstanceNameToPID();
+        pushConsumer.changeInstanceNameToPIDWithGroupInfo(pushConsumer.getConsumerGroup());
         mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true));
         FieldUtils.writeDeclaredField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
         mQClientFactory = spy(mQClientFactory);

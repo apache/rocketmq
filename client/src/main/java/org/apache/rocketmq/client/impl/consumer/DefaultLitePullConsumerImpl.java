@@ -286,7 +286,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 this.checkConfig();
 
                 if (this.defaultLitePullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
-                    this.defaultLitePullConsumer.changeInstanceNameToPID();
+                    this.defaultLitePullConsumer.changeInstanceNameToPIDWithGroupInfo(this.defaultLitePullConsumer.getConsumerGroup());
                 }
 
                 initScheduledThreadPoolExecutor();
