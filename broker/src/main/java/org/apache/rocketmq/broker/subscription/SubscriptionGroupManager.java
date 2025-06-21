@@ -143,7 +143,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         this.persist();
     }
 
-    protected void updateSubscriptionGroupConfigWithoutPersist(SubscriptionGroupConfig config) {
+    public void updateSubscriptionGroupConfigWithoutPersist(SubscriptionGroupConfig config) {
         Map<String, String> newAttributes = request(config);
         Map<String, String> currentAttributes = current(config.getGroupName());
 
@@ -260,7 +260,8 @@ public class SubscriptionGroupManager extends ConfigManager {
     public SubscriptionGroupConfig findSubscriptionGroupConfig(final String group) {
         SubscriptionGroupConfig subscriptionGroupConfig = getSubscriptionGroupConfig(group);
         if (null == subscriptionGroupConfig) {
-            if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup() || MixAll.isSysConsumerGroup(group)) {
+            if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup()
+                    || MixAll.isSysConsumerGroupAndEnableCreate(group, brokerController.getBrokerConfig().isEnableCreateSysGroup())) {
                 if (group.length() > Validators.CHARACTER_MAX_LENGTH || TopicValidator.isTopicOrGroupIllegal(group)) {
                     return null;
                 }

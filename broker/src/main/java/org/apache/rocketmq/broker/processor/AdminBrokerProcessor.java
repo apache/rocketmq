@@ -45,9 +45,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.common.AclException;
-import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.model.Subject;
@@ -72,15 +69,12 @@ import org.apache.rocketmq.broker.metrics.InvocationStatus;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
-import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.LockCallback;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UnlockCallback;
@@ -108,7 +102,6 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -152,11 +145,9 @@ import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.DeleteAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
@@ -167,7 +158,6 @@ import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonReq
 import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.GetBrokerAclConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetBrokerConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsInBrokerHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsRequestHeader;
@@ -201,7 +191,6 @@ import org.apache.rocketmq.remoting.protocol.header.ResumeCheckHalfMessageReques
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGroupForbiddenRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ViewBrokerStatsDataRequestHeader;
@@ -223,13 +212,14 @@ import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
-import org.apache.rocketmq.store.RocksDBMessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
+import org.apache.rocketmq.store.queue.CombineConsumeQueueStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
@@ -367,14 +357,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.updateAndGetGroupForbidden(ctx, request);
             case RequestCode.GET_SUBSCRIPTIONGROUP_CONFIG:
                 return this.getSubscriptionGroup(ctx, request);
-            case RequestCode.UPDATE_AND_CREATE_ACL_CONFIG:
-                return updateAndCreateAccessConfig(ctx, request);
-            case RequestCode.DELETE_ACL_CONFIG:
-                return deleteAccessConfig(ctx, request);
-            case RequestCode.GET_BROKER_CLUSTER_ACL_INFO:
-                return getBrokerAclConfigVersion(ctx, request);
-            case RequestCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG:
-                return updateGlobalWhiteAddrsConfig(ctx, request);
             case RequestCode.RESUME_CHECK_HALF_MESSAGE:
                 return resumeCheckHalfMessage(ctx, request);
             case RequestCode.GET_TOPIC_CONFIG:
@@ -824,148 +806,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         this.brokerController.getConsumerOffsetManager().cleanOffsetByTopic(topic);
         this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNumByTopicName(topic);
         this.brokerController.getMessageStore().deleteTopics(Sets.newHashSet(topic));
-    }
-
-    private synchronized RemotingCommand updateAndCreateAccessConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        try {
-            ensureAclEnabled();
-
-            final CreateAccessConfigRequestHeader requestHeader = request.decodeCommandCustomHeader(CreateAccessConfigRequestHeader.class);
-            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (accessValidator.updateAccessConfig(createAccessConfig(requestHeader))) {
-                response.setCode(ResponseCode.SUCCESS);
-                response.setOpaque(request.getOpaque());
-                response.markResponseType();
-                response.setRemark(null);
-                NettyRemotingAbstract.writeResponse(ctx.channel(), request, response);
-            } else {
-                String errorMsg = "The accessKey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been updated failed.";
-                LOGGER.warn(errorMsg);
-                response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
-                response.setRemark(errorMsg);
-                return response;
-            }
-        } catch (Exception e) {
-            LOGGER.error("Failed to generate a proper update accessValidator response", e);
-            response.setCode(ResponseCode.UPDATE_AND_CREATE_ACL_CONFIG_FAILED);
-            response.setRemark(e.getMessage());
-            return response;
-        }
-
-        return null;
-    }
-
-    private PlainAccessConfig createAccessConfig(final CreateAccessConfigRequestHeader requestHeader) {
-        PlainAccessConfig accessConfig = new PlainAccessConfig();
-        accessConfig.setAccessKey(requestHeader.getAccessKey());
-        accessConfig.setSecretKey(requestHeader.getSecretKey());
-        accessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
-        accessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
-        accessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
-        accessConfig.setTopicPerms(UtilAll.split(requestHeader.getTopicPerms(), ","));
-        accessConfig.setGroupPerms(UtilAll.split(requestHeader.getGroupPerms(), ","));
-        accessConfig.setAdmin(requestHeader.isAdmin());
-        return accessConfig;
-    }
-
-    private synchronized RemotingCommand deleteAccessConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        LOGGER.info("DeleteAccessConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-
-        try {
-            ensureAclEnabled();
-
-            final DeleteAccessConfigRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteAccessConfigRequestHeader.class);
-            String accessKey = requestHeader.getAccessKey();
-            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (accessValidator.deleteAccessConfig(accessKey)) {
-                response.setCode(ResponseCode.SUCCESS);
-                response.setOpaque(request.getOpaque());
-                response.markResponseType();
-                response.setRemark(null);
-                NettyRemotingAbstract.writeResponse(ctx.channel(), request, response);
-            } else {
-                String errorMsg = "The accessKey[" + requestHeader.getAccessKey() + "] corresponding to accessConfig has been deleted failed.";
-                LOGGER.warn(errorMsg);
-                response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
-                response.setRemark(errorMsg);
-                return response;
-            }
-
-        } catch (Exception e) {
-            LOGGER.error("Failed to generate a proper delete accessValidator response", e);
-            response.setCode(ResponseCode.DELETE_ACL_CONFIG_FAILED);
-            response.setRemark(e.getMessage());
-            return response;
-        }
-
-        return null;
-    }
-
-    private synchronized RemotingCommand updateGlobalWhiteAddrsConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        try {
-            ensureAclEnabled();
-
-            final UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader = request.decodeCommandCustomHeader(UpdateGlobalWhiteAddrsConfigRequestHeader.class);
-            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (accessValidator.updateGlobalWhiteAddrsConfig(UtilAll.split(requestHeader.getGlobalWhiteAddrs(), ","),
-                requestHeader.getAclFileFullPath())) {
-                response.setCode(ResponseCode.SUCCESS);
-                response.setOpaque(request.getOpaque());
-                response.markResponseType();
-                response.setRemark(null);
-                NettyRemotingAbstract.writeResponse(ctx.channel(), request, response);
-            } else {
-                String errorMsg = "The globalWhiteAddresses[" + requestHeader.getGlobalWhiteAddrs() + "] has been updated failed.";
-                LOGGER.warn(errorMsg);
-                response.setCode(ResponseCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED);
-                response.setRemark(errorMsg);
-                return response;
-            }
-        } catch (Exception e) {
-            LOGGER.error("Failed to generate a proper update globalWhiteAddresses response", e);
-            response.setCode(ResponseCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED);
-            response.setRemark(e.getMessage());
-            return response;
-        }
-
-        return null;
-    }
-
-    private RemotingCommand getBrokerAclConfigVersion(ChannelHandlerContext ctx, RemotingCommand request) {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerAclConfigResponseHeader.class);
-
-        try {
-            ensureAclEnabled();
-
-            final GetBrokerAclConfigResponseHeader responseHeader = (GetBrokerAclConfigResponseHeader) response.readCustomHeader();
-            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-
-            responseHeader.setVersion(accessValidator.getAclConfigVersion());
-            responseHeader.setBrokerAddr(this.brokerController.getBrokerAddr());
-            responseHeader.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
-            responseHeader.setClusterName(this.brokerController.getBrokerConfig().getBrokerClusterName());
-
-            response.setCode(ResponseCode.SUCCESS);
-            response.setRemark(null);
-            return response;
-        } catch (Exception e) {
-            LOGGER.error("Failed to generate a proper getBrokerAclConfigVersion response", e);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(e.getMessage());
-            return response;
-        }
-    }
-
-    private void ensureAclEnabled() {
-        if (!brokerController.getBrokerConfig().isAclEnable()) {
-            throw new AclException("The broker does not enable acl.");
-        }
+        this.brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().removeTimingCount(topic);
     }
 
     private RemotingCommand getUnknownCmdResponse(ChannelHandlerContext ctx, RemotingCommand request) {
@@ -1224,6 +1065,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         String content = this.brokerController.getConfiguration().getAllConfigsFormatString();
         if (content != null && content.length() > 0) {
             try {
+                content = MixAll.adjustConfigForPlatform(content);
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
                 LOGGER.error("AdminBrokerProcessor#getBrokerConfig: unexpected error, caller={}",
@@ -1837,6 +1679,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 topicStatsTable.getOffsetTable().put(mq, topicOffset);
             }
 
+            topicStatsTable.setTopicPutTps(this.brokerController.getBrokerStatsManager().tpsTopicPutNums(requestHeader.getTopic()));
             byte[] body = topicStatsTable.encode();
             response.setBody(body);
             response.setCode(ResponseCode.SUCCESS);
@@ -2260,8 +2103,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
             if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
                 brokerController.getPopConsumerService().clearCache(group, topic, entry.getKey());
-                brokerController.getConsumerOffsetManager().commitPullOffset(
-                    "ResetOffsetInner", group, topic, entry.getKey(), entry.getValue());
+                brokerController.getConsumerOffsetManager().clearPullOffset(group, topic);
             }
             body.getOffsetTable().put(new MessageQueue(topic, brokerName, entry.getKey()), entry.getValue());
         }
@@ -2801,10 +2643,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         runtimeInfo.put("queryThreadPoolQueueCapacity",
             String.valueOf(this.brokerController.getBrokerConfig().getQueryThreadPoolQueueCapacity()));
 
+        runtimeInfo.put("ackThreadPoolQueueSize", String.valueOf(this.brokerController.getAckThreadPoolQueue().size()));
+        runtimeInfo.put("ackThreadPoolQueueCapacity",
+            String.valueOf(this.brokerController.getBrokerConfig().getAckThreadPoolQueueCapacity()));
+
         runtimeInfo.put("sendThreadPoolQueueHeadWaitTimeMills", String.valueOf(this.brokerController.headSlowTimeMills4SendThreadPoolQueue()));
         runtimeInfo.put("pullThreadPoolQueueHeadWaitTimeMills", String.valueOf(brokerController.headSlowTimeMills4PullThreadPoolQueue()));
         runtimeInfo.put("queryThreadPoolQueueHeadWaitTimeMills", String.valueOf(this.brokerController.headSlowTimeMills4QueryThreadPoolQueue()));
         runtimeInfo.put("litePullThreadPoolQueueHeadWaitTimeMills", String.valueOf(brokerController.headSlowTimeMills4LitePullThreadPoolQueue()));
+        runtimeInfo.put("ackThreadPoolQueueHeadWaitTimeMills", String.valueOf(brokerController.headSlowTimeMills4AckThreadPoolQueue()));
 
         runtimeInfo.put("EndTransactionQueueSize", String.valueOf(this.brokerController.getEndTransactionThreadPoolQueue().size()));
         runtimeInfo.put("EndTransactionThreadPoolQueueCapacity",
@@ -3474,7 +3321,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private CheckRocksdbCqWriteResult doCheckRocksdbCqWriteProgress(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         CheckRocksdbCqWriteProgressRequestHeader requestHeader = request.decodeCommandCustomHeader(CheckRocksdbCqWriteProgressRequestHeader.class);
-        String requestTopic = requestHeader.getTopic();
         MessageStore messageStore = brokerController.getMessageStore();
         DefaultMessageStore defaultMessageStore;
         if (messageStore instanceof AbstractPluginMessageStore) {
@@ -3482,121 +3328,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         } else {
             defaultMessageStore = (DefaultMessageStore) messageStore;
         }
-        RocksDBMessageStore rocksDBMessageStore = defaultMessageStore.getRocksDBMessageStore();
-        CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
+        ConsumeQueueStoreInterface consumeQueueStore = defaultMessageStore.getQueueStore();
 
-        if (defaultMessageStore.getMessageStoreConfig().getStoreType().equals(StoreType.DEFAULT_ROCKSDB.getStoreType())) {
-            result.setCheckResult("storeType is DEFAULT_ROCKSDB, no need check");
+        if (!(consumeQueueStore instanceof CombineConsumeQueueStore)) {
+            CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
+            result.setCheckResult("It is not CombineConsumeQueueStore, no need check");
             result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue());
             return result;
         }
 
-        if (!defaultMessageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
-            result.setCheckResult("rocksdbCQWriteEnable is false, checkRocksdbCqWriteProgressCommand is invalid");
-            result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
-            return result;
-        }
-
-        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = defaultMessageStore.getConsumeQueueTable();
-        StringBuilder diffResult = new StringBuilder();
-        try {
-            if (StringUtils.isNotBlank(requestTopic)) {
-                boolean checkResult = processConsumeQueuesForTopic(cqTable.get(requestTopic), requestTopic, rocksDBMessageStore, diffResult, true, requestHeader.getCheckStoreTime());
-                result.setCheckResult(diffResult.toString());
-                result.setCheckStatus(checkResult ? CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue() : CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
-                return result;
-            }
-            int successNum = 0;
-            int checkSize = 0;
-            for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : cqTable.entrySet()) {
-                boolean checkResult = processConsumeQueuesForTopic(topicEntry.getValue(), topicEntry.getKey(), rocksDBMessageStore, diffResult, false, requestHeader.getCheckStoreTime());
-                successNum += checkResult ? 1 : 0;
-                checkSize++;
-            }
-            // check all topic finish, all topic is ready, checkSize: 100, currentQueueNum: 110      -> ready  (The currentQueueNum means when we do checking, new topics are added.)
-            // check all topic finish, success/all : 89/100, currentQueueNum: 110                    -> not ready
-            boolean checkReady = successNum == checkSize;
-            String checkResultString = checkReady ? String.format("all topic is ready, checkSize: %s, currentQueueNum: %s", checkSize, cqTable.size()) :
-                String.format("success/all : %s/%s, currentQueueNum: %s", successNum, checkSize, cqTable.size());
-            diffResult.append("check all topic finish, ").append(checkResultString);
-            result.setCheckResult(diffResult.toString());
-            result.setCheckStatus(checkReady ? CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue() : CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
-        } catch (Exception e) {
-            LOGGER.error("CheckRocksdbCqWriteProgressCommand error", e);
-            result.setCheckResult(e.getMessage() + Arrays.toString(e.getStackTrace()));
-            result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_ERROR.getValue());
-        }
-        return result;
-    }
-
-    private boolean processConsumeQueuesForTopic(ConcurrentMap<Integer, ConsumeQueueInterface> queueMap, String topic,
-        RocksDBMessageStore rocksDBMessageStore, StringBuilder diffResult, boolean printDetail,
-        long checkpointByStoreTime) {
-        boolean processResult = true;
-        for (Map.Entry<Integer, ConsumeQueueInterface> queueEntry : queueMap.entrySet()) {
-            Integer queueId = queueEntry.getKey();
-            ConsumeQueueInterface jsonCq = queueEntry.getValue();
-            ConsumeQueueInterface kvCq = rocksDBMessageStore.getConsumeQueue(topic, queueId);
-            if (printDetail) {
-                String format = String.format("[topic: %s, queue:  %s] \n  kvEarliest : %s |  kvLatest : %s \n fileEarliest: %s | fileEarliest: %s ",
-                    topic, queueId, kvCq.getEarliestUnit(), kvCq.getLatestUnit(), jsonCq.getEarliestUnit(), jsonCq.getLatestUnit());
-                diffResult.append(format).append("\n");
-            }
-
-            long minOffsetByTime = 0L;
-            try {
-                minOffsetByTime = rocksDBMessageStore.getConsumeQueueStore().getOffsetInQueueByTime(topic, queueId, checkpointByStoreTime, BoundaryType.UPPER);
-            } catch (Exception e) {
-                // ignore
-            }
-            long minOffsetInQueue = kvCq.getMinOffsetInQueue();
-            long checkFrom = Math.max(minOffsetInQueue, minOffsetByTime);
-            long checkTo = jsonCq.getMaxOffsetInQueue() - 1;
-            /*
-                                                            checkTo(maxOffsetInQueue - 1)
-                                                                        v
-        fileCq   +------------------------------------------------------+
-        kvCq             +----------------------------------------------+
-                         ^                ^
-                   minOffsetInQueue   minOffsetByTime
-                                   ^
-                        checkFrom = max(minOffsetInQueue, minOffsetByTime)
-             */
-            // The latest message is earlier than the check time
-            Pair<CqUnit, Long> fileLatestCq = jsonCq.getCqUnitAndStoreTime(checkTo);
-            if (fileLatestCq != null) {
-                if (fileLatestCq.getObject2() < checkpointByStoreTime) {
-                    continue;
-                }
-            }
-            for (long i = checkFrom; i <= checkTo; i++) {
-                Pair<CqUnit, Long> fileCqUnit = jsonCq.getCqUnitAndStoreTime(i);
-                Pair<CqUnit, Long> kvCqUnit = kvCq.getCqUnitAndStoreTime(i);
-                if (fileCqUnit == null || kvCqUnit == null || !checkCqUnitEqual(kvCqUnit.getObject1(), fileCqUnit.getObject1())) {
-                    LOGGER.error(String.format("[topic: %s, queue: %s, offset: %s] \n file : %s  \n  kv : %s \n",
-                        topic, queueId, i, kvCqUnit != null ? kvCqUnit.getObject1() : "null", fileCqUnit != null ? fileCqUnit.getObject1() : "null"));
-                    processResult = false;
-                    break;
-                }
-            }
-        }
-        return processResult;
-    }
-
-    private boolean checkCqUnitEqual(CqUnit cqUnit1, CqUnit cqUnit2) {
-        if (cqUnit1.getQueueOffset() != cqUnit2.getQueueOffset()) {
-            return false;
-        }
-        if (cqUnit1.getSize() != cqUnit2.getSize()) {
-            return false;
-        }
-        if (cqUnit1.getPos() != cqUnit2.getPos()) {
-            return false;
-        }
-        if (cqUnit1.getBatchNum() != cqUnit2.getBatchNum()) {
-            return false;
-        }
-        return cqUnit1.getTagsCode() == cqUnit2.getTagsCode();
+        return ((CombineConsumeQueueStore) consumeQueueStore).
+            doCheckCqWriteProgress(requestHeader.getTopic(), requestHeader.getCheckStoreTime(), StoreType.DEFAULT, StoreType.DEFAULT_ROCKSDB);
     }
 
     private RemotingCommand transferPopToFsStore(ChannelHandlerContext ctx, RemotingCommand request) {

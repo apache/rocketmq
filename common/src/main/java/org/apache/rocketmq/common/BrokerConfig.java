@@ -30,7 +30,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private String brokerConfigPath = null;
 
-    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String rocketmqHome = MixAll.ROCKETMQ_HOME_DIR;
     @ImportantField
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
@@ -129,6 +129,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean accountStatsEnable = true;
     private boolean accountStatsPrintZeroValues = true;
+
+    private int maxStatsIdleTimeInMinutes = -1;
 
     private boolean transferMsgByHeap = true;
 
@@ -285,7 +287,7 @@ public class BrokerConfig extends BrokerIdentity {
     @ImportantField
     private long transactionCheckInterval = 30 * 1000;
 
-    private long transactionMetricFlushInterval = 3 * 1000;
+    private long transactionMetricFlushInterval = 10 * 1000;
 
     /**
      * transaction batch op message
@@ -426,6 +428,10 @@ public class BrokerConfig extends BrokerIdentity {
     private long popInflightMessageThreshold = 10000;
     private boolean enablePopMessageThreshold = false;
 
+    private boolean enableFastChannelEventProcess = false;
+    private boolean printChannelGroups = false;
+    private int printChannelGroupsMinNum = 5;
+
     private int splitRegistrationSize = 800;
 
     /**
@@ -454,6 +460,10 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean allowRecallWhenBrokerNotWriteable = true;
 
     private boolean recallMessageEnable = false;
+
+    private boolean enableRegisterProducer = true;
+
+    private boolean enableCreateSysGroup = true;
 
     public String getConfigBlackList() {
         return configBlackList;
@@ -1279,10 +1289,6 @@ public class BrokerConfig extends BrokerIdentity {
         this.traceTopicEnable = traceTopicEnable;
     }
 
-    public boolean isAclEnable() {
-        return aclEnable;
-    }
-
     public void setAclEnable(boolean aclEnable) {
         this.aclEnable = aclEnable;
     }
@@ -1533,6 +1539,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setAccountStatsPrintZeroValues(boolean accountStatsPrintZeroValues) {
         this.accountStatsPrintZeroValues = accountStatsPrintZeroValues;
+    }
+
+    public int getMaxStatsIdleTimeInMinutes() {
+        return maxStatsIdleTimeInMinutes;
+    }
+
+    public void setMaxStatsIdleTimeInMinutes(int maxStatsIdleTimeInMinutes) {
+        this.maxStatsIdleTimeInMinutes = maxStatsIdleTimeInMinutes;
     }
 
     public boolean isLockInStrictMode() {
@@ -1903,6 +1917,30 @@ public class BrokerConfig extends BrokerIdentity {
         this.enableSplitRegistration = enableSplitRegistration;
     }
 
+    public boolean isEnableFastChannelEventProcess() {
+        return enableFastChannelEventProcess;
+    }
+
+    public void setEnableFastChannelEventProcess(boolean enableFastChannelEventProcess) {
+        this.enableFastChannelEventProcess = enableFastChannelEventProcess;
+    }
+
+    public boolean isPrintChannelGroups() {
+        return printChannelGroups;
+    }
+
+    public void setPrintChannelGroups(boolean printChannelGroups) {
+        this.printChannelGroups = printChannelGroups;
+    }
+
+    public int getPrintChannelGroupsMinNum() {
+        return printChannelGroupsMinNum;
+    }
+
+    public void setPrintChannelGroupsMinNum(int printChannelGroupsMinNum) {
+        this.printChannelGroupsMinNum = printChannelGroupsMinNum;
+    }
+
     public int getSplitRegistrationSize() {
         return splitRegistrationSize;
     }
@@ -2005,5 +2043,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setRecallMessageEnable(boolean recallMessageEnable) {
         this.recallMessageEnable = recallMessageEnable;
+    }
+
+    public boolean isEnableRegisterProducer() {
+        return enableRegisterProducer;
+    }
+
+    public void setEnableRegisterProducer(boolean enableRegisterProducer) {
+        this.enableRegisterProducer = enableRegisterProducer;
+    }
+
+    public boolean isEnableCreateSysGroup() {
+        return enableCreateSysGroup;
+    }
+
+    public void setEnableCreateSysGroup(boolean enableCreateSysGroup) {
+        this.enableCreateSysGroup = enableCreateSysGroup;
     }
 }

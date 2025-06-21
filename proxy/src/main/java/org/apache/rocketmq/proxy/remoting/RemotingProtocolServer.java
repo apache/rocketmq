@@ -19,13 +19,6 @@ package org.apache.rocketmq.proxy.remoting;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.netty.channel.Channel;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
@@ -65,6 +58,12 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOutClient {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
@@ -90,11 +89,11 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     protected final ThreadPoolExecutor defaultExecutor;
     protected final ScheduledExecutorService timerExecutor;
 
-    public RemotingProtocolServer(MessagingProcessor messagingProcessor, List<AccessValidator> accessValidators) {
+    public RemotingProtocolServer(MessagingProcessor messagingProcessor) {
         this.messagingProcessor = messagingProcessor;
         this.remotingChannelManager = new RemotingChannelManager(this, messagingProcessor.getProxyRelayService());
 
-        RequestPipeline pipeline = createRequestPipeline(accessValidators, messagingProcessor);
+        RequestPipeline pipeline = createRequestPipeline(messagingProcessor);
         this.getTopicRouteActivity = new GetTopicRouteActivity(pipeline, messagingProcessor);
         this.clientManagerActivity = new ClientManagerActivity(pipeline, messagingProcessor, remotingChannelManager);
         this.consumerManagerActivity = new ConsumerManagerActivity(pipeline, messagingProcessor);
@@ -123,7 +122,6 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         } else {
             this.defaultRemotingServer = new NettyRemotingServer(defaultServerConfig, this.clientHousekeepingService);
         }
-        this.registerRemotingServer(this.defaultRemotingServer);
 
         this.sendMessageExecutor = ThreadPoolMonitor.createAndMonitor(
             config.getRemotingSendMessageThreadPoolNums(),
@@ -189,6 +187,8 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
             new ThreadFactoryBuilder().setNameFormat("RemotingServerScheduler-%d").build()
         );
         this.timerExecutor.scheduleAtFixedRate(this::cleanExpireRequest, 10, 10, TimeUnit.SECONDS);
+
+        this.registerRemotingServer(this.defaultRemotingServer);
     }
 
     protected void registerRemotingServer(RemotingServer remotingServer) {
@@ -269,8 +269,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         return future;
     }
 
-    protected RequestPipeline createRequestPipeline(List<AccessValidator> accessValidators,
-        MessagingProcessor messagingProcessor) {
+    protected RequestPipeline createRequestPipeline(MessagingProcessor messagingProcessor) {
         RequestPipeline pipeline = (ctx, request, context) -> {
         };
         // add pipeline
@@ -278,7 +277,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         AuthConfig authConfig = ConfigurationManager.getAuthConfig();
         if (authConfig != null) {
             pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig, messagingProcessor))
-                .pipe(new AuthenticationPipeline(accessValidators, authConfig, messagingProcessor));
+                .pipe(new AuthenticationPipeline(authConfig, messagingProcessor));
         }
         return pipeline.pipe(new ContextInitPipeline());
     }

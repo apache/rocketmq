@@ -236,7 +236,7 @@ public class ScheduleMessageService extends ConfigManager {
         try {
             for (int delayLevel : delayLevelTable.keySet()) {
                 ConsumeQueueInterface cq =
-                    brokerController.getMessageStore().getQueueStore().findOrCreateConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
+                    brokerController.getMessageStore().findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
                         delayLevel2QueueId(delayLevel));
                 Long currentDelayOffset = offsetTable.get(delayLevel);
                 if (currentDelayOffset == null || cq == null) {
@@ -474,7 +474,7 @@ public class ScheduleMessageService extends ConfigManager {
                     }
 
                     if (!deliverSuc) {
-                        this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
+                        this.scheduleNextTimerTask(currOffset, DELAY_FOR_A_WHILE);
                         return;
                     }
                 }

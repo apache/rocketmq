@@ -17,6 +17,13 @@
 
 package org.apache.rocketmq.test.recall;
 
+import static org.awaitility.Awaitility.await;
+import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -33,16 +40,8 @@ import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQNormalListener;
 import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertEquals;
-import static org.awaitility.Awaitility.await;
 
 public class SendAndRecallDelayMessageIT extends BaseConf {
 
@@ -51,8 +50,8 @@ public class SendAndRecallDelayMessageIT extends BaseConf {
     private static RMQNormalProducer producer;
     private static RMQPopConsumer popConsumer;
 
-    @BeforeClass
-    public static void init() {
+    @Before
+    public void init() {
         initTopic = initTopic();
         consumerGroup = initConsumerGroup();
         producer = getProducer(NAMESRV_ADDR, initTopic);

@@ -28,6 +28,10 @@ import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.View;
 import io.opentelemetry.sdk.metrics.ViewBuilder;
+import java.io.File;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Supplier;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
@@ -38,11 +42,6 @@ import org.apache.rocketmq.store.timer.Slot;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 import org.apache.rocketmq.store.timer.TimerWheel;
-
-import java.io.File;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Supplier;
 
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.COUNTER_TIMER_DEQUEUE_TOTAL;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.COUNTER_TIMER_ENQUEUE_TOTAL;
@@ -105,6 +104,10 @@ public class DefaultStoreMetricsManager {
 
     public static void init(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier,
         DefaultMessageStore messageStore) {
+
+        // Also add some metrics for rocksdb's monitoring.
+        RocksDBStoreMetricsManager.init(meter, attributesBuilderSupplier, messageStore.getQueueStore());
+
         DefaultStoreMetricsManager.attributesBuilderSupplier = attributesBuilderSupplier;
         DefaultStoreMetricsManager.messageStoreConfig = messageStore.getMessageStoreConfig();
 

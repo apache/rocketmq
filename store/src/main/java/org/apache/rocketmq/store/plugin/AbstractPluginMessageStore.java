@@ -17,6 +17,10 @@
 
 package org.apache.rocketmq.store.plugin;
 
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -57,11 +61,6 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 import org.rocksdb.RocksDBException;
-
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.ViewBuilder;
 
 public abstract class AbstractPluginMessageStore implements MessageStore {
     protected MessageStore next;
@@ -301,11 +300,6 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public long flush() {
         return next.flush();
-    }
-
-    @Override
-    public boolean resetWriteOffset(long phyOffset) {
-        return next.resetWriteOffset(phyOffset);
     }
 
     @Override

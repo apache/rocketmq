@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>5.3.2-SNAPSHOT</version>
+        <version>5.3.4-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -61,6 +61,10 @@
         <dependency>
             <groupId>io.github.aliyunmq</groupId>
             <artifactId>rocketmq-logback-classic</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
         </dependency>
     </dependencies>
 </project>

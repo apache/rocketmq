@@ -489,6 +489,19 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getConsumerFilterManager());
         }
 
+        if (brokerController.getBrokerConfig().isRejectPullConsumerEnable()) {
+            ConsumerGroupInfo consumerGroupInfo =
+                    this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup());
+            if (null == consumerGroupInfo || ConsumeType.CONSUME_ACTIVELY == consumerGroupInfo.getConsumeType()) {
+                if ((null == consumerGroupInfo || null == consumerGroupInfo.findChannel(channel))
+                        && !MixAll.isSysConsumerGroupPullMessage(requestHeader.getConsumerGroup())) {
+                    response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
+                    response.setRemark("the consumer's group info not exist, or the pull consumer is rejected by server." + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
+                    return response;
+                }
+            }
+        }
+
         final MessageStore messageStore = brokerController.getMessageStore();
         if (this.brokerController.getMessageStore() instanceof DefaultMessageStore) {
             DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.brokerController.getMessageStore();
@@ -713,6 +726,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             context.setAccountOwnerParent(ownerParent);
             context.setAccountOwnerSelf(ownerSelf);
             context.setNamespace(NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic()));
+            context.setFilterMessageCount(getMessageResult.getFilterMessageCount());
 
             switch (responseCode) {
                 case ResponseCode.SUCCESS:
