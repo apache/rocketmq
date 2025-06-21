@@ -54,7 +54,7 @@ public class Producer {
          * </pre>
          */
         // Uncomment the following line while debugging, namesrvAddr should be set to your local address
-        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        // producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
         /*
          * Launch the instance.
