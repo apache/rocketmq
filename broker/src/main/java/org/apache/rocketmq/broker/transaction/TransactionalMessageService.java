@@ -72,10 +72,11 @@ public interface TransactionalMessageService {
      * exceed this time interval that can be checked.
      * @param transactionCheckMax The maximum number of times the message was checked, if exceed this value, this
      * message will be discarded.
+     * @param transactionCheckInterval The interval of the transactional message check timer triggers.
      * @param listener When the message is considered to be checked or discarded, the relative method of this class will
      * be invoked.
      */
-    void check(long transactionTimeout, int transactionCheckMax, AbstractTransactionalMessageCheckListener listener);
+    void check(long transactionTimeout, int transactionCheckMax, long transactionCheckInterval, AbstractTransactionalMessageCheckListener listener);
 
     /**
      * Open transaction service.
