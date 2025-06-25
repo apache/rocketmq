@@ -58,7 +58,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -82,6 +81,7 @@ import org.apache.rocketmq.common.running.RunningStats;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.common.utils.ThreadUtils;
@@ -1197,8 +1197,7 @@ public class DefaultMessageStore implements MessageStore {
             minPhyOffset += DLedgerEntry.BODY_OFFSET;
         }
         int size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 8;
-        InetAddressValidator validator = InetAddressValidator.getInstance();
-        if (validator.isValidInet6Address(this.brokerConfig.getBrokerIP1())) {
+        if (NetworkUtil.validCommonInet6Address(this.brokerConfig.getBrokerIP1())) {
             size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 20;
         }
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
