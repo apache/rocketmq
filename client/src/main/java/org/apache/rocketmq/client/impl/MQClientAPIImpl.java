@@ -2836,7 +2836,8 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             requestHeader.setMaxGroupNum(clientConfig.getMaxPageSizeInGetMetadata());
             requestHeader.setDataVersion(Optional.ofNullable(currentDataVersion)
                 .map(DataVersion::toJson).orElse(StringUtils.EMPTY));
-
+            log.info("getAllSubscriptionGroup from seq {}, max {}, dataVersion {}",
+                    groupSeq, requestHeader.getMaxGroupNum(), requestHeader.getDataVersion());
             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, requestHeader);
             RemotingCommand response = this.remotingClient.invokeSync(
                 MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), brokerAddr), request, leftTime);
@@ -2930,7 +2931,8 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             requestHeader.setMaxTopicNum(clientConfig.getMaxPageSizeInGetMetadata());
             requestHeader.setDataVersion(Optional.ofNullable(currentDataVersion).
                 map(DataVersion::toJson).orElse(StringUtils.EMPTY));
-
+            log.info("getAllTopicConfig from seq {}, max {}, dataVersion {}",
+                    topicSeq, requestHeader.getMaxTopicNum(), requestHeader.getDataVersion());
             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, requestHeader);
 
             RemotingCommand response = this.remotingClient.invokeSync(

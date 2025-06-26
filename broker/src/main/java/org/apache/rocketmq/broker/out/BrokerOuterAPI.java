@@ -778,20 +778,28 @@ public class BrokerOuterAPI {
 
         DataVersion topicConfigDataVersion = null;
         DataVersion mappingDataVersion = null;
+        long timeoutMills = getTimeoutMillis();
         int topicSeq = 0;
+        long beginTime = System.nanoTime();
         ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
         Map<String, TopicQueueMappingDetail> topicQueueMappingDetailMap = new ConcurrentHashMap<>();
         while (true) {
+            long leftTime = timeoutMills - TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime);
+            if (leftTime < 0) {
+                throw new RemotingTimeoutException("invokeSync call timeout");
+            }
+
             GetAllTopicConfigRequestHeader requestHeader = new GetAllTopicConfigRequestHeader();
             requestHeader.setTopicSeq(topicSeq);
-            requestHeader.setMaxTopicNum(2000);
+            requestHeader.setMaxTopicNum(getMaxPageSize());
             requestHeader.setDataVersion(Optional.ofNullable(topicConfigDataVersion).
                 map(DataVersion::toJson).orElse(StringUtils.EMPTY));
-
+            LOGGER.info("getAllTopicConfig from seq {}, max {}, dataVersion {}",
+                    topicSeq, requestHeader.getMaxTopicNum(), requestHeader.getDataVersion());
             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, requestHeader);
 
             RemotingCommand response = this.remotingClient.invokeSync(
-                MixAll.brokerVIPChannel(true, addr), request, 3000);
+                MixAll.brokerVIPChannel(true, addr), request, 30000);
 
             assert response != null;
             if (response.getCode() == SUCCESS) {
@@ -919,20 +927,29 @@ public class BrokerOuterAPI {
     public SubscriptionGroupWrapper getAllSubscriptionGroupConfig(final String addr)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQBrokerException, RemotingCommandException {
+
+        long timeoutMills = getTimeoutMillis();
         DataVersion currentDataVersion = null;
         int groupSeq = 0;
+        long beginTime = System.nanoTime();
         ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable = new ConcurrentHashMap<>();
         ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable = new ConcurrentHashMap<>();
+
         while (true) {
+            long leftTime = timeoutMills - TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime);
+            if (leftTime < 0) {
+                throw new RemotingTimeoutException("invokeSync call timeout");
+            }
 
             GetAllSubscriptionGroupRequestHeader requestHeader = new GetAllSubscriptionGroupRequestHeader();
             requestHeader.setGroupSeq(groupSeq);
-            requestHeader.setMaxGroupNum(2000);
+            requestHeader.setMaxGroupNum(getMaxPageSize());
             requestHeader.setDataVersion(Optional.ofNullable(currentDataVersion)
                 .map(DataVersion::toJson).orElse(StringUtils.EMPTY));
-
+            LOGGER.info("getAllSubscriptionGroup from seq {}, max {}, dataVersion {}",
+                    groupSeq, requestHeader.getMaxGroupNum(), requestHeader.getDataVersion());
             RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, requestHeader);
-            RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
+            RemotingCommand response = this.remotingClient.invokeSync(addr, request, 30000);
 
             assert response != null;
             if (response.getCode() == SUCCESS) {
@@ -1608,6 +1625,14 @@ public class BrokerOuterAPI {
         pullResult.setMessageBinary(null);
 
         return pullResult;
+    }
+
+    private int getMaxPageSize() {
+        return 2000;
+    }
+
+    private long getTimeoutMillis() {
+        return TimeUnit.SECONDS.toMillis(60);
     }
 
 }
