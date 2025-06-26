@@ -68,9 +68,9 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
         if (tlsMode != TlsMode.DISABLED) {
             try {
                 sslContext = MultiProtocolTlsHelper.buildSslContext();
-                log.info("SSLContext created for multi protocol remoting server");
+                log.info("SslContext created for multi protocol remoting server");
             } catch (CertificateException | IOException e) {
-                throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "Failed to create SSLContext for server", e);
+                throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "Failed to create SslContext for server", e);
             }
         }
     }

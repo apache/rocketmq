@@ -45,8 +45,7 @@ public class FileWatchService extends LifecycleAwareServiceThread {
         this(watchFiles, listener, DEFAULT_WATCH_INTERVAL);
     }
 
-    public FileWatchService(final String[] watchFiles,
-        final Listener listener, int watchInterval) throws Exception {
+    public FileWatchService(final String[] watchFiles, final Listener listener, int watchInterval) throws Exception {
         this.listener = listener;
         this.watchInterval = watchInterval;
         for (String file : watchFiles) {

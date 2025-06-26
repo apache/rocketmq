@@ -78,9 +78,9 @@ public class GrpcServer implements StartAndShutdown {
         public void onTlsContextReload() {
             try {
                 ProxyAndTlsProtocolNegotiator.loadSslContext();
-                log.info("SSLContext reloaded for grpc server");
+                log.info("SslContext reloaded for grpc server");
             } catch (CertificateException | IOException e) {
-                log.error("Failed to reload SSLContext for server", e);
+                log.error("Failed to reload SslContext for server", e);
             }
         }
     }
