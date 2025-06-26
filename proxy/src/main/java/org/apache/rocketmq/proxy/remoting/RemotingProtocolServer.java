@@ -202,7 +202,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         public void onTlsContextReload() {
             if (defaultRemotingServer instanceof NettyRemotingServer) {
                 ((NettyRemotingServer) defaultRemotingServer).loadSslContext();
-                log.info("SSLContext reloaded for remoting server");
+                log.info("SslContext reloaded for remoting server");
             }
         }
     }
