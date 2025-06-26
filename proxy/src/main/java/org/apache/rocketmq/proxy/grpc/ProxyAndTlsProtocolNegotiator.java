@@ -82,7 +82,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     public ProxyAndTlsProtocolNegotiator() {
         try {
             loadSslContext();
-            log.info("SSLContext created for proxy server");
+            log.info("SslContext created for proxy server");
         } catch (IOException | CertificateException e) {
             log.error("SslContext init error", e);
             throw new RuntimeException(e);
