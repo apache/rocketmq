@@ -46,7 +46,8 @@ public class GrpcServerBuilder {
 
     protected TlsCertificateManager tlsCertificateManager;
 
-    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager) {
+    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port,
+        TlsCertificateManager tlsCertificateManager) {
         return new GrpcServerBuilder(executor, port, tlsCertificateManager);
     }
 
@@ -75,7 +76,7 @@ public class GrpcServerBuilder {
         }
 
         serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
-                .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
+            .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
 
         log.info("grpc server has built. port: {}, bossLoopNum: {}, workerLoopNum: {}, maxInboundMessageSize: {}",
             port, bossLoopNum, workerLoopNum, maxInboundMessageSize);
