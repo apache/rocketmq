@@ -116,22 +116,22 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         if (proxyConfig.isTlsTestModeEnable()) {
             SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
             sslContext = GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
-                    .sslProvider(provider)
-                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                    .clientAuth(ClientAuth.NONE)
-                    .build();
+                .sslProvider(provider)
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .clientAuth(ClientAuth.NONE)
+                .build();
         } else {
             String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
             String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
             try (InputStream serverKeyInputStream = Files.newInputStream(
-                    Paths.get(tlsKeyPath));
+                Paths.get(tlsKeyPath));
                  InputStream serverCertificateStream = Files.newInputStream(
-                         Paths.get(tlsCertPath))) {
+                     Paths.get(tlsCertPath))) {
                 sslContext = GrpcSslContexts.forServer(serverCertificateStream,
-                                serverKeyInputStream)
-                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                        .clientAuth(ClientAuth.NONE)
-                        .build();
+                        serverKeyInputStream)
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .clientAuth(ClientAuth.NONE)
+                    .build();
             }
         }
     }
@@ -150,14 +150,14 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
             try {
                 ProtocolDetectionResult<HAProxyProtocolVersion> ha = HAProxyMessageDecoder.detectProtocol(
-                        in);
+                    in);
                 if (ha.state() == ProtocolDetectionState.NEEDS_MORE_DATA) {
                     return;
                 }
                 if (ha.state() == ProtocolDetectionState.DETECTED) {
                     ctx.pipeline().addAfter(ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
-                            .addAfter(HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
-                            .addAfter(HA_PROXY_HANDLER, TLS_MODE_HANDLER, new TlsModeHandler(grpcHandler));
+                        .addAfter(HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
+                        .addAfter(HA_PROXY_HANDLER, TLS_MODE_HANDLER, new TlsModeHandler(grpcHandler));
                 } else {
                     ctx.pipeline().addAfter(ctx.name(), TLS_MODE_HANDLER, new TlsModeHandler(grpcHandler));
                 }
@@ -223,7 +223,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                     msg.tlvs().forEach(tlv -> handleHAProxyTLV(tlv, builder));
                 }
                 pne = InternalProtocolNegotiationEvent
-                        .withAttributes(InternalProtocolNegotiationEvent.getDefault(), builder.build());
+                    .withAttributes(InternalProtocolNegotiationEvent.getDefault(), builder.build());
             } finally {
                 msg.release();
             }
@@ -245,7 +245,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
             return;
         }
         Attributes.Key<String> key = AttributeKeys.valueOf(
-                HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
+            HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
         builder.set(key, new String(valueBytes, CharsetUtil.UTF_8));
     }
 
@@ -258,9 +258,9 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
 
         public TlsModeHandler(GrpcHttp2ConnectionHandler grpcHandler) {
             this.ssl = InternalProtocolNegotiators.serverTls(sslContext)
-                    .newHandler(grpcHandler);
+                .newHandler(grpcHandler);
             this.plaintext = InternalProtocolNegotiators.serverPlaintext()
-                    .newHandler(grpcHandler);
+                .newHandler(grpcHandler);
         }
 
         @Override
