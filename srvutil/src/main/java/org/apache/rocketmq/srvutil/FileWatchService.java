@@ -34,6 +34,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class FileWatchService extends LifecycleAwareServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final int DEFAULT_WATCH_INTERVAL = 500;
 
     private final Map<String, String> currentHash = new HashMap<>();
     private final Listener listener;
@@ -41,7 +42,7 @@ public class FileWatchService extends LifecycleAwareServiceThread {
     private final MessageDigest md = MessageDigest.getInstance("MD5");
 
     public FileWatchService(final String[] watchFiles, final Listener listener) throws Exception {
-        this(watchFiles, listener, 500);
+        this(watchFiles, listener, DEFAULT_WATCH_INTERVAL);
     }
 
     public FileWatchService(final String[] watchFiles,
