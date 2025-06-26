@@ -41,7 +41,8 @@ public class GrpcServer implements StartAndShutdown {
     private final TlsCertificateManager tlsCertificateManager;
     @VisibleForTesting final GrpcTlsReloadHandler tlsReloadHandler;
 
-    protected GrpcServer(Server server, long timeout, TimeUnit unit, TlsCertificateManager tlsCertificateManager) throws Exception {
+    protected GrpcServer(Server server, long timeout, TimeUnit unit,
+        TlsCertificateManager tlsCertificateManager) throws Exception {
         this.server = server;
         this.timeout = timeout;
         this.unit = unit;
