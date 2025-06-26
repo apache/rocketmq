@@ -149,8 +149,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         @Override
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
             try {
-                ProtocolDetectionResult<HAProxyProtocolVersion> ha = HAProxyMessageDecoder.detectProtocol(
-                    in);
+                ProtocolDetectionResult<HAProxyProtocolVersion> ha = HAProxyMessageDecoder.detectProtocol(in);
                 if (ha.state() == ProtocolDetectionState.NEEDS_MORE_DATA) {
                     return;
                 }
