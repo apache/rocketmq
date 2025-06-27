@@ -136,13 +136,13 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
                 compare = Integer.compare(n1.length(), n2.length());
             }
         } else {
-            if (r1.getResourcePattern() == ResourcePattern.LITERAL) {
+            if (r2.getResourcePattern() == ResourcePattern.LITERAL) {
                 compare = 1;
             }
-            if (r2.getResourcePattern() == ResourcePattern.LITERAL) {
+            if (r1.getResourcePattern() == ResourcePattern.LITERAL) {
                 compare = -1;
             }
-            if (r1.getResourcePattern() == ResourcePattern.PREFIXED) {
+            if (r2.getResourcePattern() == ResourcePattern.PREFIXED) {
                 compare = 1;
             }
             if (r2.getResourcePattern() == ResourcePattern.PREFIXED) {
