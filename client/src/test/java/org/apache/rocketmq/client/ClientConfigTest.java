@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client;
 
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,6 +64,17 @@ public class ClientConfigTest {
         Collection<MessageQueue> messageQueues = clientConfig.queuesWithNamespace(Collections.singleton(messageQueue));
         assertTrue(messageQueues.contains(messageQueue));
         assertEquals("lmq%defaultTopic", messageQueues.iterator().next().getTopic());
+    }
+
+    @Test
+    public void testClientIpOverrideWithSystemProperty() {
+        String ip = "192.168.8.8";
+        System.setProperty("rocketmq.client.ip", ip);
+        ClientConfig clientConfig = new ClientConfig();
+        assertEquals(ip, clientConfig.getClientIP());
+        System.clearProperty("rocketmq.client.ip");
+        clientConfig = new ClientConfig();
+        assertEquals(NetworkUtil.getLocalAddress(), clientConfig.getClientIP());
     }
 
     private ClientConfig createClientConfig() {

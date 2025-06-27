@@ -111,6 +111,15 @@ public class ClientConfig {
      */
     protected String traceTopic;
 
+    public ClientConfig() {
+        String ip = System.getProperty("rocketmq.client.ip");
+        if (ip != null && !ip.trim().isEmpty()) {
+            clientIP = ip;
+        } else {
+            clientIP = NetworkUtil.getLocalAddress();
+        }
+    }
+
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());
