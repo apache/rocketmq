@@ -109,7 +109,7 @@ public class ConsumeMessageOrderlyServiceTest {
         pushConsumer.subscribe(topic, "*");
 
         // suppress updateTopicRouteInfoFromNameServer
-        pushConsumer.changeInstanceNameToPIDWithGroupInfo(pushConsumer.getConsumerGroup());
+        pushConsumer.changeInstanceNameToPID();
         mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true));
         mQClientFactory = spy(mQClientFactory);
         field = DefaultMQPushConsumerImpl.class.getDeclaredField("mQClientFactory");

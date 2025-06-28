@@ -154,9 +154,9 @@ public class ClientConfig {
         this.instanceName = instanceName;
     }
 
-    public void changeInstanceNameToPIDWithGroupInfo(String groupInfo) {
+    public void changeInstanceNameToPID() {
         if (this.instanceName.equals("DEFAULT")) {
-            this.instanceName = UtilAll.getPid() + "#" + groupInfo;
+            this.instanceName = UtilAll.getPid() + "#" + System.nanoTime();
         }
     }
 

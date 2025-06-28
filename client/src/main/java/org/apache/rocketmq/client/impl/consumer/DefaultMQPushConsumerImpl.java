@@ -932,7 +932,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.copySubscription();
 
                 if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
-                    this.defaultMQPushConsumer.changeInstanceNameToPIDWithGroupInfo(this.defaultMQPushConsumer.getConsumerGroup());
+                    this.defaultMQPushConsumer.changeInstanceNameToPID();
                 }
 
                 this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQPushConsumer, this.rpcHook);

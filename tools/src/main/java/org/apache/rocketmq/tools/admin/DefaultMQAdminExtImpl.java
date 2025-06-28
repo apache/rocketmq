@@ -155,7 +155,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             case CREATE_JUST:
                 this.serviceState = ServiceState.START_FAILED;
 
-                this.defaultMQAdminExt.changeInstanceNameToPIDWithGroupInfo(this.defaultMQAdminExt.getAdminExtGroup());
+                this.defaultMQAdminExt.changeInstanceNameToPID();
 
                 if ("{}".equals(this.defaultMQAdminExt.getSocksProxyConfig())) {
                     String proxyConfig = System.getenv(SOCKS_PROXY_JSON);

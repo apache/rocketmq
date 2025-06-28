@@ -54,6 +54,7 @@ import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
 import org.junit.Assert;
+import org.junit.jupiter.api.BeforeEach;
 
 import static org.apache.rocketmq.test.base.IntegrationTestBase.initMQAdmin;
 import static org.awaitility.Awaitility.await;

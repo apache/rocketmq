@@ -308,7 +308,7 @@ public class DefaultMQLitePullConsumerWithTraceTest {
     private static void suppressUpdateTopicRouteInfoFromNameServer(DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
         DefaultLitePullConsumerImpl defaultLitePullConsumerImpl = (DefaultLitePullConsumerImpl) FieldUtils.readDeclaredField(litePullConsumer, "defaultLitePullConsumerImpl", true);
         if (litePullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
-            litePullConsumer.changeInstanceNameToPIDWithGroupInfo(litePullConsumer.getConsumerGroup());
+            litePullConsumer.changeInstanceNameToPID();
         }
         MQClientInstance mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(litePullConsumer, (RPCHook) FieldUtils.readDeclaredField(defaultLitePullConsumerImpl, "rpcHook", true)));
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
