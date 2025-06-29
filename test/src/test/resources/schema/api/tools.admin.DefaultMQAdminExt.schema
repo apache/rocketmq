@@ -41,7 +41,7 @@ Field useTLS : private boolean false
 Field vipChannelEnabled : private boolean false
 Method addWritePermOfBroker(java.lang.String,java.lang.String) : public throws (int)
 Method buildMQClientId() : public throws (java.lang.String)
-Method changeInstanceNameToPID() : public throws (void)
+Method changeInstanceNameToIpWithPidAndGroupInfo(java.lang.String) : public throws (void)
 Method cleanExpiredConsumerQueue(java.lang.String) : public throws (boolean)
 Method cleanExpiredConsumerQueueByAddr(java.lang.String) : public throws (boolean)
 Method cleanUnusedTopic(java.lang.String) : public throws (boolean)
