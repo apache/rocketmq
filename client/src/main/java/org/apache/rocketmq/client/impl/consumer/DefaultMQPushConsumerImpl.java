@@ -786,12 +786,12 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     private void sendMessageBackAsNormalMessage(MessageExt msg) throws  RemotingException, MQBrokerException, InterruptedException, MQClientException {
         Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody());
+        MessageAccessor.setProperties(newMsg, msg.getProperties());
 
         String originMsgId = MessageAccessor.getOriginMessageId(msg);
         MessageAccessor.setOriginMessageId(newMsg, UtilAll.isBlank(originMsgId) ? msg.getMsgId() : originMsgId);
 
         newMsg.setFlag(msg.getFlag());
-        MessageAccessor.setProperties(newMsg, msg.getProperties());
         MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
         MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes() + 1));
         MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));

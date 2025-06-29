@@ -46,6 +46,7 @@ import org.apache.rocketmq.proxy.remoting.pipeline.AuthenticationPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.AuthorizationPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingServer;
@@ -88,8 +89,11 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     protected final ThreadPoolExecutor topicRouteExecutor;
     protected final ThreadPoolExecutor defaultExecutor;
     protected final ScheduledExecutorService timerExecutor;
+    protected final TlsCertificateManager tlsCertificateManager;
+    protected final RemotingTlsReloadHandler tlsReloadHandler;
 
-    public RemotingProtocolServer(MessagingProcessor messagingProcessor) {
+
+    public RemotingProtocolServer(MessagingProcessor messagingProcessor, TlsCertificateManager tlsCertificateManager) throws Exception {
         this.messagingProcessor = messagingProcessor;
         this.remotingChannelManager = new RemotingChannelManager(this, messagingProcessor.getProxyRelayService());
 
@@ -114,6 +118,8 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         System.setProperty(TlsSystemConfig.TLS_SERVER_CERTPATH, config.getTlsCertPath());
         TlsSystemConfig.tlsServerKeyPath = config.getTlsKeyPath();
         System.setProperty(TlsSystemConfig.TLS_SERVER_KEYPATH, config.getTlsKeyPath());
+        this.tlsCertificateManager = tlsCertificateManager;
+        this.tlsReloadHandler = new RemotingTlsReloadHandler();
 
         this.clientHousekeepingService = new ClientHousekeepingService(this.clientManagerActivity);
 
@@ -191,6 +197,16 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         this.registerRemotingServer(this.defaultRemotingServer);
     }
 
+    protected class RemotingTlsReloadHandler implements TlsCertificateManager.TlsContextReloadListener {
+        @Override
+        public void onTlsContextReload() {
+            if (defaultRemotingServer instanceof NettyRemotingServer) {
+                ((NettyRemotingServer) defaultRemotingServer).loadSslContext();
+                log.info("SslContext reloaded for remoting server");
+            }
+        }
+    }
+
     protected void registerRemotingServer(RemotingServer remotingServer) {
         remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageActivity, this.sendMessageExecutor);
         remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageActivity, this.sendMessageExecutor);
@@ -226,6 +242,9 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
 
     @Override
     public void shutdown() throws Exception {
+        // Unregister the TLS context reload handler
+        tlsCertificateManager.unregisterReloadListener(this.tlsReloadHandler);
+
         this.defaultRemotingServer.shutdown();
         this.remotingChannelManager.shutdown();
         this.sendMessageExecutor.shutdown();
@@ -238,6 +257,9 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
 
     @Override
     public void start() throws Exception {
+        // Register the TLS context reload handler
+        tlsCertificateManager.registerReloadListener(this.tlsReloadHandler);
+
         this.remotingChannelManager.start();
         this.defaultRemotingServer.start();
     }

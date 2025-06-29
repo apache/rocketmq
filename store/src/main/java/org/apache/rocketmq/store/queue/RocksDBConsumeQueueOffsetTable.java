@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import static org.apache.rocketmq.common.config.AbstractRocksDBStorage.CTRL_1;
+
 import io.netty.util.internal.PlatformDependent;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -43,8 +45,6 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteBatch;
-
-import static org.apache.rocketmq.common.config.AbstractRocksDBStorage.CTRL_1;
 
 public class RocksDBConsumeQueueOffsetTable {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -86,6 +86,14 @@ public class RocksDBConsumeQueueOffsetTable {
      */
     public static final int OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES = 4 + 1 + 1 + 3 + 1 + 4;
     private static final int OFFSET_VALUE_LENGTH = 8 + 8;
+
+    /**
+     * ┌─────────────────────────┬───────────┬───────────┬───────────┬───────────┐
+     * │ Topic Bytes Array Size  │  CTRL_1   │  CTRL_1   │  Max(Min) │  CTRL_1   │
+     * │        (4 Bytes)        │ (1 Bytes) │ (1 Bytes) │ (3 Bytes) │ (1 Bytes) │
+     * ├─────────────────────────┴───────────┴───────────┴───────────┴───────────┤
+     */
+    public static final int OFFSET_KEY_LENGTH_WITHOUT_TOPIC_QUEUE_ID_BYTES = 4 + 1 + 1 + 3 + 1;
 
     /**
      * We use a new system topic='CHECKPOINT_TOPIC' to record the maxPhyOffset built by CQ dispatch thread.
@@ -137,6 +145,22 @@ public class RocksDBConsumeQueueOffsetTable {
     public void load() {
         this.offsetCFH = this.rocksDBStorage.getOffsetCFHandle();
         loadMaxConsumeQueueOffsets();
+    }
+
+    public Set<Integer> scanAllQueueIdInTopic(String topic) throws RocksDBException {
+        Set<Integer> queueIdSet = new HashSet<>();
+        byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(OFFSET_KEY_LENGTH_WITHOUT_TOPIC_QUEUE_ID_BYTES + topicBytes.length);
+        byteBuffer.putInt(topicBytes.length).put(CTRL_1).put(topicBytes).put(CTRL_1).put(MAX_BYTES).put(CTRL_1);
+        byteBuffer.flip();
+        byte[] prefix = byteBuffer.array();
+        rocksDBStorage.iterate(offsetCFH, prefix, (keyBytes, unused) -> {
+            ByteBuffer keyBuffer = ByteBuffer.wrap(keyBytes);
+            keyBuffer.position(prefix.length);
+            int queueId = keyBuffer.getInt();
+            queueIdSet.add(queueId);
+        });
+        return queueIdSet;
     }
 
     private void loadMaxConsumeQueueOffsets() {

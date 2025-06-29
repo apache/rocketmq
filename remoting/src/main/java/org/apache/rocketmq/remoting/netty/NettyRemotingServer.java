@@ -184,9 +184,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         if (tlsMode != TlsMode.DISABLED) {
             try {
                 sslContext = TlsHelper.buildSslContext(false);
-                log.info("SSLContext created for server");
+                log.info("SslContext created for server");
             } catch (CertificateException | IOException e) {
-                log.error("Failed to create SSLContext for server", e);
+                log.error("Failed to create SslContext for server", e);
             }
         }
     }
@@ -514,7 +514,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                             log.info("Handlers prepended to channel pipeline to establish SSL connection");
                         } else {
                             ctx.close();
-                            log.error("Trying to establish an SSL connection but sslContext is null");
+                            log.error("Trying to establish an SSL connection but SslContext is null");
                         }
                         break;
 
