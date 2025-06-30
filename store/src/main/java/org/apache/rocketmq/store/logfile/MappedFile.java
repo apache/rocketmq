@@ -220,7 +220,7 @@ public interface MappedFile {
     /**
      * Destroys the file and delete it from the file system.
      *
-     * @param intervalForcibly The time interval in milliseconds after which remaining references will be forcibly released during destroy
+     * @param intervalForcibly The time interval in milliseconds after which any remaining references will be forcibly released during destroy
      * @return true if success; false otherwise.
      */
     boolean destroy(long intervalForcibly);
@@ -228,7 +228,7 @@ public interface MappedFile {
     /**
      * Shutdowns the file and mark it unavailable.
      *
-     * @param intervalForcibly The time interval in milliseconds after which remaining references will be forcibly released during shutdown
+     * @param intervalForcibly The time interval in milliseconds after which any remaining references will be forcibly released during shutdown
      */
     void shutdown(long intervalForcibly);
 
