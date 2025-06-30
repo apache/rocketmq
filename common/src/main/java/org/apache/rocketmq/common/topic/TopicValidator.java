@@ -32,6 +32,7 @@ public class TopicValidator {
     public static final String RMQ_SYS_SELF_TEST_TOPIC = "SELF_TEST_TOPIC";
     public static final String RMQ_SYS_OFFSET_MOVED_EVENT = "OFFSET_MOVED_EVENT";
     public static final String RMQ_SYS_ROCKSDB_OFFSET_TOPIC = "CHECKPOINT_TOPIC";
+    public static final String RMQ_ROUTE_EVENT_TOPIC = "ROUTE_EVENT_TOPIC";
 
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
     public static final String SYNC_BROKER_MEMBER_GROUP_PREFIX = SYSTEM_TOPIC_PREFIX + "SYNC_BROKER_MEMBER_";
@@ -57,6 +58,7 @@ public class TopicValidator {
         SYSTEM_TOPIC_SET.add(RMQ_SYS_SELF_TEST_TOPIC);
         SYSTEM_TOPIC_SET.add(RMQ_SYS_OFFSET_MOVED_EVENT);
         SYSTEM_TOPIC_SET.add(RMQ_SYS_ROCKSDB_OFFSET_TOPIC);
+        SYSTEM_TOPIC_SET.add(RMQ_ROUTE_EVENT_TOPIC);
 
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_SCHEDULE_TOPIC);
         NOT_ALLOWED_SEND_TOPIC_SET.add(RMQ_SYS_TRANS_HALF_TOPIC);
