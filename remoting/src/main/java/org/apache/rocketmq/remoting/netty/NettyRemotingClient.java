@@ -167,10 +167,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 sslContext = TlsHelper.buildSslContext(true);
                 LOGGER.info("SSL enabled for client");
             } catch (IOException e) {
-                LOGGER.error("Failed to create SSLContext", e);
+                LOGGER.error("Failed to create SslContext", e);
             } catch (CertificateException e) {
-                LOGGER.error("Failed to create SSLContext", e);
-                throw new RuntimeException("Failed to create SSLContext", e);
+                LOGGER.error("Failed to create SslContext", e);
+                throw new RuntimeException("Failed to create SslContext", e);
             }
         }
     }
@@ -209,7 +209,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             pipeline.addFirst(defaultEventExecutorGroup, "sslHandler", sslContext.newHandler(ch.alloc()));
                             LOGGER.info("Prepend SSL handler");
                         } else {
-                            LOGGER.warn("Connections are insecure as SSLContext is null!");
+                            LOGGER.warn("Connections are insecure as SslContext is null!");
                         }
                     }
                     ch.pipeline().addLast(
@@ -337,7 +337,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                                 "sslHandler", sslContext.newHandler(ch.alloc()));
                             LOGGER.info("Prepend SSL handler");
                         } else {
-                            LOGGER.warn("Connections are insecure as SSLContext is null!");
+                            LOGGER.warn("Connections are insecure as SslContext is null!");
                         }
                     }
 

@@ -35,11 +35,35 @@ public class TopicValidatorTest {
         res = TopicValidator.validateTopic(generateString(128));
         assertThat(res.isValid()).isFalse();
         assertThat(res.getRemark()).contains("The specified topic is longer than topic max length.");
+
+        res = TopicValidator.validateTopic(generateString2(128));
+        assertThat(res.isValid()).isFalse();
+        assertThat(res.getRemark()).contains("The specified topic is longer than topic max length.");
+
+        res = TopicValidator.validateTopic(generateRetryTopic(256));
+        assertThat(res.isValid()).isFalse();
+        assertThat(res.getRemark()).contains("The specified topic is longer than topic max length.");
+
+        res = TopicValidator.validateTopic(generateDlqTopic(256));
+        assertThat(res.isValid()).isFalse();
+        assertThat(res.getRemark()).contains("The specified topic is longer than topic max length.");
     }
 
     @Test
     public void testTopicValidator_Pass() {
         TopicValidator.ValidateTopicResult res = TopicValidator.validateTopic("TestTopic");
+        assertThat(res.isValid()).isTrue();
+        assertThat(res.getRemark()).isEmpty();
+
+        res = TopicValidator.validateTopic(generateString2(127));
+        assertThat(res.isValid()).isTrue();
+        assertThat(res.getRemark()).isEmpty();
+
+        res = TopicValidator.validateTopic(generateRetryTopic(255));
+        assertThat(res.isValid()).isTrue();
+        assertThat(res.getRemark()).isEmpty();
+
+        res = TopicValidator.validateTopic(generateDlqTopic(255));
         assertThat(res.isValid()).isTrue();
         assertThat(res.getRemark()).isEmpty();
     }
@@ -114,5 +138,31 @@ public class TopicValidatorTest {
             stringBuffer.append(tmpStr);
         }
         return stringBuffer.toString();
+    }
+
+    private static String generateString2(int length) {
+        StringBuilder stringBuilder = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            stringBuilder.append("a");
+        }
+        return stringBuilder.toString();
+    }
+
+    private static String generateRetryTopic(int length) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("%RETRY%");
+        for (int i = 0; i < length - 7; i++) {
+            stringBuilder.append("a");
+        }
+        return stringBuilder.toString();
+    }
+
+    private static String generateDlqTopic(int length) {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("%DLQ%");
+        for (int i = 0; i < length - 5; i++) {
+            stringBuilder.append("a");
+        }
+        return stringBuilder.toString();
     }
 }
