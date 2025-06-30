@@ -47,7 +47,8 @@ public class RemotingSerializableCompatTest {
         Set<Class<? extends RemotingSerializable>> subTypes = reflections.getSubTypesOf(RemotingSerializable.class);
         
         for (Class<? extends RemotingSerializable> clazz : subTypes) {
-            if (clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers()) || clazz.getSimpleName().endsWith("Test") || clazz.isAnonymousClass() || clazz.getName().contains("$")) {
+            if (clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers()) || clazz.getSimpleName().endsWith("Test")
+                    || clazz.isAnonymousClass() || clazz.getName().contains("$")) {
                 continue;
             }
             try {
