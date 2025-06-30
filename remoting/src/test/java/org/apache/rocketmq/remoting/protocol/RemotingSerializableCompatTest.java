@@ -19,8 +19,8 @@ package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.annotation.JSONField;
 import org.junit.Test;
+import org.objenesis.ObjenesisStd;
 import org.reflections.Reflections;
-import sun.misc.Unsafe;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -28,7 +28,6 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -56,7 +55,7 @@ public class RemotingSerializableCompatTest {
                 try {
                     instance = clazz.getDeclaredConstructor().newInstance();
                 } catch (NoSuchMethodException e) {
-                    instance = (RemotingSerializable) getUnsafe().allocateInstance(clazz);
+                    instance = allocateInstance(clazz);
                 }
                 fillDefaultFields(instance, clazz);
                 assertTrue(checkCompatible(instance, clazz));
@@ -132,7 +131,7 @@ public class RemotingSerializableCompatTest {
                     try {
                         subObj = type.getDeclaredConstructor().newInstance();
                     } catch (NoSuchMethodException e) {
-                        subObj = getUnsafe().allocateInstance(type);
+                        subObj = allocateInstance(type);
                     }
                     fillDefaultFields(subObj, type);
                     field.set(obj, subObj);
@@ -171,7 +170,7 @@ public class RemotingSerializableCompatTest {
             try {
                 obj = type.getDeclaredConstructor().newInstance();
             } catch (NoSuchMethodException e) {
-                obj = getUnsafe().allocateInstance(type);
+                obj = allocateInstance(type);
             }
             fillDefaultFields(obj, type);
             return obj;
@@ -231,9 +230,23 @@ public class RemotingSerializableCompatTest {
         return null;
     }
     
-    private boolean checkCompatible(final Object original, final Class<?> clazz, final String path) {
-        String json = com.alibaba.fastjson.JSON.toJSONString(original);
-        Object deserialized = com.alibaba.fastjson2.JSON.parseObject(json, clazz);
+    private boolean checkCompatible(final Object original, final Object deserialized, final String path, final Map<Object, Object> visited) {
+        if (null == original && null == deserialized) {
+            return true;
+        }
+        if (null == original || null == deserialized) {
+            System.err.printf("Objects at %s incompatible: one is null\n", path);
+            return false;
+        }
+        
+        if (!isPrimitiveOrWrapper(original.getClass())) {
+            if (visited.containsKey(original)) {
+                return true;
+            }
+            visited.put(original, deserialized);
+        }
+        
+        Class<?> clazz = original.getClass();
         boolean result = true;
         for (Field field : clazz.getDeclaredFields()) {
             if (Modifier.isStatic(field.getModifiers())) {
@@ -246,11 +259,13 @@ public class RemotingSerializableCompatTest {
             if ("hash".equals(field.getName()) || "serialVersionUID".equals(field.getName())) {
                 continue;
             }
+            
             field.setAccessible(true);
             try {
                 Object v1 = field.get(original);
                 Object v2 = field.get(deserialized);
                 String fieldPath = path + "." + field.getName();
+                
                 if (null == v1 && null == v2) {
                     continue;
                 }
@@ -269,13 +284,29 @@ public class RemotingSerializableCompatTest {
                     if (s1.size() != s2.size()) {
                         result = false;
                         System.err.printf("Field %s incompatible: set size original=%d, deserialized=%d\n", fieldPath, s1.size(), s2.size());
-                    } else {
-                        Iterator<?> it1 = s1.iterator(), it2 = s2.iterator();
-                        while (it1.hasNext() && it2.hasNext()) {
-                            Object e1 = it1.next(), e2 = it2.next();
-                            if (!checkCompatible(e1, e2.getClass(), fieldPath + "[]")) {
-                                result = false;
+                    } else if (!s1.isEmpty()) {
+                        List<?> list1 = new ArrayList<>(s1);
+                        List<?> list2 = new ArrayList<>(s2);
+                        if (new HashSet<>(list1).equals(new HashSet<>(list2))) {
+                            continue;
+                        }
+                        boolean elementsCompatible = true;
+                        for (Object e1 : list1) {
+                            boolean foundMatch = false;
+                            for (Object e2 : list2) {
+                                if (checkCompatible(e1, e2, fieldPath + ".element", new HashMap<>(visited))) {
+                                    foundMatch = true;
+                                    break;
+                                }
                             }
+                            if (!foundMatch) {
+                                elementsCompatible = false;
+                                break;
+                            }
+                        }
+                        if (!elementsCompatible) {
+                            result = false;
+                            System.err.printf("Field %s incompatible: sets have different elements\n", fieldPath);
                         }
                     }
                     continue;
@@ -287,7 +318,9 @@ public class RemotingSerializableCompatTest {
                         System.err.printf("Field %s incompatible: list size original=%d, deserialized=%d\n", fieldPath, l1.size(), l2.size());
                     } else {
                         for (int i = 0; i < l1.size(); i++) {
-                            if (!checkCompatible(l1.get(i), l2.get(i).getClass(), fieldPath + "[" + i + "]")) {
+                            Object e1 = l1.get(i);
+                            Object e2 = l2.get(i);
+                            if (!checkCompatible(e1, e2, fieldPath + "[" + i + "]", new HashMap<>(visited))) {
                                 result = false;
                             }
                         }
@@ -302,8 +335,14 @@ public class RemotingSerializableCompatTest {
                     } else {
                         for (Object key : m1.keySet()) {
                             Object val1 = m1.get(key), val2 = m2.get(key);
-                            if (!checkCompatible(val1, val2 != null ? val2.getClass() : null, fieldPath + ".value")) {
+                            if (val1 != null && val2 != null) {
+                                if (!checkCompatible(val1, val2, fieldPath + "[" + key + "]", new HashMap<>(visited))) {
+                                    result = false;
+                                }
+                            } else if (val1 != val2) { // 一个为null，另一个不为null
                                 result = false;
+                                System.err.printf("Field %s key %s incompatible: original=%s, deserialized=%s\n",
+                                        fieldPath, key, val1, val2);
                             }
                         }
                     }
@@ -311,7 +350,7 @@ public class RemotingSerializableCompatTest {
                 }
                 Class<?> type = field.getType();
                 if (null != v1 && null != v2 && !type.isPrimitive() && !type.getName().startsWith("java.")) {
-                    if (!checkCompatible(v1, type, fieldPath)) {
+                    if (!checkCompatible(v1, v2, fieldPath, new HashMap<>(visited))) {
                         result = false;
                     }
                     continue;
@@ -326,18 +365,37 @@ public class RemotingSerializableCompatTest {
             }
         }
         if (result) {
-            System.out.printf("Class %s result\n", path);
+            System.out.printf("Class %s compatible\n", path);
         }
         return result;
     }
     
-    public boolean checkCompatible(final Object original, final Class<?> clazz) {
-        return checkCompatible(original, clazz, clazz.getSimpleName());
+    private boolean isPrimitiveOrWrapper(final Class<?> clazz) {
+        return clazz.isPrimitive() ||
+                clazz == String.class ||
+                clazz == Boolean.class ||
+                clazz == Character.class ||
+                clazz == Byte.class ||
+                clazz == Short.class ||
+                clazz == Integer.class ||
+                clazz == Long.class ||
+                clazz == Float.class ||
+                clazz == Double.class;
     }
     
-    private Unsafe getUnsafe() throws Exception {
-        Field f = Unsafe.class.getDeclaredField("theUnsafe");
-        f.setAccessible(true);
-        return (Unsafe) f.get(null);
+    private boolean checkCompatible(final Object original, final Class<?> clazz) {
+        String json = com.alibaba.fastjson.JSON.toJSONString(original);
+        Object deserialized;
+        try {
+            deserialized = com.alibaba.fastjson2.JSON.parseObject(json, clazz);
+        } catch (Exception e) {
+            System.err.printf("Deserialization failed for %s: %s\n", clazz.getName(), e.getMessage());
+            return false;
+        }
+        return checkCompatible(original, deserialized, clazz.getSimpleName(), new HashMap<>());
+    }
+    
+    private <T> T allocateInstance(final Class<T> clazz) {
+        return new ObjenesisStd().newInstance(clazz);
     }
 }
