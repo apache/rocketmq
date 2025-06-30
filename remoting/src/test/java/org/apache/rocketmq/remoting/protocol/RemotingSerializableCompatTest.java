@@ -339,7 +339,7 @@ public class RemotingSerializableCompatTest {
                                 if (!checkCompatible(val1, val2, fieldPath + "[" + key + "]", new HashMap<>(visited))) {
                                     result = false;
                                 }
-                            } else if (val1 != val2) { // 一个为null，另一个不为null
+                            } else if (val1 != val2) {
                                 result = false;
                                 System.err.printf("Field %s key %s incompatible: original=%s, deserialized=%s\n",
                                         fieldPath, key, val1, val2);
