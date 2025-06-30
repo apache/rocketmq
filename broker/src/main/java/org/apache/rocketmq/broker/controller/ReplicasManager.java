@@ -17,10 +17,13 @@
 
 package org.apache.rocketmq.broker.controller;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -35,11 +38,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -55,6 +62,8 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.ha.autoswitch.BrokerMetadata;
 import org.apache.rocketmq.store.ha.autoswitch.TempBrokerMetadata;
+
+import com.alibaba.fastjson2.JSON;
 
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
 
@@ -234,6 +243,42 @@ public class ReplicasManager {
         }
     }
 
+    private void sendRouteChangeEvent(int newMasterEpoch) {
+        DefaultMQProducer producer = new DefaultMQProducer("ROUTE_EVENT_PRODUCER");
+
+        try {
+            producer.setNamesrvAddr(
+                StringUtils.join(this.brokerController.getBrokerConfig().getNamesrvAddr(), ";")
+            );
+            producer.setSendMsgTimeout(5000);
+            producer.start();
+
+            Map<String, Object> eventData = new HashMap<>();
+            eventData.put("eventType", "SWITCH");
+            eventData.put("brokerName", this.brokerConfig.getBrokerName());
+            eventData.put("brokerId", this.brokerControllerId);
+            eventData.put("masterEpoch", newMasterEpoch);
+            eventData.put("timestamp", System.currentTimeMillis());
+
+            Message msg = new Message(
+                TopicValidator.RMQ_ROUTE_EVENT_TOPIC,
+                "",
+                JSON.toJSONString(eventData).getBytes(StandardCharsets.UTF_8)
+            );
+
+            msg.putUserProperty("__SYS_FLAG__", "SWITCH");
+            msg.putUserProperty("BROKER_NAME", this.brokerConfig.getBrokerName());
+
+            SendResult sendResult = producer.send(msg);
+            LOGGER.info("Sent master change event: {}", sendResult);
+
+        } catch (Exception e) {
+            LOGGER.error("Failed to send master change event", e);
+        } finally {
+            producer.shutdown();
+        }
+    }
+
     public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch, final Set<Long> syncStateSet) throws Exception {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
@@ -260,6 +305,7 @@ public class ReplicasManager {
 
                 // Notify ha service, change to master
                 this.haService.changeToMaster(newMasterEpoch);
+                sendRouteChangeEvent(newMasterEpoch);
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);

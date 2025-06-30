@@ -223,6 +223,16 @@ public class TopicConfigManager extends ConfigManager {
                 this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
             }
         }
+
+        {
+            // TopicValidator.RMQ_ROUTE_EVENT_TOPIC
+            String topic = TopicValidator.RMQ_ROUTE_EVENT_TOPIC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            TopicValidator.addSystemTopic(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            putTopicConfig(topicConfig);
+        }
     }
 
     public TopicConfig putTopicConfig(TopicConfig topicConfig) {
