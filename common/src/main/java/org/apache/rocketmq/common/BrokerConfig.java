@@ -145,7 +145,7 @@ public class BrokerConfig extends BrokerIdentity {
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
     private boolean brokerFastFailureEnable = true;
-    private long waitTimeMillsInSendQueue = 500;
+    private long waitTimeMillsInSendQueue = 200;
     private long waitTimeMillsInPullQueue = 5 * 1000;
     private long waitTimeMillsInLitePullQueue = 5 * 1000;
     private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
