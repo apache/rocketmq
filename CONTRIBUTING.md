@@ -19,7 +19,7 @@ To submit a change for inclusion, please do the following:
 
 ### Squash commits
 
-If your have a pull request on GitHub, and updated more than once, it's better to squash all commits.
+If you have a pull request on GitHub, and updated more than once, it's better to squash all commits.
 
 1. Identify how many commits you made since you began: ``git log``.
 2. Squash these commits by N: ``git rebase -i HEAD~N`` .
