@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.proxy.service.cert;
+
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -39,7 +40,7 @@ public class TlsCertificateManager implements StartAndShutdown {
                     ConfigurationManager.getProxyConfig().getTlsKeyPath()
                 },
                 new CertKeyFileWatchListener(),
-                60 * 60 * 1000 /* 1 hour */
+                ConfigurationManager.getProxyConfig().getTlsCertWatchIntervalMs()
             );
         } catch (Exception e) {
             log.error("Failed to initialize TLS certificate watch service", e);
@@ -107,7 +108,7 @@ public class TlsCertificateManager implements StartAndShutdown {
             for (TlsContextReloadListener listener : reloadListeners) {
                 try {
                     listener.onTlsContextReload();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error("Failed to notify TLS context reload to listener: " + listener, e);
                 }
             }
