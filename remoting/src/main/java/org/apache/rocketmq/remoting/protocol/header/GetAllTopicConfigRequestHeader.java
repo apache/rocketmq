@@ -15,9 +15,6 @@
  * limitations under the License.
  */
 
-/**
- * $Id: GetAllTopicConfigResponseHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
 package org.apache.rocketmq.remoting.protocol.header;
 
 import org.apache.rocketmq.common.action.Action;
@@ -28,21 +25,41 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-@RocketMQAction(value = RequestCode.GET_ALL_TOPIC_CONFIG, resource = ResourceType.TOPIC, action = Action.LIST)
-public class GetAllTopicConfigResponseHeader implements CommandCustomHeader {
-
+@RocketMQAction(value = RequestCode.GET_ALL_TOPIC_CONFIG, resource = ResourceType.TOPIC, action = Action.GET)
+public class GetAllTopicConfigRequestHeader implements CommandCustomHeader {
     @Override
     public void checkFields() throws RemotingCommandException {
+        // nothing
     }
 
     @CFNotNull
-    private Integer totalTopicNum;
+    private Integer topicSeq;
 
-    public Integer getTotalTopicNum() {
-        return totalTopicNum;
+    private String dataVersion;
+
+    private Integer maxTopicNum;
+
+    public Integer getTopicSeq() {
+        return topicSeq;
     }
 
-    public void setTotalTopicNum(Integer totalTopicNum) {
-        this.totalTopicNum = totalTopicNum;
+    public void setTopicSeq(Integer topicSeq) {
+        this.topicSeq = topicSeq;
+    }
+
+    public String getDataVersion() {
+        return dataVersion;
+    }
+
+    public void setDataVersion(String dataVersion) {
+        this.dataVersion = dataVersion;
+    }
+
+    public Integer getMaxTopicNum() {
+        return maxTopicNum;
+    }
+
+    public void setMaxTopicNum(Integer maxTopicNum) {
+        this.maxTopicNum = maxTopicNum;
     }
 }
