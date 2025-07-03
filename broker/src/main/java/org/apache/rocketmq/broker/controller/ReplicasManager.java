@@ -50,7 +50,12 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.RemotingServer;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.EpochEntry;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
@@ -64,6 +69,8 @@ import org.apache.rocketmq.store.ha.autoswitch.BrokerMetadata;
 import org.apache.rocketmq.store.ha.autoswitch.TempBrokerMetadata;
 
 import com.alibaba.fastjson2.JSON;
+
+import io.netty.channel.Channel;
 
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
 
@@ -324,6 +331,20 @@ public class ReplicasManager {
         }
     }
 
+    private RemotingCommand buildNotify(String newMasterAddress) {
+        RemotingCommand switchNotify = RemotingCommand.createRequestCommand(
+            RequestCode.ROUTE_EVENT,
+            null
+        );
+
+        switchNotify.addExtField("newMasterAddr", newMasterAddress);
+        switchNotify.addExtField("oldMasterAddr", this.brokerAddress);
+        switchNotify.addExtField("Event", "SWITCH");
+        switchNotify.setLanguage(LanguageCode.JAVA);
+
+        return switchNotify;
+    }
+
     public void changeToSlave(final String newMasterAddress, final int newMasterEpoch, Long newMasterBrokerId) {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
@@ -357,6 +378,22 @@ public class ReplicasManager {
 
                 // Notify ha service, change to slave
                 this.haService.changeToSlave(newMasterAddress, newMasterEpoch, brokerControllerId);
+
+                RemotingServer remotingServer = brokerController.getRemotingServer();
+
+                Set<Channel> activeChannels = remotingServer.getActiveChannels();
+
+                RemotingCommand switchNotify = buildNotify(newMasterAddress);
+
+                activeChannels.forEach(channel -> {
+                    if (channel.isActive()) {
+                        try {
+                            remotingServer.invokeOneway(channel, switchNotify, 3000);
+                        } catch (Exception e) {
+                            LOGGER.warn("Notify client failed: {}", RemotingHelper.parseChannelRemoteAddr(channel), e);
+                        }
+                    }
+                });
 
                 this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
                 registerBrokerWhenRoleChange();

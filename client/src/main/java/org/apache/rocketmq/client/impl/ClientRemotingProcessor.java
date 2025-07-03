@@ -86,6 +86,10 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
 
             case RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT:
                 return this.receiveReplyMessage(ctx, request);
+
+            case RequestCode.ROUTE_EVENT:
+                return this.processRouteEventNotify(request, ctx);
+
             default:
                 break;
         }
@@ -292,4 +296,11 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
                 correlationId, bornHost);
         }
     }
+
+    private RemotingCommand processRouteEventNotify(RemotingCommand request, ChannelHandlerContext ctx) {
+        this.mqClientFactory.updateTopicRouteInfoFromNameServer();
+        return RemotingCommand.createResponseCommand(null);
+
+    }
+
 }
