@@ -27,6 +27,7 @@ import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -132,7 +133,8 @@ public class SlaveSynchronizeTest {
     }
 
     @Test
-    public void testSyncAll() throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException, UnsupportedEncodingException {
+    public void testSyncAll() throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+        MQBrokerException, InterruptedException, UnsupportedEncodingException, RemotingCommandException {
         TopicConfig newTopicConfig = new TopicConfig("NewTopic");
         when(brokerOuterAPI.getAllTopicConfig(anyString())).thenReturn(createTopicConfigWrapper(newTopicConfig));
         when(brokerOuterAPI.getAllConsumerOffset(anyString())).thenReturn(createConsumerOffsetWrapper());

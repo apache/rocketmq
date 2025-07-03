@@ -29,6 +29,7 @@ import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -113,8 +114,8 @@ public class SlaveSynchronizeAtomicTest {
 
     @Test
     public void testSyncAtomically()
-            throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException,
-            InterruptedException {
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException,
+        InterruptedException, RemotingCommandException {
         when(brokerOuterAPI.getAllSubscriptionGroupConfig(anyString())).thenReturn(subscriptionGroupWrapper);
         when(brokerOuterAPI.getAllMessageRequestMode(anyString())).thenReturn(requestModeSerializeWrapper);
 
