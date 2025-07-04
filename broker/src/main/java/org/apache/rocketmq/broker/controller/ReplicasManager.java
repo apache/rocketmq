@@ -266,6 +266,7 @@ public class ReplicasManager {
             eventData.put("brokerId", this.brokerControllerId);
             eventData.put("masterEpoch", newMasterEpoch);
             eventData.put("timestamp", System.currentTimeMillis());
+            eventData.put("affectedTopic", this.brokerController.getTopicConfigManager().getTopicConfigTable().keySet().toArray());
 
             Message msg = new Message(
                 TopicValidator.RMQ_ROUTE_EVENT_TOPIC,

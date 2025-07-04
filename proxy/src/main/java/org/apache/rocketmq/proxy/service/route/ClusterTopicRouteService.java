@@ -24,9 +24,14 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 public class ClusterTopicRouteService extends TopicRouteService {
+    private final RouteEventSubscriber eventSubscriber;
 
     public ClusterTopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         super(mqClientAPIFactory);
+
+        this.eventSubscriber = new RouteEventSubscriber(topic -> {
+            markCacheDirty(topic);
+        });
     }
 
     @Override

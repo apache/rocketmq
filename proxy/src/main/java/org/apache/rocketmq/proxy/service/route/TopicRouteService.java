@@ -21,8 +21,15 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -59,6 +66,11 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ScheduledExecutorService scheduledExecutorService;
     protected final ThreadPoolExecutor cacheRefreshExecutor;
+
+    protected final ConcurrentMap<String, Long> dirtyTopics = new ConcurrentHashMap<>();
+    protected final BlockingQueue<String> pendingTopics = new LinkedBlockingQueue<>();
+    protected final ScheduledExecutorService lazyUpdateExecutor;
+    protected final Object batchUpdateLock = new Object();
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
@@ -134,6 +146,13 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 }
             }
         }, serviceDetector);
+        this.lazyUpdateExecutor = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryImpl("RouteLazyUpdate_"));
+
+        lazyUpdateExecutor.scheduleWithFixedDelay(() -> {
+            batchRefreshRoutes();
+        }, 50, 200, TimeUnit.MILLISECONDS);
+
         this.init();
     }
 
@@ -226,4 +245,55 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         }
         return MessageQueueView.WRAPPED_EMPTY_QUEUE;
     }
+
+    protected void markCacheDirty(String topic) {
+        if (dirtyTopics.putIfAbsent(topic, System.currentTimeMillis()) == null) {
+            pendingTopics.offer(topic);
+        }
+    }
+
+    private void batchRefreshRoutes() {
+        if (pendingTopics.isEmpty()) return;
+
+        List<String> refreshList = new ArrayList<>(100);
+        synchronized (batchUpdateLock) {
+            int count = 0;
+            while (!pendingTopics.isEmpty() && count < 100) {
+                String topic = pendingTopics.poll();
+                if (topic != null) {
+                    refreshList.add(topic);
+                    count++;
+                }
+            }
+        }
+
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (String topic : refreshList) {
+            futures.add(CompletableFuture.runAsync(() -> {
+                try {
+                    refreshSingleRoute(topic);
+                } catch (Exception e) {
+                    log.warn("Refresh topic route failed: {}", topic, e);
+                    pendingTopics.offer(topic);
+                }
+            }, cacheRefreshExecutor));
+        }
+
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+    }
+
+    private void refreshSingleRoute(String topic) {
+        try {
+            TopicRouteData routeData = mqClientAPIFactory.getClient()
+                .getTopicRouteInfoFromNameServer(topic, 1000);
+
+            MessageQueueView newView = buildMessageQueueView(topic, routeData);
+            topicCache.put(topic, newView);
+
+            dirtyTopics.remove(topic);
+        } catch (Exception e) {
+
+        }
+    }
+
 }
