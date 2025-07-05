@@ -57,12 +57,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.atLeastOnce;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class TransactionalMessageServiceImplTest {
 
     private TransactionalMessageService queueTransactionMsgService;
@@ -179,6 +181,180 @@ public class TransactionalMessageServiceImplTest {
         assertThat(isOpen).isTrue();
     }
 
+    /**
+     * Test for Issue #9500: Verify that offsets are advanced even when exceptions occur during transaction check
+     * This test ensures that the infinite loop problem is fixed by advancing offsets in finally block
+     */
+    @Test
+    public void testCheck_OffsetAdvancementOnException() {
+        // Setup message queues
+        when(bridge.fetchMessageQueues(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC))
+                .thenReturn(createMessageQueueSet(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC));
+        
+        // Setup initial offsets
+        when(bridge.fetchConsumeOffset(any(MessageQueue.class))).thenReturn(0L);
+        
+        // Setup half message with proper properties
+        MessageExtBrokerInner halfMessage = createMessageBrokerInner(0, TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, "test");
+        halfMessage.setTopic("testTopic");
+        halfMessage.setMsgId("testMsgId");
+        halfMessage.setBornTimestamp(System.currentTimeMillis() - 120000); // Old enough to be checked
+        
+        when(bridge.getHalfMessage(anyInt(), anyLong(), anyInt()))
+                .thenReturn(createPullResultWithMessage(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 0, halfMessage));
+        
+        // Setup op message with proper format
+        MessageExtBrokerInner opMessage = createMessageBrokerInner(0, TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, "0");
+        opMessage.setTags(TransactionalMessageUtil.REMOVE_TAG);
+        
+        when(bridge.getOpMessage(anyInt(), anyLong(), anyInt()))
+                .thenReturn(createPullResultWithMessage(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, 0, opMessage));
+        
+        // Mock the bridge to throw exception during transaction check
+        when(bridge.getBrokerController()).thenReturn(this.brokerController);
+        when(bridge.renewHalfMessageInner(any(MessageExtBrokerInner.class)))
+                .thenThrow(new RuntimeException("Simulated exception during transaction check"));
+        
+        // Mock other necessary methods
+        when(bridge.putMessageReturnResult(any(MessageExtBrokerInner.class)))
+                .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        
+        long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
+        int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
+        
+        // Execute the check method - this should not throw exception due to try-catch
+        queueTransactionMsgService.check(timeOut, checkMax, listener);
+        
+        // Key assertion: updateConsumeOffset must be called even if exception occurs
+        verify(bridge, atLeastOnce()).updateConsumeOffset(any(MessageQueue.class), anyLong());
+    }
+
+    /**
+     * Test normal case: offset should be advanced when no exception occurs
+     */
+    @Test
+    public void testCheck_OffsetAdvancementOnNormal() {
+        // Setup message queues
+        when(bridge.fetchMessageQueues(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC))
+                .thenReturn(createMessageQueueSet(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC));
+        
+        // Setup initial offsets
+        when(bridge.fetchConsumeOffset(any(MessageQueue.class))).thenReturn(0L);
+        
+        // Setup half message with proper properties
+        MessageExtBrokerInner halfMessage = createMessageBrokerInner(0, TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, "test");
+        halfMessage.setTopic("testTopic");
+        halfMessage.setMsgId("testMsgId");
+        halfMessage.setBornTimestamp(System.currentTimeMillis() - 120000); // Old enough to be checked
+        
+        when(bridge.getHalfMessage(anyInt(), anyLong(), anyInt()))
+                .thenReturn(createPullResultWithMessage(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 0, halfMessage));
+        
+        // Setup op message with proper format
+        MessageExtBrokerInner opMessage = createMessageBrokerInner(0, TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, "0");
+        opMessage.setTags(TransactionalMessageUtil.REMOVE_TAG);
+        
+        when(bridge.getOpMessage(anyInt(), anyLong(), anyInt()))
+                .thenReturn(createPullResultWithMessage(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, 0, opMessage));
+        
+        when(bridge.getBrokerController()).thenReturn(this.brokerController);
+        
+        // No exception thrown, return a mock MessageExtBrokerInner
+        when(bridge.renewHalfMessageInner(any(MessageExtBrokerInner.class)))
+                .thenReturn(org.mockito.Mockito.mock(MessageExtBrokerInner.class));
+        
+        // Mock other necessary methods
+        when(bridge.putMessageReturnResult(any(MessageExtBrokerInner.class)))
+                .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        
+        long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
+        int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
+        
+        queueTransactionMsgService.check(timeOut, checkMax, listener);
+        
+        // Key assertion: updateConsumeOffset must be called
+        verify(bridge, atLeastOnce()).updateConsumeOffset(any(MessageQueue.class), anyLong());
+    }
+
+    /**
+     * Test empty queue: offset should not be advanced if no queue exists
+     */
+    @Test
+    public void testCheck_EmptyQueueNoOffsetUpdate() {
+        // Setup empty message queue set
+        when(bridge.fetchMessageQueues(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC))
+                .thenReturn(new java.util.HashSet<>());
+        
+        long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
+        int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
+        
+        queueTransactionMsgService.check(timeOut, checkMax, listener);
+        
+        // Key assertion: updateConsumeOffset should never be called
+        verify(bridge, org.mockito.Mockito.never()).updateConsumeOffset(any(MessageQueue.class), anyLong());
+    }
+
+    /**
+     * Test transaction check with proper message flow
+     */
+    @Test
+    public void testCheck_WithProperMessageFlow() {
+        // Setup message queues
+        when(bridge.fetchMessageQueues(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC))
+                .thenReturn(createMessageQueueSet(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC));
+        
+        // Setup initial offsets
+        when(bridge.fetchConsumeOffset(any(MessageQueue.class))).thenReturn(0L);
+        
+        // Setup half message that needs to be checked
+        MessageExtBrokerInner halfMessage = createMessageBrokerInner(0, TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, "test");
+        halfMessage.setTopic("testTopic");
+        halfMessage.setMsgId("testMsgId");
+        halfMessage.setBornTimestamp(System.currentTimeMillis() - 120000); // Old enough to be checked
+        
+        // Mock getHalfMessage to return message first time, then empty
+        when(bridge.getHalfMessage(anyInt(), eq(0L), anyInt()))
+                .thenReturn(createPullResultWithMessage(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 0, halfMessage));
+        when(bridge.getHalfMessage(anyInt(), eq(1L), anyInt()))
+                .thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 1, "", 0));
+        
+        // Setup empty op message (no op message found)
+        when(bridge.getOpMessage(anyInt(), anyLong(), anyInt()))
+                .thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, 0, "", 0));
+        
+        when(bridge.getBrokerController()).thenReturn(this.brokerController);
+        
+        // Mock renewHalfMessageInner to return a proper message
+        MessageExtBrokerInner renewedMessage = createMessageBrokerInner(0, TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, "test");
+        when(bridge.renewHalfMessageInner(any(MessageExtBrokerInner.class)))
+                .thenReturn(renewedMessage);
+        
+        // Mock putMessageReturnResult to return success
+        when(bridge.putMessageReturnResult(any(MessageExtBrokerInner.class)))
+                .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        
+        // Mock listener to track calls
+        final AtomicInteger resolveHalfMsgCount = new AtomicInteger(0);
+        doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocation) {
+                resolveHalfMsgCount.addAndGet(1);
+                return null;
+            }
+        }).when(listener).resolveHalfMsg(any(MessageExt.class));
+        
+        long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
+        int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
+        
+        queueTransactionMsgService.check(timeOut, checkMax, listener);
+        
+        // Verify that resolveHalfMsg was called (message was checked)
+        assertThat(resolveHalfMsgCount.get()).isEqualTo(1);
+        
+        // Verify that offsets were updated
+        verify(bridge, atLeastOnce()).updateConsumeOffset(any(MessageQueue.class), anyLong());
+    }
+
     private PullResult createDiscardPullResult(String topic, long queueOffset, String body, int size) {
         PullResult result = createPullResult(topic, queueOffset, body, size);
         List<MessageExt> msgs = result.getMsgFoundList();
@@ -262,5 +438,11 @@ public class TransactionalMessageServiceImplTest {
 
     private MessageExtBrokerInner createMessageBrokerInner() {
         return createMessageBrokerInner(1, "testTopic", "hello world");
+    }
+
+    private PullResult createPullResultWithMessage(String topic, long queueOffset, MessageExtBrokerInner message) {
+        List<MessageExt> messages = new ArrayList<>();
+        messages.add(message);
+        return new PullResult(PullStatus.FOUND, 1, 0, 1, messages);
     }
 }
