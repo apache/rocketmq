@@ -158,8 +158,6 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
         }
         map.put(queueId, offset);
 
-        if (lmqOffsetTable.get(key) != null) {
-            lmqOffsetTable.put(key, offset);
-        }
+        lmqOffsetTable.put(key, offset);
     }
 }
