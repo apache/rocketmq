@@ -153,7 +153,7 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
                 continue;
             }
             // if other store is not matched for fully recovery, extraSearchCommitLogFilesForRecovery will minus 1
-            if (extraSearchCommitLogFilesForRecovery.getAndIncrement() <= 0) {
+            if (extraSearchCommitLogFilesForRecovery.getAndDecrement() <= 0) {
                 // extraSearchCommitLogFilesForRecovery <= 0, only can read from assignOffsetStore
                 if (assignOffsetStore != currentReadStore) {
                     log.error("CombineConsumeQueueStore currentReadStore not satisfied readable conditions, assignOffsetStore={}, currentReadStore={}",
