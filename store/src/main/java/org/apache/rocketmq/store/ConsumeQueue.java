@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
@@ -793,17 +792,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         final long cqOffset) {
 
         if (offset + size <= this.getMaxPhysicOffset()) {
-            MessageStoreStateMachine stateMachine = messageStore.getStateMachine();
-            MessageStoreStateMachine.MessageStoreState messageStoreState = stateMachine.getCurrentState();
-
             // During the recovery process after broker crashes, this logs will cause the scrolling of valid logs.
-            // So only print the warning log after RECOVER_COMMITLOG_OK or the current state running time < 3 seconds.
-            if (messageStoreState.isAfter(MessageStoreStateMachine.MessageStoreState.RECOVER_COMMITLOG_OK) ||
-                stateMachine.getCurrentStateRunningTimeMs() < TimeUnit.SECONDS.toMillis(3)) {
+            if (messageStore.getStateMachine().getCurrentState().isAfter(MessageStoreStateMachine.MessageStoreState.RECOVER_COMMITLOG_OK) ||
+                messageStore.getMessageStoreConfig().isEnableLogConsumeQueueRepeatedlyBuildWhenRecover()) {
                 log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}",
-                    this.getMaxPhysicOffset(), offset);
-            } else {
-                log.debug("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}",
                     this.getMaxPhysicOffset(), offset);
             }
             return true;
