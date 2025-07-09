@@ -20,6 +20,7 @@ package org.apache.rocketmq.store;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.verify;
@@ -53,7 +54,7 @@ class MessageStoreStateMachineTest {
         assertEquals(MessageStoreState.INIT, stateMachine.getCurrentState());
 
         // Verify logger was called for initialization
-        verify(mockLogger).info("MessageStore initialized, state={}", MessageStoreState.INIT);
+        verify(mockLogger).info(anyString(), eq(MessageStoreState.INIT));
     }
 
     /**
@@ -69,6 +70,19 @@ class MessageStoreStateMachineTest {
 
         // Verify logger was called for state transition
         verify(mockLogger).info(
+            eq("MessageStore state transition from {} to {}; Time in previous state: {} ms, Total time: {} ms"),
+            eq(MessageStoreState.INIT), eq(MessageStoreState.LOAD_COMMITLOG_OK), anyLong(), anyLong()
+        );
+    }
+
+    /**
+     * Test fail state transition in transitTo method.
+     */
+    @Test
+    void testValidFailStateTransition() {
+        stateMachine.transitTo(MessageStoreState.LOAD_COMMITLOG_OK, false);
+        assertEquals(MessageStoreState.INIT, stateMachine.getCurrentState());
+        verify(mockLogger, Mockito.times(0)).info(
             eq("MessageStore state transition from {} to {}; Time in previous state: {} ms, Total time: {} ms"),
             eq(MessageStoreState.INIT), eq(MessageStoreState.LOAD_COMMITLOG_OK), anyLong(), anyLong()
         );

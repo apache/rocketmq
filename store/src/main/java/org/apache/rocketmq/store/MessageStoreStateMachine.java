@@ -41,7 +41,9 @@ public class MessageStoreStateMachine {
         RECOVER_TOPIC_QUEUE_TABLE_OK(22),
 
         RUNNING(30),
-        SHUTDOWN(40),
+
+        SHUTDOWN_BEGIN(40),
+        SHUTDOWN_OK(41),
 
         ERROR(Integer.MAX_VALUE);
 
@@ -74,21 +76,26 @@ public class MessageStoreStateMachine {
     }
 
     public void transitTo(MessageStoreState newState) {
+        transitTo(newState, true);
+    }
+
+    public void transitTo(MessageStoreState newState, boolean success) {
         if (!newState.isAfter(currentState)) {
             throw new IllegalStateException(
                 String.format("Invalid state transition from %s to %s. Can only move forward.",
                     currentState, newState)
             );
         }
-
-        logStateChange(currentState, newState);
-        this.currentState = newState;
-        this.lastStateChangeTimestamp = System.currentTimeMillis();
+        if (success) {
+            logStateChange(currentState, newState);
+            this.currentState = newState;
+            this.lastStateChangeTimestamp = System.currentTimeMillis();
+        }
     }
 
     private void logStateChange(MessageStoreState fromState, MessageStoreState toState) {
         if (fromState == null) {
-            log.info("MessageStore initialized, state={}", toState);
+            log.info("MessageStore state initialized, state={}", toState);
         } else {
             log.info("MessageStore state transition from {} to {}; Time in previous state: {} ms, Total time: {} "
                 + "ms", fromState, toState, getCurrentStateRunningTimeMs(), getTotalRunningTimeMs());

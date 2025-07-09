@@ -308,20 +308,20 @@ public class DefaultMessageStore implements MessageStore {
 
             // load Commit Log
             result = this.commitLog.load();
-            stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_COMMITLOG_OK);
+            stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_COMMITLOG_OK, result);
             // load Consume Queue
             result = result && this.consumeQueueStore.load();
-            stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_CONSUME_QUEUE_OK);
+            stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_CONSUME_QUEUE_OK, result);
 
             if (messageStoreConfig.isEnableCompaction()) {
                 result = result && this.compactionService.load(lastExitOK);
-                stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_COMPACTION_OK);
+                stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_COMPACTION_OK, result);
             }
 
             if (result) {
                 loadCheckPoint();
                 result = this.indexService.load(lastExitOK);
-                stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_INDEX_OK);
+                stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_INDEX_OK, result);
                 this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
@@ -483,6 +483,7 @@ public class DefaultMessageStore implements MessageStore {
     public void shutdown() {
         if (!this.shutdown) {
             this.shutdown = true;
+            this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.SHUTDOWN_BEGIN);
 
             this.scheduledExecutorService.shutdown();
             this.scheduledCleanQueueExecutorService.shutdown();
@@ -514,6 +515,7 @@ public class DefaultMessageStore implements MessageStore {
             if (this.runningFlags.isWriteable() && dispatchBehindBytes() == 0) {
                 this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
                 shutDownNormal = true;
+                this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.SHUTDOWN_OK);
             } else {
                 LOGGER.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
             }
