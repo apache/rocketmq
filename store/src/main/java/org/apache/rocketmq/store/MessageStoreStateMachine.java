@@ -80,7 +80,7 @@ public class MessageStoreStateMachine {
     }
 
     public void transitTo(MessageStoreState newState, boolean success) {
-        if (!newState.isAfter(currentState)) {
+        if (!MessageStoreState.ERROR.equals(currentState) && !newState.isAfter(currentState)) {
             throw new IllegalStateException(
                 String.format("Invalid state transition from %s to %s. Can only move forward.",
                     currentState, newState)
