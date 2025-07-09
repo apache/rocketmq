@@ -204,6 +204,8 @@ public class DefaultMessageStore implements MessageStore {
     // this is a unmodifiableMap
     private final ConcurrentMap<String, TopicConfig> topicConfigTable;
 
+    private final MessageStoreStateMachine stateMachine;
+
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
         ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
@@ -250,6 +252,8 @@ public class DefaultMessageStore implements MessageStore {
         lockFile = new RandomAccessFile(file, "rw");
 
         parseDelayLevel();
+
+        stateMachine = new MessageStoreStateMachine(LOGGER);
     }
 
     public ConsumeQueueStoreInterface createConsumeQueueStore() {
@@ -304,17 +308,20 @@ public class DefaultMessageStore implements MessageStore {
 
             // load Commit Log
             result = this.commitLog.load();
-
+            stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_COMMITLOG_OK);
             // load Consume Queue
             result = result && this.consumeQueueStore.load();
+            stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_CONSUME_QUEUE_OK);
 
             if (messageStoreConfig.isEnableCompaction()) {
                 result = result && this.compactionService.load(lastExitOK);
+                stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_COMPACTION_OK);
             }
 
             if (result) {
                 loadCheckPoint();
                 result = this.indexService.load(lastExitOK);
+                stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_INDEX_OK);
                 this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
@@ -329,6 +336,7 @@ public class DefaultMessageStore implements MessageStore {
 
         if (!result) {
             this.allocateMappedFileService.shutdown();
+            stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.ERROR);
         }
 
         return result;
@@ -346,20 +354,23 @@ public class DefaultMessageStore implements MessageStore {
         // recover consume queue
         long recoverConsumeQueueStart = System.currentTimeMillis();
         this.consumeQueueStore.recover(this.brokerConfig.isRecoverConcurrently());
-        long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset();
         long recoverConsumeQueueEnd = System.currentTimeMillis();
+        this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_CONSUME_QUEUE_OK);
 
         // recover commitlog
+        long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset();
         if (lastExitOK) {
             this.commitLog.recoverNormally(dispatchFromPhyOffset);
         } else {
             this.commitLog.recoverAbnormally(dispatchFromPhyOffset);
         }
+        this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_COMMITLOG_OK);
 
         // recover consume offset table
         long recoverCommitLogEnd = System.currentTimeMillis();
         this.recoverTopicQueueTable();
         long recoverConsumeOffsetEnd = System.currentTimeMillis();
+        this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_TOPIC_QUEUE_TABLE_OK);
 
         LOGGER.info("message store recover total cost: {} ms, " +
                 "recoverConsumeQueue: {} ms, recoverCommitLog: {} ms, recoverOffsetTable: {} ms",
@@ -411,6 +422,8 @@ public class DefaultMessageStore implements MessageStore {
         this.addScheduleTask();
         this.perfs.start();
         this.shutdown = false;
+
+        this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RUNNING);
     }
 
     private void doRecheckReputOffsetFromCq() throws InterruptedException {
@@ -3000,5 +3013,9 @@ public class DefaultMessageStore implements MessageStore {
 
     public void destroyConsumeQueueStore(boolean loadAfterDestroy) {
         consumeQueueStore.destroy(loadAfterDestroy);
+    }
+
+    public MessageStoreStateMachine getStateMachine() {
+        return stateMachine;
     }
 }

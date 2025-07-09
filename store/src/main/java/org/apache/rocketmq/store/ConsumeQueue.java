@@ -61,7 +61,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     public static final int MSG_TAG_OFFSET_INDEX = 12;
     private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
-    private final MessageStore messageStore;
+    private final DefaultMessageStore messageStore;
     private final ConsumeQueueStore consumeQueueStore;
 
     private final MappedFileQueue mappedFileQueue;
@@ -80,12 +80,12 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private ConsumeQueueExt consumeQueueExt = null;
 
     public ConsumeQueue(final String topic, final int queueId, final String storePath, final int mappedFileSize,
-        final MessageStore messageStore) {
+        final DefaultMessageStore messageStore) {
         this(topic, queueId, storePath, mappedFileSize, messageStore, (ConsumeQueueStore) messageStore.getQueueStore());
     }
 
     public ConsumeQueue(final String topic, final int queueId, final String storePath, final int mappedFileSize,
-        final MessageStore messageStore, final ConsumeQueueStore consumeQueueStore) {
+        final DefaultMessageStore messageStore, final ConsumeQueueStore consumeQueueStore) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.messageStore = messageStore;
@@ -792,7 +792,13 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         final long cqOffset) {
 
         if (offset + size <= this.getMaxPhysicOffset()) {
-            log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", this.getMaxPhysicOffset(), offset);
+            if (messageStore.getStateMachine().getCurrentState().isAfter(MessageStoreStateMachine.MessageStoreState.RECOVER_COMMITLOG_OK)) {
+                log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}",
+                    this.getMaxPhysicOffset(), offset);
+            } else {
+                log.debug("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}",
+                    this.getMaxPhysicOffset(), offset);
+            }
             return true;
         }
 
