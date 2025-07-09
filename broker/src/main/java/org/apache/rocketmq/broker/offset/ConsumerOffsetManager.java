@@ -50,7 +50,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     protected ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<>(512);
 
-    private final ConcurrentMap<String, ConcurrentMap<Integer, Long>> resetOffsetTable =
+    protected final ConcurrentMap<String, ConcurrentMap<Integer, Long>> resetOffsetTable =
         new ConcurrentHashMap<>(512);
 
     private final ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> pullOffsetTable =
