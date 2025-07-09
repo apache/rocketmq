@@ -792,7 +792,13 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         final long cqOffset) {
 
         if (offset + size <= this.getMaxPhysicOffset()) {
-            if (messageStore.getStateMachine().getCurrentState().isAfter(MessageStoreStateMachine.MessageStoreState.RECOVER_COMMITLOG_OK)) {
+            MessageStoreStateMachine stateMachine = messageStore.getStateMachine();
+            MessageStoreStateMachine.MessageStoreState messageStoreState = stateMachine.getCurrentState();
+
+            // During the recovery process after broker crashes, this logs will cause the scrolling of valid logs.
+            // So only print the warning log after RECOVER_COMMITLOG_OK or the current state running time < 3 seconds.
+            if (messageStoreState.isAfter(MessageStoreStateMachine.MessageStoreState.RECOVER_COMMITLOG_OK) ||
+                stateMachine.getCurrentStateRunningTimeMs() < 3000) {
                 log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}",
                     this.getMaxPhysicOffset(), offset);
             } else {
