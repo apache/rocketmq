@@ -31,14 +31,16 @@ public class MessageStoreStateMachine {
     public enum MessageStoreState {
         INIT(0),
 
-        LOAD_COMMITLOG_OK(10),
-        LOAD_CONSUME_QUEUE_OK(11),
-        LOAD_COMPACTION_OK(12),
-        LOAD_INDEX_OK(13),
+        LOAD_BEGIN(10),
+        LOAD_COMMITLOG_OK(11),
+        LOAD_CONSUME_QUEUE_OK(12),
+        LOAD_COMPACTION_OK(13),
+        LOAD_INDEX_OK(14),
 
-        RECOVER_CONSUME_QUEUE_OK(20),
-        RECOVER_COMMITLOG_OK(21),
-        RECOVER_TOPIC_QUEUE_TABLE_OK(22),
+        RECOVER_BEGIN(20),
+        RECOVER_CONSUME_QUEUE_OK(21),
+        RECOVER_COMMITLOG_OK(22),
+        RECOVER_TOPIC_QUEUE_TABLE_OK(23),
 
         RUNNING(30),
 

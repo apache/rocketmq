@@ -300,7 +300,7 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public boolean load() {
         boolean result = true;
-
+        stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_BEGIN);
         try {
             boolean lastExitOK = !this.isTempFileExist();
             LOGGER.info("last shutdown {}, store path root dir: {}",
@@ -351,6 +351,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void recover(final boolean lastExitOK) throws RocksDBException {
+        this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_BEGIN);
         // recover consume queue
         long recoverConsumeQueueStart = System.currentTimeMillis();
         this.consumeQueueStore.recover(this.brokerConfig.isRecoverConcurrently());
