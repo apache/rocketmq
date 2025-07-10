@@ -72,7 +72,7 @@ public class MessageStoreStateMachine {
         this.currentState = MessageStoreState.INIT;
         this.startTimestamp = System.currentTimeMillis();
         this.lastStateChangeTimestamp = startTimestamp;
-        logStateChange(null, currentState);
+        logStateChange(null, currentState, true);
     }
 
     public void transitTo(MessageStoreState newState) {
@@ -86,19 +86,23 @@ public class MessageStoreStateMachine {
                     currentState, newState)
             );
         }
+
+        logStateChange(currentState, newState, success);
         if (success) {
-            logStateChange(currentState, newState);
             this.currentState = newState;
             this.lastStateChangeTimestamp = System.currentTimeMillis();
         }
     }
 
-    private void logStateChange(MessageStoreState fromState, MessageStoreState toState) {
-        if (fromState == null) {
-            log.info("MessageStore state initialized, state={}", toState);
+    private void logStateChange(MessageStoreState fromState, MessageStoreState toState, boolean success) {
+        if (fromState == null && success) {
+            log.info("MessageStoreState initialized, state={}", toState);
+        } else if (success) {
+            log.info("MessageStoreState transition from {} to {}; Time in previous state={}ms, Total time={}ms",
+                fromState, toState, getCurrentStateRunningTimeMs(), getTotalRunningTimeMs());
         } else {
-            log.info("MessageStore state transition from {} to {}; Time in previous state: {} ms, Total time: {} "
-                + "ms", fromState, toState, getCurrentStateRunningTimeMs(), getTotalRunningTimeMs());
+            log.warn("MessageStoreState transition from {} to {} failed; Time in previous state={}ms, Total "
+                + "time={}ms", fromState, toState, getCurrentStateRunningTimeMs(), getTotalRunningTimeMs());
         }
     }
 

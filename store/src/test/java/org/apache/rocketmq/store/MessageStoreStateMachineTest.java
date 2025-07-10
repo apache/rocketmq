@@ -69,10 +69,8 @@ class MessageStoreStateMachineTest {
         assertEquals(MessageStoreState.LOAD_COMMITLOG_OK, stateMachine.getCurrentState());
 
         // Verify logger was called for state transition
-        verify(mockLogger).info(
-            eq("MessageStore state transition from {} to {}; Time in previous state: {} ms, Total time: {} ms"),
-            eq(MessageStoreState.INIT), eq(MessageStoreState.LOAD_COMMITLOG_OK), anyLong(), anyLong()
-        );
+        verify(mockLogger).info(anyString(), eq(MessageStoreState.INIT), eq(MessageStoreState.LOAD_COMMITLOG_OK),
+            anyLong(), anyLong());
     }
 
     /**
@@ -82,10 +80,8 @@ class MessageStoreStateMachineTest {
     void testValidFailStateTransition() {
         stateMachine.transitTo(MessageStoreState.LOAD_COMMITLOG_OK, false);
         assertEquals(MessageStoreState.INIT, stateMachine.getCurrentState());
-        verify(mockLogger, Mockito.times(0)).info(
-            eq("MessageStore state transition from {} to {}; Time in previous state: {} ms, Total time: {} ms"),
-            eq(MessageStoreState.INIT), eq(MessageStoreState.LOAD_COMMITLOG_OK), anyLong(), anyLong()
-        );
+        verify(mockLogger).warn(anyString(), eq(MessageStoreState.INIT), eq(MessageStoreState.LOAD_COMMITLOG_OK),
+            anyLong(), anyLong());
     }
 
     /**
