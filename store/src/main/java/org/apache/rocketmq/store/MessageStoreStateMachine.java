@@ -45,9 +45,7 @@ public class MessageStoreStateMachine {
         RUNNING(30),
 
         SHUTDOWN_BEGIN(40),
-        SHUTDOWN_OK(41),
-
-        ERROR(Integer.MAX_VALUE);
+        SHUTDOWN_OK(41);
 
         final int order;
 
@@ -82,7 +80,7 @@ public class MessageStoreStateMachine {
     }
 
     public void transitTo(MessageStoreState newState, boolean success) {
-        if (!MessageStoreState.ERROR.equals(currentState) && !newState.isAfter(currentState)) {
+        if (!newState.isAfter(currentState)) {
             throw new IllegalStateException(
                 String.format("Invalid state transition from %s to %s. Can only move forward.",
                     currentState, newState)

@@ -336,7 +336,6 @@ public class DefaultMessageStore implements MessageStore {
 
         if (!result) {
             this.allocateMappedFileService.shutdown();
-            stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.ERROR);
         }
 
         return result;
@@ -353,9 +352,7 @@ public class DefaultMessageStore implements MessageStore {
     private void recover(final boolean lastExitOK) throws RocksDBException {
         this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_BEGIN);
         // recover consume queue
-        long recoverConsumeQueueStart = System.currentTimeMillis();
         this.consumeQueueStore.recover(this.brokerConfig.isRecoverConcurrently());
-        long recoverConsumeQueueEnd = System.currentTimeMillis();
         this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_CONSUME_QUEUE_OK);
 
         // recover commitlog
@@ -368,15 +365,8 @@ public class DefaultMessageStore implements MessageStore {
         this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_COMMITLOG_OK);
 
         // recover consume offset table
-        long recoverCommitLogEnd = System.currentTimeMillis();
         this.recoverTopicQueueTable();
-        long recoverConsumeOffsetEnd = System.currentTimeMillis();
         this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_TOPIC_QUEUE_TABLE_OK);
-
-        LOGGER.info("message store recover total cost: {} ms, " +
-                "recoverConsumeQueue: {} ms, recoverCommitLog: {} ms, recoverOffsetTable: {} ms",
-            recoverConsumeOffsetEnd - recoverConsumeQueueStart, recoverConsumeQueueEnd - recoverConsumeQueueStart,
-            recoverCommitLogEnd - recoverConsumeQueueEnd, recoverConsumeOffsetEnd - recoverCommitLogEnd);
     }
 
     /**
