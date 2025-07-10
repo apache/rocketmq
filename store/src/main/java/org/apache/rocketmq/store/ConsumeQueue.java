@@ -61,7 +61,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     public static final int MSG_TAG_OFFSET_INDEX = 12;
     private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
-    private final DefaultMessageStore messageStore;
+    private final MessageStore messageStore;
     private final ConsumeQueueStore consumeQueueStore;
 
     private final MappedFileQueue mappedFileQueue;
@@ -80,12 +80,12 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private ConsumeQueueExt consumeQueueExt = null;
 
     public ConsumeQueue(final String topic, final int queueId, final String storePath, final int mappedFileSize,
-        final DefaultMessageStore messageStore) {
+        final MessageStore messageStore) {
         this(topic, queueId, storePath, mappedFileSize, messageStore, (ConsumeQueueStore) messageStore.getQueueStore());
     }
 
     public ConsumeQueue(final String topic, final int queueId, final String storePath, final int mappedFileSize,
-        final DefaultMessageStore messageStore, final ConsumeQueueStore consumeQueueStore) {
+        final MessageStore messageStore, final ConsumeQueueStore consumeQueueStore) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.messageStore = messageStore;
