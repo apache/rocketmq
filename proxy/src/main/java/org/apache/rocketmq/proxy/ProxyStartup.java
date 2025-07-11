@@ -44,6 +44,7 @@ import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.remoting.RemotingProtocolServer;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
@@ -76,8 +77,13 @@ public class ProxyStartup {
 
             MessagingProcessor messagingProcessor = createMessagingProcessor();
 
+            // tls cert update
+            TlsCertificateManager tlsCertificateManager = new TlsCertificateManager();
+            PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
+
             // create grpcServer
-            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor, ConfigurationManager.getProxyConfig().getGrpcServerPort())
+            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
+                    ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
                 .addService(createServiceProcessor(messagingProcessor))
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
@@ -86,7 +92,7 @@ public class ProxyStartup {
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
 
-            RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor);
+            RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor, tlsCertificateManager);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);
 
             // start servers one by one.

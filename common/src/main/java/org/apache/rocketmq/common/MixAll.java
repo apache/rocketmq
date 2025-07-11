@@ -57,6 +57,10 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
+    /**
+     * unify the home dir
+     */
+    public static final String ROCKETMQ_HOME_DIR = System.getProperty(ROCKETMQ_HOME_PROPERTY, System.getenv(ROCKETMQ_HOME_ENV));
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
     public static final String MESSAGE_COMPRESS_TYPE = "rocketmq.message.compressType";
@@ -556,5 +560,14 @@ public class MixAll {
         return !topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
             && !topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)
             && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
+    }
+
+    public static String adjustConfigForPlatform(String config) {
+        if (StringUtils.isNotBlank(config)) {
+            if (isWindows()) {
+                config = StringUtils.replace(config, "\\", "\\\\");
+            }
+        }
+        return config;
     }
 }

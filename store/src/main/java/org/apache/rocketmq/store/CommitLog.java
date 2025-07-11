@@ -1592,8 +1592,8 @@ public class CommitLog implements Swappable {
      * GroupCommit Service
      */
     class GroupCommitService extends FlushCommitLogService {
-        private volatile LinkedList<GroupCommitRequest> requestsWrite = new LinkedList<>();
-        private volatile LinkedList<GroupCommitRequest> requestsRead = new LinkedList<>();
+        private LinkedList<GroupCommitRequest> requestsWrite = new LinkedList<>();
+        private LinkedList<GroupCommitRequest> requestsRead = new LinkedList<>();
         private final PutMessageSpinLock lock = new PutMessageSpinLock();
 
         public void putRequest(final GroupCommitRequest request) {

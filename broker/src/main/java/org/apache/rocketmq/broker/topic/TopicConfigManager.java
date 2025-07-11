@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -29,7 +30,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.collect.ImmutableMap;
-
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
@@ -626,9 +627,6 @@ public class TopicConfigManager extends ConfigManager {
         topicConfigWrapper.setTopicConfigTable(topicConfigTable);
         topicConfigWrapper.setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
         topicConfigWrapper.setDataVersion(this.getDataVersion());
-        if (this.brokerController.getBrokerConfig().isEnableSplitRegistration()) {
-            this.getDataVersion().nextVersion();
-        }
         return topicConfigWrapper;
     }
 
@@ -701,6 +699,28 @@ public class TopicConfigManager extends ConfigManager {
 
     public ConcurrentMap<String, TopicConfig> getTopicConfigTable() {
         return topicConfigTable;
+    }
+
+    public ConcurrentHashMap<String, TopicConfig> subTopicConfigTable(String dataVersion, int topicSeq,
+        int maxTopicNum) {
+        // [topicSeq, topicSeq + maxTopicNum)
+        int beginIndex = topicSeq;
+        if (StringUtils.isBlank(dataVersion) || !Objects.equals(DataVersion.fromJson(dataVersion, DataVersion.class), this.dataVersion)) {
+            beginIndex = 0;
+            log.info("get sub topic config table from {} due to {}", beginIndex,
+                StringUtils.isBlank(dataVersion) ? "DataVersion Empty" : "DataVersion Changed");
+        }
+
+        ConcurrentHashMap<String, TopicConfig> subTopicConfigTable = new ConcurrentHashMap<>();
+        if (beginIndex < topicConfigTable.size()) {
+            int endIndex = Math.min(beginIndex + maxTopicNum, topicConfigTable.size());
+
+            ImmutableSortedMap<String, TopicConfig> sortedMap = ImmutableSortedMap.copyOf(topicConfigTable);
+            subTopicConfigTable.putAll(sortedMap.subMap(sortedMap.keySet().asList().get(beginIndex),true,
+                sortedMap.keySet().asList().get(endIndex - 1),true));
+        }
+
+        return subTopicConfigTable;
     }
 
     private Map<String, String> request(TopicConfig topicConfig) {

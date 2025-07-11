@@ -983,4 +983,6 @@ public interface MessageStore {
      * notify message arrive if necessary
      */
     void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest);
+
+    MessageStoreStateMachine getStateMachine();
 }

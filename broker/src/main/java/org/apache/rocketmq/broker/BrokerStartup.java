@@ -294,10 +294,10 @@ public class BrokerStartup {
         }
 
         public Properties loadConfig() throws Exception {
-            InputStream in = new BufferedInputStream(Files.newInputStream(Paths.get(file)));
             Properties properties = new Properties();
-            properties.load(in);
-            in.close();
+            try (InputStream in = new BufferedInputStream(Files.newInputStream(Paths.get(file)))) {
+                properties.load(in);
+            }
             return properties;
         }
 

@@ -15,9 +15,6 @@
  * limitations under the License.
  */
 
-/**
- * $Id: GetAllTopicConfigResponseHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
 package org.apache.rocketmq.remoting.protocol.header;
 
 import org.apache.rocketmq.common.action.Action;
@@ -28,21 +25,21 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-@RocketMQAction(value = RequestCode.GET_ALL_TOPIC_CONFIG, resource = ResourceType.TOPIC, action = Action.LIST)
-public class GetAllTopicConfigResponseHeader implements CommandCustomHeader {
-
+@RocketMQAction(value = RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, resource = ResourceType.GROUP, action = Action.LIST)
+public class GetAllSubscriptionGroupResponseHeader implements CommandCustomHeader {
     @Override
     public void checkFields() throws RemotingCommandException {
+
     }
 
     @CFNotNull
-    private Integer totalTopicNum;
+    private Integer totalGroupNum;
 
-    public Integer getTotalTopicNum() {
-        return totalTopicNum;
+    public Integer getTotalGroupNum() {
+        return totalGroupNum;
     }
 
-    public void setTotalTopicNum(Integer totalTopicNum) {
-        this.totalTopicNum = totalTopicNum;
+    public void setTotalGroupNum(Integer totalGroupNum) {
+        this.totalGroupNum = totalGroupNum;
     }
 }

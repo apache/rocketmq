@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -32,7 +35,9 @@ import org.apache.rocketmq.common.attribute.BooleanAttribute;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.EnumAttribute;
 import org.apache.rocketmq.common.attribute.LongRangeAttribute;
+import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
@@ -325,5 +330,74 @@ public class TopicConfigManagerTest {
         }
 
         TopicAttributes.ALL.putAll(supportedAttributes);
+    }
+
+    private void fillTopicConfigTable(int num) {
+        ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        for (int i = num - 1; i >= 0; i--) {
+            String topicName = String.format("topic%05d", i);
+            TopicConfig topicConfig = new TopicConfig(topicName, 1, 1,
+                PermName.PERM_READ | PermName.PERM_WRITE, 0);
+            topicConfigTable.put(topicName, topicConfig);
+        }
+        topicConfigManager.setTopicConfigTable(topicConfigTable);
+    }
+
+    @Test
+    public void testSubTopicConfigTable() {
+        // Empty TopicConfigTable
+        topicConfigManager.getTopicConfigTable().clear();
+        Map<String, TopicConfig> result = topicConfigManager.subTopicConfigTable(topicConfigManager.getDataVersion().toJson(), 0, 200);
+        Assert.assertTrue(result.isEmpty());
+
+        // init table, topic range [0, N)
+        final int totalTopicNum = 50000;
+        fillTopicConfigTable(totalTopicNum);
+
+        // Null DataVersion
+        int beginIndex = 0, maxNum = 200;
+        int endIndex = beginIndex + maxNum - 1;
+        result = topicConfigManager.subTopicConfigTable(null, beginIndex, maxNum);
+
+        Assert.assertEquals(maxNum, result.size());
+        Assert.assertTrue(result.containsKey(String.format("topic%05d", ThreadLocalRandom.current().nextInt(beginIndex, endIndex))));
+        Assert.assertFalse(result.containsKey(String.format("topic%05d", beginIndex - 1)));
+        Assert.assertFalse(result.containsKey(String.format("topic%05d", endIndex + 1)));
+
+        // Different DataVersion
+        DataVersion differentVersion = new DataVersion();
+        differentVersion.setCounter(new AtomicLong(1000L));  // different counter
+        differentVersion.setTimestamp(System.currentTimeMillis());
+        result = topicConfigManager.subTopicConfigTable(differentVersion.toJson(), 300, maxNum);
+
+        Assert.assertEquals(maxNum, result.size());
+        Assert.assertTrue(result.containsKey(String.format("topic%05d", ThreadLocalRandom.current().nextInt(beginIndex, endIndex))));
+        Assert.assertFalse(result.containsKey(String.format("topic%05d", beginIndex - 1)));
+        Assert.assertFalse(result.containsKey(String.format("topic%05d", endIndex + 1)));
+
+        // BeginIndexOutOfRange
+        result = topicConfigManager.subTopicConfigTable(topicConfigManager.getDataVersion().toJson(), totalTopicNum, 200);
+
+        Assert.assertTrue(result.isEmpty());
+
+        // Normal Case
+        beginIndex = 300;
+        endIndex = beginIndex + maxNum - 1;
+        result = topicConfigManager.subTopicConfigTable(topicConfigManager.getDataVersion().toJson(), beginIndex, maxNum);
+
+        Assert.assertEquals(maxNum, result.size());
+        Assert.assertTrue(result.containsKey(String.format("topic%05d", ThreadLocalRandom.current().nextInt(beginIndex, endIndex))));
+        Assert.assertFalse(result.containsKey(String.format("topic%05d", beginIndex - 1)));
+        Assert.assertFalse(result.containsKey(String.format("topic%05d", endIndex + 1)));
+
+        // NotFullTopicConfigTable
+        beginIndex = 49950;
+        endIndex = Math.min(topicConfigManager.getTopicConfigTable().size() - 1, beginIndex + maxNum - 1);
+        result = topicConfigManager.subTopicConfigTable(topicConfigManager.getDataVersion().toJson(), beginIndex, maxNum);
+
+        Assert.assertEquals(totalTopicNum - beginIndex, result.size());
+        Assert.assertTrue(result.containsKey(String.format("topic%05d", ThreadLocalRandom.current().nextInt(beginIndex, endIndex))));
+        Assert.assertFalse(result.containsKey(String.format("topic%05d", beginIndex - 1)));
+        Assert.assertFalse(result.containsKey(String.format("topic%05d", endIndex + 1)));
     }
 }

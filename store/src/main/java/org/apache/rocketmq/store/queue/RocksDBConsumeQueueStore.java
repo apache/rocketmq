@@ -403,6 +403,23 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
+    /**
+     * ConsumerQueueTable, as an in-memory data structure, uses lazy loading mechanism in RocksDBConsumeQueueStore.
+     * This means that when the broker restarts, it may not be able to retrieve all ConsumerQueues from the table.
+     * Therefore, before deleting a topic, we need to attempt to build all ConsumerQueues under that topic to ensure
+     * the completeness of the deletion operation.
+     */
+    @Override
+    public boolean deleteTopic(String topic) {
+        try {
+            Set<Integer> queueIds = rocksDBConsumeQueueOffsetTable.scanAllQueueIdInTopic(topic);
+            queueIds.forEach(queueId -> findOrCreateConsumeQueue(topic, queueId));
+        } catch (RocksDBException e) {
+            ERROR_LOG.error("Failed to scan queueIds for topic. topic={}", topic, e);
+        }
+        return super.deleteTopic(topic);
+    }
+
     @Override
     public void flush() throws StoreException {
         try (FlushOptions flushOptions = new FlushOptions()) {

@@ -17,19 +17,17 @@
 package org.apache.rocketmq.client.impl.mqclient;
 
 import com.google.common.base.Strings;
-
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.common.NameserverAccessConfig;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.utils.AsyncShutdownHelper;
 import org.apache.rocketmq.common.ObjectCreator;
+import org.apache.rocketmq.common.utils.AsyncShutdownHelper;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingClient;
@@ -133,7 +131,9 @@ public class MQClientAPIFactory implements StartAndShutdown {
             remotingClientCreator
         );
 
-        if (!mqClientAPIExt.updateNameServerAddressList()) {
+        if (StringUtils.isEmpty(nameserverAccessConfig.getNamesrvDomain())) {
+            mqClientAPIExt.updateNameServerAddressList(nameserverAccessConfig.getNamesrvAddr());
+        } else {
             mqClientAPIExt.fetchNameServerAddr();
             this.scheduledExecutorService.scheduleAtFixedRate(
                 mqClientAPIExt::fetchNameServerAddr,
@@ -142,7 +142,18 @@ public class MQClientAPIFactory implements StartAndShutdown {
                 TimeUnit.MILLISECONDS
             );
         }
+
         mqClientAPIExt.start();
         return mqClientAPIExt;
+    }
+
+    public void onNameServerAddressChange(String namesrvAddress) {
+        for (MQClientAPIExt client : clients) {
+            client.onNameServerAddressChange(namesrvAddress);
+        }
+    }
+
+    public MQClientAPIExt[] getClients() {
+        return clients;
     }
 }
