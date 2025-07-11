@@ -27,14 +27,13 @@ import org.apache.rocketmq.client.common.NameserverAccessConfig;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ObjectCreator;
-import org.apache.rocketmq.common.namesrv.NameServerUpdateCallback;
 import org.apache.rocketmq.common.utils.AsyncShutdownHelper;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 
-public class MQClientAPIFactory implements NameServerUpdateCallback, StartAndShutdown {
+public class MQClientAPIFactory implements StartAndShutdown {
 
     private MQClientAPIExt[] clients;
     private final String namePrefix;
@@ -148,11 +147,13 @@ public class MQClientAPIFactory implements NameServerUpdateCallback, StartAndShu
         return mqClientAPIExt;
     }
 
-    @Override
-    public String onNameServerAddressChange(String namesrvAddress) {
+    public void onNameServerAddressChange(String namesrvAddress) {
         for (MQClientAPIExt client : clients) {
             client.onNameServerAddressChange(namesrvAddress);
         }
-        return namesrvAddress;
+    }
+
+    public MQClientAPIExt[] getClients() {
+        return clients;
     }
 }
