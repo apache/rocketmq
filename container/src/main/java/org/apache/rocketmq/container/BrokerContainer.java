@@ -17,8 +17,10 @@
 package org.apache.rocketmq.container;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.ConfigContext;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -193,7 +195,7 @@ public class BrokerContainer implements IBrokerContainer {
         return true;
     }
 
-    private void registerProcessor() {
+    public void registerProcessor() {
         remotingServer.registerDefaultProcessor(brokerContainerProcessor, this.brokerContainerExecutor);
         fastRemotingServer.registerDefaultProcessor(brokerContainerProcessor, this.brokerContainerExecutor);
     }
@@ -268,29 +270,34 @@ public class BrokerContainer implements IBrokerContainer {
     }
 
     @Override
-    public InnerBrokerController addBroker(final BrokerConfig brokerConfig,
-        final MessageStoreConfig storeConfig) throws Exception {
+    public InnerBrokerController addBroker(ConfigContext configContext) throws Exception {
+
+        BrokerConfig brokerConfig = configContext.getBrokerConfig();
+        MessageStoreConfig storeConfig = configContext.getMessageStoreConfig();
+        AuthConfig authConfig = configContext.getAuthConfig();
+
         if (storeConfig.isEnableDLegerCommitLog()) {
-            return this.addDLedgerBroker(brokerConfig, storeConfig);
+            return this.addDLedgerBroker(brokerConfig, storeConfig, authConfig);
         } else {
             if (brokerConfig.getBrokerId() == MixAll.MASTER_ID && storeConfig.getBrokerRole() != BrokerRole.SLAVE) {
-                return this.addMasterBroker(brokerConfig, storeConfig);
+                return this.addMasterBroker(brokerConfig, storeConfig, authConfig);
             }
             if (brokerConfig.getBrokerId() != MixAll.MASTER_ID && storeConfig.getBrokerRole() == BrokerRole.SLAVE) {
-                return this.addSlaveBroker(brokerConfig, storeConfig);
+                return this.addSlaveBroker(brokerConfig, storeConfig, authConfig);
             }
         }
 
         return null;
     }
 
-    public InnerBrokerController addDLedgerBroker(final BrokerConfig brokerConfig, final MessageStoreConfig storeConfig) throws Exception {
+    public InnerBrokerController addDLedgerBroker(final BrokerConfig brokerConfig, final MessageStoreConfig storeConfig,
+        final AuthConfig authConfig) throws Exception {
         brokerConfig.setInBrokerContainer(true);
         if (storeConfig.isDuplicationEnable()) {
             LOG.error("Can not add broker to container when duplicationEnable is true currently");
             throw new Exception("Can not add broker to container when duplicationEnable is true currently");
         }
-        InnerBrokerController brokerController = new InnerBrokerController(this, brokerConfig, storeConfig);
+        InnerBrokerController brokerController = new InnerBrokerController(this, brokerConfig, storeConfig, authConfig);
         BrokerIdentity brokerIdentity = brokerController.getBrokerIdentity();
         final BrokerController previousBroker = dLedgerBrokerControllers.putIfAbsent(brokerIdentity, brokerController);
         if (previousBroker == null) {
@@ -315,14 +322,14 @@ public class BrokerContainer implements IBrokerContainer {
     }
 
     public InnerBrokerController addMasterBroker(final BrokerConfig masterBrokerConfig,
-        final MessageStoreConfig storeConfig) throws Exception {
+        final MessageStoreConfig storeConfig, final AuthConfig authConfig) throws Exception {
 
         masterBrokerConfig.setInBrokerContainer(true);
         if (storeConfig.isDuplicationEnable()) {
             LOG.error("Can not add broker to container when duplicationEnable is true currently");
             throw new Exception("Can not add broker to container when duplicationEnable is true currently");
         }
-        InnerBrokerController masterBroker = new InnerBrokerController(this, masterBrokerConfig, storeConfig);
+        InnerBrokerController masterBroker = new InnerBrokerController(this, masterBrokerConfig, storeConfig, authConfig);
         BrokerIdentity brokerIdentity = masterBroker.getBrokerIdentity();
         final BrokerController previousBroker = masterBrokerControllers.putIfAbsent(brokerIdentity, masterBroker);
         if (previousBroker == null) {
@@ -359,7 +366,7 @@ public class BrokerContainer implements IBrokerContainer {
      * @throws Exception is thrown if an error occurs
      */
     public InnerSalveBrokerController addSlaveBroker(final BrokerConfig slaveBrokerConfig,
-        final MessageStoreConfig storeConfig) throws Exception {
+        final MessageStoreConfig storeConfig, final AuthConfig authConfig) throws Exception {
 
         slaveBrokerConfig.setInBrokerContainer(true);
         if (storeConfig.isDuplicationEnable()) {
@@ -369,7 +376,7 @@ public class BrokerContainer implements IBrokerContainer {
 
         int ratio = storeConfig.getAccessMessageInMemoryMaxRatio() - 10;
         storeConfig.setAccessMessageInMemoryMaxRatio(Math.max(ratio, 0));
-        InnerSalveBrokerController slaveBroker = new InnerSalveBrokerController(this, slaveBrokerConfig, storeConfig);
+        InnerSalveBrokerController slaveBroker = new InnerSalveBrokerController(this, slaveBrokerConfig, storeConfig, authConfig);
         BrokerIdentity brokerIdentity = slaveBroker.getBrokerIdentity();
         final InnerSalveBrokerController previousBroker = slaveBrokerControllers.putIfAbsent(brokerIdentity, slaveBroker);
         if (previousBroker == null) {
@@ -481,5 +488,9 @@ public class BrokerContainer implements IBrokerContainer {
             }
         }
         return null;
+    }
+
+    public ExecutorService getBrokerContainerExecutor() {
+        return brokerContainerExecutor;
     }
 }

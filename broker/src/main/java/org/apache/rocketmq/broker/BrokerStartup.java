@@ -40,9 +40,7 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-
 public class BrokerStartup {
 
     public static Logger log;
@@ -81,17 +79,7 @@ public class BrokerStartup {
         }
     }
 
-    public static BrokerController buildBrokerController(String[] args) throws Exception {
-        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
-
-        final BrokerConfig brokerConfig = new BrokerConfig();
-        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-        final NettyClientConfig nettyClientConfig = new NettyClientConfig();
-        final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        final AuthConfig authConfig = new AuthConfig();
-        nettyServerConfig.setListenPort(10911);
-        messageStoreConfig.setHaListenPort(0);
-
+    public static ConfigContext parseCmdLineToConfig(String[] args) throws Exception {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine(
             "mqbroker", args, buildCommandlineOptions(options), new DefaultParser());
@@ -100,13 +88,36 @@ public class BrokerStartup {
         }
 
         Properties properties = null;
+        String filePath = null;
         if (commandLine.hasOption('c')) {
-            String file = commandLine.getOptionValue('c');
-            if (file != null) {
-                CONFIG_FILE_HELPER.setFile(file);
-                BrokerPathConfigHelper.setBrokerConfigPath(file);
+            filePath = commandLine.getOptionValue('c');
+            if (filePath != null) {
+                CONFIG_FILE_HELPER.setFile(filePath);
+                BrokerPathConfigHelper.setBrokerConfigPath(filePath);
                 properties = CONFIG_FILE_HELPER.loadConfig();
             }
+        }
+
+        final BrokerConfig brokerConfig = new BrokerConfig();
+        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        final NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        final AuthConfig authConfig = new AuthConfig();
+
+        if (commandLine.hasOption('p')) {
+            Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+            MixAll.printObjectProperties(console, brokerConfig);
+            MixAll.printObjectProperties(console, nettyServerConfig);
+            MixAll.printObjectProperties(console, nettyClientConfig);
+            MixAll.printObjectProperties(console, messageStoreConfig);
+            System.exit(0);
+        } else if (commandLine.hasOption('m')) {
+            Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+            MixAll.printObjectProperties(console, brokerConfig, true);
+            MixAll.printObjectProperties(console, nettyServerConfig, true);
+            MixAll.printObjectProperties(console, nettyClientConfig, true);
+            MixAll.printObjectProperties(console, messageStoreConfig, true);
+            System.exit(0);
         }
 
         if (properties != null) {
@@ -119,6 +130,31 @@ public class BrokerStartup {
         }
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
+
+        return new ConfigContext.Builder()
+            .configFilePath(filePath)
+            .properties(properties)
+            .brokerConfig(brokerConfig)
+            .messageStoreConfig(messageStoreConfig)
+            .nettyServerConfig(nettyServerConfig)
+            .nettyClientConfig(nettyClientConfig)
+            .authConfig(authConfig)
+            .build();
+    }
+
+    public static BrokerController buildBrokerController(ConfigContext configContext) throws Exception {
+        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
+
+        BrokerConfig brokerConfig = configContext.getBrokerConfig();
+        MessageStoreConfig messageStoreConfig = configContext.getMessageStoreConfig();
+        NettyClientConfig nettyClientConfig = configContext.getNettyClientConfig();
+        NettyServerConfig nettyServerConfig = configContext.getNettyServerConfig();
+        AuthConfig authConfig = configContext.getAuthConfig();
+        Properties properties = configContext.getProperties();
+
+        nettyServerConfig.setListenPort(10911);
+        configContext.getMessageStoreConfig().setHaListenPort(0);
+
         if (null == brokerConfig.getRocketmqHome()) {
             System.out.printf("Please set the %s variable in your environment " +
                 "to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);
@@ -138,11 +174,6 @@ public class BrokerStartup {
                         "\"127.0.0.1:9876;192.168.0.1:9876\"%n", namesrvAddr);
                 System.exit(-3);
             }
-        }
-
-        if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
-            int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
-            messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
         }
 
         // Set broker role according to ha config
@@ -186,21 +217,6 @@ public class BrokerStartup {
             System.setProperty("brokerLogDir", brokerConfig.getBrokerName() + "_" + messageStoreConfig.getdLegerSelfId());
         }
 
-        if (commandLine.hasOption('p')) {
-            Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
-            MixAll.printObjectProperties(console, brokerConfig);
-            MixAll.printObjectProperties(console, nettyServerConfig);
-            MixAll.printObjectProperties(console, nettyClientConfig);
-            MixAll.printObjectProperties(console, messageStoreConfig);
-            System.exit(0);
-        } else if (commandLine.hasOption('m')) {
-            Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
-            MixAll.printObjectProperties(console, brokerConfig, true);
-            MixAll.printObjectProperties(console, nettyServerConfig, true);
-            MixAll.printObjectProperties(console, nettyClientConfig, true);
-            MixAll.printObjectProperties(console, messageStoreConfig, true);
-            System.exit(0);
-        }
 
         log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
         MixAll.printObjectProperties(log, brokerConfig);
@@ -244,7 +260,8 @@ public class BrokerStartup {
 
     public static BrokerController createBrokerController(String[] args) {
         try {
-            BrokerController controller = buildBrokerController(args);
+            ConfigContext configContext = parseCmdLineToConfig(args);
+            BrokerController controller = buildBrokerController(configContext);
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();

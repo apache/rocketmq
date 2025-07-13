@@ -322,6 +322,14 @@ public class BrokerController {
 
     public BrokerController(
         final BrokerConfig brokerConfig,
+        final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig
+    ) {
+        this(brokerConfig, null, null, messageStoreConfig, authConfig);
+    }
+
+    public BrokerController(
+        final BrokerConfig brokerConfig,
         final NettyServerConfig nettyServerConfig,
         final NettyClientConfig nettyClientConfig,
         final MessageStoreConfig messageStoreConfig
