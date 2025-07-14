@@ -45,6 +45,10 @@ public class ConsumeQueue {
     private final String storePath;
     private final int mappedFileSize;
     private long maxPhysicOffset = -1;
+
+    /**
+     * Minimum offset of the consume file queue that points to valid commit log record.
+     */
     private volatile long minLogicOffset = 0;
     private ConsumeQueueExt consumeQueueExt = null;
 
@@ -340,25 +344,124 @@ public class ConsumeQueue {
         return cnt;
     }
 
-    public void correctMinOffset(long phyMinOffset) {
+    /**
+     * Update minLogicOffset such that entries after it would point to valid commit log address.
+     *
+     * @param minCommitLogOffset Minimum commit log offset
+     */
+    public void correctMinOffset(long minCommitLogOffset) {
+        // Check if the consume queue is the state of deprecation.
+        if (minLogicOffset >= mappedFileQueue.getMaxOffset()) {
+            log.info("ConsumeQueue[Topic={}, queue-id={}] contains no valid entries", topic, queueId);
+            return;
+        }
+
+        // Check whether the consume queue maps no valid data at all. This check may cost 1 IO operation.
+        // The rationale is that consume queue always preserves the last file. In case there are many deprecated topics,
+        // This check would save a lot of efforts.
+        MappedFile lastMappedFile = this.mappedFileQueue.getLastMappedFile();
+        if (null == lastMappedFile) {
+            return;
+        }
+
+        SelectMappedBufferResult lastRecord = null;
+        try {
+            int maxReadablePosition = lastMappedFile.getReadPosition();
+            lastRecord = lastMappedFile.selectMappedBuffer(maxReadablePosition - ConsumeQueue.CQ_STORE_UNIT_SIZE,
+                ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            if (null != lastRecord) {
+                ByteBuffer buffer = lastRecord.getByteBuffer();
+                long commitLogOffset = buffer.getLong();
+                if (commitLogOffset < minCommitLogOffset) {
+                    // Keep the largest known consume offset, even if this consume-queue contains no valid entries at
+                    // all. Let minLogicOffset point to a future slot.
+                    this.minLogicOffset = lastMappedFile.getFileFromOffset() + maxReadablePosition;
+                    log.info("ConsumeQueue[topic={}, queue-id={}] contains no valid entries. Min-offset is assigned as: {}.",
+                        topic, queueId, getMinOffsetInQueue());
+                    return;
+                }
+            }
+        } finally {
+            if (null != lastRecord) {
+                lastRecord.release();
+            }
+        }
+
         MappedFile mappedFile = this.mappedFileQueue.getFirstMappedFile();
         long minExtAddr = 1;
         if (mappedFile != null) {
-            SelectMappedBufferResult result = mappedFile.selectMappedBuffer(0);
-            if (result == null) {
+            // Search from previous min logical offset. Typically, a consume queue file segment contains 300,000 entries
+            // searching from previous position saves significant amount of comparisons and IOs
+            boolean intact = true; // Assume previous value is still valid
+            long start = this.minLogicOffset - mappedFile.getFileFromOffset();
+            if (start < 0) {
+                intact = false;
+                start = 0;
+            }
+
+            if (start > mappedFile.getReadPosition()) {
+                log.error("[Bug][InconsistentState] ConsumeQueue file {} should have been deleted",
+                    mappedFile.getFileName());
                 return;
             }
-            try {
-                for (int i = 0; i < result.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                    long offsetPy = result.getByteBuffer().getLong();
-                    result.getByteBuffer().getInt();
-                    long tagsCode = result.getByteBuffer().getLong();
 
-                    if (offsetPy >= phyMinOffset) {
-                        this.minLogicOffset = mappedFile.getFileFromOffset() + i;
+            SelectMappedBufferResult result = mappedFile.selectMappedBuffer((int) start);
+            if (result == null) {
+                log.warn("[Bug] Failed to scan consume queue entries from file on correcting min offset: {}",
+                    mappedFile.getFileName());
+                return;
+            }
+
+            try {
+                // No valid consume entries
+                if (result.getSize() == 0) {
+                    log.debug("ConsumeQueue[topic={}, queue-id={}] contains no valid entries", topic, queueId);
+                    return;
+                }
+
+                ByteBuffer buffer = result.getByteBuffer().slice();
+                // Verify whether the previous value is still valid or not before conducting binary search
+                long commitLogOffset = buffer.getLong();
+                if (intact && commitLogOffset >= minCommitLogOffset) {
+                    log.info("Abort correction as previous min-offset points to {}, which is greater than {}",
+                        commitLogOffset, minCommitLogOffset);
+                    return;
+                }
+
+                // Binary search between range [previous_min_logic_offset, first_file_from_offset + file_size)
+                // Note the consume-queue deletion procedure ensures the last entry points to somewhere valid.
+                int low = 0;
+                int high = result.getSize() - ConsumeQueue.CQ_STORE_UNIT_SIZE;
+                while (true) {
+                    if (high - low <= ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                        break;
+                    }
+                    int mid = (low + high) / 2 / ConsumeQueue.CQ_STORE_UNIT_SIZE * ConsumeQueue.CQ_STORE_UNIT_SIZE;
+                    buffer.position(mid);
+                    commitLogOffset = buffer.getLong();
+                    if (commitLogOffset > minCommitLogOffset) {
+                        high = mid;
+                    } else if (commitLogOffset == minCommitLogOffset) {
+                        low = mid;
+                        high = mid;
+                        break;
+                    } else {
+                        low = mid;
+                    }
+                }
+
+                // Examine the last one or two entries
+                for (int i = low; i <= high; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                    buffer.position(i);
+                    long offsetPy = buffer.getLong();
+                    buffer.position(i + 12);
+                    long tagsCode = buffer.getLong();
+
+                    if (offsetPy >= minCommitLogOffset) {
+                        this.minLogicOffset = mappedFile.getFileFromOffset() + start + i;
                         log.info("Compute logical min offset: {}, topic: {}, queueId: {}",
                             this.getMinOffsetInQueue(), this.topic, this.queueId);
-                        // This maybe not take effect, when not every consume queue has extend file.
+                        // This maybe not take effect, when not every consume queue has an extended file.
                         if (isExtAddr(tagsCode)) {
                             minExtAddr = tagsCode;
                         }
