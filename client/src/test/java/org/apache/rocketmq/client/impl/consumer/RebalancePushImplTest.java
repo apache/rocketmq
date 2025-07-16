@@ -214,4 +214,171 @@ public class RebalancePushImplTest {
         assertEquals(23456L, rebalanceImpl.computePullFromWhereWithException(retryMq));
     }
 
+    /**
+     * Regression test for maxOffset edge cases: verify fix for first message ignored issue
+     * Test scenario: empty message queue (maxOffset=0)
+     */
+    @Test
+    public void testComputePullFromWhereWithException_emptyQueue() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        
+        // Mock empty message queue: maxOffset returns 0
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(0L);
+
+        // Verify empty queue should start from offset 0
+        assertEquals("Empty message queue should start consuming from offset 0", 0L, rebalanceImpl.computePullFromWhereWithException(mq));
+    }
+
+    /**
+     * Regression test for maxOffset edge cases: verify fix for first message ignored issue
+     * Test scenario: single message queue (maxOffset=1)
+     * This is the key test case for fixing the first message ignored issue
+     */
+    @Test
+    public void testComputePullFromWhereWithException_singleMessageQueue() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        
+        // Mock single message queue: maxOffset returns 1
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(1L);
+
+        // Verify that when maxOffset=1, should start from 0 to avoid skipping the first message
+        assertEquals("Single message queue should start from offset 0 to avoid skipping first message", 0L, rebalanceImpl.computePullFromWhereWithException(mq));
+    }
+
+    /**
+     * Regression test for maxOffset edge cases: verify fix for first message ignored issue
+     * Test scenario: boundary case (maxOffset=2)
+     */
+    @Test
+    public void testComputePullFromWhereWithException_boundaryCase() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        
+        // Mock boundary case: maxOffset returns 2
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(2L);
+
+        // Verify when maxOffset=2, should start from maxOffset
+        assertEquals("When maxOffset=2, should start consuming from maxOffset", 2L, rebalanceImpl.computePullFromWhereWithException(mq));
+    }
+
+    /**
+     * Regression test for maxOffset edge cases: verify fix for first message ignored issue
+     * Test scenario: multiple messages queue (maxOffset>1)
+     */
+    @Test
+    public void testComputePullFromWhereWithException_multipleMessagesQueue() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        
+        // Mock multiple messages queue: maxOffset returns 10
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(10L);
+
+        // Verify multiple messages should start from maxOffset
+        assertEquals("Multiple messages queue should start consuming from maxOffset", 10L, rebalanceImpl.computePullFromWhereWithException(mq));
+    }
+
+    /**
+     * Regression test for maxOffset edge cases: verify fix for first message ignored issue
+     * Integration test: verify behavior difference before and after fix
+     */
+    @Test
+    public void testComputePullFromWhereWithException_firstMessageNotIgnored() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        
+        // Test various maxOffset values to verify fix logic
+        long[] testMaxOffsets = {0L, 1L, 2L, 5L, 100L};
+        
+        for (long maxOffset : testMaxOffsets) {
+            when(admin.maxOffset(any(MessageQueue.class))).thenReturn(maxOffset);
+            
+            long result = rebalanceImpl.computePullFromWhereWithException(mq);
+            
+            if (maxOffset <= 1) {
+                assertEquals("When maxOffset=" + maxOffset + ", should start from 0 to avoid skipping messages", 
+                           0L, result);
+            } else {
+                assertEquals("When maxOffset=" + maxOffset + ", should start from maxOffset", 
+                           maxOffset, result);
+            }
+        }
+    }
+
+    /**
+     * Regression test for maxOffset edge cases: verify fix for first message ignored issue
+     * Test scenario: verify handling for CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST
+     */
+    @Test
+    public void testComputePullFromWhereWithException_lastOffsetAndMinWhenBootFirst() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST);
+        
+        // Test maxOffset=0 case
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(0L);
+        assertEquals("CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST mode, empty queue should start from 0", 
+                   0L, rebalanceImpl.computePullFromWhereWithException(mq));
+        
+        // Test maxOffset=1 case
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(1L);
+        assertEquals("CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST mode, single message queue should start from 0", 
+                   0L, rebalanceImpl.computePullFromWhereWithException(mq));
+        
+        // Test maxOffset>1 case
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(5L);
+        assertEquals("CONSUME_FROM_LAST_OFFSET_AND_FROM_MIN_WHEN_BOOT_FIRST mode, multiple messages queue should start from maxOffset", 
+                   5L, rebalanceImpl.computePullFromWhereWithException(mq));
+    }
+
+    /**
+     * Regression test for maxOffset edge cases: verify fix for first message ignored issue
+     * Test scenario: verify handling for CONSUME_FROM_MIN_OFFSET
+     */
+    @Test
+    public void testComputePullFromWhereWithException_minOffset() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MIN_OFFSET);
+        
+        // Test maxOffset=0 case
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(0L);
+        assertEquals("CONSUME_FROM_MIN_OFFSET mode, empty queue should start from 0", 
+                   0L, rebalanceImpl.computePullFromWhereWithException(mq));
+        
+        // Test maxOffset=1 case
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(1L);
+        assertEquals("CONSUME_FROM_MIN_OFFSET mode, single message queue should start from 0", 
+                   0L, rebalanceImpl.computePullFromWhereWithException(mq));
+        
+        // Test maxOffset>1 case
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(5L);
+        assertEquals("CONSUME_FROM_MIN_OFFSET mode, multiple messages queue should start from maxOffset", 
+                   5L, rebalanceImpl.computePullFromWhereWithException(mq));
+    }
+
+    /**
+     * Regression test for maxOffset edge cases: verify fix for first message ignored issue
+     * Test scenario: verify handling for CONSUME_FROM_MAX_OFFSET
+     */
+    @Test
+    public void testComputePullFromWhereWithException_maxOffset() throws MQClientException {
+        when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
+        consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_MAX_OFFSET);
+        
+        // Test maxOffset=0 case
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(0L);
+        assertEquals("CONSUME_FROM_MAX_OFFSET mode, empty queue should start from 0", 
+                   0L, rebalanceImpl.computePullFromWhereWithException(mq));
+        
+        // Test maxOffset=1 case
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(1L);
+        assertEquals("CONSUME_FROM_MAX_OFFSET mode, single message queue should start from 0", 
+                   0L, rebalanceImpl.computePullFromWhereWithException(mq));
+        
+        // Test maxOffset>1 case
+        when(admin.maxOffset(any(MessageQueue.class))).thenReturn(5L);
+        assertEquals("CONSUME_FROM_MAX_OFFSET mode, multiple messages queue should start from maxOffset", 
+                   5L, rebalanceImpl.computePullFromWhereWithException(mq));
+    }
+
 }
