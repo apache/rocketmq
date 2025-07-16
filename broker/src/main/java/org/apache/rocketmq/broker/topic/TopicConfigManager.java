@@ -53,6 +53,7 @@ import org.apache.rocketmq.remoting.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
@@ -504,11 +505,14 @@ public class TopicConfigManager extends ConfigManager {
         Map<String, String> newAttributes = request(topicConfig);
         Map<String, String> currentAttributes = current(topicConfig.getTopicName());
 
-        Map<String, String> finalAttributes = AttributeUtil.alterCurrentAttributes(
-            this.topicConfigTable.get(topicConfig.getTopicName()) == null,
-            TopicAttributes.ALL,
-            ImmutableMap.copyOf(currentAttributes),
-            ImmutableMap.copyOf(newAttributes));
+        Map<String, String> finalAttributes = newAttributes;
+        if (this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
+            finalAttributes = AttributeUtil.alterCurrentAttributes(
+                this.topicConfigTable.get(topicConfig.getTopicName()) == null,
+                TopicAttributes.ALL,
+                ImmutableMap.copyOf(currentAttributes),
+                ImmutableMap.copyOf(newAttributes));
+        }
 
         topicConfig.setAttributes(finalAttributes);
         updateTieredStoreTopicMetadata(topicConfig, newAttributes);

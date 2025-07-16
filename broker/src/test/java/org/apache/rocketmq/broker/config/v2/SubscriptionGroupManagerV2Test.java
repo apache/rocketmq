@@ -74,6 +74,8 @@ public class SubscriptionGroupManagerV2Test {
         File configStoreDir = tf.newFolder();
         messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(configStoreDir.getAbsolutePath());
+        Mockito.doReturn(messageStoreConfig).when(controller).getMessageStoreConfig();
+
         configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
         subscriptionGroupManagerV2 = new SubscriptionGroupManagerV2(controller, configStorage);

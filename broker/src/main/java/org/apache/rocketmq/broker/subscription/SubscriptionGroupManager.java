@@ -47,6 +47,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.store.config.BrokerRole;
 
 public class SubscriptionGroupManager extends ConfigManager {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -155,11 +156,14 @@ public class SubscriptionGroupManager extends ConfigManager {
         Map<String, String> newAttributes = request(config);
         Map<String, String> currentAttributes = current(config.getGroupName());
 
-        Map<String, String> finalAttributes = AttributeUtil.alterCurrentAttributes(
-            this.subscriptionGroupTable.get(config.getGroupName()) == null,
-            SubscriptionGroupAttributes.ALL,
-            ImmutableMap.copyOf(currentAttributes),
-            ImmutableMap.copyOf(newAttributes));
+        Map<String, String> finalAttributes = newAttributes;
+        if (this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
+            finalAttributes = AttributeUtil.alterCurrentAttributes(
+                this.subscriptionGroupTable.get(config.getGroupName()) == null,
+                SubscriptionGroupAttributes.ALL,
+                ImmutableMap.copyOf(currentAttributes),
+                ImmutableMap.copyOf(newAttributes));
+        }
 
         config.setAttributes(finalAttributes);
 
