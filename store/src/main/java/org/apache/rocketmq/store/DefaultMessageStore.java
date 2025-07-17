@@ -204,6 +204,8 @@ public class DefaultMessageStore implements MessageStore {
     // this is a unmodifiableMap
     private final ConcurrentMap<String, TopicConfig> topicConfigTable;
 
+    private final MessageStoreStateMachine stateMachine;
+
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
         ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
@@ -250,6 +252,8 @@ public class DefaultMessageStore implements MessageStore {
         lockFile = new RandomAccessFile(file, "rw");
 
         parseDelayLevel();
+
+        stateMachine = new MessageStoreStateMachine(LOGGER);
     }
 
     public ConsumeQueueStoreInterface createConsumeQueueStore() {
@@ -296,7 +300,7 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public boolean load() {
         boolean result = true;
-
+        stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_BEGIN);
         try {
             boolean lastExitOK = !this.isTempFileExist();
             LOGGER.info("last shutdown {}, store path root dir: {}",
@@ -304,17 +308,20 @@ public class DefaultMessageStore implements MessageStore {
 
             // load Commit Log
             result = this.commitLog.load();
-
+            stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_COMMITLOG_OK, result);
             // load Consume Queue
             result = result && this.consumeQueueStore.load();
+            stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_CONSUME_QUEUE_OK, result);
 
             if (messageStoreConfig.isEnableCompaction()) {
                 result = result && this.compactionService.load(lastExitOK);
+                stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_COMPACTION_OK, result);
             }
 
             if (result) {
                 loadCheckPoint();
                 result = this.indexService.load(lastExitOK);
+                stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_INDEX_OK, result);
                 this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
@@ -343,28 +350,23 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void recover(final boolean lastExitOK) throws RocksDBException {
+        this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_BEGIN);
         // recover consume queue
-        long recoverConsumeQueueStart = System.currentTimeMillis();
         this.consumeQueueStore.recover(this.brokerConfig.isRecoverConcurrently());
-        long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset();
-        long recoverConsumeQueueEnd = System.currentTimeMillis();
+        this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_CONSUME_QUEUE_OK);
 
         // recover commitlog
+        long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset();
         if (lastExitOK) {
             this.commitLog.recoverNormally(dispatchFromPhyOffset);
         } else {
             this.commitLog.recoverAbnormally(dispatchFromPhyOffset);
         }
+        this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_COMMITLOG_OK);
 
         // recover consume offset table
-        long recoverCommitLogEnd = System.currentTimeMillis();
         this.recoverTopicQueueTable();
-        long recoverConsumeOffsetEnd = System.currentTimeMillis();
-
-        LOGGER.info("message store recover total cost: {} ms, " +
-                "recoverConsumeQueue: {} ms, recoverCommitLog: {} ms, recoverOffsetTable: {} ms",
-            recoverConsumeOffsetEnd - recoverConsumeQueueStart, recoverConsumeQueueEnd - recoverConsumeQueueStart,
-            recoverCommitLogEnd - recoverConsumeQueueEnd, recoverConsumeOffsetEnd - recoverCommitLogEnd);
+        this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_TOPIC_QUEUE_TABLE_OK);
     }
 
     /**
@@ -411,6 +413,8 @@ public class DefaultMessageStore implements MessageStore {
         this.addScheduleTask();
         this.perfs.start();
         this.shutdown = false;
+
+        this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RUNNING);
     }
 
     private void doRecheckReputOffsetFromCq() throws InterruptedException {
@@ -470,6 +474,7 @@ public class DefaultMessageStore implements MessageStore {
     public void shutdown() {
         if (!this.shutdown) {
             this.shutdown = true;
+            this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.SHUTDOWN_BEGIN);
 
             this.scheduledExecutorService.shutdown();
             this.scheduledCleanQueueExecutorService.shutdown();
@@ -501,6 +506,7 @@ public class DefaultMessageStore implements MessageStore {
             if (this.runningFlags.isWriteable() && dispatchBehindBytes() == 0) {
                 this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
                 shutDownNormal = true;
+                this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.SHUTDOWN_OK);
             } else {
                 LOGGER.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
             }
@@ -3000,5 +3006,9 @@ public class DefaultMessageStore implements MessageStore {
 
     public void destroyConsumeQueueStore(boolean loadAfterDestroy) {
         consumeQueueStore.destroy(loadAfterDestroy);
+    }
+
+    public MessageStoreStateMachine getStateMachine() {
+        return stateMachine;
     }
 }
