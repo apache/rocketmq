@@ -22,8 +22,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Maps;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
@@ -322,8 +330,40 @@ public class SubscriptionGroupManager extends ConfigManager {
         return subscriptionGroupTable;
     }
 
+    public ConcurrentHashMap<String, SubscriptionGroupConfig> subGroupTable(String dataVersion, int groupSeq,
+        int maxGroupNum) {
+        // [groupSeq, groupSeq + maxGroupNum)
+        int beginIndex = groupSeq;
+        if (StringUtils.isBlank(dataVersion) || !Objects.equals(DataVersion.fromJson(dataVersion, DataVersion.class), this.dataVersion)) {
+            beginIndex = 0;
+            log.info("get sub subscription group table from {} due to {}", beginIndex,
+                StringUtils.isBlank(dataVersion) ? "DataVersion Empty" : "DataVersion Changed");
+        }
+
+        ConcurrentHashMap<String, SubscriptionGroupConfig> subGroupTable = new ConcurrentHashMap<>();
+        if (beginIndex < subscriptionGroupTable.size()) {
+            int endIndex = Math.min(beginIndex + maxGroupNum, subscriptionGroupTable.size());
+
+            ImmutableSortedMap<String, SubscriptionGroupConfig> sortedMap = ImmutableSortedMap.copyOf(subscriptionGroupTable);
+            subGroupTable.putAll(sortedMap.subMap(sortedMap.keySet().asList().get(beginIndex),true,
+                sortedMap.keySet().asList().get(endIndex - 1),true));
+        }
+
+        return subGroupTable;
+    }
+
     public ConcurrentMap<String, ConcurrentMap<String, Integer>> getForbiddenTable() {
         return forbiddenTable;
+    }
+
+    public ConcurrentMap<String, ConcurrentMap<String, Integer>> subForbiddenTable(Set<String> groupSet) {
+        if (MapUtils.isEmpty(forbiddenTable) || CollectionUtils.isEmpty(groupSet)) {
+            return Maps.newConcurrentMap();
+        }
+
+        return forbiddenTable.entrySet().stream()
+            .filter(e -> groupSet.contains(e.getKey()))
+            .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public void setForbiddenTable(

@@ -483,6 +483,8 @@ public class MessageStoreConfig {
      **/
     private boolean useABSLock = false;
 
+    private boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover = false;
+
     public boolean isRocksdbCQDoubleWriteEnable() {
         return rocksdbCQDoubleWriteEnable;
     }
@@ -2000,5 +2002,13 @@ public class MessageStoreConfig {
 
     public void setCombineCQMaxExtraSearchCommitLogFiles(int combineCQMaxExtraSearchCommitLogFiles) {
         this.combineCQMaxExtraSearchCommitLogFiles = combineCQMaxExtraSearchCommitLogFiles;
+    }
+
+    public boolean isEnableLogConsumeQueueRepeatedlyBuildWhenRecover() {
+        return enableLogConsumeQueueRepeatedlyBuildWhenRecover;
+    }
+
+    public void setEnableLogConsumeQueueRepeatedlyBuildWhenRecover(boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover) {
+        this.enableLogConsumeQueueRepeatedlyBuildWhenRecover = enableLogConsumeQueueRepeatedlyBuildWhenRecover;
     }
 }

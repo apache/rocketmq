@@ -316,16 +316,18 @@ public interface MQAdminExt extends MQAdmin {
         final String topic) throws InterruptedException, MQBrokerException, MQClientException, RemotingException;
 
     SubscriptionGroupWrapper getAllSubscriptionGroup(final String brokerAddr,
-        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
-        RemotingConnectException, MQBrokerException;
+        long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
+        MQBrokerException, RemotingCommandException;
 
     SubscriptionGroupWrapper getUserSubscriptionGroup(final String brokerAddr,
-        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
-        RemotingConnectException, MQBrokerException;
+        long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
+        MQBrokerException, RemotingCommandException;
 
     TopicConfigSerializeWrapper getAllTopicConfig(final String brokerAddr,
         long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
-        RemotingConnectException, MQBrokerException;
+        RemotingConnectException, MQBrokerException, RemotingCommandException;
 
     TopicConfigSerializeWrapper getUserTopicConfig(final String brokerAddr, final boolean specialTopic,
         long timeoutMillis) throws InterruptedException, RemotingException,
