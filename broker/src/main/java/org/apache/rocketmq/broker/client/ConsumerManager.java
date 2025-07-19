@@ -387,7 +387,7 @@ public class ConsumerManager {
     }
 
     public HashSet<String> queryTopicConsumeByWho(final String topic) {
-        return new HashSet<>(Optional.ofNullable(topicGroupTable.get(topic)).orElse(new HashSet<>()));
+        return new HashSet<>(Optional.ofNullable(topicGroupTable.get(topic)).orElseGet(HashSet::new));
     }
 
     public void appendConsumerIdsChangeListener(ConsumerIdsChangeListener listener) {
