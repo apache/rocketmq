@@ -24,7 +24,7 @@ public class TopicValidatorTest {
 
     @Test
     public void testTopicValidator_NotPass() {
-        TopicValidator.ValidateTopicResult res = TopicValidator.validateTopic("");
+        TopicValidator.ValidateResult res = TopicValidator.validateTopic("");
         assertThat(res.isValid()).isFalse();
         assertThat(res.getRemark()).contains("The specified topic is blank");
 
@@ -51,7 +51,7 @@ public class TopicValidatorTest {
 
     @Test
     public void testTopicValidator_Pass() {
-        TopicValidator.ValidateTopicResult res = TopicValidator.validateTopic("TestTopic");
+        TopicValidator.ValidateResult res = TopicValidator.validateTopic("TestTopic");
         assertThat(res.isValid()).isTrue();
         assertThat(res.getRemark()).isEmpty();
 
