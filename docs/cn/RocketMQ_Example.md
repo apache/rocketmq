@@ -1,43 +1,43 @@
 # 样例
 -----
- * [目录](#样例)
-      * [1 基本样例](#1-基本样例)
-         * [1.1 加入依赖：](#11-加入依赖)
-         * [1.2 消息发送](#12-消息发送)
-            * [1、Producer端发送同步消息](#1producer端发送同步消息)
-            * [2、发送异步消息](#2发送异步消息)
-            * [3、单向发送消息](#3单向发送消息)
-         * [1.3 消费消息](#13-消费消息)
-      * [2 顺序消息样例](#2-顺序消息样例)
-         * [2.1 顺序消息生产](#21-顺序消息生产)
-         * [2.2 顺序消费消息](#22-顺序消费消息)
-      * [3 延时消息样例](#3-延时消息样例)
-         * [3.1 启动消费者等待传入订阅消息](#31-启动消费者等待传入订阅消息)
-         * [3.2 发送延时消息](#32-发送延时消息)
-         * [3.3 验证](#33-验证)
-         * [3.4 延时消息的使用场景](#34-延时消息的使用场景)
-         * [3.5 延时消息的使用限制](#35-延时消息的使用限制)
-      * [4 批量消息样例](#4-批量消息样例)
-         * [4.1 发送批量消息](#41-发送批量消息)
-         * [4.2 消息列表分割](#42-消息列表分割)
-      * [5 过滤消息样例](#5-过滤消息样例)
-         * [5.1 基本语法](#51-基本语法)
-         * [5.2 使用样例](#52-使用样例)
-            * [1、生产者样例](#1生产者样例)
-            * [2、消费者样例](#2消费者样例)
-      * [6 消息事务样例](#6-消息事务样例)
-         * [6.1 发送事务消息样例](#61-发送事务消息样例)
-            * [1、创建事务性生产者](#1创建事务性生产者)
-            * [2、实现事务的监听接口](#2实现事务的监听接口)
-         * [6.2 事务消息使用上的限制](#62-事务消息使用上的限制)
-      * [7 Logappender样例](#7-logappender样例)
-         * [7.1 log4j样例](#71-log4j样例)
-         * [7.2 log4j2样例](#72-log4j2样例)
-         * [7.3 logback样例](#73-logback样例)
-      * [8 OpenMessaging样例](#8-openmessaging样例)
-         * [8.1 OMSProducer样例](#81-omsproducer样例)
-         * [8.2 OMSPullConsumer](#82-omspullconsumer)
-         * [8.3 OMSPushConsumer](#83-omspushconsumer)
+- [样例](#样例)
+  - [1 基本样例](#1-基本样例)
+    - [1.1 加入依赖：](#11-加入依赖)
+    - [1.2 消息发送](#12-消息发送)
+      - [1、Producer端发送同步消息](#1producer端发送同步消息)
+      - [2、发送异步消息](#2发送异步消息)
+      - [3、单向发送消息](#3单向发送消息)
+    - [1.3 消费消息](#13-消费消息)
+  - [2 顺序消息样例](#2-顺序消息样例)
+    - [2.1 顺序消息生产](#21-顺序消息生产)
+    - [2.2 顺序消费消息](#22-顺序消费消息)
+  - [3 延时消息样例](#3-延时消息样例)
+    - [3.1 启动消费者等待传入订阅消息](#31-启动消费者等待传入订阅消息)
+    - [3.2 发送延时消息](#32-发送延时消息)
+    - [3.3 验证](#33-验证)
+    - [3.4 延时消息的使用场景](#34-延时消息的使用场景)
+    - [3.5 延时消息的使用限制](#35-延时消息的使用限制)
+  - [4 批量消息样例](#4-批量消息样例)
+    - [4.1 发送批量消息](#41-发送批量消息)
+    - [4.2 消息列表分割](#42-消息列表分割)
+  - [5 过滤消息样例](#5-过滤消息样例)
+    - [5.1 基本语法](#51-基本语法)
+    - [5.2 使用样例](#52-使用样例)
+      - [1、生产者样例](#1生产者样例)
+      - [2、消费者样例](#2消费者样例)
+  - [6 消息事务样例](#6-消息事务样例)
+    - [6.1 发送事务消息样例](#61-发送事务消息样例)
+      - [1、创建事务性生产者](#1创建事务性生产者)
+      - [2、实现事务的监听接口](#2实现事务的监听接口)
+    - [6.2 事务消息使用上的限制](#62-事务消息使用上的限制)
+  - [7 Logappender样例](#7-logappender样例)
+    - [7.1 log4j样例](#71-log4j样例)
+    - [7.2 log4j2样例](#72-log4j2样例)
+    - [7.3 logback样例](#73-logback样例)
+  - [8 OpenMessaging样例](#8-openmessaging样例)
+    - [8.1 OMSProducer样例](#81-omsproducer样例)
+    - [8.2 OMSPullConsumer](#82-omspullconsumer)
+    - [8.3 OMSPushConsumer](#83-omspushconsumer)
 -----
 ## 1 基本样例
 
@@ -613,15 +613,15 @@ consumer.subscribe("TOPIC", "TAGA || TAGB || TAGC");
 消费者将接收包含TAGA或TAGB或TAGC的消息。但是限制是一个消息只能有一个标签，这对于复杂的场景可能不起作用。在这种情况下，可以使用SQL表达式筛选消息。SQL特性可以通过发送消息时的属性来进行计算。在RocketMQ定义的语法下，可以实现一些简单的逻辑。下面是一个例子：
 ```
 ------------
-| message  |
-|----------|  a > 5 AND b = 'abc'
+| message |
+| ------- |a > 5 AND b = 'abc'
 | a = 10   |  --------------------> Gotten
 | b = 'abc'|
 | c = true |
 ------------
 ------------
-| message  |
-|----------|   a > 5 AND b = 'abc'
+| message |
+| ------- |a > 5 AND b = 'abc'
 | a = 1    |  --------------------> Missed
 | b = 'abc'|
 | c = true |
@@ -757,7 +757,7 @@ public class TransactionListenerImpl implements TransactionListener {
       int value = transactionIndex.getAndIncrement();
       int status = value % 3;
       localTrans.put(msg.getTransactionId(), status);
-      return LocalTransactionState.UNKNOW;
+      return LocalTransactionState.UNKNOWN;
   }
   @Override
   public LocalTransactionState checkLocalTransaction(MessageExt msg) {
@@ -765,7 +765,7 @@ public class TransactionListenerImpl implements TransactionListener {
       if (null != status) {
           switch (status) {
               case 0:
-                  return LocalTransactionState.UNKNOW;
+                  return LocalTransactionState.UNKNOWN;
               case 1:
                   return LocalTransactionState.COMMIT_MESSAGE;
               case 2:
