@@ -2058,13 +2058,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     /**
      * Reset consumer offset.
      *
-     * @param topic Required, not null.
-     * @param group Required, not null.
-     * @param queueId if target queue ID is negative, all message queues will be reset; otherwise, only the target queue
-     * would get reset.
+     * @param topic     Required, not null.
+     * @param group     Required, not null.
+     * @param queueId   if target queue ID is negative, all message queues will be reset; otherwise, only the target queue
+     *                  would get reset.
      * @param timestamp if timestamp is negative, offset would be reset to broker offset at the time being; otherwise,
-     * binary search is performed to locate target offset.
-     * @param offset Target offset to reset to if target queue ID is properly provided.
+     *                  binary search is performed to locate target offset.
+     * @param offset    Target offset to reset to if target queue ID is properly provided.
      * @return Affected queues and their new offset
      */
     private RemotingCommand resetOffsetInner(String topic, String group, int queueId, long timestamp, Long offset) {
@@ -3043,6 +3043,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         CreateUserRequestHeader requestHeader = request.decodeCommandCustomHeader(CreateUserRequestHeader.class);
+        if (!this.brokerController.getAuthConfig().isAuthenticationEnabled()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Authentication is not supported.");
+            return response;
+        }
         if (StringUtils.isEmpty(requestHeader.getUsername())) {
             response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("The username is blank");
@@ -3075,6 +3080,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         UpdateUserRequestHeader requestHeader = request.decodeCommandCustomHeader(UpdateUserRequestHeader.class);
+        if (!this.brokerController.getAuthConfig().isAuthenticationEnabled()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Authentication is not supported.");
+            return response;
+        }
         if (StringUtils.isEmpty(requestHeader.getUsername())) {
             response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("The username is blank");
@@ -3114,6 +3124,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         DeleteUserRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteUserRequestHeader.class);
+        if (!this.brokerController.getAuthConfig().isAuthenticationEnabled()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Authentication is not supported.");
+            return response;
+        }
 
         this.brokerController.getAuthenticationMetadataManager().getUser(requestHeader.getUsername())
             .thenCompose(user -> {
@@ -3138,7 +3153,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         GetUserRequestHeader requestHeader = request.decodeCommandCustomHeader(GetUserRequestHeader.class);
-
+        if (!this.brokerController.getAuthConfig().isAuthenticationEnabled()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Authentication is not supported.");
+            return response;
+        }
         if (StringUtils.isBlank(requestHeader.getUsername())) {
             response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("The username is blank");
@@ -3167,6 +3186,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         ListUsersRequestHeader requestHeader = request.decodeCommandCustomHeader(ListUsersRequestHeader.class);
+        if (!this.brokerController.getAuthConfig().isAuthenticationEnabled()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Authentication is not supported.");
+            return response;
+        }
 
         this.brokerController.getAuthenticationMetadataManager().listUser(requestHeader.getFilter())
             .thenAccept(users -> {
@@ -3190,6 +3214,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         CreateAclRequestHeader requestHeader = request.decodeCommandCustomHeader(CreateAclRequestHeader.class);
+        if (!this.brokerController.getAuthConfig().isAuthenticationEnabled() || !this.brokerController.getAuthConfig().isAuthorizationEnabled()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Authentication or authorization is not supported.");
+            return response;
+        }
+
         Subject subject = Subject.of(requestHeader.getSubject());
 
         AclInfo aclInfo = RemotingSerializable.decode(request.getBody(), AclInfo.class);
@@ -3217,6 +3247,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         UpdateAclRequestHeader requestHeader = request.decodeCommandCustomHeader(UpdateAclRequestHeader.class);
+        if (!this.brokerController.getAuthConfig().isAuthenticationEnabled() || !this.brokerController.getAuthConfig().isAuthorizationEnabled()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Authentication or authorization is not supported.");
+            return response;
+        }
+
         Subject subject = Subject.of(requestHeader.getSubject());
 
         AclInfo aclInfo = RemotingSerializable.decode(request.getBody(), AclInfo.class);
@@ -3245,6 +3281,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         DeleteAclRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteAclRequestHeader.class);
+        if (!this.brokerController.getAuthConfig().isAuthenticationEnabled() || !this.brokerController.getAuthConfig().isAuthorizationEnabled()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Authentication or authorization is not supported.");
+            return response;
+        }
 
         Subject subject = Subject.of(requestHeader.getSubject());
 
@@ -3269,6 +3310,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         GetAclRequestHeader requestHeader = request.decodeCommandCustomHeader(GetAclRequestHeader.class);
+        if (!this.brokerController.getAuthConfig().isAuthenticationEnabled() || !this.brokerController.getAuthConfig().isAuthorizationEnabled()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Authentication or authorization is not supported.");
+            return response;
+        }
 
         Subject subject = Subject.of(requestHeader.getSubject());
 
@@ -3295,6 +3341,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         ListAclsRequestHeader requestHeader = request.decodeCommandCustomHeader(ListAclsRequestHeader.class);
+        if (!this.brokerController.getAuthConfig().isAuthenticationEnabled() || !this.brokerController.getAuthConfig().isAuthorizationEnabled()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("Authentication or authorization is not supported.");
+            return response;
+        }
 
         this.brokerController.getAuthorizationMetadataManager()
             .listAcl(requestHeader.getSubjectFilter(), requestHeader.getResourceFilter())
