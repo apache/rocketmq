@@ -79,6 +79,7 @@ import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupList;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
@@ -800,6 +801,30 @@ public class AdminBrokerProcessorTest {
         request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes());
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testEmptyNameWhenUpdateSubGroup() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName("");
+        request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes());
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.ILLEGAL_ARGUMENT);
+    }
+
+    @Test
+    public void testEmptyNameWhenUpdateSubGroupList() throws RemotingCommandException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_LIST, null);
+        SubscriptionGroupList groupList = new SubscriptionGroupList();
+        List<SubscriptionGroupConfig> list = new ArrayList<>();
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName("");
+        list.add(subscriptionGroupConfig);
+        groupList.setGroupConfigList(list);
+        request.setBody(JSON.toJSON(groupList).toString().getBytes());
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.ILLEGAL_ARGUMENT);
     }
 
     @Test
