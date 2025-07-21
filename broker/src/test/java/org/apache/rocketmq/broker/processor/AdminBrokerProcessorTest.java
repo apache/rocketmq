@@ -18,9 +18,12 @@ package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
 import org.apache.rocketmq.auth.authentication.model.Subject;
@@ -62,6 +65,7 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
@@ -72,6 +76,8 @@ import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.QueryCorrectionOffsetBody;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
@@ -83,6 +89,9 @@ import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExchangeHAInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllSubscriptionGroupRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllSubscriptionGroupResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerStatusRequestHeader;
@@ -144,11 +153,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -464,10 +477,164 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testGetAllTopicConfig() throws Exception {
-        GetAllTopicConfigResponseHeader getAllTopicConfigResponseHeader = new GetAllTopicConfigResponseHeader();
+        GetAllTopicConfigRequestHeader getAllTopicConfigResponseHeader = new GetAllTopicConfigRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, getAllTopicConfigResponseHeader);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+
+    private void getAllTopicConfig(boolean enableSplitMetadata) throws RemotingCommandException {
+        brokerController.getBrokerConfig().setEnableSplitMetadata(enableSplitMetadata);
+
+        // old client, request null
+        RemotingCommand requestOldClient = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
+        RemotingCommand responseOldClient = adminBrokerProcessor.processRequest(handlerContext, requestOldClient);
+        assertThat(responseOldClient.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        TopicConfigSerializeWrapper topicConfigSerializeWrapperOldClient =
+            TopicConfigSerializeWrapper.decode(responseOldClient.getBody(), TopicConfigSerializeWrapper.class);
+        assertThat(Maps.difference(topicConfigSerializeWrapperOldClient.getTopicConfigTable(),
+            brokerController.getTopicConfigManager().getTopicConfigTable()).areEqual()).isTrue();
+
+        // new client, request seq from 0
+        AtomicBoolean dataVersionChanged = new AtomicBoolean(false);
+        int topicSeq = 0;
+        DataVersion dataVersion = null;
+        int pageSize = ThreadLocalRandom.current().nextInt(500, brokerController.getBrokerConfig().getSplitMetadataSize());
+        ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        while (true) {
+            GetAllTopicConfigRequestHeader requestHeader = new GetAllTopicConfigRequestHeader();
+            requestHeader.setTopicSeq(topicSeq);
+            requestHeader.setMaxTopicNum(pageSize);
+            requestHeader.setDataVersion(Optional.ofNullable(dataVersion).map(DataVersion::toJson).orElse(StringUtils.EMPTY));
+            RemotingCommand requestNewClient = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, requestHeader);
+            requestNewClient.makeCustomHeaderToNet();
+
+            RemotingCommand responseNewClient = adminBrokerProcessor.processRequest(handlerContext, requestNewClient);
+            GetAllTopicConfigResponseHeader responseHeader = (GetAllTopicConfigResponseHeader) responseNewClient.readCustomHeader();
+            assertThat(responseNewClient.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+            TopicConfigSerializeWrapper topicConfigSerializeWrapper =
+                TopicConfigSerializeWrapper.decode(responseNewClient.getBody(), TopicConfigSerializeWrapper.class);
+            topicSeq += topicConfigSerializeWrapper.getTopicConfigTable().size();
+
+            assertThat(responseHeader.getTotalTopicNum())
+                .isEqualTo(brokerController.getTopicConfigManager().getTopicConfigTable().size());
+            assertThat(topicConfigSerializeWrapper.getDataVersion())
+                .isEqualTo(brokerController.getTopicConfigManager().getDataVersion());
+
+            DataVersion newDataVersion = topicConfigSerializeWrapper.getDataVersion();
+            if (dataVersion == null) {
+                dataVersion = newDataVersion;
+            }
+
+            // mock server side data version changed
+            if (topicSeq > responseHeader.getTotalTopicNum() / 2 && dataVersionChanged.compareAndSet(false, true)) {
+                brokerController.getTopicConfigManager().getDataVersion().nextVersion();
+            }
+
+            if (!Objects.equals(dataVersion, newDataVersion)) {
+                dataVersion = newDataVersion;
+                topicSeq = 0;   // data version diff, from 0
+                topicConfigTable.clear();
+                continue;
+            }
+
+
+            topicConfigTable.putAll(topicConfigSerializeWrapper.getTopicConfigTable());
+            if (topicSeq >= responseHeader.getTotalTopicNum() - 1) {
+                break;
+            } else {
+                assertThat(topicConfigSerializeWrapper.getTopicConfigTable().size()).isEqualTo(pageSize);
+            }
+        }
+        assertThat(Maps.difference(topicConfigTable, brokerController.getTopicConfigManager().getTopicConfigTable()).areEqual()).isTrue();
+    }
+
+    @Test
+    public void testGetAllTopicConfigWithRequestHeader() throws RemotingCommandException {
+        // from [0, 50000)
+        fillTopicConfigTable(50000);
+
+        getAllTopicConfig(true);
+        getAllTopicConfig(false);   // broker side disable split , will return all topic config
+    }
+
+
+    private void getAllSubscriptionGroup(boolean enableSplitMetadata) throws RemotingCommandException {
+        brokerController.getBrokerConfig().setEnableSplitMetadata(enableSplitMetadata);
+
+        // old client, request null
+        RemotingCommand requestOldClient = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, null);
+        RemotingCommand responseOldClient = adminBrokerProcessor.processRequest(handlerContext, requestOldClient);
+        assertThat(responseOldClient.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        // new client, request from 0
+        AtomicBoolean dataVersionChanged = new AtomicBoolean(false);
+        int groupSeq = 0;
+        int pageSize = ThreadLocalRandom.current().nextInt(500, brokerController.getBrokerConfig().getSplitMetadataSize());
+        DataVersion dataVersion = null;
+        ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable = new ConcurrentHashMap<>();
+        ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable = new ConcurrentHashMap<>();
+        while (true) {
+            GetAllSubscriptionGroupRequestHeader requestHeader = new GetAllSubscriptionGroupRequestHeader();
+            requestHeader.setGroupSeq(groupSeq);
+            requestHeader.setMaxGroupNum(pageSize);
+            requestHeader.setDataVersion(Optional.ofNullable(dataVersion).map(DataVersion::toJson).orElse(StringUtils.EMPTY));
+            RemotingCommand requestNewClient = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, requestHeader);
+            requestNewClient.makeCustomHeaderToNet();
+            RemotingCommand responseNewClient = adminBrokerProcessor.processRequest(handlerContext, requestNewClient);
+            GetAllSubscriptionGroupResponseHeader responseHeader = (GetAllSubscriptionGroupResponseHeader) responseNewClient.readCustomHeader();
+            assertThat(responseNewClient.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+            SubscriptionGroupWrapper subscriptionGroupWrapper =
+                SubscriptionGroupWrapper.decode(responseNewClient.getBody(), SubscriptionGroupWrapper.class);
+
+            groupSeq += subscriptionGroupWrapper.getSubscriptionGroupTable().size();
+            DataVersion newDataVersion = subscriptionGroupWrapper.getDataVersion();
+
+            assertThat(responseHeader.getTotalGroupNum()).isEqualTo(
+                brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().size());
+            assertThat(newDataVersion).isEqualTo(brokerController.getSubscriptionGroupManager().getDataVersion());
+
+            if (dataVersion == null) {
+                dataVersion = newDataVersion;
+            }
+
+
+            // mock server side data version changed
+            if (groupSeq > responseHeader.getTotalGroupNum() / 2 && dataVersionChanged.compareAndSet(false, true)) {
+                brokerController.getSubscriptionGroupManager().getDataVersion().nextVersion();
+            }
+
+            if (!Objects.equals(dataVersion, newDataVersion)) {
+                dataVersion = newDataVersion;
+                groupSeq = 0;   // data version diff, from 0
+                subscriptionGroupTable.clear();
+                forbiddenTable.clear();
+                continue;
+            }
+
+            subscriptionGroupTable.putAll(subscriptionGroupWrapper.getSubscriptionGroupTable());
+            forbiddenTable.putAll(subscriptionGroupWrapper.getForbiddenTable());
+            if (groupSeq >= responseHeader.getTotalGroupNum() - 1) {
+                break;
+            } else {
+                assertThat(subscriptionGroupWrapper.getSubscriptionGroupTable().size()).isEqualTo(pageSize);
+            }
+        }
+        assertThat(Maps.difference(subscriptionGroupTable, brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable()).areEqual()).isTrue();
+        assertThat(Maps.difference(forbiddenTable, brokerController.getSubscriptionGroupManager().getForbiddenTable()).areEqual()).isTrue();
+    }
+
+    @Test
+    public void testGetAllSubscriptionGroupWithRequestHeader() throws RemotingCommandException {
+        fillSubscriptionGroupManager(50000);
+
+        getAllSubscriptionGroup(true);
+        getAllSubscriptionGroup(false);
+
     }
 
     @Test
@@ -1509,5 +1676,25 @@ public class AdminBrokerProcessorTest {
 
     private boolean notToBeExecuted() {
         return MixAll.isMac();
+    }
+
+    private void fillTopicConfigTable(int num) {
+        for (int i = num - 1; i >= 0; i--) {
+            String topicName = String.format("topic%05d", i);
+            TopicConfig topicConfig = new TopicConfig(topicName, 1, 1,
+                PermName.PERM_READ | PermName.PERM_WRITE, 0);
+            brokerController.getTopicConfigManager().getTopicConfigTable().put(topicName, topicConfig);
+        }
+    }
+
+    private void fillSubscriptionGroupManager(int num) {
+        for (int i = num - 1; i >= 0; i--) {
+            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+            String groupName = String.format("group-%05d", i);
+            subscriptionGroupConfig.setGroupName(groupName);
+            Map<String, String> attr = ImmutableMap.of("+test", "true");
+            subscriptionGroupConfig.setAttributes(attr);
+            brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().put(groupName, subscriptionGroupConfig);
+        }
     }
 }

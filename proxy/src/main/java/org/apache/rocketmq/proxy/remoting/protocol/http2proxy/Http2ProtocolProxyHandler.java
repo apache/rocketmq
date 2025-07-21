@@ -75,8 +75,8 @@ public class Http2ProtocolProxyHandler implements ProtocolHandler {
                     .build();
             }
         } catch (SSLException e) {
-            log.error("Failed to create SSLContext for Http2ProtocolProxyHandler", e);
-            throw new RuntimeException("Failed to create SSLContext for Http2ProtocolProxyHandler", e);
+            log.error("Failed to create SslContext for Http2ProtocolProxyHandler", e);
+            throw new RuntimeException("Failed to create SslContext for Http2ProtocolProxyHandler", e);
         }
     }
 

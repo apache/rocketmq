@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -386,11 +387,7 @@ public class ConsumerManager {
     }
 
     public HashSet<String> queryTopicConsumeByWho(final String topic) {
-        HashSet<String> groups = new HashSet<>();
-        if (this.topicGroupTable.get(topic) != null) {
-            groups.addAll(this.topicGroupTable.get(topic));
-        }
-        return groups;
+        return new HashSet<>(Optional.ofNullable(topicGroupTable.get(topic)).orElseGet(HashSet::new));
     }
 
     public void appendConsumerIdsChangeListener(ConsumerIdsChangeListener listener) {

@@ -30,7 +30,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private String brokerConfigPath = null;
 
-    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String rocketmqHome = MixAll.ROCKETMQ_HOME_DIR;
     @ImportantField
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
 
@@ -424,6 +424,9 @@ public class BrokerConfig extends BrokerIdentity {
      * otherwise there will be a loss of routing
      */
     private boolean enableSplitRegistration = false;
+
+    private boolean enableSplitMetadata = true;
+    private int splitMetadataSize = 2000;
 
     private long popInflightMessageThreshold = 10000;
     private boolean enablePopMessageThreshold = false;
@@ -2059,5 +2062,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableCreateSysGroup(boolean enableCreateSysGroup) {
         this.enableCreateSysGroup = enableCreateSysGroup;
+    }
+
+    public boolean isEnableSplitMetadata() {
+        return enableSplitMetadata;
+    }
+
+    public void setEnableSplitMetadata(boolean enableSplitMetadata) {
+        this.enableSplitMetadata = enableSplitMetadata;
+    }
+
+    public int getSplitMetadataSize() {
+        return splitMetadataSize;
+    }
+
+    public void setSplitMetadataSize(int splitMetadataSize) {
+        this.splitMetadataSize = splitMetadataSize;
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.config.v2;
 
+import com.google.common.base.Strings;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.internal.PlatformDependent;
 import java.nio.ByteBuffer;
@@ -118,33 +119,54 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
             + Short.BYTES /* group-len */ + groupBytes.length + 1 /* CTRL_1 */;
 
         // [table-prefix, 1 byte][table-id, 2 bytes][record-prefix, 1 byte][group-len, 2 bytes][group bytes][CTRL_1, 1 byte]
-        ByteBuf beginKey = AbstractRocksDBStorage.POOLED_ALLOCATOR.buffer(keyLen);
-        beginKey.writeByte(TablePrefix.TABLE.getValue());
-        beginKey.writeShort(TableId.CONSUMER_OFFSET.getValue());
-        beginKey.writeByte(RecordPrefix.DATA.getValue());
-        beginKey.writeShort(groupBytes.length);
-        beginKey.writeBytes(groupBytes);
-        beginKey.writeByte(AbstractRocksDBStorage.CTRL_1);
+        ByteBuf consumerOffsetBeginKey = AbstractRocksDBStorage.POOLED_ALLOCATOR.buffer(keyLen);
+        consumerOffsetBeginKey.writeByte(TablePrefix.TABLE.getValue());
+        consumerOffsetBeginKey.writeShort(TableId.CONSUMER_OFFSET.getValue());
+        consumerOffsetBeginKey.writeByte(RecordPrefix.DATA.getValue());
+        consumerOffsetBeginKey.writeShort(groupBytes.length);
+        consumerOffsetBeginKey.writeBytes(groupBytes);
+        consumerOffsetBeginKey.writeByte(AbstractRocksDBStorage.CTRL_1);
 
-        ByteBuf endKey = AbstractRocksDBStorage.POOLED_ALLOCATOR.buffer(keyLen);
-        endKey.writeByte(TablePrefix.TABLE.getValue());
-        endKey.writeShort(TableId.CONSUMER_OFFSET.getValue());
-        endKey.writeByte(RecordPrefix.DATA.getValue());
-        endKey.writeShort(groupBytes.length);
-        endKey.writeBytes(groupBytes);
-        endKey.writeByte(AbstractRocksDBStorage.CTRL_2);
+        ByteBuf consumerOffsetEndKey = AbstractRocksDBStorage.POOLED_ALLOCATOR.buffer(keyLen);
+        consumerOffsetEndKey.writeByte(TablePrefix.TABLE.getValue());
+        consumerOffsetEndKey.writeShort(TableId.CONSUMER_OFFSET.getValue());
+        consumerOffsetEndKey.writeByte(RecordPrefix.DATA.getValue());
+        consumerOffsetEndKey.writeShort(groupBytes.length);
+        consumerOffsetEndKey.writeBytes(groupBytes);
+        consumerOffsetEndKey.writeByte(AbstractRocksDBStorage.CTRL_2);
+
+        // [table-prefix, 1 byte][table-id, 2 bytes][record-prefix, 1 byte][group-len, 2 bytes][group bytes][CTRL_1, 1 byte]
+        ByteBuf pullOffsetBeginKey = AbstractRocksDBStorage.POOLED_ALLOCATOR.buffer(keyLen);
+        pullOffsetBeginKey.writeByte(TablePrefix.TABLE.getValue());
+        pullOffsetBeginKey.writeShort(TableId.PULL_OFFSET.getValue());
+        pullOffsetBeginKey.writeByte(RecordPrefix.DATA.getValue());
+        pullOffsetBeginKey.writeShort(groupBytes.length);
+        pullOffsetBeginKey.writeBytes(groupBytes);
+        pullOffsetBeginKey.writeByte(AbstractRocksDBStorage.CTRL_1);
+
+        ByteBuf pullOffsetEndKey = AbstractRocksDBStorage.POOLED_ALLOCATOR.buffer(keyLen);
+        pullOffsetEndKey.writeByte(TablePrefix.TABLE.getValue());
+        pullOffsetEndKey.writeShort(TableId.PULL_OFFSET.getValue());
+        pullOffsetEndKey.writeByte(RecordPrefix.DATA.getValue());
+        pullOffsetEndKey.writeShort(groupBytes.length);
+        pullOffsetEndKey.writeBytes(groupBytes);
+        pullOffsetEndKey.writeByte(AbstractRocksDBStorage.CTRL_2);
         try (WriteBatch writeBatch = new WriteBatch()) {
             // TODO: we have to make a copy here as WriteBatch lacks ByteBuffer API here
-            writeBatch.deleteRange(ConfigHelper.readBytes(beginKey), ConfigHelper.readBytes(endKey));
+            writeBatch.deleteRange(ConfigHelper.readBytes(consumerOffsetBeginKey), ConfigHelper.readBytes(consumerOffsetEndKey));
+            writeBatch.deleteRange(ConfigHelper.readBytes(pullOffsetBeginKey), ConfigHelper.readBytes(pullOffsetEndKey));
             MessageStore messageStore = brokerController.getMessageStore();
             long stateMachineVersion = messageStore != null ? messageStore.getStateMachineVersion() : 0;
             ConfigHelper.stampDataVersion(writeBatch, TableId.CONSUMER_OFFSET, dataVersion, stateMachineVersion);
+            ConfigHelper.stampDataVersion(writeBatch, TableId.PULL_OFFSET, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
         } catch (RocksDBException e) {
             LOG.error("Failed to consumer offsets by group={}", group, e);
         } finally {
-            beginKey.release();
-            endKey.release();
+            consumerOffsetBeginKey.release();
+            consumerOffsetEndKey.release();
+            pullOffsetBeginKey.release();
+            pullOffsetEndKey.release();
         }
     }
 
@@ -424,5 +446,30 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
             keyBuf.release();
         }
         return -1;
+    }
+
+    @Override
+    public void assignResetOffset(String topic, String group, int queueId, long offset) {
+        if (Strings.isNullOrEmpty(topic) || Strings.isNullOrEmpty(group) || queueId < 0 || offset < 0) {
+            LOG.warn("Illegal arguments when assigning reset offset. Topic={}, group={}, queueId={}, offset={}",
+                    topic, group, queueId, offset);
+            return;
+        }
+        if (!MixAll.isLmq(topic) || !MixAll.isLmq(group)) {
+            super.assignResetOffset(topic, group, queueId, offset);
+        } else {
+            String key = topic + TOPIC_GROUP_SEPARATOR + group;
+            ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
+            if (null == map) {
+                map = new ConcurrentHashMap<>();
+                ConcurrentMap<Integer, Long> previous = resetOffsetTable.putIfAbsent(key, map);
+                if (null != previous) {
+                    map = previous;
+                }
+            }
+            map.put(queueId, offset);
+        }
+
+        this.commitOffset(null, topic, group, queueId, offset);
     }
 }

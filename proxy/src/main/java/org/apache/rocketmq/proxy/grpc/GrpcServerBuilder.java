@@ -34,6 +34,7 @@ import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 
 public class GrpcServerBuilder {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -43,11 +44,15 @@ public class GrpcServerBuilder {
 
     protected TimeUnit unit = TimeUnit.SECONDS;
 
-    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port) {
-        return new GrpcServerBuilder(executor, port);
+    protected TlsCertificateManager tlsCertificateManager;
+
+    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port,
+        TlsCertificateManager tlsCertificateManager) {
+        return new GrpcServerBuilder(executor, port, tlsCertificateManager);
     }
 
-    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port) {
+    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager) {
+        this.tlsCertificateManager = tlsCertificateManager;
         serverBuilder = NettyServerBuilder.forPort(port);
 
         serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());
@@ -71,7 +76,7 @@ public class GrpcServerBuilder {
         }
 
         serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
-                .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
+            .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
 
         log.info("grpc server has built. port: {}, bossLoopNum: {}, workerLoopNum: {}, maxInboundMessageSize: {}",
             port, bossLoopNum, workerLoopNum, maxInboundMessageSize);
@@ -98,8 +103,8 @@ public class GrpcServerBuilder {
         return this;
     }
 
-    public GrpcServer build() {
-        return new GrpcServer(this.serverBuilder.build(), time, unit);
+    public GrpcServer build() throws Exception {
+        return new GrpcServer(this.serverBuilder.build(), time, unit, tlsCertificateManager);
     }
 
     public GrpcServerBuilder configInterceptor() {
