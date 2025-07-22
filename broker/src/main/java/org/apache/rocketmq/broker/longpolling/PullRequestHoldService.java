@@ -180,6 +180,9 @@ public class PullRequestHoldService extends ServiceThread {
                     mpr.addPullRequest(replayList);
                 }
             }
+            else if (null == requestList) {
+                this.pullRequestTable.remove(key);
+            }
         }
     }
 
