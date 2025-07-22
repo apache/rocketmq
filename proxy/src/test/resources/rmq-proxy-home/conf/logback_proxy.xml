@@ -303,11 +303,10 @@
 
     <appender name="RocketmqPopAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}pop.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}pop.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}pop.%i.log
-            </fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}pop.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>20</maxIndex>
         </rollingPolicy>
