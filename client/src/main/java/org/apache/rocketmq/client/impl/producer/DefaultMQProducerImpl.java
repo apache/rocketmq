@@ -895,16 +895,16 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
-        if (null == topicPublishInfo || !topicPublishInfo.ok()) {
+        if (this.isPublishTopicNeedUpdate(topic)) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, false);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
         }
 
         if (topicPublishInfo.isHaveTopicRouterInfo() || topicPublishInfo.ok()) {
             return topicPublishInfo;
         } else {
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, this.defaultMQProducer);
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, true, true, this.defaultMQProducer);
             topicPublishInfo = this.topicPublishInfoTable.get(topic);
             return topicPublishInfo;
         }
