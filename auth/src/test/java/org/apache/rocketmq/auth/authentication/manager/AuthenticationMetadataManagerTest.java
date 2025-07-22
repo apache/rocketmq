@@ -141,6 +141,16 @@ public class AuthenticationMetadataManagerTest {
     }
 
     @Test
+    public void deleteUserIfAuthorizationDisabled() {
+        if (MixAll.isMac()) {
+            return;
+        }
+        this.authConfig.setAuthorizationEnabled(false);
+        this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(this.authConfig);
+        this.authenticationMetadataManager.deleteUser("no_user").join();
+    }
+
+    @Test
     public void getUser() {
         if (MixAll.isMac()) {
             return;
