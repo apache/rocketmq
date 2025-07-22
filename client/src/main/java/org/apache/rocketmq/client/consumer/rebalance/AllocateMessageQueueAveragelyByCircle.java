@@ -35,6 +35,10 @@ public class AllocateMessageQueueAveragelyByCircle extends AbstractAllocateMessa
         }
 
         int index = cidAll.indexOf(currentCID);
+        // Make sure the index is valid
+        if (index == -1) {
+            return result;
+        }
         for (int i = index; i < mqAll.size(); i++) {
             if (i % cidAll.size() == index) {
                 result.add(mqAll.get(i));
