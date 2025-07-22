@@ -472,7 +472,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
 
-        TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(requestHeader.getTopic());
+        TopicValidator.ValidateResult result = TopicValidator.validateTopic(requestHeader.getTopic());
         if (!result.isValid()) {
             response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(result.getRemark());
