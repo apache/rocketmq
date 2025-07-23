@@ -892,7 +892,7 @@ public class DefaultLitePullConsumerTest {
     private void suppressUpdateTopicRouteInfoFromNameServer(
         DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
         if (litePullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
-            litePullConsumer.changeInstanceNameToPID();
+            litePullConsumer.changeInstanceNameToIpWithPidAndGroupInfo(litePullConsumer.getConsumerGroup());
         }
 
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
