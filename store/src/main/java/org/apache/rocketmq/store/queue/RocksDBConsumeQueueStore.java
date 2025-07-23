@@ -104,7 +104,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
      */
     public RocksDBConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
-        messageStore.setNotifyMessageArriveInBatch(false);
+        messageStore.setNotifyMessageArriveInBatch(true);
 
         this.storePath = StorePathConfigHelper.getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir());
         this.rocksDBStorage = new ConsumeQueueRocksDBStorage(messageStore, storePath);
