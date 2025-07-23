@@ -18,13 +18,17 @@ package org.apache.rocketmq.proxy.service.route;
 
 import java.util.List;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 public class ClusterTopicRouteService extends TopicRouteService {
     private final RouteEventSubscriber eventSubscriber;
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     public ClusterTopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         super(mqClientAPIFactory);
@@ -33,7 +37,28 @@ public class ClusterTopicRouteService extends TopicRouteService {
             markCacheDirty(topic);
         });
     }
+    @Override
+    public void start() throws Exception {
+        super.start();
 
+        try {
+            eventSubscriber.start();
+            log.info("Route event subscriber started after parent initialization");
+        } catch (Exception e) {
+            log.error("Failed to start route event subscriber", e);
+        }
+    }
+
+    @Override
+    public void shutdown() throws Exception {
+        try {
+            eventSubscriber.shutdown();
+        } catch (Exception e) {
+            log.error("Error shutting down event subscriber", e);
+        }
+
+        super.shutdown();
+    }
     @Override
     public MessageQueueView getCurrentMessageQueueView(ProxyContext ctx, String topicName) throws Exception {
         return getAllMessageQueueView(ctx, topicName);

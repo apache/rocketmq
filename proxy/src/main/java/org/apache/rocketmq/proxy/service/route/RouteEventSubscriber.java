@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.proxy.service.route;
 
-import java.lang.management.ManagementFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -26,49 +25,37 @@ import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.config.ProxyConfig;
-
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import com.alibaba.fastjson2.JSON;
 
 public class RouteEventSubscriber {
     private final Consumer<String> dirtyMarker;
     private final DefaultMQPushConsumer consumer;
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     public RouteEventSubscriber(Consumer<String> dirtyMarker) {
         this.dirtyMarker = dirtyMarker;
-        this.consumer = createSimplifiedConsumer();
-        startListening();
+        this.consumer = new DefaultMQPushConsumer("PROXY_ROUTE_EVENT_GROUP");
     }
-
-    private DefaultMQPushConsumer createSimplifiedConsumer() {
-        ProxyConfig config = ConfigurationManager.getProxyConfig();
-
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(
-            "ProxyRouteSubGroup_" + ManagementFactory.getRuntimeMXBean().getName()
-        );
-
-        consumer.setNamesrvAddr(config.getNamesrvAddr());
-        consumer.setPullBatchSize(10);
-        consumer.setConsumeThreadMin(1);
-        consumer.setConsumeThreadMax(1);
-
-        return consumer;
-    }
-
-    private void startListening() {
+    public void start() {
         try {
             consumer.subscribe(TopicValidator.RMQ_ROUTE_EVENT_TOPIC, "*");
+            LOGGER.warn("Subscribed to system topic: {}", TopicValidator.RMQ_ROUTE_EVENT_TOPIC);
 
             consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
+                LOGGER.warn("[ROUTE_UPDATE] Received {} events", msgs.size());
                 processMessages(msgs);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             });
 
             consumer.start();
+            LOGGER.warn("Route event consumer started");
         } catch (MQClientException e) {
+            LOGGER.error("Failed to start route event consumer", e);
         }
     }
 
@@ -77,13 +64,20 @@ public class RouteEventSubscriber {
             try {
                 String json = new String(msg.getBody(), StandardCharsets.UTF_8);
                 Map<String, Object> event = JSON.parseObject(json, Map.class);
+                LOGGER.warn("[ROUTE_UPDATE]: Received route event: {}", event);
 
-                Object[] topics = (Object[]) event.get("affectedTopic");
-                for (Object topicObj : topics) {
-                    String topic = (String) topicObj;
+                List<String> topics = (List<String>) event.get("affectedTopic");
+                if (topics == null || topics.isEmpty()) {
+                    LOGGER.warn("[ROUTE_UPDATE] No affected topics in event");
+                    continue;
+                }
+
+                for (String topic : topics) {
+                    LOGGER.warn("[ROUTE_UPDATE] Processing topic: {}", topic);
                     dirtyMarker.accept(topic);
                 }
             } catch (Exception e) {
+                LOGGER.error("[ROUTE_UPDATE]: Error processing route event", e);
             }
         }
     }

@@ -22,14 +22,15 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -68,7 +69,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     protected final ThreadPoolExecutor cacheRefreshExecutor;
 
     protected final ConcurrentMap<String, Long> dirtyTopics = new ConcurrentHashMap<>();
-    protected final BlockingQueue<String> pendingTopics = new LinkedBlockingQueue<>();
+    private final Queue<String> pendingTopics = new ConcurrentLinkedQueue<>();
     protected final ScheduledExecutorService lazyUpdateExecutor;
     protected final Object batchUpdateLock = new Object();
 
@@ -247,33 +248,48 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     }
 
     protected void markCacheDirty(String topic) {
-        if (dirtyTopics.putIfAbsent(topic, System.currentTimeMillis()) == null) {
+        long currentTime = System.currentTimeMillis();
+        Long previousTime = dirtyTopics.get(topic);
+
+        if (previousTime == null) {
+            log.warn("[ROUTE_UPDATE]: markCacheDirty (NEW): {}", topic);
+            dirtyTopics.put(topic, currentTime);
             pendingTopics.offer(topic);
+        } else {
+            log.info("[ROUTE_UPDATE]: markCacheDirty (EXISTING): {} lastMarked={}",
+                    topic, new Date(previousTime));
         }
     }
 
     private void batchRefreshRoutes() {
-        if (pendingTopics.isEmpty()) return;
+        int pendingCount = pendingTopics.size();
+        if (pendingCount == 0) {
+            return;
+        }
 
-        List<String> refreshList = new ArrayList<>(100);
-        synchronized (batchUpdateLock) {
-            int count = 0;
-            while (!pendingTopics.isEmpty() && count < 100) {
-                String topic = pendingTopics.poll();
-                if (topic != null) {
-                    refreshList.add(topic);
-                    count++;
-                }
+        log.warn("[ROUTE_UPDATE] Starting batch refresh for {} topics", pendingCount);
+
+        List<String> refreshList = new ArrayList<>(Math.min(pendingCount, 100));
+        int count = 0;
+        while (!pendingTopics.isEmpty() && count < 100) {
+            String topic = pendingTopics.poll();
+            if (topic != null) {
+                refreshList.add(topic);
+                count++;
+                log.warn("[ROUTE_UPDATE]: Adding to refresh: {}", topic);
             }
         }
+
+        log.warn("[ROUTE_UPDATE] Will refresh {} topics: {}", refreshList.size(), refreshList);
 
         List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (String topic : refreshList) {
             futures.add(CompletableFuture.runAsync(() -> {
                 try {
                     refreshSingleRoute(topic);
+                    log.warn("[ROUTE_UPDATE]: Refresh topic route success: {}", topic);
                 } catch (Exception e) {
-                    log.warn("Refresh topic route failed: {}", topic, e);
+                    log.warn("[ROUTE_UPDATE]: Refresh topic route failed: {}", topic, e);
                     pendingTopics.offer(topic);
                 }
             }, cacheRefreshExecutor));
@@ -284,15 +300,27 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     private void refreshSingleRoute(String topic) {
         try {
+            log.warn("[ROUTE_UPDATE]: Refreshing route for: {}", topic);
+            long startTime = System.currentTimeMillis();
+
             TopicRouteData routeData = mqClientAPIFactory.getClient()
                 .getTopicRouteInfoFromNameServer(topic, 1000);
 
+            if (routeData == null) {
+                log.warn("[ROUTE_UPDATE]: Null route data for topic: {}", topic);
+                return;
+            }
+
             MessageQueueView newView = buildMessageQueueView(topic, routeData);
             topicCache.put(topic, newView);
-
             dirtyTopics.remove(topic);
-        } catch (Exception e) {
 
+            long duration = System.currentTimeMillis() - startTime;
+            log.warn("[ROUTE_UPDATE]: Refresh success for {} in {}ms.",
+                    topic, duration);
+        } catch (Exception e) {
+            log.error("[ROUTE_UPDATE]: Refresh failed for: {}", topic, e);
+            pendingTopics.offer(topic);
         }
     }
 
