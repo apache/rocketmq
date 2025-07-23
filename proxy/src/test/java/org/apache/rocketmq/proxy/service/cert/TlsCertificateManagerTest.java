@@ -16,24 +16,21 @@
  */
 package org.apache.rocketmq.proxy.service.cert;
 
-import java.io.FileWriter;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.io.TempDir;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -49,16 +46,10 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@ExtendWith(MockitoExtension.class)
+@RunWith(MockitoJUnitRunner.class)
 public class TlsCertificateManagerTest {
 
-    @TempDir
-    Path tempDir;
-
     private TlsCertificateManager manager;
-
-    @Mock
-    private ProxyConfig proxyConfig;
 
     @Mock
     private TlsCertificateManager.TlsContextReloadListener listener1;
@@ -69,17 +60,12 @@ public class TlsCertificateManagerTest {
     private File certFile;
     private File keyFile;
     private FileWatchService.Listener fileWatchListener;
-    private Field configField;
-    private ProxyConfig originalConfig;
-
-    @BeforeAll
-    public static void setUpAll() throws Exception {
+    
+    @Before
+    public void setUp() throws Exception {
         ConfigurationManager.initEnv();
         ConfigurationManager.intConfig();
-    }
-
-    @BeforeEach
-    public void setUp() throws Exception {
+        Path tempDir = Files.createTempDirectory("tls");
         // Create temporary certificate and key files
         certFile = new File(tempDir.toFile(), "server.crt");
         keyFile = new File(tempDir.toFile(), "server.key");
@@ -98,14 +84,6 @@ public class TlsCertificateManagerTest {
 
         // Extract the file watch listener using reflection
         fileWatchListener = extractFileWatchListener(manager);
-    }
-
-    @AfterEach
-    public void tearDown() throws Exception {
-        // Restore the original config
-        if (configField != null && originalConfig != null) {
-            configField.set(null, originalConfig);
-        }
     }
 
     private FileWatchService.Listener extractFileWatchListener(TlsCertificateManager manager) throws Exception {

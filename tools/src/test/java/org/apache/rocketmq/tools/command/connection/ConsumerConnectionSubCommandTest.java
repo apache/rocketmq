@@ -16,10 +16,10 @@
  */
 package org.apache.rocketmq.tools.command.connection;
 
-import java.util.HashSet;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.protocol.body.Connection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -30,6 +30,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashSet;
+
 import static org.mockito.Mockito.mock;
 
 public class ConsumerConnectionSubCommandTest {
@@ -39,18 +41,28 @@ public class ConsumerConnectionSubCommandTest {
 
     @Before
     public void before() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         brokerMocker = startOneBroker();
         nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
     public void after() {
-        brokerMocker.shutdown();
-        nameServerMocker.shutdown();
+        if (null != brokerMocker) {
+            brokerMocker.shutdown();
+        }
+        if (null != nameServerMocker) {
+            nameServerMocker.shutdown();
+        }
     }
 
     @Test
     public void testExecute() throws SubCommandException {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         ConsumerConnectionSubCommand cmd = new ConsumerConnectionSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-g default-consumer-group", "-b localhost:" + brokerMocker.listenPort()};
