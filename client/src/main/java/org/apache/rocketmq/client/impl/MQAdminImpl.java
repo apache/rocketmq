@@ -153,7 +153,7 @@ public class MQAdminImpl {
             throw new MQClientException("Can not find Message Queue for this topic, " + topic, e);
         }
 
-        throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
+        throw new MQClientException("Unknown why, Can not find Message Queue for this topic, " + topic, null);
     }
 
     public List<MessageQueue> parsePublishMessageQueues(List<MessageQueue> messageQueueList) {
