@@ -51,6 +51,15 @@ public class RebalancePushImpl extends RebalanceImpl {
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
     }
 
+    /**
+     * Handle message queue changes during rebalancing.
+     * This method is called when the consumer's assigned message queues change,
+     * typically during consumer group rebalancing operations.
+     *
+     * @param topic the topic name
+     * @param mqAll all available message queues for the topic
+     * @param mqDivided the message queues assigned to this consumer after rebalancing
+     */
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
         /*
@@ -182,8 +191,14 @@ public class RebalancePushImpl extends RebalanceImpl {
                         result = 0L;
                     } else {
                         try {
-                            result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
-                        } catch (MQClientException e) {
+                            long maxOffset = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+
+                            if (maxOffset <= 1) {
+                                result = 0L;
+                            } else {
+                                result = maxOffset;
+                            }
+                        }  catch (MQClientException e) {
                             log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
                             throw e;
                         }
