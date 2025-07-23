@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker;
 
+import com.alibaba.fastjson2.JSON;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
@@ -110,6 +111,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.stats.MomentStatsItem;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -141,6 +143,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.RocksDBMessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -157,10 +160,12 @@ import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1391,6 +1396,10 @@ public class BrokerController {
 
     protected void shutdownBasicService() {
 
+        publishRouteEvent("shutdown");
+        LOG.info("[ROUTE_UPDATE]: publishRouteEvent before shutdown basic service, brokerName: {}, brokerId: {}",
+            this.brokerConfig.getBrokerName(), this.brokerConfig.getBrokerId());
+
         shutdown = true;
 
         this.unregisterBrokerAll();
@@ -1607,6 +1616,37 @@ public class BrokerController {
             if (brokerAttachedPlugin != null) {
                 brokerAttachedPlugin.shutdown();
             }
+        }
+    }
+
+    public void publishRouteEvent(String eventType) {
+
+        Map<String, Object> eventData = new HashMap<>();
+        eventData.put("eventType", eventType);
+        eventData.put("brokerName", this.brokerConfig.getBrokerName());
+        eventData.put("brokerId", this.brokerConfig.getBrokerId());
+        eventData.put("timestamp", System.currentTimeMillis());
+        eventData.put("affectedTopic", this.getTopicConfigManager().getTopicConfigTable().keySet().toArray());
+        LOG.info("[ROUTE_UPDATE]: eventData {}", eventData);
+
+        MessageExtBrokerInner innerMsg = new MessageExtBrokerInner();
+        innerMsg.setTopic(TopicValidator.RMQ_ROUTE_EVENT_TOPIC);
+        innerMsg.setBody(JSON.toJSONString(eventData).getBytes(StandardCharsets.UTF_8));
+        innerMsg.setTags("broker_event");
+        innerMsg.setQueueId(0);
+        innerMsg.setBornTimestamp(System.currentTimeMillis());
+        innerMsg.setBornHost(this.getStoreHost());
+        innerMsg.setStoreHost(this.getStoreHost());
+        innerMsg.setSysFlag(0);
+        LOG.info("[ROUTE_UPDATE]: innerMsg {}", innerMsg);
+
+        PutMessageResult result = this.messageStore.putMessage(innerMsg);
+        this.messageStore.flush();
+
+        if (result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
+            return;
+        } else {
+            LOG.error("[ROUTE_UPDATE]: broadcasting failed, status {}", result.getPutMessageStatus());
         }
     }
 
@@ -1830,6 +1870,9 @@ public class BrokerController {
                 }
             }
         }, 10, 5, TimeUnit.SECONDS);
+
+        publishRouteEvent("start");
+
     }
 
     protected void scheduleSendHeartbeat() {
