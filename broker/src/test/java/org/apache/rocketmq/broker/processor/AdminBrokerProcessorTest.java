@@ -22,6 +22,29 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
@@ -32,15 +55,16 @@ import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManag
 import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.auth.authorization.model.Environment;
 import org.apache.rocketmq.auth.authorization.model.Resource;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
-import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
-import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -133,30 +157,6 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.LongAdder;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -182,7 +182,7 @@ public class AdminBrokerProcessorTest {
 
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(),
-        new MessageStoreConfig(), null);
+        new MessageStoreConfig(), new AuthConfig());
 
     @Mock
     private MessageStore messageStore;
@@ -264,6 +264,8 @@ public class AdminBrokerProcessorTest {
 
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig(topic));
         brokerController.getMessageStoreConfig().setTimerWheelEnable(false);
+        brokerController.getAuthConfig().setAuthenticationEnabled(true);
+        brokerController.getAuthConfig().setAuthorizationEnabled(true);
         when(this.brokerController.getMessageStore().getTimerMessageStore()).thenReturn(timerMessageStore);
         when(this.timerMessageStore.getTimerMetrics()).thenReturn(timerMetrics);
     }
@@ -474,7 +476,6 @@ public class AdminBrokerProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
-
     private void getAllTopicConfig(boolean enableSplitMetadata) throws RemotingCommandException {
         brokerController.getBrokerConfig().setEnableSplitMetadata(enableSplitMetadata);
 
@@ -532,7 +533,6 @@ public class AdminBrokerProcessorTest {
                 continue;
             }
 
-
             topicConfigTable.putAll(topicConfigSerializeWrapper.getTopicConfigTable());
             if (topicSeq >= responseHeader.getTotalTopicNum() - 1) {
                 break;
@@ -551,7 +551,6 @@ public class AdminBrokerProcessorTest {
         getAllTopicConfig(true);
         getAllTopicConfig(false);   // broker side disable split , will return all topic config
     }
-
 
     private void getAllSubscriptionGroup(boolean enableSplitMetadata) throws RemotingCommandException {
         brokerController.getBrokerConfig().setEnableSplitMetadata(enableSplitMetadata);
@@ -592,7 +591,6 @@ public class AdminBrokerProcessorTest {
             if (dataVersion == null) {
                 dataVersion = newDataVersion;
             }
-
 
             // mock server side data version changed
             if (groupSeq > responseHeader.getTotalGroupNum() / 2 && dataVersionChanged.compareAndSet(false, true)) {
@@ -1177,6 +1175,7 @@ public class AdminBrokerProcessorTest {
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
+
     @Test
     public void testGetTimeMetrics() throws RemotingCommandException, IOException {
         when(this.brokerController.getMessageStore().getTimerMessageStore()).thenReturn(null);
@@ -1269,7 +1268,7 @@ public class AdminBrokerProcessorTest {
     @Test
     public void testResetOffset() throws RemotingCommandException {
         ResetOffsetRequestHeader requestHeader =
-                createRequestHeader("topic","group",-1,false,-1,-1);
+            createRequestHeader("topic", "group", -1, false, -1, -1);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.INVOKE_BROKER_TO_RESET_OFFSET, requestHeader);
         request.makeCustomHeaderToNet();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
@@ -1303,10 +1302,10 @@ public class AdminBrokerProcessorTest {
         requestHeader.setTopic("topic");
         requestHeader.setClientAddr("");
         RemotingCommand request = RemotingCommand
-                .createRequestCommand(RequestCode.INVOKE_BROKER_TO_GET_CONSUMER_STATUS, requestHeader);
+            .createRequestCommand(RequestCode.INVOKE_BROKER_TO_GET_CONSUMER_STATUS, requestHeader);
         RemotingCommand responseCommand = RemotingCommand.createResponseCommand(null);
         responseCommand.setCode(ResponseCode.SUCCESS);
-        when(broker2Client.getConsumeStatus(anyString(),anyString(),anyString())).thenReturn(responseCommand);
+        when(broker2Client.getConsumeStatus(anyString(), anyString(), anyString())).thenReturn(responseCommand);
         request.makeCustomHeaderToNet();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
@@ -1325,8 +1324,8 @@ public class AdminBrokerProcessorTest {
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(RemotingSerializable.decode(response.getBody(), GroupList.class)
-                .getGroupList().contains("group"))
-                .isEqualTo(groups.contains("group"));
+            .getGroupList().contains("group"))
+            .isEqualTo(groups.contains("group"));
     }
 
     @Test
@@ -1348,7 +1347,7 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_SUBSCRIPTION_BY_CONSUMER, requestHeader);
         request.makeCustomHeaderToNet();
         when(brokerController.getConsumerManager()).thenReturn(consumerManager);
-        when(consumerManager.findSubscriptionData(anyString(),anyString())).thenReturn(null);
+        when(consumerManager.findSubscriptionData(anyString(), anyString())).thenReturn(null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -1384,7 +1383,7 @@ public class AdminBrokerProcessorTest {
     @Test
     public void testGetConsumerRunningInfo() throws RemotingCommandException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         when(brokerController.getConsumerManager()).thenReturn(consumerManager);
-        when(consumerManager.findChannel(anyString(),anyString())).thenReturn(null);
+        when(consumerManager.findChannel(anyString(), anyString())).thenReturn(null);
         GetConsumerRunningInfoRequestHeader requestHeader = new GetConsumerRunningInfoRequestHeader();
         requestHeader.setClientId("client");
         requestHeader.setConsumerGroup("group");
@@ -1393,7 +1392,7 @@ public class AdminBrokerProcessorTest {
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
 
-        when(consumerManager.findChannel(anyString(),anyString())).thenReturn(clientChannelInfo);
+        when(consumerManager.findChannel(anyString(), anyString())).thenReturn(clientChannelInfo);
         when(clientChannelInfo.getVersion()).thenReturn(MQVersion.Version.V3_0_0_SNAPSHOT.ordinal());
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
@@ -1403,11 +1402,11 @@ public class AdminBrokerProcessorTest {
         when(clientChannelInfo.getChannel()).thenReturn(channel);
         RemotingCommand responseCommand = RemotingCommand.createResponseCommand(null);
         responseCommand.setCode(ResponseCode.SUCCESS);
-        when(broker2Client.callClient(any(Channel.class),any(RemotingCommand.class))).thenReturn(responseCommand);
+        when(broker2Client.callClient(any(Channel.class), any(RemotingCommand.class))).thenReturn(responseCommand);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
-        when(broker2Client.callClient(any(Channel.class),any(RemotingCommand.class))).thenThrow(new RemotingTimeoutException("timeout"));
+        when(broker2Client.callClient(any(Channel.class), any(RemotingCommand.class))).thenThrow(new RemotingTimeoutException("timeout"));
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.CONSUME_MSG_TIMEOUT);
     }
@@ -1421,8 +1420,8 @@ public class AdminBrokerProcessorTest {
         compareOffsetMap.put(0, 80L);
         compareOffsetMap.put(1, 300L);
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
-        when(consumerOffsetManager.queryMinOffsetInAllGroup(anyString(),anyString())).thenReturn(correctionOffsetMap);
-        when(consumerOffsetManager.queryOffset(anyString(),anyString())).thenReturn(compareOffsetMap);
+        when(consumerOffsetManager.queryMinOffsetInAllGroup(anyString(), anyString())).thenReturn(correctionOffsetMap);
+        when(consumerOffsetManager.queryOffset(anyString(), anyString())).thenReturn(compareOffsetMap);
         QueryCorrectionOffsetHeader queryCorrectionOffsetHeader = new QueryCorrectionOffsetHeader();
         queryCorrectionOffsetHeader.setTopic("topic");
         queryCorrectionOffsetHeader.setCompareGroup("group");
@@ -1474,7 +1473,7 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testGetBrokerHaStatus() throws RemotingCommandException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_HA_STATUS,null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_HA_STATUS, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
 
@@ -1487,7 +1486,7 @@ public class AdminBrokerProcessorTest {
     @Test
     public void testResetMasterFlushOffset() throws RemotingCommandException {
         ResetMasterFlushOffsetHeader requestHeader = new ResetMasterFlushOffsetHeader();
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RESET_MASTER_FLUSH_OFFSET,requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RESET_MASTER_FLUSH_OFFSET, requestHeader);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
@@ -1497,7 +1496,8 @@ public class AdminBrokerProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
 
-    private ResetOffsetRequestHeader createRequestHeader(String topic,String group,long timestamp,boolean force,long offset,int queueId) {
+    private ResetOffsetRequestHeader createRequestHeader(String topic, String group, long timestamp, boolean force,
+        long offset, int queueId) {
         ResetOffsetRequestHeader requestHeader = new ResetOffsetRequestHeader();
         requestHeader.setTopic(topic);
         requestHeader.setGroup(group);
@@ -1533,7 +1533,7 @@ public class AdminBrokerProcessorTest {
 
     private RemotingCommand buildCreateTopicListRequest(List<String> topicList, Map<String, String> attributes) {
         List<TopicConfig> topicConfigList = new ArrayList<>();
-        for (String topic:topicList) {
+        for (String topic : topicList) {
             TopicConfig topicConfig = new TopicConfig(topic);
             topicConfig.setReadQueueNums(8);
             topicConfig.setWriteQueueNums(8);

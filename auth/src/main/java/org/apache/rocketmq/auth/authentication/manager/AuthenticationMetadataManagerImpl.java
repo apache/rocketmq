@@ -38,9 +38,14 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
 
     private final AuthorizationMetadataProvider authorizationMetadataProvider;
 
+    private boolean authorizationEnabled;
+
     public AuthenticationMetadataManagerImpl(AuthConfig authConfig) {
         this.authenticationMetadataProvider = AuthenticationFactory.getMetadataProvider(authConfig);
         this.authorizationMetadataProvider = AuthorizationFactory.getMetadataProvider(authConfig);
+        if (authConfig != null) {
+            this.authorizationEnabled = authConfig.isAuthorizationEnabled();
+        }
         this.initUser(authConfig);
     }
 
@@ -145,9 +150,12 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
             if (StringUtils.isBlank(username)) {
                 throw new AuthenticationException("username can not be blank");
             }
-            CompletableFuture<Void> deleteUser = this.getAuthenticationMetadataProvider().deleteUser(username);
-            CompletableFuture<Void> deleteAcl = this.getAuthorizationMetadataProvider().deleteAcl(User.of(username));
-            return CompletableFuture.allOf(deleteUser, deleteAcl);
+            if (authorizationEnabled) {
+                CompletableFuture<Void> deleteUser = this.getAuthenticationMetadataProvider().deleteUser(username);
+                CompletableFuture<Void> deleteAcl = this.getAuthorizationMetadataProvider().deleteAcl(User.of(username));
+                return CompletableFuture.allOf(deleteUser, deleteAcl);
+            }
+            return this.getAuthenticationMetadataProvider().deleteUser(username);
         } catch (Exception e) {
             this.handleException(e, result);
         }
