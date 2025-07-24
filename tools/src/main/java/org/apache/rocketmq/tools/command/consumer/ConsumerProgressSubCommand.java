@@ -16,20 +16,15 @@
  */
 package org.apache.rocketmq.tools.command.consumer;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MQVersion;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
@@ -39,11 +34,16 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class ConsumerProgressSubCommand implements SubCommand {
     private static final Logger log = LoggerFactory.getLogger(ConsumerProgressSubCommand.class);
@@ -216,52 +216,50 @@ public class ConsumerProgressSubCommand implements SubCommand {
                     "#TPS",
                     "#Diff Total"
                 );
-                TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
+                TopicList topicList = defaultMQAdminExt.fetchAllRetryTopicList();
                 for (String topic : topicList.getTopicList()) {
-                    if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                        String consumerGroup = KeyBuilder.parseGroup(topic);
+                    String consumerGroup = KeyBuilder.parseGroup(topic);
+                    try {
+                        ConsumeStats consumeStats = null;
                         try {
-                            ConsumeStats consumeStats = null;
-                            try {
-                                consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
-                            } catch (Exception e) {
-                                log.warn("examineConsumeStats exception, " + consumerGroup, e);
-                            }
-
-                            ConsumerConnection cc = null;
-                            try {
-                                cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
-                            } catch (Exception e) {
-                                log.warn("examineConsumerConnectionInfo exception, " + consumerGroup, e);
-                            }
-
-                            GroupConsumeInfo groupConsumeInfo = new GroupConsumeInfo();
-                            groupConsumeInfo.setGroup(consumerGroup);
-
-                            if (consumeStats != null) {
-                                groupConsumeInfo.setConsumeTps((int) consumeStats.getConsumeTps());
-                                groupConsumeInfo.setDiffTotal(consumeStats.computeTotalDiff());
-                            }
-
-                            if (cc != null) {
-                                groupConsumeInfo.setCount(cc.getConnectionSet().size());
-                                groupConsumeInfo.setMessageModel(cc.getMessageModel());
-                                groupConsumeInfo.setConsumeType(cc.getConsumeType());
-                                groupConsumeInfo.setVersion(cc.computeMinVersion());
-                            }
-
-                            System.out.printf("%-64s  %-6d  %-24s %-5s  %-14s  %-7d  %d%n",
-                                UtilAll.frontStringAtLeast(groupConsumeInfo.getGroup(), 64),
-                                groupConsumeInfo.getCount(),
-                                groupConsumeInfo.getCount() > 0 ? groupConsumeInfo.versionDesc() : "OFFLINE",
-                                groupConsumeInfo.consumeTypeDesc(),
-                                groupConsumeInfo.messageModelDesc(),
-                                groupConsumeInfo.getConsumeTps(),
-                                groupConsumeInfo.getDiffTotal()
-                            );
+                            consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
                         } catch (Exception e) {
-                            log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, " + consumerGroup, e);
+                            log.warn("examineConsumeStats exception, " + consumerGroup, e);
                         }
+
+                        ConsumerConnection cc = null;
+                        try {
+                            cc = defaultMQAdminExt.examineConsumerConnectionInfo(consumerGroup);
+                        } catch (Exception e) {
+                            log.warn("examineConsumerConnectionInfo exception, " + consumerGroup, e);
+                        }
+
+                        GroupConsumeInfo groupConsumeInfo = new GroupConsumeInfo();
+                        groupConsumeInfo.setGroup(consumerGroup);
+
+                        if (consumeStats != null) {
+                            groupConsumeInfo.setConsumeTps((int) consumeStats.getConsumeTps());
+                            groupConsumeInfo.setDiffTotal(consumeStats.computeTotalDiff());
+                        }
+
+                        if (cc != null) {
+                            groupConsumeInfo.setCount(cc.getConnectionSet().size());
+                            groupConsumeInfo.setMessageModel(cc.getMessageModel());
+                            groupConsumeInfo.setConsumeType(cc.getConsumeType());
+                            groupConsumeInfo.setVersion(cc.computeMinVersion());
+                        }
+
+                        System.out.printf("%-64s  %-6d  %-24s %-5s  %-14s  %-7d  %d%n",
+                            UtilAll.frontStringAtLeast(groupConsumeInfo.getGroup(), 64),
+                            groupConsumeInfo.getCount(),
+                            groupConsumeInfo.getCount() > 0 ? groupConsumeInfo.versionDesc() : "OFFLINE",
+                            groupConsumeInfo.consumeTypeDesc(),
+                            groupConsumeInfo.messageModelDesc(),
+                            groupConsumeInfo.getConsumeTps(),
+                            groupConsumeInfo.getDiffTotal()
+                        );
+                    } catch (Exception e) {
+                        log.warn("examineConsumeStats or examineConsumerConnectionInfo exception, " + consumerGroup, e);
                     }
                 }
             }
