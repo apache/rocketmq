@@ -57,6 +57,7 @@ import org.apache.rocketmq.client.impl.producer.MQProducerInner;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.stat.ConsumerStatsManager;
+import org.apache.rocketmq.client.stat.ProducerStatsManager;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
@@ -137,6 +138,7 @@ public class MQClientInstance {
     private final PullMessageService pullMessageService;
     private final RebalanceService rebalanceService;
     private final DefaultMQProducer defaultMQProducer;
+    private final ProducerStatsManager producerStatsManager;
     private final ConsumerStatsManager consumerStatsManager;
     private final AtomicLong sendHeartbeatTimesTotal = new AtomicLong(0);
     private ServiceState serviceState = ServiceState.CREATE_JUST;
@@ -214,6 +216,7 @@ public class MQClientInstance {
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
         this.defaultMQProducer.resetClientConfig(clientConfig);
 
+        this.producerStatsManager = new ProducerStatsManager(this.scheduledExecutorService);
         this.consumerStatsManager = new ConsumerStatsManager(this.scheduledExecutorService);
 
         log.info("Created a new client Instance, InstanceIndex:{}, ClientID:{}, ClientConfig:{}, ClientVersion:{}, SerializerType:{}",
@@ -1385,6 +1388,10 @@ public class MQClientInstance {
 
     public ConsumerStatsManager getConsumerStatsManager() {
         return consumerStatsManager;
+    }
+
+    public ProducerStatsManager getProducerStatsManager() {
+        return producerStatsManager;
     }
 
     public NettyClientConfig getNettyClientConfig() {
