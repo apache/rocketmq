@@ -23,7 +23,6 @@ java_library(
     deps = [
         "//common",
         "//remoting",
-        "@maven//:com_alibaba_fastjson",
         "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_conversantmedia_disruptor",
         "@maven//:com_google_guava_guava",
@@ -58,7 +57,7 @@ java_library(
         "//:test_deps",
         "//common",
         "//remoting",
-        "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_conversantmedia_disruptor",
         "@maven//:io_openmessaging_storage_dledger",
         "@maven//:org_apache_commons_commons_lang3",

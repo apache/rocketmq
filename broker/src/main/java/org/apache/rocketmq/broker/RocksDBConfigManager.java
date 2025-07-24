@@ -16,9 +16,7 @@
  */
 package org.apache.rocketmq.broker;
 
-import com.alibaba.fastjson.JSON;
-import java.nio.charset.StandardCharsets;
-import java.util.function.BiConsumer;
+import com.alibaba.fastjson2.JSON;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -30,6 +28,9 @@ import org.rocksdb.FlushOptions;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.Statistics;
 import org.rocksdb.WriteBatch;
+
+import java.nio.charset.StandardCharsets;
+import java.util.function.BiConsumer;
 
 public class RocksDBConfigManager {
     protected static final Logger BROKER_LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);

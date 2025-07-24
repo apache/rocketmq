@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.connection;
 
-import java.util.HashSet;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -30,7 +29,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.mockito.Mockito.mock;
+import java.util.HashSet;
 
 public class ConsumerConnectionSubCommandTest {
     private ServerResponseMocker brokerMocker;
@@ -62,7 +61,7 @@ public class ConsumerConnectionSubCommandTest {
     private ServerResponseMocker startOneBroker() {
         ConsumerConnection consumerConnection = new ConsumerConnection();
         HashSet<Connection> connectionSet = new HashSet<>();
-        Connection connection = mock(Connection.class);
+        Connection connection = new Connection();
         connectionSet.add(connection);
         consumerConnection.setConnectionSet(connectionSet);
         // start broker
