@@ -921,7 +921,10 @@ public class MessageStoreConfig {
     }
 
     public int getAccessMessageInMemoryMaxRatio() {
-        return accessMessageInMemoryMaxRatio;
+        if (BrokerRole.SLAVE != brokerRole) {
+            return accessMessageInMemoryMaxRatio;
+        }
+        return Math.max(0, accessMessageInMemoryMaxRatio - 10);
     }
 
     public void setAccessMessageInMemoryMaxRatio(int accessMessageInMemoryMaxRatio) {
