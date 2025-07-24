@@ -63,6 +63,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -149,6 +151,15 @@ public class PopConsumerServiceTest {
         ConsumerOffsetManager consumerOffsetManager = brokerController.getConsumerOffsetManager();
         Mockito.when(consumerOffsetManager.queryOffset(groupId, topicId, queueId)).thenReturn(20L);
         Assert.assertEquals(consumerService.getPendingFilterCount(groupId, topicId, queueId), 80L);
+    }
+
+    @Test
+    public void pendingFilterCountTest_consumeQueueException() throws ConsumeQueueException {
+        MessageStore messageStore = Mockito.mock(MessageStore.class);
+        Mockito.when(messageStore.getMaxOffsetInQueue(topicId, queueId)).thenThrow(new ConsumeQueueException("queue fail!"));
+        Mockito.when(brokerController.getMessageStore()).thenReturn(messageStore);
+        Assert.assertThrows(RuntimeException.class, () -> consumerService.getPendingFilterCount(groupId, topicId, queueId));
+        verify(brokerController, never()).getConsumerOffsetManager();
     }
 
     private MessageExt getMessageExt() {
