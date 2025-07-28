@@ -763,7 +763,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             if (brokerName != null && brokerName.startsWith(MixAll.LOGICAL_QUEUE_MOCK_BROKER_PREFIX)
                 || mq != null && mq.getBrokerName().startsWith(MixAll.LOGICAL_QUEUE_MOCK_BROKER_PREFIX)) {
                 needRetry = false;
-                sendMessageBackAsNormalMessage(msg);
+                sendMessageBackAsNormalMessage(msg, delayLevel);
             } else {
                 String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
                     : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
@@ -777,14 +777,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             log.error("Failed to send message back, consumerGroup={}, brokerName={}, mq={}, message={}",
                 this.defaultMQPushConsumer.getConsumerGroup(), brokerName, mq, msg, t);
             if (needRetry) {
-                sendMessageBackAsNormalMessage(msg);
+                sendMessageBackAsNormalMessage(msg, delayLevel);
             }
         } finally {
             msg.setTopic(NamespaceUtil.withoutNamespace(msg.getTopic(), this.defaultMQPushConsumer.getNamespace()));
         }
     }
 
-    private void sendMessageBackAsNormalMessage(MessageExt msg) throws  RemotingException, MQBrokerException, InterruptedException, MQClientException {
+    private void sendMessageBackAsNormalMessage(MessageExt msg, int delayLevel) throws  RemotingException, MQBrokerException, InterruptedException, MQClientException {
         Message newMsg = new Message(MixAll.getRetryTopic(this.defaultMQPushConsumer.getConsumerGroup()), msg.getBody());
         MessageAccessor.setProperties(newMsg, msg.getProperties());
 
@@ -796,8 +796,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         MessageAccessor.setReconsumeTime(newMsg, String.valueOf(msg.getReconsumeTimes() + 1));
         MessageAccessor.setMaxReconsumeTimes(newMsg, String.valueOf(getMaxReconsumeTimes()));
         MessageAccessor.clearProperty(newMsg, MessageConst.PROPERTY_TRANSACTION_PREPARED);
-        newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
-
+        
+        // Using the user-provided delayLevel
+        newMsg.setDelayTimeLevel(delayLevel);
+        
         this.mQClientFactory.getDefaultMQProducer().send(newMsg);
     }
 
