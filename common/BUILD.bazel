@@ -21,7 +21,6 @@ java_library(
     srcs = glob(["src/main/java/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
-        "@maven//:com_alibaba_fastjson",
         "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_github_luben_zstd_jni",
         "@maven//:com_google_guava_guava",
@@ -55,7 +54,6 @@ java_library(
         ":common",
         "//:test_deps",
         "@maven//:com_google_guava_guava",
-        "@maven//:com_alibaba_fastjson",
         "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:commons_codec_commons_codec",
         "@maven//:io_netty_netty_all",
