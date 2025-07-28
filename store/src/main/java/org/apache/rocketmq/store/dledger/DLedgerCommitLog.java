@@ -346,7 +346,7 @@ public class DLedgerCommitLog extends CommitLog {
             long mmapFileOffset = 0;
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
-                int size = dispatchRequest.getMsgSize();
+                int size = dispatchRequest.getBufferSize();
 
                 if (dispatchRequest.isSuccess()) {
                     if (size > 0) {
