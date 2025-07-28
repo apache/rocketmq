@@ -630,8 +630,9 @@ public class PopReviveService extends ServiceThread {
         int slow = 1;
         while (!this.isStopped()) {
             try {
-                if (System.currentTimeMillis() < brokerController.getShouldStartTime()) {
-                    POP_LOGGER.info("PopReviveService Ready to run after {}", brokerController.getShouldStartTime());
+                long diff = System.currentTimeMillis() - brokerController.getStartupTime();
+                if (diff >= 0 && diff < brokerController.getMessageStoreConfig().getDisappearTimeAfterStart()) {
+                    POP_LOGGER.info("PopReviveService Ready to run after {}", brokerController.getStartupTime() + brokerController.getMessageStoreConfig().getDisappearTimeAfterStart());
                     this.waitForRunning(1000);
                     continue;
                 }
