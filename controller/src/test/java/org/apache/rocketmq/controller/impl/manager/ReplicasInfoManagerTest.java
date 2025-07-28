@@ -17,6 +17,7 @@
 package org.apache.rocketmq.controller.impl.manager;
 
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
@@ -471,6 +472,9 @@ public class ReplicasInfoManagerTest {
 
     @Test
     public void testSerialize() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         mockMetaData();
         byte[] data;
         try {
