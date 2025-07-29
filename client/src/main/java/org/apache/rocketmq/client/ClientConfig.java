@@ -156,9 +156,9 @@ public class ClientConfig {
         this.instanceName = instanceName;
     }
 
-    public void changeInstanceNameToPID() {
+    public void changeInstanceNameToIpWithPidAndGroupInfo(String groupInfo) {
         if (this.instanceName.equals("DEFAULT")) {
-            this.instanceName = UtilAll.getPid() + "#" + System.nanoTime();
+            this.instanceName = this.clientIP + "#" + UtilAll.getPid() + "#" + groupInfo;
         }
     }
 
