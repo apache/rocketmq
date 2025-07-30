@@ -966,10 +966,15 @@ public class CommitLog implements Swappable {
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
             }
         }
+        PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
+        if (encodeResult != null) {
+            return CompletableFuture.completedFuture(encodeResult);
+        }
+        msg.setEncodedBuff(putMessageThreadLocal.getEncoder().getEncoderBuffer());
+        PutMessageContext putMessageContext = new PutMessageContext(topicQueueKey);
 
         topicQueueLock.lock(topicQueueKey);
         try {
-
             boolean needAssignOffset = true;
             if (defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()
                 && defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
@@ -978,13 +983,6 @@ public class CommitLog implements Swappable {
             if (needAssignOffset) {
                 defaultMessageStore.assignOffset(msg);
             }
-
-            PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
-            if (encodeResult != null) {
-                return CompletableFuture.completedFuture(encodeResult);
-            }
-            msg.setEncodedBuff(putMessageThreadLocal.getEncoder().getEncoderBuffer());
-            PutMessageContext putMessageContext = new PutMessageContext(topicQueueKey);
 
             putMessageLock.lock(); //spin or ReentrantLock, depending on store config
             try {

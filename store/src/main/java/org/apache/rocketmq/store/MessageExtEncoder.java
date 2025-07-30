@@ -209,8 +209,6 @@ public class MessageExtEncoder {
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
-        final long queueOffset = msgInner.getQueueOffset();
-
         // Exceeds the maximum message
         if (msgLen > this.maxMessageSize) {
             CommitLog.log.warn("message size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
@@ -229,7 +227,7 @@ public class MessageExtEncoder {
         // 5 FLAG
         this.byteBuf.writeInt(msgInner.getFlag());
         // 6 QUEUEOFFSET
-        this.byteBuf.writeLong(queueOffset);
+        this.byteBuf.writeLong(0);
         // 7 PHYSICALOFFSET, need update later
         this.byteBuf.writeLong(0);
         // 8 SYSFLAG
