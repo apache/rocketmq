@@ -473,6 +473,10 @@ public class BrokerMetricsManager {
     }
 
     private void initStatsMetrics() {
+        if (!brokerConfig.isEnableStatsMetrics()) {
+            return;
+        }
+
         processorWatermark = brokerMeter.gaugeBuilder(GAUGE_PROCESSOR_WATERMARK)
             .setDescription("Request processor watermark")
             .ofLongs()
@@ -508,6 +512,10 @@ public class BrokerMetricsManager {
     }
 
     private void initRequestMetrics() {
+        if (!brokerConfig.isEnableRequestMetrics()) {
+            return;
+        }
+
         messagesInTotal = brokerMeter.counterBuilder(COUNTER_MESSAGES_IN_TOTAL)
             .setDescription("Total number of incoming messages")
             .build();
@@ -543,6 +551,10 @@ public class BrokerMetricsManager {
     }
 
     private void initConnectionMetrics() {
+        if (!brokerConfig.isEnableConnectionMetrics()) {
+            return;
+        }
+
         producerConnection = brokerMeter.gaugeBuilder(GAUGE_PRODUCER_CONNECTIONS)
             .setDescription("Producer connections")
             .ofLongs()
@@ -599,6 +611,10 @@ public class BrokerMetricsManager {
     }
 
     private void initLagAndDlqMetrics() {
+        if (!brokerConfig.isEnableLagAndDlqMetrics()) {
+            return;
+        }
+
         consumerLagMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_LAG_MESSAGES)
             .setDescription("Consumer lag messages")
             .ofLongs()
@@ -649,6 +665,10 @@ public class BrokerMetricsManager {
     }
 
     private void initTransactionMetrics() {
+        if (!brokerController.getBrokerConfig().isEnableTransactionMetrics()) {
+            return;
+        }
+
         commitMessagesTotal = brokerMeter.counterBuilder(COUNTER_COMMIT_MESSAGES_TOTAL)
                 .setDescription("Total number of commit messages")
                 .build();
@@ -677,9 +697,15 @@ public class BrokerMetricsManager {
                 });
     }
     private void initOtherMetrics() {
-        RemotingMetricsManager.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
-        messageStore.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
-        PopMetricsManager.initMetrics(brokerMeter, brokerController, BrokerMetricsManager::newAttributesBuilder);
+        if (brokerConfig.isEnableRemotingMetrics()) {
+            RemotingMetricsManager.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
+        }
+        if (brokerConfig.isEnableMessageStoreMetrics()) {
+            messageStore.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
+        }
+        if (brokerConfig.isEnablePopMetrics()) {
+            PopMetricsManager.initMetrics(brokerMeter, brokerController, BrokerMetricsManager::newAttributesBuilder);
+        }
     }
 
     public void shutdown() {
