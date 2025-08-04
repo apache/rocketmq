@@ -289,6 +289,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private RPCHook rpcHook = null;
 
     /**
+     * Interval to clean expired messages
+     */
+    private long cleanExpiredMsgInterval = 15;
+
+    /**
      * Default constructor.
      */
     public DefaultMQPushConsumer() {
@@ -1001,5 +1006,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setMessageQueueListener(MessageQueueListener messageQueueListener) {
         this.messageQueueListener = messageQueueListener;
+    }
+
+    public long getCleanExpiredMsgInterval() {
+        return cleanExpiredMsgInterval;
+    }
+
+    public void setCleanExpiredMsgInterval(long cleanExpiredMsgInterval) {
+        this.cleanExpiredMsgInterval = cleanExpiredMsgInterval;
     }
 }
