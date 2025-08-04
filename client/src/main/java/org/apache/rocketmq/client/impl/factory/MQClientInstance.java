@@ -573,7 +573,11 @@ public class MQClientInstance {
     }
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic) {
-        return updateTopicRouteInfoFromNameServer(topic, false, null);
+        return updateTopicRouteInfoFromNameServer(topic, false, true, null);
+    }
+
+    public boolean updateTopicRouteInfoFromNameServer(final String topic, final boolean isForce2FetchFromNameServer) {
+        return updateTopicRouteInfoFromNameServer(topic, false, isForce2FetchFromNameServer, null);
     }
 
     private boolean isBrokerAddrExistInTopicRouteTable(final String addr) {
@@ -779,11 +783,14 @@ public class MQClientInstance {
         return true;
     }
 
-    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
+    public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault, boolean isForce2FetchFromNameServer,
         DefaultMQProducer defaultMQProducer) {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
+                    if (!isForce2FetchFromNameServer && this.topicRouteTable.get(topic) != null && !this.isNeedUpdateTopicRouteInfo(topic)) {
+                        return false;
+                    }
                     TopicRouteData topicRouteData;
                     if (isDefault && defaultMQProducer != null) {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(clientConfig.getMqClientApiTimeout());
@@ -921,30 +928,19 @@ public class MQClientInstance {
     }
 
     private boolean isNeedUpdateTopicRouteInfo(final String topic) {
-        boolean result = false;
-        Iterator<Entry<String, MQProducerInner>> producerIterator = this.producerTable.entrySet().iterator();
-        while (producerIterator.hasNext() && !result) {
-            Entry<String, MQProducerInner> entry = producerIterator.next();
-            MQProducerInner impl = entry.getValue();
-            if (impl != null) {
-                result = impl.isPublishTopicNeedUpdate(topic);
+        for (MQProducerInner producerInner : this.producerTable.values()) {
+            if (producerInner != null && producerInner.isPublishTopicNeedUpdate(topic)) {
+                return true;
             }
         }
 
-        if (result) {
-            return true;
-        }
-
-        Iterator<Entry<String, MQConsumerInner>> consumerIterator = this.consumerTable.entrySet().iterator();
-        while (consumerIterator.hasNext() && !result) {
-            Entry<String, MQConsumerInner> entry = consumerIterator.next();
-            MQConsumerInner impl = entry.getValue();
-            if (impl != null) {
-                result = impl.isSubscribeTopicNeedUpdate(topic);
+        for (MQConsumerInner consumerInner : this.consumerTable.values()) {
+            if (consumerInner != null && consumerInner.isSubscribeTopicNeedUpdate(topic)) {
+                return true;
             }
         }
 
-        return result;
+        return false;
     }
 
     public void shutdown() {
