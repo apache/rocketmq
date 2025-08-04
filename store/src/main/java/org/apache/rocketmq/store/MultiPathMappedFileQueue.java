@@ -99,10 +99,24 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
 
         String[] paths = availableStorePath.toArray(new String[]{});
         Arrays.sort(paths);
-        String nextFilePath = paths[(int) (fileIdx % paths.length)] + File.separator
+
+        String nextFilePath = null;
+        String nextNextFilePath = null;
+        if (allocateMappedFileService != null) {
+            nextFilePath = allocateMappedFileService.getCachedMappedFilePath(
+                createOffset);
+            nextNextFilePath = allocateMappedFileService.getCachedMappedFilePath(
+                createOffset + this.mappedFileSize);
+        }
+        if (nextFilePath == null) {
+            nextFilePath = paths[(int) (fileIdx % paths.length)] + File.separator
                 + UtilAll.offset2FileName(createOffset);
-        String nextNextFilePath = paths[(int) ((fileIdx + 1) % paths.length)] + File.separator
+        }
+        if (nextNextFilePath == null) {
+            nextNextFilePath = paths[(int) ((fileIdx + 1) % paths.length)] + File.separator
                 + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
+        }
+
         return doCreateMappedFile(nextFilePath, nextNextFilePath);
     }
 

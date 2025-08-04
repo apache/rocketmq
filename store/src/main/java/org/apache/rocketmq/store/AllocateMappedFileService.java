@@ -39,7 +39,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 public class AllocateMappedFileService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static int waitTimeOut = 1000 * 5;
-    private ConcurrentMap<String, AllocateRequest> requestTable =
+    private ConcurrentMap<String/*FileName*/, AllocateRequest> requestTable =
         new ConcurrentHashMap<>();
     private PriorityBlockingQueue<AllocateRequest> requestQueue =
         new PriorityBlockingQueue<>();
@@ -48,6 +48,11 @@ public class AllocateMappedFileService extends ServiceThread {
 
     public AllocateMappedFileService(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
+    }
+
+    public String getCachedMappedFilePath(long createOffset) {
+        AllocateRequest req = requestTable.get(UtilAll.offset2FileName(createOffset));
+        return req == null ? null : req.getFilePath();
     }
 
     public MappedFile putRequestAndReturnMappedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
@@ -59,14 +64,15 @@ public class AllocateMappedFileService extends ServiceThread {
             }
         }
 
+        String nextFileName = nextFilePath.substring(nextFilePath.lastIndexOf(File.separator) + 1);
         AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
-        boolean nextPutOK = this.requestTable.putIfAbsent(nextFilePath, nextReq) == null;
+        boolean nextPutOK = this.requestTable.putIfAbsent(nextFileName, nextReq) == null;
 
         if (nextPutOK) {
             if (canSubmitRequests <= 0) {
                 log.warn("[NOTIFYME]TransientStorePool is not enough, so create mapped file error, " +
                     "RequestQueueSize : {}, StorePoolSize: {}", this.requestQueue.size(), this.messageStore.remainTransientStoreBufferNumbs());
-                this.requestTable.remove(nextFilePath);
+                this.requestTable.remove(nextFileName);
                 return null;
             }
             boolean offerOK = this.requestQueue.offer(nextReq);
@@ -76,13 +82,14 @@ public class AllocateMappedFileService extends ServiceThread {
             canSubmitRequests--;
         }
 
+        String nextNextFileName = nextNextFilePath.substring(nextNextFilePath.lastIndexOf(File.separator) + 1);
         AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
-        boolean nextNextPutOK = this.requestTable.putIfAbsent(nextNextFilePath, nextNextReq) == null;
+        boolean nextNextPutOK = this.requestTable.putIfAbsent(nextNextFileName, nextNextReq) == null;
         if (nextNextPutOK) {
             if (canSubmitRequests <= 0) {
                 log.warn("[NOTIFYME]TransientStorePool is not enough, so skip preallocate mapped file, " +
                     "RequestQueueSize : {}, StorePoolSize: {}", this.requestQueue.size(), this.messageStore.remainTransientStoreBufferNumbs());
-                this.requestTable.remove(nextNextFilePath);
+                this.requestTable.remove(nextNextFileName);
             } else {
                 boolean offerOK = this.requestQueue.offer(nextNextReq);
                 if (!offerOK) {
@@ -96,7 +103,7 @@ public class AllocateMappedFileService extends ServiceThread {
             return null;
         }
 
-        AllocateRequest result = this.requestTable.get(nextFilePath);
+        AllocateRequest result = this.requestTable.get(nextFileName);
         try {
             if (result != null) {
                 messageStore.getPerfCounter().startTick("WAIT_MAPFILE_TIME_MS");
@@ -106,7 +113,7 @@ public class AllocateMappedFileService extends ServiceThread {
                     log.warn("create mmap timeout " + result.getFilePath() + " " + result.getFileSize());
                     return null;
                 } else {
-                    this.requestTable.remove(nextFilePath);
+                    this.requestTable.remove(nextFileName);
                     return result.getMappedFile();
                 }
             } else {
@@ -156,7 +163,8 @@ public class AllocateMappedFileService extends ServiceThread {
         AllocateRequest req = null;
         try {
             req = this.requestQueue.take();
-            AllocateRequest expectedRequest = this.requestTable.get(req.getFilePath());
+            String fileName = req.getFilePath().substring(req.getFilePath().lastIndexOf(File.separator) + 1);
+            AllocateRequest expectedRequest = this.requestTable.get(fileName);
             if (null == expectedRequest) {
                 log.warn("this mmap request expired, maybe cause timeout " + req.getFilePath() + " "
                     + req.getFileSize());
