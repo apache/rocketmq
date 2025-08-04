@@ -26,10 +26,12 @@ import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.ConsumeMessageService;
+import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
 import org.apache.rocketmq.client.impl.consumer.RebalanceImpl;
+import org.apache.rocketmq.client.impl.consumer.RebalancePushImpl;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -101,6 +103,12 @@ public class MQClientInstanceTest {
 
     @Mock
     private ClientConfig clientConfig;
+
+    @Mock
+    private DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
+
+    @Mock
+    private RebalancePushImpl rebalancePushImpl;
 
     private final MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
 
@@ -500,5 +508,41 @@ public class MQClientInstanceTest {
         brokerAddrs.put(MixAll.MASTER_ID, defaultBrokerAddr);
         brokerData.setBrokerAddrs(brokerAddrs);
         return Collections.singletonList(brokerData);
+    }
+
+    @Test
+    public void testResetOffsetForDefaultMQPushConsumer() {
+        Map<MessageQueue, Long> offsetTable = new HashMap<>();
+        MessageQueue messageQueue = new MessageQueue(topic, defaultBroker, 0);
+        offsetTable.put(messageQueue, 100L);
+        ConcurrentHashMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<>();
+        processQueueTable.put(messageQueue, new ProcessQueue());
+
+        when(defaultMQPushConsumerImpl.getRebalanceImpl()).thenReturn(rebalancePushImpl);
+        when(rebalancePushImpl.getProcessQueueTable()).thenReturn(processQueueTable);
+
+        mqClientInstance.registerConsumer(group, defaultMQPushConsumerImpl);
+        mqClientInstance.resetOffset(topic, group, offsetTable);
+
+        verify(defaultMQPushConsumerImpl).suspend();
+        verify(defaultMQPushConsumerImpl).resume();
+        verify(rebalancePushImpl).removeUnnecessaryMessageQueue(any(MessageQueue.class), any(ProcessQueue.class));
+        verify(defaultMQPushConsumerImpl, times(1)).updateConsumeOffset(any(MessageQueue.class), anyLong());
+    }
+
+    @Test
+    public void testResetOffsetForDefaultLitePullConsumer() throws MQClientException {
+        Map<MessageQueue, Long> offsetTable = new HashMap<>();
+        MessageQueue messageQueue = new MessageQueue(topic, defaultBroker, 0);
+        offsetTable.put(messageQueue, 100L);
+
+        DefaultLitePullConsumerImpl defaultLitePullConsumerImpl = mock(DefaultLitePullConsumerImpl.class);
+
+        mqClientInstance.registerConsumer(group, defaultLitePullConsumerImpl);
+        mqClientInstance.resetOffset(topic, group, offsetTable);
+
+        verify(defaultLitePullConsumerImpl).pause(any(Set.class));
+        verify(defaultLitePullConsumerImpl).seek(any(MessageQueue.class), anyLong());
+        verify(defaultLitePullConsumerImpl).resume(any(Set.class));
     }
 }
