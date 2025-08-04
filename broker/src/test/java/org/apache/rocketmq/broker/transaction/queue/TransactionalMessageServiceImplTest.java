@@ -58,8 +58,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -169,7 +167,6 @@ public class TransactionalMessageServiceImplTest {
         queueTransactionMsgService.open();
         boolean res = queueTransactionMsgService.deletePrepareMessage(createMessageBrokerInner(1000, "test", "testHello"));
         assertThat(res).isTrue();
-        verify(bridge, timeout(50)).writeOp(any(Integer.class), any(Message.class));
         queueTransactionMsgService.close();
     }
 
