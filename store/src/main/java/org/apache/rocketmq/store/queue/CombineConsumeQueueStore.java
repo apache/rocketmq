@@ -86,14 +86,14 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
 
         if (loadingConsumeQueueTypeSet.contains(StoreType.DEFAULT)) {
             this.consumeQueueStore = new ConsumeQueueStore(messageStore);
-            this.innerConsumeQueueStoreList.addFirst(consumeQueueStore);
+            this.innerConsumeQueueStoreList.add(consumeQueueStore);
         } else {
             this.consumeQueueStore = null;
         }
 
         if (loadingConsumeQueueTypeSet.contains(StoreType.DEFAULT_ROCKSDB)) {
             this.rocksDBConsumeQueueStore = new RocksDBConsumeQueueStore(messageStore);
-            this.innerConsumeQueueStoreList.addFirst(rocksDBConsumeQueueStore);
+            this.innerConsumeQueueStoreList.add(rocksDBConsumeQueueStore);
         } else {
             this.rocksDBConsumeQueueStore = null;
         }
