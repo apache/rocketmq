@@ -21,19 +21,16 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.Queue;
-import java.util.concurrent.CompletableFuture;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
@@ -54,6 +51,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -64,14 +62,13 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     private final MQClientAPIFactory mqClientAPIFactory;
     private MQFaultStrategy mqFaultStrategy;
 
+    private final RouteEventSubscriber routeEventSubscriber;
+    private final RouteCacheRefresher routeCacheRefresher;
+    private final ConcurrentMap<String, Set<String>> brokerTopicsMap = new ConcurrentHashMap<>();
+
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ScheduledExecutorService scheduledExecutorService;
     protected final ThreadPoolExecutor cacheRefreshExecutor;
-
-    protected final ConcurrentMap<String, Long> dirtyTopics = new ConcurrentHashMap<>();
-    private final Queue<String> pendingTopics = new ConcurrentLinkedQueue<>();
-    protected final ScheduledExecutorService lazyUpdateExecutor;
-    protected final Object batchUpdateLock = new Object();
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
@@ -98,6 +95,9 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView load(String topic) throws Exception {
                     try {
                         TopicRouteData topicRouteData = mqClientAPIFactory.getClient().getTopicRouteInfoFromNameServer(topic, Duration.ofSeconds(3).toMillis());
+                        log.info("[Route_Event]:load topic route from namesrv. topic: {}", topic);
+                        updateBrokerTopicMapping(topic, topicRouteData);
+
                         return buildMessageQueueView(topic, topicRouteData);
                     } catch (Exception e) {
                         if (TopicRouteHelper.isTopicNotExistError(e)) {
@@ -147,14 +147,41 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 }
             }
         }, serviceDetector);
-        this.lazyUpdateExecutor = Executors.newSingleThreadScheduledExecutor(
-            new ThreadFactoryImpl("RouteLazyUpdate_"));
+        this.routeCacheRefresher = new RouteCacheRefresher(
+            this.topicCache,
+            this.cacheRefreshExecutor
+        );
 
-        lazyUpdateExecutor.scheduleWithFixedDelay(() -> {
-            batchRefreshRoutes();
-        }, 50, 200, TimeUnit.MILLISECONDS);
-
+        this.routeEventSubscriber = new RouteEventSubscriber(
+            this,
+            topic -> {
+                this.routeCacheRefresher.markCacheDirty(topic);
+            }
+        );
         this.init();
+    }
+
+    private void updateBrokerTopicMapping(String topic, TopicRouteData topicRouteData) {
+        Set<String> brokerNames = topicRouteData.getBrokerDatas().stream()
+            .map(BrokerData::getBrokerName)
+            .collect(Collectors.toSet());
+        log.info("[Route_Event]: Update broker topics mapping for topic: {}, brokers: {}", topic, brokerNames);
+
+        for (String brokerName : brokerNames) {
+            brokerTopicsMap.computeIfAbsent(brokerName, k -> ConcurrentHashMap.newKeySet())
+                .add(topic);
+        }
+    }
+
+    public Set<String> getBrokerTopics(String brokerName) {
+        return brokerTopicsMap.getOrDefault(brokerName, Set.of());
+    }
+
+    public void removeBrokerTopics(String brokerName) {
+        Set<String> topics = brokerTopicsMap.remove(brokerName);
+        if (topics != null) {
+            log.info("[Route_Event]: Removed {} topics for broker: {}", topics.size(), brokerName);
+        }
     }
 
     // pickup one topic in the topic cache
@@ -175,6 +202,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         if (this.mqFaultStrategy.isStartDetectorEnable()) {
             mqFaultStrategy.shutdown();
         }
+        this.routeCacheRefresher.shutdown();
+        this.routeEventSubscriber.shutdown();
     }
 
     @Override
@@ -182,6 +211,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         if (this.mqFaultStrategy.isStartDetectorEnable()) {
             this.mqFaultStrategy.startDetector();
         }
+        this.routeEventSubscriber.start();
+        this.routeCacheRefresher.start();
     }
 
     public ClientConfig extractClientConfigFromProxyConfig(ProxyConfig proxyConfig) {
@@ -246,82 +277,4 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         }
         return MessageQueueView.WRAPPED_EMPTY_QUEUE;
     }
-
-    protected void markCacheDirty(String topic) {
-        long currentTime = System.currentTimeMillis();
-        Long previousTime = dirtyTopics.get(topic);
-
-        if (previousTime == null) {
-            log.warn("[ROUTE_UPDATE]: markCacheDirty (NEW): {}", topic);
-            dirtyTopics.put(topic, currentTime);
-            pendingTopics.offer(topic);
-        } else {
-            log.info("[ROUTE_UPDATE]: markCacheDirty (EXISTING): {} lastMarked={}",
-                    topic, new Date(previousTime));
-        }
-    }
-
-    private void batchRefreshRoutes() {
-        int pendingCount = pendingTopics.size();
-        if (pendingCount == 0) {
-            return;
-        }
-
-        log.warn("[ROUTE_UPDATE] Starting batch refresh for {} topics", pendingCount);
-
-        List<String> refreshList = new ArrayList<>(Math.min(pendingCount, 100));
-        int count = 0;
-        while (!pendingTopics.isEmpty() && count < 100) {
-            String topic = pendingTopics.poll();
-            if (topic != null) {
-                refreshList.add(topic);
-                count++;
-                log.warn("[ROUTE_UPDATE]: Adding to refresh: {}", topic);
-            }
-        }
-
-        log.warn("[ROUTE_UPDATE] Will refresh {} topics: {}", refreshList.size(), refreshList);
-
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
-        for (String topic : refreshList) {
-            futures.add(CompletableFuture.runAsync(() -> {
-                try {
-                    refreshSingleRoute(topic);
-                    log.warn("[ROUTE_UPDATE]: Refresh topic route success: {}", topic);
-                } catch (Exception e) {
-                    log.warn("[ROUTE_UPDATE]: Refresh topic route failed: {}", topic, e);
-                    pendingTopics.offer(topic);
-                }
-            }, cacheRefreshExecutor));
-        }
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-    }
-
-    private void refreshSingleRoute(String topic) {
-        try {
-            log.warn("[ROUTE_UPDATE]: Refreshing route for: {}", topic);
-            long startTime = System.currentTimeMillis();
-
-            TopicRouteData routeData = mqClientAPIFactory.getClient()
-                .getTopicRouteInfoFromNameServer(topic, 1000);
-
-            if (routeData == null) {
-                log.warn("[ROUTE_UPDATE]: Null route data for topic: {}", topic);
-                return;
-            }
-
-            MessageQueueView newView = buildMessageQueueView(topic, routeData);
-            topicCache.put(topic, newView);
-            dirtyTopics.remove(topic);
-
-            long duration = System.currentTimeMillis() - startTime;
-            log.warn("[ROUTE_UPDATE]: Refresh success for {} in {}ms.",
-                    topic, duration);
-        } catch (Exception e) {
-            log.error("[ROUTE_UPDATE]: Refresh failed for: {}", topic, e);
-            pendingTopics.offer(topic);
-        }
-    }
-
 }

@@ -19,8 +19,11 @@ package org.apache.rocketmq.proxy.service.route;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
+import org.apache.rocketmq.broker.route.RouteEventConstants;
+import org.apache.rocketmq.broker.route.RouteEventType;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -30,16 +33,21 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+
 import com.alibaba.fastjson2.JSON;
 
 public class RouteEventSubscriber {
     private final Consumer<String> dirtyMarker;
+    private final TopicRouteService topicRouteService; 
     private final DefaultMQPushConsumer consumer;
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    public RouteEventSubscriber(Consumer<String> dirtyMarker) {
+    public RouteEventSubscriber(TopicRouteService topicRouteService, Consumer<String> dirtyMarker) {
+        this.topicRouteService = topicRouteService;
         this.dirtyMarker = dirtyMarker;
         this.consumer = new DefaultMQPushConsumer("PROXY_ROUTE_EVENT_GROUP");
+        this.consumer.setMessageModel(MessageModel.BROADCASTING);
     }
     public void start() {
         try {
@@ -64,12 +72,20 @@ public class RouteEventSubscriber {
             try {
                 String json = new String(msg.getBody(), StandardCharsets.UTF_8);
                 Map<String, Object> event = JSON.parseObject(json, Map.class);
-                LOGGER.warn("[ROUTE_UPDATE]: Received route event: {}", event);
+                LOGGER.info("[ROUTE_UPDATE]: Received route event: {} consumer {}", event, this.consumer.getInstanceName());
 
-                List<String> topics = (List<String>) event.get("affectedTopic");
+                String brokerName = (String) event.get(RouteEventConstants.BROKER_NAME);
+                RouteEventType eventType = RouteEventType.valueOf((String) event.get(RouteEventConstants.EVENT_TYPE));
+
+                Set<String> topics  = this.topicRouteService.getBrokerTopics(brokerName);
+
                 if (topics == null || topics.isEmpty()) {
                     LOGGER.warn("[ROUTE_UPDATE] No affected topics in event");
                     continue;
+                }
+
+                if (eventType == RouteEventType.SHUTDOWN) {
+                    topicRouteService.removeBrokerTopics(brokerName);                       
                 }
 
                 for (String topic : topics) {

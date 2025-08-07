@@ -43,12 +43,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.remoting.RemotingServer;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.EpochEntry;
-import org.apache.rocketmq.remoting.protocol.LanguageCode;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
@@ -60,8 +55,6 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.ha.autoswitch.BrokerMetadata;
 import org.apache.rocketmq.store.ha.autoswitch.TempBrokerMetadata;
-
-import io.netty.channel.Channel;
 
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
 
@@ -241,7 +234,6 @@ public class ReplicasManager {
         }
     }
 
-
     public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch, final Set<Long> syncStateSet) throws Exception {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
@@ -268,8 +260,6 @@ public class ReplicasManager {
 
                 // Notify ha service, change to master
                 this.haService.changeToMaster(newMasterEpoch);
-                LOGGER.info("[ROUTE_UPDATE]: publishRouteEvent in {}, {} {}", this.brokerConfig.getBrokerName(), this.brokerConfig.getBrokerId(), this.brokerAddress);
-                this.brokerController.publishRouteEvent("SWITCH");
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
@@ -286,20 +276,6 @@ public class ReplicasManager {
                 registerBrokerWhenRoleChange();
             }
         }
-    }
-
-    private RemotingCommand buildNotify(String newMasterAddress) {
-        RemotingCommand switchNotify = RemotingCommand.createRequestCommand(
-            RequestCode.ROUTE_EVENT,
-            null
-        );
-
-        switchNotify.addExtField("newMasterAddr", newMasterAddress);
-        switchNotify.addExtField("oldMasterAddr", this.brokerAddress);
-        switchNotify.addExtField("Event", "SWITCH");
-        switchNotify.setLanguage(LanguageCode.JAVA);
-
-        return switchNotify;
     }
 
     public void changeToSlave(final String newMasterAddress, final int newMasterEpoch, Long newMasterBrokerId) {
@@ -335,22 +311,6 @@ public class ReplicasManager {
 
                 // Notify ha service, change to slave
                 this.haService.changeToSlave(newMasterAddress, newMasterEpoch, brokerControllerId);
-
-                RemotingServer remotingServer = brokerController.getRemotingServer();
-
-                Set<Channel> activeChannels = remotingServer.getActiveChannels();
-
-                RemotingCommand switchNotify = buildNotify(newMasterAddress);
-
-                activeChannels.forEach(channel -> {
-                    if (channel.isActive()) {
-                        try {
-                            remotingServer.invokeOneway(channel, switchNotify, 3000);
-                        } catch (Exception e) {
-                            LOGGER.warn("Notify client failed: {}", RemotingHelper.parseChannelRemoteAddr(channel), e);
-                        }
-                    }
-                });
 
                 this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(newMasterEpoch);
                 registerBrokerWhenRoleChange();
