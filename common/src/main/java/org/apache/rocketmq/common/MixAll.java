@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,8 +44,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
-
-import com.google.common.collect.ImmutableSet;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -141,6 +140,7 @@ public class MixAll {
         CID_ONSAPI_PULL_GROUP,
         CID_SYS_RMQ_TRANS
     );
+    public static final String BROADCAST_KEY = "broadcast";
 
     public static boolean isWindows() {
         return OS.contains("win");
@@ -182,7 +182,8 @@ public class MixAll {
         return consumerGroup.startsWith(CID_RMQ_SYS_PREFIX);
     }
 
-    public static boolean isSysConsumerGroupAndEnableCreate(final String consumerGroup, final boolean isEnableCreateSysGroup) {
+    public static boolean isSysConsumerGroupAndEnableCreate(final String consumerGroup,
+        final boolean isEnableCreateSysGroup) {
         return isEnableCreateSysGroup && isSysConsumerGroup(consumerGroup);
     }
 

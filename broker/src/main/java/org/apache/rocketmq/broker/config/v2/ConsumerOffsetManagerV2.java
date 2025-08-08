@@ -59,7 +59,7 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
         }
 
         String[] topicGroup = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-        if (topicGroup.length != 2) {
+        if (!validateOffsetTableKey(topicAtGroup)) {
             LOG.error("Invalid topic group: {}", topicAtGroup);
             return;
         }
@@ -452,7 +452,7 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
     public void assignResetOffset(String topic, String group, int queueId, long offset) {
         if (Strings.isNullOrEmpty(topic) || Strings.isNullOrEmpty(group) || queueId < 0 || offset < 0) {
             LOG.warn("Illegal arguments when assigning reset offset. Topic={}, group={}, queueId={}, offset={}",
-                    topic, group, queueId, offset);
+                topic, group, queueId, offset);
             return;
         }
         if (!MixAll.isLmq(topic) || !MixAll.isLmq(group)) {
