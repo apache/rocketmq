@@ -370,15 +370,19 @@ public class Timeline {
         public void run() {
             log.info(this.getServiceName() + " service start");
             while (!this.isStopped()) {
+                int rollIntervalHour = 6;
                 try {
-                    this.waitForRunning(TimeUnit.MINUTES.toMillis(60));
+                    if (storeConfig.getTimerRocksDBRollIntervalHours() > 0) {
+                        rollIntervalHour = storeConfig.getTimerRocksDBRollIntervalHours();
+                    }
+                    this.waitForRunning(rollIntervalHour);
                 } catch (Exception e) {
                     logError.error("Timeline TimelineRollService wait error: {}", e.getMessage());
                 }
                 long rollCheckpoint = System.currentTimeMillis();
                 try {
                     log.info("Timeline TimelineRollService start roll rollCheckpoint: {}", rollCheckpoint);
-                    while (!scanRecordsToQueue(rollCheckpoint + TimeUnit.HOURS.toMillis(1),
+                    while (!scanRecordsToQueue(rollCheckpoint + TimeUnit.HOURS.toMillis(rollIntervalHour),
                             TimeUnit.SECONDS.toMillis(storeConfig.getTimerMaxDelaySec()),
                             timerMessageRocksDBStore.getRollMessageQueue())) {
                         logError.error("Timeline TimelineRollService scanRecordsToQueue error.");

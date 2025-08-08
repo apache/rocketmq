@@ -109,6 +109,7 @@ public class MessageStoreConfig {
     private long timerRocksDBPrecisionMs = 1000L;
     private double timerRocksDBRollMaxTps = 6000.0;
     private double timerRocksDBTimeExpiredMaxTps = 200000.0;
+    private int timerRocksDBRollIntervalHours = 6;
     private boolean disableRecallToTimeWheel = false;
     private boolean disableRecallToTimeline = false;
 
@@ -2130,5 +2131,13 @@ public class MessageStoreConfig {
 
     public void setDisableRecallToTimeline(boolean disableRecallToTimeline) {
         this.disableRecallToTimeline = disableRecallToTimeline;
+    }
+
+    public int getTimerRocksDBRollIntervalHours() {
+        return timerRocksDBRollIntervalHours;
+    }
+
+    public void setTimerRocksDBRollIntervalHours(int timerRocksDBRollIntervalHours) {
+        this.timerRocksDBRollIntervalHours = timerRocksDBRollIntervalHours;
     }
 }
