@@ -66,7 +66,6 @@ import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLockImpl;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
-import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
 import sun.nio.ch.DirectBuffer;
@@ -2247,6 +2246,10 @@ public class CommitLog implements Swappable {
         return defaultMessageStore;
     }
 
+    public MappedFile getEarliestMappedFile() {
+        return mappedFileQueue.getEarliestMappedFile();
+    }
+
     @Override
     public void swapMap(int reserveNum, long forceSwapIntervalMs, long normalSwapIntervalMs) {
         this.getMappedFileQueue().swapMap(reserveNum, forceSwapIntervalMs, normalSwapIntervalMs);
@@ -2427,14 +2430,17 @@ public class CommitLog implements Swappable {
                 if (null == consumeQueue) {
                     return false;
                 }
-                ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(offset, 1);
-                if (null == bufferConsumeQueue || !bufferConsumeQueue.hasNext()) {
+                CqUnit cqUnit = consumeQueue.get(offset);
+                if (null == cqUnit) {
                     return false;
                 }
-                return defaultMessageStore.checkInColdAreaByCommitOffset(bufferConsumeQueue.next().getPos(), getMaxOffset());
+                long offsetPy = cqUnit.getPos();
+                if (offsetPy < 0L) {
+                    return false;
+                }
+                return defaultMessageStore.checkInColdAreaByCommitOffset(offsetPy, getMaxOffset());
             } catch (Exception e) {
-                log.error("isMsgInColdArea group: {}, topic: {}, queueId: {}, offset: {}",
-                    group, topic, queueId, offset, e);
+                log.error("isMsgInColdArea group: {}, topic: {}, queueId: {}, offset: {}", group, topic, queueId, offset, e);
             }
             return false;
         }

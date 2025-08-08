@@ -236,7 +236,7 @@ import org.apache.rocketmq.remoting.protocol.subscription.GroupForbidden;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.rpchook.DynamicalExtFieldRPCHook;
 import org.apache.rocketmq.remoting.rpchook.StreamTypeRPCHook;
-
+import static org.apache.rocketmq.common.message.MessageConst.TIMER_ENGINE_TYPE;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -3649,4 +3649,17 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
+
+    public void switchTimerEngine(String brokerAddr, String engineType, long timeoutMillis) throws RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SWITCH_TIMER_ENGINE, null);
+        request.addExtField(TIMER_ENGINE_TYPE, engineType);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        assert response != null;
+        if (response.getCode() == SUCCESS) {
+            return;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
 }

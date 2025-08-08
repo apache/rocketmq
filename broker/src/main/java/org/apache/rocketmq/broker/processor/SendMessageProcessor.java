@@ -682,11 +682,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             StorePathConfigHelper.getStorePathConsumeQueue(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
         double logisRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathLogis);
 
-        String storePathIndex =
-            StorePathConfigHelper.getStorePathIndex(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
+        String storePathIndex = StorePathConfigHelper.getStorePathIndex(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
         double indexRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathIndex);
-
-        return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
+        double indexRatioRocksDB = 0.0;
+        if (messageStore.getMessageStoreConfig().isIndexRocksDBEnable()) {
+            indexRatioRocksDB = UtilAll.getDiskPartitionSpaceUsedPercent(StorePathConfigHelper.getStorePathRocksDBIndex(this.brokerController.getMessageStoreConfig().getStorePathRootDir()));
+        }
+        return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f RKS_INDEX: %5.2f", physicRatio, logisRatio, indexRatio, indexRatioRocksDB);
     }
 
     private RemotingCommand preSend(ChannelHandlerContext ctx, RemotingCommand request,

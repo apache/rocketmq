@@ -500,7 +500,9 @@ public abstract class AbstractRocksDBStorage {
             //1. close column family handles
             preShutdown();
 
-            this.defaultCFHandle.close();
+            if (this.defaultCFHandle != null) {
+                this.defaultCFHandle.close();
+            }
 
             //2. close column family options.
             for (final ColumnFamilyOptions opt : this.cfOptions) {

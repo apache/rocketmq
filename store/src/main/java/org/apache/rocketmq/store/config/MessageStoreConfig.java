@@ -104,6 +104,22 @@ public class MessageStoreConfig {
     private int timerMetricSmallThreshold = 1000000;
     private int timerProgressLogIntervalMs = 10 * 1000;
 
+    private boolean timerRocksDBEnable = false;
+    private boolean timerRocksDBStopScan = false;
+    private long timerRocksDBPrecisionMs = 1000L;
+    private double timerRocksDBRollMaxTps = 6000.0;
+    private double timerRocksDBTimeExpiredMaxTps = 200000.0;
+    private boolean disableRecallToTimeWheel = false;
+    private boolean disableRecallToTimeline = false;
+
+    private boolean transRocksDBEnable = false;
+    private boolean disableWriteOriginTransHalf = false;
+
+    private boolean indexRocksDBEnable = false;
+    private int maxRocksDBIndexQueryDays = 7;
+    private boolean disableWriteFileIndex = false;
+    private boolean disableReadFileIndex = false;
+
     // default, defaultRocksDB
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
@@ -2010,5 +2026,109 @@ public class MessageStoreConfig {
 
     public void setEnableLogConsumeQueueRepeatedlyBuildWhenRecover(boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover) {
         this.enableLogConsumeQueueRepeatedlyBuildWhenRecover = enableLogConsumeQueueRepeatedlyBuildWhenRecover;
+    }
+
+    public boolean isTimerRocksDBEnable() {
+        return timerRocksDBEnable;
+    }
+
+    public void setTimerRocksDBEnable(boolean timerRocksDBEnable) {
+        this.timerRocksDBEnable = timerRocksDBEnable;
+    }
+
+    public double getTimerRocksDBRollMaxTps() {
+        return timerRocksDBRollMaxTps;
+    }
+
+    public void setTimerRocksDBRollMaxTps(double timerRocksDBRollMaxTps) {
+        this.timerRocksDBRollMaxTps = timerRocksDBRollMaxTps;
+    }
+
+    public double getTimerRocksDBTimeExpiredMaxTps() {
+        return timerRocksDBTimeExpiredMaxTps;
+    }
+
+    public void setTimerRocksDBTimeExpiredMaxTps(double timerRocksDBTimeExpiredMaxTps) {
+        this.timerRocksDBTimeExpiredMaxTps = timerRocksDBTimeExpiredMaxTps;
+    }
+
+    public boolean isTransRocksDBEnable() {
+        return transRocksDBEnable;
+    }
+
+    public void setTransRocksDBEnable(boolean transRocksDBEnable) {
+        this.transRocksDBEnable = transRocksDBEnable;
+    }
+
+    public boolean isIndexRocksDBEnable() {
+        return indexRocksDBEnable;
+    }
+
+    public void setIndexRocksDBEnable(boolean indexRocksDBEnable) {
+        this.indexRocksDBEnable = indexRocksDBEnable;
+    }
+
+    public int getMaxRocksDBIndexQueryDays() {
+        return maxRocksDBIndexQueryDays;
+    }
+
+    public void setMaxRocksDBIndexQueryDays(int maxRocksDBIndexQueryDays) {
+        this.maxRocksDBIndexQueryDays = maxRocksDBIndexQueryDays;
+    }
+
+    public boolean isTimerRocksDBStopScan() {
+        return timerRocksDBStopScan;
+    }
+
+    public void setTimerRocksDBStopScan(boolean timerRocksDBStopScan) {
+        this.timerRocksDBStopScan = timerRocksDBStopScan;
+    }
+
+    public long getTimerRocksDBPrecisionMs() {
+        return timerRocksDBPrecisionMs;
+    }
+
+    public void setTimerRocksDBPrecisionMs(long timerRocksDBPrecisionMs) {
+        this.timerRocksDBPrecisionMs = timerRocksDBPrecisionMs;
+    }
+
+    public boolean isDisableWriteFileIndex() {
+        return disableWriteFileIndex;
+    }
+
+    public void setDisableWriteFileIndex(boolean disableWriteFileIndex) {
+        this.disableWriteFileIndex = disableWriteFileIndex;
+    }
+
+    public boolean isDisableReadFileIndex() {
+        return disableReadFileIndex;
+    }
+
+    public void setDisableReadFileIndex(boolean disableReadFileIndex) {
+        this.disableReadFileIndex = disableReadFileIndex;
+    }
+
+    public boolean isDisableWriteOriginTransHalf() {
+        return disableWriteOriginTransHalf;
+    }
+
+    public void setDisableWriteOriginTransHalf(boolean disableWriteOriginTransHalf) {
+        this.disableWriteOriginTransHalf = disableWriteOriginTransHalf;
+    }
+
+    public boolean isDisableRecallToTimeWheel() {
+        return disableRecallToTimeWheel;
+    }
+
+    public void setDisableRecallToTimeWheel(boolean disableRecallToTimeWheel) {
+        this.disableRecallToTimeWheel = disableRecallToTimeWheel;
+    }
+
+    public boolean isDisableRecallToTimeline() {
+        return disableRecallToTimeline;
+    }
+
+    public void setDisableRecallToTimeline(boolean disableRecallToTimeline) {
+        this.disableRecallToTimeline = disableRecallToTimeline;
     }
 }

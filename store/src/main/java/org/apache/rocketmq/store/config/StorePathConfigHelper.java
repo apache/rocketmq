@@ -35,6 +35,10 @@ public class StorePathConfigHelper {
         return rootDir + File.separator + "index";
     }
 
+    public static String getStorePathRocksDBIndex(final String rootDir) {
+        return rootDir + File.separator + "RocksDBIndexStore";
+    }
+
     public static String getStoreCheckpoint(final String rootDir) {
         return rootDir + File.separator + "checkpoint";
     }

@@ -42,6 +42,8 @@ import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
 import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
+import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
+import org.apache.rocketmq.store.transaction.TransMessageRocksDBStore;
 import org.apache.rocketmq.tieredstore.core.MessageStoreDispatcher;
 import org.apache.rocketmq.tieredstore.core.MessageStoreDispatcherImpl;
 import org.apache.rocketmq.tieredstore.core.MessageStoreFetcher;
@@ -76,6 +78,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     protected final MessageStoreFilter topicFilter;
     protected final MessageStoreFetcher fetcher;
     protected final MessageStoreDispatcher dispatcher;
+    protected TimerMessageRocksDBStore timerMessageRocksDBStore;
+    protected TransMessageRocksDBStore transMessageRocksDBStore;
 
     public TieredMessageStore(MessageStorePluginContext context, MessageStore next) {
         super(context, next);
@@ -307,6 +311,26 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
+    public TimerMessageRocksDBStore getTimerRocksDBStore() {
+        return timerMessageRocksDBStore;
+    }
+
+    @Override
+    public TransMessageRocksDBStore getTransRocksDBStore() {
+        return transMessageRocksDBStore;
+    }
+
+    @Override
+    public void setTimerMessageRocksDBStore(TimerMessageRocksDBStore timerMessageRocksDBStore) {
+        this.timerMessageRocksDBStore = timerMessageRocksDBStore;
+    }
+
+    @Override
+    public void setTransRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
+        this.transMessageRocksDBStore = transMessageRocksDBStore;
+    }
+
+    @Override
     public long getEarliestMessageTime(String topic, int queueId) {
         return getEarliestMessageTimeAsync(topic, queueId).join();
     }
@@ -383,6 +407,12 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
+    public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin,
+        long end, String keyType, String lastKey) {
+        return queryMessageAsync(topic, key, maxNum, begin, end, keyType, lastKey).join();
+    }
+
+    @Override
     public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
         int maxNum, long begin, long end) {
         long earliestTimeInNextStore = next.getEarliestMessageTime();
@@ -393,6 +423,39 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         QueryMessageResult result = end < earliestTimeInNextStore || isForce ?
             new QueryMessageResult() :
             next.queryMessage(topic, key, maxNum, begin, end);
+        int resultSize = result.getMessageBufferList().size();
+        if (resultSize < maxNum && begin < earliestTimeInNextStore || isForce) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+            try {
+                return fetcher.queryMessageAsync(topic, key, maxNum - resultSize, begin, isForce ? end : earliestTimeInNextStore)
+                    .thenApply(tieredStoreResult -> {
+                        Attributes latencyAttributes = TieredStoreMetricsManager.newAttributesBuilder()
+                            .put(TieredStoreMetricsConstant.LABEL_OPERATION, TieredStoreMetricsConstant.OPERATION_API_QUERY_MESSAGE)
+                            .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
+                            .build();
+                        TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
+                        for (SelectMappedBufferResult msg : tieredStoreResult.getMessageMapedList()) {
+                            result.addMessage(msg);
+                        }
+                        return result;
+                    });
+            } catch (Exception e) {
+                log.error("TieredMessageStore#queryMessageAsync: query message in tiered store failed", e);
+                return CompletableFuture.completedFuture(result);
+            }
+        }
+        return CompletableFuture.completedFuture(result);
+    }
+
+    @Override
+    public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
+        int maxNum, long begin, long end, String indexType, String lastKey) {
+        long earliestTimeInNextStore = next.getEarliestMessageTime();
+        if (earliestTimeInNextStore <= 0) {
+            log.warn("TieredMessageStore queryMessageAsync: get earliest message time in next store failed: {}", earliestTimeInNextStore);
+        }
+        boolean isForce = storeConfig.getTieredStorageLevel() == MessageStoreConfig.TieredStorageLevel.FORCE;
+        QueryMessageResult result = end < earliestTimeInNextStore || isForce ? new QueryMessageResult() : next.queryMessage(topic, key, maxNum, begin, end, indexType, lastKey);
         int resultSize = result.getMessageBufferList().size();
         if (resultSize < maxNum && begin < earliestTimeInNextStore || isForce) {
             Stopwatch stopwatch = Stopwatch.createStarted();
