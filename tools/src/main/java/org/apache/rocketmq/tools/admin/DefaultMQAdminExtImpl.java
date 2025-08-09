@@ -362,6 +362,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException {
         return this.mqClientInstance.getMQClientAPIImpl().getTopicListFromNameServer(timeoutMillis);
     }
+    
+    @Override
+    public TopicList fetchAllRetryTopicList() throws RemotingException, MQClientException, InterruptedException {
+        return this.mqClientInstance.getMQClientAPIImpl().getRetryTopicListFromNameServer(timeoutMillis);
+    }
 
     @Override
     public TopicList fetchTopicsByCLuster(

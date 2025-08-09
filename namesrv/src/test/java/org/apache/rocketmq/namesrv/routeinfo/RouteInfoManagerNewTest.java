@@ -130,6 +130,22 @@ public class RouteInfoManagerNewTest {
         topicList = TopicList.decode(content, TopicList.class);
         assertThat(topicList.getTopicList()).contains("TestTopic", "TestTopic1", "TestTopic2");
     }
+    
+    @Test
+    public void getAllRetryTopicList() {
+        byte[] content = routeInfoManager.getAllRetryTopicList().encode();
+        
+        TopicList topicList = TopicList.decode(content, TopicList.class);
+        assertThat(topicList.getTopicList()).isEmpty();
+        
+        registerBrokerWithNormalTopic(BrokerBasicInfo.defaultBroker(), "TestTopic", "%RETRY%group1", "%RETRY%group2", "%RETRY%group3");
+        
+        content = routeInfoManager.getAllRetryTopicList().encode();
+        
+        topicList = TopicList.decode(content, TopicList.class);
+        assertThat(topicList.getTopicList()).contains("%RETRY%group1", "%RETRY%group2", "%RETRY%group3");
+    }
+    
     @Test
     public void registerBroker() {
         // Register master broker
