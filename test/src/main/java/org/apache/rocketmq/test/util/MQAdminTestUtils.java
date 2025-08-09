@@ -64,6 +64,7 @@ public class MQAdminTestUtils {
     public static void startAdmin(String nameSrvAddr) throws MQClientException {
         mqAdminExt = new DefaultMQAdminExt();
         mqAdminExt.setNamesrvAddr(nameSrvAddr);
+        mqAdminExt.setInstanceName(UUID.randomUUID().toString());
         mqAdminExt.start();
     }
 
