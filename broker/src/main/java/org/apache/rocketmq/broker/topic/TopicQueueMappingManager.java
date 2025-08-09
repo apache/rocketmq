@@ -16,7 +16,8 @@
  */
 package org.apache.rocketmq.broker.topic;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
@@ -156,7 +157,10 @@ public class TopicQueueMappingManager extends ConfigManager {
         TopicQueueMappingSerializeWrapper wrapper = new TopicQueueMappingSerializeWrapper();
         wrapper.setTopicQueueMappingInfoMap(topicQueueMappingTable);
         wrapper.setDataVersion(this.dataVersion);
-        return JSON.toJSONString(wrapper, pretty);
+        if (pretty) {
+            return JSON.toJSONString(wrapper, JSONWriter.Feature.PrettyFormat);
+        }
+        return JSON.toJSONString(wrapper);
     }
 
     @Override

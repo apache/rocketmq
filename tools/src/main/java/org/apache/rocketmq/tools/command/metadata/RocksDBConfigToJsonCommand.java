@@ -17,22 +17,8 @@
 
 package org.apache.rocketmq.tools.command.metadata;
 
-import com.alibaba.fastjson.JSONObject;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -48,6 +34,22 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.rocksdb.RocksIterator;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RocksDBConfigToJsonCommand implements SubCommand {
 
@@ -136,10 +138,10 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                 if (commandLine.hasOption("jsonEnable") && "false".equalsIgnoreCase(commandLine.getOptionValue("jsonEnable").trim())) {
                     printConfigMapJsonDisable(configMap);
                 } else {
-                    System.out.print(JSONObject.toJSONString(configMap, true) + "\n");
+                    System.out.print(JSONObject.toJSONString(configMap, JSONWriter.Feature.PrettyFormat) + "\n");
                 }
             } else {
-                String jsonString = JSONObject.toJSONString(configMap, true);
+                String jsonString = JSONObject.toJSONString(configMap, JSONWriter.Feature.PrettyFormat);
                 try {
                     MixAll.string2File(jsonString, exportFile);
                 } catch (IOException e) {

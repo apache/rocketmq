@@ -16,8 +16,9 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.JSONWriter;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -2785,7 +2786,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             } else {
                 ConsumerFilterData filterData = this.brokerController.getConsumerFilterManager()
                     .get(requestHeader.getTopic(), requestHeader.getConsumerGroup());
-                body.setFilterData(JSON.toJSONString(filterData, true));
+                body.setFilterData(JSON.toJSONString(filterData, JSONWriter.Feature.PrettyFormat));
 
                 messageFilter = new ExpressionMessageFilter(subscriptionData, filterData,
                     this.brokerController.getConsumerFilterManager());
