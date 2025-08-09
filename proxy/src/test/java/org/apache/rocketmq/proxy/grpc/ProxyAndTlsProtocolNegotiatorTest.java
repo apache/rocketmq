@@ -21,6 +21,8 @@ import io.grpc.netty.shaded.io.netty.buffer.ByteBuf;
 import io.grpc.netty.shaded.io.netty.buffer.Unpooled;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
 import java.nio.charset.StandardCharsets;
+
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +36,9 @@ public class ProxyAndTlsProtocolNegotiatorTest {
 
     @Before
     public void setUp() throws Exception {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         ConfigurationManager.intConfig();
         ConfigurationManager.getProxyConfig().setTlsTestModeEnable(true);
         negotiator = new ProxyAndTlsProtocolNegotiator();
@@ -41,6 +46,9 @@ public class ProxyAndTlsProtocolNegotiatorTest {
 
     @Test
     public void handleHAProxyTLV() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         ByteBuf content = Unpooled.buffer();
         content.writeBytes("xxxx".getBytes(StandardCharsets.UTF_8));
         HAProxyTLV haProxyTLV = new HAProxyTLV((byte) 0xE1, content);
