@@ -910,7 +910,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 if ((long) consumeRequestCache.size() * defaultLitePullConsumer.getPullBatchSize() > defaultLitePullConsumer.getPullThresholdForAll()) {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
-                    if ((consumeRequestFlowControlTimes++ % 1000) == 0) {
+                    if ((consumeRequestFlowControlTimes++ & 1023) == 0) {
                         log.warn("The consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}",
                                 (int)Math.ceil((double)defaultLitePullConsumer.getPullThresholdForAll() / defaultLitePullConsumer.getPullBatchSize()),
                                 consumeRequestCache.size(), consumeRequestFlowControlTimes);
@@ -923,7 +923,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 if (cachedMessageCount > defaultLitePullConsumer.getPullThresholdForQueue()) {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
-                    if ((queueFlowControlTimes++ % 1000) == 0) {
+                    if ((queueFlowControlTimes++ & 1023) == 0) {
                         log.warn(
                             "The cached message count exceeds the threshold {}, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
                             defaultLitePullConsumer.getPullThresholdForQueue(), processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), cachedMessageCount, cachedMessageSizeInMiB, queueFlowControlTimes);
@@ -933,7 +933,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 if (cachedMessageSizeInMiB > defaultLitePullConsumer.getPullThresholdSizeForQueue()) {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
-                    if ((queueFlowControlTimes++ % 1000) == 0) {
+                    if ((queueFlowControlTimes++ & 1023) == 0) {
                         log.warn(
                             "The cached message size exceeds the threshold {} MiB, so do flow control, minOffset={}, maxOffset={}, count={}, size={} MiB, flowControlTimes={}",
                             defaultLitePullConsumer.getPullThresholdSizeForQueue(), processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), cachedMessageCount, cachedMessageSizeInMiB, queueFlowControlTimes);
@@ -943,7 +943,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 if (processQueue.getMaxSpan() > defaultLitePullConsumer.getConsumeMaxSpan()) {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
-                    if ((queueMaxSpanFlowControlTimes++ % 1000) == 0) {
+                    if ((queueMaxSpanFlowControlTimes++ & 1023) == 0) {
                         log.warn(
                             "The queue's messages, span too long, so do flow control, minOffset={}, maxOffset={}, maxSpan={}, flowControlTimes={}",
                             processQueue.getMsgTreeMap().firstKey(), processQueue.getMsgTreeMap().lastKey(), processQueue.getMaxSpan(), queueMaxSpanFlowControlTimes);
