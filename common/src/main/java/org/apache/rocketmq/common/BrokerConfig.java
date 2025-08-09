@@ -214,6 +214,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private int popPollingSize = 1024;
     private int popPollingMapSize = 100000;
+
+    private int popPollingMapExpireTimeSeconds = 60 * 10;
     // 20w cost 200M heap memory.
     private long maxPopPollingSize = 100000;
     private int reviveQueueNum = 8;
@@ -522,6 +524,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setPopPollingMapSize(int popPollingMapSize) {
         this.popPollingMapSize = popPollingMapSize;
+    }
+
+    public int getPopPollingMapExpireTimeSeconds() {
+        return popPollingMapExpireTimeSeconds;
+    }
+
+    public void setPopPollingMapExpireTimeSeconds(int popPollingMapExpireTimeSeconds) {
+        this.popPollingMapExpireTimeSeconds = popPollingMapExpireTimeSeconds;
     }
 
     public long getReviveScanTime() {
