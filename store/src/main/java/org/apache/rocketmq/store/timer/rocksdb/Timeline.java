@@ -375,7 +375,7 @@ public class Timeline {
                     if (storeConfig.getTimerRocksDBRollIntervalHours() > 0) {
                         rollIntervalHour = storeConfig.getTimerRocksDBRollIntervalHours();
                     }
-                    this.waitForRunning(rollIntervalHour);
+                    this.waitForRunning(TimeUnit.HOURS.toMillis(rollIntervalHour));
                 } catch (Exception e) {
                     logError.error("Timeline TimelineRollService wait error: {}", e.getMessage());
                 }
