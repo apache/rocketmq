@@ -17,10 +17,8 @@
 
 package org.apache.rocketmq.namesrv.processor;
 
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSONWriter;
 import io.netty.channel.ChannelHandlerContext;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
@@ -34,6 +32,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.GetRouteInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 public class ClientRequestProcessor implements NettyRequestProcessor {
 
@@ -81,9 +82,8 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
             byte[] content;
             Boolean standardJsonOnly = Optional.ofNullable(requestHeader.getAcceptStandardJsonOnly()).orElse(false);
             if (request.getVersion() >= MQVersion.Version.V4_9_4.ordinal() || standardJsonOnly) {
-                content = topicRouteData.encode(SerializerFeature.BrowserCompatible,
-                    SerializerFeature.QuoteFieldNames, SerializerFeature.SkipTransientField,
-                    SerializerFeature.MapSortField);
+                content = topicRouteData.encode(JSONWriter.Feature.BrowserCompatible,
+                        JSONWriter.Feature.MapSortField);
             } else {
                 content = topicRouteData.encode();
             }
