@@ -47,7 +47,7 @@ Field unitName : private java.lang.String null
 Field useTLS : private boolean false
 Field vipChannelEnabled : private boolean false
 Method buildMQClientId() : public throws (java.lang.String)
-Method changeInstanceNameToPID() : public throws (void)
+Method changeInstanceNameToIpWithPidAndGroupInfo(java.lang.String) : public throws (void)
 Method cloneClientConfig() : public throws (org.apache.rocketmq.client.ClientConfig)
 Method createTopic(int,int,java.lang.String,java.lang.String) : public throws (void)
 Method createTopic(int,java.lang.String,java.lang.String) : public throws (void)

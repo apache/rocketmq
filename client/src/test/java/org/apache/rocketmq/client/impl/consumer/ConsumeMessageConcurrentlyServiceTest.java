@@ -118,7 +118,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         field.set(pushConsumerImpl, rebalancePushImpl);
         pushConsumer.subscribe(topic, "*");
         // suppress updateTopicRouteInfoFromNameServer
-        pushConsumer.changeInstanceNameToPID();
+        pushConsumer.changeInstanceNameToIpWithPidAndGroupInfo(pushConsumer.getConsumerGroup());
         mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true));
         mQClientFactory = spy(mQClientFactory);
         field = DefaultMQPushConsumerImpl.class.getDeclaredField("mQClientFactory");

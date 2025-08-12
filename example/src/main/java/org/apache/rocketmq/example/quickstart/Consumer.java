@@ -27,7 +27,7 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
  */
 public class Consumer {
 
-    public static final String CONSUMER_GROUP = "please_rename_unique_group_name_4";
+    public static final String CONSUMER_GROUP = "c_please_rename_unique_group_name_4";
     public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
     public static final String TOPIC = "TopicTest";
 
@@ -37,6 +37,7 @@ public class Consumer {
          * Instantiate with specified consumer group name.
          */
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
+        DefaultMQPushConsumer consumer2 = new DefaultMQPushConsumer(CONSUMER_GROUP);
 
         /*
          * Specify name server addresses.
@@ -50,17 +51,21 @@ public class Consumer {
          * </pre>
          */
         // Uncomment the following line while debugging, namesrvAddr should be set to your local address
-        // consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        consumer2.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
         /*
          * Specify where to start in case the specific consumer group is a brand-new one.
          */
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        consumer2.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 
         /*
          * Subscribe one more topic to consume.
          */
         consumer.subscribe(TOPIC, "*");
+        consumer.subscribe(TOPIC + "1", "*");
+        consumer2.subscribe(TOPIC, "*");
 
         /*
          *  Register callback to execute on arrival of messages fetched from brokers.
@@ -69,11 +74,16 @@ public class Consumer {
             System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msg);
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
+        consumer2.registerMessageListener((MessageListenerConcurrently) (msg, context) -> {
+            System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msg);
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        });
 
         /*
          *  Launch the consumer instance.
          */
         consumer.start();
+        consumer2.start();
 
         System.out.printf("Consumer Started.%n");
     }
