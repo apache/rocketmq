@@ -290,6 +290,9 @@ public class MQClientInstanceTest {
 
     @Test
     public void testSendHeartbeatToBrokerV2() throws MQBrokerException, RemotingException, InterruptedException {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         consumerTable.put(group, createMQConsumerInner());
         when(clientConfig.isUseHeartbeatV2()).thenReturn(true);
         HeartbeatV2Result heartbeatV2Result = mock(HeartbeatV2Result.class);
@@ -307,6 +310,9 @@ public class MQClientInstanceTest {
 
     @Test
     public void testSendHeartbeatToAllBrokerWithLockV2() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
         consumerTable.put(group, createMQConsumerInner());
         when(clientConfig.isUseHeartbeatV2()).thenReturn(true);

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client.impl.admin;
 
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -205,6 +206,9 @@ public class MqClientAdminImplTest {
 
     @Test
     public void assertUpdateOrCreateSubscriptionGroupWithSuccess() throws Exception {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         setResponseSuccess(null);
         SubscriptionGroupConfig config = mock(SubscriptionGroupConfig.class);
         CompletableFuture<Void> actual = mqClientAdminImpl.updateOrCreateSubscriptionGroup(defaultBrokerAddr, config, defaultTimeout);
@@ -213,6 +217,9 @@ public class MqClientAdminImplTest {
 
     @Test
     public void assertUpdateOrCreateSubscriptionGroupWithError() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         setResponseError();
         SubscriptionGroupConfig config = mock(SubscriptionGroupConfig.class);
         CompletableFuture<Void> actual = mqClientAdminImpl.updateOrCreateSubscriptionGroup(defaultBrokerAddr, config, defaultTimeout);

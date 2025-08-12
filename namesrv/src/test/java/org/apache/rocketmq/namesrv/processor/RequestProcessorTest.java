@@ -19,7 +19,6 @@ package org.apache.rocketmq.namesrv.processor;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -27,6 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -91,7 +92,7 @@ public class RequestProcessorTest {
         registerRouteInfoManager();
 
         logger = mock(Logger.class);
-        setFinalStatic(DefaultRequestProcessor.class.getDeclaredField("log"), logger);
+        FieldUtils.writeStaticField(DefaultRequestProcessor.class.getDeclaredField("log"), logger, true);
     }
 
     @Test
@@ -634,14 +635,6 @@ public class RequestProcessorTest {
         request.addExtField("brokerId", "2333");
         request.setBody(body);
         return request;
-    }
-
-    private static void setFinalStatic(Field field, Object newValue) throws Exception {
-        field.setAccessible(true);
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-        field.set(null, newValue);
     }
 
     private void registerRouteInfoManager() {

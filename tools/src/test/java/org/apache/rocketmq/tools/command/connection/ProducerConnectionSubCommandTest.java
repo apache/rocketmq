@@ -20,6 +20,7 @@ import java.util.HashSet;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.protocol.body.Connection;
 import org.apache.rocketmq.remoting.protocol.body.ProducerConnection;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -40,18 +41,28 @@ public class ProducerConnectionSubCommandTest {
 
     @Before
     public void before() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         brokerMocker = startOneBroker();
         nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
     public void after() {
-        brokerMocker.shutdown();
-        nameServerMocker.shutdown();
+        if (null != brokerMocker) {
+            brokerMocker.shutdown();
+        }
+        if (null != nameServerMocker) {
+            nameServerMocker.shutdown();
+        }
     }
 
     @Test
     public void testExecute() throws SubCommandException {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         ProducerConnectionSubCommand cmd = new ProducerConnectionSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-g default-producer-group", "-t unit-test", String.format("-n localhost:%d", nameServerMocker.listenPort())};

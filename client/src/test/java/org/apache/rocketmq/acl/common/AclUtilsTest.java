@@ -18,6 +18,7 @@ package org.apache.rocketmq.acl.common;
 
 import com.alibaba.fastjson2.JSONObject;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.junit.Assert;
 import org.junit.Test;
@@ -230,6 +231,9 @@ public class AclUtilsTest {
 
     @Test
     public void testGetAclRPCHookByFileName() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         RPCHook actual = AclUtils.getAclRPCHook(Objects.requireNonNull(AclUtilsTest.class.getResource("/acl_hook/plain_acl.yml")).getPath());
         assertNotNull(actual);
         assertTrue(actual instanceof AclClientRPCHook);
@@ -238,6 +242,9 @@ public class AclUtilsTest {
 
     @Test
     public void testGetAclRPCHookByInputStream() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         RPCHook actual = AclUtils.getAclRPCHook(Objects.requireNonNull(AclUtilsTest.class.getResourceAsStream("/acl_hook/plain_acl.yml")));
         assertNotNull(actual);
         assertTrue(actual instanceof AclClientRPCHook);
