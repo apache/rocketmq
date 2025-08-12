@@ -23,9 +23,14 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
@@ -46,6 +51,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -55,6 +61,10 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     private final MQClientAPIFactory mqClientAPIFactory;
     private MQFaultStrategy mqFaultStrategy;
+
+    private final RouteEventSubscriber routeEventSubscriber;
+    private final RouteCacheRefresher routeCacheRefresher;
+    private final ConcurrentMap<String, Set<String>> brokerTopicsMap = new ConcurrentHashMap<>();
 
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ScheduledExecutorService scheduledExecutorService;
@@ -85,6 +95,9 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView load(String topic) throws Exception {
                     try {
                         TopicRouteData topicRouteData = mqClientAPIFactory.getClient().getTopicRouteInfoFromNameServer(topic, Duration.ofSeconds(3).toMillis());
+                        log.info("[Route_Event]:load topic route from namesrv. topic: {}", topic);
+                        updateBrokerTopicMapping(topic, topicRouteData);
+
                         return buildMessageQueueView(topic, topicRouteData);
                     } catch (Exception e) {
                         if (TopicRouteHelper.isTopicNotExistError(e)) {
@@ -134,7 +147,41 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 }
             }
         }, serviceDetector);
+        this.routeCacheRefresher = new RouteCacheRefresher(
+            this.topicCache,
+            this.cacheRefreshExecutor
+        );
+
+        this.routeEventSubscriber = new RouteEventSubscriber(
+            this,
+            topic -> {
+                this.routeCacheRefresher.markCacheDirty(topic);
+            }
+        );
         this.init();
+    }
+
+    private void updateBrokerTopicMapping(String topic, TopicRouteData topicRouteData) {
+        Set<String> brokerNames = topicRouteData.getBrokerDatas().stream()
+            .map(BrokerData::getBrokerName)
+            .collect(Collectors.toSet());
+        log.info("[Route_Event]: Update broker topics mapping for topic: {}, brokers: {}", topic, brokerNames);
+
+        for (String brokerName : brokerNames) {
+            brokerTopicsMap.computeIfAbsent(brokerName, k -> ConcurrentHashMap.newKeySet())
+                .add(topic);
+        }
+    }
+
+    public Set<String> getBrokerTopics(String brokerName) {
+        return brokerTopicsMap.getOrDefault(brokerName, Set.of());
+    }
+
+    public void removeBrokerTopics(String brokerName) {
+        Set<String> topics = brokerTopicsMap.remove(brokerName);
+        if (topics != null) {
+            log.info("[Route_Event]: Removed {} topics for broker: {}", topics.size(), brokerName);
+        }
     }
 
     // pickup one topic in the topic cache
@@ -155,6 +202,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         if (this.mqFaultStrategy.isStartDetectorEnable()) {
             mqFaultStrategy.shutdown();
         }
+        this.routeCacheRefresher.shutdown();
+        this.routeEventSubscriber.shutdown();
     }
 
     @Override
@@ -162,6 +211,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         if (this.mqFaultStrategy.isStartDetectorEnable()) {
             this.mqFaultStrategy.startDetector();
         }
+        this.routeEventSubscriber.start();
+        this.routeCacheRefresher.start();
     }
 
     public ClientConfig extractClientConfigFromProxyConfig(ProxyConfig proxyConfig) {

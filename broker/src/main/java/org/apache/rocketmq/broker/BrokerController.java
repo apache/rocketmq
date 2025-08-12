@@ -80,6 +80,8 @@ import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
 import org.apache.rocketmq.broker.processor.RecallMessageProcessor;
 import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
+import org.apache.rocketmq.broker.route.RouteEventService;
+import org.apache.rocketmq.broker.route.RouteEventType;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
@@ -300,6 +302,7 @@ public class BrokerController {
     private TransactionMetricsFlushService transactionMetricsFlushService;
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
+    private RouteEventService routeEventService;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -865,6 +868,7 @@ public class BrokerController {
         if (!result) {
             return false;
         }
+        this.routeEventService = new RouteEventService(this);
 
         return this.recoverAndInitService();
     }
@@ -1393,6 +1397,8 @@ public class BrokerController {
 
         shutdown = true;
 
+        this.routeEventService.publishEvent(RouteEventType.SHUTDOWN);
+
         this.unregisterBrokerAll();
 
         if (this.shutdownHook != null) {
@@ -1834,6 +1840,8 @@ public class BrokerController {
                 }
             }
         }, 10, 5, TimeUnit.SECONDS);
+
+        this.routeEventService.publishEvent(RouteEventType.START);
     }
 
     protected void scheduleSendHeartbeat() {
