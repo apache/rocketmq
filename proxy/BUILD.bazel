@@ -61,7 +61,6 @@ java_library(
         "@maven//:org_apache_rocketmq_rocketmq_proto",
         "@maven//:org_checkerframework_checker_qual",
         "@maven//:org_lz4_lz4_java",
-        "@maven//:org_slf4j_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:org_slf4j_jul_to_slf4j",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
