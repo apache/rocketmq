@@ -322,8 +322,6 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         this.remotingClient.registerProcessor(RequestCode.CONSUME_MESSAGE_DIRECTLY, this.clientRemotingProcessor, null);
 
         this.remotingClient.registerProcessor(RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT, this.clientRemotingProcessor, null);
-
-        this.remotingClient.registerProcessor(RequestCode.ROUTE_EVENT, this.clientRemotingProcessor, null);
     }
 
     public List<String> getNameServerAddressList() {

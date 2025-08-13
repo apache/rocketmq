@@ -39,7 +39,7 @@ import com.alibaba.fastjson2.JSON;
 
 public class RouteEventSubscriber {
     private final Consumer<String> dirtyMarker;
-    private final TopicRouteService topicRouteService; 
+    private final TopicRouteService topicRouteService;
     private final DefaultMQPushConsumer consumer;
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
@@ -85,7 +85,7 @@ public class RouteEventSubscriber {
                 }
 
                 if (eventType == RouteEventType.SHUTDOWN) {
-                    topicRouteService.removeBrokerTopics(brokerName);                       
+                    topicRouteService.removeBrokerTopics(brokerName);
                 }
 
                 for (String topic : topics) {

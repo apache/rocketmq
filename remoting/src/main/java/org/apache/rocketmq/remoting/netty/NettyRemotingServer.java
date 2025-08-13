@@ -79,11 +79,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -108,10 +105,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private final HashedWheelTimer timer = new HashedWheelTimer(r -> new Thread(r, "ServerHouseKeepingService"));
 
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
-
-    private final Set<Channel> activeChannels = Collections.newSetFromMap(
-        new ConcurrentHashMap<Channel, Boolean>()
-    );
 
     /**
      * NettyRemotingServer may hold multiple SubRemotingServer, each server will be stored in this container with a
@@ -420,11 +413,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         return this.publicExecutor;
     }
 
-    @Override
-    public Set<Channel> getActiveChannels() {
-        return new HashSet<>(activeChannels);
-    }
-
     private void printRemotingCodeDistribution() {
         if (distributionHandler != null) {
             String inBoundSnapshotString = distributionHandler.getInBoundSnapshotString();
@@ -606,8 +594,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             log.info("NETTY SERVER PIPELINE: channelActive, the channel[{}]", remoteAddress);
             super.channelActive(ctx);
 
-            NettyRemotingServer.this.activeChannels.add(ctx.channel());
-
             if (NettyRemotingServer.this.channelEventListener != null) {
                 NettyRemotingServer.this.putNettyEvent(new NettyEvent(NettyEventType.CONNECT, remoteAddress, ctx.channel()));
             }
@@ -618,8 +604,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
             log.info("NETTY SERVER PIPELINE: channelInactive, the channel[{}]", remoteAddress);
             super.channelInactive(ctx);
-
-            NettyRemotingServer.this.activeChannels.remove(ctx.channel());
 
             if (NettyRemotingServer.this.channelEventListener != null) {
                 NettyRemotingServer.this.putNettyEvent(new NettyEvent(NettyEventType.CLOSE, remoteAddress, ctx.channel()));
@@ -697,11 +681,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         @Override
         public Pair<NettyRequestProcessor, ExecutorService> getProcessorPair(final int requestCode) {
             return this.processorTable.get(requestCode);
-        }
-
-        @Override
-        public Set<Channel> getActiveChannels() {
-            return null;
         }
 
         @Override

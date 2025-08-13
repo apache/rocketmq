@@ -17,8 +17,6 @@
 package org.apache.rocketmq.remoting;
 
 import io.netty.channel.Channel;
-
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -37,8 +35,6 @@ public interface RemotingServer extends RemotingService {
     int localListenPort();
 
     Pair<NettyRequestProcessor, ExecutorService> getProcessorPair(final int requestCode);
-
-    Set<Channel> getActiveChannels();
 
     Pair<NettyRequestProcessor, ExecutorService> getDefaultProcessorPair();
 

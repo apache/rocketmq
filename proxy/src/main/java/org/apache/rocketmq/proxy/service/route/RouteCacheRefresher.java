@@ -47,7 +47,7 @@ public class RouteCacheRefresher {
     private final ScheduledExecutorService scheduler;
 
     private final ConcurrentMap<String, Long> refreshingTopics = new ConcurrentHashMap<>();
-    
+
     public RouteCacheRefresher(LoadingCache<String, MessageQueueView> topicCache,
                               ThreadPoolExecutor executor) {
         this.topicCache = topicCache;
@@ -79,7 +79,7 @@ public class RouteCacheRefresher {
             executor.execute(() -> refreshSingleRoute(topic));
         }
     }
-    
+
     private void refreshSingleRoute(String topic) {
         try {
             log.info("Refreshing route for: {}", topic);

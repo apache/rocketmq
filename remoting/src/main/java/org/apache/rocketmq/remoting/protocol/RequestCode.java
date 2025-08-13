@@ -51,8 +51,6 @@ public class RequestCode {
 
     public static final int HEART_BEAT = 34;
 
-    public static final int ROUTE_EVENT = 299;
-
     public static final int UNREGISTER_CLIENT = 35;
 
     public static final int CONSUMER_SEND_MSG_BACK = 36;
