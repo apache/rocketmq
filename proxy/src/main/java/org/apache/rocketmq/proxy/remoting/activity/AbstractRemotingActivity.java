@@ -45,6 +45,7 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
     protected final MessagingProcessor messagingProcessor;
     protected static final String BROKER_NAME_FIELD = "bname";
     protected static final String BROKER_NAME_FIELD_FOR_SEND_MESSAGE_V2 = "n";
+    @SuppressWarnings("DoubleBraceInitialization")
     private static final Map<ProxyExceptionCode, Integer> PROXY_EXCEPTION_RESPONSE_CODE_MAP = new HashMap<ProxyExceptionCode, Integer>() {
         {
             put(ProxyExceptionCode.FORBIDDEN, ResponseCode.NO_PERMISSION);

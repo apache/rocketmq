@@ -47,10 +47,8 @@ build:remote --platforms=@buildbuddy_toolchain//:platform
 build:remote --extra_execution_platforms=@buildbuddy_toolchain//:platform
 build:remote --crosstool_top=@buildbuddy_toolchain//:toolchain
 build:remote --extra_toolchains=@buildbuddy_toolchain//:cc_toolchain
-build:remote --javabase=@buildbuddy_toolchain//:javabase_jdk8
-build:remote --host_javabase=@buildbuddy_toolchain//:javabase_jdk8
-build:remote --java_toolchain=@buildbuddy_toolchain//:toolchain_jdk8
-build:remote --host_java_toolchain=@buildbuddy_toolchain//:toolchain_jdk8
+build:remote --java_language_version=8
+build:remote --java_runtime_version=8
 build:remote --define=EXECUTOR=remote
 
 # Enable remote execution so actions are performed on the remote systems.
