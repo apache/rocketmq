@@ -387,6 +387,15 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 requestHeader.getAttemptId(), requestHeader.getInitMode(), messageFilter);
 
             popAsyncFuture.thenApply(result -> {
+                try {
+                    if (request.getCallbackList() != null) {
+                        request.getCallbackList().forEach(CommandCallback::accept);
+                        request.getCallbackList().clear();
+                    }
+                } catch (Throwable t) {
+                    POP_LOGGER.error("PopProcessor execute callback error", t);
+                }
+
                 if (result.isFound()) {
                     response.setCode(ResponseCode.SUCCESS);
                     getMessageResult.setStatus(GetMessageStatus.FOUND);
