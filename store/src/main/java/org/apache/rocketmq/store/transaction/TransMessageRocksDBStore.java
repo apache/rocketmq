@@ -262,6 +262,18 @@ public class TransMessageRocksDBStore {
         }
     }
 
+    public boolean isMappedFileMatchedRecover(long phyOffset) {
+        if (!storeConfig.isTransRocksDBEnable()) {
+            return true;
+        }
+        Long lastOffsetPy = transMessageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+        if (null != lastOffsetPy && phyOffset <= lastOffsetPy) {
+            log.info("isMappedFileMatchedRecover TransMessageRocksDBStore recover form this offset, phyOffset: {}, lastOffsetPy: {}", phyOffset, lastOffsetPy);
+            return true;
+        }
+        return false;
+    }
+
     private String getServiceThreadName() {
         String brokerIdentifier = "";
         if (TransMessageRocksDBStore.this.messageStore instanceof DefaultMessageStore) {

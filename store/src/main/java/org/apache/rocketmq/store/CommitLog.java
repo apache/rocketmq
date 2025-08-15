@@ -863,8 +863,18 @@ public class CommitLog implements Swappable {
                 storeTimestamp, phyOffset, this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp(), recoverNormally);
         }
 
-        return this.defaultMessageStore.getQueueStore()
-            .isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
+        return isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
+    }
+
+    private boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp, boolean recoverNormally) throws RocksDBException {
+        boolean result = this.defaultMessageStore.getQueueStore().isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
+        if (null != this.defaultMessageStore.getTransRocksDBStore() && defaultMessageStore.getMessageStoreConfig().isTransRocksDBEnable()) {
+            result = result && this.defaultMessageStore.getTransRocksDBStore().isMappedFileMatchedRecover(phyOffset);
+        }
+        if (null != this.defaultMessageStore.getIndexRocksDBStore() && defaultMessageStore.getMessageStoreConfig().isIndexRocksDBEnable()) {
+            result = result && this.defaultMessageStore.getIndexRocksDBStore().isMappedFileMatchedRecover(phyOffset);
+        }
+        return result;
     }
 
     public boolean resetOffset(long offset) {

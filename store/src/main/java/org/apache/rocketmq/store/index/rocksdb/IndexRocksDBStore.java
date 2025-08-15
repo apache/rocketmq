@@ -243,6 +243,18 @@ public class IndexRocksDBStore {
         }
     }
 
+    public boolean isMappedFileMatchedRecover(long phyOffset) {
+        if (!storeConfig.isIndexRocksDBEnable()) {
+            return true;
+        }
+        Long lastOffsetPy = indexMessageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+        if (null != lastOffsetPy && phyOffset <= lastOffsetPy) {
+            log.info("isMappedFileMatchedRecover IndexRocksDBStore recover form this offset, phyOffset: {}, lastOffsetPy: {}", phyOffset, lastOffsetPy);
+            return true;
+        }
+        return false;
+    }
+
     public void destroy() {}
 
     private String getServiceThreadName() {
