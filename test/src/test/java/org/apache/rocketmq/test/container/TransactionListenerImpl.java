@@ -38,7 +38,7 @@ public class TransactionListenerImpl implements TransactionListener {
     @Override
     public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
         if (shouldReturnUnknownState) {
-            return LocalTransactionState.UNKNOW;
+            return LocalTransactionState.UNKNOWN;
         } else {
             return LocalTransactionState.COMMIT_MESSAGE;
         }
@@ -47,7 +47,7 @@ public class TransactionListenerImpl implements TransactionListener {
     @Override
     public LocalTransactionState checkLocalTransaction(MessageExt msg) {
         if (shouldReturnUnknownState) {
-            return LocalTransactionState.UNKNOW;
+            return LocalTransactionState.UNKNOWN;
         } else {
             return LocalTransactionState.COMMIT_MESSAGE;
         }
