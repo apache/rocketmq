@@ -27,7 +27,7 @@ public class LogicQueueMappingItem extends RemotingSerializable {
     private String bname; //important, immutable
     private long logicOffset; // the start of the logic offset, important, can be changed by command only once
     private long startOffset; // the start of the physical offset, should always be 0, immutable
-    private long endOffset = -1; // the end of the physical offset, excluded, revered -1, mutable
+    private long endOffset = -1; // the end of the physical offset, excluded, reversed -1, mutable
     private long timeOfStart = -1; // mutable, reserved
     private long timeOfEnd = -1; // mutable, reserved
 

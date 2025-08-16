@@ -18,7 +18,7 @@ package org.apache.rocketmq.remoting.protocol.body;
 
 public class PopProcessQueueInfo {
     private int waitAckCount;
-    private boolean droped;
+    private boolean dropped;
     private long lastPopTimestamp;
 
 
@@ -32,13 +32,13 @@ public class PopProcessQueueInfo {
     }
 
 
-    public boolean isDroped() {
-        return droped;
+    public boolean isDropped() {
+        return dropped;
     }
 
 
-    public void setDroped(boolean droped) {
-        this.droped = droped;
+    public void setDropped(boolean dropped) {
+        this.dropped = dropped;
     }
 
 
@@ -54,6 +54,6 @@ public class PopProcessQueueInfo {
     @Override
     public String toString() {
         return "PopProcessQueueInfo [waitAckCount:" + waitAckCount +
-                ", droped:" + droped + ", lastPopTimestamp:" + lastPopTimestamp + "]";
+                ", dropped:" + dropped + ", lastPopTimestamp:" + lastPopTimestamp + "]";
     }
 }
