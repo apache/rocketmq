@@ -164,7 +164,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 });
             }
         } catch (Exception e) {
-            log.error("unexpect error when schedule renew task", e);
+            log.error("unexpected error when schedule renew task", e);
         }
 
         log.debug("scan for renewal done. cost:{}ms", stopwatch.elapsed().toMillis());
@@ -227,7 +227,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 });
             }
         } catch (Throwable t) {
-            log.error("unexpect error when renew message, stop to renew it. handle:{}", messageReceiptHandle, t);
+            log.error("unexpected error when renew message, stop to renew it. handle:{}", messageReceiptHandle, t);
             resFuture.complete(null);
         }
         return resFuture;

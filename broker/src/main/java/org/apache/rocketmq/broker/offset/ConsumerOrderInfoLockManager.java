@@ -99,7 +99,7 @@ public class ConsumerOrderInfoLockManager {
                 }
             });
         } catch (Exception e) {
-            POP_LOGGER.error("unexpect error when updateLockFreeTimestamp. topic:{}, group:{}, queueId:{}, lockFreeTimestamp:{}",
+            POP_LOGGER.error("unexpected error when updateLockFreeTimestamp. topic:{}, group:{}, queueId:{}, lockFreeTimestamp:{}",
                 topic, group, queueId, lockFreeTimestamp, e);
         }
     }
@@ -108,7 +108,7 @@ public class ConsumerOrderInfoLockManager {
         try {
             this.brokerController.getPopMessageProcessor().notifyLongPollingRequestIfNeed(key.topic, key.group, key.queueId);
         } catch (Exception e) {
-            POP_LOGGER.error("unexpect error when notifyLockIsFree. key:{}", key, e);
+            POP_LOGGER.error("unexpected error when notifyLockIsFree. key:{}", key, e);
         }
     }
 

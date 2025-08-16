@@ -469,7 +469,7 @@ public class SelectorParser implements SelectorParserConstants {
         StringBuffer rc = new StringBuffer();
         boolean first = true;
         t = jj_consume_token(STRING_LITERAL);
-        // Decode the sting value.
+        // Decode the string value.
         String image = t.image;
         for (int i = 1; i < image.length() - 1; i++) {
             char c = image.charAt(i);
