@@ -20,7 +20,7 @@ package org.apache.rocketmq.remoting.protocol.body;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class SetMessageRequestModeRequestBody extends RemotingSerializable {
+public class SetMessageRequestModeRequestBody extends RemotingSerializable implements Cloneable {
 
     private String topic;
 
@@ -66,5 +66,10 @@ public class SetMessageRequestModeRequestBody extends RemotingSerializable {
 
     public void setPopShareQueueNum(int popShareQueueNum) {
         this.popShareQueueNum = popShareQueueNum;
+    }
+
+    @Override
+    public SetMessageRequestModeRequestBody clone() throws CloneNotSupportedException {
+        return (SetMessageRequestModeRequestBody)super.clone();
     }
 }

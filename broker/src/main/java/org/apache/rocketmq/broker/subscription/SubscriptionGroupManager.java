@@ -77,63 +77,82 @@ public class SubscriptionGroupManager extends ConfigManager {
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.TOOLS_CONSUMER_GROUP);
-            putSubscriptionGroupConfig(subscriptionGroupConfig);
+            this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.FILTERSRV_CONSUMER_GROUP);
-            putSubscriptionGroupConfig(subscriptionGroupConfig);
+            this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.SELF_TEST_CONSUMER_GROUP);
-            putSubscriptionGroupConfig(subscriptionGroupConfig);
+            this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.ONS_HTTP_PROXY_GROUP);
             subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            putSubscriptionGroupConfig(subscriptionGroupConfig);
+            this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.CID_ONSAPI_PULL_GROUP);
             subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            putSubscriptionGroupConfig(subscriptionGroupConfig);
+            this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.CID_ONSAPI_PERMISSION_GROUP);
             subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            putSubscriptionGroupConfig(subscriptionGroupConfig);
+            this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.CID_ONSAPI_OWNER_GROUP);
             subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            putSubscriptionGroupConfig(subscriptionGroupConfig);
+            this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.CID_SYS_RMQ_TRANS);
             subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            putSubscriptionGroupConfig(subscriptionGroupConfig);
+            this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
         }
     }
 
     public SubscriptionGroupConfig putSubscriptionGroupConfig(SubscriptionGroupConfig subscriptionGroupConfig) {
-        return this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
+        return this.subscriptionGroupTable.compute(subscriptionGroupConfig.getGroupName(), (key, existingConfig) -> {
+            if (existingConfig == null) {
+                notifySubscriptionGroupCreated(subscriptionGroupConfig);
+            } else {
+                notifySubscriptionGroupUpdated(subscriptionGroupConfig);
+            }
+            return subscriptionGroupConfig;
+        });
     }
 
     protected SubscriptionGroupConfig putSubscriptionGroupConfigIfAbsent(SubscriptionGroupConfig subscriptionGroupConfig) {
-        return this.subscriptionGroupTable.putIfAbsent(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
+        final SubscriptionGroupConfig[] result = new SubscriptionGroupConfig[1];
+        this.subscriptionGroupTable.compute(subscriptionGroupConfig.getGroupName(), (key, existingConfig) -> {
+            if (existingConfig == null) {
+                notifySubscriptionGroupCreated(subscriptionGroupConfig);
+                result[0] = null;
+                return subscriptionGroupConfig;
+            } else {
+                notifySubscriptionGroupUpdated(subscriptionGroupConfig);
+                result[0] = existingConfig;
+                return existingConfig;
+            }
+        });
+        return result[0];
     }
 
     protected SubscriptionGroupConfig getSubscriptionGroupConfig(String groupName) {
@@ -141,12 +160,51 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
     protected SubscriptionGroupConfig removeSubscriptionGroupConfig(String groupName) {
-        return this.subscriptionGroupTable.remove(groupName);
+        final SubscriptionGroupConfig[] removedConfig = new SubscriptionGroupConfig[1];
+        this.subscriptionGroupTable.computeIfPresent(groupName, (key, existingConfig) -> {
+            removedConfig[0] = existingConfig;
+            return null;
+        });
+        if (removedConfig[0] != null) {
+            notifySubscriptionGroupDeleted(removedConfig[0]);
+        }
+        return removedConfig[0];
+    }
+
+    private void notifySubscriptionGroupCreated(SubscriptionGroupConfig config) {
+        brokerController.getMetadataChangeObserver().onCreated(TopicValidator.RMQ_SYS_SUBSCRIPTION_GROUP_SYNC, config.getGroupName(), config);
+    }
+
+    private void notifySubscriptionGroupUpdated(SubscriptionGroupConfig config) {
+        brokerController.getMetadataChangeObserver().onUpdated(TopicValidator.RMQ_SYS_SUBSCRIPTION_GROUP_SYNC, config.getGroupName(), config);
+    }
+
+    private void notifySubscriptionGroupDeleted(SubscriptionGroupConfig config) {
+        brokerController.getMetadataChangeObserver().onDeleted(TopicValidator.RMQ_SYS_SUBSCRIPTION_GROUP_SYNC, config.getGroupName(), config);
     }
 
     public void updateSubscriptionGroupConfig(final SubscriptionGroupConfig config) {
         updateSubscriptionGroupConfigWithoutPersist(config);
         this.persist();
+    }
+    public ConcurrentMap<String, SubscriptionGroupConfig> deepCopySubscriptionGroupTable() {
+        ConcurrentMap<String, SubscriptionGroupConfig> newTable =
+                new ConcurrentHashMap<>(this.subscriptionGroupTable.size());
+
+        for (Map.Entry<String, SubscriptionGroupConfig> entry : this.subscriptionGroupTable.entrySet()) {
+            String groupName = entry.getKey();
+            SubscriptionGroupConfig originalConfig = entry.getValue();
+
+            if (originalConfig != null) {
+                try {
+                    SubscriptionGroupConfig clonedConfig = originalConfig.clone();
+                    newTable.put(groupName, clonedConfig);
+                } catch (CloneNotSupportedException e) {
+                    newTable.put(groupName, originalConfig);
+                }
+            }
+        }
+        return newTable;
     }
 
     public void updateSubscriptionGroupConfigWithoutPersist(SubscriptionGroupConfig config) {

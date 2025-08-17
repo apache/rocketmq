@@ -92,7 +92,7 @@ public class TopicConfigManager extends ConfigManager {
             TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
             if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
@@ -105,7 +105,7 @@ public class TopicConfigManager extends ConfigManager {
                     .getDefaultTopicQueueNums());
                 int perm = PermName.PERM_INHERIT | PermName.PERM_READ | PermName.PERM_WRITE;
                 topicConfig.setPerm(perm);
-                putTopicConfig(topicConfig);
+                this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
             }
         }
         {
@@ -114,7 +114,7 @@ public class TopicConfigManager extends ConfigManager {
             TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1024);
             topicConfig.setWriteQueueNums(1024);
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
             String topic = this.brokerController.getBrokerConfig().getBrokerClusterName();
@@ -125,7 +125,7 @@ public class TopicConfigManager extends ConfigManager {
                 perm |= PermName.PERM_READ | PermName.PERM_WRITE;
             }
             topicConfig.setPerm(perm);
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
 
@@ -139,7 +139,7 @@ public class TopicConfigManager extends ConfigManager {
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             topicConfig.setPerm(perm);
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
             String topic = TopicValidator.RMQ_SYS_OFFSET_MOVED_EVENT;
@@ -147,7 +147,7 @@ public class TopicConfigManager extends ConfigManager {
             TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
             String topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
@@ -155,7 +155,7 @@ public class TopicConfigManager extends ConfigManager {
             TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(SCHEDULE_TOPIC_QUEUE_NUM);
             topicConfig.setWriteQueueNums(SCHEDULE_TOPIC_QUEUE_NUM);
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
             if (this.brokerController.getBrokerConfig().isTraceTopicEnable()) {
@@ -164,7 +164,7 @@ public class TopicConfigManager extends ConfigManager {
                 TopicValidator.addSystemTopic(topic);
                 topicConfig.setReadQueueNums(1);
                 topicConfig.setWriteQueueNums(1);
-                putTopicConfig(topicConfig);
+                this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
             }
         }
         {
@@ -173,7 +173,7 @@ public class TopicConfigManager extends ConfigManager {
             TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
             // PopAckConstants.REVIVE_TOPIC
@@ -182,7 +182,7 @@ public class TopicConfigManager extends ConfigManager {
             TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(this.brokerController.getBrokerConfig().getReviveQueueNum());
             topicConfig.setWriteQueueNums(this.brokerController.getBrokerConfig().getReviveQueueNum());
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
             // sync broker member group topic
@@ -192,7 +192,7 @@ public class TopicConfigManager extends ConfigManager {
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             topicConfig.setPerm(PermName.PERM_INHERIT);
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
         {
             // TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC
@@ -201,7 +201,7 @@ public class TopicConfigManager extends ConfigManager {
             TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
 
         {
@@ -211,9 +211,62 @@ public class TopicConfigManager extends ConfigManager {
             TopicValidator.addSystemTopic(topic);
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
-            putTopicConfig(topicConfig);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
         }
-
+        {
+            // TopicValidator.RMQ_SYS_TOPIC_CONFIG_SYNC
+            String topic = TopicValidator.RMQ_SYS_TOPIC_CONFIG_SYNC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            TopicValidator.addSystemTopic(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
+        {
+            // TopicValidator.RMQ_SYS_CONSUMER_OFFSET_SYNC
+            String topic = TopicValidator.RMQ_SYS_CONSUMER_OFFSET_SYNC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            TopicValidator.addSystemTopic(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
+        {
+            // TopicValidator.RMQ_SYS_DELAY_OFFSET_SYNC
+            String topic = TopicValidator.RMQ_SYS_DELAY_OFFSET_SYNC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            TopicValidator.addSystemTopic(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
+        {
+            // TopicValidator.RMQ_SYS_SUBSCRIPTION_GROUP_SYNC
+            String topic = TopicValidator.RMQ_SYS_SUBSCRIPTION_GROUP_SYNC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            TopicValidator.addSystemTopic(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
+        {
+            // TopicValidator.RMQ_SYS_MESSAGE_MODE_SYNC
+            String topic = TopicValidator.RMQ_SYS_MESSAGE_MODE_SYNC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            TopicValidator.addSystemTopic(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
+        {
+            // TopicValidator.RMQ_SYS_TIMER_METRICS_SYNC
+            String topic = TopicValidator.RMQ_SYS_TIMER_METRICS_SYNC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            TopicValidator.addSystemTopic(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        }
         {
             if (this.brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
                 String topic = TimerMessageStore.TIMER_TOPIC;
@@ -227,15 +280,41 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     public TopicConfig putTopicConfig(TopicConfig topicConfig) {
-        return this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+        return this.topicConfigTable.compute(topicConfig.getTopicName(), (key, existingConfig) -> {
+            if (existingConfig == null) {
+                notifyTopicCreated(topicConfig);
+            } else {
+                notifyTopicUpdated(topicConfig);
+            }
+            return topicConfig;
+        });
     }
+
+    private void notifyTopicCreated(TopicConfig topicConfig) {
+        brokerController.getMetadataChangeObserver().onCreated(TopicValidator.RMQ_SYS_TOPIC_CONFIG_SYNC,topicConfig.getTopicName(), topicConfig);
+    }
+
+    private void notifyTopicUpdated(TopicConfig topicConfig) {
+        brokerController.getMetadataChangeObserver().onUpdated(TopicValidator.RMQ_SYS_TOPIC_CONFIG_SYNC,topicConfig.getTopicName(), topicConfig);
+    }
+
+    private void notifyTopicDeleted(TopicConfig topicConfig) {
+        brokerController.getMetadataChangeObserver().onDeleted(TopicValidator.RMQ_SYS_TOPIC_CONFIG_SYNC,topicConfig.getTopicName(), topicConfig);
+    }
+
 
     protected TopicConfig getTopicConfig(String topicName) {
         return this.topicConfigTable.get(topicName);
     }
 
     protected TopicConfig removeTopicConfig(String topicName) {
-        return this.topicConfigTable.remove(topicName);
+        TopicConfig[] topicConfig = new TopicConfig[1];
+        this.topicConfigTable.compute(topicName, (key, existingConfig) -> {
+            topicConfig[0] = existingConfig;
+            notifyTopicDeleted(existingConfig);
+            return null;
+        });
+        return topicConfig[0];
     }
 
     public TopicConfig selectTopicConfig(final String topic) {

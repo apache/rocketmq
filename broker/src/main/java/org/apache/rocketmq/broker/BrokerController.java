@@ -16,8 +16,10 @@
  */
 package org.apache.rocketmq.broker;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
@@ -84,6 +86,11 @@ import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
+import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.sync.MetadataChangeObserver;
+import org.apache.rocketmq.broker.sync.NoopMetadataChangeObserver;
+import org.apache.rocketmq.broker.sync.SyncMessageProducer;
+import org.apache.rocketmq.broker.sync.SyncMetadataChangeObserver;
 import org.apache.rocketmq.broker.topic.LmqTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
@@ -110,6 +117,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.stats.MomentStatsItem;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -156,11 +164,19 @@ import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -238,6 +254,7 @@ public class BrokerController {
     protected final BlockingQueue<Runnable> endTransactionThreadPoolQueue;
     protected final BlockingQueue<Runnable> adminBrokerThreadPoolQueue;
     protected final BlockingQueue<Runnable> loadBalanceThreadPoolQueue;
+    protected final BlockingQueue<Runnable> metadataIncrementalSyncThreadPoolQueue;
     protected BrokerStatsManager brokerStatsManager;
     protected final List<SendMessageHook> sendMessageHookList = new ArrayList<>();
     protected final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
@@ -266,6 +283,7 @@ public class BrokerController {
     protected ExecutorService consumerManageExecutor;
     protected ExecutorService loadBalanceExecutor;
     protected ExecutorService endTransactionExecutor;
+    protected ExecutorService metadataIncrementalSyncExecutor;
     protected boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
@@ -300,6 +318,7 @@ public class BrokerController {
     private TransactionMetricsFlushService transactionMetricsFlushService;
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
+    private MetadataChangeObserver metadataChangeObserver;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -411,6 +430,14 @@ public class BrokerController {
         this.loadBalanceThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getLoadBalanceThreadPoolQueueCapacity());
 
         this.brokerFastFailure = new BrokerFastFailure(this);
+        if (this.brokerConfig.isAllowMetadataIncrementalSync() && this.brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
+            SyncMessageProducer syncMessageProducer = new SyncMessageProducer(this);
+            this.metadataIncrementalSyncThreadPoolQueue = new LinkedBlockingQueue<>(10);
+            metadataChangeObserver = new SyncMetadataChangeObserver(syncMessageProducer);
+        } else {
+            metadataChangeObserver = new NoopMetadataChangeObserver();
+            this.metadataIncrementalSyncThreadPoolQueue = null;
+        }
 
         String brokerConfigPath;
         if (brokerConfig.getBrokerConfigPath() != null && !brokerConfig.getBrokerConfigPath().isEmpty()) {
@@ -617,6 +644,16 @@ public class BrokerController {
             this.loadBalanceThreadPoolQueue,
             new ThreadFactoryImpl("LoadBalanceProcessorThread_", getBrokerIdentity()));
 
+        if (this.brokerConfig.isAllowMetadataIncrementalSync() && this.brokerConfig.getBrokerId() == 0L) {
+            this.metadataIncrementalSyncExecutor = ThreadUtils.newThreadPoolExecutor(
+                    this.brokerConfig.getMetadataIncrementalSyncThreadPoolNums(),
+                    this.brokerConfig.getMetadataIncrementalSyncThreadPoolNums(),
+                    1000 * 60,
+                    TimeUnit.MILLISECONDS,
+                    this.metadataIncrementalSyncThreadPoolQueue,
+                    new ThreadFactoryImpl("MetadataIncrementalSyncThread_", getBrokerIdentity()));
+        }
+
         this.syncBrokerMemberGroupExecutorService = ThreadUtils.newScheduledThreadPool(1,
             new ThreadFactoryImpl("BrokerControllerSyncBrokerScheduledThread", getBrokerIdentity()));
         this.brokerHeartbeatExecutorService = ThreadUtils.newScheduledThreadPool(1,
@@ -727,7 +764,11 @@ public class BrokerController {
                     public void run() {
                         try {
                             if (System.currentTimeMillis() - lastSyncTimeMs > 60 * 1000) {
-                                BrokerController.this.getSlaveSynchronize().syncAll();
+                                if (!getBrokerConfig().isAllowMetadataIncrementalSync()) {
+                                    BrokerController.this.getSlaveSynchronize().syncAll();
+                                } else {
+                                    BrokerController.this.getSlaveSynchronize().start();
+                                }
                                 lastSyncTimeMs = System.currentTimeMillis();
                             }
 
@@ -755,11 +796,169 @@ public class BrokerController {
                 }, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
             }
         }
+        if (this.brokerConfig.isAllowMetadataIncrementalSync() && this.brokerConfig.getBrokerId() == 0L) {
+
+            this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+                try {
+                    this.consumerOffsetManager.checkAndSync();
+                } catch (Throwable e) {
+                    LOG.error("Failed to execute scheduled sync task", e);
+                }
+            }, 1000, 1000, TimeUnit.MILLISECONDS);
+
+            this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+                try {
+                    deleteOutdatedSnapshot();
+                    persistBrokerConfigSnapshotsSeparately();
+                } catch (Throwable e) {
+                    LOG.error("Failed to execute scheduled sync task", e);
+                }
+            }, 10, this.brokerConfig.getSnapshotIntervalSeconds(), TimeUnit.SECONDS);
+        }
 
         if (this.brokerConfig.isEnableControllerMode()) {
             this.updateMasterHAServerAddrPeriodically = true;
         }
     }
+
+
+    private void persistBrokerConfigSnapshotsSeparately() {
+        LOG.info("Starting to persist broker config snapshots separately...");
+
+        String snapshotDir = System.getenv().getOrDefault("ROCKETMQ_BROKER_STORE_PATH", System.getProperty("user.home")) + File.separator + "snapshot";
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+        String timestamp = dateFormat.format(new Date());
+
+        try {
+            Path dirPath = Paths.get(snapshotDir);
+            if (Files.notExists(dirPath)) {
+                Files.createDirectories(dirPath);
+            }
+
+            submitSnapshotTask(() -> {
+                try {
+                    long maxOffset = this.messageStore.getMaxOffsetInQueue(TopicValidator.RMQ_SYS_TOPIC_CONFIG_SYNC, 0);
+                    Object snapshotData = Pair.of(topicConfigManager, maxOffset);
+                    writeSnapshotToFile(MixAll.SNAPSHOT_NAME_TOPIC_CONFIG, snapshotData, snapshotDir, timestamp);
+                } catch (Throwable e) {
+                    LOG.error("Failed to persist {} snapshot", MixAll.SNAPSHOT_NAME_TOPIC_CONFIG, e);
+                }
+            });
+
+            submitSnapshotTask(() -> {
+                try {
+                    long maxOffset = this.messageStore.getMaxOffsetInQueue(TopicValidator.RMQ_SYS_SUBSCRIPTION_GROUP_SYNC, 0);
+                    Object snapshotData = Triple.of(subscriptionGroupManager.deepCopySubscriptionGroupTable(), subscriptionGroupManager.getDataVersion(), maxOffset);
+                    writeSnapshotToFile(MixAll.SNAPSHOT_NAME_SUBSCRIPTION_GROUP, snapshotData, snapshotDir, timestamp);
+                } catch (Throwable e) {
+                    LOG.error("Failed to persist {} snapshot", MixAll.SNAPSHOT_NAME_SUBSCRIPTION_GROUP, e);
+                }
+            });
+
+            submitSnapshotTask(() -> {
+                try {
+                    long maxOffset = this.messageStore.getMaxOffsetInQueue(TopicValidator.RMQ_SYS_CONSUMER_OFFSET_SYNC, 0);
+                    Object snapshotData = Triple.of(consumerOffsetManager.deepCopyOffsetTableSnapshot(), consumerOffsetManager.getDataVersion(), maxOffset);
+                    writeSnapshotToFile(MixAll.SNAPSHOT_NAME_CONSUMER_OFFSET, snapshotData, snapshotDir, timestamp);
+                } catch (Throwable e) {
+                    LOG.error("Failed to persist {} snapshot", MixAll.SNAPSHOT_NAME_CONSUMER_OFFSET, e);
+                }
+            });
+
+            submitSnapshotTask(() -> {
+                try {
+                    long maxOffset = this.messageStore.getMaxOffsetInQueue(TopicValidator.RMQ_SYS_DELAY_OFFSET_SYNC, 0);
+                    Object snapshotData = Pair.of(this.getScheduleMessageService(), maxOffset);
+                    writeSnapshotToFile(MixAll.SNAPSHOT_NAME_DELAY_OFFSET, snapshotData, snapshotDir, timestamp);
+                } catch (Throwable e) {
+                    LOG.error("Failed to persist {} snapshot", MixAll.SNAPSHOT_NAME_DELAY_OFFSET, e);
+                }
+            });
+
+            submitSnapshotTask(() -> {
+                try {
+                    long maxOffset = this.messageStore.getMaxOffsetInQueue(TopicValidator.RMQ_SYS_MESSAGE_MODE_SYNC, 0);
+                    Object snapshotData = Pair.of(this.queryAssignmentProcessor.getMessageRequestModeManager().deepCopyMessageRequestModeMapSnapshot(), maxOffset);
+                    writeSnapshotToFile(MixAll.SNAPSHOT_NAME_MESSAGE_MODE, snapshotData, snapshotDir, timestamp);
+                } catch (Throwable e) {
+                    LOG.error("Failed to persist {} snapshot", MixAll.SNAPSHOT_NAME_MESSAGE_MODE, e);
+                }
+            });
+
+            submitSnapshotTask(() -> {
+                try {
+                    long maxOffset = this.messageStore.getMaxOffsetInQueue(TopicValidator.RMQ_SYS_TIMER_METRICS_SYNC, 0);
+                    Object snapshotData = Triple.of(this.messageStore.getTimerMessageStore().getTimerMetrics().deepCopyTimingCountSnapshot(),this.messageStore.getTimerMessageStore().getTimerMetrics().getDataVersion(), maxOffset);
+                    writeSnapshotToFile(MixAll.SNAPSHOT_NAME_TIMER_METRICS, snapshotData, snapshotDir, timestamp);
+                } catch (Throwable e) {
+                    LOG.error("Failed to persist {} snapshot", MixAll.SNAPSHOT_NAME_TIMER_METRICS, e);
+                }
+            });
+
+        } catch (Throwable e) {
+            LOG.error("Failed to create snapshot directory", e);
+        }
+    }
+
+    private void writeSnapshotToFile(String snapshotName, Object snapshotData, String snapshotDir, String timestamp) throws Exception {
+        String jsonSnapshot = JSON.toJSONString(snapshotData);
+
+        String filename = String.format("%s_snapshot_%s.json", snapshotName, timestamp);
+        Path filePath = Paths.get(snapshotDir, filename);
+
+        Files.write(filePath, jsonSnapshot.getBytes(StandardCharsets.UTF_8));
+        LOG.info("{} snapshot persisted to file: {}", snapshotName, filePath.toString());
+    }
+
+    private void submitSnapshotTask(Runnable task) {
+        metadataIncrementalSyncExecutor.submit(task);
+    }
+
+
+    private void deleteOutdatedSnapshot() {
+        try {
+            String snapshotDir = System.getenv().getOrDefault("ROCKETMQ_BROKER_STORE_PATH",
+                    System.getProperty("user.home")) + File.separator + "snapshot";
+            Path dirPath = Paths.get(snapshotDir);
+
+            if (Files.notExists(dirPath)) {
+                return;
+            }
+
+            MixAll.SNAPSHOT_NAMES.forEach(name -> {
+                List<Path> snapshotFiles = null;
+                try {
+                    snapshotFiles = Files.list(dirPath)
+                            .filter(path -> path.getFileName().toString().startsWith(name))
+                            .sorted((p1, p2) -> {
+                                try {
+                                    return Files.getLastModifiedTime(p2).compareTo(Files.getLastModifiedTime(p1));
+                                } catch (IOException e) {
+                                    return 0;
+                                }
+                            })
+                            .collect(Collectors.toList());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                if (snapshotFiles.size() > 1) {
+                    for (int i = 1; i < snapshotFiles.size(); i++) {
+                        try {
+                            Files.delete(snapshotFiles.get(i));
+                            LOG.debug("Deleted old snapshot: {}", snapshotFiles.get(i));
+                        } catch (IOException e) {
+                            LOG.warn("Failed to delete {}", snapshotFiles.get(i), e);
+                        }
+                    }
+                    LOG.info("Kept latest 1 old snapshot, deleted {} files", snapshotFiles.size() - 1);
+                }
+            });
+
+        } catch (Throwable e) {
+            LOG.error("Error in snapshot cleanup", e);
+        }
+    }
+
 
     protected void initializeScheduledTasks() {
 
@@ -842,7 +1041,7 @@ public class BrokerController {
             this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
             if (messageStoreConfig.isTimerWheelEnable()) {
                 this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
-                TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
+                TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()), metadataChangeObserver);
                 this.timerMessageStore = new TimerMessageStore(messageStore, messageStoreConfig, timerCheckpoint, timerMetrics, brokerStatsManager);
                 this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
                 this.messageStore.setTimerMessageStore(this.timerMessageStore);
@@ -1361,6 +1560,14 @@ public class BrokerController {
         this.subscriptionGroupManager = subscriptionGroupManager;
     }
 
+    public MetadataChangeObserver getMetadataChangeObserver() {
+        return metadataChangeObserver;
+    }
+
+    public void setMetadataChangeObserver(MetadataChangeObserver metadataChangeObserver) {
+        this.metadataChangeObserver = metadataChangeObserver;
+    }
+
     public SubscriptionGroupManager getSubscriptionGroupManager() {
         return subscriptionGroupManager;
     }
@@ -1539,7 +1746,7 @@ public class BrokerController {
         if (this.transactionalMessageCheckService != null) {
             this.transactionalMessageCheckService.shutdown(false);
         }
-        
+
         if (this.loadBalanceExecutor != null) {
             this.loadBalanceExecutor.shutdown();
         }
