@@ -201,16 +201,16 @@ public class BrokerStatsManagerTest {
     }
 
     @Test
-    public void testIncBrokerGetNumsWithoutSystemTopic() {
+    public void testIncBrokerGetNumsWithoutSystemTopicAndSystemGroup() {
         brokerStatsManager.incBrokerGetNumsWithoutSystemTopicAndSystemGroup(TOPIC, GROUP_NAME, 1);
-        assertThat(brokerStatsManager.getStatsItem(BrokerStatsManager.BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC, CLUSTER_NAME)
+        assertThat(brokerStatsManager.getStatsItem(BrokerStatsManager.BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC_AND_SYSTEM_GROUP, CLUSTER_NAME)
             .getValue().doubleValue()).isEqualTo(1L);
-        assertThat(brokerStatsManager.getBrokerGetNumsWithoutSystemTopic()).isEqualTo(1L);
+        assertThat(brokerStatsManager.getBrokerGetNumsWithoutSystemTopicAndSystemGroup()).isEqualTo(1L);
 
         brokerStatsManager.incBrokerGetNumsWithoutSystemTopicAndSystemGroup(TopicValidator.RMQ_SYS_TRACE_TOPIC, GROUP_NAME, 1);
-        assertThat(brokerStatsManager.getStatsItem(BrokerStatsManager.BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC, CLUSTER_NAME)
+        assertThat(brokerStatsManager.getStatsItem(BrokerStatsManager.BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC_AND_SYSTEM_GROUP, CLUSTER_NAME)
             .getValue().doubleValue()).isEqualTo(1L);
-        assertThat(brokerStatsManager.getBrokerGetNumsWithoutSystemTopic()).isEqualTo(1L);
+        assertThat(brokerStatsManager.getBrokerGetNumsWithoutSystemTopicAndSystemGroup()).isEqualTo(1L);
     }
 
     @Test

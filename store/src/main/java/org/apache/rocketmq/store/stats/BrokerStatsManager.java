@@ -78,7 +78,7 @@ public class BrokerStatsManager {
     public static final String DLQ_PUT_NUMS = "DLQ_PUT_NUMS";
     public static final String BROKER_ACK_NUMS = "BROKER_ACK_NUMS";
     public static final String BROKER_CK_NUMS = "BROKER_CK_NUMS";
-    public static final String BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC = "BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC";
+    public static final String BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC_AND_SYSTEM_GROUP = "BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC_AND_SYSTEM_GROUP";
     public static final String BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC = "BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC";
     public static final String SNDBCK2DLQ_TIMES = "SNDBCK2DLQ_TIMES";
 
@@ -195,8 +195,8 @@ public class BrokerStatsManager {
         this.statsTable.put(Stats.BROKER_GET_NUMS, new StatsItemSet(Stats.BROKER_GET_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(BROKER_ACK_NUMS, new StatsItemSet(BROKER_ACK_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(BROKER_CK_NUMS, new StatsItemSet(BROKER_CK_NUMS, this.scheduledExecutorService, log));
-        this.statsTable.put(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC,
-            new StatsItemSet(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC, this.scheduledExecutorService, log));
+        this.statsTable.put(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC_AND_SYSTEM_GROUP,
+            new StatsItemSet(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC_AND_SYSTEM_GROUP, this.scheduledExecutorService, log));
         this.statsTable.put(BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC,
             new StatsItemSet(BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.GROUP_GET_FROM_DISK_NUMS,
@@ -557,7 +557,7 @@ public class BrokerStatsManager {
         if (TopicValidator.isSystemTopic(topic) || MixAll.isSysConsumerGroupPullMessage(group)) {
             return;
         }
-        this.statsTable.get(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
+        this.statsTable.get(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC_AND_SYSTEM_GROUP).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
     }
 
     public void incBrokerPutNumsWithoutSystemTopic(final String topic, final int incValue) {
@@ -567,8 +567,8 @@ public class BrokerStatsManager {
         this.statsTable.get(BROKER_PUT_NUMS_WITHOUT_SYSTEM_TOPIC).getAndCreateStatsItem(this.clusterName).getValue().add(incValue);
     }
 
-    public long getBrokerGetNumsWithoutSystemTopic() {
-        final StatsItemSet statsItemSet = this.statsTable.get(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC);
+    public long getBrokerGetNumsWithoutSystemTopicAndSystemGroup() {
+        final StatsItemSet statsItemSet = this.statsTable.get(BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC_AND_SYSTEM_GROUP);
         if (statsItemSet == null) {
             return 0;
         }
