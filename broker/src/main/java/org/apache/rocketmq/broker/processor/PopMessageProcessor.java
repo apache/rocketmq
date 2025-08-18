@@ -773,7 +773,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     return atomicRestNum.get();
                 }
                 if (!result.getMessageMapedList().isEmpty()) {
-                    this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), result.getMessageCount());
+                    this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), requestHeader.getConsumerGroup(), result.getMessageCount());
                     this.brokerController.getBrokerStatsManager().incGroupGetNums(requestHeader.getConsumerGroup(), topic,
                         result.getMessageCount());
                     this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), topic,

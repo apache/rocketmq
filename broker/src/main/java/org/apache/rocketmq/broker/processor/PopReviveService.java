@@ -219,7 +219,7 @@ public class PopReviveService extends ServiceThread {
                     foundList = decodeMsgList(getMessageResult, deCompressBody);
                     brokerController.getBrokerStatsManager().incGroupGetNums(group, topic, getMessageResult.getMessageCount());
                     brokerController.getBrokerStatsManager().incGroupGetSize(group, topic, getMessageResult.getBufferTotalSize());
-                    brokerController.getBrokerStatsManager().incBrokerGetNums(topic, getMessageResult.getMessageCount());
+                    brokerController.getBrokerStatsManager().incBrokerGetNums(topic, group, getMessageResult.getMessageCount());
                     brokerController.getBrokerStatsManager().recordDiskFallBehindTime(group, topic, queueId,
                         brokerController.getMessageStore().now() - foundList.get(foundList.size() - 1).getStoreTimestamp());
 

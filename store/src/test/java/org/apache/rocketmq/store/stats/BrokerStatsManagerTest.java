@@ -202,12 +202,12 @@ public class BrokerStatsManagerTest {
 
     @Test
     public void testIncBrokerGetNumsWithoutSystemTopic() {
-        brokerStatsManager.incBrokerGetNumsWithoutSystemTopic(TOPIC, 1);
+        brokerStatsManager.incBrokerGetNumsWithoutSystemTopicAndSystemGroup(TOPIC, GROUP_NAME, 1);
         assertThat(brokerStatsManager.getStatsItem(BrokerStatsManager.BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC, CLUSTER_NAME)
             .getValue().doubleValue()).isEqualTo(1L);
         assertThat(brokerStatsManager.getBrokerGetNumsWithoutSystemTopic()).isEqualTo(1L);
 
-        brokerStatsManager.incBrokerGetNumsWithoutSystemTopic(TopicValidator.RMQ_SYS_TRACE_TOPIC, 1);
+        brokerStatsManager.incBrokerGetNumsWithoutSystemTopicAndSystemGroup(TopicValidator.RMQ_SYS_TRACE_TOPIC, GROUP_NAME, 1);
         assertThat(brokerStatsManager.getStatsItem(BrokerStatsManager.BROKER_GET_NUMS_WITHOUT_SYSTEM_TOPIC, CLUSTER_NAME)
             .getValue().doubleValue()).isEqualTo(1L);
         assertThat(brokerStatsManager.getBrokerGetNumsWithoutSystemTopic()).isEqualTo(1L);
