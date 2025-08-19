@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.slave;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -185,7 +186,7 @@ public class SlaveSynchronize {
     }
 
     private void handleMetadataMessage(MessageExt msg) {
-        MetadataChangeInfo metadataChangeInfo = JSONObject.parseObject(new String(msg.getBody()), MetadataChangeInfo.class);
+        MetadataChangeInfo metadataChangeInfo = JSONObject.parseObject(new String(msg.getBody(), StandardCharsets.UTF_8), MetadataChangeInfo.class);
         switch (msg.getTopic()) {
             case TopicValidator.RMQ_SYS_TOPIC_CONFIG_SYNC:
                 handleTopicConfigChangeInfo(metadataChangeInfo);
