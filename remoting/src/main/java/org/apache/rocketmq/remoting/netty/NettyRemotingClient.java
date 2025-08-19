@@ -632,11 +632,6 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return getAndCreateNameserverChannelAsync();
         }
 
-        ChannelWrapper cw = this.channelTables.get(addr);
-        if (cw != null && cw.isOK()) {
-            return cw.getChannelFuture();
-        }
-
         return this.createChannelAsync(addr);
     }
 
