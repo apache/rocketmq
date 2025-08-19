@@ -35,6 +35,7 @@ import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.plugin.PullMessageResultHandler;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
@@ -42,14 +43,17 @@ import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.ForbiddenType;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.RequestSource;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -555,29 +559,33 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 getMessageResult.setNextBeginOffset(broadcastInitOffset);
             } else {
                 SubscriptionData finalSubscriptionData = subscriptionData;
-                RemotingCommand finalResponse = response;
                 messageStore.getMessageAsync(group, topic, queueId, requestHeader.getQueueOffset(),
                         requestHeader.getMaxMsgNums(), messageFilter)
                     .thenApply(result -> {
                         if (null == result) {
-                            finalResponse.setCode(ResponseCode.SYSTEM_ERROR);
-                            finalResponse.setRemark("store getMessage return null");
-                            return finalResponse;
+                            response.setCode(ResponseCode.SYSTEM_ERROR);
+                            response.setRemark("store getMessage return null");
+                            return response;
                         }
+
                         brokerController.getColdDataCgCtrService().coldAcc(requestHeader.getConsumerGroup(), result.getColdDataSum());
-                        return pullMessageResultHandler.handle(
-                            result,
-                            request,
-                            requestHeader,
-                            channel,
-                            finalSubscriptionData,
-                            subscriptionGroupConfig,
-                            brokerAllowSuspend,
-                            messageFilter,
-                            finalResponse,
-                            mappingContext,
-                            beginTimeMills
+                        RemotingCommand finalResponse = pullMessageResultHandler.handle(
+                                result,
+                                request,
+                                requestHeader,
+                                channel,
+                                finalSubscriptionData,
+                                subscriptionGroupConfig,
+                                brokerAllowSuspend,
+                                messageFilter,
+                                response,
+                                mappingContext,
+                                beginTimeMills
                         );
+                        // uses asynchronous return, causing the Response in doAfterResponse of NettyRemotingAbstract rpcHook to be null
+                        // After successfully pulling the message asynchronously, the doAfterResponse of rpcHook is actively called back.
+                        finalResponse = doAfterRpcHooks(channel, request, finalResponse);
+                        return finalResponse;
                     })
                     .thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result));
             }
@@ -602,6 +610,20 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         return null;
     }
 
+    private RemotingCommand doAfterRpcHooks(Channel channel, RemotingCommand request, RemotingCommand finalResponse) {
+        try {
+            List<RPCHook> rpcHookList = ((NettyRemotingServer)brokerController.getRemotingServer()).getRPCHook();
+            if (!rpcHookList.isEmpty() && finalResponse != null) {
+                for (RPCHook rpcHook : rpcHookList) {
+                    rpcHook.doAfterResponse(RemotingHelper.parseChannelRemoteAddr(channel), request, finalResponse);
+                }
+            }
+        } catch (Exception exception) {
+            finalResponse = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
+                    UtilAll.exceptionSimpleDesc(exception));
+        }
+        return finalResponse;
+    }
     public boolean hasConsumeMessageHook() {
         return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
     }
