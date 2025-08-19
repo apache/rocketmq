@@ -41,17 +41,22 @@ public class RouteEventService {
     }
 
     public void publishEvent(RouteEventType eventType) {
+        publishEvent(eventType, null);
+    }
+
+    public void publishEvent(RouteEventType eventType, String affectedtopic) {
         Map<String, Object> eventData = new HashMap<>();
         PutMessageResult result;
         eventData.put(RouteEventConstants.EVENT_TYPE, eventType.name());
         eventData.put(RouteEventConstants.BROKER_NAME, brokerController.getBrokerConfig().getBrokerName());
         eventData.put(RouteEventConstants.BROKER_ID, brokerController.getBrokerConfig().getBrokerId());
         eventData.put(RouteEventConstants.TIMESTAMP, System.currentTimeMillis());
+        if (affectedtopic != null) {
+            eventData.put(RouteEventConstants.AFFECTED_TOPIC, affectedtopic);
+        }
 
-        LOG.info("[ROUTE_EVENT] Preparing to publish {} event with data: {}",
-            eventType, JSON.toJSONString(eventData));
         MessageExtBrokerInner msg = createEventMessage(eventData);
-        LOG.info("[ROUTE_EVENT] Created event message: {}", msg);
+
         try {
             result = brokerController.getMessageStore().putMessage(msg);
         }
@@ -60,12 +65,8 @@ public class RouteEventService {
             return;
         }
         brokerController.getMessageStore().flush();
-        LOG.info("[ROUTE_EVENT] Flushed message store after publishing event: {}", eventType);
 
-        if (result.isOk()) {
-            LOG.info("[ROUTE_EVENT] Published {} event for {}",
-                eventType, eventData.get(RouteEventConstants.BROKER_NAME));
-        } else {
+        if (!result.isOk()) {
             LOG.error("[ROUTE_EVENT] Publish failed: {}", result.getPutMessageStatus());
         }
     }

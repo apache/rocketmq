@@ -64,8 +64,13 @@ public class RouteCacheRefresher {
         scheduler.scheduleWithFixedDelay(this::processDirtyTopics, 50, 200, TimeUnit.MILLISECONDS);
     }
 
-    public void markCacheDirty(String topic) {
-        dirtyTopics.put(topic, System.currentTimeMillis());
+    public void markCacheDirty(String topic, long timeStamp) {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - timeStamp > TimeUnit.MINUTES.toMillis(1)) {
+            return;
+        }
+
+        dirtyTopics.put(topic, currentTime);
         pendingTopics.offer(topic);
     }
 
@@ -83,6 +88,11 @@ public class RouteCacheRefresher {
     private void refreshSingleRoute(String topic) {
         try {
             log.info("Refreshing route for: {}", topic);
+            if (topicCache.getIfPresent(topic) == null) {
+                log.warn("No cache entry found for topic: {}", topic);
+                return;
+            }
+
             refreshingTopics.put(topic, System.currentTimeMillis());
             topicCache.refresh(topic);
 

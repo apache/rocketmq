@@ -1301,6 +1301,10 @@ public class BrokerController {
         this.messageStore = messageStore;
     }
 
+    public RouteEventService getRouteEventService() {
+        return routeEventService;
+    }
+
     protected void printMasterAndSlaveDiff() {
         if (messageStore.getHaService() != null && messageStore.getHaService().getConnectionCount().get() > 0) {
             long diff = this.messageStore.slaveFallBehindMuch();

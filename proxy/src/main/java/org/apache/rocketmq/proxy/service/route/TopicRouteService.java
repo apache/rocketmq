@@ -64,7 +64,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     private final RouteEventSubscriber routeEventSubscriber;
     private final RouteCacheRefresher routeCacheRefresher;
-    private final ConcurrentMap<String, Set<String>> brokerTopicsMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Set<String>> brokerToTopics = new ConcurrentHashMap<>();
 
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ScheduledExecutorService scheduledExecutorService;
@@ -95,7 +95,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView load(String topic) throws Exception {
                     try {
                         TopicRouteData topicRouteData = mqClientAPIFactory.getClient().getTopicRouteInfoFromNameServer(topic, Duration.ofSeconds(3).toMillis());
-                        log.info("[Route_Event]:load topic route from namesrv. topic: {}", topic);
                         updateBrokerTopicMapping(topic, topicRouteData);
 
                         return buildMessageQueueView(topic, topicRouteData);
@@ -154,33 +153,47 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
         this.routeEventSubscriber = new RouteEventSubscriber(
             this,
-            topic -> {
-                this.routeCacheRefresher.markCacheDirty(topic);
+            (topic, timeStamp) -> {
+                this.routeCacheRefresher.markCacheDirty(topic, timeStamp);
             }
         );
         this.init();
     }
 
-    private void updateBrokerTopicMapping(String topic, TopicRouteData topicRouteData) {
-        Set<String> brokerNames = topicRouteData.getBrokerDatas().stream()
+    private void updateBrokerTopicMapping(String topic, TopicRouteData route) {
+        Set<String> currentBrokers = route.getBrokerDatas().stream()
             .map(BrokerData::getBrokerName)
             .collect(Collectors.toSet());
-        log.info("[Route_Event]: Update broker topics mapping for topic: {}, brokers: {}", topic, brokerNames);
 
-        for (String brokerName : brokerNames) {
-            brokerTopicsMap.computeIfAbsent(brokerName, k -> ConcurrentHashMap.newKeySet())
-                .add(topic);
+        for (String broker : currentBrokers) {
+            brokerToTopics.computeIfAbsent(broker, k -> ConcurrentHashMap.newKeySet())
+                        .add(topic);
         }
+
+        log.info("Updated mapping for topic: {} -> brokers: {}", topic, currentBrokers);
     }
 
     public Set<String> getBrokerTopics(String brokerName) {
-        return brokerTopicsMap.getOrDefault(brokerName, Set.of());
+        return brokerToTopics.getOrDefault(brokerName, Set.of());
     }
 
-    public void removeBrokerTopics(String brokerName) {
-        Set<String> topics = brokerTopicsMap.remove(brokerName);
+    public void removeBrokerToTopics(String brokerName) {
+        Set<String> topics = brokerToTopics.remove(brokerName);
         if (topics != null) {
             log.info("[Route_Event]: Removed {} topics for broker: {}", topics.size(), brokerName);
+        }
+    }
+
+    public void removeBrokerToTopic(String brokerName, String topic) {
+        Set<String> topics = brokerToTopics.get(brokerName);
+        log.info("[Route_Event]: topics: {} broker: {}", topics, brokerName);
+        if (topics != null) {
+            topics.remove(topic);
+            log.info("[Route_Event]: Removed topic {} for broker: {}", topic, brokerName);
+
+            if (topics.isEmpty()) {
+                brokerToTopics.remove(brokerName);
+            }
         }
     }
 

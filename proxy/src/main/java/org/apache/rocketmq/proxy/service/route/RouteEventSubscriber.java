@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 import org.apache.rocketmq.broker.route.RouteEventConstants;
 import org.apache.rocketmq.broker.route.RouteEventType;
@@ -38,12 +38,12 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import com.alibaba.fastjson2.JSON;
 
 public class RouteEventSubscriber {
-    private final Consumer<String> dirtyMarker;
+    private final BiConsumer<String, Long> dirtyMarker;
     private final TopicRouteService topicRouteService;
     private final DefaultMQPushConsumer consumer;
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    public RouteEventSubscriber(TopicRouteService topicRouteService, Consumer<String> dirtyMarker) {
+    public RouteEventSubscriber(TopicRouteService topicRouteService, BiConsumer<String, Long> dirtyMarker) {
         this.topicRouteService = topicRouteService;
         this.dirtyMarker = dirtyMarker;
         this.consumer = new DefaultMQPushConsumer("PROXY_ROUTE_EVENT_GROUP");
@@ -52,16 +52,12 @@ public class RouteEventSubscriber {
     public void start() {
         try {
             consumer.subscribe(TopicValidator.RMQ_ROUTE_EVENT_TOPIC, "*");
-            LOGGER.warn("Subscribed to system topic: {}", TopicValidator.RMQ_ROUTE_EVENT_TOPIC);
-
             consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
-                LOGGER.warn("[ROUTE_UPDATE] Received {} events", msgs.size());
                 processMessages(msgs);
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             });
 
             consumer.start();
-            LOGGER.warn("Route event consumer started");
         } catch (MQClientException e) {
             LOGGER.error("Failed to start route event consumer", e);
         }
@@ -76,22 +72,37 @@ public class RouteEventSubscriber {
 
                 String brokerName = (String) event.get(RouteEventConstants.BROKER_NAME);
                 RouteEventType eventType = RouteEventType.valueOf((String) event.get(RouteEventConstants.EVENT_TYPE));
+                Long eventTimeStamp = (Long) event.get(RouteEventConstants.TIMESTAMP);
 
-                Set<String> topics  = this.topicRouteService.getBrokerTopics(brokerName);
 
-                if (topics == null || topics.isEmpty()) {
-                    LOGGER.warn("[ROUTE_UPDATE] No affected topics in event");
-                    continue;
+                switch (eventType) {
+                    case SHUTDOWN:
+                        Set<String> topics  = this.topicRouteService.getBrokerTopics(brokerName);
+                        this.topicRouteService.removeBrokerToTopics(brokerName);
+
+                        for (String topic : topics) {
+                            LOGGER.info("[ROUTE_UPDATE] Processing topic: {}", topic);
+                            dirtyMarker.accept(topic, eventTimeStamp);
+                        }
+                        break;
+
+                    case TOPIC_CHANGE:
+                        String affectedTopic = (String) event.get(RouteEventConstants.AFFECTED_TOPIC);
+
+                        if (affectedTopic != null) {
+                            LOGGER.info("[ROUTE_UPDATE] Affected topic: {}", affectedTopic);
+                            this.topicRouteService.removeBrokerToTopic(brokerName, affectedTopic);
+
+                            dirtyMarker.accept(affectedTopic, eventTimeStamp);
+                        } else {
+                            LOGGER.info("[ROUTE_UPDATE] No affected topic specified in event: {}", event);
+                        }
+                        break;
+
+                    default:
+                        break;
                 }
 
-                if (eventType == RouteEventType.SHUTDOWN) {
-                    topicRouteService.removeBrokerTopics(brokerName);
-                }
-
-                for (String topic : topics) {
-                    LOGGER.warn("[ROUTE_UPDATE] Processing topic: {}", topic);
-                    dirtyMarker.accept(topic);
-                }
             } catch (Exception e) {
                 LOGGER.error("[ROUTE_UPDATE]: Error processing route event", e);
             }

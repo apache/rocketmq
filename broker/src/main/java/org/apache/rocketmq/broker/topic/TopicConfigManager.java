@@ -34,6 +34,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.route.RouteEventType;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PopAckConstants;
@@ -236,6 +237,9 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     public TopicConfig putTopicConfig(TopicConfig topicConfig) {
+        if (!TopicValidator.isSystemTopic(topicConfig.getTopicName())) {
+            this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+        }
         return this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
     }
 
@@ -244,6 +248,7 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     protected TopicConfig removeTopicConfig(String topicName) {
+        this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topicName);
         return this.topicConfigTable.remove(topicName);
     }
 
