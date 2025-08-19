@@ -37,6 +37,7 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
@@ -45,14 +46,13 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
     protected final MessagingProcessor messagingProcessor;
     protected static final String BROKER_NAME_FIELD = "bname";
     protected static final String BROKER_NAME_FIELD_FOR_SEND_MESSAGE_V2 = "n";
-    private static final Map<ProxyExceptionCode, Integer> PROXY_EXCEPTION_RESPONSE_CODE_MAP = new HashMap<ProxyExceptionCode, Integer>() {
-        {
-            put(ProxyExceptionCode.FORBIDDEN, ResponseCode.NO_PERMISSION);
-            put(ProxyExceptionCode.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE, ResponseCode.MESSAGE_ILLEGAL);
-            put(ProxyExceptionCode.INTERNAL_SERVER_ERROR, ResponseCode.SYSTEM_ERROR);
-            put(ProxyExceptionCode.TRANSACTION_DATA_NOT_FOUND, ResponseCode.SUCCESS);
-        }
-    };
+    private static final Map<ProxyExceptionCode, Integer> PROXY_EXCEPTION_RESPONSE_CODE_MAP = new HashMap<>(8);
+    static {
+        PROXY_EXCEPTION_RESPONSE_CODE_MAP.put(ProxyExceptionCode.FORBIDDEN, ResponseCode.NO_PERMISSION);
+        PROXY_EXCEPTION_RESPONSE_CODE_MAP.put(ProxyExceptionCode.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE, ResponseCode.MESSAGE_ILLEGAL);
+        PROXY_EXCEPTION_RESPONSE_CODE_MAP.put(ProxyExceptionCode.INTERNAL_SERVER_ERROR, RemotingSysResponseCode.SYSTEM_ERROR);
+        PROXY_EXCEPTION_RESPONSE_CODE_MAP.put(ProxyExceptionCode.TRANSACTION_DATA_NOT_FOUND, RemotingSysResponseCode.SUCCESS);
+    }
     protected final RequestPipeline requestPipeline;
 
     public AbstractRemotingActivity(RequestPipeline requestPipeline, MessagingProcessor messagingProcessor) {
