@@ -46,6 +46,7 @@ import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQAdminImpl;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
+import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPullConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
@@ -1248,12 +1249,25 @@ public class MQClientInstance {
 
     public synchronized void resetOffset(String topic, String group, Map<MessageQueue, Long> offsetTable) {
         DefaultMQPushConsumerImpl consumer = null;
+        DefaultLitePullConsumerImpl litePullConsumer;
         try {
             MQConsumerInner impl = this.consumerTable.get(group);
             if (impl instanceof DefaultMQPushConsumerImpl) {
                 consumer = (DefaultMQPushConsumerImpl) impl;
+            } else if (impl instanceof DefaultLitePullConsumerImpl) {
+                litePullConsumer = (DefaultLitePullConsumerImpl) impl;
+                litePullConsumer.pause(offsetTable.keySet());
+                for (Entry<MessageQueue, Long> messageQueueLongEntry : offsetTable.entrySet()) {
+                    try {
+                        litePullConsumer.seek(messageQueueLongEntry.getKey(), messageQueueLongEntry.getValue());
+                    } catch (MQClientException e) {
+                        log.warn("[reset-offset] reset offset failed, topic={}, group={}, mq={}", topic, group, messageQueueLongEntry.getValue());
+                    }
+                }
+                litePullConsumer.resume(offsetTable.keySet());
+                return;
             } else {
-                log.info("[reset-offset] consumer does not exist. group={}", group);
+                log.info("[reset-offset] consumer does not support reset offset. group={}", group);
                 return;
             }
             consumer.suspend();
