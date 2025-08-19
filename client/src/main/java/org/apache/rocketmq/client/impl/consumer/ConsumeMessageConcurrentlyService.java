@@ -94,7 +94,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 }
             }
 
-        }, this.defaultMQPushConsumer.getConsumeTimeout(), this.defaultMQPushConsumer.getConsumeTimeout(), TimeUnit.MINUTES);
+        }, this.defaultMQPushConsumer.getCleanExpiredMsgInterval(), this.defaultMQPushConsumer.getCleanExpiredMsgInterval(), TimeUnit.MINUTES);
     }
 
     public void shutdown(long awaitTerminateMillis) {
