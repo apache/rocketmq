@@ -18,12 +18,19 @@
 package org.apache.rocketmq.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Test;
 
 
@@ -152,5 +159,46 @@ public class MultiPathMappedFileQueueTest {
 
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();
+    }
+
+    @Test
+    public void testUniqueNextNextMappedFile() throws IOException {
+        Set<String> fullStorePath = new HashSet<>();
+
+        MessageStoreConfig config = new MessageStoreConfig();
+        config.setStorePathCommitLog("target/unit_test_store/a" + MixAll.MULTI_PATH_SPLITTER
+            + "target/unit_test_store/b" + MixAll.MULTI_PATH_SPLITTER
+            + "target/unit_test_store/c");
+
+        DefaultMessageStore messageStore = new DefaultMessageStore(config,
+            new BrokerStatsManager("CommitlogTest", true),
+            null,
+            new BrokerConfig(),
+            new ConcurrentHashMap<>());
+
+        AllocateMappedFileService allocateMappedFileService = new AllocateMappedFileService(messageStore);
+        allocateMappedFileService.start();
+
+        MappedFileQueue mappedFileQueue = new MultiPathMappedFileQueue(config, 1024, allocateMappedFileService, () -> fullStorePath);
+        String[] storePaths = config.getStorePathCommitLog().trim().split(MixAll.MULTI_PATH_SPLITTER);
+        assertThat(storePaths.length).isEqualTo(3);
+
+        // the nextFilePath is "target/unit_test_store/a/00000000000000000000"
+        // the first invoke will insert nextNextFilePath "target/unit_test_store/b/00000000000000001024" into requestTable
+        mappedFileQueue.tryCreateMappedFile(0);
+
+        // mark target/unit_test_store/b/ as full
+        fullStorePath.add("target/unit_test_store/b");
+        // the nextFilePath is still "target/unit_test_store/b/00000000000000001024"
+        MappedFile mappedFile1 = mappedFileQueue.tryCreateMappedFile(1024);
+
+        assertThat(mappedFile1).isNotNull();
+        assertThat(mappedFile1.getFile().getPath()).isEqualTo(
+            String.join(File.separator, Arrays.asList("target", "unit_test_store", "b", "00000000000000001024"))
+        );
+
+        mappedFileQueue.shutdown(1000);
+        mappedFileQueue.destroy();
+        allocateMappedFileService.shutdown();
     }
 }
