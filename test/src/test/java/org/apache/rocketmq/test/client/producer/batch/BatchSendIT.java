@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -213,6 +214,69 @@ public class BatchSendIT extends BaseConf {
             }
         }
     }
+
+    @Test
+    public void testBatchSend_CompressionBody() throws Exception {
+        Assert.assertTrue(brokerController1.getMessageStore() instanceof DefaultMessageStore);
+        Assert.assertTrue(brokerController2.getMessageStore() instanceof DefaultMessageStore);
+        Assert.assertTrue(brokerController3.getMessageStore() instanceof DefaultMessageStore);
+
+        String batchTopic = UUID.randomUUID().toString();
+        IntegrationTestBase.initTopic(batchTopic, NAMESRV_ADDR, CLUSTER_NAME, CQType.SimpleCQ);
+        Assert.assertEquals(8, brokerController1.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getReadQueueNums());
+        Assert.assertEquals(8, brokerController2.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getReadQueueNums());
+        Assert.assertEquals(8, brokerController3.getTopicConfigManager().getTopicConfigTable().get(batchTopic).getReadQueueNums());
+        Assert.assertEquals(0, brokerController1.getMessageStore().getMinOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController2.getMessageStore().getMinOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController3.getMessageStore().getMinOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController1.getMessageStore().getMaxOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController2.getMessageStore().getMaxOffsetInQueue(batchTopic, 0));
+        Assert.assertEquals(0, brokerController3.getMessageStore().getMaxOffsetInQueue(batchTopic, 0));
+
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
+        MessageQueue messageQueue = producer.fetchPublishMessageQueues(batchTopic).iterator().next();
+        int bodyCompressionThreshold = producer.getCompressMsgBodyOverHowmuch();
+
+        int bodyLen = bodyCompressionThreshold + 1;
+        int batchCount = 10;
+        int batchNum = 10;
+        for (int i = 0; i < batchCount; i++) {
+            List<Message> messageList = new ArrayList<>();
+            for (int j = 0; j < batchNum; j++) {
+                messageList.add(new Message(batchTopic, RandomUtils.getStringWithNumber(bodyLen).getBytes()));
+            }
+            SendResult sendResult = producer.send(messageList, messageQueue);
+            Assert.assertEquals(SendStatus.SEND_OK, sendResult.getSendStatus());
+            Assert.assertEquals(messageQueue.getQueueId(), sendResult.getMessageQueue().getQueueId());
+            Assert.assertEquals(i * batchNum, sendResult.getQueueOffset());
+            Assert.assertEquals(10, sendResult.getMsgId().split(",").length);
+        }
+        Thread.sleep(300);
+        {
+            // not start to set decodeDecompressBody independent of
+            // system property ClientConfig.DECODE_DECOMPRESS_BODY(com.rocketmq.decompress.body) config
+            DefaultMQPullConsumer defaultMQPullConsumer = ConsumerFactory.getRMQPullConsumer(NAMESRV_ADDR, "group",false);
+            defaultMQPullConsumer.setDecodeDecompressBody(true);
+            defaultMQPullConsumer.start();
+            long startOffset = 5;
+            PullResult pullResult = defaultMQPullConsumer.pullBlockIfNotFound(messageQueue, "*", startOffset, batchCount * batchNum);
+            Assert.assertEquals(PullStatus.FOUND, pullResult.getPullStatus());
+            Assert.assertEquals(0, pullResult.getMinOffset());
+            Assert.assertEquals(batchCount * batchNum, pullResult.getMaxOffset());
+            Assert.assertEquals(batchCount * batchNum - startOffset, pullResult.getMsgFoundList().size());
+            for (int i = 0; i < pullResult.getMsgFoundList().size(); i++) {
+                MessageExt messageExt = pullResult.getMsgFoundList().get(i);
+                Assert.assertEquals(i + startOffset, messageExt.getQueueOffset());
+                Assert.assertEquals(batchTopic, messageExt.getTopic());
+                Assert.assertEquals(messageQueue.getQueueId(), messageExt.getQueueId());
+                Assert.assertEquals(bodyLen, messageExt.getBody().length);
+                Assert.assertTrue((messageExt.getSysFlag() & MessageSysFlag.COMPRESSED_FLAG) != 0);
+                Assert.assertTrue(messageExt.getStoreSize() < bodyLen);
+            }
+        }
+    }
+
+
 
     @Test
     public void testBatchSend_CheckProperties() throws Exception {
