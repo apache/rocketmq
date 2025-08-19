@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MixAll;
@@ -76,7 +77,7 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, TOPIC);
 
         assertEquals(1, this.clusterTransactionService.getGroupClusterData().size());
-        assertEquals(CLUSTER_NAME, this.clusterTransactionService.getGroupClusterData().get(GROUP).stream().findAny().get().getCluster());
+        assertEquals(CLUSTER_NAME, this.clusterTransactionService.getGroupClusterData().get(GROUP).getSet().stream().findAny().get().getCluster());
     }
 
     @Test
@@ -84,7 +85,7 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, Lists.newArrayList(TOPIC + 1, TOPIC + 2));
 
         assertEquals(1, this.clusterTransactionService.getGroupClusterData().size());
-        assertEquals(CLUSTER_NAME, this.clusterTransactionService.getGroupClusterData().get(GROUP).stream().findAny().get().getCluster());
+        assertEquals(CLUSTER_NAME, this.clusterTransactionService.getGroupClusterData().get(GROUP).getSet().stream().findAny().get().getCluster());
     }
 
     @Test
@@ -92,12 +93,12 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, TOPIC);
 
         assertEquals(1, this.clusterTransactionService.getGroupClusterData().size());
-        assertEquals(CLUSTER_NAME, this.clusterTransactionService.getGroupClusterData().get(GROUP).stream().findAny().get().getCluster());
+        assertEquals(CLUSTER_NAME, this.clusterTransactionService.getGroupClusterData().get(GROUP).getSet().stream().findAny().get().getCluster());
 
         this.brokerData.setCluster(CLUSTER_NAME + 1);
         this.clusterTransactionService.replaceTransactionSubscription(ctx, GROUP, Lists.newArrayList(TOPIC + 1));
         assertEquals(1, this.clusterTransactionService.getGroupClusterData().size());
-        assertEquals(CLUSTER_NAME + 1, this.clusterTransactionService.getGroupClusterData().get(GROUP).stream().findAny().get().getCluster());
+        assertEquals(CLUSTER_NAME + 1, this.clusterTransactionService.getGroupClusterData().get(GROUP).getSet().stream().findAny().get().getCluster());
     }
 
     @Test
@@ -192,5 +193,18 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         assertTrue(groupSet.isEmpty());
         assertEquals(brokerName2, this.clusterTransactionService.getBrokerNameByAddr(brokerAddr2));
         assertEquals(BROKER_NAME, this.clusterTransactionService.getBrokerNameByAddr(BROKER_ADDR));
+
+        // scan offline group
+        when(this.producerManager.groupOnline(anyString())).thenReturn(false);
+        ConfigurationManager.getProxyConfig().setTransactionGroupOfflineTimeoutMillis(100);
+        this.clusterTransactionService.getGroupClusterData().clear();
+
+        this.clusterTransactionService.addTransactionSubscription(ctx, GROUP, TOPIC);
+        this.clusterTransactionService.scanProducerHeartBeat();
+        assertEquals(1, this.clusterTransactionService.getGroupClusterData().size());
+
+        TimeUnit.MILLISECONDS.sleep(200);
+        this.clusterTransactionService.scanProducerHeartBeat();
+        assertEquals(0, this.clusterTransactionService.getGroupClusterData().size());
     }
 }
