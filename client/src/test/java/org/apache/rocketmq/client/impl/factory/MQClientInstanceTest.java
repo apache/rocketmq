@@ -16,6 +16,24 @@
  */
 package org.apache.rocketmq.client.impl.factory;
 
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
@@ -32,7 +50,6 @@ import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
 import org.apache.rocketmq.client.impl.consumer.RebalanceImpl;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -54,25 +71,12 @@ import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -83,6 +87,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -265,11 +270,11 @@ public class MQClientInstanceTest {
     @Test
     public void testCheckClientInBroker() throws MQClientException, RemotingSendRequestException, RemotingConnectException, RemotingTimeoutException, InterruptedException {
         doThrow(new MQClientException("checkClientInBroker exception", null)).when(mQClientAPIImpl).checkClientInBroker(
-                any(),
-                any(),
-                any(),
-                any(SubscriptionData.class),
-                anyLong());
+            any(),
+            any(),
+            any(),
+            any(SubscriptionData.class),
+            anyLong());
         topicRouteTable.put(topic, createTopicRouteData());
         MQConsumerInner mqConsumerInner = createMQConsumerInner();
         mqConsumerInner.subscriptions().clear();
@@ -314,13 +319,63 @@ public class MQClientInstanceTest {
     }
 
     @Test
-    public void testUpdateTopicRouteInfoFromNameServer() throws RemotingException, InterruptedException, MQClientException {
-        brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
-        consumerTable.put(group, createMQConsumerInner());
-        DefaultMQProducer defaultMQProducer = mock(DefaultMQProducer.class);
-        TopicRouteData topicRouteData = createTopicRouteData();
-        when(mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(anyLong())).thenReturn(topicRouteData);
-        assertFalse(mqClientInstance.updateTopicRouteInfoFromNameServer(topic, true, defaultMQProducer));
+    public void testUpdateTopicRouteInfoFromNameServer() throws Exception {
+
+        MQClientAPIImpl mqClientAPI = mock(MQClientAPIImpl.class);
+
+        TopicRouteData topicRouteData = new TopicRouteData();
+
+        topicRouteData.setFilterServerTable(new HashMap<>());
+        List<BrokerData> brokerDataList = new ArrayList<>();
+        BrokerData brokerData = new BrokerData();
+        brokerData.setBrokerName("BrokerA");
+        brokerData.setCluster("DefaultCluster");
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        brokerAddrs.put(0L, "127.0.0.1:10911");
+        brokerData.setBrokerAddrs(brokerAddrs);
+        brokerDataList.add(brokerData);
+        topicRouteData.setBrokerDatas(brokerDataList);
+
+        List<QueueData> queueDataList = new ArrayList<>();
+        QueueData queueData = new QueueData();
+        queueData.setBrokerName("BrokerA");
+        queueData.setPerm(6);
+        queueData.setReadQueueNums(3);
+        queueData.setWriteQueueNums(4);
+        queueData.setTopicSysFlag(0);
+        queueDataList.add(queueData);
+        topicRouteData.setQueueDatas(queueDataList);
+
+        when(mqClientAPI.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
+        FieldUtils.writeDeclaredField(mqClientInstance, "mQClientAPIImpl", mqClientAPI, true);
+
+        AtomicInteger trueCount = new AtomicInteger(0);
+
+        int threadCount = 10;
+
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            executorService.submit(() -> {
+                try {
+                    boolean result = mqClientInstance.updateTopicRouteInfoFromNameServer(topic, false);
+                    if (result) {
+                        trueCount.incrementAndGet();
+                    }
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executorService.shutdown();
+
+        verify(mqClientAPI, times(1)).getTopicRouteInfoFromNameServer(anyString(), anyLong());
+        Assert.assertEquals("Only one call should return true", 1, trueCount.get());
+
     }
 
     @Test
@@ -380,9 +435,9 @@ public class MQClientInstanceTest {
         verify(consumer).suspend();
         verify(consumer).resume();
         verify(consumer, times(1))
-                .updateConsumeOffset(
-                        any(MessageQueue.class),
-                        eq(0L));
+            .updateConsumeOffset(
+                any(MessageQueue.class),
+                eq(0L));
     }
 
     @Test
