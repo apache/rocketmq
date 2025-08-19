@@ -64,11 +64,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class ReplicasInfoManagerTest {
-    private ReplicasInfoManager replicasInfoManager;
+    protected ReplicasInfoManager replicasInfoManager;
 
-    private DefaultBrokerHeartbeatManager heartbeatManager;
+    protected DefaultBrokerHeartbeatManager heartbeatManager;
 
-    private ControllerConfig config;
+    protected ControllerConfig config;
 
     @Before
     public void init() {
@@ -507,5 +507,19 @@ public class ReplicasInfoManagerTest {
             BrokerReplicaInfo newReplicaInfo = newReplicaInfoTable.get(brokerName);
             Field[] fields = oldReplicaInfo.getClass().getFields();
         }
+    }
+
+    @Test
+    public void testScanNeedReelectBrokerSets() {
+        mockMetaData();
+        List<String> strings = this.replicasInfoManager.scanNeedReelectBrokerSets(
+                (clusterName, brokerName, brokerId) -> mockValidPredicate1(brokerId));
+        assertArrayEquals(strings.toArray(),new String[]{DEFAULT_BROKER_NAME});
+    }
+
+    private boolean mockValidPredicate1(Long brokerId) {
+        // mock only broker1(id=2) & broker2(id=3) is alive,master(id=1) is inactive
+        List<Long> inactiveBroker = Arrays.asList(2L,3L);
+        return inactiveBroker.contains(brokerId);
     }
 }
