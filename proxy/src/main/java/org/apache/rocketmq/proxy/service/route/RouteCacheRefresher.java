@@ -27,7 +27,6 @@ import org.apache.rocketmq.common.utils.ThreadUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -46,8 +45,6 @@ public class RouteCacheRefresher {
     private final Queue<String> pendingTopics = new ConcurrentLinkedQueue<>();
     private final ScheduledExecutorService scheduler;
 
-    private final ConcurrentMap<String, Long> refreshingTopics = new ConcurrentHashMap<>();
-
     public RouteCacheRefresher(LoadingCache<String, MessageQueueView> topicCache,
                               ThreadPoolExecutor executor) {
         this.topicCache = topicCache;
@@ -59,8 +56,6 @@ public class RouteCacheRefresher {
     }
 
     public void start() {
-        scheduler.scheduleWithFixedDelay(this::checkRefreshStatus, 1, 1, TimeUnit.SECONDS);
-
         scheduler.scheduleWithFixedDelay(this::processDirtyTopics, 50, 200, TimeUnit.MILLISECONDS);
     }
 
@@ -74,10 +69,31 @@ public class RouteCacheRefresher {
         pendingTopics.offer(topic);
     }
 
+    public void markCompleted(String topic) {
+        log.info("markCompleted topic: {}", topic);
+        dirtyTopics.remove(topic);
+    }
+
+    public void markRetry(String topic) {
+        pendingTopics.offer(topic);
+    }
+
     private void processDirtyTopics() {
         List<String> batch = new ArrayList<>();
         while (!pendingTopics.isEmpty() && batch.size() < 100) {
-            batch.add(pendingTopics.poll());
+            String topic = pendingTopics.poll();
+            if (topic == null) break;
+
+            Long timestamp = dirtyTopics.get(topic);
+            if (timestamp == null) continue;
+
+            if (System.currentTimeMillis() - timestamp > TimeUnit.MINUTES.toMillis(1)) {
+                markCompleted(topic);
+                log.error("refreshing topic: {} stop for delay", topic);
+                continue;
+            }
+
+            batch.add(topic);
         }
 
         for (String topic : batch) {
@@ -88,42 +104,19 @@ public class RouteCacheRefresher {
     private void refreshSingleRoute(String topic) {
         try {
             log.info("Refreshing route for: {}", topic);
+
             if (topicCache.getIfPresent(topic) == null) {
+                markCompleted(topic);
                 log.warn("No cache entry found for topic: {}", topic);
                 return;
             }
 
-            refreshingTopics.put(topic, System.currentTimeMillis());
             topicCache.refresh(topic);
 
         } catch (Exception e) {
             log.error("Refresh failed for: {}", topic, e);
-            pendingTopics.offer(topic);
+            markRetry(topic);
         }
-    }
-
-    private void checkRefreshStatus() {
-        long currentTime = System.currentTimeMillis();
-        List<String> completed = new ArrayList<>();
-
-        for (Entry<String, Long> entry : refreshingTopics.entrySet()) {
-            String topic = entry.getKey();
-            long startTime = entry.getValue();
-
-            if (currentTime - startTime > 5000) {
-                log.warn("Refresh timeout for topic: {}", topic);
-                completed.add(topic);
-                pendingTopics.offer(topic);
-            }
-
-            if (topicCache.getIfPresent(topic) != null) {
-                completed.add(topic);
-                dirtyTopics.remove(topic);
-                log.info("Refresh confirmed for topic: {}", topic);
-            }
-        }
-
-        completed.forEach(refreshingTopics::remove);
     }
 
     public void shutdown() {

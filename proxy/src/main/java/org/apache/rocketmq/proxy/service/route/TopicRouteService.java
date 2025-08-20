@@ -21,6 +21,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -110,9 +111,12 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView reload(@NonNull String key,
                     @NonNull MessageQueueView oldValue) throws Exception {
                     try {
-                        return load(key);
+                        MessageQueueView newValue = load(key);
+                        markCompleted(key);
+                        return newValue;
                     } catch (Exception e) {
                         log.warn(String.format("reload topic route from namesrv. topic: %s", key), e);
+                        markRetry(key);
                         return oldValue;
                     }
                 }
@@ -169,31 +173,36 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             brokerToTopics.computeIfAbsent(broker, k -> ConcurrentHashMap.newKeySet())
                         .add(topic);
         }
-
-        log.info("Updated mapping for topic: {} -> brokers: {}", topic, currentBrokers);
     }
 
     public Set<String> getBrokerTopics(String brokerName) {
-        return brokerToTopics.getOrDefault(brokerName, Set.of());
+        return brokerToTopics.getOrDefault(brokerName, Collections.emptySet());
     }
 
     public void removeBrokerToTopics(String brokerName) {
-        Set<String> topics = brokerToTopics.remove(brokerName);
-        if (topics != null) {
-            log.info("[Route_Event]: Removed {} topics for broker: {}", topics.size(), brokerName);
-        }
+        brokerToTopics.remove(brokerName);
     }
 
     public void removeBrokerToTopic(String brokerName, String topic) {
         Set<String> topics = brokerToTopics.get(brokerName);
-        log.info("[Route_Event]: topics: {} broker: {}", topics, brokerName);
         if (topics != null) {
             topics.remove(topic);
-            log.info("[Route_Event]: Removed topic {} for broker: {}", topic, brokerName);
 
             if (topics.isEmpty()) {
                 brokerToTopics.remove(brokerName);
             }
+        }
+    }
+
+    private void markCompleted(String topic) {
+        if (routeCacheRefresher != null) {
+            routeCacheRefresher.markCompleted(topic);
+        }
+    }
+
+    private void markRetry(String topic) {
+        if (routeCacheRefresher != null) {
+            routeCacheRefresher.markRetry(topic);
         }
     }
 
