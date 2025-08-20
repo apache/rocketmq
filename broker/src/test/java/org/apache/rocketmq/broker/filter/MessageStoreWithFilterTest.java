@@ -17,17 +17,6 @@
 
 package org.apache.rocketmq.broker.filter;
 
-import java.io.File;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
@@ -48,10 +37,20 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.awaitility.core.ThrowingRunnable;
-import org.junit.After;
 import org.junit.Assume;
-import org.junit.Before;
 import org.junit.Test;
+
+import java.io.File;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -63,47 +62,26 @@ public class MessageStoreWithFilterTest {
 
     private static final String TOPIC = "topic";
     private static final int QUEUE_ID = 0;
-    private static final String STORE_PATH = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
+    private static final String BASE_STORE_PATH = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
     private static final int COMMIT_LOG_FILE_SIZE = 1024 * 1024 * 256;
     private static final int CQ_FILE_SIZE = 300000 * 20;
     private static final int CQ_EXT_FILE_SIZE = 300000 * 128;
 
     private static SocketAddress bornHost;
-
     private static SocketAddress storeHost;
 
-    private DefaultMessageStore master;
-
-    private ConsumerFilterManager filterManager;
-
-    private int topicCount = 3;
-
-    private int msgPerTopic = 30;
+    private final int topicCount = 3;
+    private final int msgPerTopic = 30;
 
     static {
         try {
             storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
-        } catch (UnknownHostException e) {
+        } catch (UnknownHostException ignored) {
         }
         try {
             bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
-        } catch (UnknownHostException e) {
+        } catch (UnknownHostException ignored) {
         }
-    }
-
-    @Before
-    public void init() throws Exception {
-        filterManager = ConsumerFilterManagerTest.gen(topicCount, msgPerTopic);
-        master = gen(filterManager);
-    }
-
-    @After
-    public void destroy() {
-        if (master != null) {
-            master.shutdown();
-            master.destroy();
-        }
-        UtilAll.deleteFile(new File(STORE_PATH));
     }
 
     public MessageExtBrokerInner buildMessage() {
@@ -126,7 +104,7 @@ public class MessageStoreWithFilterTest {
         return msg;
     }
 
-    public MessageStoreConfig buildStoreConfig(int commitLogFileSize, int cqFileSize,
+    public MessageStoreConfig buildStoreConfig(String storePath, int commitLogFileSize, int cqFileSize,
                                                boolean enableCqExt, int cqExtFileSize) {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setMappedFileSizeCommitLog(commitLogFileSize);
@@ -135,15 +113,18 @@ public class MessageStoreWithFilterTest {
         messageStoreConfig.setMessageIndexEnable(false);
         messageStoreConfig.setEnableConsumeQueueExt(enableCqExt);
 
-        messageStoreConfig.setStorePathRootDir(STORE_PATH);
-        messageStoreConfig.setStorePathCommitLog(STORE_PATH + File.separator + "commitlog");
+        messageStoreConfig.setStorePathRootDir(storePath);
+        messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
 
         return messageStoreConfig;
     }
 
-    protected DefaultMessageStore gen(ConsumerFilterManager filterManager) throws Exception {
+    protected DefaultMessageStore gen(String testName, ConsumerFilterManager filterManager) throws Exception {
+        String storePath = BASE_STORE_PATH + "_" + testName;
+        cleanStoreDirectory(storePath);
+
         MessageStoreConfig messageStoreConfig = buildStoreConfig(
-                COMMIT_LOG_FILE_SIZE, CQ_FILE_SIZE, true, CQ_EXT_FILE_SIZE
+                storePath, COMMIT_LOG_FILE_SIZE, CQ_FILE_SIZE, true, CQ_EXT_FILE_SIZE
         );
 
         BrokerConfig brokerConfig = new BrokerConfig();
@@ -152,15 +133,15 @@ public class MessageStoreWithFilterTest {
         brokerConfig.setExpectConsumerNumUseFilter(64);
 
         DefaultMessageStore master = new DefaultMessageStore(
-            messageStoreConfig,
-            new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat()),
-            new MessageArrivingListener() {
-                @Override
-                public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
-                                     long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+                messageStoreConfig,
+                new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat()),
+                new MessageArrivingListener() {
+                    @Override
+                    public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
+                                         long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+                    }
                 }
-            }
-            , brokerConfig, new ConcurrentHashMap<>());
+                , brokerConfig, new ConcurrentHashMap<>());
 
         master.getDispatcherList().addFirst(new CommitLogDispatcher() {
             @Override
@@ -182,6 +163,27 @@ public class MessageStoreWithFilterTest {
         master.start();
 
         return master;
+    }
+
+    private void cleanStoreDirectory(String storePath) {
+        File storeDir = new File(storePath);
+        if (storeDir.exists()) {
+            UtilAll.deleteFile(storeDir);
+        }
+    }
+
+    public void destroy(DefaultMessageStore master) {
+        if (master != null) {
+            String storePath = master.getMessageStoreConfig().getStorePathRootDir();
+            try {
+                master.shutdown();
+                master.destroy();
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                cleanStoreDirectory(storePath);
+            }
+        }
     }
 
     protected List<MessageExtBrokerInner> putMsg(DefaultMessageStore master, int topicCount,
@@ -232,157 +234,176 @@ public class MessageStoreWithFilterTest {
 
     @Test
     public void testGetMessage_withFilterBitMapAndConsumerChanged() throws Exception {
-        List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
+        ConsumerFilterManager filterManager = ConsumerFilterManagerTest.gen(topicCount, msgPerTopic);
+        DefaultMessageStore master = gen("testFilterBitMapAndConsumerChanged", filterManager);
 
-        Thread.sleep(200);
+        try {
+            List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
 
-        // reset consumer;
-        String topic = "topic" + 0;
-        String resetGroup = "CID_" + 2;
-        String normalGroup = "CID_" + 3;
+            Thread.sleep(200);
 
-        {
-            // reset CID_2@topic0 to get all messages.
-            SubscriptionData resetSubData = new SubscriptionData();
-            resetSubData.setExpressionType(ExpressionType.SQL92);
-            resetSubData.setTopic(topic);
-            resetSubData.setClassFilterMode(false);
-            resetSubData.setSubString("a is not null OR a is null");
+            // reset consumer;
+            String topic = "topic" + 0;
+            String resetGroup = "CID_" + 2;
+            String normalGroup = "CID_" + 3;
 
-            ConsumerFilterData resetFilterData = ConsumerFilterManager.build(topic,
-                resetGroup, resetSubData.getSubString(), resetSubData.getExpressionType(),
-                System.currentTimeMillis());
+            {
+                // reset CID_2@topic0 to get all messages.
+                SubscriptionData resetSubData = new SubscriptionData();
+                resetSubData.setExpressionType(ExpressionType.SQL92);
+                resetSubData.setTopic(topic);
+                resetSubData.setClassFilterMode(false);
+                resetSubData.setSubString("a is not null OR a is null");
 
-            GetMessageResult resetGetResult = master.getMessage(resetGroup, topic, QUEUE_ID, 0, 1000,
-                new ExpressionMessageFilter(resetSubData, resetFilterData, filterManager));
+                ConsumerFilterData resetFilterData = ConsumerFilterManager.build(topic,
+                        resetGroup, resetSubData.getSubString(), resetSubData.getExpressionType(),
+                        System.currentTimeMillis());
 
-            try {
-                assertThat(resetGetResult).isNotNull();
+                GetMessageResult resetGetResult = master.getMessage(resetGroup, topic, QUEUE_ID, 0, 1000,
+                        new ExpressionMessageFilter(resetSubData, resetFilterData, filterManager));
+                try {
+                    assertThat(resetGetResult).isNotNull();
 
-                List<MessageExtBrokerInner> filteredMsgs = filtered(msgs, resetFilterData);
+                    List<MessageExtBrokerInner> filteredMsgs = filtered(msgs, resetFilterData);
 
-                assertThat(resetGetResult.getMessageBufferList().size()).isEqualTo(filteredMsgs.size());
-            } finally {
-                resetGetResult.release();
+                    assertThat(resetGetResult.getMessageBufferList().size()).isEqualTo(filteredMsgs.size());
+                } finally {
+                    assert resetGetResult != null;
+                    resetGetResult.release();
+                }
             }
-        }
 
-        {
-            ConsumerFilterData normalFilterData = filterManager.get(topic, normalGroup);
-            assertThat(normalFilterData).isNotNull();
-            assertThat(normalFilterData.getBornTime()).isLessThan(System.currentTimeMillis());
+            {
+                ConsumerFilterData normalFilterData = filterManager.get(topic, normalGroup);
+                assertThat(normalFilterData).isNotNull();
+                assertThat(normalFilterData.getBornTime()).isLessThan(System.currentTimeMillis());
 
-            SubscriptionData normalSubData = new SubscriptionData();
-            normalSubData.setExpressionType(normalFilterData.getExpressionType());
-            normalSubData.setTopic(topic);
-            normalSubData.setClassFilterMode(false);
-            normalSubData.setSubString(normalFilterData.getExpression());
+                SubscriptionData normalSubData = new SubscriptionData();
+                normalSubData.setExpressionType(normalFilterData.getExpressionType());
+                normalSubData.setTopic(topic);
+                normalSubData.setClassFilterMode(false);
+                normalSubData.setSubString(normalFilterData.getExpression());
 
-            List<MessageExtBrokerInner> filteredMsgs = filtered(msgs, normalFilterData);
+                List<MessageExtBrokerInner> filteredMsgs = filtered(msgs, normalFilterData);
 
-            GetMessageResult normalGetResult = master.getMessage(normalGroup, topic, QUEUE_ID, 0, 1000,
-                new ExpressionMessageFilter(normalSubData, normalFilterData, filterManager));
-
-            try {
-                assertThat(normalGetResult).isNotNull();
-                assertThat(normalGetResult.getMessageBufferList().size()).isEqualTo(filteredMsgs.size());
-            } finally {
-                normalGetResult.release();
+                GetMessageResult normalGetResult = master.getMessage(normalGroup, topic, QUEUE_ID, 0, 1000,
+                        new ExpressionMessageFilter(normalSubData, normalFilterData, filterManager));
+                try {
+                    assertThat(normalGetResult).isNotNull();
+                    assertThat(normalGetResult.getMessageBufferList().size()).isEqualTo(filteredMsgs.size());
+                } finally {
+                    assert normalGetResult != null;
+                    normalGetResult.release();
+                }
             }
+        } finally {
+            destroy(master);
         }
     }
 
     @Test
     public void testGetMessage_withFilterBitMap() throws Exception {
-        List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
+        ConsumerFilterManager filterManager = ConsumerFilterManagerTest.gen(topicCount, msgPerTopic);
+        DefaultMessageStore master = gen("testFilterBitMap", filterManager);
 
-        Thread.sleep(100);
+        try {
+            List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
 
-        for (int i = 0; i < topicCount; i++) {
-            String realTopic = TOPIC + i;
+            Thread.sleep(100);
 
-            for (int j = 0; j < msgPerTopic; j++) {
-                String group = "CID_" + j;
+            for (int i = 0; i < topicCount; i++) {
+                String realTopic = TOPIC + i;
 
-                ConsumerFilterData filterData = filterManager.get(realTopic, group);
-                assertThat(filterData).isNotNull();
+                for (int j = 0; j < msgPerTopic; j++) {
+                    String group = "CID_" + j;
 
-                List<MessageExtBrokerInner> filteredMsgs = filtered(msgs, filterData);
+                    ConsumerFilterData filterData = filterManager.get(realTopic, group);
+                    assertThat(filterData).isNotNull();
 
-                SubscriptionData subscriptionData = new SubscriptionData();
-                subscriptionData.setExpressionType(filterData.getExpressionType());
-                subscriptionData.setTopic(filterData.getTopic());
-                subscriptionData.setClassFilterMode(false);
-                subscriptionData.setSubString(filterData.getExpression());
+                    List<MessageExtBrokerInner> filteredMsgs = filtered(msgs, filterData);
 
-                GetMessageResult getMessageResult = master.getMessage(group, realTopic, QUEUE_ID, 0, 10000,
-                    new ExpressionMessageFilter(subscriptionData, filterData, filterManager));
-                String assertMsg = group + "-" + realTopic;
-                try {
-                    assertThat(getMessageResult).isNotNull();
-                    assertThat(GetMessageStatus.FOUND).isEqualTo(getMessageResult.getStatus());
-                    assertThat(getMessageResult.getMessageBufferList()).isNotNull().isNotEmpty();
-                    assertThat(getMessageResult.getMessageBufferList().size()).isEqualTo(filteredMsgs.size());
+                    SubscriptionData subscriptionData = new SubscriptionData();
+                    subscriptionData.setExpressionType(filterData.getExpressionType());
+                    subscriptionData.setTopic(filterData.getTopic());
+                    subscriptionData.setClassFilterMode(false);
+                    subscriptionData.setSubString(filterData.getExpression());
 
-                    for (ByteBuffer buffer : getMessageResult.getMessageBufferList()) {
-                        MessageExt messageExt = MessageDecoder.decode(buffer.slice(), false);
-                        assertThat(messageExt).isNotNull();
+                    GetMessageResult getMessageResult = master.getMessage(group, realTopic, QUEUE_ID, 0, 10000,
+                            new ExpressionMessageFilter(subscriptionData, filterData, filterManager));
+                    String assertMsg = group + "-" + realTopic;
+                    try {
+                        assertThat(getMessageResult).isNotNull();
+                        assertThat(GetMessageStatus.FOUND).isEqualTo(getMessageResult.getStatus());
+                        assertThat(getMessageResult.getMessageBufferList()).isNotNull().isNotEmpty();
+                        assertThat(getMessageResult.getMessageBufferList().size()).isEqualTo(filteredMsgs.size());
 
-                        Object evlRet = null;
-                        try {
-                            evlRet = filterData.getCompiledExpression().evaluate(new MessageEvaluationContext(messageExt.getProperties()));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            assertThat(true).isFalse();
-                        }
+                        for (ByteBuffer buffer : getMessageResult.getMessageBufferList()) {
+                            MessageExt messageExt = MessageDecoder.decode(buffer.slice(), false);
+                            assertThat(messageExt).isNotNull();
 
-                        assertThat(evlRet).isNotNull().isEqualTo(Boolean.TRUE);
-
-                        // check
-                        boolean find = false;
-                        for (MessageExtBrokerInner messageExtBrokerInner : filteredMsgs) {
-                            if (messageExtBrokerInner.getMsgId().equals(messageExt.getMsgId())) {
-                                find = true;
+                            Object evlRet = null;
+                            try {
+                                evlRet = filterData.getCompiledExpression().evaluate(new MessageEvaluationContext(messageExt.getProperties()));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                assertThat(true).isFalse();
                             }
+
+                            assertThat(evlRet).isNotNull().isEqualTo(Boolean.TRUE);
+
+                            // check
+                            boolean find = false;
+                            for (MessageExtBrokerInner messageExtBrokerInner : filteredMsgs) {
+                                if (messageExtBrokerInner.getMsgId().equals(messageExt.getMsgId())) {
+                                    find = true;
+                                }
+                            }
+                            assertThat(find).isTrue();
                         }
-                        assertThat(find).isTrue();
+                    } finally {
+                        assert getMessageResult != null;
+                        getMessageResult.release();
                     }
-                } finally {
-                    getMessageResult.release();
                 }
             }
+        } finally {
+            destroy(master);
         }
     }
 
     @Test
     public void testGetMessage_withFilter_checkTagsCode() throws Exception {
-        putMsg(master, topicCount, msgPerTopic);
+        ConsumerFilterManager filterManager = ConsumerFilterManagerTest.gen(topicCount, msgPerTopic);
+        DefaultMessageStore master = gen("testFilterCheckTagsCode", filterManager);
 
-        await().atMost(3, TimeUnit.SECONDS).untilAsserted(new ThrowingRunnable() {
-            @Override
-            public void run() throws Throwable {
-                for (int i = 0; i < topicCount; i++) {
-                    final String realTopic = TOPIC + i;
-                    GetMessageResult getMessageResult = master.getMessage("test", realTopic, QUEUE_ID, 0, 10000,
-                        new MessageFilter() {
-                            @Override
-                            public boolean isMatchedByConsumeQueue(Long tagsCode,
-                                ConsumeQueueExt.CqExtUnit cqExtUnit) {
-                                if (tagsCode != null && tagsCode <= ConsumeQueueExt.MAX_ADDR) {
-                                    return false;
-                                }
-                                return true;
-                            }
+        try {
+            putMsg(master, topicCount, msgPerTopic);
 
-                            @Override
-                            public boolean isMatchedByCommitLog(ByteBuffer msgBuffer,
-                                Map<String, String> properties) {
-                                return true;
-                            }
-                        });
-                    assertThat(getMessageResult.getMessageCount()).isEqualTo(msgPerTopic);
+            await().atMost(3, TimeUnit.SECONDS).untilAsserted(new ThrowingRunnable() {
+                @Override
+                public void run() throws Throwable {
+                    for (int i = 0; i < topicCount; i++) {
+                        final String realTopic = TOPIC + i;
+                        GetMessageResult getMessageResult = master.getMessage("test", realTopic, QUEUE_ID, 0, 10000,
+                                new MessageFilter() {
+                                    @Override
+                                    public boolean isMatchedByConsumeQueue(Long tagsCode,
+                                                                           ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                                        return tagsCode == null || tagsCode > ConsumeQueueExt.MAX_ADDR;
+                                    }
+
+                                    @Override
+                                    public boolean isMatchedByCommitLog(ByteBuffer msgBuffer,
+                                                                        Map<String, String> properties) {
+                                        return true;
+                                    }
+                                });
+                        assertThat(getMessageResult.getMessageCount()).isEqualTo(msgPerTopic);
+                    }
                 }
-            }
-        });
+            });
+        } finally {
+            destroy(master);
+        }
     }
 }
