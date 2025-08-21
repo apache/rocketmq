@@ -238,7 +238,9 @@ public class TopicConfigManager extends ConfigManager {
 
     public TopicConfig putTopicConfig(TopicConfig topicConfig) {
         if (!TopicValidator.isSystemTopic(topicConfig.getTopicName())) {
-            this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            if (this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            }
         }
         return this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
     }
@@ -248,7 +250,9 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     protected TopicConfig removeTopicConfig(String topicName) {
-        this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topicName);
+        if (this.brokerController.getRouteEventService() != null) {
+            this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topicName);
+        }
         return this.topicConfigTable.remove(topicName);
     }
 
