@@ -1,3 +1,35 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=id">Bahasa Indonesia</a>
+        | <a href="https://openaitx.github.io/view.html?user=apache&project=rocketmq&lang=as">অসমীয়া</
+      </div>
+    </div>
+  </details>
+</div>
+
 ## Apache RocketMQ
 
 [![Build Status][maven-build-image]][maven-build-url]
