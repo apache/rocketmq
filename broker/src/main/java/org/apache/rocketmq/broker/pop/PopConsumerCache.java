@@ -152,6 +152,7 @@ public class PopConsumerCache extends ServiceThread {
 
             // write to store and handle it later
             consumerRecordStore.writeRecords(writeConsumerRecords);
+            records.clearStagedRecords();
 
             // commit min offset in buffer to offset store
             long offset = records.getMinOffsetInBuffer();
