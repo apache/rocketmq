@@ -160,14 +160,14 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
     protected SubscriptionGroupConfig removeSubscriptionGroupConfig(String groupName) {
-        final SubscriptionGroupConfig[] removedConfig = new SubscriptionGroupConfig[1];
-        this.subscriptionGroupTable.computeIfPresent(groupName, (key, existingConfig) -> {
-            removedConfig[0] = existingConfig;
+        SubscriptionGroupConfig[] removedConfig = new SubscriptionGroupConfig[1];
+        this.subscriptionGroupTable.compute(groupName, (key, existingConfig) -> {
+            if (existingConfig != null) {
+                removedConfig[0] = existingConfig;
+                notifySubscriptionGroupDeleted(removedConfig[0]);
+            }
             return null;
         });
-        if (removedConfig[0] != null) {
-            notifySubscriptionGroupDeleted(removedConfig[0]);
-        }
         return removedConfig[0];
     }
 

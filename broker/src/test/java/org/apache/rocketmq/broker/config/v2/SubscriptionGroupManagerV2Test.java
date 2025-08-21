@@ -20,6 +20,7 @@ package org.apache.rocketmq.broker.config.v2;
 import java.io.File;
 import java.io.IOException;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicyType;
@@ -52,6 +53,9 @@ public class SubscriptionGroupManagerV2Test {
     @Mock
     private MessageStore messageStore;
 
+    @Mock
+    private NoopMetadataChangeObserver syncMetadataChangeObserver;
+
     @Rule
     public TemporaryFolder tf = new TemporaryFolder();
 
@@ -67,7 +71,7 @@ public class SubscriptionGroupManagerV2Test {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setAutoCreateSubscriptionGroup(false);
         Mockito.doReturn(brokerConfig).when(controller).getBrokerConfig();
-
+        Mockito.doReturn(syncMetadataChangeObserver).when(controller).getMetadataChangeObserver();
         Mockito.doReturn(messageStore).when(controller).getMessageStore();
         Mockito.doReturn(1L).when(messageStore).getStateMachineVersion();
 

@@ -310,8 +310,10 @@ public class TopicConfigManager extends ConfigManager {
     protected TopicConfig removeTopicConfig(String topicName) {
         TopicConfig[] topicConfig = new TopicConfig[1];
         this.topicConfigTable.compute(topicName, (key, existingConfig) -> {
-            topicConfig[0] = existingConfig;
-            notifyTopicDeleted(existingConfig);
+            if (existingConfig != null) {
+                topicConfig[0] = existingConfig;
+                notifyTopicDeleted(existingConfig);
+            }
             return null;
         });
         return topicConfig[0];

@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.topic;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
+import org.apache.rocketmq.broker.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -60,6 +61,9 @@ public class RocksdbTopicConfigTransferTest {
     @Mock
     private DefaultMessageStore defaultMessageStore;
 
+    @Mock
+    private NoopMetadataChangeObserver syncMetadataChangeObserver;
+
     @Before
     public void init() {
         if (notToBeExecuted()) {
@@ -72,6 +76,7 @@ public class RocksdbTopicConfigTransferTest {
         Mockito.lenient().when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
         when(defaultMessageStore.getStateMachineVersion()).thenReturn(0L);
+        Mockito.doReturn(syncMetadataChangeObserver).when(brokerController).getMetadataChangeObserver();
     }
 
     @After

@@ -825,7 +825,7 @@ public class BrokerController {
     private void persistBrokerConfigSnapshotsSeparately() {
         LOG.info("Starting to persist broker config snapshots separately...");
 
-        String snapshotDir = System.getenv().getOrDefault("ROCKETMQ_BROKER_STORE_PATH", System.getProperty("user.home")) + File.separator + "snapshot";
+        String snapshotDir = messageStoreConfig.getStorePathRootDir() + File.separator + "snapshot";
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         String timestamp = dateFormat.format(new Date());
 
@@ -917,8 +917,7 @@ public class BrokerController {
 
     private void deleteOutdatedSnapshot() {
         try {
-            String snapshotDir = System.getenv().getOrDefault("ROCKETMQ_BROKER_STORE_PATH",
-                    System.getProperty("user.home")) + File.separator + "snapshot";
+            String snapshotDir = messageStoreConfig.getStorePathRootDir() + File.separator + "snapshot";
             Path dirPath = Paths.get(snapshotDir);
 
             if (Files.notExists(dirPath)) {

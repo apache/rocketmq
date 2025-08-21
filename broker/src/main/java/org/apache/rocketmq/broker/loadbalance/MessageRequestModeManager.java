@@ -72,10 +72,6 @@ public class MessageRequestModeManager extends ConfigManager {
         brokerController.getMetadataChangeObserver().onUpdated(TopicValidator.RMQ_SYS_MESSAGE_MODE_SYNC, requestBody.getTopic(), requestBody);
     }
 
-    private void notifyMessageRequestModeDeleted(SetMessageRequestModeRequestBody requestBody) {
-        brokerController.getMetadataChangeObserver().onDeleted(TopicValidator.RMQ_SYS_MESSAGE_MODE_SYNC, requestBody.getTopic(), requestBody);
-    }
-
     public SetMessageRequestModeRequestBody getMessageRequestMode(String topic, String consumerGroup) {
         ConcurrentHashMap<String, SetMessageRequestModeRequestBody> consumerGroup2ModeMap = messageRequestModeMap.get(topic);
         if (consumerGroup2ModeMap != null) {

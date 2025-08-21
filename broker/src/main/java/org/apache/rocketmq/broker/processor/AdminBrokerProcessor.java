@@ -3432,7 +3432,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand getMessageRequestModeSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
-            byte[] body = readLatestSnapshotFile("message_mode");
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_MESSAGE_MODE);
             if (body != null) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setBody(body);
@@ -3451,7 +3451,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand getTopicMetricsSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
-            byte[] body = readLatestSnapshotFile("timer_metrics");
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_TIMER_METRICS);
             if (body != null) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setBody(body);
@@ -3470,7 +3470,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand getDelayOffsetSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
-            byte[] body = readLatestSnapshotFile("delay_offset");
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_DELAY_OFFSET);
             if (body != null) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setBody(body);
@@ -3489,7 +3489,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand getTopicConfigSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
-            byte[] body = readLatestSnapshotFile("topic_config");
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_TOPIC_CONFIG);
             if (body != null) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setBody(body);
@@ -3508,7 +3508,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand getSubscriptionGroupSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
-            byte[] body = readLatestSnapshotFile("subscription_group");
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_SUBSCRIPTION_GROUP);
             if (body != null) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setBody(body);
@@ -3527,7 +3527,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand getConsumerOffsetSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
-            byte[] body = readLatestSnapshotFile("consumer_offset");
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_CONSUMER_OFFSET);
             if (body != null) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setBody(body);
@@ -3545,7 +3545,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
 
     private byte[] readLatestSnapshotFile(String snapshotName) throws IOException {
-        String snapshotDir = System.getenv().getOrDefault("ROCKETMQ_BROKER_STORE_PATH", System.getProperty("user.home")) + File.separator + "snapshot";
+        String snapshotDir = brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "snapshot";
         Path dirPath = Paths.get(snapshotDir);
 
         if (Files.notExists(dirPath)) {
