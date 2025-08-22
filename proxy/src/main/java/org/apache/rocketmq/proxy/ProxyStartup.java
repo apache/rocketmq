@@ -109,7 +109,7 @@ public class ProxyStartup {
             }));
         } catch (Exception e) {
             e.printStackTrace();
-            log.error("find an unexpect err.", e);
+            log.error("find an unexpected err.", e);
             System.exit(1);
         }
 

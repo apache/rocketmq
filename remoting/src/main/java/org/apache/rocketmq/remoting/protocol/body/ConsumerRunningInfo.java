@@ -141,7 +141,7 @@ public class ConsumerRunningInfo extends RemotingSerializable {
                             mq,
                             System.currentTimeMillis() - pq.getLastLockTimestamp()));
                     } else {
-                        if (pq.isDroped() && pq.getTryUnlockTimes() > 0) {
+                        if (pq.isDropped() && pq.getTryUnlockTimes() > 0) {
                             sb.append(String.format("%s %s unlock %d times, still failed%n",
                                 clientId,
                                 mq,

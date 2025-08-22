@@ -63,7 +63,7 @@ public class TlsHelper {
 
     public interface DecryptionStrategy {
         /**
-         * Decrypt the target encrpted private key file.
+         * Decrypt the target encrypted private key file.
          *
          * @param privateKeyEncryptPath A pathname string
          * @param forClient tells whether it's a client-side key file
