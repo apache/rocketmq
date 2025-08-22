@@ -138,7 +138,7 @@ public class TransactionalMessageBridge {
                         getMessageResult.getMessageCount());
                     this.brokerController.getBrokerStatsManager().incGroupGetSize(group, topic,
                         getMessageResult.getBufferTotalSize());
-                    this.brokerController.getBrokerStatsManager().incBrokerGetNums(topic, getMessageResult.getMessageCount());
+                    this.brokerController.getBrokerStatsManager().incBrokerGetNums(topic, group, getMessageResult.getMessageCount());
                     if (foundList == null || foundList.size() == 0) {
                         break;
                     }
