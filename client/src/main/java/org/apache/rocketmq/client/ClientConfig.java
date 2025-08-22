@@ -427,6 +427,7 @@ public class ClientConfig {
 
     public void setNamespaceV2(String namespaceV2) {
         this.namespaceV2 = namespaceV2;
+        this.namespace = namespaceV2;
     }
 
     public AccessChannel getAccessChannel() {
