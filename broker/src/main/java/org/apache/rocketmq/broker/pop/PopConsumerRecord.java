@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.broker.pop;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.annotation.JSONField;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
@@ -119,7 +119,7 @@ public class PopConsumerRecord {
     }
 
     public static PopConsumerRecord decode(byte[] body) {
-        return JSONObject.parseObject(body, PopConsumerRecord.class);
+        return JSON.parseObject(body, PopConsumerRecord.class);
     }
 
     public long getPopTime() {

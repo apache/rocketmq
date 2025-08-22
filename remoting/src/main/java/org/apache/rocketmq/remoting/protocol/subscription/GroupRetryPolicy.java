@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.remoting.protocol.subscription;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.google.common.base.MoreObjects;
 
 public class GroupRetryPolicy {

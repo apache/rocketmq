@@ -206,7 +206,7 @@ public class MqClientAdminImplTest {
     @Test
     public void assertUpdateOrCreateSubscriptionGroupWithSuccess() throws Exception {
         setResponseSuccess(null);
-        SubscriptionGroupConfig config = mock(SubscriptionGroupConfig.class);
+        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
         CompletableFuture<Void> actual = mqClientAdminImpl.updateOrCreateSubscriptionGroup(defaultBrokerAddr, config, defaultTimeout);
         assertNull(actual.get());
     }
@@ -214,7 +214,7 @@ public class MqClientAdminImplTest {
     @Test
     public void assertUpdateOrCreateSubscriptionGroupWithError() {
         setResponseError();
-        SubscriptionGroupConfig config = mock(SubscriptionGroupConfig.class);
+        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
         CompletableFuture<Void> actual = mqClientAdminImpl.updateOrCreateSubscriptionGroup(defaultBrokerAddr, config, defaultTimeout);
         Throwable thrown = assertThrows(ExecutionException.class, actual::get);
         assertTrue(thrown.getCause() instanceof MQClientException);
