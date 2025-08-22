@@ -21,7 +21,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.sync.NoopMetadataChangeObserver;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.store.MessageStore;

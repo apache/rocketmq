@@ -88,7 +88,7 @@ import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.sync.MetadataChangeObserver;
-import org.apache.rocketmq.broker.sync.NoopMetadataChangeObserver;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.broker.sync.SyncMessageProducer;
 import org.apache.rocketmq.broker.sync.SyncMetadataChangeObserver;
 import org.apache.rocketmq.broker.topic.LmqTopicConfigManager;

@@ -27,7 +27,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.sync.NoopMetadataChangeObserver;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;

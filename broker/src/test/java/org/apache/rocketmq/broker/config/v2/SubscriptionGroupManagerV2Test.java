@@ -20,7 +20,7 @@ package org.apache.rocketmq.broker.config.v2;
 import java.io.File;
 import java.io.IOException;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.sync.NoopMetadataChangeObserver;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicyType;

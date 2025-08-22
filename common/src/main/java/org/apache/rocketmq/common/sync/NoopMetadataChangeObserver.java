@@ -14,9 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.sync;
-
-import org.apache.rocketmq.common.sync.MetadataChangeObserver;
+package org.apache.rocketmq.common.sync;
 
 public class NoopMetadataChangeObserver implements MetadataChangeObserver {
 
