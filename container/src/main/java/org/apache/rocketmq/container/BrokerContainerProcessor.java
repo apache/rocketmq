@@ -166,28 +166,28 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
             properties(brokerProperties).
             build();
 
-        BrokerController brokerController;
+        InnerBrokerController innerBrokerController;
         try {
-            brokerController = this.brokerContainer.addBroker(configContext);
+            innerBrokerController = this.brokerContainer.addBroker(configContext);
         } catch (Exception e) {
-            LOGGER.error("addBroker exception {}", e);
+            LOGGER.error("addBroker exception", e);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(e.getMessage());
             return response;
         }
-        if (brokerController != null) {
-            brokerController.getConfiguration().registerConfig(brokerProperties);
+        if (innerBrokerController != null) {
+            innerBrokerController.getConfiguration().registerConfig(brokerProperties);
             try {
                 for (BrokerBootHook brokerBootHook : brokerBootHookList) {
-                    brokerBootHook.executeBeforeStart(brokerController, brokerProperties);
+                    brokerBootHook.executeBeforeStart(innerBrokerController, brokerProperties);
                 }
-                brokerController.start();
+                innerBrokerController.start();
 
                 for (BrokerBootHook brokerBootHook : brokerBootHookList) {
-                    brokerBootHook.executeAfterStart(brokerController, brokerProperties);
+                    brokerBootHook.executeAfterStart(innerBrokerController, brokerProperties);
                 }
             } catch (Exception e) {
-                LOGGER.error("start broker exception {}", e);
+                LOGGER.error("start broker exception", e);
                 BrokerIdentity brokerIdentity;
                 if (messageStoreConfig.isEnableDLegerCommitLog()) {
                     brokerIdentity = new BrokerIdentity(brokerConfig.getBrokerClusterName(),
@@ -197,9 +197,9 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
                         brokerConfig.getBrokerName(), brokerConfig.getBrokerId());
                 }
                 this.brokerContainer.removeBroker(brokerIdentity);
-                brokerController.shutdown();
+                innerBrokerController.shutdown();
                 response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("start broker failed, " + e);
+                response.setRemark("start broker failed" + e);
                 return response;
             }
             response.setCode(ResponseCode.SUCCESS);

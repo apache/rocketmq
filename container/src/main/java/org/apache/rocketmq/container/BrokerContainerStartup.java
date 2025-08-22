@@ -84,10 +84,10 @@ public class BrokerContainerStartup {
                     System.exit(-1);
                 }
 
-                final BrokerController brokerController = createAndInitializeBroker(brokerContainer, configPath, brokerProperties);
-                if (brokerController != null) {
-                    brokerControllerList.add(brokerController);
-                    startBrokerController(brokerContainer, brokerController, brokerProperties);
+                final InnerBrokerController innerBrokerController = createAndInitializeBroker(brokerContainer, configPath, brokerProperties);
+                if (innerBrokerController != null) {
+                    brokerControllerList.add(innerBrokerController);
+                    startBrokerController(brokerContainer, innerBrokerController, brokerProperties);
                 }
             }
         }
@@ -126,8 +126,7 @@ public class BrokerContainerStartup {
         return null;
     }
 
-
-    public static BrokerController createAndInitializeBroker(BrokerContainer brokerContainer,
+    public static InnerBrokerController createAndInitializeBroker(BrokerContainer brokerContainer,
         String filePath, Properties brokerProperties) {
 
         final BrokerConfig brokerConfig = new BrokerConfig();
@@ -184,10 +183,10 @@ public class BrokerContainerStartup {
             .build();
 
         try {
-            BrokerController brokerController = brokerContainer.addBroker(configContext);
-            if (brokerController != null) {
-                brokerController.getConfiguration().registerConfig(brokerProperties);
-                return brokerController;
+            InnerBrokerController innerBrokerController = brokerContainer.addBroker(configContext);
+            if (innerBrokerController != null) {
+                innerBrokerController.getConfiguration().registerConfig(brokerProperties);
+                return innerBrokerController;
             } else {
                 System.out.printf("Add broker [%s-%s] failed.%n", brokerConfig.getBrokerName(), brokerConfig.getBrokerId());
             }
@@ -221,21 +220,21 @@ public class BrokerContainerStartup {
     }
 
     public static void startBrokerController(BrokerContainer brokerContainer,
-        BrokerController brokerController, Properties brokerProperties) {
+        InnerBrokerController innerBrokerController, Properties brokerProperties) {
         try {
             for (BrokerBootHook hook : brokerContainer.getBrokerBootHookList()) {
-                hook.executeBeforeStart(brokerController, brokerProperties);
+                hook.executeBeforeStart(innerBrokerController, brokerProperties);
             }
 
-            brokerController.start();
+            innerBrokerController.start();
 
             for (BrokerBootHook hook : brokerContainer.getBrokerBootHookList()) {
-                hook.executeAfterStart(brokerController, brokerProperties);
+                hook.executeAfterStart(innerBrokerController, brokerProperties);
             }
 
             String tip = String.format("Broker [%s-%s] boot success. serializeType=%s",
-                brokerController.getBrokerConfig().getBrokerName(),
-                brokerController.getBrokerConfig().getBrokerId(),
+                innerBrokerController.getBrokerConfig().getBrokerName(),
+                innerBrokerController.getBrokerConfig().getBrokerId(),
                 RemotingCommand.getSerializeTypeConfigInThisServer());
 
             log.info(tip);
