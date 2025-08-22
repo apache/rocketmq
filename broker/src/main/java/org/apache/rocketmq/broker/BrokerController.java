@@ -375,7 +375,7 @@ public class BrokerController {
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService, this.popMessageProcessor, this.notificationProcessor);
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener, this.brokerStatsManager, this.brokerConfig);
-        this.producerManager = new ProducerManager(this.brokerStatsManager);
+        this.producerManager = new ProducerManager(this.brokerStatsManager, this.brokerConfig);
         this.consumerFilterManager = new ConsumerFilterManager(this);
         this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
         this.popInflightMessageCounter = new PopInflightMessageCounter(this);
