@@ -354,7 +354,11 @@ public class ReplicasManager {
             slaveSyncFuture = this.brokerController.getScheduledExecutorService().scheduleAtFixedRate(() -> {
                 try {
                     if (System.currentTimeMillis() - lastSyncTimeMs > 10 * 1000) {
-                        brokerController.getSlaveSynchronize().syncAll();
+                        if (!this.brokerController.getBrokerConfig().isAllowMetadataIncrementalSync()) {
+                            this.brokerController.getSlaveSynchronize().syncAll();
+                        } else {
+                            this.brokerController.getSlaveSynchronize().start();
+                        }
                         lastSyncTimeMs = System.currentTimeMillis();
                     }
                     //timer checkpoint, latency-sensitive, so sync it more frequently

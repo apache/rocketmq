@@ -110,7 +110,8 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
     @Override
     public TopicConfig putTopicConfig(TopicConfig topicConfig) {
         String topicName = topicConfig.getTopicName();
-        TopicConfig oldTopicConfig = this.topicConfigTable.put(topicName, topicConfig);
+        TopicConfig oldTopicConfig = super.putTopicConfig(topicConfig);
+
         try {
             byte[] keyBytes = topicName.getBytes(DataConverter.CHARSET_UTF8);
             byte[] valueBytes = JSON.toJSONBytes(topicConfig, SerializerFeature.BrowserCompatible);
@@ -123,7 +124,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
 
     @Override
     protected TopicConfig removeTopicConfig(String topicName) {
-        TopicConfig topicConfig = this.topicConfigTable.remove(topicName);
+        TopicConfig topicConfig = super.removeTopicConfig(topicName);
         try {
             this.rocksDBConfigManager.delete(topicName.getBytes(DataConverter.CHARSET_UTF8));
         } catch (Exception e) {
