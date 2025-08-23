@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.service.route;
 
 import com.google.common.net.HostAndPort;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
@@ -100,6 +101,24 @@ public class LocalTopicRouteServiceTest extends BaseServiceTest {
             Lists.newArrayList(new Address(Address.AddressScheme.IPv4, HostAndPort.fromParts(
                 HostAndPort.fromString(BROKER_ADDR).getHost(),
                 ConfigurationManager.getProxyConfig().getGrpcServerPort()))),
+            proxyTopicRouteData.getBrokerDatas().get(0).getBrokerAddrs().get(MixAll.MASTER_ID));
+    }
+
+    @Test
+    public void testGetTopicRouteForProxyWithRemotingClient() throws Throwable {
+        ProxyContext ctx = ProxyContext.create();
+        
+        List<Address> remotingAddressList = Lists.newArrayList(
+            new Address(Address.AddressScheme.IPv4, HostAndPort.fromParts(
+                HostAndPort.fromString(BROKER_ADDR).getHost(),
+                ConfigurationManager.getProxyConfig().getRemotingListenPort()))
+        );
+        
+        ProxyTopicRouteData proxyTopicRouteData = this.topicRouteService.getTopicRouteForProxy(ctx, remotingAddressList, TOPIC);
+
+        assertEquals(1, proxyTopicRouteData.getBrokerDatas().size());
+        assertEquals(
+            remotingAddressList,
             proxyTopicRouteData.getBrokerDatas().get(0).getBrokerAddrs().get(MixAll.MASTER_ID));
     }
 }

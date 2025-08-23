@@ -61,7 +61,12 @@ public class LocalTopicRouteService extends TopicRouteService {
         String topicName) throws Exception {
         MessageQueueView messageQueueView = getAllMessageQueueView(ctx, topicName);
         TopicRouteData topicRouteData = messageQueueView.getTopicRouteData();
-        return new ProxyTopicRouteData(topicRouteData, grpcPort);
+        
+        if (requestHostAndPortList != null && !requestHostAndPortList.isEmpty()) {
+            return new ProxyTopicRouteData(topicRouteData, requestHostAndPortList);
+        } else {
+            return new ProxyTopicRouteData(topicRouteData, grpcPort);
+        }
     }
 
     @Override
