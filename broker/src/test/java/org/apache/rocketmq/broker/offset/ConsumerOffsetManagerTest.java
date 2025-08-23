@@ -40,6 +40,7 @@ public class ConsumerOffsetManagerTest {
     private ConsumerOffsetManager consumerOffsetManager;
 
     @Before
+    @SuppressWarnings("DoubleBraceInitialization")
     public void init() {
         brokerController = Mockito.mock(BrokerController.class);
         consumerOffsetManager = new ConsumerOffsetManager(brokerController);

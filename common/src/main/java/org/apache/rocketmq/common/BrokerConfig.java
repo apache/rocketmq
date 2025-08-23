@@ -388,6 +388,15 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean metricsInDelta = false;
 
+    private boolean enableRemotingMetrics = true;
+    private boolean enableMessageStoreMetrics = true;
+    private boolean enablePopMetrics = true;
+    private boolean enableConnectionMetrics = true;
+    private boolean enableTransactionMetrics = true;
+    private boolean enableStatsMetrics = true;
+    private boolean enableRequestMetrics = true;
+    private boolean enableLagAndDlqMetrics = true;
+
     private long channelExpiredTimeout = 1000 * 120;
     private long subscriptionExpiredTimeout = 1000 * 60 * 10;
 
@@ -1790,6 +1799,71 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setMetricsPromExporterHost(String metricsPromExporterHost) {
         this.metricsPromExporterHost = metricsPromExporterHost;
+    }
+
+    public boolean isEnablePopMetrics() {
+        return enablePopMetrics;
+    }
+
+    public void setEnablePopMetrics(boolean enablePopMetrics) {
+        this.enablePopMetrics = enablePopMetrics;
+    }
+
+    public boolean isEnableConnectionMetrics() {
+        return enableConnectionMetrics;
+    }
+
+    public void setEnableConnectionMetrics(boolean enableConnectionMetrics) {
+        this.enableConnectionMetrics = enableConnectionMetrics;
+    }
+
+    public boolean isEnableTransactionMetrics() {
+        return enableTransactionMetrics;
+    }
+
+    public void setEnableTransactionMetrics(boolean enableTransactionMetrics) {
+        this.enableTransactionMetrics = enableTransactionMetrics;
+    }
+
+    public boolean isEnableStatsMetrics() {
+        return enableStatsMetrics;
+    }
+
+    public void setEnableStatsMetrics(boolean enableStatsMetrics) {
+        this.enableStatsMetrics = enableStatsMetrics;
+    }
+
+    public boolean isEnableRequestMetrics() {
+        return enableRequestMetrics;
+    }
+
+    public void setEnableRequestMetrics(boolean enableRequestMetrics) {
+        this.enableRequestMetrics = enableRequestMetrics;
+    }
+
+
+    public boolean isEnableLagAndDlqMetrics() {
+        return enableLagAndDlqMetrics;
+    }
+
+    public void setEnableLagAndDlqMetrics(boolean enableLagAndDlqMetrics) {
+        this.enableLagAndDlqMetrics = enableLagAndDlqMetrics;
+    }
+
+    public boolean isEnableRemotingMetrics() {
+        return enableRemotingMetrics;
+    }
+
+    public void setEnableRemotingMetrics(boolean enableRemotingMetrics) {
+        this.enableRemotingMetrics = enableRemotingMetrics;
+    }
+
+    public boolean isEnableMessageStoreMetrics() {
+        return enableMessageStoreMetrics;
+    }
+
+    public void setEnableMessageStoreMetrics(boolean enableMessageStoreMetrics) {
+        this.enableMessageStoreMetrics = enableMessageStoreMetrics;
     }
 
     public int getTransactionOpMsgMaxSize() {

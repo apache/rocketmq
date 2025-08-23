@@ -155,7 +155,8 @@ public class DefaultMessageStore implements MessageStore {
     private final BrokerConfig brokerConfig;
 
     private volatile boolean shutdown = true;
-    protected boolean notifyMessageArriveInBatch = false;
+
+    private boolean notifyMessageArriveInBatch = false;
 
     protected StoreCheckpoint storeCheckpoint;
     private TimerMessageStore timerMessageStore;
@@ -3011,4 +3012,13 @@ public class DefaultMessageStore implements MessageStore {
     public MessageStoreStateMachine getStateMachine() {
         return stateMachine;
     }
+
+    public boolean isNotifyMessageArriveInBatch() {
+        return notifyMessageArriveInBatch;
+    }
+
+    public void setNotifyMessageArriveInBatch(boolean notifyMessageArriveInBatch) {
+        this.notifyMessageArriveInBatch = notifyMessageArriveInBatch;
+    }
+
 }

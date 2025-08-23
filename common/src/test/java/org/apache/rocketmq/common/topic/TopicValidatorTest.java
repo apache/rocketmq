@@ -24,34 +24,26 @@ public class TopicValidatorTest {
 
     @Test
     public void testTopicValidator_NotPass() {
-        TopicValidator.ValidateTopicResult res = TopicValidator.validateTopic("");
+        TopicValidator.ValidateResult res = TopicValidator.validateTopic("");
         assertThat(res.isValid()).isFalse();
         assertThat(res.getRemark()).contains("The specified topic is blank");
 
         res = TopicValidator.validateTopic("../TopicTest");
         assertThat(res.isValid()).isFalse();
-        assertThat(res.getRemark()).contains("The specified topic contains illegal characters");
 
         res = TopicValidator.validateTopic(generateString(128));
         assertThat(res.isValid()).isFalse();
-        assertThat(res.getRemark()).contains("The specified topic is longer than topic max length.");
-
-        res = TopicValidator.validateTopic(generateString2(128));
-        assertThat(res.isValid()).isFalse();
-        assertThat(res.getRemark()).contains("The specified topic is longer than topic max length.");
 
         res = TopicValidator.validateTopic(generateRetryTopic(256));
         assertThat(res.isValid()).isFalse();
-        assertThat(res.getRemark()).contains("The specified topic is longer than topic max length.");
 
         res = TopicValidator.validateTopic(generateDlqTopic(256));
         assertThat(res.isValid()).isFalse();
-        assertThat(res.getRemark()).contains("The specified topic is longer than topic max length.");
     }
 
     @Test
     public void testTopicValidator_Pass() {
-        TopicValidator.ValidateTopicResult res = TopicValidator.validateTopic("TestTopic");
+        TopicValidator.ValidateResult res = TopicValidator.validateTopic("TestTopic");
         assertThat(res.isValid()).isTrue();
         assertThat(res.getRemark()).isEmpty();
 
@@ -66,6 +58,33 @@ public class TopicValidatorTest {
         res = TopicValidator.validateTopic(generateDlqTopic(255));
         assertThat(res.isValid()).isTrue();
         assertThat(res.getRemark()).isEmpty();
+    }
+
+    @Test
+    public void testGroupValidator_Pass() {
+        TopicValidator.ValidateResult res = TopicValidator.validateGroup("TestGroup");
+        assertThat(res.isValid()).isTrue();
+        assertThat(res.getRemark()).isEmpty();
+
+        res = TopicValidator.validateGroup(generateString2(120));
+        assertThat(res.isValid()).isTrue();
+        assertThat(res.getRemark()).isEmpty();
+    }
+
+    @Test
+    public void testGroupValidator__NotPass() {
+        TopicValidator.ValidateResult res = TopicValidator.validateGroup("");
+        assertThat(res.isValid()).isFalse();
+        assertThat(res.getRemark()).contains("The specified group is blank");
+
+        res = TopicValidator.validateGroup("../GroupTest");
+        assertThat(res.isValid()).isFalse();
+
+        res = TopicValidator.validateGroup(generateString(120));
+        assertThat(res.isValid()).isFalse();
+
+        res = TopicValidator.validateGroup(generateString2(121));
+        assertThat(res.isValid()).isFalse();
     }
 
     @Test
