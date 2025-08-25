@@ -45,3 +45,4 @@ public interface BrokerBootHook {
      */
     void executeAfterStart(InnerBrokerController innerBrokerController, Properties properties) throws Exception;
 }
+

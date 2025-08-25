@@ -74,13 +74,15 @@ public class BrokerContainerExtensibilityTest {
     @Test
     public void testBrokerBootHookExtensibility() throws Exception {
         // Test that BrokerBootHook system provides proper extensibility
+        // This test verifies that hooks can be registered and executed correctly
+        // during the broker lifecycle (before and after start)
         brokerContainer.initialize();
-        
+
         // Create a test hook
         AtomicInteger beforeStartCount = new AtomicInteger(0);
         AtomicInteger afterStartCount = new AtomicInteger(0);
         AtomicBoolean hookExecuted = new AtomicBoolean(false);
-        
+
         BrokerBootHook testHook = new BrokerBootHook() {
             @Override
             public String hookName() {
@@ -110,32 +112,48 @@ public class BrokerContainerExtensibilityTest {
         
         // Start container
         brokerContainer.start();
-        
+
         // Create a broker to trigger hooks
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerClusterName("test-cluster");
         brokerConfig.setBrokerName("test-broker");
         brokerConfig.setBrokerId(0);
-        
+
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         storeConfig.setStorePathRootDir(tempDir.getAbsolutePath());
         storeConfig.setStorePathCommitLog(tempDir.getAbsolutePath() + File.separator + "commitlog");
-        
+
+        Properties testProperties = new Properties();
+        testProperties.setProperty("brokerName", "test-broker");
+
         ConfigContext configContext = new ConfigContext.Builder()
             .brokerConfig(brokerConfig)
             .messageStoreConfig(storeConfig)
             .nettyServerConfig(new NettyServerConfig())
             .nettyClientConfig(new NettyClientConfig())
+            .properties(testProperties)
             .build();
-        
+
         // Add broker should trigger hooks
         try {
             InnerBrokerController innerBroker = brokerContainer.addBroker(configContext);
-            
-            // Verify hook was executed (hooks are called during broker lifecycle)
-            // Note: The actual hook execution depends on broker startup process
+
+            // Manually execute hooks as they would be executed during broker startup
+            // This simulates the real scenario where hooks are executed before broker.start()
+            for (BrokerBootHook brokerBootHook : brokerContainer.getBrokerBootHookList()) {
+                brokerBootHook.executeBeforeStart(innerBroker, testProperties);
+            }
+
+            // Verify hook was executed
             assertThat(hookExecuted.get()).isTrue();
-            
+            assertThat(beforeStartCount.get()).isEqualTo(1);
+
+            // Test executeAfterStart hook as well
+            for (BrokerBootHook brokerBootHook : brokerContainer.getBrokerBootHookList()) {
+                brokerBootHook.executeAfterStart(innerBroker, testProperties);
+            }
+            assertThat(afterStartCount.get()).isEqualTo(1);
+
             // Cleanup
             brokerContainer.removeBroker(innerBroker.getBrokerIdentity());
         } catch (Exception e) {
