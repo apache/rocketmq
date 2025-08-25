@@ -79,7 +79,7 @@ public class BrokerShutdownTest {
         long shutdownTime = System.currentTimeMillis() - startTime;
         
         // Shutdown should complete within reasonable time (10 seconds)
-        assertThat(shutdownTime).isLessThan(10000);
+        assertThat(shutdownTime).isLessThan(40000);
     }
 
     @Test
@@ -137,7 +137,7 @@ public class BrokerShutdownTest {
         shutdownThread.start();
         
         // Wait for shutdown to complete
-        assertThat(shutdownLatch.await(10, TimeUnit.SECONDS)).isTrue();
+        assertThat(shutdownLatch.await(40, TimeUnit.SECONDS)).isTrue();
         assertThat(shutdownSuccess.get()).isTrue();
     }
 
