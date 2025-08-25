@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.KeyBuilder;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -163,9 +164,45 @@ public class PopLongPollingService extends ServiceThread {
         if (KeyBuilder.isPopRetryTopicV2(topic)) {
             notifyTopic = KeyBuilder.parseNormalTopic(topic);
         } else {
-            notifyTopic = topic;
+            if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX))
+                notifyTopic = findTopicForV1RetryTopic(topic);
+            else notifyTopic = topic;
         }
         notifyMessageArriving(notifyTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
+    }
+
+    /**
+     * Find the correct topic name for V1 retry topic by checking topicCidMap
+     * @param retryTopic V1 retry topic name
+     * @return the original topic name, retryTopic otherwise
+     */
+    private String findTopicForV1RetryTopic(String retryTopic) {
+        // Check if the potential group exists in topicCidMap
+        boolean hasDuplicatedTopic = false;
+        String originalTopic = null;
+        for (String topic : topicCidMap.keySet()) {
+            ConcurrentHashMap<String, Byte> cids = topicCidMap.get(topic);
+            if (cids != null) {
+                for (String cid : cids.keySet()) {
+                    // Check if this cid could be the correct consumer group
+                    String expectedRetryTopic = KeyBuilder.buildPopRetryTopicV1(topic, cid);
+                    if (expectedRetryTopic.equals(retryTopic)) {
+                        if(originalTopic == null){
+                            originalTopic = topic;
+                        }
+                        else {
+                            hasDuplicatedTopic = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (hasDuplicatedTopic){
+            return retryTopic;
+        } else {
+            return originalTopic;
+        }
     }
 
     public void notifyMessageArriving(final String topic, final int queueId, long offset,
