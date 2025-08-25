@@ -27,8 +27,10 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.ConfigContext;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -56,13 +58,12 @@ public class BrokerContainerStartup {
     public static String rocketmqHome = null;
 
     public static void main(String[] args) {
-        final BrokerContainer brokerContainer = startBrokerContainer(createBrokerContainer(args));
+        final BrokerContainerConfig containerConfig = new BrokerContainerConfig();
+        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        final NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        parseCmdLineToConfig(args, containerConfig, nettyServerConfig, nettyClientConfig);
+        final BrokerContainer brokerContainer = startBrokerContainer(createBrokerContainer(containerConfig, nettyServerConfig, nettyClientConfig));
         createAndStartBrokers(brokerContainer);
-    }
-
-    public static BrokerController createBrokerController(String[] args) {
-        final BrokerContainer brokerContainer = startBrokerContainer(createBrokerContainer(args));
-        return createAndInitializeBroker(brokerContainer, configFile, properties);
     }
 
     public static List<BrokerController> createAndStartBrokers(BrokerContainer brokerContainer) {
@@ -83,10 +84,10 @@ public class BrokerContainerStartup {
                     System.exit(-1);
                 }
 
-                final BrokerController brokerController = createAndInitializeBroker(brokerContainer, configPath, brokerProperties);
-                if (brokerController != null) {
-                    brokerControllerList.add(brokerController);
-                    startBrokerController(brokerContainer, brokerController, brokerProperties);
+                final InnerBrokerController innerBrokerController = createAndInitializeBroker(brokerContainer, configPath, brokerProperties);
+                if (innerBrokerController != null) {
+                    brokerControllerList.add(innerBrokerController);
+                    startBrokerController(brokerContainer, innerBrokerController, brokerProperties);
                 }
             }
         }
@@ -125,16 +126,18 @@ public class BrokerContainerStartup {
         return null;
     }
 
-    public static BrokerController createAndInitializeBroker(BrokerContainer brokerContainer,
+    public static InnerBrokerController createAndInitializeBroker(BrokerContainer brokerContainer,
         String filePath, Properties brokerProperties) {
 
         final BrokerConfig brokerConfig = new BrokerConfig();
         final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        final AuthConfig authConfig = new AuthConfig();
 
         if (brokerProperties != null) {
             properties2SystemEnv(brokerProperties);
             MixAll.properties2Object(brokerProperties, brokerConfig);
             MixAll.properties2Object(brokerProperties, messageStoreConfig);
+            MixAll.properties2Object(brokerProperties, authConfig);
         }
 
         messageStoreConfig.setHaListenPort(brokerConfig.getListenPort() + 1);
@@ -172,11 +175,18 @@ public class BrokerContainerStartup {
         MixAll.printObjectProperties(log, brokerConfig);
         MixAll.printObjectProperties(log, messageStoreConfig);
 
+        ConfigContext configContext = new ConfigContext.Builder()
+            .brokerConfig(brokerConfig)
+            .messageStoreConfig(messageStoreConfig)
+            .authConfig(authConfig)
+            .properties(brokerProperties)
+            .build();
+
         try {
-            BrokerController brokerController = brokerContainer.addBroker(brokerConfig, messageStoreConfig);
-            if (brokerController != null) {
-                brokerController.getConfiguration().registerConfig(brokerProperties);
-                return brokerController;
+            InnerBrokerController innerBrokerController = brokerContainer.addBroker(configContext);
+            if (innerBrokerController != null) {
+                innerBrokerController.getConfiguration().registerConfig(brokerProperties);
+                return innerBrokerController;
             } else {
                 System.out.printf("Add broker [%s-%s] failed.%n", brokerConfig.getBrokerName(), brokerConfig.getBrokerId());
             }
@@ -210,21 +220,21 @@ public class BrokerContainerStartup {
     }
 
     public static void startBrokerController(BrokerContainer brokerContainer,
-        BrokerController brokerController, Properties brokerProperties) {
+        InnerBrokerController innerBrokerController, Properties brokerProperties) {
         try {
             for (BrokerBootHook hook : brokerContainer.getBrokerBootHookList()) {
-                hook.executeBeforeStart(brokerController, brokerProperties);
+                hook.executeBeforeStart(innerBrokerController, brokerProperties);
             }
 
-            brokerController.start();
+            innerBrokerController.start();
 
             for (BrokerBootHook hook : brokerContainer.getBrokerBootHookList()) {
-                hook.executeAfterStart(brokerController, brokerProperties);
+                hook.executeAfterStart(innerBrokerController, brokerProperties);
             }
 
             String tip = String.format("Broker [%s-%s] boot success. serializeType=%s",
-                brokerController.getBrokerConfig().getBrokerName(),
-                brokerController.getBrokerConfig().getBrokerId(),
+                innerBrokerController.getBrokerConfig().getBrokerName(),
+                innerBrokerController.getBrokerConfig().getBrokerId(),
                 RemotingCommand.getSerializeTypeConfigInThisServer());
 
             log.info(tip);
@@ -241,7 +251,10 @@ public class BrokerContainerStartup {
         }
     }
 
-    public static BrokerContainer createBrokerContainer(String[] args) {
+    public static Properties parseCmdLineToConfig(String[] args,
+        BrokerContainerConfig containerConfig,
+        NettyServerConfig nettyServerConfig,
+        NettyClientConfig nettyClientConfig) {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
 
         if (null == System.getProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_SNDBUF_SIZE)) {
@@ -261,9 +274,6 @@ public class BrokerContainerStartup {
                 System.exit(-1);
             }
 
-            final BrokerContainerConfig containerConfig = new BrokerContainerConfig();
-            final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-            final NettyClientConfig nettyClientConfig = new NettyClientConfig();
             nettyServerConfig.setListenPort(10811);
 
             if (commandLine.hasOption(BROKER_CONTAINER_CONFIG_OPTION)) {
@@ -319,51 +329,61 @@ public class BrokerContainerStartup {
                 MixAll.printObjectProperties(console, nettyClientConfig, true);
                 System.exit(0);
             }
-
-            log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-            MixAll.printObjectProperties(log, containerConfig);
-            MixAll.printObjectProperties(log, nettyServerConfig);
-            MixAll.printObjectProperties(log, nettyClientConfig);
-
-            final BrokerContainer brokerContainer = new BrokerContainer(
-                containerConfig,
-                nettyServerConfig,
-                nettyClientConfig);
-            // remember all configs to prevent discard
-            brokerContainer.getConfiguration().registerConfig(properties);
-
-            boolean initResult = brokerContainer.initialize();
-            if (!initResult) {
-                brokerContainer.shutdown();
-                System.exit(-3);
-            }
-
-            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                private volatile boolean hasShutdown = false;
-                private AtomicInteger shutdownTimes = new AtomicInteger(0);
-
-                @Override
-                public void run() {
-                    synchronized (this) {
-                        log.info("Shutdown hook was invoked, {}", this.shutdownTimes.incrementAndGet());
-                        if (!this.hasShutdown) {
-                            this.hasShutdown = true;
-                            long beginTime = System.currentTimeMillis();
-                            brokerContainer.shutdown();
-                            long consumingTimeTotal = System.currentTimeMillis() - beginTime;
-                            log.info("Shutdown hook over, consuming total time(ms): {}", consumingTimeTotal);
-                        }
-                    }
-                }
-            }, "ShutdownHook"));
-
-            return brokerContainer;
         } catch (Throwable e) {
             e.printStackTrace();
             System.exit(-1);
         }
 
-        return null;
+        return properties;
+    }
+
+    public static BrokerContainer createBrokerContainer(BrokerContainerConfig containerConfig,
+        NettyServerConfig nettyServerConfig,
+        NettyClientConfig nettyClientConfig) {
+
+        log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+        MixAll.printObjectProperties(log, containerConfig);
+        MixAll.printObjectProperties(log, nettyServerConfig);
+        MixAll.printObjectProperties(log, nettyClientConfig);
+
+        final BrokerContainer brokerContainer = new BrokerContainer(
+            containerConfig,
+            nettyServerConfig,
+            nettyClientConfig);
+        // remember all configs to prevent discard
+        brokerContainer.getConfiguration().registerConfig(properties);
+
+        boolean initResult = brokerContainer.initialize();
+        if (!initResult) {
+            brokerContainer.shutdown();
+            System.exit(-3);
+        }
+
+        setupShutdownHook(brokerContainer);
+
+        return brokerContainer;
+
+    }
+
+    public static void setupShutdownHook(final BrokerContainer brokerContainer) {
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            private volatile boolean hasShutdown = false;
+            private AtomicInteger shutdownTimes = new AtomicInteger(0);
+
+            @Override
+            public void run() {
+                synchronized (this) {
+                    log.info("Shutdown hook was invoked, {}", this.shutdownTimes.incrementAndGet());
+                    if (!this.hasShutdown) {
+                        this.hasShutdown = true;
+                        long beginTime = System.currentTimeMillis();
+                        brokerContainer.shutdown();
+                        long consumingTimeTotal = System.currentTimeMillis() - beginTime;
+                        log.info("Shutdown hook over, consuming total time(ms): {}", consumingTimeTotal);
+                    }
+                }
+            }
+        }, "ShutdownHook"));
     }
 
     private static void properties2SystemEnv(Properties properties) {

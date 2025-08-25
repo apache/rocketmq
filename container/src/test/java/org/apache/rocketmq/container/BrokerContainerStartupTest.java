@@ -39,6 +39,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.apache.rocketmq.container.BrokerContainerStartup.parseCmdLineToConfig;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -103,8 +104,12 @@ public class BrokerContainerStartupTest {
 
     @Test
     public void testStartBrokerContainer() {
+        final BrokerContainerConfig containerConfig = new BrokerContainerConfig();
+        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        final NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        parseCmdLineToConfig(Arrays.array("-c", brokerContainerConfigPath), containerConfig, nettyServerConfig, nettyClientConfig);
         BrokerContainer brokerContainer = BrokerContainerStartup.startBrokerContainer(
-            BrokerContainerStartup.createBrokerContainer(Arrays.array("-c", brokerContainerConfigPath)));
+            BrokerContainerStartup.createBrokerContainer(containerConfig, nettyServerConfig, nettyClientConfig));
         assertThat(brokerContainer).isNotNull();
         List<BrokerController> brokers = BrokerContainerStartup.createAndStartBrokers(brokerContainer);
         assertThat(brokers.size()).isEqualTo(1);

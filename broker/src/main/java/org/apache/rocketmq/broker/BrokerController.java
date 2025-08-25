@@ -301,6 +301,8 @@ public class BrokerController {
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
 
+    private ConfigContext configContext;
+
     public BrokerController(
         final BrokerConfig brokerConfig,
         final NettyServerConfig nettyServerConfig,
@@ -318,6 +320,14 @@ public class BrokerController {
         final MessageStoreConfig messageStoreConfig
     ) {
         this(brokerConfig, null, null, messageStoreConfig, null);
+    }
+
+    public BrokerController(
+        final BrokerConfig brokerConfig,
+        final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig
+    ) {
+        this(brokerConfig, null, null, messageStoreConfig, authConfig);
     }
 
     public BrokerController(
@@ -2615,5 +2625,11 @@ public class BrokerController {
         this.coldDataCgCtrService = coldDataCgCtrService;
     }
 
+    public ConfigContext getConfigContext() {
+        return configContext;
+    }
 
+    public void setConfigContext(ConfigContext configContext) {
+        this.configContext = configContext;
+    }
 }
