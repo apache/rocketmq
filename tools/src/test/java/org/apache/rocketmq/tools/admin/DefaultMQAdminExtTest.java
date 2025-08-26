@@ -133,8 +133,10 @@ public class DefaultMQAdminExtTest {
         Set<String> topicSet = new HashSet<>();
         topicSet.add(TOPIC1);
         topicSet.add(TOPIC2);
+        topicSet.add("%RETRY%group");
         topicList.setTopicList(topicSet);
         when(mQClientAPIImpl.getTopicListFromNameServer(anyLong())).thenReturn(topicList);
+        when(mQClientAPIImpl.getRetryTopicListFromNameServer(anyLong())).thenReturn(topicList);
 
         List<BrokerData> brokerDatas = new ArrayList<>();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
@@ -282,8 +284,15 @@ public class DefaultMQAdminExtTest {
     @Test
     public void testFetchAllTopicList() throws RemotingException, MQClientException, InterruptedException {
         TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
-        assertThat(topicList.getTopicList().size()).isEqualTo(2);
+        assertThat(topicList.getTopicList().size()).isEqualTo(3);
         assertThat(topicList.getTopicList()).contains("topic_one");
+    }
+    
+    @Test
+    public void testFetchAllRetryTopicList() throws RemotingException, MQClientException, InterruptedException {
+        TopicList topicList = defaultMQAdminExt.fetchAllRetryTopicList();
+        assertThat(topicList.getTopicList().size()).isEqualTo(3);
+        assertThat(topicList.getTopicList()).contains("%RETRY%group");
     }
 
     @Test
