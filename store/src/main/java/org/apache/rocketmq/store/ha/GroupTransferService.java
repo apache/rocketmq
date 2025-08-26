@@ -89,7 +89,8 @@ public class GroupTransferService extends ServiceThread {
                         this.notifyTransferObject.waitForRunning(1);
                     }
 
-                    if (!allAckInSyncStateSet && req.getAckNums() <= 1) {
+                    //handle only one slave ack, ackNums <= 2 means master + 1 slave
+                    if (!allAckInSyncStateSet && req.getAckNums() <= 2) {
                         transferOK = haService.getPush2SlaveMaxOffset().get() >= req.getNextOffset();
                         continue;
                     }
