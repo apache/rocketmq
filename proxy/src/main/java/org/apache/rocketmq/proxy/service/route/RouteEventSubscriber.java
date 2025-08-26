@@ -68,7 +68,6 @@ public class RouteEventSubscriber {
             try {
                 String json = new String(msg.getBody(), StandardCharsets.UTF_8);
                 Map<String, Object> event = JSON.parseObject(json, Map.class);
-                LOGGER.info("[ROUTE_UPDATE]: Received route event: {} consumer {}", event, this.consumer.getInstanceName());
 
                 String brokerName = (String) event.get(RouteEventConstants.BROKER_NAME);
                 RouteEventType eventType = RouteEventType.valueOf((String) event.get(RouteEventConstants.EVENT_TYPE));
@@ -81,7 +80,6 @@ public class RouteEventSubscriber {
                         this.topicRouteService.removeBrokerToTopics(brokerName);
 
                         for (String topic : topics) {
-                            LOGGER.info("[ROUTE_UPDATE] Processing topic: {}", topic);
                             dirtyMarker.accept(topic, eventTimeStamp);
                         }
                         break;
@@ -90,7 +88,6 @@ public class RouteEventSubscriber {
                         String affectedTopic = (String) event.get(RouteEventConstants.AFFECTED_TOPIC);
 
                         if (affectedTopic != null) {
-                            LOGGER.info("[ROUTE_UPDATE] Affected topic: {}", affectedTopic);
                             this.topicRouteService.removeBrokerToTopic(brokerName, affectedTopic);
 
                             dirtyMarker.accept(affectedTopic, eventTimeStamp);

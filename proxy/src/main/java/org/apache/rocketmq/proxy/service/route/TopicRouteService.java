@@ -63,8 +63,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     private final MQClientAPIFactory mqClientAPIFactory;
     private MQFaultStrategy mqFaultStrategy;
 
-    private final RouteEventSubscriber routeEventSubscriber;
-    private final RouteCacheRefresher routeCacheRefresher;
+    private RouteEventSubscriber routeEventSubscriber;
+    private RouteCacheRefresher routeCacheRefresher;
     private final ConcurrentMap<String, Set<String>> brokerToTopics = new ConcurrentHashMap<>();
 
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
@@ -150,17 +150,23 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 }
             }
         }, serviceDetector);
-        this.routeCacheRefresher = new RouteCacheRefresher(
-            this.topicCache,
-            this.cacheRefreshExecutor
-        );
 
-        this.routeEventSubscriber = new RouteEventSubscriber(
-            this,
-            (topic, timeStamp) -> {
-                this.routeCacheRefresher.markCacheDirty(topic, timeStamp);
-            }
-        );
+        if (config.isBrokerRouteEventServiceEnable()) {
+            this.routeCacheRefresher = new RouteCacheRefresher(
+                this.topicCache,
+                this.cacheRefreshExecutor
+            );
+            log.info("initialize routeCacheRefresher");
+
+            this.routeEventSubscriber = new RouteEventSubscriber(
+                this,
+                (topic, timeStamp) -> {
+                    this.routeCacheRefresher.markCacheDirty(topic, timeStamp);
+                }
+            );
+            log.info("initialize routeEventSubscriber");
+        }
+
         this.init();
     }
 
@@ -224,8 +230,11 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         if (this.mqFaultStrategy.isStartDetectorEnable()) {
             mqFaultStrategy.shutdown();
         }
-        this.routeCacheRefresher.shutdown();
-        this.routeEventSubscriber.shutdown();
+
+        if (ConfigurationManager.getProxyConfig().isBrokerRouteEventServiceEnable()) {
+            this.routeCacheRefresher.shutdown();
+            this.routeEventSubscriber.shutdown();
+        }
     }
 
     @Override
@@ -233,8 +242,11 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         if (this.mqFaultStrategy.isStartDetectorEnable()) {
             this.mqFaultStrategy.startDetector();
         }
-        this.routeEventSubscriber.start();
-        this.routeCacheRefresher.start();
+
+        if (ConfigurationManager.getProxyConfig().isBrokerRouteEventServiceEnable()) {
+            this.routeEventSubscriber.start();
+            this.routeCacheRefresher.start();
+        }
     }
 
     public ClientConfig extractClientConfigFromProxyConfig(ProxyConfig proxyConfig) {

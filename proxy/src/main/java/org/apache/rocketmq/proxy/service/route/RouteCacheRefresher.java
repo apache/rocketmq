@@ -70,7 +70,6 @@ public class RouteCacheRefresher {
     }
 
     public void markCompleted(String topic) {
-        log.info("markCompleted topic: {}", topic);
         dirtyTopics.remove(topic);
     }
 
@@ -103,8 +102,6 @@ public class RouteCacheRefresher {
 
     private void refreshSingleRoute(String topic) {
         try {
-            log.info("Refreshing route for: {}", topic);
-
             if (topicCache.getIfPresent(topic) == null) {
                 markCompleted(topic);
                 log.warn("No cache entry found for topic: {}", topic);

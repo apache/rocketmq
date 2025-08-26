@@ -206,6 +206,8 @@ public class ProxyConfig implements ConfigFile {
 
     private boolean enableAclRpcHookForClusterMode = false;
 
+    private boolean brokerRouteEventServiceEnable = true;
+
     private boolean useDelayLevel = false;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private transient ConcurrentSkipListMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable = new ConcurrentSkipListMap<>();
@@ -1051,6 +1053,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableAclRpcHookForClusterMode(boolean enableAclRpcHookForClusterMode) {
         this.enableAclRpcHookForClusterMode = enableAclRpcHookForClusterMode;
+    }
+
+    public boolean isBrokerRouteEventServiceEnable() {
+        return brokerRouteEventServiceEnable;
+    }
+
+    public void setBrokerRouteEventServiceEnable(final boolean brokerRouteEventServiceEnable) {
+        this.brokerRouteEventServiceEnable = brokerRouteEventServiceEnable;
     }
 
     public boolean isEnableTopicMessageTypeCheck() {

@@ -868,7 +868,11 @@ public class BrokerController {
         if (!result) {
             return false;
         }
-        this.routeEventService = new RouteEventService(this);
+
+        if (this.brokerConfig.isRouteEventServiceEnable()) {
+            this.routeEventService = new RouteEventService(this);
+            LOG.info("initialize routeEventService");
+        }
 
         return this.recoverAndInitService();
     }
@@ -1400,8 +1404,9 @@ public class BrokerController {
     protected void shutdownBasicService() {
 
         shutdown = true;
-
-        this.routeEventService.publishEvent(RouteEventType.SHUTDOWN);
+        if (this.routeEventService != null) {
+            this.routeEventService.publishEvent(RouteEventType.SHUTDOWN);
+        }
 
         this.unregisterBrokerAll();
 
@@ -1841,7 +1846,10 @@ public class BrokerController {
             }
         }, 10, 5, TimeUnit.SECONDS);
 
-        this.routeEventService.publishEvent(RouteEventType.START);
+        if (this.routeEventService != null) {
+            this.routeEventService.publishEvent(RouteEventType.START);
+        }
+
     }
 
     protected void scheduleSendHeartbeat() {

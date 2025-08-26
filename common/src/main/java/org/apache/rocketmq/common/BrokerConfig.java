@@ -141,6 +141,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean slaveReadEnable = false;
 
+    private boolean routeEventServiceEnable = true;
+
     private boolean disableConsumeIfConsumerReadSlowly = false;
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
@@ -719,6 +721,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setSlaveReadEnable(final boolean slaveReadEnable) {
         this.slaveReadEnable = slaveReadEnable;
+    }
+
+    public boolean isRouteEventServiceEnable() {
+        return routeEventServiceEnable;
+    }
+
+    public void setRouteEventServiceEnable(final boolean routeEventServiceEnable) {
+        this.routeEventServiceEnable = routeEventServiceEnable;
     }
 
     public int getRegisterBrokerTimeoutMills() {
