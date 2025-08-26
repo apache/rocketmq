@@ -58,7 +58,7 @@ public class InnerBrokerController extends BrokerController {
 
     @Override
     public void start() throws Exception {
-        this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
+        this.startupTime = System.currentTimeMillis();
 
         if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
             isIsolated = true;
@@ -75,8 +75,9 @@ public class InnerBrokerController extends BrokerController {
             @Override
             public void run0() {
                 try {
-                    if (System.currentTimeMillis() < shouldStartTime) {
-                        BrokerController.LOG.info("Register to namesrv after {}", shouldStartTime);
+                    long diff = System.currentTimeMillis() - startupTime;
+                    if (diff >= 0 && diff < messageStoreConfig.getDisappearTimeAfterStart()) {
+                        BrokerController.LOG.info("Register to namesrv after {}", startupTime + messageStoreConfig.getDisappearTimeAfterStart());
                         return;
                     }
                     if (isIsolated) {
