@@ -32,7 +32,7 @@ public class TransactionProcessor extends AbstractProcessor {
     }
 
     public CompletableFuture<Void> endTransaction(ProxyContext ctx, String topic, String transactionId, String messageId, String producerGroup,
-        TransactionStatus transactionStatus, boolean fromTransactionCheck, long timeoutMillis) {
+        Long tranStateTableOffset, Long commitLogOffset, TransactionStatus transactionStatus, boolean fromTransactionCheck, long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
             EndTransactionRequestData headerData = serviceManager.getTransactionService().genEndTransactionRequestHeader(
@@ -40,6 +40,8 @@ public class TransactionProcessor extends AbstractProcessor {
                 topic,
                 producerGroup,
                 buildCommitOrRollback(transactionStatus),
+                tranStateTableOffset,
+                commitLogOffset,
                 fromTransactionCheck,
                 messageId,
                 transactionId
