@@ -1446,6 +1446,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         SendResult sendResult = null;
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INSTANCE_ID, this.mQClientFactory.getClientId());
         try {
             sendResult = this.send(msg);
         } catch (Exception e) {
