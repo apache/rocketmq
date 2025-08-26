@@ -121,12 +121,12 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     }
 
     private boolean needSkip(MessageExt msgExt) {
-        long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
-        if (valueOfCurrentMinusBorn
+        long valueOfCurrentMinusStore = System.currentTimeMillis() - msgExt.getStoreTimestamp();
+        if (valueOfCurrentMinusStore
             > transactionalMessageBridge.getBrokerController().getMessageStoreConfig().getFileReservedTime()
             * 3600L * 1000) {
-            log.info("Half message exceed file reserved time ,so skip it.messageId {},bornTime {}",
-                msgExt.getMsgId(), msgExt.getBornTimestamp());
+            log.info("Half message exceed file reserved time ,so skip it.messageId {},storeTime {}",
+                msgExt.getMsgId(), msgExt.getStoreTimestamp());
             return true;
         }
         return false;
@@ -272,12 +272,12 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             break;
                         }
 
-                        long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
+                        long valueOfCurrentMinusStore = System.currentTimeMillis() - msgExt.getStoreTimestamp();
                         long checkImmunityTime = transactionTimeout;
                         String checkImmunityTimeStr = msgExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
                         if (null != checkImmunityTimeStr) {
                             checkImmunityTime = getImmunityTime(checkImmunityTimeStr, transactionTimeout);
-                            if (valueOfCurrentMinusBorn <= checkImmunityTime) {
+                            if (valueOfCurrentMinusStore <= checkImmunityTime) {
                                 if (checkPrepareQueueOffset(removeMap, doneOpOffset, msgExt, checkImmunityTimeStr)) {
                                     newOffset = i + 1;
                                     i++;
@@ -285,16 +285,16 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                 }
                             }
                         } else {
-                            if (0 <= valueOfCurrentMinusBorn && valueOfCurrentMinusBorn <= checkImmunityTime) {
-                                log.debug("New arrived, the miss offset={}, check it later checkImmunity={}, born={}", i,
-                                    checkImmunityTime, new Date(msgExt.getBornTimestamp()));
+                            if (0 <= valueOfCurrentMinusStore && valueOfCurrentMinusStore <= checkImmunityTime) {
+                                log.debug("New arrived, the miss offset={}, check it later checkImmunity={}, store={}", i,
+                                    checkImmunityTime, new Date(msgExt.getStoreTimestamp()));
                                 break;
                             }
                         }
                         List<MessageExt> opMsg = pullResult == null ? null : pullResult.getMsgFoundList();
-                        boolean isNeedCheck = opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime
-                            || opMsg != null && opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout
-                            || valueOfCurrentMinusBorn <= -1;
+                        boolean isNeedCheck = opMsg == null && valueOfCurrentMinusStore > checkImmunityTime
+                            || opMsg != null && opMsg.get(opMsg.size() - 1).getStoreTimestamp() - startTime > transactionTimeout
+                            || valueOfCurrentMinusStore <= -1;
 
                         if (isNeedCheck) {
 
