@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.CommandCallback;
@@ -160,51 +161,28 @@ public class PopLongPollingService extends ServiceThread {
 
     public void notifyMessageArrivingWithRetryTopic(final String topic, final int queueId, long offset,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
-        String notifyTopic;
-        if (KeyBuilder.isPopRetryTopicV2(topic)) {
-            notifyTopic = KeyBuilder.parseNormalTopic(topic);
-        } else {
-            if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX))
-                notifyTopic = findTopicForV1RetryTopic(topic);
-            else notifyTopic = topic;
-        }
-        notifyMessageArriving(notifyTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
-    }
-
-    /**
-     * Find the correct topic name for V1 retry topic by checking topicCidMap
-     * @param retryTopic V1 retry topic name
-     * @return the original topic name, retryTopic otherwise
-     */
-    private String findTopicForV1RetryTopic(String retryTopic) {
-        // Check if the potential group exists in topicCidMap
-        boolean hasDuplicatedTopic = false;
-        String originalTopic = null;
-        for (String topic : topicCidMap.keySet()) {
-            ConcurrentHashMap<String, Byte> cids = topicCidMap.get(topic);
-            if (cids != null) {
-                for (String cid : cids.keySet()) {
-                    // Check if this cid could be the correct consumer group
-                    String expectedRetryTopic = KeyBuilder.buildPopRetryTopicV1(topic, cid);
-                    if (expectedRetryTopic.equals(retryTopic)) {
-                        if(originalTopic == null){
-                            originalTopic = topic;
-                        }
-                        else {
-                            hasDuplicatedTopic = true;
-                            break;
-                        }
-                    }
-                }
+        String prefix = MixAll.RETRY_GROUP_TOPIC_PREFIX;
+        if (topic.startsWith(prefix)) {
+            // 从properties获取原始topic名称
+            String originTopic = properties.get(MessageConst.PROPERTY_ORIGIN_TOPIC);
+            //根据原始topic和retryTopic，最后获得retryTopic对应的cid (可能还可以与topicCidMap验证一下)
+            String suffix = "_" + originTopic; //这里把下划线换成加号也是一样的
+            String cid = topic.substring(prefix.length(), topic.length() - suffix.length());
+            POP_LOGGER.info("Processing retry topic: {}, originTopic: {}, properties: {}",
+                    topic, originTopic, properties); //grep "Processing retry topic" ~/logs/rocketmqlogs/pop.log可以看到日志
+            POP_LOGGER.info("Extracted cid: {} from retry topic: {}", cid, topic);
+            //然后调用包含cid的notifyMessageArriving
+            long interval = brokerController.getBrokerConfig().getPopLongPollingForceNotifyInterval();
+            boolean force = interval > 0L && offset % interval == 0L;
+            if (queueId >= 0) {
+                notifyMessageArriving(originTopic, -1, cid, force, tagsCode, msgStoreTime, filterBitMap, properties);
             }
-        }
-        if (hasDuplicatedTopic){
-            return retryTopic;
+            notifyMessageArriving(originTopic, queueId, cid, force, tagsCode, msgStoreTime, filterBitMap, properties);
         } else {
-            return originalTopic;
+            //普通消息（非重试消息）还是走之前的逻辑不变
+            notifyMessageArriving(topic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
         }
     }
-
     public void notifyMessageArriving(final String topic, final int queueId, long offset,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         ConcurrentHashMap<String, Byte> cids = topicCidMap.get(topic);
