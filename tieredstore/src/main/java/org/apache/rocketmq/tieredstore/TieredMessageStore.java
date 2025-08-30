@@ -370,11 +370,11 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 .build();
             TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
             if (offsetInTieredStore == -1L && !isForce) {
-                return next.getOffsetInQueueByTime(topic, queueId, timestamp);
+                return next.getOffsetInQueueByTime(topic, queueId, timestamp, boundaryType);
             }
             return offsetInTieredStore;
         }
-        return next.getOffsetInQueueByTime(topic, queueId, timestamp);
+        return next.getOffsetInQueueByTime(topic, queueId, timestamp, boundaryType);
     }
 
     @Override
