@@ -35,6 +35,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.route.RouteEventType;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PopAckConstants;
@@ -224,9 +225,25 @@ public class TopicConfigManager extends ConfigManager {
                 this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
             }
         }
+
+        {
+            // TopicValidator.RMQ_ROUTE_EVENT_TOPIC
+            String topic = TopicValidator.RMQ_ROUTE_EVENT_TOPIC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            TopicValidator.addSystemTopic(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            putTopicConfig(topicConfig);
+        }
     }
 
     public TopicConfig putTopicConfig(TopicConfig topicConfig) {
+        if (!TopicValidator.isSystemTopic(topicConfig.getTopicName())) {
+            if (this.brokerController.getBrokerConfig().isRouteEventServiceEnable()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            }
+        }
         return this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
     }
 
@@ -235,6 +252,10 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     protected TopicConfig removeTopicConfig(String topicName) {
+        if (this.brokerController.getBrokerConfig().isRouteEventServiceEnable()
+            && this.brokerController.getRouteEventService() != null) {
+            this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topicName);
+        }
         return this.topicConfigTable.remove(topicName);
     }
 

@@ -80,6 +80,8 @@ import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
 import org.apache.rocketmq.broker.processor.RecallMessageProcessor;
 import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
+import org.apache.rocketmq.broker.route.RouteEventService;
+import org.apache.rocketmq.broker.route.RouteEventType;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
@@ -300,6 +302,7 @@ public class BrokerController {
     private TransactionMetricsFlushService transactionMetricsFlushService;
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
+    private RouteEventService routeEventService;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -866,6 +869,11 @@ public class BrokerController {
             return false;
         }
 
+        if (this.brokerConfig.isRouteEventServiceEnable()) {
+            this.routeEventService = new RouteEventService(this);
+            LOG.info("initialize routeEventService");
+        }
+
         return this.recoverAndInitService();
     }
 
@@ -1297,6 +1305,10 @@ public class BrokerController {
         this.messageStore = messageStore;
     }
 
+    public RouteEventService getRouteEventService() {
+        return routeEventService;
+    }
+
     protected void printMasterAndSlaveDiff() {
         if (messageStore.getHaService() != null && messageStore.getHaService().getConnectionCount().get() > 0) {
             long diff = this.messageStore.slaveFallBehindMuch();
@@ -1392,6 +1404,9 @@ public class BrokerController {
     protected void shutdownBasicService() {
 
         shutdown = true;
+        if (this.routeEventService != null) {
+            this.routeEventService.publishEvent(RouteEventType.SHUTDOWN);
+        }
 
         this.unregisterBrokerAll();
 
@@ -1834,6 +1849,11 @@ public class BrokerController {
                 }
             }
         }, 10, 5, TimeUnit.SECONDS);
+
+        if (this.routeEventService != null) {
+            this.routeEventService.publishEvent(RouteEventType.START);
+        }
+
     }
 
     protected void scheduleSendHeartbeat() {
