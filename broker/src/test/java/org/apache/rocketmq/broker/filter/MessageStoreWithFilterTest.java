@@ -240,7 +240,7 @@ public class MessageStoreWithFilterTest {
         try {
             List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
 
-            Thread.sleep(200);
+            Thread.sleep(2000);
 
             // reset consumer;
             String topic = "topic" + 0;
@@ -330,6 +330,7 @@ public class MessageStoreWithFilterTest {
 
                     GetMessageResult getMessageResult = master.getMessage(group, realTopic, QUEUE_ID, 0, 10000,
                             new ExpressionMessageFilter(subscriptionData, filterData, filterManager));
+                    String assertMsg = group + "-" + realTopic;
                     try {
                         assertThat(getMessageResult).isNotNull();
                         assertThat(GetMessageStatus.FOUND).isEqualTo(getMessageResult.getStatus());
@@ -380,7 +381,7 @@ public class MessageStoreWithFilterTest {
 
             await().atMost(3, TimeUnit.SECONDS).untilAsserted(new ThrowingRunnable() {
                 @Override
-                public void run() {
+                public void run() throws Throwable {
                     for (int i = 0; i < topicCount; i++) {
                         final String realTopic = TOPIC + i;
                         GetMessageResult getMessageResult = master.getMessage("test", realTopic, QUEUE_ID, 0, 10000,
