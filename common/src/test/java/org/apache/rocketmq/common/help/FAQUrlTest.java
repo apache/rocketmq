@@ -33,7 +33,8 @@ public class FAQUrlTest {
     @Test
     public void testAttachDefaultURL() {
         String errorMsg = "errorMsg";
-        String expected = errorMsg + "\nFor more information, please visit the url, "
+        String expected = errorMsg
+                + "\nFor more information, please visit the url, "
                 + FAQUrl.UNEXPECTED_EXCEPTION_URL;
         String actual = FAQUrl.attachDefaultURL(errorMsg);
         assertEquals(expected, actual);
