@@ -151,7 +151,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
             if (StringUtils.isBlank(key)) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_KEY, "key cannot be the char sequence of whitespace");
             }
-            if (GrpcValidator.getInstance().containControlCharacter(key)) {
+            if (ConfigurationManager.getProxyConfig().isEnableControlCharacterCheck() && GrpcValidator.getInstance().containControlCharacter(key)) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_KEY, "key cannot contain control character");
             }
         }
@@ -169,7 +169,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
             if (messageGroup.getBytes(StandardCharsets.UTF_8).length >= maxSize) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP, "message group exceed the max size " + maxSize);
             }
-            if (GrpcValidator.getInstance().containControlCharacter(messageGroup)) {
+            if (ConfigurationManager.getProxyConfig().isEnableControlCharacterCheck() && GrpcValidator.getInstance().containControlCharacter(messageGroup)) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_GROUP, "message group cannot contain control character");
             }
         }
@@ -208,10 +208,10 @@ public class SendMessageActivity extends AbstractMessingActivity {
             if (MessageConst.STRING_HASH_SET.contains(userPropertiesEntry.getKey())) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "property is used by system: " + userPropertiesEntry.getKey());
             }
-            if (GrpcValidator.getInstance().containControlCharacter(userPropertiesEntry.getKey())) {
+            if (ConfigurationManager.getProxyConfig().isEnableControlCharacterCheck() && GrpcValidator.getInstance().containControlCharacter(userPropertiesEntry.getKey())) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "the key of property cannot contain control character");
             }
-            if (GrpcValidator.getInstance().containControlCharacter(userPropertiesEntry.getValue())) {
+            if (ConfigurationManager.getProxyConfig().isEnableControlCharacterCheck() && GrpcValidator.getInstance().containControlCharacter(userPropertiesEntry.getValue())) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_PROPERTY_KEY, "the value of property cannot contain control character");
             }
             userPropertySize += userPropertiesEntry.getKey().getBytes(StandardCharsets.UTF_8).length;
