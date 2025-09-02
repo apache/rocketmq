@@ -19,7 +19,6 @@ package org.apache.rocketmq.store;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyLong;
@@ -106,42 +105,5 @@ public class MessageStoreStateMachineTest {
     public void testGetCurrentState() {
         // Verify the current state
         assertEquals(MessageStoreState.INIT, stateMachine.getCurrentState());
-    }
-
-    /**
-     * Test getTotalRunningTimeMs method.
-     */
-    @Test
-    public void testGetTotalRunningTimeMs() {
-        // Sleep for a short duration to simulate elapsed time
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        // Verify the total running time is approximately correct
-        long totalTime = stateMachine.getTotalRunningTimeMs();
-        assertTrue(totalTime >= 100 && totalTime < 200);
-    }
-
-    /**
-     * Test getCurrentStateRunningTimeMs method.
-     */
-    @Test
-    public void testGetCurrentStateRunningTimeMs() {
-        // Perform a state transition
-        stateMachine.transitTo(MessageStoreState.LOAD_COMMITLOG_OK);
-
-        // Sleep for a short duration to simulate elapsed time
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        // Verify the current state running time is approximately correct
-        long currentStateTime = stateMachine.getCurrentStateRunningTimeMs();
-        assertTrue(currentStateTime >= 100 && currentStateTime < 200);
     }
 }

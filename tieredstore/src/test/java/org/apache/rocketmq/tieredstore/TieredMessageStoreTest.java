@@ -62,7 +62,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 public class TieredMessageStoreTest {
@@ -275,19 +274,43 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testGetOffsetInQueueByTime() {
+        final long earliestMsgTime = 100L;
         Properties properties = new Properties();
         properties.setProperty("tieredStorageLevel", "FORCE");
         configuration.update(properties);
 
-        Mockito.when(fetcher.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), eq(BoundaryType.LOWER))).thenReturn(1L);
-        Mockito.when(defaultStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong())).thenReturn(2L);
-        Mockito.when(defaultStore.getEarliestMessageTime()).thenReturn(100L);
-        Assert.assertEquals(1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 1000, BoundaryType.LOWER));
-        Assert.assertEquals(1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
+        Mockito.when(fetcher.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), any(BoundaryType.class)))
+            .thenAnswer(ivk -> ivk.getArgument(3, BoundaryType.class) == BoundaryType.LOWER ? 1L : 2L);
+        Mockito.when(defaultStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), any(BoundaryType.class)))
+            .thenAnswer(ivk -> {
+                long time = ivk.getArgument(2, Long.class);
+                if (time < earliestMsgTime) {
+                    return -1L;
+                }
+                return ivk.getArgument(3, BoundaryType.class) == BoundaryType.LOWER ? 3L : 4L;
+            });
+        Mockito.when(defaultStore.getEarliestMessageTime()).thenReturn(earliestMsgTime);
 
-        Mockito.when(fetcher.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), eq(BoundaryType.LOWER))).thenReturn(-1L);
+        // Message not in disk, but force, found in tired storage.
+        Assert.assertEquals(1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 1000, BoundaryType.LOWER));
+        Assert.assertEquals(2L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 1000, BoundaryType.UPPER));
+        // Message in disk, and force, found in tired storage.
+        Assert.assertEquals(1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
+        Assert.assertEquals(2L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.UPPER));
+
+        // Message in disk, but force, and not found in tired storage.
+        Mockito.when(fetcher.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), any(BoundaryType.class))).thenReturn(-1L);
         Assert.assertEquals(-1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0));
         Assert.assertEquals(-1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
+
+        properties.setProperty("tieredStorageLevel", "NOT_IN_DISK");
+        configuration.update(properties);
+        // Message not in disk, and not found in tired storage.
+        Assert.assertEquals(-1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
+        Assert.assertEquals(-1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.UPPER));
+        // Message in disk, and found in disk.
+        Assert.assertEquals(3L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 1000, BoundaryType.LOWER));
+        Assert.assertEquals(4L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 1000, BoundaryType.UPPER));
     }
 
     @Test
