@@ -31,7 +31,7 @@ java_library(
         "@maven//:commons_codec_commons_codec",
         "@maven//:com_github_luben_zstd_jni",
         "@maven//:org_lz4_lz4_java",
-        "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:io_netty_netty_all",
         "@maven//:com_google_guava_guava",
         "@maven//:org_slf4j_slf4j_api",
@@ -70,7 +70,7 @@ java_library(
         "@maven//:org_apache_commons_commons_lang3", 
         "@maven//:io_netty_netty_all",    
         "@maven//:com_google_guava_guava",  
-        "@maven//:com_alibaba_fastjson",     
+        "@maven//:com_alibaba_fastjson2_fastjson2",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

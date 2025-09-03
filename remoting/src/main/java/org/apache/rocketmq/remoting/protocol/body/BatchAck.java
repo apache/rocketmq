@@ -16,8 +16,7 @@
  */
 package org.apache.rocketmq.remoting.protocol.body;
 
-import com.alibaba.fastjson.annotation.JSONField;
-import org.apache.rocketmq.remoting.protocol.BitSetSerializerDeserializer;
+import com.alibaba.fastjson2.annotation.JSONField;
 
 import java.io.Serializable;
 import java.util.BitSet;
@@ -39,7 +38,7 @@ public class BatchAck implements Serializable {
     private long popTime;
     @JSONField(name = "it", alternateNames = {"invisibleTime"})
     private long invisibleTime;
-    @JSONField(name = "b", alternateNames = {"bitSet"}, serializeUsing = BitSetSerializerDeserializer.class, deserializeUsing = BitSetSerializerDeserializer.class)
+    @JSONField(name = "b", alternateNames = {"bitSet"})
     private BitSet bitSet; // ack offsets bitSet
 
     public String getConsumerGroup() {
