@@ -528,6 +528,9 @@ public abstract class AbstractRocksDBStorage {
             if (this.totalOrderReadOptions != null) {
                 this.totalOrderReadOptions.close();
             }
+            if (this.flushOptions != null) {
+                this.flushOptions.close();
+            }
             //4. close db.
             if (db != null && !this.readOnly) {
                 this.db.syncWal();
@@ -544,6 +547,7 @@ public abstract class AbstractRocksDBStorage {
             this.db = null;
             this.readOptions = null;
             this.totalOrderReadOptions = null;
+            this.flushOptions = null;
             this.writeOptions = null;
             this.ableWalWriteOptions = null;
             this.options = null;

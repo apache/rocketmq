@@ -51,7 +51,6 @@ import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 import org.apache.rocketmq.store.util.PerfCounter;
-import org.rocksdb.RocksDB;
 import static org.apache.rocketmq.common.message.MessageConst.PROPERTY_TIMER_ROLL_LABEL;
 import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMER_COLUMN_FAMILY;
 import static org.apache.rocketmq.store.timer.TimerMessageStore.TIMER_TOPIC;
@@ -224,7 +223,7 @@ public class TimerMessageRocksDBStore {
         }
         this.expiredMessageReputService = new TimerMessageReputService(expiredMessageQueue, storeConfig.getTimerRocksDBTimeExpiredMaxTps(), true);
         this.rollMessageReputService = new TimerMessageReputService(rollMessageQueue, storeConfig.getTimerRocksDBRollMaxTps(), false);
-        this.timeline = new Timeline(messageStore, messageRocksDBStorage,this, timerMetrics);
+        this.timeline = new Timeline(messageStore, messageRocksDBStorage, this, timerMetrics);
         this.timerSysTopicScanService = new TimerSysTopicScanService();
     }
 
