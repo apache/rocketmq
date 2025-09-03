@@ -2882,7 +2882,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private MessageExtBrokerInner toMessageExtBrokerInner(MessageExt msgExt) {
         MessageExtBrokerInner inner = new MessageExtBrokerInner();
-        if (brokerController.getMessageStoreConfig().isTransRocksDBEnable() && brokerController.getMessageStoreConfig().isDisableWriteOriginTransHalf()) {
+        if (brokerController.getMessageStoreConfig().isTransRocksDBEnable() && !brokerController.getMessageStoreConfig().isTransWriteOriginTransHalfEnable()) {
             inner.setTopic(TransactionalMessageUtil.buildHalfTopicForRocksDB());
         } else {
             inner.setTopic(TransactionalMessageUtil.buildHalfTopic());

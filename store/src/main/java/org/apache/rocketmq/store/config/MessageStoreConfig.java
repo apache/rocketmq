@@ -114,12 +114,12 @@ public class MessageStoreConfig {
     private boolean timerRecallToTimelineEnable = true;
 
     private boolean transRocksDBEnable = false;
-    private boolean disableWriteOriginTransHalf = false;
+    private boolean transWriteOriginTransHalfEnable = true;
 
     private boolean indexRocksDBEnable = false;
     private int maxRocksDBIndexQueryDays = 7;
-    private boolean disableWriteFileIndex = false;
-    private boolean disableReadFileIndex = false;
+    private boolean indexFileWriteEnable = true;
+    private boolean indexFileReadEnable = true;
 
     // default, defaultRocksDB
     @ImportantField
@@ -2093,28 +2093,28 @@ public class MessageStoreConfig {
         this.timerRocksDBPrecisionMs = timerRocksDBPrecisionMs;
     }
 
-    public boolean isDisableWriteFileIndex() {
-        return disableWriteFileIndex;
+    public boolean isIndexFileWriteEnable() {
+        return indexFileWriteEnable;
     }
 
-    public void setDisableWriteFileIndex(boolean disableWriteFileIndex) {
-        this.disableWriteFileIndex = disableWriteFileIndex;
+    public void setIndexFileWriteEnable(boolean indexFileWriteEnable) {
+        this.indexFileWriteEnable = indexFileWriteEnable;
     }
 
-    public boolean isDisableReadFileIndex() {
-        return disableReadFileIndex;
+    public boolean isIndexFileReadEnable() {
+        return indexFileReadEnable;
     }
 
-    public void setDisableReadFileIndex(boolean disableReadFileIndex) {
-        this.disableReadFileIndex = disableReadFileIndex;
+    public void setIndexFileReadEnable(boolean indexFileReadEnable) {
+        this.indexFileReadEnable = indexFileReadEnable;
     }
 
-    public boolean isDisableWriteOriginTransHalf() {
-        return disableWriteOriginTransHalf;
+    public boolean isTransWriteOriginTransHalfEnable() {
+        return transWriteOriginTransHalfEnable;
     }
 
-    public void setDisableWriteOriginTransHalf(boolean disableWriteOriginTransHalf) {
-        this.disableWriteOriginTransHalf = disableWriteOriginTransHalf;
+    public void setTransWriteOriginTransHalfEnable(boolean transWriteOriginTransHalfEnable) {
+        this.transWriteOriginTransHalfEnable = transWriteOriginTransHalfEnable;
     }
 
     public boolean isTimerRecallToTimeWheelEnable() {

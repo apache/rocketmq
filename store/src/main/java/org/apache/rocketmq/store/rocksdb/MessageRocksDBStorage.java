@@ -60,7 +60,7 @@ import static org.apache.rocketmq.store.timer.rocksdb.TimerRocksDBRecord.TIMER_R
 public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
-    private static final String ROCKSDB_MESSAGE_DIRECTORY = "RocksDBMessageStore";
+    private static final String ROCKSDB_MESSAGE_DIRECTORY = "rocksdbstore";
 
     public static final byte[] TIMER_COLUMN_FAMILY = "timer".getBytes(StandardCharsets.UTF_8);
     public static final byte[] TRANS_COLUMN_FAMILY = "trans".getBytes(StandardCharsets.UTF_8);

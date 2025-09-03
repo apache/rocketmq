@@ -1302,7 +1302,7 @@ public class DefaultMessageStore implements MessageStore {
 
         for (int i = 0; i < 3; i++) {
             QueryOffsetResult queryOffsetResult = null;
-            if (!messageStoreConfig.isDisableReadFileIndex()) {
+            if (messageStoreConfig.isIndexFileReadEnable()) {
                 queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime, null);
                 LOGGER.debug("indexService query Message queryOffsetResult : {}", JSON.toJSONString(queryOffsetResult));
             } else if (messageStoreConfig.isIndexRocksDBEnable()) {
@@ -1356,7 +1356,7 @@ public class DefaultMessageStore implements MessageStore {
         long lastQueryMsgTime = end;
         for (int i = 0; i < 3; i++) {
             QueryOffsetResult queryOffsetResult = null;
-            if (!messageStoreConfig.isDisableReadFileIndex()) {
+            if (messageStoreConfig.isIndexFileReadEnable()) {
                 queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime, indexType);
                 LOGGER.debug("indexService query Message queryOffsetResult : {}", JSON.toJSONString(queryOffsetResult));
             } else if (messageStoreConfig.isIndexRocksDBEnable()) {
@@ -2153,7 +2153,7 @@ public class DefaultMessageStore implements MessageStore {
         @Override
         public void dispatch(DispatchRequest request) {
             if (DefaultMessageStore.this.messageStoreConfig.isMessageIndexEnable()) {
-                if (!DefaultMessageStore.this.messageStoreConfig.isDisableWriteFileIndex()) {
+                if (DefaultMessageStore.this.messageStoreConfig.isIndexFileWriteEnable()) {
                     DefaultMessageStore.this.indexService.buildIndex(request);
                 }
                 if (DefaultMessageStore.this.messageStoreConfig.isIndexRocksDBEnable()) {
