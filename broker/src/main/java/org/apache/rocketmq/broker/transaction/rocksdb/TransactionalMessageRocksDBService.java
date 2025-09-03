@@ -37,10 +37,10 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.transaction.TransRocksDBRecord;
-import org.apache.rocketmq.store.transaction.TransMessageRocksDBStorage;
 import org.apache.rocketmq.store.transaction.TransMessageRocksDBStore;
-import org.rocksdb.RocksDB;
+import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TRANS_COLUMN_FAMILY;
 
 public class TransactionalMessageRocksDBService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
@@ -48,7 +48,7 @@ public class TransactionalMessageRocksDBService {
     private static final int INITIAL = 0, RUNNING = 1, SHUTDOWN = 2;
     private volatile int state = INITIAL;
 
-    private final TransMessageRocksDBStorage transMessageRocksDBStorage;
+    private final MessageRocksDBStorage messageRocksDBStorage;
     private final TransMessageRocksDBStore transMessageRocksDBStore;
     private final MessageStore messageStore;
     private final BrokerController brokerController;
@@ -59,7 +59,7 @@ public class TransactionalMessageRocksDBService {
     public TransactionalMessageRocksDBService(final MessageStore messageStore, final BrokerController brokerController) {
         this.messageStore = messageStore;
         this.transMessageRocksDBStore = messageStore.getTransRocksDBStore();
-        this.transMessageRocksDBStorage = transMessageRocksDBStore.getTransMessageRocksDBStorage();
+        this.messageRocksDBStorage = transMessageRocksDBStore.getMessageRocksDBStorage();
         this.brokerController = brokerController;
     }
 
@@ -95,9 +95,6 @@ public class TransactionalMessageRocksDBService {
         if (null != this.checkTranStatusTaskExecutor) {
             this.checkTranStatusTaskExecutor.shutdown();
         }
-        if (null != this.transMessageRocksDBStorage) {
-            this.transMessageRocksDBStorage.shutdown();
-        }
         this.state = SHUTDOWN;
         log.info("TransactionalMessageRocksDBService shutdown success");
     }
@@ -107,11 +104,12 @@ public class TransactionalMessageRocksDBService {
         byte[] lastKey = null;
         while (true) {
             try {
-                List<TransRocksDBRecord> trs = transMessageRocksDBStorage.scanRecords(RocksDB.DEFAULT_COLUMN_FAMILY, MAX_BATCH_SIZE_FROM_ROCKSDB, lastKey);
+                List<TransRocksDBRecord> trs = messageRocksDBStorage.scanRecordsForTrans(TRANS_COLUMN_FAMILY, MAX_BATCH_SIZE_FROM_ROCKSDB, lastKey);
                 if (null == trs || CollectionUtils.isEmpty(trs)) {
                     log.info("TransactionalMessageRocksDBService checkTransStatus trs is empty");
                     break;
                 }
+                count += trs.size();
                 checkTransRecordsStatus(trs);
                 lastKey = trs.size() >= MAX_BATCH_SIZE_FROM_ROCKSDB ? trs.get(trs.size() - 1).getKeyBytes() : null;
                 if (null == lastKey) {
@@ -164,7 +162,7 @@ public class TransactionalMessageRocksDBService {
                 }
             }
             if (!CollectionUtils.isEmpty(updateList)) {
-                transMessageRocksDBStorage.updateRecords(RocksDB.DEFAULT_COLUMN_FAMILY, updateList);
+                messageRocksDBStorage.updateRecordsForTrans(TRANS_COLUMN_FAMILY, updateList);
             }
         } catch (Exception e) {
             log.error("TransactionalMessageRocksDBService checkTransRecordsStatus error: {}", e.getMessage());
@@ -179,12 +177,10 @@ public class TransactionalMessageRocksDBService {
                 immunityTime = Long.parseLong(immunityTimeStr);
                 immunityTime *= 1000;
             } catch (Exception e) {
-                log.error("parse immunityTimesStr error: {}", e.getMessage());
-                immunityTime = brokerController.getBrokerConfig().getTransactionTimeOut();
+                log.error("parse immunityTimesStr error: {}, msgId: {}", e.getMessage(), msgExt.getMsgId());
             }
         }
         if ((System.currentTimeMillis() - msgExt.getBornTimestamp()) < immunityTime) {
-            log.info("TransactionalMessageRocksDBService check trans record status less than checkImmunityTime, ignore this check");
             return false;
         }
         return true;
@@ -209,12 +205,12 @@ public class TransactionalMessageRocksDBService {
                     try {
                         sendCheckMessage(msgExt);
                     } catch (Exception e) {
-                        log.error("TransactionalMessageRocksDBService Send check message error: {}", e.getMessage());
+                        log.error("TransactionalMessageRocksDBService Send check message error: {}, msgId: {}", e.getMessage(), msgExt.getMsgId());
                     }
                 }
             });
         } else {
-            log.error("TransactionalMessageRocksDBService checkTranStatusTaskExecutor not init");
+            log.error("TransactionalMessageRocksDBService checkTranStatusTaskExecutor not init, msgId: {}", msgExt.getMsgId());
         }
     }
 
@@ -238,13 +234,12 @@ public class TransactionalMessageRocksDBService {
             String groupId = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
             Channel channel = brokerController.getProducerManager().getAvailableChannel(groupId);
             if (channel != null) {
-                log.info("TransactionalMessageRocksDBService checkProducerTransactionState start groupId: {}", groupId);
                 brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
             } else {
-                log.warn("TransactionalMessageRocksDBService checkProducerTransactionState failed, channel is null. groupId={}", groupId);
+                log.warn("TransactionalMessageRocksDBService checkProducerTransactionState failed, channel is null. groupId={}, msgId: {}", groupId, msgExt.getMsgId());
             }
         } catch (Exception e) {
-            log.error("TransactionalMessageRocksDBService sendCheckMessage error: {}", e.getMessage());
+            log.error("TransactionalMessageRocksDBService sendCheckMessage error: {}, msgId: {}", e.getMessage(), msgExt.getMsgId());
         }
     }
 

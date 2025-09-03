@@ -1936,7 +1936,7 @@ public class TimerMessageStore {
     }
 
     private void recallToTimeline(long delayTime, long offsetPy, int sizePy, MessageExt messageExt) {
-        if (storeConfig.isDisableRecallToTimeline() || !storeConfig.isTimerRocksDBEnable()) {
+        if (!storeConfig.isTimerRecallToTimelineEnable() || !storeConfig.isTimerRocksDBEnable()) {
             return;
         }
         if (delayTime < 0L || offsetPy < 0L || sizePy <= 0 || null == messageExt) {

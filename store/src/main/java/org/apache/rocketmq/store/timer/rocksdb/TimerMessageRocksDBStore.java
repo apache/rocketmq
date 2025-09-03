@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.store.timer.rocksdb;
 import java.nio.ByteBuffer;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -48,17 +47,18 @@ import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 import org.apache.rocketmq.store.util.PerfCounter;
 import org.rocksdb.RocksDB;
 import static org.apache.rocketmq.common.message.MessageConst.PROPERTY_TIMER_ROLL_LABEL;
+import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMER_COLUMN_FAMILY;
 import static org.apache.rocketmq.store.timer.TimerMessageStore.TIMER_TOPIC;
 
 public class TimerMessageRocksDBStore {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
-    private static final String ROCKSDB_TIMER_MSG_DIRECTORY = "RocksDBTimerStore";
     private static final String SCAN_SYS_TOPIC = "scanSysTopic";
     private static final String SCAN_SYS_TOPIC_MISS = "scanSysTopicMiss";
     private static final String OUT_BIZ_MESSAGE = "outBizMsg";
@@ -74,7 +74,7 @@ public class TimerMessageRocksDBStore {
     private final TimerMetrics timerMetrics;
     private final MessageStoreConfig storeConfig;
     private final BrokerStatsManager brokerStatsManager;
-    private final TimerMessageRocksDBStorage timerMessageRocksDBStorage;
+    private final MessageRocksDBStorage messageRocksDBStorage;
     private Timeline timeline;
     private TimerSysTopicScanService timerSysTopicScanService;
     private TimerMessageReputService expiredMessageReputService;
@@ -91,8 +91,7 @@ public class TimerMessageRocksDBStore {
         this.storeConfig = messageStore.getMessageStoreConfig();
         this.precisionMs = storeConfig.getTimerRocksDBPrecisionMs() < 100L ? 1000L : storeConfig.getTimerRocksDBPrecisionMs();
         expirationThresholdMillis = precisionMs - 1L;
-        this.timerMessageRocksDBStorage = new TimerMessageRocksDBStorage(Paths.get(storeConfig.getStorePathRootDir(), ROCKSDB_TIMER_MSG_DIRECTORY).toString());
-        this.timerMessageRocksDBStorage.start();
+        this.messageRocksDBStorage = messageStore.getMessageRocksDBStorage();
         this.timerMetrics = timerMetrics;
         this.brokerStatsManager = brokerStatsManager;
         bufferLocal = ThreadLocal.withInitial(() -> ByteBuffer.allocate(storeConfig.getMaxMessageSize()));
@@ -110,7 +109,7 @@ public class TimerMessageRocksDBStore {
             return;
         }
         long commitOffsetFile = null != this.messageStore.getTimerMessageStore() ? this.messageStore.getTimerMessageStore().getCommitQueueOffset() : 0L;
-        long commitOffsetRocksDB = timerMessageRocksDBStorage.getCheckpoint(RocksDB.DEFAULT_COLUMN_FAMILY, TimerMessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
+        long commitOffsetRocksDB = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
         long maxCommitOffset = Math.max(commitOffsetFile, commitOffsetRocksDB);
         this.readOffset.set(maxCommitOffset);
         this.expiredMessageReputService.start();
@@ -130,7 +129,7 @@ public class TimerMessageRocksDBStore {
             }
             if (this.state == RUNNING && this.storeConfig.isTimerRocksDBStopScan()) {
                 long commitOffsetFile = null != this.messageStore.getTimerMessageStore() ? this.messageStore.getTimerMessageStore().getCommitQueueOffset() : 0L;
-                long commitOffsetRocksDB = timerMessageRocksDBStorage.getCheckpoint(RocksDB.DEFAULT_COLUMN_FAMILY, TimerMessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
+                long commitOffsetRocksDB = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
                 long maxCommitOffset = Math.max(commitOffsetFile, commitOffsetRocksDB);
                 this.readOffset.set(maxCommitOffset);
                 log.info("restart TimerMessageRocksDBStore has benn recover running, commitOffsetFile: {}, commitOffsetRocksDB: {}, readOffset: {}", commitOffsetFile, commitOffsetRocksDB, readOffset);
@@ -162,9 +161,6 @@ public class TimerMessageRocksDBStore {
         }
         if (null != this.rollMessageReputService) {
             this.rollMessageReputService.shutdown();
-        }
-        if (null != this.timerMessageRocksDBStorage) {
-            this.timerMessageRocksDBStorage.shutdown();
         }
         this.state = SHUTDOWN;
         log.info("TimerMessageRocksDBStore shutdown success");
@@ -208,10 +204,10 @@ public class TimerMessageRocksDBStore {
     }
 
     public long getCommitOffsetInRocksDB() {
-        if (null == timerMessageRocksDBStorage || !storeConfig.isTransRocksDBEnable()) {
+        if (null == messageRocksDBStorage || !storeConfig.isTransRocksDBEnable()) {
             return 0L;
         }
-        return timerMessageRocksDBStorage.getCheckpoint(RocksDB.DEFAULT_COLUMN_FAMILY, TimerMessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
+        return messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
     }
 
     public Timeline getTimeline() {
@@ -228,7 +224,7 @@ public class TimerMessageRocksDBStore {
         }
         this.expiredMessageReputService = new TimerMessageReputService(expiredMessageQueue, storeConfig.getTimerRocksDBTimeExpiredMaxTps(), true);
         this.rollMessageReputService = new TimerMessageReputService(rollMessageQueue, storeConfig.getTimerRocksDBRollMaxTps(), false);
-        this.timeline = new Timeline(messageStore, timerMessageRocksDBStorage,this, timerMetrics);
+        this.timeline = new Timeline(messageStore, messageRocksDBStorage,this, timerMetrics);
         this.timerSysTopicScanService = new TimerSysTopicScanService();
     }
 
@@ -542,7 +538,7 @@ public class TimerMessageRocksDBStore {
                     }
                     log.info("TimerMessageReputService reput messages to commitlog, cost: {}, trs size: {}", System.currentTimeMillis() - start, trs.size());
                     if (this.writeCheckPoint && !CollectionUtils.isEmpty(trs) && trs.get(trs.size() - 1).getCheckPoint() > 0L) {
-                        timerMessageRocksDBStorage.writeCheckPoint(RocksDB.DEFAULT_COLUMN_FAMILY, TimerMessageRocksDBStorage.TIMELINE_CHECK_POINT, trs.get(trs.size() - 1).getCheckPoint());
+                        messageRocksDBStorage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT, trs.get(trs.size() - 1).getCheckPoint());
                     }
                 } catch (Exception e) {
                     logError.error("TimerMessageReputService error: {}", e.getMessage());

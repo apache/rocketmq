@@ -42,6 +42,7 @@ import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
 import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
+import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
 import org.apache.rocketmq.store.transaction.TransMessageRocksDBStore;
 import org.apache.rocketmq.tieredstore.core.MessageStoreDispatcher;
@@ -78,6 +79,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     protected final MessageStoreFilter topicFilter;
     protected final MessageStoreFetcher fetcher;
     protected final MessageStoreDispatcher dispatcher;
+    protected final MessageRocksDBStorage messageRocksDBStorage;
     protected TimerMessageRocksDBStore timerMessageRocksDBStore;
     protected TransMessageRocksDBStore transMessageRocksDBStore;
 
@@ -89,7 +91,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         this.context.registerConfiguration(this.storeConfig);
         this.brokerName = this.storeConfig.getBrokerName();
         this.defaultStore = next;
-
+        this.messageRocksDBStorage = defaultStore.getMessageRocksDBStorage();
         this.metadataStore = this.getMetadataStore(this.storeConfig);
         this.topicFilter = new MessageStoreTopicFilter(this.storeConfig);
         this.storeExecutor = new MessageStoreExecutor();
@@ -491,6 +493,11 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
         super.initMetrics(meter, attributesBuilderSupplier);
         TieredStoreMetricsManager.init(meter, attributesBuilderSupplier, storeConfig, fetcher, flatFileStore, next);
+    }
+
+    @Override
+    public MessageRocksDBStorage getMessageRocksDBStorage() {
+        return messageRocksDBStorage;
     }
 
     @Override

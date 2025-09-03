@@ -113,6 +113,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
@@ -165,6 +166,7 @@ public class DefaultMessageStore implements MessageStore {
     private boolean notifyMessageArriveInBatch = false;
 
     protected StoreCheckpoint storeCheckpoint;
+    private MessageRocksDBStorage messageRocksDBStorage;
     private TimerMessageStore timerMessageStore;
     private TimerMessageRocksDBStore timerMessageRocksDBStore;
     private TransMessageRocksDBStore transMessageRocksDBStore;
@@ -234,6 +236,7 @@ public class DefaultMessageStore implements MessageStore {
         this.consumeQueueStore = createConsumeQueueStore();
         this.cleanCommitLogService = new CleanCommitLogService();
         this.storeStatsService = new StoreStatsService(getBrokerIdentity());
+        this.messageRocksDBStorage = new MessageRocksDBStorage(getMessageStoreConfig());
         this.indexService = new IndexService(this);
         this.indexRocksDBStore = new IndexRocksDBStore(this);
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
@@ -392,7 +395,6 @@ public class DefaultMessageStore implements MessageStore {
         if (this.isTransientStorePoolEnable()) {
             this.transientStorePool.init();
         }
-
         this.allocateMappedFileService.start();
 
         this.indexService.start();
@@ -525,6 +527,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         this.transientStorePool.destroy();
+        this.messageRocksDBStorage.shutdown();
 
         if (lockFile != null && lock != null) {
             try {
@@ -3133,6 +3136,11 @@ public class DefaultMessageStore implements MessageStore {
 
     public MessageStoreStateMachine getStateMachine() {
         return stateMachine;
+    }
+
+    @Override
+    public MessageRocksDBStorage getMessageRocksDBStorage() {
+        return this.messageRocksDBStorage;
     }
 
     public boolean isNotifyMessageArriveInBatch() {

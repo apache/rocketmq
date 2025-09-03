@@ -34,10 +34,11 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
-import org.rocksdb.RocksDB;
 import static org.apache.rocketmq.common.message.MessageConst.PROPERTY_TIMER_ROLL_LABEL;
+import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMER_COLUMN_FAMILY;
 import static org.apache.rocketmq.store.timer.rocksdb.TimerRocksDBRecord.TIMER_ROCKSDB_DELETE;
 import static org.apache.rocketmq.store.timer.rocksdb.TimerRocksDBRecord.TIMER_ROCKSDB_PUT;
 import static org.apache.rocketmq.store.timer.rocksdb.TimerRocksDBRecord.TIMER_ROCKSDB_UPDATE;
@@ -54,7 +55,7 @@ public class Timeline {
     private final MessageStore messageStore;
     private final MessageStoreConfig storeConfig;
     private final TimerMessageStore timerMessageStore;
-    private final TimerMessageRocksDBStorage timerMessageRocksDBStorage;
+    private final MessageRocksDBStorage messageRocksDBStorage;
     private final TimerMessageRocksDBStore timerMessageRocksDBStore;
     private final long precisionMs;
     private final TimerMetrics timerMetrics;
@@ -65,11 +66,11 @@ public class Timeline {
     private TimelineDeleteService timelineDeleteService;
     private BlockingQueue<TimerRocksDBRecord> originTimerMsgQueue;
 
-    public Timeline(final MessageStore messageStore, final TimerMessageRocksDBStorage timerMessageRocksDBStorage, final TimerMessageRocksDBStore timerMessageRocksDBStore, final TimerMetrics timerMetrics) {
+    public Timeline(final MessageStore messageStore, final MessageRocksDBStorage messageRocksDBStorage, final TimerMessageRocksDBStore timerMessageRocksDBStore, final TimerMetrics timerMetrics) {
         this.messageStore = messageStore;
         this.storeConfig = messageStore.getMessageStoreConfig();
         this.timerMessageStore = messageStore.getTimerMessageStore();
-        this.timerMessageRocksDBStorage = timerMessageRocksDBStorage;
+        this.messageRocksDBStorage = messageRocksDBStorage;
         this.timerMessageRocksDBStore = timerMessageRocksDBStore;
         this.precisionMs = timerMessageRocksDBStore.precisionMs;
         this.timerMetrics = timerMetrics;
@@ -162,7 +163,7 @@ public class Timeline {
     }
 
     private void recallToTimeWheel(TimerRocksDBRecord tr) {
-        if (messageStore.getMessageStoreConfig().isDisableRecallToTimeWheel()) {
+        if (!messageStore.getMessageStoreConfig().isTimerRecallToTimeWheelEnable()) {
             return;
         }
         if (null == tr || null == tr.getMessageExt()) {
@@ -188,7 +189,7 @@ public class Timeline {
         byte[] lastKey = null;
         while (true) {
             try {
-                List<TimerRocksDBRecord> trs = timerMessageRocksDBStorage.scanRecords(RocksDB.DEFAULT_COLUMN_FAMILY, checkpoint, checkpoint + checkRange, MAX_BATCH_SIZE_FROM_ROCKSDB, lastKey);
+                List<TimerRocksDBRecord> trs = messageRocksDBStorage.scanRecordsForTimer(TIMER_COLUMN_FAMILY, checkpoint, checkpoint + checkRange, MAX_BATCH_SIZE_FROM_ROCKSDB, lastKey);
                 if (null == trs || CollectionUtils.isEmpty(trs)) {
                     break;
                 }
@@ -271,7 +272,7 @@ public class Timeline {
                 }
             }
             if (!CollectionUtils.isEmpty(cudlist)) {
-                timerMessageRocksDBStorage.writeRecords(RocksDB.DEFAULT_COLUMN_FAMILY, cudlist);
+                messageRocksDBStorage.writeRecordsForTimer(TIMER_COLUMN_FAMILY, cudlist);
             }
             synCommitOffset(trs);
             trs.clear();
@@ -309,11 +310,11 @@ public class Timeline {
             if (CollectionUtils.isEmpty(trs)) {
                 return;
             }
-            long lastQueueOffset = timerMessageRocksDBStorage.getCheckpoint(RocksDB.DEFAULT_COLUMN_FAMILY, TimerMessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
+            long lastQueueOffset = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
             long queueOffset = trs.get(trs.size() - 1).getQueueOffset() + 1L;
             if (queueOffset > lastQueueOffset) {
                 commitOffset.set(queueOffset);
-                timerMessageRocksDBStorage.writeCheckPoint(RocksDB.DEFAULT_COLUMN_FAMILY, TimerMessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT, commitOffset.get());
+                messageRocksDBStorage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT, commitOffset.get());
             }
         }
     }
@@ -327,7 +328,7 @@ public class Timeline {
 
         @Override
         public void run() {
-            long checkpoint = timerMessageRocksDBStorage.getCheckpoint(RocksDB.DEFAULT_COLUMN_FAMILY, TimerMessageRocksDBStorage.TIMELINE_CHECK_POINT);
+            long checkpoint = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT);
             log.info(this.getServiceName() + " service start, checkpoint: {}", checkpoint);
             while (!this.isStopped()) {
                 try {
@@ -414,11 +415,11 @@ public class Timeline {
                     logError.error("Timeline TimelineDeleteService wait error: {}", e.getMessage());
                 }
                 try {
-                    long checkpoint = timerMessageRocksDBStorage.getCheckpoint(RocksDB.DEFAULT_COLUMN_FAMILY, TimerMessageRocksDBStorage.TIMELINE_CHECK_POINT);
+                    long checkpoint = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT);
                     if (lastDeleteCheckPoint == checkpoint) {
                         continue;
                     }
-                    timerMessageRocksDBStorage.rangeDeleteRecords(RocksDB.DEFAULT_COLUMN_FAMILY, checkpoint - TimeUnit.HOURS.toMillis(168), checkpoint - TimeUnit.MINUTES.toMillis(30));
+                    messageRocksDBStorage.deleteRecordsForTimer(TIMER_COLUMN_FAMILY, checkpoint - TimeUnit.HOURS.toMillis(168), checkpoint - TimeUnit.MINUTES.toMillis(30));
                     lastDeleteCheckPoint = checkpoint;
                 } catch (Exception e) {
                     logError.error("Timeline TimelineDeleteService delete failed, lastDeleteCheckPoint: {} error: {}", lastDeleteCheckPoint, e.getMessage());

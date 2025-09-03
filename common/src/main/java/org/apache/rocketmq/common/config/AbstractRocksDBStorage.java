@@ -84,6 +84,8 @@ public abstract class AbstractRocksDBStorage {
     protected CompactionOptions compactionOptions;
     protected CompactRangeOptions compactRangeOptions;
 
+    protected FlushOptions flushOptions;
+
     protected ColumnFamilyHandle defaultCFHandle;
     protected final List<ColumnFamilyOptions> cfOptions = new ArrayList<>();
     protected final List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
@@ -115,6 +117,7 @@ public abstract class AbstractRocksDBStorage {
         initTotalOrderReadOptions();
         initCompactRangeOptions();
         initCompactionOptions();
+        initFlushOptions();
     }
 
     /**
@@ -165,6 +168,10 @@ public abstract class AbstractRocksDBStorage {
         this.compactionOptions.setCompression(compressionType);
         this.compactionOptions.setMaxSubcompactions(4);
         this.compactionOptions.setOutputFileSizeLimit(4 * 1024 * 1024 * 1024L);
+    }
+
+    protected void initFlushOptions() {
+        this.flushOptions = new FlushOptions();
     }
 
     public boolean hold() {

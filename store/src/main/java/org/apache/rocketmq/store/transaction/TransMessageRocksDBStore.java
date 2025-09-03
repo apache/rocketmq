@@ -17,12 +17,14 @@
 package org.apache.rocketmq.store.transaction;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
+
+import com.alibaba.fastjson.JSON;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ServiceThread;
@@ -43,13 +45,13 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.StoreUtil;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.rocksdb.RocksDB;
+import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TRANS_COLUMN_FAMILY;
 
 public class TransMessageRocksDBStore {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
-    private static final String ROCKSDB_TRANS_DIRECTORY = "RocksDBTransStore";
     private static final String REMOVE_TAG = "d";
     private static final byte[] FILL_BYTE = new byte[] {(byte) 0};
     private static final int DEFAULT_CAPACITY = 100000;
@@ -60,7 +62,7 @@ public class TransMessageRocksDBStore {
 
     private final MessageStore messageStore;
     private final MessageStoreConfig storeConfig;
-    private final TransMessageRocksDBStorage transMessageRocksDBStorage;
+    private final MessageRocksDBStorage messageRocksDBStorage;
     private final BrokerStatsManager brokerStatsManager;
     private final SocketAddress storeHost;
     private ThreadLocal<ByteBuffer> bufferLocal = null;
@@ -70,7 +72,7 @@ public class TransMessageRocksDBStore {
     public TransMessageRocksDBStore(final MessageStore messageStore, final BrokerStatsManager brokerStatsManager, final SocketAddress storeHost) {
         this.messageStore = messageStore;
         this.storeConfig = messageStore.getMessageStoreConfig();
-        this.transMessageRocksDBStorage = new TransMessageRocksDBStorage(Paths.get(storeConfig.getStorePathRootDir(), ROCKSDB_TRANS_DIRECTORY).toString());
+        this.messageRocksDBStorage = messageStore.getMessageRocksDBStorage();
         this.brokerStatsManager = brokerStatsManager;
         this.storeHost = storeHost;
         bufferLocal = ThreadLocal.withInitial(() -> ByteBuffer.allocate(storeConfig.getMaxMessageSize()));
@@ -85,7 +87,6 @@ public class TransMessageRocksDBStore {
         }
         this.transIndexBuildService = new TransIndexBuildService();
         this.originTransMsgQueue = new LinkedBlockingDeque<>(DEFAULT_CAPACITY);
-        this.transMessageRocksDBStorage.start();
         this.transIndexBuildService.start();
         this.state = RUNNING;
         log.info("TransMessageRocksDBStore start success");
@@ -98,9 +99,6 @@ public class TransMessageRocksDBStore {
         if (null != this.transIndexBuildService) {
             this.transIndexBuildService.shutdown();
         }
-        if (null != this.transMessageRocksDBStorage) {
-            this.transMessageRocksDBStorage.shutdown();
-        }
         this.state = SHUTDOWN;
         log.info("TransMessageRocksDBStore shutdown success");
     }
@@ -111,7 +109,7 @@ public class TransMessageRocksDBStore {
             return;
         }
         long reqOffsetPy = dispatchRequest.getCommitLogOffset();
-        long endOffsetPy = transMessageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+        long endOffsetPy = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
         if (reqOffsetPy < endOffsetPy) {
             logError.error("TransMessageRocksDBStore buildTransIndex recover, but ignore, reqOffsetPy: {}, endOffsetPy: {}", reqOffsetPy, endOffsetPy);
             return;
@@ -210,8 +208,8 @@ public class TransMessageRocksDBStore {
         return null;
     }
 
-    public TransMessageRocksDBStorage getTransMessageRocksDBStorage() {
-        return transMessageRocksDBStorage;
+    public MessageRocksDBStorage getMessageRocksDBStorage() {
+        return messageRocksDBStorage;
     }
 
     private MessageExtBrokerInner makeOpMessageInner(MessageExt messageExt) {
@@ -251,7 +249,7 @@ public class TransMessageRocksDBStore {
             return null;
         }
         try {
-            TransRocksDBRecord record = transMessageRocksDBStorage.getRecord(RocksDB.DEFAULT_COLUMN_FAMILY, new TransRocksDBRecord(offsetPy, topic, uniqKey, false));
+            TransRocksDBRecord record = messageRocksDBStorage.getRecordForTrans(TRANS_COLUMN_FAMILY, new TransRocksDBRecord(offsetPy, topic, uniqKey, false));
             if (null == record) {
                 return null;
             }
@@ -266,7 +264,7 @@ public class TransMessageRocksDBStore {
         if (!storeConfig.isTransRocksDBEnable()) {
             return true;
         }
-        Long lastOffsetPy = transMessageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+        Long lastOffsetPy = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
         if (null != lastOffsetPy && phyOffset <= lastOffsetPy) {
             log.info("isMappedFileMatchedRecover TransMessageRocksDBStore recover form this offset, phyOffset: {}, lastOffsetPy: {}", phyOffset, lastOffsetPy);
             return true;
@@ -314,7 +312,7 @@ public class TransMessageRocksDBStore {
                 return;
             }
             try {
-                transMessageRocksDBStorage.writeRecords(RocksDB.DEFAULT_COLUMN_FAMILY, trs);
+                messageRocksDBStorage.writeRecordsForTrans(TRANS_COLUMN_FAMILY, trs);
             } catch (Exception e) {
                 logError.error("TransMessageRocksDBStore pollAndPutTransRequest writeRecords error: {}", e.getMessage());
             }

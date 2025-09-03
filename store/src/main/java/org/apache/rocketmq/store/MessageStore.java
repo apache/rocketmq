@@ -43,6 +43,7 @@ import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
+import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
@@ -999,4 +1000,6 @@ public interface MessageStore {
     void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest);
 
     MessageStoreStateMachine getStateMachine();
+
+    MessageRocksDBStorage getMessageRocksDBStorage();
 }

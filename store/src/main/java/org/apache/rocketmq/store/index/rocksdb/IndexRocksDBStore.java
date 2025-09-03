@@ -44,13 +44,13 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.rocksdb.RocksDB;
 import static org.apache.rocketmq.common.MixAll.dealTimeToHourStamps;
 
 public class IndexRocksDBStore {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
-    private static final String ROCKSDB_INDEX_DIRECTORY = "RocksDBIndexStore";
     private static final int DEFAULT_CAPACITY = 100000;
     private static final int BATCH_SIZE = 1000;
     private static final Set<String> INDEX_TYPE_SET = new HashSet<>();
@@ -64,7 +64,7 @@ public class IndexRocksDBStore {
 
     private final MessageStore messageStore;
     private final MessageStoreConfig storeConfig;
-    private final IndexMessageRocksDBStorage indexMessageRocksDBStorage;
+    private final MessageRocksDBStorage messageRocksDBStorage;
     private volatile long lastDeleteIndexTime = 0L;
     private IndexBuildService indexBuildService;
     private BlockingQueue<IndexRocksDBRecord> originIndexMsgQueue;
@@ -72,7 +72,7 @@ public class IndexRocksDBStore {
     public IndexRocksDBStore(MessageStore messageStore) {
         this.messageStore = messageStore;
         this.storeConfig = messageStore.getMessageStoreConfig();
-        this.indexMessageRocksDBStorage = new IndexMessageRocksDBStorage(Paths.get(storeConfig.getStorePathRootDir(), ROCKSDB_INDEX_DIRECTORY).toString());
+        this.messageRocksDBStorage = messageStore.getMessageRocksDBStorage();
         if (this.storeConfig.isIndexRocksDBEnable()) {
             this.initAndStart();
         }
@@ -82,12 +82,11 @@ public class IndexRocksDBStore {
         if (this.state == RUNNING) {
             return;
         }
-        this.indexMessageRocksDBStorage.start();
         this.indexBuildService = new IndexBuildService();
         this.originIndexMsgQueue = new LinkedBlockingDeque<>(DEFAULT_CAPACITY);
         this.indexBuildService.start();
         this.state = RUNNING;
-        Long lastOffsetPy = indexMessageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+        Long lastOffsetPy = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
         log.info("IndexRocksDBStore start success, lastOffsetPy: {}", lastOffsetPy);
     }
 
@@ -97,9 +96,6 @@ public class IndexRocksDBStore {
         }
         if (null != this.indexBuildService) {
             this.indexBuildService.shutdown();
-        }
-        if (null != this.indexMessageRocksDBStorage) {
-            this.indexMessageRocksDBStorage.shutdown();
         }
         this.state = SHUTDOWN;
         log.info("IndexRocksDBStore shutdown success");
@@ -123,16 +119,16 @@ public class IndexRocksDBStore {
         maxNum = Math.min(maxNum, this.storeConfig.getMaxMsgsNumBatch());
         List<Long> phyOffsets = null;
         try {
-            lastUpdateTime = indexMessageRocksDBStorage.getLastStoreTimeStamp(RocksDB.DEFAULT_COLUMN_FAMILY);
-            lastOffsetPy = indexMessageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+            lastUpdateTime = messageRocksDBStorage.getLastStoreTimeStampForIndex(RocksDB.DEFAULT_COLUMN_FAMILY);
+            lastOffsetPy = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
             //compact old client
             if (StringUtils.isEmpty(indexType)) {
-                phyOffsets = indexMessageRocksDBStorage.queryOffset(RocksDB.DEFAULT_COLUMN_FAMILY, topic, MessageConst.INDEX_KEY_TYPE, key, beginTime, endTime, maxNum, null);
+                phyOffsets = messageRocksDBStorage.queryOffsetForIndex(RocksDB.DEFAULT_COLUMN_FAMILY, topic, MessageConst.INDEX_KEY_TYPE, key, beginTime, endTime, maxNum, null);
                 if (CollectionUtils.isEmpty(phyOffsets)) {
-                    phyOffsets = indexMessageRocksDBStorage.queryOffset(RocksDB.DEFAULT_COLUMN_FAMILY, topic, MessageConst.INDEX_UNIQUE_TYPE, key, beginTime, endTime, maxNum, null);
+                    phyOffsets = messageRocksDBStorage.queryOffsetForIndex(RocksDB.DEFAULT_COLUMN_FAMILY, topic, MessageConst.INDEX_UNIQUE_TYPE, key, beginTime, endTime, maxNum, null);
                 }
             } else {
-                phyOffsets = indexMessageRocksDBStorage.queryOffset(RocksDB.DEFAULT_COLUMN_FAMILY, topic, indexType, key, beginTime, endTime, maxNum, lastKey);
+                phyOffsets = messageRocksDBStorage.queryOffsetForIndex(RocksDB.DEFAULT_COLUMN_FAMILY, topic, indexType, key, beginTime, endTime, maxNum, lastKey);
             }
         } catch (Exception e) {
             logError.error("IndexRocksDBStore queryOffset error, topic: {}, key: {}, maxNum: {}, beginTime: {}, endTime: {}, error: {}", topic, key, maxNum, beginTime, endTime, e.getMessage());
@@ -147,7 +143,7 @@ public class IndexRocksDBStore {
         }
         try {
             long reqOffsetPy = dispatchRequest.getCommitLogOffset();
-            long endOffsetPy = indexMessageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+            long endOffsetPy = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
             if (reqOffsetPy < endOffsetPy) {
                 logError.warn("IndexRocksDBStore recover buildIndex, but ignore, build index offset reqOffsetPy: {}, endOffsetPy: {}", reqOffsetPy, endOffsetPy);
                 return;
@@ -233,7 +229,7 @@ public class IndexRocksDBStore {
             long deleteIndexFileTime = attrs.creationTime().toMillis() - TimeUnit.HOURS.toMillis(1);
             long desDeleteTimeHour = dealTimeToHourStamps(deleteIndexFileTime);
             if (desDeleteTimeHour != lastDeleteIndexTime) {
-                indexMessageRocksDBStorage.deleteRecords(RocksDB.DEFAULT_COLUMN_FAMILY, desDeleteTimeHour,168);
+                messageRocksDBStorage.deleteRecordsForIndex(RocksDB.DEFAULT_COLUMN_FAMILY, desDeleteTimeHour, 168);
                 lastDeleteIndexTime = desDeleteTimeHour;
             } else {
                 log.info("IndexRocksDBStore ignore this delete, lastDeleteIndexTime: {}, desDeleteTimeHour: {}", lastDeleteIndexTime, desDeleteTimeHour);
@@ -247,7 +243,7 @@ public class IndexRocksDBStore {
         if (!storeConfig.isIndexRocksDBEnable()) {
             return true;
         }
-        Long lastOffsetPy = indexMessageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+        Long lastOffsetPy = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
         if (null != lastOffsetPy && phyOffset <= lastOffsetPy) {
             log.info("isMappedFileMatchedRecover IndexRocksDBStore recover form this offset, phyOffset: {}, lastOffsetPy: {}", phyOffset, lastOffsetPy);
             return true;
@@ -297,7 +293,7 @@ public class IndexRocksDBStore {
                 return;
             }
             try {
-                indexMessageRocksDBStorage.writeRecords(RocksDB.DEFAULT_COLUMN_FAMILY, irs);
+                messageRocksDBStorage.writeRecordsForIndex(RocksDB.DEFAULT_COLUMN_FAMILY, irs);
             } catch (Exception e) {
                 logError.error("IndexRocksDBStore IndexBuildService pollAndPutIndexRequest error: {}", e.getMessage());
             }

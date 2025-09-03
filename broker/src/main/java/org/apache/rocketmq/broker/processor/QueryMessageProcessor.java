@@ -92,7 +92,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
         if (null != request.getExtFields()) {
             isUniqueKey = request.getExtFields().get(MixAll.UNIQUE_MSG_QUERY_FLAG);
         }
-        if (!StringUtils.isEmpty(isUniqueKey) && isUniqueKey.equals(Boolean.TRUE.toString())) {
+        if (!StringUtils.isEmpty(isUniqueKey) && Boolean.parseBoolean(isUniqueKey)) {
             requestHeader.setMaxNum(this.brokerController.getMessageStoreConfig().getDefaultQueryMaxNum());
             indexType = MessageConst.INDEX_UNIQUE_TYPE;
         } else if (StringUtils.isEmpty(indexType)) {

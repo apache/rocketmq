@@ -110,8 +110,8 @@ public class MessageStoreConfig {
     private double timerRocksDBRollMaxTps = 6000.0;
     private double timerRocksDBTimeExpiredMaxTps = 200000.0;
     private int timerRocksDBRollIntervalHours = 6;
-    private boolean disableRecallToTimeWheel = false;
-    private boolean disableRecallToTimeline = false;
+    private boolean timerRecallToTimeWheelEnable = true;
+    private boolean timerRecallToTimelineEnable = true;
 
     private boolean transRocksDBEnable = false;
     private boolean disableWriteOriginTransHalf = false;
@@ -2117,20 +2117,20 @@ public class MessageStoreConfig {
         this.disableWriteOriginTransHalf = disableWriteOriginTransHalf;
     }
 
-    public boolean isDisableRecallToTimeWheel() {
-        return disableRecallToTimeWheel;
+    public boolean isTimerRecallToTimeWheelEnable() {
+        return timerRecallToTimeWheelEnable;
     }
 
-    public void setDisableRecallToTimeWheel(boolean disableRecallToTimeWheel) {
-        this.disableRecallToTimeWheel = disableRecallToTimeWheel;
+    public void setTimerRecallToTimeWheelEnable(boolean timerRecallToTimeWheelEnable) {
+        this.timerRecallToTimeWheelEnable = timerRecallToTimeWheelEnable;
     }
 
-    public boolean isDisableRecallToTimeline() {
-        return disableRecallToTimeline;
+    public boolean isTimerRecallToTimelineEnable() {
+        return timerRecallToTimelineEnable;
     }
 
-    public void setDisableRecallToTimeline(boolean disableRecallToTimeline) {
-        this.disableRecallToTimeline = disableRecallToTimeline;
+    public void setTimerRecallToTimelineEnable(boolean timerRecallToTimelineEnable) {
+        this.timerRecallToTimelineEnable = timerRecallToTimelineEnable;
     }
 
     public int getTimerRocksDBRollIntervalHours() {
