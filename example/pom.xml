@@ -19,7 +19,7 @@
     <parent>
         <artifactId>rocketmq-all</artifactId>
         <groupId>org.apache.rocketmq</groupId>
-        <version>5.3.3</version>
+        <version>${revision}</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
