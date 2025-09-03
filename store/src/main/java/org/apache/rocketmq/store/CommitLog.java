@@ -768,6 +768,11 @@ public class CommitLog implements Swappable {
                             byteBuffer = mappedFile.sliceByteBuffer();
                             processOffset = mappedFile.getFileFromOffset();
                             mappedFileOffset = 0;
+                            // do not wait to all mapped files process done, so we can process continue for next restart
+                            if (!this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
+                                this.setConfirmOffset(lastValidMsgPhyOffset);
+                                this.defaultMessageStore.getStoreCheckpoint().flush();
+                            }
                             log.info("recover next physics file, " + mappedFile.getFileName());
                         }
                     }
