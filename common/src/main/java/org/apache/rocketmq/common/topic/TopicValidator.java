@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.topic;
 
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 
 public class TopicValidator {
@@ -39,11 +40,17 @@ public class TopicValidator {
 
     public static final boolean[] VALID_CHAR_BIT_MAP = new boolean[128];
     private static final int TOPIC_MAX_LENGTH = 127;
+    /*
+     * Group name max length is 120, for it will be used to make up retry and DLQ topic,
+     * like pull retry: %RETRY%group_topic and pop retry: %RETRY%group_topic.
+     */
+    private static final int GROUP_MAX_LENGTH = 120;
+    private static final int RETRY_OR_DLQ_TOPIC_MAX_LENGTH = 255;
 
     private static final Set<String> SYSTEM_TOPIC_SET = new HashSet<>();
 
     /**
-     * Topics'set which client can not send msg!
+     * Topic set which client can not send msg!
      */
     private static final Set<String> NOT_ALLOWED_SEND_TOPIC_SET = new HashSet<>();
 
@@ -93,38 +100,65 @@ public class TopicValidator {
     public static boolean isTopicOrGroupIllegal(String str) {
         int strLen = str.length();
         int len = VALID_CHAR_BIT_MAP.length;
-        boolean[] bitMap = VALID_CHAR_BIT_MAP;
         for (int i = 0; i < strLen; i++) {
             char ch = str.charAt(i);
-            if (ch >= len || !bitMap[ch]) {
+            if (ch >= len || !VALID_CHAR_BIT_MAP[ch]) {
                 return true;
             }
         }
         return false;
     }
 
-    public static ValidateTopicResult validateTopic(String topic) {
+    public static ValidateResult validateTopic(String topic) {
 
         if (UtilAll.isBlank(topic)) {
-            return new ValidateTopicResult(false, "The specified topic is blank.");
+            return new ValidateResult(false, "The specified topic is blank.");
         }
 
         if (isTopicOrGroupIllegal(topic)) {
-            return new ValidateTopicResult(false, "The specified topic contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$");
+            String falseRemark = "The specified topic: " + topic + ", contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$";
+            return new ValidateResult(false, falseRemark);
         }
 
-        if (topic.length() > TOPIC_MAX_LENGTH) {
-            return new ValidateTopicResult(false, "The specified topic is longer than topic max length.");
+        if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+            if (topic.length() > RETRY_OR_DLQ_TOPIC_MAX_LENGTH) {
+                String falseRemark = "The specified topic is DLQ or Retry topic: " + topic + ", and it's longer than topic max length: " + RETRY_OR_DLQ_TOPIC_MAX_LENGTH;
+                return new ValidateResult(false, falseRemark);
+            }
+        } else {
+            if (topic.length() > TOPIC_MAX_LENGTH) {
+                String falseRemark = "The specified topic: " + topic + ", is longer than topic max length: " + TOPIC_MAX_LENGTH;
+                return new ValidateResult(false, falseRemark);
+            }
         }
 
-        return new ValidateTopicResult(true, "");
+        return new ValidateResult(true, "");
     }
 
-    public static class ValidateTopicResult {
+    public static ValidateResult validateGroup(String group) {
+
+        if (UtilAll.isBlank(group)) {
+            return new ValidateResult(false, "The specified group is blank.");
+        }
+
+        if (isTopicOrGroupIllegal(group)) {
+            String falseRemark = "The specified group: " + group + ", contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$";
+            return new ValidateResult(false, falseRemark);
+        }
+
+        if (group.length() > GROUP_MAX_LENGTH) {
+            String falseRemark = "The specified group: " + group + ", is longer than group max length: " + GROUP_MAX_LENGTH;
+            return new ValidateResult(false, falseRemark);
+        }
+
+        return new ValidateResult(true, "");
+    }
+
+    public static class ValidateResult {
         private final boolean valid;
         private final String remark;
 
-        public ValidateTopicResult(boolean valid, String remark) {
+        public ValidateResult(boolean valid, String remark) {
             this.valid = valid;
             this.remark = remark;
         }

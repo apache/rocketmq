@@ -66,7 +66,7 @@ def GenTestRules(
             runtime_deps = deps,
             resources = resources,
             size = test_size,
-            jvm_flags = jvm_flags,
+            jvm_flags = jvm_flags + ["-Dbuild.bazel=true"],
             args = args,
             flaky = flaky,
             tags = tags,

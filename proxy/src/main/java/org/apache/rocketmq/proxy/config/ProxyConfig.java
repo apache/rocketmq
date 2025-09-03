@@ -84,6 +84,7 @@ public class ProxyConfig implements ConfigFile {
     private boolean tlsTestModeEnable = true;
     private String tlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
     private String tlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
+    private int tlsCertWatchIntervalMs = 60 * 60 * 1000; // 1 hour
     /**
      * gRPC
      */
@@ -327,6 +328,14 @@ public class ProxyConfig implements ConfigFile {
         } catch (Exception e) {
             log.error("parse delay level failed. messageDelayLevel:{}", messageDelayLevel, e);
         }
+    }
+
+    public int getTlsCertWatchIntervalMs() {
+        return tlsCertWatchIntervalMs;
+    }
+
+    public void setTlsCertWatchIntervalMs(int tlsCertWatchIntervalMs) {
+        this.tlsCertWatchIntervalMs = tlsCertWatchIntervalMs;
     }
 
     public String getRocketMQClusterName() {

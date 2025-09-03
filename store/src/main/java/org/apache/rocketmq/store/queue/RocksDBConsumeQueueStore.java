@@ -93,8 +93,18 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     private long dispatchFromPhyOffset;
 
+    /**
+     * there are two threads to notify longPolling when build cq successfully
+     *
+     * @see DefaultMessageStore.ReputMessageService#doReput()
+     * @see RocksGroupCommitService#groupCommit()
+     * <p>
+     * RocksDB CQ is build by RocksGroupCommitService, so we do not need to notify longPolling in
+     * ReputMessageService
+     */
     public RocksDBConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
+        messageStore.setNotifyMessageArriveInBatch(true);
 
         this.storePath = StorePathConfigHelper.getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir());
         this.rocksDBStorage = new ConsumeQueueRocksDBStorage(messageStore, storePath);

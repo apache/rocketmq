@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -44,6 +45,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
@@ -68,6 +70,8 @@ import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.metrics.InvocationStatus;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
+import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
@@ -137,6 +141,7 @@ import org.apache.rocketmq.remoting.protocol.body.QuerySubscriptionResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupList;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
@@ -157,6 +162,9 @@ import org.apache.rocketmq.remoting.protocol.header.ExchangeHAInfoResponseHeader
 import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllSubscriptionGroupRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllSubscriptionGroupResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetBrokerConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsInBrokerHeader;
@@ -548,7 +556,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         long executionTime;
         try {
-            TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
+            TopicValidator.ValidateResult result = TopicValidator.validateTopic(topic);
             if (!result.isValid()) {
                 response.setCode(ResponseCode.INVALID_PARAMETER);
                 response.setRemark(result.getRemark());
@@ -638,7 +646,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // Valid topics
             for (TopicConfig topicConfig : topicConfigList) {
                 String topic = topicConfig.getTopicName();
-                TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
+                TopicValidator.ValidateResult result = TopicValidator.validateTopic(topic);
                 if (!result.isValid()) {
                     response.setCode(ResponseCode.INVALID_PARAMETER);
                     response.setRemark(result.getRemark());
@@ -708,7 +716,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         String topic = requestHeader.getTopic();
 
-        TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
+        TopicValidator.ValidateResult result = TopicValidator.validateTopic(topic);
         if (!result.isValid()) {
             response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(result.getRemark());
@@ -816,40 +824,54 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getAllTopicConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand getAllTopicConfig(ChannelHandlerContext ctx, RemotingCommand request)
+        throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetAllTopicConfigResponseHeader.class);
-        // final GetAllTopicConfigResponseHeader responseHeader =
-        // (GetAllTopicConfigResponseHeader) response.readCustomHeader();
+        final GetAllTopicConfigResponseHeader responseHeader =
+            (GetAllTopicConfigResponseHeader) response.readCustomHeader();
+        final GetAllTopicConfigRequestHeader requestHeader =
+            request.decodeCommandCustomHeader(GetAllTopicConfigRequestHeader.class);
+
+        String dataVersionStr = requestHeader.getDataVersion();
+        Integer topicSeq = requestHeader.getTopicSeq();
+        Integer maxTopicNum = requestHeader.getMaxTopicNum();
+
+        TopicConfigManager tcManager = brokerController.getTopicConfigManager();
+        TopicQueueMappingManager tqmManager = brokerController.getTopicQueueMappingManager();
 
         TopicConfigAndMappingSerializeWrapper topicConfigAndMappingSerializeWrapper = new TopicConfigAndMappingSerializeWrapper();
+        if (!brokerController.getBrokerConfig().isEnableSplitMetadata()
+            || ObjectUtils.allNull(dataVersionStr, topicSeq, maxTopicNum)) {  // old client, return all topic config
 
-        topicConfigAndMappingSerializeWrapper.setDataVersion(this.brokerController.getTopicConfigManager().getDataVersion());
-        topicConfigAndMappingSerializeWrapper.setTopicConfigTable(this.brokerController.getTopicConfigManager().getTopicConfigTable());
+            topicConfigAndMappingSerializeWrapper.setDataVersion(tcManager.getDataVersion());
+            topicConfigAndMappingSerializeWrapper.setTopicConfigTable(tcManager.getTopicConfigTable());
 
-        topicConfigAndMappingSerializeWrapper.setMappingDataVersion(this.brokerController.getTopicQueueMappingManager().getDataVersion());
-        topicConfigAndMappingSerializeWrapper.setTopicQueueMappingDetailMap(this.brokerController.getTopicQueueMappingManager().getTopicQueueMappingTable());
+            topicConfigAndMappingSerializeWrapper.setMappingDataVersion(tqmManager.getDataVersion());
+            topicConfigAndMappingSerializeWrapper.setTopicQueueMappingDetailMap(tqmManager.getTopicQueueMappingTable());
+        } else {
+            int topicNum = Math.min(brokerController.getBrokerConfig().getSplitMetadataSize(),
+                Optional.ofNullable(maxTopicNum).orElse(Integer.MAX_VALUE));  // use smaller value
+            ConcurrentHashMap<String, TopicConfig> subTopicConfigTable =
+                tcManager.subTopicConfigTable(dataVersionStr, topicSeq, topicNum);
+            topicConfigAndMappingSerializeWrapper.setTopicConfigTable(subTopicConfigTable);
+            topicConfigAndMappingSerializeWrapper.setDataVersion(tcManager.getDataVersion());
 
+            topicConfigAndMappingSerializeWrapper.setMappingDataVersion(tqmManager.getDataVersion());
+            topicConfigAndMappingSerializeWrapper.setTopicQueueMappingDetailMap(
+                tqmManager.subTopicQueueMappingTable(subTopicConfigTable.keySet()));
+        }
+
+        responseHeader.setTotalTopicNum(tcManager.getTopicConfigTable().size());
         String content = topicConfigAndMappingSerializeWrapper.toJson();
-        if (content != null && content.length() > 0) {
-            try {
-                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
-            } catch (UnsupportedEncodingException e) {
-                LOGGER.error("", e);
-
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("UnsupportedEncodingException " + e.getMessage());
-                return response;
-            }
+        if (StringUtils.isNotBlank(content)) {
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            response.setBody(content.getBytes(StandardCharsets.UTF_8));
         } else {
             LOGGER.error("No topic in this broker, client: {}", ctx.channel().remoteAddress());
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No topic in this broker");
-            return response;
         }
-
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-
         return response;
     }
 
@@ -1510,14 +1532,23 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         SubscriptionGroupConfig config = RemotingSerializable.decode(request.getBody(), SubscriptionGroupConfig.class);
-        if (config != null) {
+        if (null != config) {
+            TopicValidator.ValidateResult result = TopicValidator.validateGroup(config.getGroupName());
+            if (!result.isValid()) {
+                response.setCode(ResponseCode.INVALID_PARAMETER);
+                response.setRemark(result.getRemark());
+                return response;
+            }
+
             this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfig(config);
         }
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         long executionTime = System.currentTimeMillis() - startTime;
-        LOGGER.info("executionTime of create subscriptionGroup:{} is {} ms", config.getGroupName(), executionTime);
+        if (null != config) {
+            LOGGER.info("executionTime of create subscriptionGroup:{} is {} ms", config.getGroupName(), executionTime);
+        }
         InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
             InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
         Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
@@ -1529,12 +1560,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand updateAndCreateSubscriptionGroupList(ChannelHandlerContext ctx, RemotingCommand request) {
         final long startTime = System.nanoTime();
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         final SubscriptionGroupList subscriptionGroupList = SubscriptionGroupList.decode(request.getBody(), SubscriptionGroupList.class);
         final List<SubscriptionGroupConfig> groupConfigList = subscriptionGroupList.getGroupConfigList();
 
         final StringBuilder builder = new StringBuilder();
         for (SubscriptionGroupConfig config : groupConfigList) {
+            TopicValidator.ValidateResult result = TopicValidator.validateGroup(config.getGroupName());
+            if (!result.isValid()) {
+                response.setCode(ResponseCode.INVALID_PARAMETER);
+                response.setRemark(result.getRemark());
+                return response;
+            }
             builder.append(config.getGroupName()).append(";");
         }
         final String groupNames = builder.toString();
@@ -1542,7 +1580,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             groupNames,
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
             this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfigList(groupConfigList);
             response.setCode(ResponseCode.SUCCESS);
@@ -1584,28 +1621,45 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand getAllSubscriptionGroup(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        String content = this.brokerController.getSubscriptionGroupManager().encode();
-        if (content != null && content.length() > 0) {
-            try {
-                response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
-            } catch (UnsupportedEncodingException e) {
-                LOGGER.error("UnsupportedEncodingException getAllSubscriptionGroup", e);
+        final RemotingCommand response = RemotingCommand.createResponseCommand(GetAllSubscriptionGroupResponseHeader.class);
+        final GetAllSubscriptionGroupResponseHeader responseHeader =
+            (GetAllSubscriptionGroupResponseHeader) response.readCustomHeader();
+        final GetAllSubscriptionGroupRequestHeader requestHeader =
+            request.decodeCommandCustomHeader(GetAllSubscriptionGroupRequestHeader.class);
 
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("UnsupportedEncodingException " + e.getMessage());
-                return response;
-            }
+        String dataVersionStr = requestHeader.getDataVersion();
+        Integer groupSeq = requestHeader.getGroupSeq();
+        Integer maxGroupNum = requestHeader.getMaxGroupNum();
+
+        SubscriptionGroupManager sgManager = this.brokerController.getSubscriptionGroupManager();
+
+        SubscriptionGroupWrapper subscriptionGroupWrapper = new SubscriptionGroupWrapper();
+        if (!brokerController.getBrokerConfig().isEnableSplitMetadata()
+            || ObjectUtils.allNull(dataVersionStr, groupSeq, maxGroupNum)) {
+            subscriptionGroupWrapper.setSubscriptionGroupTable(sgManager.getSubscriptionGroupTable());
+            subscriptionGroupWrapper.setForbiddenTable(sgManager.getForbiddenTable());
+            subscriptionGroupWrapper.setDataVersion(sgManager.getDataVersion());
+        } else {
+            int groupNum = Math.min(brokerController.getBrokerConfig().getSplitMetadataSize(),
+                Optional.ofNullable(maxGroupNum).orElse(Integer.MAX_VALUE));
+            ConcurrentMap<String, SubscriptionGroupConfig> subGroupTable =
+                sgManager.subGroupTable(dataVersionStr, groupSeq, groupNum);
+            subscriptionGroupWrapper.setSubscriptionGroupTable(subGroupTable);
+            subscriptionGroupWrapper.setDataVersion(sgManager.getDataVersion());
+            subscriptionGroupWrapper.setForbiddenTable(sgManager.subForbiddenTable(subGroupTable.keySet()));
+        }
+
+        responseHeader.setTotalGroupNum(sgManager.getSubscriptionGroupTable().size());
+        String content = subscriptionGroupWrapper.toJson();
+        if (StringUtils.isNotBlank(content)) {
+            response.setBody(content.getBytes(StandardCharsets.UTF_8));
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
         } else {
             LOGGER.error("No subscription group in this broker, client:{} ", ctx.channel().remoteAddress());
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("No subscription group in this broker");
-            return response;
         }
-
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
-
         return response;
     }
 
@@ -2019,13 +2073,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     /**
      * Reset consumer offset.
      *
-     * @param topic Required, not null.
-     * @param group Required, not null.
-     * @param queueId if target queue ID is negative, all message queues will be reset; otherwise, only the target queue
-     * would get reset.
+     * @param topic     Required, not null.
+     * @param group     Required, not null.
+     * @param queueId   if target queue ID is negative, all message queues will be reset; otherwise, only the target queue
+     *                  would get reset.
      * @param timestamp if timestamp is negative, offset would be reset to broker offset at the time being; otherwise,
-     * binary search is performed to locate target offset.
-     * @param offset Target offset to reset to if target queue ID is properly provided.
+     *                  binary search is performed to locate target offset.
+     * @param offset    Target offset to reset to if target queue ID is properly provided.
      * @return Affected queues and their new offset
      */
     private RemotingCommand resetOffsetInner(String topic, String group, int queueId, long timestamp, Long offset) {
@@ -2584,7 +2638,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         runtimeInfo.put("brokerActive", String.valueOf(this.brokerController.isSpecialServiceRunning()));
         runtimeInfo.put("brokerVersionDesc", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
-        runtimeInfo.put("brokerVersion", String.valueOf(MQVersion.CURRENT_VERSION));
 
         runtimeInfo.put("msgPutTotalYesterdayMorning",
             String.valueOf(this.brokerController.getBrokerStats().getMsgPutTotalYesterdayMorning()));

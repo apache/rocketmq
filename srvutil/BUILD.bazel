@@ -22,7 +22,6 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//common",
-        "//remoting",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_validator_commons_validator",
         "@maven//:com_github_luben_zstd_jni",
@@ -44,7 +43,6 @@ java_library(
     deps = [
         ":srvutil",
         "//common",
-        "//remoting",
         "//:test_deps",
         "@maven//:org_apache_commons_commons_lang3", 
         "@maven//:io_netty_netty_all",               

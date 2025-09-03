@@ -24,13 +24,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SubscriptionGroupAttributes;
 import org.apache.rocketmq.common.attribute.BooleanAttribute;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,7 +50,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-
 @RunWith(MockitoJUnitRunner.class)
 public class SubscriptionGroupManagerTest {
     private String group = "group";
@@ -58,9 +62,6 @@ public class SubscriptionGroupManagerTest {
 
     @Before
     public void before() {
-        if (notToBeExecuted()) {
-            return;
-        }
         SubscriptionGroupAttributes.ALL.put("test", new BooleanAttribute(
             "test",
             false,
@@ -164,6 +165,77 @@ public class SubscriptionGroupManagerTest {
         groupNames.forEach(groupName ->
             assertThat(subscriptionGroupManager.getSubscriptionGroupTable().get(groupName)).isNotNull());
 
+    }
+
+    @Test
+    public void testSubGroupTable() {
+        // Empty SubscriptionGroupManager
+        subscriptionGroupManager.getSubscriptionGroupTable().clear();
+        Map<String, SubscriptionGroupConfig> result =
+            subscriptionGroupManager.subGroupTable(subscriptionGroupManager.getDataVersion().toJson(), 0, 200);
+        assertThat(result).isEmpty();
+
+        // fill SubscriptionGroupManager
+        int totalGroupNum = 50000;
+        fillSubscriptionGroupManager(totalGroupNum);
+
+        // Null DataVersion
+        int beginIndex = 0, maxNum = 200;
+        int endIndex = beginIndex + maxNum - 1;
+        result = subscriptionGroupManager.subGroupTable(null, beginIndex, maxNum);
+
+        Assert.assertEquals(maxNum, result.size());
+        Assert.assertTrue(result.containsKey(String.format("group-%05d", ThreadLocalRandom.current().nextInt(beginIndex, endIndex))));
+        Assert.assertFalse(result.containsKey(String.format("group-%05d", beginIndex - 1)));
+        Assert.assertFalse(result.containsKey(String.format("group-%05d", endIndex + 1)));
+
+        // Different DataVersion
+        DataVersion differentVersion = new DataVersion();
+        differentVersion.setCounter(new AtomicLong(1000L));  // different counter
+        differentVersion.setTimestamp(System.currentTimeMillis());
+        result = subscriptionGroupManager.subGroupTable(differentVersion.toJson(), 300, maxNum);
+
+        Assert.assertEquals(maxNum, result.size());
+        Assert.assertTrue(result.containsKey(String.format("group-%05d", ThreadLocalRandom.current().nextInt(beginIndex, endIndex))));
+        Assert.assertFalse(result.containsKey(String.format("group-%05d", beginIndex - 1)));
+        Assert.assertFalse(result.containsKey(String.format("group-%05d", endIndex + 1)));
+
+        // BeginIndexOutOfRange
+        result = subscriptionGroupManager.subGroupTable(subscriptionGroupManager.getDataVersion().toJson(), totalGroupNum, 200);
+
+        Assert.assertTrue(result.isEmpty());
+
+        // Normal Case
+        beginIndex = 300;
+        endIndex = beginIndex + maxNum - 1;
+        result = subscriptionGroupManager.subGroupTable(subscriptionGroupManager.getDataVersion().toJson(), beginIndex, maxNum);
+
+        Assert.assertEquals(maxNum, result.size());
+        Assert.assertTrue(result.containsKey(String.format("group-%05d", ThreadLocalRandom.current().nextInt(beginIndex, endIndex))));
+        Assert.assertFalse(result.containsKey(String.format("group-%05d", beginIndex - 1)));
+        Assert.assertFalse(result.containsKey(String.format("group-%05d", endIndex + 1)));
+
+        // NotFullTopicConfigTable
+        beginIndex = 49950;
+        endIndex = Math.min(subscriptionGroupManager.getSubscriptionGroupTable().size() - 1, beginIndex + maxNum - 1);
+        result = subscriptionGroupManager.subGroupTable(subscriptionGroupManager.getDataVersion().toJson(), beginIndex, maxNum);
+
+        Assert.assertEquals(totalGroupNum - beginIndex, result.size());
+        Assert.assertTrue(result.containsKey(String.format("group-%05d", ThreadLocalRandom.current().nextInt(beginIndex, endIndex))));
+        Assert.assertFalse(result.containsKey(String.format("group-%05d", beginIndex - 1)));
+        Assert.assertFalse(result.containsKey(String.format("group-%05d", endIndex + 1)));
+
+    }
+
+    private void fillSubscriptionGroupManager(int num) {
+        for (int i = num - 1; i >= 0; i--) {
+            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+            String groupName = String.format("group-%05d", i);
+            subscriptionGroupConfig.setGroupName(groupName);
+            Map<String, String> attr = ImmutableMap.of("+test", "true");
+            subscriptionGroupConfig.setAttributes(attr);
+            subscriptionGroupManager.getSubscriptionGroupTable().put(groupName, subscriptionGroupConfig);
+        }
     }
 
 }

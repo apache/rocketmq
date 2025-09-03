@@ -1554,6 +1554,10 @@ public class BrokerController {
         if (this.transactionalMessageCheckService != null) {
             this.transactionalMessageCheckService.shutdown(false);
         }
+        
+        if (this.loadBalanceExecutor != null) {
+            this.loadBalanceExecutor.shutdown();
+        }
 
         if (this.endTransactionExecutor != null) {
             this.endTransactionExecutor.shutdown();

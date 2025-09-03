@@ -392,6 +392,15 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean metricsInDelta = false;
 
+    private boolean enableRemotingMetrics = true;
+    private boolean enableMessageStoreMetrics = true;
+    private boolean enablePopMetrics = true;
+    private boolean enableConnectionMetrics = true;
+    private boolean enableTransactionMetrics = true;
+    private boolean enableStatsMetrics = true;
+    private boolean enableRequestMetrics = true;
+    private boolean enableLagAndDlqMetrics = true;
+
     private long channelExpiredTimeout = 1000 * 120;
     private long subscriptionExpiredTimeout = 1000 * 60 * 10;
 
@@ -428,6 +437,9 @@ public class BrokerConfig extends BrokerIdentity {
      * otherwise there will be a loss of routing
      */
     private boolean enableSplitRegistration = false;
+
+    private boolean enableSplitMetadata = true;
+    private int splitMetadataSize = 2000;
 
     private long popInflightMessageThreshold = 10000;
     private boolean enablePopMessageThreshold = false;
@@ -1801,6 +1813,71 @@ public class BrokerConfig extends BrokerIdentity {
         this.metricsPromExporterHost = metricsPromExporterHost;
     }
 
+    public boolean isEnablePopMetrics() {
+        return enablePopMetrics;
+    }
+
+    public void setEnablePopMetrics(boolean enablePopMetrics) {
+        this.enablePopMetrics = enablePopMetrics;
+    }
+
+    public boolean isEnableConnectionMetrics() {
+        return enableConnectionMetrics;
+    }
+
+    public void setEnableConnectionMetrics(boolean enableConnectionMetrics) {
+        this.enableConnectionMetrics = enableConnectionMetrics;
+    }
+
+    public boolean isEnableTransactionMetrics() {
+        return enableTransactionMetrics;
+    }
+
+    public void setEnableTransactionMetrics(boolean enableTransactionMetrics) {
+        this.enableTransactionMetrics = enableTransactionMetrics;
+    }
+
+    public boolean isEnableStatsMetrics() {
+        return enableStatsMetrics;
+    }
+
+    public void setEnableStatsMetrics(boolean enableStatsMetrics) {
+        this.enableStatsMetrics = enableStatsMetrics;
+    }
+
+    public boolean isEnableRequestMetrics() {
+        return enableRequestMetrics;
+    }
+
+    public void setEnableRequestMetrics(boolean enableRequestMetrics) {
+        this.enableRequestMetrics = enableRequestMetrics;
+    }
+
+
+    public boolean isEnableLagAndDlqMetrics() {
+        return enableLagAndDlqMetrics;
+    }
+
+    public void setEnableLagAndDlqMetrics(boolean enableLagAndDlqMetrics) {
+        this.enableLagAndDlqMetrics = enableLagAndDlqMetrics;
+    }
+
+    public boolean isEnableRemotingMetrics() {
+        return enableRemotingMetrics;
+    }
+
+    public void setEnableRemotingMetrics(boolean enableRemotingMetrics) {
+        this.enableRemotingMetrics = enableRemotingMetrics;
+    }
+
+    public boolean isEnableMessageStoreMetrics() {
+        return enableMessageStoreMetrics;
+    }
+
+    public void setEnableMessageStoreMetrics(boolean enableMessageStoreMetrics) {
+        this.enableMessageStoreMetrics = enableMessageStoreMetrics;
+    }
+
     public int getTransactionOpMsgMaxSize() {
         return transactionOpMsgMaxSize;
     }
@@ -2071,5 +2148,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableCreateSysGroup(boolean enableCreateSysGroup) {
         this.enableCreateSysGroup = enableCreateSysGroup;
+    }
+
+    public boolean isEnableSplitMetadata() {
+        return enableSplitMetadata;
+    }
+
+    public void setEnableSplitMetadata(boolean enableSplitMetadata) {
+        this.enableSplitMetadata = enableSplitMetadata;
+    }
+
+    public int getSplitMetadataSize() {
+        return splitMetadataSize;
+    }
+
+    public void setSplitMetadataSize(int splitMetadataSize) {
+        this.splitMetadataSize = splitMetadataSize;
     }
 }

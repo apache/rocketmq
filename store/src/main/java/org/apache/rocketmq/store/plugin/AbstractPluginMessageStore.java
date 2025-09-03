@@ -42,6 +42,7 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.MessageStoreStateMachine;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.RunningFlags;
@@ -659,5 +660,10 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
 
     public MessageStore getNext() {
         return next;
+    }
+
+    @Override
+    public MessageStoreStateMachine getStateMachine() {
+        return next.getStateMachine();
     }
 }
