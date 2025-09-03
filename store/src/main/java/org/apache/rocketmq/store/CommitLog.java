@@ -353,16 +353,17 @@ public class CommitLog implements Swappable {
             MappedFile mappedFile = mappedFiles.get(index);
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
-            long mappedFileOffset;
+            long mappedFileOffset = 0;
             long lastValidMsgPhyOffset = this.getConfirmOffset();
 
             if (defaultMessageStore.getMessageStoreConfig().isEnableRocksDBStore()
                 && defaultMessageStore.getMessageStoreConfig().isEnableAcceleratedRecovery()) {
                 mappedFileOffset = dispatchFromPhyOffset - mappedFile.getFileFromOffset();
-                lastValidMsgPhyOffset = dispatchFromPhyOffset;
-                byteBuffer.position((int) mappedFileOffset);
-            } else {
-                mappedFileOffset = 0;
+                if (mappedFileOffset > 0) {
+                    log.info("recover using acceleration, recovery offset is {}", dispatchFromPhyOffset);
+                    lastValidMsgPhyOffset = dispatchFromPhyOffset;
+                    byteBuffer.position((int) mappedFileOffset);
+                }
             }
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
