@@ -205,7 +205,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         } else if (this.brokerController.getMessageStoreConfig().isTransRocksDBEnable() && TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC.equals(halfTopic)) {
             this.brokerController.getMessageStore().getTransRocksDBStore().deletePrepareMessage(prepareMessage);
         } else {
-            LOGGER.warn("deletePrepareMessage error, topic of half message is: {}, transUseRocksDB: {}", halfTopic, this.brokerController.getMessageStoreConfig().isTransRocksDBEnable());
+            LOGGER.warn("deletePrepareMessage error, topic of half message is: {}, transRocksDBEnable: {}", halfTopic, this.brokerController.getMessageStoreConfig().isTransRocksDBEnable());
         }
     }
 

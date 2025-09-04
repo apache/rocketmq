@@ -161,7 +161,6 @@ public class IndexRocksDBStore {
             String uniqKey = dispatchRequest.getUniqKey();
             long storeTime = dispatchRequest.getStoreTimestamp();
             if (StringUtils.isEmpty(topic) || StringUtils.isEmpty(uniqKey) || storeTime <= 0L || reqOffsetPy < 0L) {
-                logError.error("IndexRocksDBStore buildIndex param error, topic: {}, uniqKey: {}, storeTime: {}, reqOffsetPy: {}", topic, uniqKey, storeTime, reqOffsetPy);
                 return;
             }
             try {
