@@ -163,15 +163,12 @@ public class PopLongPollingService extends ServiceThread {
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         String prefix = MixAll.RETRY_GROUP_TOPIC_PREFIX;
         if (topic.startsWith(prefix)) {
-            // 从properties获取原始topic名称
             String originTopic = properties.get(MessageConst.PROPERTY_ORIGIN_TOPIC);
-            //根据原始topic和retryTopic，最后获得retryTopic对应的cid (可能还可以与topicCidMap验证一下)
-            String suffix = "_" + originTopic; //这里把下划线换成加号也是一样的
+            String suffix = "_" + originTopic;
             String cid = topic.substring(prefix.length(), topic.length() - suffix.length());
             POP_LOGGER.info("Processing retry topic: {}, originTopic: {}, properties: {}",
-                    topic, originTopic, properties); //grep "Processing retry topic" ~/logs/rocketmqlogs/pop.log可以看到日志
+                    topic, originTopic, properties);
             POP_LOGGER.info("Extracted cid: {} from retry topic: {}", cid, topic);
-            //然后调用包含cid的notifyMessageArriving
             long interval = brokerController.getBrokerConfig().getPopLongPollingForceNotifyInterval();
             boolean force = interval > 0L && offset % interval == 0L;
             if (queueId >= 0) {
@@ -179,10 +176,10 @@ public class PopLongPollingService extends ServiceThread {
             }
             notifyMessageArriving(originTopic, queueId, cid, force, tagsCode, msgStoreTime, filterBitMap, properties);
         } else {
-            //普通消息（非重试消息）还是走之前的逻辑不变
             notifyMessageArriving(topic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
         }
     }
+    
     public void notifyMessageArriving(final String topic, final int queueId, long offset,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         ConcurrentHashMap<String, Byte> cids = topicCidMap.get(topic);
