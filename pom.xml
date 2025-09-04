@@ -133,7 +133,7 @@
         <disruptor.version>1.2.10</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
         <caffeine.version>2.9.3</caffeine.version>
-        <spring.version>5.3.27</spring.version>
+        <spring.version>6.1.14</spring.version>
         <okio-jvm.version>3.4.0</okio-jvm.version>
         <opentelemetry.version>1.29.0</opentelemetry.version>
         <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
