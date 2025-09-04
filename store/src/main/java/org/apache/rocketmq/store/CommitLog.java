@@ -174,17 +174,6 @@ public class CommitLog implements Swappable {
         return result;
     }
 
-    public void cleanResourceAll() {
-        // Clean all mapped file resources
-        if (mappedFileQueue != null) {
-            for (MappedFile mappedFile : mappedFileQueue.getMappedFiles()) {
-                if (mappedFile instanceof ReferenceResource) {
-                    ((ReferenceResource) mappedFile).cleanup(0);
-                }
-            }
-        }
-    }
-
     public void start() {
         this.flushManager.start();
         log.info("start commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
