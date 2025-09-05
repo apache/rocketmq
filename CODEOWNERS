@@ -1,0 +1,6 @@
+# 注释行，以下为配置正文，每一行代表一个配置。
+# 一个路径规则后边，需要有1个或多个Owner
+
+# 为所有文件的CodeOwner
+** @yubao.fyb @jixiang.jjx
+
