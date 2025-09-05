@@ -285,7 +285,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
                 }
             }
             IndexRocksDBRecord lastRecord = recordList.get(recordList.size() - 1);
-            if (null != lastRecord) {
+            if (null != lastRecord && StringUtils.isEmpty(lastRecord.getKey()) && StringUtils.isEmpty(lastRecord.getTag())) {
                 long offset = lastRecord.getOffsetPy();
                 Long lastOffsetPy = getLastOffsetPy(columnFamily);
                 if (null == lastOffsetPy || offset > lastOffsetPy) {
@@ -511,7 +511,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
             if (lastOffsetPy > 0L) {
                 Long lastOffsetPyStore = getLastOffsetPy(columnFamily);
                 if (null == lastOffsetPyStore || lastOffsetPy > lastOffsetPyStore) {
-                    writeBatch.put(LAST_OFFSET_PY, ByteBuffer.allocate(Long.BYTES).putLong(lastOffsetPy).array());
+                    writeBatch.put(cfHandle, LAST_OFFSET_PY, ByteBuffer.allocate(Long.BYTES).putLong(lastOffsetPy).array());
                 }
             }
             batchPut(ableWalWriteOptions, writeBatch);

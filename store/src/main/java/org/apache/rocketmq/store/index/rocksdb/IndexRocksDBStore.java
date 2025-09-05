@@ -145,7 +145,9 @@ public class IndexRocksDBStore {
             long reqOffsetPy = dispatchRequest.getCommitLogOffset();
             long endOffsetPy = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
             if (reqOffsetPy < endOffsetPy) {
-                logError.warn("IndexRocksDBStore recover buildIndex, but ignore, build index offset reqOffsetPy: {}, endOffsetPy: {}", reqOffsetPy, endOffsetPy);
+                if (System.currentTimeMillis() % 1000 == 0) {
+                    logError.warn("IndexRocksDBStore recover buildIndex, but ignore, build index offset reqOffsetPy: {}, endOffsetPy: {}", reqOffsetPy, endOffsetPy);
+                }
                 return;
             }
             final int tranType = MessageSysFlag.getTransactionValue(dispatchRequest.getSysFlag());
@@ -163,15 +165,6 @@ public class IndexRocksDBStore {
             if (StringUtils.isEmpty(topic) || StringUtils.isEmpty(uniqKey) || storeTime <= 0L || reqOffsetPy < 0L) {
                 return;
             }
-            try {
-                while (!originIndexMsgQueue.offer(new IndexRocksDBRecord(topic,null,null, storeTime, uniqKey, reqOffsetPy),3, TimeUnit.SECONDS)) {
-                    if (System.currentTimeMillis() % 1000 == 0) {
-                        logError.error("IndexRocksDBStore buildIndex uniqKey error, topic: {}, storeTime: {}, uniqKey: {}, reqOffsetPy: {}", topic, storeTime, uniqKey, reqOffsetPy);
-                    }
-                }
-            } catch (Exception e) {
-                logError.error("IndexRocksDBStore buildIndex uniqKey error: {}", e.getMessage());
-            }
             String keys = dispatchRequest.getKeys();
             if (!StringUtils.isEmpty(keys)) {
                 String[] keySplit = keys.split(MessageConst.KEY_SEPARATOR);
@@ -186,7 +179,6 @@ public class IndexRocksDBStore {
                             }
                         } catch (Exception e) {
                             logError.error("IndexRocksDBStore buildIndex keys error, key: {}, uniqKey: {}, topic: {}, error: {}", key, uniqKey, topic, e.getMessage());
-                            return;
                         }
                     }
                 }
@@ -205,6 +197,15 @@ public class IndexRocksDBStore {
                         logError.error("IndexRocksDBStore buildIndex tags error, tags: {}, uniqKey: {}, topic: {}, error: {}", tags, uniqKey, topic, e.getMessage());
                     }
                 }
+            }
+            try {
+                while (!originIndexMsgQueue.offer(new IndexRocksDBRecord(topic,null,null, storeTime, uniqKey, reqOffsetPy),3, TimeUnit.SECONDS)) {
+                    if (System.currentTimeMillis() % 1000 == 0) {
+                        logError.error("IndexRocksDBStore buildIndex uniqKey error, topic: {}, storeTime: {}, uniqKey: {}, reqOffsetPy: {}", topic, storeTime, uniqKey, reqOffsetPy);
+                    }
+                }
+            } catch (Exception e) {
+                logError.error("IndexRocksDBStore buildIndex uniqKey error: {}", e.getMessage());
             }
         } catch (Exception e) {
             logError.error("IndexRocksDBStore buildIndex error: {}", e.getMessage());
@@ -243,6 +244,7 @@ public class IndexRocksDBStore {
             return true;
         }
         Long lastOffsetPy = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+        log.info("index isMappedFileMatchedRecover lastOffsetPy: {}", lastOffsetPy);
         if (null != lastOffsetPy && phyOffset <= lastOffsetPy) {
             log.info("isMappedFileMatchedRecover IndexRocksDBStore recover form this offset, phyOffset: {}, lastOffsetPy: {}", phyOffset, lastOffsetPy);
             return true;

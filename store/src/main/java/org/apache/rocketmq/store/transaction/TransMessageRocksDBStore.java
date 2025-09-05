@@ -86,7 +86,8 @@ public class TransMessageRocksDBStore {
         this.originTransMsgQueue = new LinkedBlockingDeque<>(DEFAULT_CAPACITY);
         this.transIndexBuildService.start();
         this.state = RUNNING;
-        log.info("TransMessageRocksDBStore start success");
+        Long lastOffsetPy = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
+        log.info("TransMessageRocksDBStore start success, lastOffsetPy: {}", lastOffsetPy);
     }
 
     public void shutdown() {
@@ -108,7 +109,9 @@ public class TransMessageRocksDBStore {
         long reqOffsetPy = dispatchRequest.getCommitLogOffset();
         long endOffsetPy = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
         if (reqOffsetPy < endOffsetPy) {
-            logError.error("TransMessageRocksDBStore buildTransIndex recover, but ignore, reqOffsetPy: {}, endOffsetPy: {}", reqOffsetPy, endOffsetPy);
+            if (System.currentTimeMillis() % 1000 == 0) {
+                logError.warn("TransMessageRocksDBStore buildTransIndex recover, but ignore, reqOffsetPy: {}, endOffsetPy: {}", reqOffsetPy, endOffsetPy);
+            }
             return;
         }
         int reqMsgSize = dispatchRequest.getMsgSize();
@@ -262,6 +265,7 @@ public class TransMessageRocksDBStore {
             return true;
         }
         Long lastOffsetPy = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
+        log.info("trans isMappedFileMatchedRecover lastOffsetPy: {}", lastOffsetPy);
         if (null != lastOffsetPy && phyOffset <= lastOffsetPy) {
             log.info("isMappedFileMatchedRecover TransMessageRocksDBStore recover form this offset, phyOffset: {}, lastOffsetPy: {}", phyOffset, lastOffsetPy);
             return true;
