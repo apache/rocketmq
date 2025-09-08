@@ -16,9 +16,11 @@
  */
 package org.apache.rocketmq.broker.longpolling;
 
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -102,14 +104,18 @@ public class PopLongPollingServiceTest {
     public void testNotifyMessageArrivingValidRequest() throws Exception {
         String cid = "CID_1";
         int queueId = 0;
-        ConcurrentLinkedHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentHashMap<String, Byte>>()
-            .maximumWeightedCapacity(10).build();
+        Cache<String, ConcurrentHashMap<String, Byte>> topicCidMap = Caffeine.newBuilder()
+            .maximumSize(10)
+            .expireAfterAccess(300, TimeUnit.SECONDS)
+            .build();
         ConcurrentHashMap<String, Byte> cids = new ConcurrentHashMap<>();
         cids.put(cid, (byte) 1);
         topicCidMap.put(defaultTopic, cids);
         popLongPollingService = new PopLongPollingService(brokerController, processor, true);
-        ConcurrentLinkedHashMap<String, ConcurrentSkipListSet<PopRequest>> pollingMap =
-            new ConcurrentLinkedHashMap.Builder<String, ConcurrentSkipListSet<PopRequest>>().maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize()).build();
+        Cache<String, ConcurrentSkipListSet<PopRequest>> pollingMap = Caffeine.newBuilder()
+            .maximumSize(10)
+            .expireAfterAccess(300, TimeUnit.SECONDS)
+            .build();
         Channel channel = mock(Channel.class);
         when(channel.isActive()).thenReturn(true);
         PopRequest popRequest = mock(PopRequest.class);
@@ -195,8 +201,10 @@ public class PopLongPollingServiceTest {
         when(requestHeader.getPollTime()).thenReturn(1000L);
         when(requestHeader.getTopic()).thenReturn(defaultTopic);
         when(requestHeader.getConsumerGroup()).thenReturn("defaultGroup");
-        ConcurrentLinkedHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentHashMap<String, Byte>>()
-            .maximumWeightedCapacity(10).build();
+        Cache<String, ConcurrentHashMap<String, Byte>> topicCidMap = Caffeine.newBuilder()
+            .maximumSize(10)
+            .expireAfterAccess(300, TimeUnit.SECONDS)
+            .build();
         ConcurrentHashMap<String, Byte> cids = new ConcurrentHashMap<>();
         cids.put(cid, (byte) 1);
         topicCidMap.put(defaultTopic, cids);
