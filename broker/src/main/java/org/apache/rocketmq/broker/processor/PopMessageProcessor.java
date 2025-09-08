@@ -17,7 +17,7 @@
 package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson.JSON;
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.github.benmanes.caffeine.cache.Cache;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -173,7 +173,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    public ConcurrentLinkedHashMap<String, ConcurrentSkipListSet<PopRequest>> getPollingMap() {
+    public Cache<String, ConcurrentSkipListSet<PopRequest>> getPollingMap() {
         return popLongPollingService.getPollingMap();
     }
 
