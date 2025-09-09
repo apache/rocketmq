@@ -146,7 +146,12 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
                 throw new AuthenticationException("username can not be blank");
             }
             CompletableFuture<Void> deleteUser = this.getAuthenticationMetadataProvider().deleteUser(username);
-            CompletableFuture<Void> deleteAcl = this.getAuthorizationMetadataProvider().deleteAcl(User.of(username));
+            CompletableFuture<Void> deleteAcl = null;
+            if (authorizationMetadataProvider == null) {
+                deleteAcl = CompletableFuture.completedFuture(null);
+            } else {
+                deleteAcl = this.getAuthorizationMetadataProvider().deleteAcl(User.of(username));
+            }
             return CompletableFuture.allOf(deleteUser, deleteAcl);
         } catch (Exception e) {
             this.handleException(e, result);
