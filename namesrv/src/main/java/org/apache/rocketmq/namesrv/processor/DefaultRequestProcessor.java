@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MQVersion.Version;
@@ -126,6 +128,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.addWritePermOfBroker(ctx, request);
             case RequestCode.GET_ALL_TOPIC_LIST_FROM_NAMESERVER:
                 return this.getAllTopicListFromNameserver(ctx, request);
+            case RequestCode.GET_ALL_RETRY_TOPIC_LIST_FROM_NAMESERVER:
+                return this.getAllRetryTopicListFromNameserver(ctx, request);
             case RequestCode.DELETE_TOPIC_IN_NAMESRV:
                 return this.deleteTopicInNamesrv(ctx, request);
             case RequestCode.REGISTER_TOPIC_IN_NAMESRV:
@@ -447,11 +451,22 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand getAllTopicListFromNameserver(ChannelHandlerContext ctx, RemotingCommand request) {
+        return getTopicListFromNameserver(ctx, "getAllTopicListFromNameserver",
+                () -> this.namesrvController.getRouteInfoManager().getAllTopicList());
+    }
+    
+    private RemotingCommand getAllRetryTopicListFromNameserver(ChannelHandlerContext ctx, RemotingCommand request) {
+        return getTopicListFromNameserver(ctx, "getAllRetryTopicListFromNameserver",
+                () -> this.namesrvController.getRouteInfoManager().getAllRetryTopicList());
+    }
+    
+    private RemotingCommand getTopicListFromNameserver(ChannelHandlerContext ctx, String logPrefix,
+                                                       Supplier<TopicList> topicListSupplier) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         boolean enableAllTopicList = namesrvController.getNamesrvConfig().isEnableAllTopicList();
-        log.warn("getAllTopicListFromNameserver {} enable {}", ctx.channel().remoteAddress(), enableAllTopicList);
+        log.warn("{} {} enable {}", logPrefix, ctx.channel().remoteAddress(), enableAllTopicList);
         if (enableAllTopicList) {
-            byte[] body = this.namesrvController.getRouteInfoManager().getAllTopicList().encode();
+            byte[] body = topicListSupplier.get().encode();
             response.setBody(body);
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
@@ -459,7 +474,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("disable");
         }
-
         return response;
     }
 
