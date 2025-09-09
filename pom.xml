@@ -139,7 +139,7 @@
         <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
         <s3.version>2.20.29</s3.version>
-        <rocksdb.version>1.0.2</rocksdb.version>
+        <rocksdb.version>1.0.3</rocksdb.version>
         <jackson-databind.version>2.13.4.2</jackson-databind.version>
         <sofa-jraft.version>1.3.14</sofa-jraft.version>
 

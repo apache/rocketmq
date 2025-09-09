@@ -37,7 +37,7 @@ public class BrokerReplicaInfo implements Serializable {
 
     // Start from 1
     private final AtomicLong nextAssignBrokerId;
-
+    //registerCheckCode值：this.brokerAddress + ";" + System.currentTimeMillis()，作用后续ApplyBrokerId动作的身份校验
     private final Map<Long/*brokerId*/, Pair<String/*ipAddress*/, String/*registerCheckCode*/>> brokerIdInfo;
 
     public BrokerReplicaInfo(String clusterName, String brokerName) {
