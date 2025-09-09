@@ -106,10 +106,13 @@ public interface MessagingProcessor extends StartAndShutdown {
         String transactionId,
         String messageId,
         String producerGroup,
+        Long tranStateTableOffset,
+        Long commitLogOffset,
         TransactionStatus transactionStatus,
         boolean fromTransactionCheck
     ) {
-        return endTransaction(ctx, topic, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, DEFAULT_TIMEOUT_MILLS);
+        return endTransaction(ctx, topic, transactionId, messageId, producerGroup, tranStateTableOffset, commitLogOffset,
+                transactionStatus, fromTransactionCheck, DEFAULT_TIMEOUT_MILLS);
     }
 
     CompletableFuture<Void> endTransaction(
@@ -118,6 +121,8 @@ public interface MessagingProcessor extends StartAndShutdown {
         String transactionId,
         String messageId,
         String producerGroup,
+        Long tranStateTableOffset,
+        Long commitLogOffset,
         TransactionStatus transactionStatus,
         boolean fromTransactionCheck,
         long timeoutMillis
