@@ -44,15 +44,15 @@ public class RocksDBOptionsFactory {
     public static ColumnFamilyOptions createCQCFOptions(final MessageStore messageStore,
         ConsumeQueueCompactionFilterFactory consumeQueueCompactionFilterFactory) {
         BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig().
-            setFormatVersion(5).
-            setIndexType(IndexType.kBinarySearch).
-            setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash).
-            setDataBlockHashTableUtilRatio(0.75).
-            setBlockSize(32 * SizeUnit.KB).
-            setMetadataBlockSize(4 * SizeUnit.KB).
-            setFilterPolicy(new BloomFilter(16, false)).
-            setCacheIndexAndFilterBlocks(false).
-            setCacheIndexAndFilterBlocksWithHighPriority(true).
+                setFormatVersion(5).
+                setIndexType(IndexType.kBinarySearch).
+                setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash).
+                setDataBlockHashTableUtilRatio(0.75).
+                setBlockSize(32 * SizeUnit.KB).
+                setMetadataBlockSize(4 * SizeUnit.KB).
+                setFilterPolicy(new BloomFilter(16, false)).
+                setCacheIndexAndFilterBlocks(false).
+                setCacheIndexAndFilterBlocksWithHighPriority(true).
                 setPinL0FilterAndIndexBlocksInCache(false).
                 setPinTopLevelIndexAndFilter(true).
                 setBlockCache(new LRUCache(1024 * SizeUnit.MB, 8, false)).
@@ -73,9 +73,8 @@ public class RocksDBOptionsFactory {
             .getRocksdbCompressionType();
         CompressionType bottomMostCompressionType = CompressionType.getCompressionType(bottomMostCompressionTypeOpt);
         CompressionType compressionType = CompressionType.getCompressionType(compressionTypeOpt);
-
         return columnFamilyOptions.setMaxWriteBufferNumber(4).
-                setWriteBufferSize(32 * SizeUnit.MB).  // speed up cq rocksdb open test
+                setWriteBufferSize(128 * SizeUnit.MB).
                 setMinWriteBufferNumberToMerge(1).
                 setTableFormatConfig(blockBasedTableConfig).
                 setMemTableConfig(new SkipListMemTableConfig()).
@@ -84,20 +83,19 @@ public class RocksDBOptionsFactory {
                 setNumLevels(7).
                 setCompactionPriority(CompactionPriority.MinOverlappingRatio).
                 setCompactionStyle(CompactionStyle.UNIVERSAL).
-            setCompactionOptionsUniversal(compactionOption).
-            setMaxCompactionBytes(100 * SizeUnit.GB).
-            setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB).
-            setHardPendingCompactionBytesLimit(256 * SizeUnit.GB).
-            setLevel0FileNumCompactionTrigger(2).
-            setLevel0SlowdownWritesTrigger(8).
-            setLevel0StopWritesTrigger(10).
-            setTargetFileSizeBase(256 * SizeUnit.MB).
-            setTargetFileSizeMultiplier(2).
-            setMergeOperator(new StringAppendOperator()).
-            setCompactionFilterFactory(consumeQueueCompactionFilterFactory).
-            setReportBgIoStats(true).
+                setCompactionOptionsUniversal(compactionOption).
+                setMaxCompactionBytes(100 * SizeUnit.GB).
+                setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB).
+                setHardPendingCompactionBytesLimit(256 * SizeUnit.GB).
+                setLevel0FileNumCompactionTrigger(2).
+                setLevel0SlowdownWritesTrigger(8).
+                setLevel0StopWritesTrigger(10).
+                setTargetFileSizeBase(256 * SizeUnit.MB).
+                setTargetFileSizeMultiplier(2).
+                setMergeOperator(new StringAppendOperator()).
+                setCompactionFilterFactory(new ConsumeQueueCompactionFilterFactory(messageStore::getMinPhyOffset)).
+                setReportBgIoStats(true).
                 setOptimizeFiltersForHits(true);
-
     }
 
     public static ColumnFamilyOptions createOffsetCFOptions() {
