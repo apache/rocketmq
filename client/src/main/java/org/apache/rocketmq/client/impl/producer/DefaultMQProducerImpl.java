@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.client.impl.producer;
 
-import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,6 +35,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -685,7 +685,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                                                    final long timeout) throws MQClientException, RemotingTooMuchRequestException {
         long beginStartTime = System.currentTimeMillis();
         this.makeSureStateOK();
-        Validators.checkMessage(msg, this.defaultMQProducer);
+        checkMessage(msg);
 
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
@@ -742,7 +742,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final long timeout
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         this.makeSureStateOK();
-        Validators.checkMessage(msg, this.defaultMQProducer);
+        checkMessage(msg);
         final long invokeID = random.nextLong();
         long beginTimestampFirst = System.currentTimeMillis();
         long beginTimestampPrev = beginTimestampFirst;
@@ -893,6 +893,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             null).setResponseCode(ClientErrorCode.NOT_FOUND_TOPIC_EXCEPTION);
     }
 
+    private void checkMessage(Message msg) throws MQClientException {
+        Validators.checkMessage(msg, this.defaultMQProducer, defaultMQProducer::tryToCompressMessage);
+    }
+
     private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
@@ -942,13 +946,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     topicWithNamespace = true;
                 }
 
-                int sysFlag = 0;
-                boolean msgBodyCompressed = false;
-                if (this.tryToCompressMessage(msg)) {
-                    sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
-                    sysFlag |= this.defaultMQProducer.getCompressType().getCompressionFlag();
-                    msgBodyCompressed = true;
-                }
+                String sysFlagStr = MessageAccessor.removeProperty(msg, MessageConst.PROPERTY_SYS_FLAG);
+                int sysFlag = NumberUtils.isDigits(sysFlagStr) ? 0 : Integer.parseInt(sysFlagStr);
 
                 final String tranMsg = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
                 if (Boolean.parseBoolean(tranMsg)) {
@@ -978,7 +977,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     context.setMq(mq);
                     context.setNamespace(this.defaultMQProducer.getNamespace());
                     String isTrans = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-                    if (isTrans != null && isTrans.equals("true")) {
+                    if ("true".equals(isTrans)) {
                         context.setMsgType(MessageType.Trans_Msg_Half);
                     }
 
@@ -1021,7 +1020,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     case ASYNC:
                         Message tmpMessage = msg;
                         boolean messageCloned = false;
-                        if (msgBodyCompressed) {
+                        String msgBodyCompressed = MessageAccessor.removeProperty(msg, MessageConst.PROPERTY_MSG_BODY_COMPRESSED);
+                        if ("true".equals(msgBodyCompressed)) {
                             //If msg body was compressed, msgbody should be reset using prevBody.
                             //Clone new message using compressed message body and recover origin massage.
                             //Fix bug:https://github.com/apache/rocketmq-externals/issues/66
@@ -1105,32 +1105,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     @Deprecated
     public MQClientInstance getmQClientFactory() {
         return mQClientFactory;
-    }
-
-    private boolean tryToCompressMessage(final Message msg) {
-        if (msg instanceof MessageBatch) {
-            //batch does not support compressing right now
-            return false;
-        }
-        byte[] body = msg.getBody();
-        if (body != null) {
-            if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
-                try {
-                    byte[] data = this.defaultMQProducer.getCompressor().compress(body, this.defaultMQProducer.getCompressLevel());
-                    if (data != null) {
-                        msg.setBody(data);
-                        return true;
-                    }
-                } catch (IOException e) {
-                    log.error("tryToCompressMessage exception", e);
-                    if (log.isDebugEnabled()) {
-                        log.debug(msg.toString());
-                    }
-                }
-            }
-        }
-
-        return false;
     }
 
     public boolean hasCheckForbiddenHook() {
@@ -1227,7 +1201,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
         this.makeSureStateOK();
-        Validators.checkMessage(msg, this.defaultMQProducer);
+        checkMessage(msg);
 
         if (!msg.getTopic().equals(mq.getTopic())) {
             throw new MQClientException("message's topic not equal mq's topic", null);
@@ -1270,7 +1244,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             public void run() {
                 try {
                     makeSureStateOK();
-                    Validators.checkMessage(msg, defaultMQProducer);
+                    checkMessage(msg);
 
                     if (!msg.getTopic().equals(mq.getTopic())) {
                         throw new MQClientException("Topic of the message does not match its target message queue", null);
@@ -1302,7 +1276,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public void sendOneway(Message msg,
         MessageQueue mq) throws MQClientException, RemotingException, InterruptedException {
         this.makeSureStateOK();
-        Validators.checkMessage(msg, this.defaultMQProducer);
+        checkMessage(msg);
 
         try {
             this.sendKernelImpl(msg, mq, CommunicationMode.ONEWAY, null, null, this.defaultMQProducer.getSendMsgTimeout());
@@ -1333,7 +1307,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();
         this.makeSureStateOK();
-        Validators.checkMessage(msg, this.defaultMQProducer);
+        checkMessage(msg);
 
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
@@ -1441,7 +1415,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
         }
 
-        Validators.checkMessage(msg, this.defaultMQProducer);
+        checkMessage(msg);
 
         SendResult sendResult = null;
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.producer;
 
+import java.io.IOException;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -40,6 +41,7 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -781,7 +783,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         if (!canBatch(msg)) {
             return sendDirect(msg, mq, sendCallback);
         } else {
-            Validators.checkMessage(msg, this);
+            Validators.checkMessage(msg, this, this::tryToCompressMessage);
             MessageClientIDSetter.setUniqID(msg);
             if (sendCallback == null) {
                 return this.produceAccumulator.send(msg, mq, this);
@@ -790,6 +792,43 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
                 return null;
             }
         }
+    }
+
+    public boolean tryToCompressMessage(final Message msg) {
+      int sysFlag = 0;
+
+      try {
+        if (msg instanceof MessageBatch) {
+            //batch does not support compressing right now
+            return false;
+        }
+        byte[] body = msg.getBody();
+        if (body != null) {
+            if (body.length >= this.getCompressMsgBodyOverHowmuch()) {
+                try {
+                    byte[] data = this.getCompressor().compress(body, this.getCompressLevel());
+                    if (data != null) {
+                        msg.setBody(data);
+
+                        msg.putUserProperty(MessageConst.PROPERTY_MSG_BODY_COMPRESSED, "true");
+                        sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
+                        sysFlag |= this.getCompressType().getCompressionFlag();
+
+                        return true;
+                    }
+                } catch (IOException e) {
+                    logger.error("tryToCompressMessage exception", e);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug(msg.toString());
+                    }
+                }
+            }
+        }
+
+        return false;
+      } finally {
+        msg.putUserProperty(MessageConst.PROPERTY_SYS_FLAG, String.valueOf(sysFlag));
+      }
     }
 
     /**
@@ -1174,7 +1213,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         try {
             msgBatch = MessageBatch.generateFromList(msgs);
             for (Message message : msgBatch) {
-                Validators.checkMessage(message, this);
+                Validators.checkMessage(message, this, this::tryToCompressMessage);
                 MessageClientIDSetter.setUniqID(message);
                 message.setTopic(withNamespace(message.getTopic()));
             }
