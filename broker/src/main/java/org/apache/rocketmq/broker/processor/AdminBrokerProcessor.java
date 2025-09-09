@@ -66,7 +66,7 @@ import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
-import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+
 import org.apache.rocketmq.broker.metrics.InvocationStatus;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -614,11 +614,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             executionTime = System.currentTimeMillis() - startTime;
             InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
                 InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
-            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+            Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                 .put(LABEL_INVOCATION_STATUS, status.getName())
                 .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topic))
                 .build();
-            BrokerMetricsManager.topicCreateExecuteTime.record(executionTime, attributes);
+            this.brokerController.getBrokerMetricsManager().getTopicCreateExecuteTime().record(executionTime, attributes);
         }
         LOGGER.info("executionTime of create topic:{} is {} ms", topic, executionTime);
         return response;
@@ -695,11 +695,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             executionTime = System.currentTimeMillis() - startTime;
             InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
                 InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
-            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+            Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                 .put(LABEL_INVOCATION_STATUS, status.getName())
                 .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topicNames))
                 .build();
-            BrokerMetricsManager.topicCreateExecuteTime.record(executionTime, attributes);
+            this.brokerController.getBrokerMetricsManager().getTopicCreateExecuteTime().record(executionTime, attributes);
         }
         LOGGER.info("executionTime of all topics:{} is {} ms", topicNames, executionTime);
         return response;
@@ -1551,10 +1551,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
             InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
-        Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+        Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
             .put(LABEL_INVOCATION_STATUS, status.getName())
             .build();
-        BrokerMetricsManager.consumerGroupCreateExecuteTime.record(executionTime, attributes);
+        this.brokerController.getBrokerMetricsManager().getConsumerGroupCreateExecuteTime().record(executionTime, attributes);
         return response;
     }
 
@@ -1589,10 +1589,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             LOGGER.info("executionTime of create updateAndCreateSubscriptionGroupList: {} is {} ms", groupNames, executionTime);
             InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
                 InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
-            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+            Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                 .put(LABEL_INVOCATION_STATUS, status.getName())
                 .build();
-            BrokerMetricsManager.consumerGroupCreateExecuteTime.record(executionTime, attributes);
+            this.brokerController.getBrokerMetricsManager().getConsumerGroupCreateExecuteTime().record(executionTime, attributes);
         }
 
         return response;

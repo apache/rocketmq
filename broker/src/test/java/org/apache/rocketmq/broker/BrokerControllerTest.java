@@ -74,6 +74,15 @@ public class BrokerControllerTest {
         brokerController.shutdown();
     }
 
+    @Test
+    public void testBrokerMetricsManagerInitialization() throws Exception {
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig);
+        assertThat(brokerController.initialize()).isTrue();
+        // Verify that brokerMetricsManager is properly initialized and not null
+        assertThat(brokerController.getBrokerMetricsManager()).isNotNull();
+        brokerController.shutdown();
+    }
+
     @After
     public void destroy() {
         UtilAll.deleteFile(new File(messageStoreConfig.getStorePathRootDir()));
