@@ -49,6 +49,9 @@ import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.common.metrics.NopLongCounter;
+import org.apache.rocketmq.common.metrics.NopLongHistogram;
+import io.opentelemetry.api.common.Attributes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -135,11 +138,20 @@ public class ScheduleMessageServiceTest {
         Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
         // Initialize BrokerMetricsManager to prevent NPE in tests
         BrokerMetricsManager brokerMetricsManager = Mockito.mock(BrokerMetricsManager.class);
+        // Mock newAttributesBuilder to return a valid AttributesBuilder instead of null
+        Mockito.when(brokerMetricsManager.newAttributesBuilder()).thenReturn(Attributes.builder());
+        // Mock metrics getter methods to return Nop implementations to prevent NPE
+        Mockito.when(brokerMetricsManager.getMessagesInTotal()).thenReturn(new NopLongCounter());
+        Mockito.when(brokerMetricsManager.getMessagesOutTotal()).thenReturn(new NopLongCounter());
+        Mockito.when(brokerMetricsManager.getThroughputInTotal()).thenReturn(new NopLongCounter());
+        Mockito.when(brokerMetricsManager.getThroughputOutTotal()).thenReturn(new NopLongCounter());
+        Mockito.when(brokerMetricsManager.getMessageSize()).thenReturn(new NopLongHistogram());
         Mockito.when(brokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
-        scheduleMessageService = new ScheduleMessageService(brokerController);
+        scheduleMessageService = Mockito.spy(new ScheduleMessageService(brokerController));
+        // Mock ScheduleMessageService before it's used in HookUtils
+        Mockito.when(brokerController.getScheduleMessageService()).thenReturn(scheduleMessageService);
         scheduleMessageService.load();
         scheduleMessageService.start();
-        Mockito.when(brokerController.getScheduleMessageService()).thenReturn(scheduleMessageService);
     }
 
     @Test
