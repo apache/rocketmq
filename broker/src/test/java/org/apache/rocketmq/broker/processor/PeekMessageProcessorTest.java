@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
@@ -86,6 +87,8 @@ public class PeekMessageProcessorTest {
 
     @Before
     public void init() {
+        // Initialize BrokerMetricsManager to prevent NPE in tests
+        brokerController.setBrokerMetricsManager(new BrokerMetricsManager(brokerController));
         peekMessageProcessor = new PeekMessageProcessor(brokerController);
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         topicConfigManager = new TopicConfigManager(brokerController);

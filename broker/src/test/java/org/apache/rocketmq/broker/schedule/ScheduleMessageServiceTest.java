@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.util.HookUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -132,6 +133,9 @@ public class ScheduleMessageServiceTest {
         Mockito.when(brokerController.getBrokerStatsManager()).thenReturn(manager);
         EscapeBridge escapeBridge = new EscapeBridge(brokerController);
         Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
+        // Initialize BrokerMetricsManager to prevent NPE in tests
+        BrokerMetricsManager brokerMetricsManager = Mockito.mock(BrokerMetricsManager.class);
+        Mockito.when(brokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
         scheduleMessageService = new ScheduleMessageService(brokerController);
         scheduleMessageService.load();
         scheduleMessageService.start();

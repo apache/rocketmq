@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.transaction.OperationResult;
 import org.apache.rocketmq.broker.transaction.TransactionMetrics;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
@@ -83,6 +84,8 @@ public class EndTransactionProcessorTest {
         when(transactionMsgService.getTransactionMetrics()).thenReturn(transactionMetrics);
         brokerController.setMessageStore(messageStore);
         brokerController.setTransactionalMessageService(transactionMsgService);
+        // Initialize BrokerMetricsManager to prevent NPE in tests
+        brokerController.setBrokerMetricsManager(new BrokerMetricsManager(brokerController));
         endTransactionProcessor = new EndTransactionProcessor(brokerController);
     }
 
