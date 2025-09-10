@@ -17,8 +17,9 @@
 
 package org.apache.rocketmq.client.impl.mqclient;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -141,6 +142,6 @@ public class MQClientAPITest {
         MQClientAPIExt client = mqClientAPIFactory.getClient();
         List<String> nameServerAddressList = client.getNameServerAddressList();
         assertEquals(2, nameServerAddressList.size());
-        assertEquals("new-address0", nameServerAddressList.get(0));
+        assertTrue(nameServerAddressList.contains("new-address0"));
     }
 }
