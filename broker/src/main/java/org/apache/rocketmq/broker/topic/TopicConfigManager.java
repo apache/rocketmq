@@ -238,12 +238,6 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     public TopicConfig putTopicConfig(TopicConfig topicConfig) {
-        if (!TopicValidator.isSystemTopic(topicConfig.getTopicName())) {
-            if (this.brokerController.getBrokerConfig().isRouteEventServiceEnable()
-                && this.brokerController.getRouteEventService() != null) {
-                this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
-            }
-        }
         return this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
     }
 
@@ -252,10 +246,6 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     protected TopicConfig removeTopicConfig(String topicName) {
-        if (this.brokerController.getBrokerConfig().isRouteEventServiceEnable()
-            && this.brokerController.getRouteEventService() != null) {
-            this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topicName);
-        }
         return this.topicConfigTable.remove(topicName);
     }
 
@@ -331,6 +321,12 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
+
+            if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(
+                    RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            }
         }
 
         return topicConfig;
@@ -370,6 +366,12 @@ public class TopicConfigManager extends ConfigManager {
         }
         if (createNew && register) {
             registerBrokerData(topicConfig);
+
+            if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(
+                    RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            }            
         }
         return getTopicConfig(topicConfig.getTopicName());
     }
@@ -429,6 +431,12 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
+
+            if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(
+                    RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            }
         }
 
         return topicConfig;
@@ -469,6 +477,12 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
+
+            if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(
+                    RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            }
         }
 
         return topicConfig;
@@ -622,6 +636,11 @@ public class TopicConfigManager extends ConfigManager {
             log.info("delete topic config OK, topic: {}", old);
             updateDataVersion();
             this.persist();
+
+            if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topic);
+            }
         } else {
             log.warn("delete topic config failed, topic: {} not exists", topic);
         }

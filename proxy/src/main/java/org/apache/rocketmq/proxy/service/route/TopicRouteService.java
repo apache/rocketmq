@@ -111,12 +111,10 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView reload(@NonNull String key,
                     @NonNull MessageQueueView oldValue) throws Exception {
                     try {
-                        MessageQueueView newValue = load(key);
                         markCompleted(key);
-                        return newValue;
+                        return load(key);
                     } catch (Exception e) {
                         log.warn(String.format("reload topic route from namesrv. topic: %s", key), e);
-                        markRetry(key);
                         return oldValue;
                     }
                 }
@@ -151,21 +149,17 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             }
         }, serviceDetector);
 
-        if (config.isBrokerRouteEventServiceEnable()) {
-            this.routeCacheRefresher = new RouteCacheRefresher(
-                this.topicCache,
-                this.cacheRefreshExecutor
-            );
-            log.info("initialize routeCacheRefresher");
+        this.routeCacheRefresher = new RouteCacheRefresher(
+            this.topicCache,
+            this.cacheRefreshExecutor
+        );
 
-            this.routeEventSubscriber = new RouteEventSubscriber(
-                this,
-                (topic, timeStamp) -> {
-                    this.routeCacheRefresher.markCacheDirty(topic, timeStamp);
-                }
-            );
-            log.info("initialize routeEventSubscriber");
-        }
+        this.routeEventSubscriber = new RouteEventSubscriber(
+            this,
+            (topic, timeStamp) -> {
+                this.routeCacheRefresher.markCacheDirty(topic, timeStamp);
+            }
+        );
 
         this.init();
     }
@@ -206,12 +200,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         }
     }
 
-    private void markRetry(String topic) {
-        if (routeCacheRefresher != null) {
-            routeCacheRefresher.markRetry(topic);
-        }
-    }
-
     // pickup one topic in the topic cache
     private Optional<String> pickTopic() {
         if (topicCache.asMap().isEmpty()) {
@@ -231,7 +219,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             mqFaultStrategy.shutdown();
         }
 
-        if (ConfigurationManager.getProxyConfig().isBrokerRouteEventServiceEnable()) {
+        if (ConfigurationManager.getProxyConfig().isEnableRouteChangeNotification()) {
             this.routeCacheRefresher.shutdown();
             this.routeEventSubscriber.shutdown();
         }
@@ -243,7 +231,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             this.mqFaultStrategy.startDetector();
         }
 
-        if (ConfigurationManager.getProxyConfig().isBrokerRouteEventServiceEnable()) {
+        if (ConfigurationManager.getProxyConfig().isEnableRouteChangeNotification()) {
             this.routeEventSubscriber.start();
             this.routeCacheRefresher.start();
         }

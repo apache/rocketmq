@@ -48,7 +48,7 @@ public class RouteEventServiceTest {
     @Before
     public void setUp() {
         BrokerConfig brokerConfig = new BrokerConfig();
-        brokerConfig.setRouteEventServiceEnable(true);
+        brokerConfig.setEnableRouteChangeNotification(true);
         
         brokerController = new BrokerController(
             brokerConfig,
@@ -67,7 +67,7 @@ public class RouteEventServiceTest {
     public void testPublishEventSuccessfully() {
         when(mockMessageStore.putMessage(any())).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, null));
 
-        routeEventService.publishEvent(RouteEventType.START);
+        routeEventService.publishEvent(RouteEventType.SHUTDOWN);
 
         verify(mockMessageStore).putMessage(any(MessageExtBrokerInner.class));
     }

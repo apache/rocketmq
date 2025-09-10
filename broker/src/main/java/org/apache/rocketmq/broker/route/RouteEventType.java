@@ -18,8 +18,6 @@
 package org.apache.rocketmq.broker.route;
 
 public enum RouteEventType {
-    START,
     SHUTDOWN,
-    SWITCH,
     TOPIC_CHANGE
 }

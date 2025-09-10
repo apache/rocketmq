@@ -25,7 +25,6 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 
 import java.util.concurrent.TimeUnit;
-import com.alibaba.fastjson2.annotation.JSONField;
 
 public class BrokerConfig extends BrokerIdentity {
 
@@ -142,8 +141,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean slaveReadEnable = false;
 
-    @JSONField(serialize = false)
-    private boolean routeEventServiceEnable = true;
+    private boolean enableRouteChangeNotification = true;
 
     private boolean disableConsumeIfConsumerReadSlowly = false;
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
@@ -737,12 +735,12 @@ public class BrokerConfig extends BrokerIdentity {
         this.slaveReadEnable = slaveReadEnable;
     }
 
-    public boolean isRouteEventServiceEnable() {
-        return routeEventServiceEnable;
+    public boolean isEnableRouteChangeNotification() {
+        return enableRouteChangeNotification;
     }
 
-    public void setRouteEventServiceEnable(final boolean routeEventServiceEnable) {
-        this.routeEventServiceEnable = routeEventServiceEnable;
+    public void setEnableRouteChangeNotification(final boolean enableRouteChangeNotification) {
+        this.enableRouteChangeNotification = enableRouteChangeNotification;
     }
 
     public int getRegisterBrokerTimeoutMills() {

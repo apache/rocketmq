@@ -868,11 +868,7 @@ public class BrokerController {
         if (!result) {
             return false;
         }
-
-        if (this.brokerConfig.isRouteEventServiceEnable()) {
-            this.routeEventService = new RouteEventService(this);
-            LOG.info("initialize routeEventService");
-        }
+        this.routeEventService = new RouteEventService(this);
 
         return this.recoverAndInitService();
     }
@@ -1849,10 +1845,6 @@ public class BrokerController {
                 }
             }
         }, 10, 5, TimeUnit.SECONDS);
-
-        if (this.routeEventService != null) {
-            this.routeEventService.publishEvent(RouteEventType.START);
-        }
 
     }
 

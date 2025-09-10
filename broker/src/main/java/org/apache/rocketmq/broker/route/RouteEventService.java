@@ -45,6 +45,9 @@ public class RouteEventService {
     }
 
     public void publishEvent(RouteEventType eventType, String affectedtopic) {
+        if (!brokerController.getBrokerConfig().isEnableRouteChangeNotification()) {
+            return;
+        }
         Map<String, Object> eventData = new HashMap<>();
         PutMessageResult result;
         eventData.put(RouteEventConstants.EVENT_TYPE, eventType.name());

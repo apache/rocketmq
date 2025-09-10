@@ -73,10 +73,6 @@ public class RouteCacheRefresher {
         dirtyTopics.remove(topic);
     }
 
-    public void markRetry(String topic) {
-        pendingTopics.offer(topic);
-    }
-
     private void processDirtyTopics() {
         List<String> batch = new ArrayList<>();
         while (!pendingTopics.isEmpty() && batch.size() < 100) {
@@ -96,23 +92,25 @@ public class RouteCacheRefresher {
         }
 
         for (String topic : batch) {
-            executor.execute(() -> refreshSingleRoute(topic));
+            executor.execute(() -> {
+                refreshSingleRoute(topic);
+                markCompleted(topic);
+            });
         }
     }
 
     private void refreshSingleRoute(String topic) {
         try {
             if (topicCache.getIfPresent(topic) == null) {
-                markCompleted(topic);
                 log.warn("No cache entry found for topic: {}", topic);
                 return;
             }
 
             topicCache.refresh(topic);
+            log.info("[ROUTE_NOTIFICATION]: Refresh topic: {}", topic);
 
         } catch (Exception e) {
             log.error("Refresh failed for: {}", topic, e);
-            markRetry(topic);
         }
     }
 
