@@ -36,6 +36,7 @@ import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -139,5 +140,37 @@ public class BrokerControllerTest {
         NettyRemotingAbstract mockRemotingServer1 = (NettyRemotingAbstract) brokerController.getRemotingServerByName(mockRemotingServerName);
         Assert.assertTrue(mockRemotingServer1.getRPCHook().contains(rpcHook));
         Assert.assertSame(mockRemotingServer, mockRemotingServer1);
+    }
+
+    @Test
+    public void testConfigContextMethods() throws Exception {
+        // Test ConfigContext setter and getter methods
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig);
+        
+        // Initially, ConfigContext should be null
+        assertThat(brokerController.getConfigContext()).isNull();
+        
+        // Create a test ConfigContext
+        ConfigContext configContext = new ConfigContext.Builder()
+            .brokerConfig(brokerConfig)
+            .messageStoreConfig(messageStoreConfig)
+            .nettyServerConfig(nettyServerConfig)
+            .nettyClientConfig(new NettyClientConfig())
+            .authConfig(new AuthConfig())
+            .build();
+        
+        // Set the ConfigContext
+        brokerController.setConfigContext(configContext);
+        
+        // Verify it was set correctly
+        assertThat(brokerController.getConfigContext()).isNotNull();
+        assertThat(brokerController.getConfigContext()).isSameAs(configContext);
+        assertThat(brokerController.getConfigContext().getBrokerConfig()).isSameAs(brokerConfig);
+        assertThat(brokerController.getConfigContext().getMessageStoreConfig()).isSameAs(messageStoreConfig);
+        assertThat(brokerController.getConfigContext().getNettyServerConfig()).isSameAs(nettyServerConfig);
+        
+        // Test setting null ConfigContext
+        brokerController.setConfigContext(null);
+        assertThat(brokerController.getConfigContext()).isNull();
     }
 }

@@ -18,6 +18,7 @@ package org.apache.rocketmq.container;
 
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
@@ -35,9 +36,10 @@ public class InnerBrokerController extends BrokerController {
     public InnerBrokerController(
         final BrokerContainer brokerContainer,
         final BrokerConfig brokerConfig,
-        final MessageStoreConfig messageStoreConfig
+        final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig
     ) {
-        super(brokerConfig, messageStoreConfig);
+        super(brokerConfig, messageStoreConfig, authConfig);
         this.brokerContainer = brokerContainer;
         this.brokerOuterAPI = this.brokerContainer.getBrokerOuterAPI();
     }

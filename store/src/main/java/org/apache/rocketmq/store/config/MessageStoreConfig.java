@@ -464,6 +464,13 @@ public class MessageStoreConfig {
 
     private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
 
+    /**
+     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH
+     * and the storeType was defaultRocksDB. This switch is not recommended for normal use cases (include master-slave
+     * or controller mode).
+     */
+    private boolean enableAcceleratedRecovery = false;
+
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
     }
@@ -2008,7 +2015,16 @@ public class MessageStoreConfig {
         return enableLogConsumeQueueRepeatedlyBuildWhenRecover;
     }
 
-    public void setEnableLogConsumeQueueRepeatedlyBuildWhenRecover(boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover) {
+    public void setEnableLogConsumeQueueRepeatedlyBuildWhenRecover(
+        boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover) {
         this.enableLogConsumeQueueRepeatedlyBuildWhenRecover = enableLogConsumeQueueRepeatedlyBuildWhenRecover;
+    }
+
+    public boolean isEnableAcceleratedRecovery() {
+        return enableAcceleratedRecovery;
+    }
+
+    public void setEnableAcceleratedRecovery(boolean enableAcceleratedRecovery) {
+        this.enableAcceleratedRecovery = enableAcceleratedRecovery;
     }
 }
