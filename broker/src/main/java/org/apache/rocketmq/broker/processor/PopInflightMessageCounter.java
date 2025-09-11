@@ -62,14 +62,14 @@ public class PopInflightMessageCounter {
     }
 
     public void decrementInFlightMessageNum(String topic, String group, long popTime, int qId, int delta) {
-        if (popTime < this.brokerController.getShouldStartTime()) {
+        if (popTime < this.brokerController.getStartupTime()) {
             return;
         }
         decrementInFlightMessageNum(topic, group, qId, delta);
     }
 
     public void decrementInFlightMessageNum(PopCheckPoint checkPoint) {
-        if (checkPoint.getPopTime() < this.brokerController.getShouldStartTime()) {
+        if (checkPoint.getPopTime() < this.brokerController.getStartupTime()) {
             return;
         }
         decrementInFlightMessageNum(checkPoint.getTopic(), checkPoint.getCId(), checkPoint.getQueueId(), 1);
