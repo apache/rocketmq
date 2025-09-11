@@ -182,12 +182,12 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
 
-            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+            Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                 .put(LABEL_CONSUMER_GROUP, requestHeader.getGroup())
                 .put(LABEL_TOPIC, requestHeader.getOriginTopic())
                 .put(LABEL_IS_SYSTEM, BrokerMetricsManager.isSystem(requestHeader.getOriginTopic(), requestHeader.getGroup()))
                 .build();
-            BrokerMetricsManager.sendToDlqMessages.add(1, attributes);
+            this.brokerController.getBrokerMetricsManager().getSendToDlqMessages().add(1, attributes);
 
             isDLQ = true;
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());

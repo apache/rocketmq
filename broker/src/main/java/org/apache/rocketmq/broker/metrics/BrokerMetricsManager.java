@@ -121,46 +121,45 @@ public class BrokerMetricsManager {
     private final MessageStore messageStore;
     private final BrokerController brokerController;
     private final ConsumerLagCalculator consumerLagCalculator;
-    private final static Map<String, String> LABEL_MAP = new HashMap<>();
+    private final Map<String, String> labelMap = new HashMap<>();
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
     private MetricExporter loggingMetricExporter;
     private Meter brokerMeter;
 
-    public static Supplier<AttributesBuilder> attributesBuilderSupplier = Attributes::builder;
+    private Supplier<AttributesBuilder> attributesBuilderSupplier = Attributes::builder;
 
     // broker stats metrics
-    public static ObservableLongGauge processorWatermark = new NopObservableLongGauge();
-    public static ObservableLongGauge brokerPermission = new NopObservableLongGauge();
-    public static ObservableLongGauge topicNum = new NopObservableLongGauge();
-    public static ObservableLongGauge consumerGroupNum = new NopObservableLongGauge();
-
+    private ObservableLongGauge processorWatermark = new NopObservableLongGauge();
+    private ObservableLongGauge brokerPermission = new NopObservableLongGauge();
+    private ObservableLongGauge topicNum = new NopObservableLongGauge();
+    private ObservableLongGauge consumerGroupNum = new NopObservableLongGauge();
 
     // request metrics
-    public static LongCounter messagesInTotal = new NopLongCounter();
-    public static LongCounter messagesOutTotal = new NopLongCounter();
-    public static LongCounter throughputInTotal = new NopLongCounter();
-    public static LongCounter throughputOutTotal = new NopLongCounter();
-    public static LongHistogram messageSize = new NopLongHistogram();
-    public static LongHistogram topicCreateExecuteTime = new NopLongHistogram();
-    public static LongHistogram consumerGroupCreateExecuteTime = new NopLongHistogram();
+    private LongCounter messagesInTotal = new NopLongCounter();
+    private LongCounter messagesOutTotal = new NopLongCounter();
+    private LongCounter throughputInTotal = new NopLongCounter();
+    private LongCounter throughputOutTotal = new NopLongCounter();
+    private LongHistogram messageSize = new NopLongHistogram();
+    private LongHistogram topicCreateExecuteTime = new NopLongHistogram();
+    private LongHistogram consumerGroupCreateExecuteTime = new NopLongHistogram();
 
     // client connection metrics
-    public static ObservableLongGauge producerConnection = new NopObservableLongGauge();
-    public static ObservableLongGauge consumerConnection = new NopObservableLongGauge();
+    private ObservableLongGauge producerConnection = new NopObservableLongGauge();
+    private ObservableLongGauge consumerConnection = new NopObservableLongGauge();
 
     // Lag metrics
-    public static ObservableLongGauge consumerLagMessages = new NopObservableLongGauge();
-    public static ObservableLongGauge consumerLagLatency = new NopObservableLongGauge();
-    public static ObservableLongGauge consumerInflightMessages = new NopObservableLongGauge();
-    public static ObservableLongGauge consumerQueueingLatency = new NopObservableLongGauge();
-    public static ObservableLongGauge consumerReadyMessages = new NopObservableLongGauge();
-    public static LongCounter sendToDlqMessages = new NopLongCounter();
-    public static ObservableLongGauge halfMessages = new NopObservableLongGauge();
-    public static LongCounter commitMessagesTotal = new NopLongCounter();
-    public static LongCounter rollBackMessagesTotal = new NopLongCounter();
-    public static LongHistogram transactionFinishLatency = new NopLongHistogram();
+    private ObservableLongGauge consumerLagMessages = new NopObservableLongGauge();
+    private ObservableLongGauge consumerLagLatency = new NopObservableLongGauge();
+    private ObservableLongGauge consumerInflightMessages = new NopObservableLongGauge();
+    private ObservableLongGauge consumerQueueingLatency = new NopObservableLongGauge();
+    private ObservableLongGauge consumerReadyMessages = new NopObservableLongGauge();
+    private LongCounter sendToDlqMessages = new NopLongCounter();
+    private ObservableLongGauge halfMessages = new NopObservableLongGauge();
+    private LongCounter commitMessagesTotal = new NopLongCounter();
+    private LongCounter rollBackMessagesTotal = new NopLongCounter();
+    private LongHistogram transactionFinishLatency = new NopLongHistogram();
 
     @SuppressWarnings("DoubleBraceInitialization")
     public static final List<String> SYSTEM_GROUP_PREFIX_LIST = new ArrayList<String>() {
@@ -177,13 +176,13 @@ public class BrokerMetricsManager {
         init();
     }
 
-    public static AttributesBuilder newAttributesBuilder() {
+    public AttributesBuilder newAttributesBuilder() {
         AttributesBuilder attributesBuilder;
         if (attributesBuilderSupplier == null) {
             attributesBuilderSupplier = Attributes::builder;
         }
         attributesBuilder = attributesBuilderSupplier.get();
-        LABEL_MAP.forEach(attributesBuilder::put);
+        labelMap.forEach(attributesBuilder::put);
         return attributesBuilder;
     }
 
@@ -242,6 +241,56 @@ public class BrokerMetricsManager {
         return brokerMeter;
     }
 
+    // Getter methods for metrics variables
+    public LongCounter getMessagesInTotal() {
+        return messagesInTotal;
+    }
+
+    public LongCounter getMessagesOutTotal() {
+        return messagesOutTotal;
+    }
+
+    public LongCounter getThroughputInTotal() {
+        return throughputInTotal;
+    }
+
+    public LongCounter getThroughputOutTotal() {
+        return throughputOutTotal;
+    }
+
+    public LongHistogram getMessageSize() {
+        return messageSize;
+    }
+
+    public LongCounter getSendToDlqMessages() {
+        return sendToDlqMessages;
+    }
+
+    public LongCounter getCommitMessagesTotal() {
+        return commitMessagesTotal;
+    }
+
+    public LongCounter getRollBackMessagesTotal() {
+        return rollBackMessagesTotal;
+    }
+
+    public LongHistogram getTransactionFinishLatency() {
+        return transactionFinishLatency;
+    }
+
+    public LongHistogram getTopicCreateExecuteTime() {
+        return topicCreateExecuteTime;
+    }
+
+    public LongHistogram getConsumerGroupCreateExecuteTime() {
+        return consumerGroupCreateExecuteTime;
+    }
+
+    // Setter method for testing purposes
+    public void setAttributesBuilderSupplier(Supplier<AttributesBuilder> attributesBuilderSupplier) {
+        this.attributesBuilderSupplier = attributesBuilderSupplier;
+    }
+
     private boolean checkConfig() {
         if (brokerConfig == null) {
             return false;
@@ -282,15 +331,15 @@ public class BrokerMetricsManager {
                     LOGGER.warn("metricsLabel is not valid: {}", labels);
                     continue;
                 }
-                LABEL_MAP.put(split[0], split[1]);
+                labelMap.put(split[0], split[1]);
             }
         }
         if (brokerConfig.isMetricsInDelta()) {
-            LABEL_MAP.put(LABEL_AGGREGATION, AGGREGATION_DELTA);
+            labelMap.put(LABEL_AGGREGATION, AGGREGATION_DELTA);
         }
-        LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_BROKER);
-        LABEL_MAP.put(LABEL_CLUSTER_NAME, brokerConfig.getBrokerClusterName());
-        LABEL_MAP.put(LABEL_NODE_ID, brokerConfig.getBrokerName());
+        labelMap.put(LABEL_NODE_TYPE, NODE_TYPE_BROKER);
+        labelMap.put(LABEL_CLUSTER_NAME, brokerConfig.getBrokerClusterName());
+        labelMap.put(LABEL_NODE_ID, brokerConfig.getBrokerName());
 
         SdkMeterProviderBuilder providerBuilder = SdkMeterProvider.builder()
             .setResource(Resource.empty());
@@ -699,13 +748,13 @@ public class BrokerMetricsManager {
     }
     private void initOtherMetrics() {
         if (brokerConfig.isEnableRemotingMetrics()) {
-            RemotingMetricsManager.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
+            RemotingMetricsManager.initMetrics(brokerMeter, this::newAttributesBuilder);
         }
         if (brokerConfig.isEnableMessageStoreMetrics()) {
-            messageStore.initMetrics(brokerMeter, BrokerMetricsManager::newAttributesBuilder);
+            messageStore.initMetrics(brokerMeter, this::newAttributesBuilder);
         }
         if (brokerConfig.isEnablePopMetrics()) {
-            PopMetricsManager.initMetrics(brokerMeter, brokerController, BrokerMetricsManager::newAttributesBuilder);
+            PopMetricsManager.initMetrics(brokerMeter, brokerController, this::newAttributesBuilder);
         }
     }
 

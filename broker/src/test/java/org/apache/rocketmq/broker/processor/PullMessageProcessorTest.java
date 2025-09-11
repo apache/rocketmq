@@ -28,6 +28,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -82,6 +83,8 @@ public class PullMessageProcessorTest {
     @Before
     public void init() {
         brokerController.setMessageStore(messageStore);
+        // Initialize BrokerMetricsManager to prevent NPE in tests
+        brokerController.setBrokerMetricsManager(new BrokerMetricsManager(brokerController));
         SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);
         pullMessageProcessor = new PullMessageProcessor(brokerController);
         when(brokerController.getPullMessageProcessor()).thenReturn(pullMessageProcessor);

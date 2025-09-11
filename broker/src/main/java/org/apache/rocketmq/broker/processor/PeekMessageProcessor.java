@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
@@ -255,13 +255,13 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
         }
         if (getMessageTmpResult != null) {
             if (!getMessageTmpResult.getMessageMapedList().isEmpty() && !isRetry) {
-                Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                     .put(LABEL_TOPIC, requestHeader.getTopic())
                     .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
                     .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
                     .build();
-                BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
-                BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
+                this.brokerController.getBrokerMetricsManager().getMessagesOutTotal().add(getMessageResult.getMessageCount(), attributes);
+                this.brokerController.getBrokerMetricsManager().getThroughputOutTotal().add(getMessageResult.getBufferTotalSize(), attributes);
             }
 
             for (SelectMappedBufferResult mappedBuffer : getMessageTmpResult.getMessageMapedList()) {

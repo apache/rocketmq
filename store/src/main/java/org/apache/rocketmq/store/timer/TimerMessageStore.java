@@ -701,9 +701,13 @@ public class TimerMessageStore {
                                 return false;
                             }
                         }
-                        Attributes attributes = DefaultStoreMetricsManager.newAttributesBuilder()
+                        // Record timer message set latency
+                        if (messageStore instanceof DefaultMessageStore) {
+                            DefaultStoreMetricsManager metricsManager = ((DefaultMessageStore) messageStore).getDefaultStoreMetricsManager();
+                            Attributes attributes = metricsManager.newAttributesBuilder()
                                 .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
-                        DefaultStoreMetricsManager.timerMessageSetLatency.record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
+                            metricsManager.getTimerMessageSetLatency().record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
+                        }
                     }
                 } catch (Exception e) {
                     // here may cause the message loss
@@ -1366,7 +1370,9 @@ public class TimerMessageStore {
         protected void putMessageToTimerWheel(TimerRequest req) {
             try {
                 perfCounterTicks.startTick(ENQUEUE_PUT);
-                DefaultStoreMetricsManager.incTimerEnqueueCount(getRealTopic(req.getMsg()));
+                if (messageStore instanceof DefaultMessageStore) {
+                    ((DefaultMessageStore) messageStore).getDefaultStoreMetricsManager().incTimerEnqueueCount(getRealTopic(req.getMsg()));
+                }
                 if (shouldRunningDequeue && req.getDelayTime() < currWriteTimeMs) {
                     req.setEnqueueTime(Long.MAX_VALUE);
                     dequeuePutQueue.put(req);
@@ -1502,7 +1508,9 @@ public class TimerMessageStore {
                                 perfCounterTicks.startTick(DEQUEUE_PUT);
 
                                 MessageExt msgExt = tr.getMsg();
-                                DefaultStoreMetricsManager.incTimerDequeueCount(getRealTopic(msgExt));
+                                if (messageStore instanceof DefaultMessageStore) {
+                                    ((DefaultMessageStore) messageStore).getDefaultStoreMetricsManager().incTimerDequeueCount(getRealTopic(msgExt));
+                                }
 
                                 if (tr.getEnqueueTime() == Long.MAX_VALUE) {
                                     // Never enqueue, mark it.
