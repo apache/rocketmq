@@ -16,10 +16,12 @@
  */
 package org.apache.rocketmq.broker.loadbalance;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
 
@@ -42,13 +44,32 @@ public class MessageRequestModeManager extends ConfigManager {
         ConcurrentHashMap<String, SetMessageRequestModeRequestBody> consumerGroup2ModeMap = messageRequestModeMap.get(topic);
         if (consumerGroup2ModeMap == null) {
             consumerGroup2ModeMap = new ConcurrentHashMap<>();
-            ConcurrentHashMap<String, SetMessageRequestModeRequestBody> pre =
-                messageRequestModeMap.putIfAbsent(topic, consumerGroup2ModeMap);
-            if (pre != null) {
-                consumerGroup2ModeMap = pre;
+            ConcurrentHashMap<String, SetMessageRequestModeRequestBody>[] pre = new ConcurrentHashMap[1];
+            ConcurrentHashMap<String, SetMessageRequestModeRequestBody> finalConsumerGroup2ModeMap = consumerGroup2ModeMap;
+            messageRequestModeMap.compute(topic, (key, existingValue) -> {
+                if (existingValue == null) {
+                    notifyMessageRequestModeCreated(requestBody);
+                    pre[0] = null;
+                    return finalConsumerGroup2ModeMap;
+                } else {
+                    notifyMessageRequestModeUpdated(requestBody);
+                    pre[0] = existingValue;
+                    return existingValue;
+                }
+            });
+            if (pre[0] != null) {
+                consumerGroup2ModeMap = pre[0];
             }
         }
         consumerGroup2ModeMap.put(consumerGroup, requestBody);
+    }
+
+    private void notifyMessageRequestModeCreated(SetMessageRequestModeRequestBody requestBody) {
+        brokerController.getMetadataChangeObserver().onCreated(TopicValidator.RMQ_SYS_MESSAGE_MODE_SYNC, requestBody.getTopic(), requestBody);
+    }
+
+    private void notifyMessageRequestModeUpdated(SetMessageRequestModeRequestBody requestBody) {
+        brokerController.getMetadataChangeObserver().onUpdated(TopicValidator.RMQ_SYS_MESSAGE_MODE_SYNC, requestBody.getTopic(), requestBody);
     }
 
     public SetMessageRequestModeRequestBody getMessageRequestMode(String topic, String consumerGroup) {
@@ -91,5 +112,32 @@ public class MessageRequestModeManager extends ConfigManager {
     @Override
     public String encode(boolean prettyFormat) {
         return RemotingSerializable.toJson(this, prettyFormat);
+    }
+
+    public ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> deepCopyMessageRequestModeMapSnapshot() {
+        ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> newOuterMap = new ConcurrentHashMap<>(this.messageRequestModeMap.size());
+        for (Map.Entry<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> topicEntry : this.messageRequestModeMap.entrySet()) {
+            String topic = topicEntry.getKey();
+            ConcurrentHashMap<String, SetMessageRequestModeRequestBody> originalInnerMap = topicEntry.getValue();
+
+            if (originalInnerMap != null) {
+                ConcurrentHashMap<String, SetMessageRequestModeRequestBody> newInnerMap = new ConcurrentHashMap<>(originalInnerMap.size());
+                for (Map.Entry<String, SetMessageRequestModeRequestBody> groupEntry : originalInnerMap.entrySet()) {
+                    String consumerGroup = groupEntry.getKey();
+                    SetMessageRequestModeRequestBody originalBody = groupEntry.getValue();
+
+                    if (originalBody != null) {
+                        try {
+                            SetMessageRequestModeRequestBody clonedBody = originalBody.clone();
+                            newInnerMap.put(consumerGroup, clonedBody);
+                        } catch (CloneNotSupportedException e) {
+                            newInnerMap.put(consumerGroup, originalBody);
+                        }
+                    }
+                }
+                newOuterMap.put(topic, newInnerMap);
+            }
+        }
+        return newOuterMap;
     }
 }

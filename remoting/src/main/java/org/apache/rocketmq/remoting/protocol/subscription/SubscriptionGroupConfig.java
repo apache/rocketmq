@@ -19,12 +19,13 @@ package org.apache.rocketmq.remoting.protocol.subscription;
 
 import com.google.common.base.MoreObjects;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.rocketmq.common.MixAll;
 
-public class SubscriptionGroupConfig {
+public class SubscriptionGroupConfig implements Cloneable {
 
     private String groupName;
 
@@ -219,6 +220,18 @@ public class SubscriptionGroupConfig {
             .append(subscriptionDataSet, other.subscriptionDataSet)
             .append(attributes, other.attributes)
             .isEquals();
+    }
+
+    @Override
+    public SubscriptionGroupConfig clone() throws CloneNotSupportedException {
+        SubscriptionGroupConfig clone = (SubscriptionGroupConfig) super.clone();
+        if (subscriptionDataSet != null) {
+            clone.setSubscriptionDataSet(new HashSet<>(subscriptionDataSet));
+        }
+        if (attributes != null) {
+            clone.setAttributes(new HashMap<>(attributes));
+        }
+        return clone;
     }
 
     @Override

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.offset;
 
 import com.google.common.collect.Maps;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Strings;
@@ -36,6 +38,7 @@ import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
@@ -54,7 +57,19 @@ public class ConsumerOffsetManager extends ConfigManager {
         new ConcurrentHashMap<>(512);
 
     private final ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> pullOffsetTable =
-        new ConcurrentHashMap<>(512);
+            new ConcurrentHashMap<>(512);
+
+    private volatile ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> workingBuffer =
+            new ConcurrentHashMap<>(512);
+
+    private volatile ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> syncBuffer =
+            new ConcurrentHashMap<>(512);
+
+    private final Object bufferSwapLock = new Object();
+
+    private transient ScheduledExecutorService scheduledExecutorService;
+
+    private final transient AtomicLong lastSyncTimestamp = new AtomicLong(System.currentTimeMillis());
 
     protected transient BrokerController brokerController;
 
@@ -69,6 +84,36 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     protected void removeConsumerOffset(String topicAtGroup) {
 
+    }
+    private void triggerBufferSwapAndSync() {
+        synchronized (bufferSwapLock) {
+            ConcurrentMap<String, ConcurrentMap<Integer, Long>> oldSyncBuffer = this.syncBuffer;
+            this.syncBuffer = this.workingBuffer;
+            this.workingBuffer = new ConcurrentHashMap<>(512);
+            if (oldSyncBuffer != null && !oldSyncBuffer.isEmpty()) {
+                oldSyncBuffer.forEach((key, map) ->
+                        this.syncBuffer.computeIfAbsent(key, k -> new ConcurrentHashMap<>()).putAll(map));
+            }
+        }
+        if (!this.syncBuffer.isEmpty()) {
+            try {
+                this.brokerController.getMetadataChangeObserver().onUpdated(TopicValidator.RMQ_SYS_CONSUMER_OFFSET_SYNC, String.valueOf(dataVersion), this.syncBuffer);
+            } catch (Exception e) {
+                LOG.error("Failed to sync consumer offsets.", e);
+            } finally {
+                this.lastSyncTimestamp.set(System.currentTimeMillis());
+                this.syncBuffer.clear();
+            }
+        }
+    }
+
+    public void checkAndSync() {
+        boolean timeCondition = (System.currentTimeMillis() - lastSyncTimestamp.get()) > 1000;
+        boolean bufferHasData = !workingBuffer.isEmpty();
+        if (timeCondition && bufferHasData) {
+            LOG.debug("Consumer offset sync triggered by time interval.");
+            this.triggerBufferSwapAndSync();
+        }
     }
 
     public void cleanOffset(String group) {
@@ -214,9 +259,12 @@ public class ConsumerOffsetManager extends ConfigManager {
                 LOG.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
             }
         }
+        ConcurrentMap<Integer, Long> workingMap = this.workingBuffer.computeIfAbsent(key, k -> new ConcurrentHashMap<>(32));
+        workingMap.put(queueId, offset);
         if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
             dataVersion.nextVersion(stateMachineVersion);
+            this.triggerBufferSwapAndSync();
         }
     }
 
@@ -368,7 +416,10 @@ public class ConsumerOffsetManager extends ConfigManager {
     public void cloneOffset(final String srcGroup, final String destGroup, final String topic) {
         ConcurrentMap<Integer, Long> offsets = this.offsetTable.get(topic + TOPIC_GROUP_SEPARATOR + srcGroup);
         if (offsets != null) {
-            this.offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, new ConcurrentHashMap<>(offsets));
+            ConcurrentMap<Integer, Long> newOffsets = new ConcurrentHashMap<>(offsets);
+            this.offsetTable.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, newOffsets);
+            this.workingBuffer.put(topic + TOPIC_GROUP_SEPARATOR + destGroup, new ConcurrentHashMap<>(newOffsets));
+            this.triggerBufferSwapAndSync();
         }
     }
 
@@ -416,13 +467,15 @@ public class ConsumerOffsetManager extends ConfigManager {
             }
             return removed;
         };
-
         boolean clearOffset = deleteFunction.apply(this.offsetTable.entrySet().iterator());
+        boolean clearWorking = deleteFunction.apply(this.workingBuffer.entrySet().iterator());
+        boolean clearSync = deleteFunction.apply(this.syncBuffer.entrySet().iterator());
         boolean clearReset = deleteFunction.apply(this.resetOffsetTable.entrySet().iterator());
         boolean clearPull = deleteFunction.apply(this.pullOffsetTable.entrySet().iterator());
 
         LOG.info("Consumer offset manager clean group offset, groupName={}, " +
-            "offsetTable={}, resetOffsetTable={}, pullOffsetTable={}", group, clearOffset, clearReset, clearPull);
+                        "offsetTable={}, workingBuffer={}, syncBuffer={}, resetOffsetTable={}, pullOffsetTable={}",
+                group, clearOffset, clearWorking, clearSync, clearReset, clearPull);
     }
 
     public void assignResetOffset(String topic, String group, int queueId, long offset) {
@@ -441,6 +494,8 @@ public class ConsumerOffsetManager extends ConfigManager {
         // 2, Our overriding here may get overridden by the client instantly in concurrent cases; But it still makes
         // sense in cases like clients are offline.
         offsetTable.computeIfAbsent(key, k -> Maps.newConcurrentMap()).put(queueId, offset);
+        workingBuffer.computeIfAbsent(key, k -> new ConcurrentHashMap<>()).put(queueId, offset);
+        this.triggerBufferSwapAndSync();
     }
 
     public boolean hasOffsetReset(String topic, String group, int queueId) {
@@ -460,5 +515,20 @@ public class ConsumerOffsetManager extends ConfigManager {
         } else {
             return map.remove(queueId);
         }
+    }
+
+    public ConcurrentMap<String, ConcurrentMap<Integer, Long>> deepCopyOffsetTableSnapshot() {
+        ConcurrentMap<String, ConcurrentMap<Integer, Long>> newTable = new ConcurrentHashMap<>(this.offsetTable.size());
+        for (Map.Entry<String, ConcurrentMap<Integer, Long>> entry : this.offsetTable.entrySet()) {
+            String topicAtGroup = entry.getKey();
+            ConcurrentMap<Integer, Long> originalInnerMap = entry.getValue();
+
+            if (originalInnerMap != null) {
+                ConcurrentMap<Integer, Long> newInnerMap = new ConcurrentHashMap<>(originalInnerMap.size());
+                newInnerMap.putAll(originalInnerMap);
+                newTable.put(topicAtGroup, newInnerMap);
+            }
+        }
+        return newTable;
     }
 }

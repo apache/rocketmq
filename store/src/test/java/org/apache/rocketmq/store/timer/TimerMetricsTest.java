@@ -19,20 +19,25 @@ package org.apache.rocketmq.store.timer;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.sync.MetadataChangeObserver;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
-
+@ExtendWith(MockitoExtension.class)
 public class TimerMetricsTest {
 
+    private final MetadataChangeObserver syncMetadataChangeObserver = new NoopMetadataChangeObserver();
 
     @Test
     public void testTimingCount() {
         String baseDir = StoreTestUtils.createBaseDir();
 
-        TimerMetrics first = new TimerMetrics(baseDir);
+        TimerMetrics first = new TimerMetrics(baseDir,syncMetadataChangeObserver);
         Assert.assertTrue(first.load());
         MessageExt msg = new MessageExt();
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, "AAA");
@@ -46,7 +51,7 @@ public class TimerMetricsTest {
         Assert.assertTrue(first.getTopicPair("AAA").getTimeStamp() <= curr);
         first.persist();
 
-        TimerMetrics second = new TimerMetrics(baseDir);
+        TimerMetrics second = new TimerMetrics(baseDir,syncMetadataChangeObserver);
         Assert.assertTrue(second.load());
         Assert.assertEquals(1000, second.getTimingCount("AAA"));
         Assert.assertEquals(2000, second.getTimingCount("BBB"));
