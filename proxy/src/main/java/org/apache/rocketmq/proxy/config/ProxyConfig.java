@@ -272,6 +272,8 @@ public class ProxyConfig implements ConfigFile {
 
     private boolean enableBatchAck = false;
 
+    private boolean enableControlCharacterCheck = true;
+
     @Override
     public void initData() {
         parseDelayLevel();
@@ -1536,5 +1538,13 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableMessageBodyEmptyCheck(boolean enableMessageBodyEmptyCheck) {
         this.enableMessageBodyEmptyCheck = enableMessageBodyEmptyCheck;
+    }
+
+    public boolean isEnableControlCharacterCheck() {
+        return enableControlCharacterCheck;
+    }
+
+    public void setEnableControlCharacterCheck(boolean enableControlCharacterCheck) {
+        this.enableControlCharacterCheck = enableControlCharacterCheck;
     }
 }
