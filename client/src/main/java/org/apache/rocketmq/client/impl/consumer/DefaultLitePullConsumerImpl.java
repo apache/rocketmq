@@ -63,6 +63,8 @@ import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
@@ -73,8 +75,6 @@ import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
@@ -329,8 +329,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private void initScheduledThreadPoolExecutor() {
         this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(
-                this.defaultLitePullConsumer.getPullThreadNums(),
-                new ThreadFactoryImpl("PullMsgThread-" + this.defaultLitePullConsumer.getConsumerGroup())
+            this.defaultLitePullConsumer.getPullThreadNums(),
+            new ThreadFactoryImpl("PullMsgThread-" + this.defaultLitePullConsumer.getConsumerGroup())
         );
     }
 
@@ -912,8 +912,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
                     if ((consumeRequestFlowControlTimes++ % 1000) == 0) {
                         log.warn("The consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}",
-                                (int)Math.ceil((double)defaultLitePullConsumer.getPullThresholdForAll() / defaultLitePullConsumer.getPullBatchSize()),
-                                consumeRequestCache.size(), consumeRequestFlowControlTimes);
+                            (int) Math.ceil((double) defaultLitePullConsumer.getPullThresholdForAll() / defaultLitePullConsumer.getPullBatchSize()),
+                            consumeRequestCache.size(), consumeRequestFlowControlTimes);
                     }
                     return;
                 }
@@ -1122,7 +1122,15 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         Set<SubscriptionData> subSet = new HashSet<>();
 
         subSet.addAll(this.rebalanceImpl.getSubscriptionInner().values());
-
+        if (!topicToSubExpression.isEmpty()) {
+            for (Map.Entry<String, String> entry : topicToSubExpression.entrySet()) {
+                try {
+                    subSet.add(FilterAPI.buildSubscriptionData(entry.getKey(), entry.getValue()));
+                } catch (Exception e) {
+                    log.warn("BuildSubscriptionData error, topic=[{}], subString=[{}] ", entry.getKey(), entry.getValue(), e);
+                }
+            }
+        }
         return subSet;
     }
 
