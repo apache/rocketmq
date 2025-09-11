@@ -29,9 +29,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.KeyBuilder;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.CommandCallback;
@@ -167,15 +169,25 @@ public class PopLongPollingService extends ServiceThread {
 
     public void notifyMessageArrivingWithRetryTopic(final String topic, final int queueId, long offset,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
-        String notifyTopic;
-        if (KeyBuilder.isPopRetryTopicV2(topic)) {
-            notifyTopic = KeyBuilder.parseNormalTopic(topic);
+        String prefix = MixAll.RETRY_GROUP_TOPIC_PREFIX;
+        if (topic.startsWith(prefix)) {
+            String originTopic = properties.get(MessageConst.PROPERTY_ORIGIN_TOPIC);
+            String suffix = "_" + originTopic;
+            String cid = topic.substring(prefix.length(), topic.length() - suffix.length());
+            POP_LOGGER.info("Processing retry topic: {}, originTopic: {}, properties: {}",
+                    topic, originTopic, properties);
+            POP_LOGGER.info("Extracted cid: {} from retry topic: {}", cid, topic);
+            long interval = brokerController.getBrokerConfig().getPopLongPollingForceNotifyInterval();
+            boolean force = interval > 0L && offset % interval == 0L;
+            if (queueId >= 0) {
+                notifyMessageArriving(originTopic, -1, cid, force, tagsCode, msgStoreTime, filterBitMap, properties);
+            }
+            notifyMessageArriving(originTopic, queueId, cid, force, tagsCode, msgStoreTime, filterBitMap, properties);
         } else {
-            notifyTopic = topic;
+            notifyMessageArriving(topic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
         }
-        notifyMessageArriving(notifyTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
     }
-
+    
     public void notifyMessageArriving(final String topic, final int queueId, long offset,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         ConcurrentHashMap<String, Byte> cids = topicCidMap.getIfPresent(topic);
