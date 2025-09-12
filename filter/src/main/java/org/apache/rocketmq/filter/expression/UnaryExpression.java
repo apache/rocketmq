@@ -206,7 +206,7 @@ public abstract class UnaryExpression implements Expression {
         } else if (clazz == Double.class) {
             return new Double(-left.doubleValue());
         } else if (clazz == BigDecimal.class) {
-            // We ussually get a big deciamal when we have Long.MIN_VALUE
+            // We usually get a big decimal when we have Long.MIN_VALUE
             // constant in the
             // Selector. Long.MIN_VALUE is too big to store in a Long as a
             // positive so we store it
