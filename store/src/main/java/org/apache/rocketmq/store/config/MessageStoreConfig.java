@@ -238,6 +238,13 @@ public class MessageStoreConfig {
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 
+    /**
+     * When true, use RandomAccessFile for writing instead of MappedByteBuffer.
+     * This can be useful for certain scenarios where mmap is not desired.
+     */
+    @ImportantField
+    private boolean writeWithoutMmap = false;
+
     // DLedger message store config
     private boolean enableDLegerCommitLog = false;
     private String dLegerGroup;
@@ -1138,6 +1145,14 @@ public class MessageStoreConfig {
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
         this.transientStorePoolEnable = transientStorePoolEnable;
+    }
+
+    public boolean isWriteWithoutMmap() {
+        return writeWithoutMmap;
+    }
+
+    public void setWriteWithoutMmap(final boolean writeWithoutMmap) {
+        this.writeWithoutMmap = writeWithoutMmap;
     }
 
     public int getTransientStorePoolSize() {

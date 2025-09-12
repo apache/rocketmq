@@ -53,12 +53,25 @@ public class MappedFileQueue implements Swappable {
     protected long committedWhere = 0;
 
     protected volatile long storeTimestamp = 0;
+    
+    /**
+     * Configuration flag to use RandomAccessFile instead of MappedByteBuffer for writing
+     */
+    protected boolean writeWithoutMmap = false;
 
     public MappedFileQueue(final String storePath, int mappedFileSize,
         AllocateMappedFileService allocateMappedFileService) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.allocateMappedFileService = allocateMappedFileService;
+    }
+
+    public MappedFileQueue(final String storePath, int mappedFileSize,
+        AllocateMappedFileService allocateMappedFileService, boolean writeWithoutMmap) {
+        this.storePath = storePath;
+        this.mappedFileSize = mappedFileSize;
+        this.allocateMappedFileService = allocateMappedFileService;
+        this.writeWithoutMmap = writeWithoutMmap;
     }
 
     public void checkSelf() {
@@ -266,7 +279,7 @@ public class MappedFileQueue implements Swappable {
             }
 
             try {
-                MappedFile mappedFile = new DefaultMappedFile(file.getPath(), mappedFileSize);
+                MappedFile mappedFile = new DefaultMappedFile(file.getPath(), mappedFileSize, writeWithoutMmap);
 
                 mappedFile.setWrotePosition(this.mappedFileSize);
                 mappedFile.setFlushedPosition(this.mappedFileSize);
@@ -356,7 +369,7 @@ public class MappedFileQueue implements Swappable {
                     nextNextFilePath, this.mappedFileSize);
         } else {
             try {
-                mappedFile = new DefaultMappedFile(nextFilePath, this.mappedFileSize);
+                mappedFile = new DefaultMappedFile(nextFilePath, this.mappedFileSize, this.writeWithoutMmap);
             } catch (IOException e) {
                 log.error("create mappedFile exception", e);
             }
