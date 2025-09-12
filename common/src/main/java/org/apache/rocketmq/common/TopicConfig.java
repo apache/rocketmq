@@ -22,6 +22,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.rocketmq.common.attribute.AttributeParser;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
 
@@ -203,7 +204,9 @@ public class TopicConfig {
         if (attributes == null) {
             return TopicMessageType.NORMAL;
         }
-        String content = attributes.get(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName());
+        String content = attributes.get(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName()) == null
+            ? attributes.get(AttributeParser.ATTR_ADD_PLUS_SIGN + TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName())
+            : attributes.get(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName());
         if (content == null) {
             return TopicMessageType.NORMAL;
         }
@@ -212,7 +215,7 @@ public class TopicConfig {
 
     @JSONField(serialize = false, deserialize = false)
     public void setTopicMessageType(TopicMessageType topicMessageType) {
-        attributes.put(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), topicMessageType.getValue());
+        attributes.put(AttributeParser.ATTR_ADD_PLUS_SIGN + TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), topicMessageType.getValue());
     }
 
     @Override
