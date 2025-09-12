@@ -328,12 +328,14 @@ public class CommitLog implements Swappable {
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
             int index = mappedFiles.size() - 1;
-            while (index > 0) {
+            int maxCount = 10;
+            while (index > 0 || maxCount > 0) {
                 MappedFile mappedFile = mappedFiles.get(index);
                 if (isMappedFileMatchedRecover(mappedFile, true)) {
                     // It's safe to recover from this mapped file
                     break;
                 }
+                maxCount--;
                 index--;
             }
             // TODO: Discuss if we need to load more commit-log mapped files into memory.
@@ -711,10 +713,12 @@ public class CommitLog implements Swappable {
         if (!mappedFiles.isEmpty()) {
             // Looking beginning to recover from which file
             int index = mappedFiles.size() - 1;
+            int maxCount = 10;
             MappedFile mappedFile = null;
             for (; index >= 0; index--) {
                 mappedFile = mappedFiles.get(index);
-                if (this.isMappedFileMatchedRecover(mappedFile, false)) {
+                maxCount--;
+                if (this.isMappedFileMatchedRecover(mappedFile, false) || maxCount <= 0) {
                     log.info("recover from this mapped file " + mappedFile.getFileName());
                     break;
                 }

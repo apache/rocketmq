@@ -504,7 +504,7 @@ public class TimerMessageRocksDBStore {
             8,
             60,
             TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(20000),
+            new LinkedBlockingQueue<>(10000),
             new ThreadPoolExecutor.CallerRunsPolicy()
         );
         public TimerMessageReputService(BlockingQueue<List<TimerRocksDBRecord>> queue, double maxTps, boolean writeCheckPoint) {
