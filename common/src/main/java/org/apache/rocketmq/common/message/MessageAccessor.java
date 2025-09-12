@@ -26,6 +26,12 @@ public class MessageAccessor {
         msg.clearProperty(name);
     }
 
+    public static String removeProperty(final Message msg, final String name) {
+        String propertyValue = msg.getUserProperty(name);
+        msg.clearProperty(name);
+        return propertyValue;
+    }
+
     public static void setProperties(final Message msg, Map<String, String> properties) {
         msg.setProperties(properties);
     }

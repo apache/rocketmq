@@ -19,6 +19,7 @@ package org.apache.rocketmq.client;
 
 import java.io.File;
 import java.util.Properties;
+import java.util.function.Consumer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -63,7 +64,7 @@ public class Validators {
         }
     }
 
-    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer) throws MQClientException {
+    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer, Consumer<Message> msgConsumer) throws MQClientException {
         if (null == msg) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
@@ -79,6 +80,9 @@ public class Validators {
         if (0 == msg.getBody().length) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body length is zero");
         }
+
+        // compress
+        msgConsumer.accept(msg);
 
         if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
@@ -138,4 +142,5 @@ public class Validators {
                 String.format("brokerPermission value: %s is invalid.", brokerConfig.getProperty("brokerPermission")));
         }
     }
+
 }

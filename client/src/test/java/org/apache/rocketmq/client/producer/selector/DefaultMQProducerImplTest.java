@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,6 +61,7 @@ import java.util.concurrent.ExecutorService;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -77,6 +79,9 @@ public class DefaultMQProducerImplTest {
 
     @Mock
     private Message message;
+
+    @Mock
+    private Message messageOverMaxMessageSize;
 
     @Mock
     private MessageQueue messageQueue;
@@ -118,6 +123,11 @@ public class DefaultMQProducerImplTest {
         when(message.getTopic()).thenReturn(defaultTopic);
         when(message.getProperty(MessageConst.PROPERTY_CORRELATION_ID)).thenReturn("correlation-id");
         when(message.getBody()).thenReturn(new byte[1]);
+
+        messageOverMaxMessageSize = new Message();
+        messageOverMaxMessageSize.setTopic(defaultTopic);
+        messageOverMaxMessageSize.setBody(new byte[5 * 1024 * 1024]);
+
         TransactionMQProducer producer = new TransactionMQProducer("test-producer-group");
         producer.setTransactionListener(mock(TransactionListener.class));
         producer.setTopics(Collections.singletonList(defaultTopic));
@@ -173,6 +183,12 @@ public class DefaultMQProducerImplTest {
     @Test(expected = MQClientException.class)
     public void testSend() throws RemotingException, InterruptedException, MQClientException, MQBrokerException {
         assertNull(defaultMQProducerImpl.send(message));
+    }
+
+    @Test
+    public void testSendMessageOverMaxMessageSize() {
+        MQClientException clientException = assertThrows(MQClientException.class, () -> defaultMQProducerImpl.send(messageOverMaxMessageSize));
+        assertNotEquals(ResponseCode.MESSAGE_ILLEGAL, clientException.getResponseCode());
     }
 
     @Test
