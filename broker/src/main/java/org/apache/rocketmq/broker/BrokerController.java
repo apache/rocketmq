@@ -500,6 +500,10 @@ public class BrokerController {
         return brokerMetricsManager;
     }
 
+    public void setBrokerMetricsManager(BrokerMetricsManager brokerMetricsManager) {
+        this.brokerMetricsManager = brokerMetricsManager;
+    }
+
     protected void initializeRemotingServer() throws CloneNotSupportedException {
         RemotingServer tcpRemotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
         NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
