@@ -26,9 +26,9 @@ import org.apache.rocketmq.controller.impl.heartbeat.RaftBrokerHeartBeatManager;
 import java.util.Map;
 
 public interface BrokerHeartbeatManager {
-    public static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 10;
+    long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 10;
 
-    public static BrokerHeartbeatManager newBrokerHeartbeatManager(ControllerConfig controllerConfig) {
+    static BrokerHeartbeatManager newBrokerHeartbeatManager(ControllerConfig controllerConfig) {
         if (controllerConfig.getControllerType().equals(ControllerConfig.JRAFT_CONTROLLER)) {
             return new RaftBrokerHeartBeatManager(controllerConfig);
         } else {
@@ -37,9 +37,7 @@ public interface BrokerHeartbeatManager {
     }
 
     /**
-     * initialize the resources
-     *
-     * @return
+     * Initialize the resources
      */
     void initialize();
 
@@ -72,6 +70,8 @@ public interface BrokerHeartbeatManager {
 
     /**
      * Get broker live information by clusterName and brokerAddr
+     *
+     * @return broker live information or null if not found
      */
     BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerName, Long brokerId);
 
