@@ -34,6 +34,7 @@ public class DeleteTopicRequestHeader extends TopicRequestHeader {
     @CFNotNull
     @RocketMQResource(ResourceType.TOPIC)
     private String topic;
+    private Boolean syncDelete = true;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -45,5 +46,13 @@ public class DeleteTopicRequestHeader extends TopicRequestHeader {
 
     public void setTopic(String topic) {
         this.topic = topic;
+    }
+
+    public Boolean getSyncDelete() {
+        return syncDelete;
+    }
+
+    public void setSyncDelete(Boolean syncDelete) {
+        this.syncDelete = syncDelete;
     }
 }

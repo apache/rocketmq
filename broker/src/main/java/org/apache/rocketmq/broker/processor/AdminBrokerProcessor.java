@@ -242,7 +242,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     protected final BrokerController brokerController;
     protected Set<String> configBlackList = new HashSet<>();
-    private final ExecutorService asyncExecuteWorker = new ThreadPoolExecutor(0, 4, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
+    private final ExecutorService asyncExecuteWorker = new ThreadPoolExecutor(0, 10, 60L, TimeUnit.SECONDS,
+        new SynchronousQueue<>());
+
 
     public AdminBrokerProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -778,6 +780,25 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
 
+        final Boolean syncDelete = requestHeader.getSyncDelete();
+        if (Boolean.TRUE.equals(syncDelete)) {
+            return doDeleteTopic(topic, true);
+        } else {
+            asyncExecuteWorker.execute(() -> {
+                try {
+                    doDeleteTopic(topic, syncDelete);
+                } catch (Exception e) {
+                    LOGGER.error(String.format("delete topic %s failed for ", topic), e);
+                }
+            });
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
+        }
+    }
+
+    private RemotingCommand  doDeleteTopic(String topic,boolean isSyncDelete) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         List<String> topicsToClean = new ArrayList<>();
         topicsToClean.add(topic);
 
@@ -798,7 +819,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         try {
             for (String topicToClean : topicsToClean) {
                 // delete topic
-                deleteTopicInBroker(topicToClean);
+                deleteTopicInBroker(topicToClean,isSyncDelete);
+            }
+            if (!isSyncDelete) {
+                batchSyncMetaData();
             }
         } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
@@ -808,13 +832,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private void deleteTopicInBroker(String topic) {
-        this.brokerController.getTopicConfigManager().deleteTopicConfig(topic);
-        this.brokerController.getTopicQueueMappingManager().delete(topic);
+    private void deleteTopicInBroker(String topic, boolean isSyncDelete) {
+        this.brokerController.getTopicConfigManager().deleteTopicConfig(topic, isSyncDelete);
+        this.brokerController.getTopicQueueMappingManager().delete(topic, isSyncDelete);
         this.brokerController.getConsumerOffsetManager().cleanOffsetByTopic(topic);
         this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNumByTopicName(topic);
         this.brokerController.getMessageStore().deleteTopics(Sets.newHashSet(topic));
         this.brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().removeTimingCount(topic);
+    }
+
+    private void batchSyncMetaData() {
+        this.brokerController.getTopicConfigManager().persist();
+        this.brokerController.getTopicQueueMappingManager().persist();
+        this.brokerController.getConsumerOffsetManager().persist();
     }
 
     private RemotingCommand getUnknownCmdResponse(ChannelHandlerContext ctx, RemotingCommand request) {

@@ -1374,7 +1374,7 @@ public class DefaultMessageStore implements MessageStore {
      * dispatched to consume queue.
      */
     @Override
-    public int deleteTopics(final Set<String> deleteTopics) {
+    public synchronized int deleteTopics(final Set<String> deleteTopics) {
         if (deleteTopics == null || deleteTopics.isEmpty()) {
             return 0;
         }
