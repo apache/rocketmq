@@ -63,7 +63,7 @@ Field useTLS : private boolean false
 Field vipChannelEnabled : private boolean false
 Method assign(java.util.Collection) : public throws (void)
 Method buildMQClientId() : public throws (java.lang.String)
-Method changeInstanceNameToPID() : public throws (void)
+Method changeInstanceNameToIpWithPidAndGroupInfo(java.lang.String) : public throws (void)
 Method cloneClientConfig() : public throws (org.apache.rocketmq.client.ClientConfig)
 Method commit(boolean,java.util.Set) : public throws (void)
 Method commitSync() : public throws (void)
