@@ -593,6 +593,20 @@ public class AutoSwitchHAConnection implements HAConnection {
                     return;
                 }
 
+                // Check and update currentTransferEpochEndOffset
+                if (AutoSwitchHAConnection.this.currentTransferEpochEndOffset == -1) {
+                    EpochEntry currentEpochEntry = AutoSwitchHAConnection.this.epochCache.getEntry(AutoSwitchHAConnection.this.currentTransferEpoch);
+                    if (currentEpochEntry != null) {
+                        if (currentEpochEntry.getEndOffset() != EpochEntry.LAST_EPOCH_END_OFFSET) {
+                            LOGGER.info("Update currentTransferEpochEndOffset from -1 to {}", currentEpochEntry.getEndOffset());
+                            AutoSwitchHAConnection.this.currentTransferEpochEndOffset = currentEpochEntry.getEndOffset();
+                        }
+                    } else {
+                        // we should never reach here
+                        LOGGER.warn("[BUG]Can't find currentTransferEpoch [{}] from epoch cache", currentTransferEpoch);
+                    }
+                }
+
                 // We must ensure that the transmitted logs are within the same epoch
                 // If currentEpochEndOffset == -1, means that currentTransferEpoch = last epoch, so the endOffset = Long.max
                 final long currentEpochEndOffset = AutoSwitchHAConnection.this.currentTransferEpochEndOffset;
