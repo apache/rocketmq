@@ -97,6 +97,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                     try {
                         TopicRouteData topicRouteData = mqClientAPIFactory.getClient().getTopicRouteInfoFromNameServer(topic, Duration.ofSeconds(3).toMillis());
                         updateBrokerTopicMapping(topic, topicRouteData);
+                        log.info("[topicCache]: load topic: {} topicRouteData: {}", topic, topicRouteData);
 
                         return buildMessageQueueView(topic, topicRouteData);
                     } catch (Exception e) {

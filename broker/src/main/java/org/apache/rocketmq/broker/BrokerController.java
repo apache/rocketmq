@@ -167,6 +167,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -1846,6 +1847,19 @@ public class BrokerController {
             }
         }, 10, 5, TimeUnit.SECONDS);
 
+        if (this.routeEventService != null && this.topicConfigManager != null) {
+            Set<String> topics = this.topicConfigManager.getTopicConfigTable().keySet();
+            
+            for (String topic : topics) {
+                try {
+                    this.routeEventService.publishEvent(RouteEventType.START, topic);
+                    LOG.info("[START]: publish {}", topic);
+                } catch (Exception e) {
+                    LOG.error("Failed to publish route change event for topic: {}", topic, e);
+                }
+            }
+            LOG.info("Published route change events for {} topics", topics.size());
+        }
     }
 
     protected void scheduleSendHeartbeat() {

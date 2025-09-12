@@ -69,6 +69,7 @@ public class RouteEventSubscriber {
                 String json = new String(msg.getBody(), StandardCharsets.UTF_8);
                 Map<String, Object> event = JSON.parseObject(json, Map.class);
 
+                LOGGER.info("[ROUTE_EVENT]: accept event {}", event);
                 String brokerName = (String) event.get(RouteEventConstants.BROKER_NAME);
                 RouteEventType eventType = RouteEventType.valueOf((String) event.get(RouteEventConstants.EVENT_TYPE));
                 Long eventTimeStamp = (Long) event.get(RouteEventConstants.TIMESTAMP);
@@ -83,7 +84,8 @@ public class RouteEventSubscriber {
                             dirtyMarker.accept(topic, eventTimeStamp);
                         }
                         break;
-
+                    
+                    case START:
                     case TOPIC_CHANGE:
                         String affectedTopic = (String) event.get(RouteEventConstants.AFFECTED_TOPIC);
 
