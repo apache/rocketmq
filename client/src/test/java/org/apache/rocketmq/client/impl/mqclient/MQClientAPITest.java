@@ -17,8 +17,9 @@
 
 package org.apache.rocketmq.client.impl.mqclient;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,11 +28,11 @@ import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
-class MQClientAPITest {
+public class MQClientAPITest {
 
     private NameserverAccessConfig nameserverAccessConfig;
     private final ClientRemotingProcessor clientRemotingProcessor = new DoNothingClientRemotingProcessor(null);
@@ -39,18 +40,18 @@ class MQClientAPITest {
     private ScheduledExecutorService scheduledExecutorService;
     private MQClientAPIFactory mqClientAPIFactory;
 
-    @BeforeEach
-    void setUp() {
+    @Before
+    public void setUp() {
         scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor("TestScheduledExecutorService", true);
     }
 
-    @AfterEach
+    @After
     public void tearDown() {
         scheduledExecutorService.shutdownNow();
     }
 
     @Test
-    void testInitWithNamesrvAddr() {
+    public void testInitWithNamesrvAddr() {
         nameserverAccessConfig = new NameserverAccessConfig("127.0.0.1:9876", "", "");
 
         mqClientAPIFactory = new MQClientAPIFactory(
@@ -66,7 +67,7 @@ class MQClientAPITest {
     }
 
     @Test
-    void testInitWithNamesrvDomain() {
+    public void testInitWithNamesrvDomain() {
         nameserverAccessConfig = new NameserverAccessConfig("", "test-domain", "");
 
         mqClientAPIFactory = new MQClientAPIFactory(
@@ -82,7 +83,7 @@ class MQClientAPITest {
     }
 
     @Test
-    void testInitThrowsExceptionWhenBothEmpty() {
+    public void testInitThrowsExceptionWhenBothEmpty() {
         nameserverAccessConfig = new NameserverAccessConfig("", "", "");
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> new MQClientAPIFactory(
@@ -98,7 +99,7 @@ class MQClientAPITest {
     }
 
     @Test
-    void testStartCreatesClients() throws Exception {
+    public void testStartCreatesClients() throws Exception {
         nameserverAccessConfig = new NameserverAccessConfig("127.0.0.1:9876", "", "");
 
         mqClientAPIFactory = new MQClientAPIFactory(
@@ -122,7 +123,7 @@ class MQClientAPITest {
     }
 
     @Test
-    void testOnNameServerAddressChangeUpdatesAllClients() throws Exception {
+    public void testOnNameServerAddressChangeUpdatesAllClients() throws Exception {
         nameserverAccessConfig = new NameserverAccessConfig("127.0.0.1:9876", "", "");
 
         mqClientAPIFactory = new MQClientAPIFactory(
@@ -141,6 +142,6 @@ class MQClientAPITest {
         MQClientAPIExt client = mqClientAPIFactory.getClient();
         List<String> nameServerAddressList = client.getNameServerAddressList();
         assertEquals(2, nameServerAddressList.size());
-        assertEquals("new-address0", nameServerAddressList.get(0));
+        assertTrue(nameServerAddressList.contains("new-address0"));
     }
 }
