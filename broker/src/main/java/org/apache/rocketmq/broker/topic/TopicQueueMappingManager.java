@@ -136,15 +136,21 @@ public class TopicQueueMappingManager extends ConfigManager {
 
     }
 
-    public void delete(final String topic) {
+    public void delete(final String topic, boolean isSync) {
         TopicQueueMappingDetail old = this.topicQueueMappingTable.remove(topic);
         if (old != null) {
             log.info("delete topic queue mapping OK, static topic queue mapping: {}", old);
             this.dataVersion.nextVersion();
-            this.persist();
+            if (isSync) {
+                this.persist();
+            }
         } else {
             log.warn("delete topic queue mapping failed, static topic: {} not exists", topic);
         }
+    }
+
+    public void delete(final String topic) {
+        delete(topic,true);
     }
 
     public TopicQueueMappingDetail getTopicQueueMapping(String topic) {

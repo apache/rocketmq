@@ -16,7 +16,8 @@
  */
 package org.apache.rocketmq.store.stats;
 
-import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -140,7 +141,7 @@ public class BrokerStatsManager {
     private ScheduledExecutorService accountExecutor;
     private ScheduledExecutorService cleanResourceExecutor;
 
-    private final HashMap<String, StatsItemSet> statsTable = new HashMap<>();
+    private final Map<String, StatsItemSet> statsTable = new ConcurrentHashMap<>();
     private final String clusterName;
     private final boolean enableQueueStat;
     private MomentStatsItemSet momentStatsItemSetFallSize;
