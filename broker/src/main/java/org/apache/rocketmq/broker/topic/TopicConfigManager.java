@@ -35,6 +35,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.route.RouteEventType;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PopAckConstants;
@@ -224,6 +225,16 @@ public class TopicConfigManager extends ConfigManager {
                 this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
             }
         }
+
+        {
+            // TopicValidator.RMQ_ROUTE_EVENT_TOPIC
+            String topic = TopicValidator.RMQ_ROUTE_EVENT_TOPIC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            TopicValidator.addSystemTopic(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            putTopicConfig(topicConfig);
+        }
     }
 
     public TopicConfig putTopicConfig(TopicConfig topicConfig) {
@@ -310,6 +321,12 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
+
+            if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(
+                    RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            }
         }
 
         return topicConfig;
@@ -349,6 +366,12 @@ public class TopicConfigManager extends ConfigManager {
         }
         if (createNew && register) {
             registerBrokerData(topicConfig);
+
+            if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(
+                    RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            }            
         }
         return getTopicConfig(topicConfig.getTopicName());
     }
@@ -408,6 +431,12 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
+
+            if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(
+                    RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            }
         }
 
         return topicConfig;
@@ -448,6 +477,12 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
+
+            if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(
+                    RouteEventType.TOPIC_CHANGE, topicConfig.getTopicName());
+            }
         }
 
         return topicConfig;
@@ -601,6 +636,11 @@ public class TopicConfigManager extends ConfigManager {
             log.info("delete topic config OK, topic: {}", old);
             updateDataVersion();
             this.persist();
+
+            if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
+                && this.brokerController.getRouteEventService() != null) {
+                this.brokerController.getRouteEventService().publishEvent(RouteEventType.TOPIC_CHANGE, topic);
+            }
         } else {
             log.warn("delete topic config failed, topic: {} not exists", topic);
         }
