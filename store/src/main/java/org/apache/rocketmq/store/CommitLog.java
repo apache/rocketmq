@@ -118,7 +118,8 @@ public class CommitLog implements Swappable {
         } else {
             this.mappedFileQueue = new MappedFileQueue(storePath,
                 messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
-                messageStore.getAllocateMappedFileService());
+                messageStore.getAllocateMappedFileService(),
+                messageStore.getMessageStoreConfig().isWriteWithoutMmap());
         }
 
         this.defaultMessageStore = messageStore;

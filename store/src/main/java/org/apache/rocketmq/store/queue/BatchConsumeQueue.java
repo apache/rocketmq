@@ -105,12 +105,19 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
         this.topic = topic;
         this.queueId = queueId;
 
+        boolean writeWithoutMmap = false;
+        if (messageStore.getMessageStoreConfig() != null) {
+            writeWithoutMmap = messageStore.getMessageStoreConfig().isWriteWithoutMmap();
+        }
+
         if (StringUtils.isBlank(subfolder)) {
             String queueDir = this.storePath + File.separator + topic + File.separator + queueId;
-            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null,
+                writeWithoutMmap);
         } else {
             String queueDir = this.storePath + File.separator + topic + File.separator + queueId + File.separator + subfolder;
-            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null,
+                writeWithoutMmap);
         }
 
         this.byteBufferItem = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
