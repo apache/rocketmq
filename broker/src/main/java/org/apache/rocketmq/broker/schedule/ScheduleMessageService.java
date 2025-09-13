@@ -283,6 +283,18 @@ public class ScheduleMessageService extends ConfigManager {
         return true;
     }
 
+    public ConcurrentMap<Integer, Long> deepCopyDelayOffsetTable() {
+        ConcurrentMap<Integer, Long> newTable = new ConcurrentHashMap<>(this.offsetTable.size());
+        for (Map.Entry<Integer, Long> entry : this.offsetTable.entrySet()) {
+            Integer level = entry.getKey();
+            Long offset = entry.getValue();
+            if (offset != null) {
+                newTable.put(level, offset);
+            }
+        }
+        return newTable;
+    }
+
     @Override
     public String configFilePath() {
         return StorePathConfigHelper.getDelayOffsetStorePath(this.brokerController.getMessageStore().getMessageStoreConfig()

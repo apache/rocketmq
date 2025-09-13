@@ -838,7 +838,7 @@ public class BrokerController {
             submitSnapshotTask(() -> {
                 try {
                     long maxOffset = this.messageStore.getMaxOffsetInQueue(TopicValidator.RMQ_SYS_TOPIC_CONFIG_SYNC, 0);
-                    Object snapshotData = Pair.of(topicConfigManager, maxOffset);
+                    Object snapshotData = Triple.of(topicConfigManager.deepCopyTopicConfigTable(), topicConfigManager.getDataVersion(), maxOffset);
                     writeSnapshotToFile(MixAll.SNAPSHOT_NAME_TOPIC_CONFIG, snapshotData, snapshotDir, timestamp);
                 } catch (Throwable e) {
                     LOG.error("Failed to persist {} snapshot", MixAll.SNAPSHOT_NAME_TOPIC_CONFIG, e);
@@ -868,7 +868,7 @@ public class BrokerController {
             submitSnapshotTask(() -> {
                 try {
                     long maxOffset = this.messageStore.getMaxOffsetInQueue(TopicValidator.RMQ_SYS_DELAY_OFFSET_SYNC, 0);
-                    Object snapshotData = Pair.of(this.getScheduleMessageService(), maxOffset);
+                    Object snapshotData = Triple.of(this.getScheduleMessageService().deepCopyDelayOffsetTable(), this.getScheduleMessageService().getDataVersion(), maxOffset);
                     writeSnapshotToFile(MixAll.SNAPSHOT_NAME_DELAY_OFFSET, snapshotData, snapshotDir, timestamp);
                 } catch (Throwable e) {
                     LOG.error("Failed to persist {} snapshot", MixAll.SNAPSHOT_NAME_DELAY_OFFSET, e);
@@ -902,12 +902,9 @@ public class BrokerController {
 
     private void writeSnapshotToFile(String snapshotName, Object snapshotData, String snapshotDir, String timestamp) throws Exception {
         String jsonSnapshot = JSON.toJSONString(snapshotData);
-
         String filename = String.format("%s_snapshot_%s.json", snapshotName, timestamp);
         Path filePath = Paths.get(snapshotDir, filename);
-
         Files.write(filePath, jsonSnapshot.getBytes(StandardCharsets.UTF_8));
-        LOG.info("{} snapshot persisted to file: {}", snapshotName, filePath.toString());
     }
 
     private void submitSnapshotTask(Runnable task) {
@@ -944,12 +941,10 @@ public class BrokerController {
                     for (int i = 1; i < snapshotFiles.size(); i++) {
                         try {
                             Files.delete(snapshotFiles.get(i));
-                            LOG.debug("Deleted old snapshot: {}", snapshotFiles.get(i));
                         } catch (IOException e) {
                             LOG.warn("Failed to delete {}", snapshotFiles.get(i), e);
                         }
                     }
-                    LOG.info("Kept latest 1 old snapshot, deleted {} files", snapshotFiles.size() - 1);
                 }
             });
 

@@ -26,9 +26,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.TypeReference;
@@ -66,8 +63,6 @@ public class SlaveSynchronize {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
     private volatile String masterAddr = null;
-    private final ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
-    private static final long PULL_INTERVAL_MS = 1000L;
     private boolean isIncrementSyncRunning = false;
 
     private DefaultLitePullConsumer incrementSyncConsumer;
@@ -306,13 +301,13 @@ public class SlaveSynchronize {
         HashMap<MessageQueue, Long> result = new HashMap<>();
 
 
-        Pair<TopicConfigManager, Long> topicConfigSnapshot =
+        Triple<ConcurrentMap<String, TopicConfig>, DataVersion, Long> topicConfigSnapshot =
                 this.brokerController.getBrokerOuterAPI().getTopicConfigSnapShot(this.masterAddr);
         if (topicConfigSnapshot != null) {
-            if (this.topicConfigSyncOffset < topicConfigSnapshot.getObject2()) {
-                this.brokerController.getTopicConfigManager().setTopicConfigTable(topicConfigSnapshot.getObject1().getTopicConfigTable());
+            if (this.topicConfigSyncOffset < topicConfigSnapshot.getRight()) {
+                this.brokerController.getTopicConfigManager().setTopicConfigTable(topicConfigSnapshot.getLeft());
                 this.brokerController.getTopicConfigManager().persist();
-                this.topicConfigSyncOffset = topicConfigSnapshot.getObject2();
+                this.topicConfigSyncOffset = topicConfigSnapshot.getRight();
                 result.put(new MessageQueue(TopicValidator.RMQ_SYS_TOPIC_CONFIG_SYNC, brokerController.getBrokerConfig().getBrokerName(), 0), topicConfigSyncOffset);
             }
             LOGGER.info("Topic config synced. Pull will start from offset: {}", consumerOffsetSyncOffset);
@@ -344,13 +339,17 @@ public class SlaveSynchronize {
             LOGGER.info("Subscription group synced. Pull will start from offset: {}", subscriptionGroupSyncOffset);
         }
 
-        Pair<String, Long> delayOffsetSnapshot =
+        Triple<ConcurrentMap<String, Long>,DataVersion,Long> delayOffsetSnapshot =
                 this.brokerController.getBrokerOuterAPI().getDelayOffsetSnapShot(this.masterAddr);
         if (delayOffsetSnapshot != null) {
-            MixAll.string2File(delayOffsetSnapshot.getObject1(), StorePathConfigHelper.getDelayOffsetStorePath(this.brokerController.getMessageStoreConfig().getStorePathRootDir()));
+            Map<String, Object> jsonOutput = new LinkedHashMap<>();
+            jsonOutput.put("dataVersion", delayOffsetSnapshot.getMiddle());
+            jsonOutput.put("offsetTable", delayOffsetSnapshot.getLeft());
+            String jsonString = JSON.toJSONString(jsonOutput);
+            MixAll.string2File(jsonString, StorePathConfigHelper.getDelayOffsetStorePath(this.brokerController.getMessageStoreConfig().getStorePathRootDir()));
             this.brokerController.getScheduleMessageService().loadWhenSyncDelayOffset();
-            if (this.delayOffsetSyncOffset < delayOffsetSnapshot.getObject2()) {
-                this.delayOffsetSyncOffset = delayOffsetSnapshot.getObject2();
+            if (this.delayOffsetSyncOffset < delayOffsetSnapshot.getRight()) {
+                this.delayOffsetSyncOffset = delayOffsetSnapshot.getRight();
                 result.put(new MessageQueue(TopicValidator.RMQ_SYS_DELAY_OFFSET_SYNC, brokerController.getBrokerConfig().getBrokerName(), 0), delayOffsetSyncOffset);
             }
             LOGGER.info("Delay offset synced. Pull will start from offset: {}", delayOffsetSyncOffset);

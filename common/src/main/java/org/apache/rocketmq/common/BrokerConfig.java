@@ -479,7 +479,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean allowMetadataIncrementalSync = false;
 
-    private int snapshotIntervalSeconds = 30;
+    private int snapshotIntervalSeconds = 600;
 
     private int metadataIncrementalSyncThreadPoolNums = 1;
 

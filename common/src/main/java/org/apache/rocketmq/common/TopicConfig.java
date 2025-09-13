@@ -27,7 +27,7 @@ import org.apache.rocketmq.common.constant.PermName;
 
 import static org.apache.rocketmq.common.TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE;
 
-public class TopicConfig {
+public class TopicConfig implements Cloneable {
     private static final String SEPARATOR = " ";
     public static int defaultReadQueueNums = 16;
     public static int defaultWriteQueueNums = 16;
@@ -269,5 +269,14 @@ public class TopicConfig {
             + ", writeQueueNums=" + writeQueueNums + ", perm=" + PermName.perm2String(perm)
             + ", topicFilterType=" + topicFilterType + ", topicSysFlag=" + topicSysFlag + ", order=" + order
             + ", attributes=" + attributes + "]";
+    }
+
+    @Override
+    public TopicConfig clone() throws CloneNotSupportedException {
+        TopicConfig clone = (TopicConfig) super.clone();
+        if (this.attributes != null) {
+            clone.setAttributes(new HashMap<>(this.attributes));
+        }
+        return clone;
     }
 }

@@ -840,5 +840,21 @@ public class TopicConfigManager extends ConfigManager {
     }
 
 
-
+    public ConcurrentMap<String, TopicConfig> deepCopyTopicConfigTable() {
+        ConcurrentMap<String, TopicConfig> newTable =
+                new ConcurrentHashMap<>(this.topicConfigTable.size());
+        for (Map.Entry<String, TopicConfig> entry : this.topicConfigTable.entrySet()) {
+            String topicName = entry.getKey();
+            TopicConfig originalConfig = entry.getValue();
+            if (originalConfig != null) {
+                try {
+                    TopicConfig clonedConfig = originalConfig.clone();
+                    newTable.put(topicName, clonedConfig);
+                } catch (CloneNotSupportedException e) {
+                    newTable.put(topicName, originalConfig);
+                }
+            }
+        }
+        return newTable;
+    }
 }
