@@ -489,7 +489,7 @@ public abstract class AbstractRocksDBStorage {
 
             manualCompactionThread.shutdownNow();
 
-            manualCompactionThread.awaitTermination(60, TimeUnit.SECONDS);
+            manualCompactionThread.awaitTermination(30, TimeUnit.SECONDS);
 
             final FlushOptions flushOptions = new FlushOptions();
             flushOptions.setWaitForFlush(true);

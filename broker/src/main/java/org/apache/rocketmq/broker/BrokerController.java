@@ -1440,6 +1440,10 @@ public class BrokerController {
             this.popConsumerService.shutdown();
         }
 
+        if (this.popMessageProcessor.getPopLongPollingService() != null) {
+            this.popMessageProcessor.getPopLongPollingService().shutdown();
+        }
+
         if (this.popMessageProcessor.getQueueLockManager() != null) {
             this.popMessageProcessor.getQueueLockManager().shutdown();
         }
