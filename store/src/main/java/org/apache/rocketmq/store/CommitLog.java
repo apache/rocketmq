@@ -193,7 +193,6 @@ public class CommitLog implements Swappable {
         if (this.flushManager != null) {
             this.flushManager.shutdown();
         }
-        log.info("shutdown commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
         if (flushDiskWatcher != null) {
             flushDiskWatcher.shutdown(true);
         }
@@ -201,6 +200,7 @@ public class CommitLog implements Swappable {
             this.coldDataCheckService.shutdown();
         }
         putMessageThreadLocal.remove();
+        log.info("shutdown commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
     }
 
     public long flush() {
