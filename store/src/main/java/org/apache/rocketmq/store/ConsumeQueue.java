@@ -98,7 +98,12 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             + File.separator + topic
             + File.separator + queueId;
 
-        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+        boolean writeWithoutMmap = false;
+        if (messageStore.getMessageStoreConfig() != null) {
+            writeWithoutMmap = messageStore.getMessageStoreConfig().isWriteWithoutMmap();
+        }
+
+        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null, writeWithoutMmap);
 
         this.byteBufferIndex = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
 
@@ -108,7 +113,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 queueId,
                 StorePathConfigHelper.getStorePathConsumeQueueExt(messageStore.getMessageStoreConfig().getStorePathRootDir()),
                 messageStore.getMessageStoreConfig().getMappedFileSizeConsumeQueueExt(),
-                messageStore.getMessageStoreConfig().getBitMapLengthConsumeQueueExt()
+                messageStore.getMessageStoreConfig().getBitMapLengthConsumeQueueExt(),
+                writeWithoutMmap
             );
         }
     }

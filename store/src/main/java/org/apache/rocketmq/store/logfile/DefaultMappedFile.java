@@ -33,9 +33,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Iterator;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.rocketmq.common.UtilAll;
@@ -80,10 +82,18 @@ public class DefaultMappedFile extends AbstractMappedFile {
     protected int fileSize;
     protected FileChannel fileChannel;
     /**
+     * RandomAccessFile for writing when writeWithoutMmap is enabled
+     */
+    protected RandomAccessFile randomAccessFile = null;
+    /**
      * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
      */
     protected ByteBuffer writeBuffer = null;
     protected TransientStorePool transientStorePool = null;
+    /**
+     * Configuration flag to use RandomAccessFile instead of MappedByteBuffer for writing
+     */
+    protected boolean writeWithoutMmap = false;
     protected String fileName;
     protected long fileFromOffset;
     protected File file;
@@ -108,6 +118,28 @@ public class DefaultMappedFile extends AbstractMappedFile {
      */
     private long stopTimestamp = -1;
 
+    private static int maxSharedNum = 16;
+    private static final SharedByteBuffer[] SHARED_BYTE_BUFFER;
+
+    static class SharedByteBuffer {
+        private final ReentrantLock lock;
+        private final ByteBuffer buffer;
+
+        public SharedByteBuffer(int size) {
+            this.lock = new ReentrantLock();
+            this.buffer = ByteBuffer.allocate(size);
+        }
+
+        public void release() {
+            this.lock.unlock();
+        }
+
+        public ByteBuffer acquire() {
+            this.lock.lock();
+            return buffer;
+        }
+    }
+
     static {
         WROTE_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "wrotePosition");
         COMMITTED_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "committedPosition");
@@ -124,6 +156,17 @@ public class DefaultMappedFile extends AbstractMappedFile {
             }
         }
         IS_LOADED_METHOD = isLoaded0method;
+
+        SHARED_BYTE_BUFFER = new SharedByteBuffer[maxSharedNum];
+        for (int i = 0; i < maxSharedNum; i++) {
+            SHARED_BYTE_BUFFER[i] = new SharedByteBuffer(4 * 1024 * 1024);
+        }
+    }
+
+    private static SharedByteBuffer borrowSharedByteBuffer() {
+        int idx = ThreadLocalRandom.current().nextInt(maxSharedNum);
+        SharedByteBuffer buffer = SHARED_BYTE_BUFFER[idx];
+        return buffer;
     }
 
     public DefaultMappedFile() {
@@ -135,6 +178,18 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     public DefaultMappedFile(final String fileName, final int fileSize,
         final TransientStorePool transientStorePool) throws IOException {
+        init(fileName, fileSize, transientStorePool);
+    }
+
+    public DefaultMappedFile(final String fileName, final int fileSize,
+        final boolean writeWithoutMmap) throws IOException {
+        this.writeWithoutMmap = writeWithoutMmap;
+        init(fileName, fileSize);
+    }
+
+    public DefaultMappedFile(final String fileName, final int fileSize,
+        final TransientStorePool transientStorePool, final boolean writeWithoutMmap) throws IOException {
+        this.writeWithoutMmap = writeWithoutMmap;
         init(fileName, fileSize, transientStorePool);
     }
 
@@ -150,8 +205,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
     public void init(final String fileName, final int fileSize,
         final TransientStorePool transientStorePool) throws IOException {
         init(fileName, fileSize);
-        this.writeBuffer = transientStorePool.borrowBuffer();
-        this.transientStorePool = transientStorePool;
+        if (transientStorePool != null) {
+            this.writeBuffer = transientStorePool.borrowBuffer();
+            this.transientStorePool = transientStorePool;
+        }
     }
 
     private void init(final String fileName, final int fileSize) throws IOException {
@@ -165,7 +222,17 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         try {
             this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
-            this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+
+            if (writeWithoutMmap) {
+                // Use RandomAccessFile for writing instead of MappedByteBuffer
+                this.randomAccessFile = new RandomAccessFile(this.file, "rw");
+                // Still create MappedByteBuffer for reading operations
+                this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_ONLY, 0, fileSize);
+            } else {
+                // Use MappedByteBuffer for both reading and writing (default behavior)
+                this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+            }
+
             TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(fileSize);
             TOTAL_MAPPED_FILES.incrementAndGet();
             ok = true;
@@ -178,6 +245,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
         } finally {
             if (!ok && this.fileChannel != null) {
                 this.fileChannel.close();
+            }
+            if (!ok && this.randomAccessFile != null) {
+                this.randomAccessFile.close();
             }
         }
     }
@@ -243,10 +313,35 @@ public class DefaultMappedFile extends AbstractMappedFile {
         assert cb != null;
 
         int currentPos = WROTE_POSITION_UPDATER.get(this);
+        long fileFromOffset = this.getFileFromOffset();
+
         if (currentPos < this.fileSize) {
-            ByteBuffer byteBuffer = appendMessageBuffer().slice();
-            byteBuffer.position(currentPos);
-            AppendMessageResult result = cb.doAppend(byteBuffer, this.fileFromOffset, this.fileSize - currentPos, byteBufferMsg);
+            SharedByteBuffer sharedByteBuffer = null;
+            ByteBuffer byteBuffer;
+            if (writeWithoutMmap && randomAccessFile != null) {
+                sharedByteBuffer = borrowSharedByteBuffer();
+                byteBuffer = sharedByteBuffer.acquire();
+                byteBuffer.position(0).limit(byteBuffer.capacity());
+                fileFromOffset += currentPos;
+            } else {
+                byteBuffer = appendMessageBuffer().slice();
+                byteBuffer.position(currentPos);
+            }
+
+            AppendMessageResult result = cb.doAppend(byteBuffer, fileFromOffset, this.fileSize - currentPos, byteBufferMsg);
+
+            if (sharedByteBuffer != null) {
+                try {
+                    randomAccessFile.seek(currentPos);
+                    randomAccessFile.write(byteBuffer.array(), 0, result.getWroteBytes());
+                } catch (Throwable t) {
+                    log.error("Failed to write to mappedFile {}", this.fileName, t);
+                    return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+                } finally {
+                    sharedByteBuffer.release();
+                }
+            }
+
             WROTE_POSITION_UPDATER.addAndGet(this, result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
@@ -273,22 +368,46 @@ public class DefaultMappedFile extends AbstractMappedFile {
         assert cb != null;
 
         int currentPos = WROTE_POSITION_UPDATER.get(this);
+        long fileFromOffset = this.getFileFromOffset();
 
         if (currentPos < this.fileSize) {
-            ByteBuffer byteBuffer = appendMessageBuffer().slice();
-            byteBuffer.position(currentPos);
+            SharedByteBuffer sharedByteBuffer = null;
+            ByteBuffer byteBuffer;
+            if (writeWithoutMmap && randomAccessFile != null) {
+                sharedByteBuffer = borrowSharedByteBuffer();
+                byteBuffer = sharedByteBuffer.acquire();
+                byteBuffer.position(0).limit(byteBuffer.capacity());
+                fileFromOffset += currentPos;
+            } else {
+                byteBuffer = appendMessageBuffer().slice();
+                byteBuffer.position(currentPos);
+            }
+
             AppendMessageResult result;
             if (messageExt instanceof MessageExtBatch && !((MessageExtBatch) messageExt).isInnerBatch()) {
                 // traditional batch message
-                result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
+                result = cb.doAppend(fileFromOffset, byteBuffer, this.fileSize - currentPos,
                     (MessageExtBatch) messageExt, putMessageContext);
             } else if (messageExt instanceof MessageExtBrokerInner) {
                 // traditional single message or newly introduced inner-batch message
-                result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
+                result = cb.doAppend(fileFromOffset, byteBuffer, this.fileSize - currentPos,
                     (MessageExtBrokerInner) messageExt, putMessageContext);
             } else {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
+
+            if (sharedByteBuffer != null) {
+                try {
+                    randomAccessFile.seek(currentPos);
+                    randomAccessFile.write(byteBuffer.array(), 0, result.getWroteBytes());
+                } catch (Throwable t) {
+                    log.error("Failed to write to mappedFile {}", this.fileName, t);
+                    return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+                } finally {
+                    sharedByteBuffer.release();
+                }
+            }
+
             WROTE_POSITION_UPDATER.addAndGet(this, result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
             return result;
@@ -319,15 +438,25 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         if ((currentPos + remaining) <= this.fileSize) {
             try {
-                this.fileChannel.position(currentPos);
-                while (data.hasRemaining()) {
-                    this.fileChannel.write(data);
+                if (writeWithoutMmap && randomAccessFile != null) {
+                    // Use RandomAccessFile for writing
+                    randomAccessFile.seek(currentPos);
+                    byte[] buffer = new byte[remaining];
+                    data.get(buffer);
+                    randomAccessFile.write(buffer);
+                } else {
+                    // Use FileChannel for writing (default behavior)
+                    this.fileChannel.position(currentPos);
+                    while (data.hasRemaining()) {
+                        this.fileChannel.write(data);
+                    }
                 }
+                WROTE_POSITION_UPDATER.addAndGet(this, remaining);
+                return true;
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
+                return false;
             }
-            WROTE_POSITION_UPDATER.addAndGet(this, remaining);
-            return true;
         }
         return false;
     }
@@ -344,14 +473,22 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         if ((currentPos + length) <= this.fileSize) {
             try {
-                ByteBuffer buf = this.mappedByteBuffer.slice();
-                buf.position(currentPos);
-                buf.put(data, offset, length);
+                if (writeWithoutMmap && randomAccessFile != null) {
+                    // Use RandomAccessFile for writing
+                    randomAccessFile.seek(currentPos);
+                    randomAccessFile.write(data, offset, length);
+                } else {
+                    // Use MappedByteBuffer for writing (default behavior)
+                    ByteBuffer buf = this.mappedByteBuffer.slice();
+                    buf.position(currentPos);
+                    buf.put(data, offset, length);
+                }
+                WROTE_POSITION_UPDATER.addAndGet(this, length);
+                return true;
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
+                return false;
             }
-            WROTE_POSITION_UPDATER.addAndGet(this, length);
-            return true;
         }
 
         return false;
@@ -365,11 +502,12 @@ public class DefaultMappedFile extends AbstractMappedFile {
             try {
                 this.fileChannel.position(currentPos);
                 this.fileChannel.write(ByteBuffer.wrap(data, 0, data.length));
+                WROTE_POSITION_UPDATER.addAndGet(this, data.length);
+                return true;
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
+                return false;
             }
-            WROTE_POSITION_UPDATER.addAndGet(this, data.length);
-            return true;
         }
 
         return false;
@@ -387,11 +525,16 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 try {
                     this.mappedByteBufferAccessCountSinceLastSwap++;
 
-                    //We only append data to fileChannel or mappedByteBuffer, never both.
-                    if (writeBuffer != null || this.fileChannel.position() != 0) {
-                        this.fileChannel.force(false);
+                    if (writeWithoutMmap && randomAccessFile != null) {
+                        // Use RandomAccessFile for flushing
+                        randomAccessFile.getChannel().force(false);
                     } else {
-                        this.mappedByteBuffer.force();
+                        //We only append data to fileChannel or mappedByteBuffer, never both.
+                        if (writeBuffer != null || this.fileChannel.position() != 0) {
+                            this.fileChannel.force(false);
+                        } else {
+                            this.mappedByteBuffer.force();
+                        }
                     }
                     this.lastFlushTime = System.currentTimeMillis();
                 } catch (Throwable e) {
@@ -573,6 +716,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 long lastModified = getLastModifiedTimestamp();
                 this.fileChannel.close();
                 log.info("close file channel " + this.fileName + " OK");
+
+                if (this.randomAccessFile != null) {
+                    this.randomAccessFile.close();
+                    log.info("close random access file " + this.fileName + " OK");
+                }
 
                 long beginTime = System.currentTimeMillis();
                 boolean result = this.file.delete();
