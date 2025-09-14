@@ -331,7 +331,9 @@ public class BrokerStatsManager {
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
         this.commercialExecutor.shutdown();
+        this.accountExecutor.shutdown();
         this.cleanResourceExecutor.shutdown();
+        this.accountStatManager.shutdown();
     }
 
     public StatsItem getStatsItem(final String statsName, final String statsKey) {

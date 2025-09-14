@@ -87,12 +87,13 @@ public class BrokerStartup {
             System.exit(-1);
         }
 
-        ConfigContext configContext = null;
-        String filePath;
+        ConfigContext configContext;
+        String filePath = null;
         if (commandLine.hasOption('c')) {
             filePath = commandLine.getOptionValue('c');
-            configContext = configFileToConfigContext(filePath);
         }
+
+        configContext = configFileToConfigContext(filePath);
 
         if (commandLine.hasOption('p') && configContext != null) {
             Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);

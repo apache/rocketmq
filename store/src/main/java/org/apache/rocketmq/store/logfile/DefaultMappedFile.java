@@ -698,13 +698,33 @@ public class DefaultMappedFile extends AbstractMappedFile {
             return true;
         }
 
+        cleanResources();
+
+        log.info("unmap file[REF:" + currentRef + "] " + this.fileName + " OK");
+
+        return true;
+    }
+
+    @Override
+    public void cleanResources() {
         UtilAll.cleanBuffer(this.mappedByteBuffer);
         UtilAll.cleanBuffer(this.mappedByteBufferWaitToClean);
         this.mappedByteBufferWaitToClean = null;
         TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(this.fileSize * (-1));
         TOTAL_MAPPED_FILES.decrementAndGet();
-        log.info("unmap file[REF:" + currentRef + "] " + this.fileName + " OK");
-        return true;
+        try {
+            fileChannel.close();
+        } catch (Throwable e) {
+            log.warn("close file channel {" + this.fileName + "} failed when cleanup", e);
+        }
+        try {
+            if (this.randomAccessFile != null) {
+                this.randomAccessFile.close();
+            }
+        } catch (Throwable e) {
+            log.info("close random access file " + this.fileName + " failed", e);
+        }
+
     }
 
     @Override

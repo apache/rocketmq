@@ -487,10 +487,16 @@ public abstract class AbstractRocksDBStorage {
                 return true;
             }
 
+            manualCompactionThread.shutdownNow();
+
+            manualCompactionThread.awaitTermination(60, TimeUnit.SECONDS);
+
             final FlushOptions flushOptions = new FlushOptions();
             flushOptions.setWaitForFlush(true);
             try {
                 flush(flushOptions);
+            } catch (Throwable e) {
+                LOGGER.error("flush rocksdb wal failed when shutdown", e);
             } finally {
                 flushOptions.close();
             }
@@ -521,10 +527,22 @@ public abstract class AbstractRocksDBStorage {
             }
             //4. close db.
             if (db != null && !this.readOnly) {
-                this.db.syncWal();
+                try {
+                    this.db.syncWal();
+                } catch (Throwable e) {
+                    LOGGER.error("rocksdb sync wal failed when shutdown", e);
+                } finally {
+                    flushOptions.close();
+                }
+
             }
             if (db != null) {
-                this.db.closeE();
+                try {
+                    this.db.closeE();
+                } catch (Throwable e) {
+                    LOGGER.error("rocksdb db closeE failed when shutdown", e);
+                }
+
             }
             // Close DBOptions after RocksDB instance is closed.
             if (this.options != null) {

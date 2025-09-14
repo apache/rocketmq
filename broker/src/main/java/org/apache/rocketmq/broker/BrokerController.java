@@ -1440,10 +1440,6 @@ public class BrokerController {
             this.popConsumerService.shutdown();
         }
 
-        if (this.popMessageProcessor.getPopLongPollingService() != null) {
-            this.popMessageProcessor.getPopLongPollingService().shutdown();
-        }
-
         if (this.popMessageProcessor.getQueueLockManager() != null) {
             this.popMessageProcessor.getQueueLockManager().shutdown();
         }
@@ -1458,6 +1454,18 @@ public class BrokerController {
 
         if (this.transactionalMessageService != null) {
             this.transactionalMessageService.close();
+        }
+
+        if (this.transactionalMessageCheckListener != null) {
+            this.transactionalMessageCheckListener.shutdown();
+        }
+
+        if (transactionalMessageCheckService != null) {
+            this.transactionalMessageCheckService.shutdown();
+        }
+
+        if (transactionMetricsFlushService != null) {
+            this.transactionMetricsFlushService.shutdown();
         }
 
         if (this.notificationProcessor != null) {
@@ -1481,10 +1489,6 @@ public class BrokerController {
 
         if (this.broadcastOffsetManager != null) {
             this.broadcastOffsetManager.shutdown();
-        }
-
-        if (this.messageStore != null) {
-            this.messageStore.shutdown();
         }
 
         if (this.replicasManager != null) {
@@ -1625,6 +1629,10 @@ public class BrokerController {
             if (brokerAttachedPlugin != null) {
                 brokerAttachedPlugin.shutdown();
             }
+        }
+
+        if (this.messageStore != null) {
+            this.messageStore.shutdown();
         }
     }
 

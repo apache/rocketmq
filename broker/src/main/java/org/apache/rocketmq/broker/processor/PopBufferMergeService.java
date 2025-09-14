@@ -126,9 +126,9 @@ public class PopBufferMergeService extends ServiceThread {
         if (!isShouldRunning()) {
             return;
         }
-        while (this.buffer.size() > 0 || getOffsetTotalSize() > 0) {
-            scan();
-        }
+//        while (this.buffer.size() > 0 || getOffsetTotalSize() > 0) {
+//            scan();
+//        }
     }
 
     private int scanCommitOffset() {

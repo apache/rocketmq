@@ -84,17 +84,23 @@ public class TimerWheel {
     }
 
     public void shutdown(boolean flush) {
-        if (flush)
-            this.flush();
+        if (flush) {
+            try {
+                this.flush();
+            } catch (Throwable e) {
+                log.error("flush error when shutdown", e);
+            }
+        }
 
         // unmap mappedByteBuffer
         UtilAll.cleanBuffer(this.mappedByteBuffer);
         UtilAll.cleanBuffer(this.byteBuffer);
+        localBuffer.remove();
 
         try {
             this.fileChannel.close();
-        } catch (IOException e) {
-            log.error("Shutdown error in timer wheel", e);
+        } catch (Throwable t) {
+            log.error("Shutdown error in timer wheel", t);
         }
     }
 

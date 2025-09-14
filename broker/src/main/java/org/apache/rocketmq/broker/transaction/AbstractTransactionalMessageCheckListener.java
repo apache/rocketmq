@@ -90,7 +90,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
         return brokerController;
     }
 
-    public void shutDown() {
+    public void shutdown() {
         if (executorService != null) {
             executorService.shutdown();
         }
