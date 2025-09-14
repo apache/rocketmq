@@ -516,12 +516,20 @@ public class DefaultMessageStoreCleanFilesTest {
 
     @After
     public void destroy() {
-        messageStore.shutdown();
-        messageStore.destroy();
+        if (messageStore != null) {
+            try {
+                messageStore.shutdown();
+                messageStore.destroy();
+            } catch (Exception e) {
+                // Ignore shutdown errors in test cleanup
+            }
+        }
 
-        MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
-        File file = new File(messageStoreConfig.getStorePathRootDir());
-        UtilAll.deleteFile(file);
+        if (messageStore != null) {
+            MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
+            File file = new File(messageStoreConfig.getStorePathRootDir());
+            UtilAll.deleteFile(file);
+        }
     }
 
     private class MessageStoreConfigForTest extends MessageStoreConfig {
