@@ -759,19 +759,37 @@ public class BrokerMetricsManager {
     }
 
     public void shutdown() {
-        if (brokerConfig.getMetricsExporterType() == MetricsExporterType.OTLP_GRPC) {
-            periodicMetricReader.forceFlush();
-            periodicMetricReader.shutdown();
-            metricExporter.shutdown();
-        }
-        if (brokerConfig.getMetricsExporterType() == MetricsExporterType.PROM) {
-            prometheusHttpServer.forceFlush();
-            prometheusHttpServer.shutdown();
-        }
-        if (brokerConfig.getMetricsExporterType() == MetricsExporterType.LOG) {
-            periodicMetricReader.forceFlush();
-            periodicMetricReader.shutdown();
-            loggingMetricExporter.shutdown();
+        if (brokerConfig.isInBrokerContainer()) {
+            // only rto need
+            if (brokerConfig.getMetricsExporterType() == MetricsExporterType.OTLP_GRPC) {
+                while (!periodicMetricReader.forceFlush().join(60, TimeUnit.SECONDS).isDone()) ;
+                while (!periodicMetricReader.shutdown().join(60, TimeUnit.SECONDS).isSuccess()) ;
+                while (!metricExporter.shutdown().join(60, TimeUnit.SECONDS).isSuccess()) ;
+            }
+            if (brokerConfig.getMetricsExporterType() == MetricsExporterType.PROM) {
+                while (!prometheusHttpServer.forceFlush().join(60, TimeUnit.SECONDS).isDone()) ;
+                while (!prometheusHttpServer.shutdown().join(60, TimeUnit.SECONDS).isSuccess()) ;
+            }
+            if (brokerConfig.getMetricsExporterType() == MetricsExporterType.LOG) {
+                while (!periodicMetricReader.forceFlush().join(60, TimeUnit.SECONDS).isDone()) ;
+                while (!periodicMetricReader.shutdown().join(60, TimeUnit.SECONDS).isSuccess()) ;
+                while (!loggingMetricExporter.shutdown().join(60, TimeUnit.SECONDS).isSuccess()) ;
+            }
+        } else {
+            if (brokerConfig.getMetricsExporterType() == MetricsExporterType.OTLP_GRPC) {
+                periodicMetricReader.forceFlush();
+                periodicMetricReader.shutdown();
+                metricExporter.shutdown();
+            }
+            if (brokerConfig.getMetricsExporterType() == MetricsExporterType.PROM) {
+                prometheusHttpServer.forceFlush();
+                prometheusHttpServer.shutdown();
+            }
+            if (brokerConfig.getMetricsExporterType() == MetricsExporterType.LOG) {
+                periodicMetricReader.forceFlush();
+                periodicMetricReader.shutdown();
+                loggingMetricExporter.shutdown();
+            }
         }
     }
 
