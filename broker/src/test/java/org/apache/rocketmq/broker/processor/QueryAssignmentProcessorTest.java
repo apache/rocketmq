@@ -21,6 +21,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
@@ -53,6 +54,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -144,6 +146,62 @@ public class QueryAssignmentProcessorTest {
 
         assertThat(mqs1).hasSize(1);
         assertThat(mqs2).isEmpty();
+    }
+
+    @Test
+    public void testDoLoadBalanceWithCache() throws Exception {
+        for (int i = 2; i < 6; i++) {
+            Channel channel = Mockito.mock(Channel.class);
+            String clientId = "127.0.0." + i;
+            ClientChannelInfo clientInfo = new ClientChannelInfo(channel, clientId, LanguageCode.JAVA, 0);
+            ConsumerData consumerData = createConsumerData(group, topic);
+            brokerController.getConsumerManager().registerConsumer(
+                    consumerData.getGroupName(),
+                    clientInfo,
+                    consumerData.getConsumeType(),
+                    consumerData.getMessageModel(),
+                    consumerData.getConsumeFromWhere(),
+                    consumerData.getSubscriptionDataSet(),
+                    false
+            );
+        }
+
+        Method method = queryAssignmentProcessor.getClass()
+                .getDeclaredMethod("doLoadBalance", String.class, String.class, String.class, MessageModel.class,
+                        String.class, SetMessageRequestModeRequestBody.class, ChannelHandlerContext.class);
+        method.setAccessible(true);
+
+        SetMessageRequestModeRequestBody setMessageRequestModeRequestBody = new SetMessageRequestModeRequestBody();
+        setMessageRequestModeRequestBody.setPopShareQueueNum(1);
+        setMessageRequestModeRequestBody.setMode(MessageRequestMode.POP);
+
+        Set<MessageQueue> initialQueues = new HashSet<>();
+        for (int i = 0; i < 4; i++) {
+            initialQueues.add(new MessageQueue(topic, "broker-1", i));
+        }
+        when(topicRouteInfoManager.getTopicSubscribeInfo(topic)).thenReturn(initialQueues);
+
+        // First call: Perform load balancing calculations and cache the results
+        Set<MessageQueue> firstResult = (Set<MessageQueue>) method.invoke(
+                queryAssignmentProcessor, topic, group, "127.0.0.1", MessageModel.CLUSTERING,
+                new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
+
+        assertThat(firstResult).isNotNull();
+        assertThat(firstResult).isNotEmpty();
+
+        // Second call with the same parameters: the same result should be obtained from the cache
+        Set<MessageQueue> secondResult = (Set<MessageQueue>) method.invoke(
+                queryAssignmentProcessor, topic, group, "127.0.0.1", MessageModel.CLUSTERING,
+                new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
+
+        assertThat(secondResult).isNotNull();
+        assertThat(secondResult).isEqualTo(firstResult);
+
+        Set<MessageQueue> changedQueues = new HashSet<>();
+        for (int i = 0; i < 6; i++) {
+            changedQueues.add(new MessageQueue(topic, "broker-1", i));
+        }
+        when(topicRouteInfoManager.getTopicSubscribeInfo(topic)).thenReturn(changedQueues);
     }
 
     @Test
