@@ -98,6 +98,7 @@ public class ConsumerOffsetManager extends ConfigManager {
                     it.remove();
                     removeConsumerOffset(topicAtGroup);
                     pullOffsetTable.remove(topicAtGroup);
+                    resetOffsetTable.remove(topicAtGroup);
                     LOG.warn("Clean topic's offset, {}, {}", topicAtGroup, next.getValue());
                 }
             }
