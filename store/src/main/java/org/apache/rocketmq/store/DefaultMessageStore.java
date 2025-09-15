@@ -155,10 +155,12 @@ public class DefaultMessageStore implements MessageStore {
     private final BrokerConfig brokerConfig;
 
     private volatile boolean shutdown = true;
-    protected boolean notifyMessageArriveInBatch = false;
+
+    private boolean notifyMessageArriveInBatch = false;
 
     protected StoreCheckpoint storeCheckpoint;
     private TimerMessageStore timerMessageStore;
+    private final DefaultStoreMetricsManager defaultStoreMetricsManager;
 
     private final LinkedList<CommitLogDispatcher> dispatcherList = new LinkedList<>();
 
@@ -235,6 +237,8 @@ public class DefaultMessageStore implements MessageStore {
             new ConcurrentReputMessageService() : new ReputMessageService();
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig.getTransientStorePoolSize(), messageStoreConfig.getMappedFileSizeCommitLog());
+
+        this.defaultStoreMetricsManager = new DefaultStoreMetricsManager();
 
         this.scheduledExecutorService =
             ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
@@ -2969,12 +2973,12 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
-        return DefaultStoreMetricsManager.getMetricsView();
+        return this.defaultStoreMetricsManager.getMetricsView();
     }
 
     @Override
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
-        DefaultStoreMetricsManager.init(meter, attributesBuilderSupplier, this);
+        this.defaultStoreMetricsManager.init(meter, attributesBuilderSupplier, this);
     }
 
     /**
@@ -3011,4 +3015,17 @@ public class DefaultMessageStore implements MessageStore {
     public MessageStoreStateMachine getStateMachine() {
         return stateMachine;
     }
+
+    public boolean isNotifyMessageArriveInBatch() {
+        return notifyMessageArriveInBatch;
+    }
+
+    public void setNotifyMessageArriveInBatch(boolean notifyMessageArriveInBatch) {
+        this.notifyMessageArriveInBatch = notifyMessageArriveInBatch;
+    }
+
+    public DefaultStoreMetricsManager getDefaultStoreMetricsManager() {
+        return defaultStoreMetricsManager;
+    }
+
 }

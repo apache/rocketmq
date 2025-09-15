@@ -301,6 +301,8 @@ public class BrokerController {
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
 
+    private ConfigContext configContext;
+
     public BrokerController(
         final BrokerConfig brokerConfig,
         final NettyServerConfig nettyServerConfig,
@@ -318,6 +320,14 @@ public class BrokerController {
         final MessageStoreConfig messageStoreConfig
     ) {
         this(brokerConfig, null, null, messageStoreConfig, null);
+    }
+
+    public BrokerController(
+        final BrokerConfig brokerConfig,
+        final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig
+    ) {
+        this(brokerConfig, null, null, messageStoreConfig, authConfig);
     }
 
     public BrokerController(
@@ -488,6 +498,10 @@ public class BrokerController {
 
     public BrokerMetricsManager getBrokerMetricsManager() {
         return brokerMetricsManager;
+    }
+
+    public void setBrokerMetricsManager(BrokerMetricsManager brokerMetricsManager) {
+        this.brokerMetricsManager = brokerMetricsManager;
     }
 
     protected void initializeRemotingServer() throws CloneNotSupportedException {
@@ -1538,6 +1552,10 @@ public class BrokerController {
 
         if (this.transactionalMessageCheckService != null) {
             this.transactionalMessageCheckService.shutdown(false);
+        }
+        
+        if (this.loadBalanceExecutor != null) {
+            this.loadBalanceExecutor.shutdown();
         }
 
         if (this.endTransactionExecutor != null) {
@@ -2611,5 +2629,11 @@ public class BrokerController {
         this.coldDataCgCtrService = coldDataCgCtrService;
     }
 
+    public ConfigContext getConfigContext() {
+        return configContext;
+    }
 
+    public void setConfigContext(ConfigContext configContext) {
+        this.configContext = configContext;
+    }
 }

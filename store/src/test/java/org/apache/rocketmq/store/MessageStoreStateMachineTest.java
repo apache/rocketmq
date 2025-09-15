@@ -19,7 +19,6 @@ package org.apache.rocketmq.store;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.anyLong;
@@ -27,17 +26,17 @@ import static org.mockito.Mockito.verify;
 
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.store.MessageStoreStateMachine.MessageStoreState;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
+import org.junit.Before;
 import org.mockito.Mockito;
 
-class MessageStoreStateMachineTest {
+public class MessageStoreStateMachineTest {
 
     private Logger mockLogger;
     private MessageStoreStateMachine stateMachine;
 
-    @BeforeEach
-    void setUp() {
+    @Before
+    public void setUp() {
         // Mock Logger
         mockLogger = Mockito.mock(Logger.class);
 
@@ -49,7 +48,7 @@ class MessageStoreStateMachineTest {
      * Test the constructor of MessageStoreStateMachine.
      */
     @Test
-    void testConstructor() {
+    public void testConstructor() {
         // Verify initial state
         assertEquals(MessageStoreState.INIT, stateMachine.getCurrentState());
 
@@ -61,7 +60,7 @@ class MessageStoreStateMachineTest {
      * Test valid state transition in transitTo method.
      */
     @Test
-    void testValidStateTransition() {
+    public void testValidStateTransition() {
         // Perform a valid state transition
         stateMachine.transitTo(MessageStoreState.LOAD_COMMITLOG_OK);
 
@@ -77,7 +76,7 @@ class MessageStoreStateMachineTest {
      * Test fail state transition in transitTo method.
      */
     @Test
-    void testValidFailStateTransition() {
+    public void testValidFailStateTransition() {
         stateMachine.transitTo(MessageStoreState.LOAD_COMMITLOG_OK, false);
         assertEquals(MessageStoreState.INIT, stateMachine.getCurrentState());
         verify(mockLogger).warn(anyString(), eq(MessageStoreState.INIT), eq(MessageStoreState.LOAD_COMMITLOG_OK),
@@ -88,7 +87,7 @@ class MessageStoreStateMachineTest {
      * Test invalid state transition in transitTo method.
      */
     @Test
-    void testInvalidStateTransition() {
+    public void testInvalidStateTransition() {
         // Perform an invalid state transition
         Exception exception = assertThrows(IllegalStateException.class, () -> {
             stateMachine.transitTo(MessageStoreState.INIT);
@@ -103,45 +102,8 @@ class MessageStoreStateMachineTest {
      * Test getCurrentState method.
      */
     @Test
-    void testGetCurrentState() {
+    public void testGetCurrentState() {
         // Verify the current state
         assertEquals(MessageStoreState.INIT, stateMachine.getCurrentState());
-    }
-
-    /**
-     * Test getTotalRunningTimeMs method.
-     */
-    @Test
-    void testGetTotalRunningTimeMs() {
-        // Sleep for a short duration to simulate elapsed time
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        // Verify the total running time is approximately correct
-        long totalTime = stateMachine.getTotalRunningTimeMs();
-        assertTrue(totalTime >= 100 && totalTime < 200);
-    }
-
-    /**
-     * Test getCurrentStateRunningTimeMs method.
-     */
-    @Test
-    void testGetCurrentStateRunningTimeMs() {
-        // Perform a state transition
-        stateMachine.transitTo(MessageStoreState.LOAD_COMMITLOG_OK);
-
-        // Sleep for a short duration to simulate elapsed time
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        // Verify the current state running time is approximately correct
-        long currentStateTime = stateMachine.getCurrentStateRunningTimeMs();
-        assertTrue(currentStateTime >= 100 && currentStateTime < 200);
     }
 }

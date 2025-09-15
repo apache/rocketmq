@@ -41,6 +41,7 @@ public class RocksDBConsumerOffsetManagerTest {
     private ConsumerOffsetManager consumerOffsetManager;
 
     @Before
+    @SuppressWarnings("DoubleBraceInitialization")
     public void init() {
         if (notToBeExecuted()) {
             return;

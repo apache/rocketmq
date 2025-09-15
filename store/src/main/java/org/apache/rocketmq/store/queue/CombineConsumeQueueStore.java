@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -38,8 +40,6 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.exception.StoreException;
 import org.rocksdb.RocksDBException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -86,14 +86,14 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
 
         if (loadingConsumeQueueTypeSet.contains(StoreType.DEFAULT)) {
             this.consumeQueueStore = new ConsumeQueueStore(messageStore);
-            this.innerConsumeQueueStoreList.addFirst(consumeQueueStore);
+            this.innerConsumeQueueStoreList.add(consumeQueueStore);
         } else {
             this.consumeQueueStore = null;
         }
 
         if (loadingConsumeQueueTypeSet.contains(StoreType.DEFAULT_ROCKSDB)) {
             this.rocksDBConsumeQueueStore = new RocksDBConsumeQueueStore(messageStore);
-            this.innerConsumeQueueStoreList.addFirst(rocksDBConsumeQueueStore);
+            this.innerConsumeQueueStoreList.add(rocksDBConsumeQueueStore);
         } else {
             this.rocksDBConsumeQueueStore = null;
         }

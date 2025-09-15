@@ -17,7 +17,7 @@
 package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson.JSON;
-import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
+import com.github.benmanes.caffeine.cache.Cache;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -45,7 +45,7 @@ import org.apache.rocketmq.broker.longpolling.PollingHeader;
 import org.apache.rocketmq.broker.longpolling.PollingResult;
 import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
 import org.apache.rocketmq.broker.longpolling.PopRequest;
-import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
 import org.apache.rocketmq.broker.pop.PopConsumerContext;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -173,7 +173,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    public ConcurrentLinkedHashMap<String, ConcurrentSkipListSet<PopRequest>> getPollingMap() {
+    public Cache<String, ConcurrentSkipListSet<PopRequest>> getPollingMap() {
         return popLongPollingService.getPollingMap();
     }
 
@@ -387,6 +387,15 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 requestHeader.getAttemptId(), requestHeader.getInitMode(), messageFilter);
 
             popAsyncFuture.thenApply(result -> {
+                try {
+                    if (request.getCallbackList() != null) {
+                        request.getCallbackList().forEach(CommandCallback::accept);
+                        request.getCallbackList().clear();
+                    }
+                } catch (Throwable t) {
+                    POP_LOGGER.error("PopProcessor execute callback error", t);
+                }
+
                 if (result.isFound()) {
                     response.setCode(ResponseCode.SUCCESS);
                     getMessageResult.setStatus(GetMessageStatus.FOUND);
@@ -779,14 +788,14 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), topic,
                         result.getBufferTotalSize());
 
-                    Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                    Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                         .put(LABEL_TOPIC, requestHeader.getTopic())
                         .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
                         .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
                         .put(LABEL_IS_RETRY, isRetry)
                         .build();
-                    BrokerMetricsManager.messagesOutTotal.add(result.getMessageCount(), attributes);
-                    BrokerMetricsManager.throughputOutTotal.add(result.getBufferTotalSize(), attributes);
+                    this.brokerController.getBrokerMetricsManager().getMessagesOutTotal().add(result.getMessageCount(), attributes);
+                    this.brokerController.getBrokerMetricsManager().getThroughputOutTotal().add(result.getBufferTotalSize(), attributes);
 
                     if (isOrder) {
                         this.brokerController.getConsumerOrderInfoManager().update(requestHeader.getAttemptId(), isRetry, topic,
