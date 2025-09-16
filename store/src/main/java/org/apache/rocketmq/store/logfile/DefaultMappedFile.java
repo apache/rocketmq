@@ -123,6 +123,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     private static final SharedByteBuffer[] SHARED_BYTE_BUFFER;
 
     protected RunningFlags runningFlags;
+
     static class SharedByteBuffer {
         private final ReentrantLock lock;
         private final ByteBuffer buffer;
@@ -532,13 +533,12 @@ public class DefaultMappedFile extends AbstractMappedFile {
      */
     @Override
     public int flush(final int flushLeastPages) {
+        if (!isWriteable()) {
+            return this.getFlushedPosition();
+        }
         if (this.isAbleToFlush(flushLeastPages)) {
             if (this.hold()) {
                 int value = getReadPosition();
-
-                if (!isWriteable()) {
-                    return this.getFlushedPosition();
-                }
 
                 try {
                     this.mappedByteBufferAccessCountSinceLastSwap++;
@@ -555,14 +555,13 @@ public class DefaultMappedFile extends AbstractMappedFile {
                         }
                     }
                     this.lastFlushTime = System.currentTimeMillis();
+                    FLUSHED_POSITION_UPDATER.set(this, value);
                 } catch (Throwable e) {
                     if (e instanceof IOException) {
                         getAndMakeNotWriteable();
                     }
                     log.error("Error occurred when force data to disk.", e);
                 }
-
-                FLUSHED_POSITION_UPDATER.set(this, value);
                 this.release();
             } else {
                 log.warn("in flush, hold failed, flush offset = " + FLUSHED_POSITION_UPDATER.get(this));
