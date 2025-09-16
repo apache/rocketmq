@@ -114,11 +114,12 @@ public class CommitLog implements Swappable {
         if (storePath.contains(MixAll.MULTI_PATH_SPLITTER)) {
             this.mappedFileQueue = new MultiPathMappedFileQueue(messageStore.getMessageStoreConfig(),
                 messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
-                messageStore.getAllocateMappedFileService(), this::getFullStorePaths);
+                messageStore.getAllocateMappedFileService(), this::getFullStorePaths, messageStore.getRunningFlags());
         } else {
             this.mappedFileQueue = new MappedFileQueue(storePath,
                 messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
                 messageStore.getAllocateMappedFileService(),
+                messageStore.getRunningFlags(),
                 messageStore.getMessageStoreConfig().isWriteWithoutMmap());
         }
 

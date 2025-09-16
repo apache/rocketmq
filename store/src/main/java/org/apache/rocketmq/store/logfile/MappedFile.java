@@ -28,6 +28,7 @@ import org.apache.rocketmq.store.AppendMessageCallback;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.CompactionAppendMsgCallback;
 import org.apache.rocketmq.store.PutMessageContext;
+import org.apache.rocketmq.store.RunningFlags;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
@@ -370,7 +371,7 @@ public interface MappedFile {
      * @param transientStorePool transient store pool
      * @throws IOException
      */
-    void init(String fileName, int fileSize, TransientStorePool transientStorePool) throws IOException;
+    void init(String fileName, int fileSize, RunningFlags runningFlags, TransientStorePool transientStorePool) throws IOException;
 
     Iterator<SelectMappedBufferResult> iterator(int pos);
 
