@@ -175,26 +175,30 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize) throws IOException {
-        init(fileName, fileSize, null);
+        this(fileName, fileSize, null);
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize, boolean writeWithoutMmap) throws IOException {
-        this(fileName, fileSize, null, writeWithoutMmap);
+        this(fileName, fileSize, null, null, writeWithoutMmap);
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize, RunningFlags runningFlags) throws IOException {
-        init(fileName, fileSize, runningFlags);
+        this(fileName, fileSize, runningFlags, null, false);
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize, final RunningFlags runningFlags,
         final TransientStorePool transientStorePool) throws IOException {
-        init(fileName, fileSize, runningFlags, transientStorePool);
+        this(fileName, fileSize, runningFlags, transientStorePool, false);
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize, final RunningFlags runningFlags,
         final boolean writeWithoutMmap) throws IOException {
-        this.writeWithoutMmap = writeWithoutMmap;
-        init(fileName, fileSize, runningFlags);
+        this(fileName, fileSize, runningFlags, null, writeWithoutMmap);
+    }
+
+    public DefaultMappedFile(final String fileName, final int fileSize,
+        final TransientStorePool transientStorePool, final boolean writeWithoutMmap) throws IOException {
+        this(fileName, fileSize, null, transientStorePool, writeWithoutMmap);
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize, final RunningFlags runningFlags,
