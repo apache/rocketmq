@@ -24,7 +24,6 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Iterator;
@@ -195,7 +194,7 @@ public class TransactionMetrics extends ConfigManager {
                 MixAll.fsyncDirectory(Paths.get(bakFile.getParent()));
             }
 
-            File dir = new File(Path.of(config).getParent().toString());
+            File dir = new File(configFile.getParent());
             if (!dir.exists()) {
                 Files.createDirectories(dir.toPath());
             }
