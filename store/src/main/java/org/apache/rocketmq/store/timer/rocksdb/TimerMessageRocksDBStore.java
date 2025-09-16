@@ -18,12 +18,7 @@ package org.apache.rocketmq.store.timer.rocksdb;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -495,14 +490,7 @@ public class TimerMessageRocksDBStore {
         private final BlockingQueue<List<TimerRocksDBRecord>> queue;
         private final RateLimiter rateLimiter;
         private final boolean writeCheckPoint;
-        ExecutorService executor = new ThreadPoolExecutor(
-            6,
-            8,
-            60,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(10000),
-            new ThreadPoolExecutor.CallerRunsPolicy()
-        );
+
         public TimerMessageReputService(BlockingQueue<List<TimerRocksDBRecord>> queue, double maxTps, boolean writeCheckPoint) {
             this.queue = queue;
             this.rateLimiter = RateLimiter.create(maxTps);
@@ -524,11 +512,29 @@ public class TimerMessageRocksDBStore {
                         continue;
                     }
                     long start = System.currentTimeMillis();
-                    CountDownLatch countDownLatch = new CountDownLatch(trs.size());
                     for (TimerRocksDBRecord record : trs) {
-                        executor.submit(new Task(countDownLatch, record));
+                        try {
+                            perfCounterTicks.startTick(OUT_BIZ_MESSAGE);
+                            MessageExt messageExt = record.getMessageExt();
+                            if (null == messageExt) {
+                                messageExt = getMessageByCommitOffset(record.getOffsetPy(), record.getSizePy());
+                                if (null == messageExt) {
+                                    continue;
+                                }
+                            }
+                            MessageExtBrokerInner msg = convertMessage(messageExt);
+                            if (null == msg) {
+                                continue;
+                            }
+                            record.setUniqKey(MessageClientIDSetter.getUniqID(msg));
+                            putMsgWithRetry(msg);
+                            timeline.addMetric(msg, -1);
+                            perfCounterTicks.endTick(OUT_BIZ_MESSAGE);
+                            rateLimiter.acquire();
+                        } catch (Exception e) {
+                            logError.error("TimerMessageReputService running error: {}", e.getMessage());
+                        }
                     }
-                    countDownLatch.await(20, TimeUnit.SECONDS);
                     log.info("TimerMessageReputService reput messages to commitlog, cost: {}, trs size: {}", System.currentTimeMillis() - start, trs.size());
                     if (this.writeCheckPoint && !CollectionUtils.isEmpty(trs) && trs.get(trs.size() - 1).getCheckPoint() > 0L) {
                         messageRocksDBStorage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT, trs.get(trs.size() - 1).getCheckPoint());
@@ -561,44 +567,6 @@ public class TimerMessageRocksDBStore {
                             logError.warn("Retrying to process message. Retry count: {}, Msg: {}", retryCount, msg);
                         }
                 }
-            }
-        }
-
-        class Task implements Callable<Void> {
-            private CountDownLatch countDownLatch;
-            private TimerRocksDBRecord record;
-
-            public Task(CountDownLatch countDownLatch, TimerRocksDBRecord record) {
-                this.countDownLatch = countDownLatch;
-                this.record = record;
-            }
-
-            @Override
-            public Void call() throws Exception {
-                try {
-                    perfCounterTicks.startTick(OUT_BIZ_MESSAGE);
-                    MessageExt messageExt = record.getMessageExt();
-                    if (null == messageExt) {
-                        messageExt = getMessageByCommitOffset(record.getOffsetPy(), record.getSizePy());
-                        if (null == messageExt) {
-                            return null;
-                        }
-                    }
-                    MessageExtBrokerInner msg = convertMessage(messageExt);
-                    if (null == msg) {
-                        return null;
-                    }
-                    record.setUniqKey(MessageClientIDSetter.getUniqID(msg));
-                    putMsgWithRetry(msg);
-                    timeline.addMetric(msg, -1);
-                    perfCounterTicks.endTick(OUT_BIZ_MESSAGE);
-                    rateLimiter.acquire();
-                } catch (Exception e) {
-                    logError.error("TimerMessageReputService running error: {}", e.getMessage());
-                } finally {
-                    countDownLatch.countDown();
-                }
-                return null;
             }
         }
     }
