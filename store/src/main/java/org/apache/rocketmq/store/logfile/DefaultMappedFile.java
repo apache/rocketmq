@@ -178,6 +178,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
         init(fileName, fileSize, null);
     }
 
+    public DefaultMappedFile(final String fileName, final int fileSize, boolean writeWithoutMmap) throws IOException {
+        this(fileName, fileSize, null, writeWithoutMmap);
+    }
+
     public DefaultMappedFile(final String fileName, final int fileSize, RunningFlags runningFlags) throws IOException {
         init(fileName, fileSize, runningFlags);
     }
