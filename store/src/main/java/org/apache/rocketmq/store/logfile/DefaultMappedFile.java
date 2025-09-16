@@ -53,6 +53,7 @@ import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.CompactionAppendMsgCallback;
 import org.apache.rocketmq.store.PutMessageContext;
+import org.apache.rocketmq.store.RunningFlags;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
@@ -121,6 +122,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     private static int maxSharedNum = 16;
     private static final SharedByteBuffer[] SHARED_BYTE_BUFFER;
 
+    protected RunningFlags runningFlags;
     static class SharedByteBuffer {
         private final ReentrantLock lock;
         private final ByteBuffer buffer;
@@ -173,24 +175,28 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize) throws IOException {
-        init(fileName, fileSize);
+        init(fileName, fileSize, null);
     }
 
-    public DefaultMappedFile(final String fileName, final int fileSize,
+    public DefaultMappedFile(final String fileName, final int fileSize, RunningFlags runningFlags) throws IOException {
+        init(fileName, fileSize, runningFlags);
+    }
+
+    public DefaultMappedFile(final String fileName, final int fileSize, final RunningFlags runningFlags,
         final TransientStorePool transientStorePool) throws IOException {
-        init(fileName, fileSize, transientStorePool);
+        init(fileName, fileSize, runningFlags, transientStorePool);
     }
 
-    public DefaultMappedFile(final String fileName, final int fileSize,
+    public DefaultMappedFile(final String fileName, final int fileSize, final RunningFlags runningFlags,
         final boolean writeWithoutMmap) throws IOException {
         this.writeWithoutMmap = writeWithoutMmap;
-        init(fileName, fileSize);
+        init(fileName, fileSize, runningFlags);
     }
 
-    public DefaultMappedFile(final String fileName, final int fileSize,
+    public DefaultMappedFile(final String fileName, final int fileSize, final RunningFlags runningFlags,
         final TransientStorePool transientStorePool, final boolean writeWithoutMmap) throws IOException {
         this.writeWithoutMmap = writeWithoutMmap;
-        init(fileName, fileSize, transientStorePool);
+        init(fileName, fileSize, runningFlags, transientStorePool);
     }
 
     public static int getTotalMappedFiles() {
@@ -202,30 +208,30 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     @Override
-    public void init(final String fileName, final int fileSize,
+    public void init(final String fileName, final int fileSize, final RunningFlags runningFlags,
         final TransientStorePool transientStorePool) throws IOException {
-        init(fileName, fileSize);
+        init(fileName, fileSize, runningFlags);
         if (transientStorePool != null) {
             this.writeBuffer = transientStorePool.borrowBuffer();
             this.transientStorePool = transientStorePool;
         }
     }
 
-    private void init(final String fileName, final int fileSize) throws IOException {
+    private void init(final String fileName, final int fileSize, final RunningFlags runningFlags) throws IOException {
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.file = new File(fileName);
         this.fileFromOffset = Long.parseLong(this.file.getName());
+        this.runningFlags = runningFlags;
         boolean ok = false;
 
         UtilAll.ensureDirOK(this.file.getParent());
 
         try {
-            this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
+            this.randomAccessFile = new RandomAccessFile(this.file, "rw");
+            this.fileChannel = this.randomAccessFile.getChannel();
 
             if (writeWithoutMmap) {
-                // Use RandomAccessFile for writing instead of MappedByteBuffer
-                this.randomAccessFile = new RandomAccessFile(this.file, "rw");
                 // Still create MappedByteBuffer for reading operations
                 this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_ONLY, 0, fileSize);
             } else {
@@ -522,6 +528,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
             if (this.hold()) {
                 int value = getReadPosition();
 
+                if (!isWriteable()) {
+                    return this.getFlushedPosition();
+                }
+
                 try {
                     this.mappedByteBufferAccessCountSinceLastSwap++;
 
@@ -538,6 +548,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
                     }
                     this.lastFlushTime = System.currentTimeMillis();
                 } catch (Throwable e) {
+                    if (e instanceof IOException) {
+                        getAndMakeNotWriteable();
+                    }
                     log.error("Error occurred when force data to disk.", e);
                 }
 
@@ -595,6 +608,20 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 log.error("Error occurred when commit data to FileChannel.", e);
             }
         }
+    }
+
+    public boolean getAndMakeNotWriteable() {
+        if (runningFlags == null) {
+            return false;
+        }
+        return runningFlags.getAndMakeNotWriteable();
+    }
+
+    public boolean isWriteable() {
+        if (runningFlags == null) {
+            return true;
+        }
+        return runningFlags.isWriteable();
     }
 
     private boolean isAbleToFlush(final int flushLeastPages) {
