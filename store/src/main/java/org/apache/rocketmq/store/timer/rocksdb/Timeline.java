@@ -94,7 +94,6 @@ public class Timeline {
             return;
         }
         this.commitOffset.set(this.timerMessageRocksDBStore.getReadOffset().get());
-        this.preLoad();
         this.timelineIndexBuildService.start();
         this.timelineForwardService.start();
         this.timelineRollService.start();
@@ -123,16 +122,6 @@ public class Timeline {
         log.info("Timeline shutdown success");
     }
 
-    private void preLoad() {
-        try {
-            long checkpoint = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT);
-            log.info("preLoad startCheckPoint: {}", checkpoint);
-            messageRocksDBStorage.scanRecordsForTimerWarm(TIMER_COLUMN_FAMILY, checkpoint, checkpoint + TimeUnit.HOURS.toMillis(12));
-            log.info("preLoad endCheckPoint success: {}", checkpoint);
-        } catch (Exception e) {
-            log.error("preLoad error e: {}", e.getMessage());
-        }
-    }
 
     public void putRecord(TimerRocksDBRecord timerRecord) throws InterruptedException {
         if (null == timerRecord) {
@@ -383,10 +372,14 @@ public class Timeline {
         public void run() {
             log.info(this.getServiceName() + " service start");
             while (!this.isStopped()) {
-                int rollIntervalHour = 6;
+                int rollIntervalHour = 1;
+                int rollRangeHour = 2;
                 try {
                     if (storeConfig.getTimerRocksDBRollIntervalHours() > 0) {
                         rollIntervalHour = storeConfig.getTimerRocksDBRollIntervalHours();
+                    }
+                    if (storeConfig.getTimerRocksDBRollRangeHours() > 0) {
+                        rollRangeHour = storeConfig.getTimerRocksDBRollRangeHours();
                     }
                     this.waitForRunning(TimeUnit.HOURS.toMillis(rollIntervalHour));
                 } catch (Exception e) {
@@ -395,7 +388,7 @@ public class Timeline {
                 long rollCheckpoint = System.currentTimeMillis();
                 try {
                     log.info("Timeline TimelineRollService start roll rollCheckpoint: {}", rollCheckpoint);
-                    while (!scanRecordsToQueue(rollCheckpoint + TimeUnit.HOURS.toMillis(rollIntervalHour),
+                    while (!scanRecordsToQueue(rollCheckpoint + TimeUnit.HOURS.toMillis(rollRangeHour),
                             TimeUnit.SECONDS.toMillis(storeConfig.getTimerMaxDelaySec()),
                             timerMessageRocksDBStore.getRollMessageQueue())) {
                         logError.error("Timeline TimelineRollService scanRecordsToQueue error.");

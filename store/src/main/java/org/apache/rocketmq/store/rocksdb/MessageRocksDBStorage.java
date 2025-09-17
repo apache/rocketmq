@@ -417,37 +417,6 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         return null;
     }
 
-    public void scanRecordsForTimerWarm(byte[] columnFamily, long lowerTime, long upperTime) {
-        ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
-        if (null == cfHandle || lowerTime <= 0L || upperTime <= 0L || lowerTime > upperTime) {
-            return;
-        }
-        long startTime = System.currentTimeMillis();
-        long count = 0L;
-        RocksIterator iterator = null;
-        try (ReadOptions readOptions = new ReadOptions()
-            .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array()))
-            .setIterateUpperBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()))
-            .setPrefixSameAsStart(true)) {
-            iterator = db.newIterator(cfHandle, readOptions);
-            for (; iterator.isValid(); iterator.next()) {
-                try {
-                    iterator.key();
-                    count ++;
-                } catch (Exception e) {
-                    logError.error("MessageRocksDBStorage scanRecordsForTimer iterator error: {}", e.getMessage());
-                }
-            }
-            log.info("scanRecordsForTimerWarm cost lowerTime: {}, upperTime: {}, count: {}", lowerTime, upperTime, System.currentTimeMillis() - startTime, count);
-        } catch (Exception e) {
-            logError.error("MessageRocksDBStorage scanRecordsForTimer error: {}", e.getMessage());
-        } finally {
-            if (null != iterator) {
-                iterator.close();
-            }
-        }
-    }
-
     public void deleteRecordsForTimer(byte[] columnFamily, long lowerTime, long upperTime) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
         if (null == cfHandle || lowerTime <= 0L || upperTime <= 0L || lowerTime > upperTime) {
