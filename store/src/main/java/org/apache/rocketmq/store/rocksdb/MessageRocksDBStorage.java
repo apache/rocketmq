@@ -621,7 +621,6 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         }
         try {
             byte[] offsetBytes = get(cfHandle, readOptions, LAST_OFFSET_PY);
-            log.info("getLastOffsetPy offsetBytes : {}", offsetBytes);
             return offsetBytes == null ? 0L : ByteBuffer.wrap(offsetBytes).getLong();
         } catch (Exception e) {
             logError.error("MessageRocksDBStorage getLastOffsetPy error: {}", e.getMessage());
