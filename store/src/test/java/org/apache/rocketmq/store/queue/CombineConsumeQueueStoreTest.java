@@ -36,6 +36,7 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,9 +82,7 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
 
     @Test(expected = IllegalArgumentException.class)
     public void CombineConsumeQueueStore_EmptyLoadingCQTypes_ThrowsException() throws Exception {
-        if (MixAll.isMac()) {
-            return;
-        }
+        Assume.assumeFalse(MixAll.isMac());
         messageStore = (DefaultMessageStore) createMessageStore(null, false, topicConfigTableMap, messageStoreConfig);
 
         messageStoreConfig.setCombineCQLoadingCQTypes("");
