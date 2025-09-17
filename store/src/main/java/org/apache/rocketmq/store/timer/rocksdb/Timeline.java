@@ -48,7 +48,7 @@ public class Timeline {
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final String DELETE_KEY_SPLIT = "+";
     private static final int ORIGIN_CAPACITY = 100000;
-    private static final int BATCH_SIZE = 1000, MAX_BATCH_SIZE_FROM_ROCKSDB = 2000;
+    private static final int BATCH_SIZE = 1000, MAX_BATCH_SIZE_FROM_ROCKSDB = 8000;
     private static final int INITIAL = 0, RUNNING = 1, SHUTDOWN = 2;
     private volatile int state = INITIAL;
     private final AtomicLong commitOffset = new AtomicLong(0);
@@ -94,6 +94,7 @@ public class Timeline {
             return;
         }
         this.commitOffset.set(this.timerMessageRocksDBStore.getReadOffset().get());
+        this.preLoad();
         this.timelineIndexBuildService.start();
         this.timelineForwardService.start();
         this.timelineRollService.start();
@@ -120,6 +121,17 @@ public class Timeline {
         }
         this.state = SHUTDOWN;
         log.info("Timeline shutdown success");
+    }
+
+    private void preLoad() {
+        try {
+            long checkpoint = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT);
+            log.info("preLoad startCheckPoint: {}", checkpoint);
+            messageRocksDBStorage.scanRecordsForTimerWarm(TIMER_COLUMN_FAMILY, checkpoint, checkpoint + TimeUnit.HOURS.toMillis(12));
+            log.info("preLoad endCheckPoint success: {}", checkpoint);
+        } catch (Exception e) {
+            log.error("preLoad error e: {}", e.getMessage());
+        }
     }
 
     public void putRecord(TimerRocksDBRecord timerRecord) throws InterruptedException {

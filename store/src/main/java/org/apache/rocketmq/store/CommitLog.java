@@ -329,13 +329,13 @@ public class CommitLog implements Swappable {
         if (!mappedFiles.isEmpty()) {
             int index = mappedFiles.size() - 1;
             int maxCount = 10;
-            while (index > 0 || maxCount > 0) {
+            while (index > 0) {
                 MappedFile mappedFile = mappedFiles.get(index);
-                if (isMappedFileMatchedRecover(mappedFile, true)) {
+                maxCount--;
+                if (isMappedFileMatchedRecover(mappedFile, true) || maxCount <= 0) {
                     // It's safe to recover from this mapped file
                     break;
                 }
-                maxCount--;
                 index--;
             }
             // TODO: Discuss if we need to load more commit-log mapped files into memory.
