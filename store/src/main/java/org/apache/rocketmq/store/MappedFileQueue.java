@@ -799,6 +799,12 @@ public class MappedFileQueue implements Swappable {
         }
     }
 
+    public void cleanResourcesAll() {
+        for (MappedFile mf : this.mappedFiles) {
+            mf.cleanResources();
+        }
+    }
+
     public void destroy() {
         for (MappedFile mf : this.mappedFiles) {
             mf.destroy(1000 * 3);

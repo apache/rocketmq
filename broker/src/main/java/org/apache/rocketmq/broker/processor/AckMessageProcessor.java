@@ -74,6 +74,12 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         return popReviveServices;
     }
 
+    public void shutdown() throws Exception {
+        for (PopReviveService popReviveService : popReviveServices) {
+            popReviveService.shutdown();
+        }
+    }
+
     public void startPopReviveService() {
         for (PopReviveService popReviveService : popReviveServices) {
             popReviveService.start();

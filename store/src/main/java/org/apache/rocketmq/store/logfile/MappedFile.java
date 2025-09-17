@@ -329,6 +329,8 @@ public interface MappedFile {
      */
     void cleanSwapedMap(boolean force);
 
+    void cleanResources();
+
     /**
      * Get recent swap map time
      */
