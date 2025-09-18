@@ -1460,6 +1460,18 @@ public class BrokerController {
             this.transactionalMessageService.close();
         }
 
+        if (this.transactionalMessageCheckListener != null) {
+            this.transactionalMessageCheckListener.shutdown();
+        }
+
+        if (transactionalMessageCheckService != null) {
+            this.transactionalMessageCheckService.shutdown();
+        }
+
+        if (transactionMetricsFlushService != null) {
+            this.transactionMetricsFlushService.shutdown();
+        }
+
         if (this.notificationProcessor != null) {
             this.notificationProcessor.getPopLongPollingService().shutdown();
         }
@@ -1481,10 +1493,6 @@ public class BrokerController {
 
         if (this.broadcastOffsetManager != null) {
             this.broadcastOffsetManager.shutdown();
-        }
-
-        if (this.messageStore != null) {
-            this.messageStore.shutdown();
         }
 
         if (this.replicasManager != null) {
@@ -1625,6 +1633,10 @@ public class BrokerController {
             if (brokerAttachedPlugin != null) {
                 brokerAttachedPlugin.shutdown();
             }
+        }
+
+        if (this.messageStore != null) {
+            this.messageStore.shutdown();
         }
     }
 

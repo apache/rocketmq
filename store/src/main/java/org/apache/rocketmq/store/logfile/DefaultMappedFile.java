@@ -53,6 +53,7 @@ import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.CompactionAppendMsgCallback;
 import org.apache.rocketmq.store.PutMessageContext;
+import org.apache.rocketmq.store.RunningFlags;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
@@ -121,6 +122,8 @@ public class DefaultMappedFile extends AbstractMappedFile {
     private static int maxSharedNum = 16;
     private static final SharedByteBuffer[] SHARED_BYTE_BUFFER;
 
+    protected RunningFlags runningFlags;
+
     static class SharedByteBuffer {
         private final ReentrantLock lock;
         private final ByteBuffer buffer;
@@ -173,24 +176,36 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize) throws IOException {
-        init(fileName, fileSize);
+        this(fileName, fileSize, null);
     }
 
-    public DefaultMappedFile(final String fileName, final int fileSize,
+    public DefaultMappedFile(final String fileName, final int fileSize, boolean writeWithoutMmap) throws IOException {
+        this(fileName, fileSize, null, null, writeWithoutMmap);
+    }
+
+    public DefaultMappedFile(final String fileName, final int fileSize, RunningFlags runningFlags) throws IOException {
+        this(fileName, fileSize, runningFlags, null, false);
+    }
+
+    public DefaultMappedFile(final String fileName, final int fileSize, final RunningFlags runningFlags,
         final TransientStorePool transientStorePool) throws IOException {
-        init(fileName, fileSize, transientStorePool);
+        this(fileName, fileSize, runningFlags, transientStorePool, false);
     }
 
-    public DefaultMappedFile(final String fileName, final int fileSize,
+    public DefaultMappedFile(final String fileName, final int fileSize, final RunningFlags runningFlags,
         final boolean writeWithoutMmap) throws IOException {
-        this.writeWithoutMmap = writeWithoutMmap;
-        init(fileName, fileSize);
+        this(fileName, fileSize, runningFlags, null, writeWithoutMmap);
     }
 
     public DefaultMappedFile(final String fileName, final int fileSize,
         final TransientStorePool transientStorePool, final boolean writeWithoutMmap) throws IOException {
+        this(fileName, fileSize, null, transientStorePool, writeWithoutMmap);
+    }
+
+    public DefaultMappedFile(final String fileName, final int fileSize, final RunningFlags runningFlags,
+        final TransientStorePool transientStorePool, final boolean writeWithoutMmap) throws IOException {
         this.writeWithoutMmap = writeWithoutMmap;
-        init(fileName, fileSize, transientStorePool);
+        init(fileName, fileSize, runningFlags, transientStorePool);
     }
 
     public static int getTotalMappedFiles() {
@@ -202,30 +217,30 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 
     @Override
-    public void init(final String fileName, final int fileSize,
+    public void init(final String fileName, final int fileSize, final RunningFlags runningFlags,
         final TransientStorePool transientStorePool) throws IOException {
-        init(fileName, fileSize);
+        init(fileName, fileSize, runningFlags);
         if (transientStorePool != null) {
             this.writeBuffer = transientStorePool.borrowBuffer();
             this.transientStorePool = transientStorePool;
         }
     }
 
-    private void init(final String fileName, final int fileSize) throws IOException {
+    private void init(final String fileName, final int fileSize, final RunningFlags runningFlags) throws IOException {
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.file = new File(fileName);
         this.fileFromOffset = Long.parseLong(this.file.getName());
+        this.runningFlags = runningFlags;
         boolean ok = false;
 
         UtilAll.ensureDirOK(this.file.getParent());
 
         try {
-            this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
+            this.randomAccessFile = new RandomAccessFile(this.file, "rw");
+            this.fileChannel = this.randomAccessFile.getChannel();
 
             if (writeWithoutMmap) {
-                // Use RandomAccessFile for writing instead of MappedByteBuffer
-                this.randomAccessFile = new RandomAccessFile(this.file, "rw");
                 // Still create MappedByteBuffer for reading operations
                 this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_ONLY, 0, fileSize);
             } else {
@@ -518,6 +533,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
      */
     @Override
     public int flush(final int flushLeastPages) {
+        if (!isWriteable()) {
+            return this.getFlushedPosition();
+        }
         if (this.isAbleToFlush(flushLeastPages)) {
             if (this.hold()) {
                 int value = getReadPosition();
@@ -537,11 +555,13 @@ public class DefaultMappedFile extends AbstractMappedFile {
                         }
                     }
                     this.lastFlushTime = System.currentTimeMillis();
+                    FLUSHED_POSITION_UPDATER.set(this, value);
                 } catch (Throwable e) {
+                    if (e instanceof IOException) {
+                        getAndMakeNotWriteable();
+                    }
                     log.error("Error occurred when force data to disk.", e);
                 }
-
-                FLUSHED_POSITION_UPDATER.set(this, value);
                 this.release();
             } else {
                 log.warn("in flush, hold failed, flush offset = " + FLUSHED_POSITION_UPDATER.get(this));
@@ -595,6 +615,20 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 log.error("Error occurred when commit data to FileChannel.", e);
             }
         }
+    }
+
+    public boolean getAndMakeNotWriteable() {
+        if (runningFlags == null) {
+            return false;
+        }
+        return runningFlags.getAndMakeNotWriteable();
+    }
+
+    public boolean isWriteable() {
+        if (runningFlags == null) {
+            return true;
+        }
+        return runningFlags.isWriteable();
     }
 
     private boolean isAbleToFlush(final int flushLeastPages) {
@@ -698,13 +732,33 @@ public class DefaultMappedFile extends AbstractMappedFile {
             return true;
         }
 
+        cleanResources();
+
+        log.info("unmap file[REF:" + currentRef + "] " + this.fileName + " OK");
+
+        return true;
+    }
+
+    @Override
+    public void cleanResources() {
         UtilAll.cleanBuffer(this.mappedByteBuffer);
         UtilAll.cleanBuffer(this.mappedByteBufferWaitToClean);
         this.mappedByteBufferWaitToClean = null;
         TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(this.fileSize * (-1));
         TOTAL_MAPPED_FILES.decrementAndGet();
-        log.info("unmap file[REF:" + currentRef + "] " + this.fileName + " OK");
-        return true;
+        try {
+            fileChannel.close();
+        } catch (Throwable e) {
+            log.warn("close file channel {" + this.fileName + "} failed when cleanup", e);
+        }
+        try {
+            if (this.randomAccessFile != null) {
+                this.randomAccessFile.close();
+            }
+        } catch (Throwable e) {
+            log.info("close random access file " + this.fileName + " failed", e);
+        }
+
     }
 
     @Override

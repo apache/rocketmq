@@ -198,15 +198,23 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     @Override
     public boolean shutdown() {
         if (serviceState.compareAndSet(ServiceState.RUNNING, ServiceState.SHUTDOWN_ALREADY)) {
-            this.groupCommitService.shutdown();
-            this.scheduledExecutorService.shutdown();
+            if (this.groupCommitService != null) {
+                this.groupCommitService.shutdown();
+            }
+
+            if (this.scheduledExecutorService != null) {
+                this.scheduledExecutorService.shutdown();
+            }
             return shutdownInner();
         }
         return true;
     }
 
     private boolean shutdownInner() {
-        return this.rocksDBStorage.shutdown();
+        if (this.rocksDBStorage != null) {
+            return this.rocksDBStorage.shutdown();
+        }
+        return true;
     }
 
     @Override
