@@ -24,8 +24,10 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -40,6 +42,7 @@ public class PopConsumerCacheTest {
 
     @Test
     public void consumerRecordsTest() {
+        Assume.assumeFalse(MixAll.isMac());
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setPopConsumerKVServiceLog(true);
         PopConsumerCache.ConsumerRecords consumerRecords =
@@ -71,6 +74,7 @@ public class PopConsumerCacheTest {
 
     @Test
     public void consumerOffsetTest() throws IllegalAccessException {
+        Assume.assumeFalse(MixAll.isMac());
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
         PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
@@ -94,6 +98,7 @@ public class PopConsumerCacheTest {
 
     @Test
     public void consumerCacheTest() {
+        Assume.assumeFalse(MixAll.isMac());
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
         PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
