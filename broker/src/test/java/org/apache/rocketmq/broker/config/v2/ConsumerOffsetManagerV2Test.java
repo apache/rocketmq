@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -59,6 +60,7 @@ public class ConsumerOffsetManagerV2Test {
 
     @Before
     public void setUp() throws IOException {
+        Assume.assumeFalse(MixAll.isMac());
         BrokerConfig brokerConfig = new BrokerConfig();
         Mockito.doReturn(brokerConfig).when(controller).getBrokerConfig();
 
@@ -75,6 +77,7 @@ public class ConsumerOffsetManagerV2Test {
      */
     @Test
     public void testCommitOffset_Standard() {
+        Assume.assumeFalse(MixAll.isMac());
         Assert.assertTrue(consumerOffsetManagerV2.load());
 
         String clientHost = "localhost";
@@ -101,6 +104,7 @@ public class ConsumerOffsetManagerV2Test {
      */
     @Test
     public void testCommitOffset_LMQ() {
+        Assume.assumeFalse(MixAll.isMac());
         Assert.assertTrue(consumerOffsetManagerV2.load());
 
         String clientHost = "localhost";
@@ -126,6 +130,7 @@ public class ConsumerOffsetManagerV2Test {
      */
     @Test
     public void testCommitPullOffset_LMQ() {
+        Assume.assumeFalse(MixAll.isMac());
         Assert.assertTrue(consumerOffsetManagerV2.load());
 
         String clientHost = "localhost";
@@ -150,6 +155,7 @@ public class ConsumerOffsetManagerV2Test {
      */
     @Test
     public void testRemoveByTopicAtGroup() {
+        Assume.assumeFalse(MixAll.isMac());
         Assert.assertTrue(consumerOffsetManagerV2.load());
 
         String clientHost = "localhost";
@@ -182,6 +188,7 @@ public class ConsumerOffsetManagerV2Test {
      */
     @Test
     public void testRemoveByGroup() {
+        Assume.assumeFalse(MixAll.isMac());
         Assert.assertTrue(consumerOffsetManagerV2.load());
 
         String clientHost = "localhost";

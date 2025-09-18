@@ -430,7 +430,6 @@ public class DefaultMappedFile extends AbstractMappedFile {
         log.error("MappedFile.appendMessage return null, wrotePosition: {} fileSize: {}", currentPos, this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
     }
-
     protected ByteBuffer appendMessageBuffer() {
         this.mappedByteBufferAccessCountSinceLastSwap++;
         return writeBuffer != null ? writeBuffer : this.mappedByteBuffer;
