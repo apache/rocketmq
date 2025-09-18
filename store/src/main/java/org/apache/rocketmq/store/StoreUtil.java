@@ -22,26 +22,26 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.MappedFile;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
 import java.nio.ByteBuffer;
 
 import static java.lang.String.format;
 
-public class StoreUtil {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+public final class StoreUtil {
+
+    private StoreUtil() { }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
+    private static final long DEFAULT_MEM_SIZE = 1024 * 1024 * 1024 * 24L;
 
     public static final long TOTAL_PHYSICAL_MEMORY_SIZE = getTotalPhysicalMemorySize();
 
-    @SuppressWarnings("restriction")
     public static long getTotalPhysicalMemorySize() {
-        long physicalTotal = 1024 * 1024 * 1024 * 24L;
-        OperatingSystemMXBean osmxb = ManagementFactory.getOperatingSystemMXBean();
-        if (osmxb instanceof com.sun.management.OperatingSystemMXBean) {
-            physicalTotal = ((com.sun.management.OperatingSystemMXBean) osmxb).getTotalPhysicalMemorySize();
+        long totalPhysicalMem = OperatingSystemBeanManager.getTotalPhysicalMem();
+        if (totalPhysicalMem > 0) {
+            return totalPhysicalMem;
         }
-
-        return physicalTotal;
+        return DEFAULT_MEM_SIZE;
     }
 
     public static void fileAppend(MappedFile file, ByteBuffer data) {
@@ -72,8 +72,9 @@ public class StoreUtil {
             boolean exist = firstFile.getFileFromOffset() <= currentFile && currentFile <= lastFile.getFileFromOffset();
             return new FileQueueSnapshot(firstFile, firstFileIndex, lastFile, lastFileIndex, currentFile, currentFileIndex, behind, exist);
         } catch (Exception e) {
-            log.error("[BUG] get file queue snapshot failed. fileQueue: {}, currentFile: {}", mappedFileQueue, currentFile, e);
+            LOGGER.error("[BUG] get file queue snapshot failed. fileQueue: {}, currentFile: {}", mappedFileQueue, currentFile, e);
         }
         return new FileQueueSnapshot();
     }
 }
+
