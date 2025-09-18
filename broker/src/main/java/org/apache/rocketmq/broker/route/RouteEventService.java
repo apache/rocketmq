@@ -17,8 +17,11 @@
 package org.apache.rocketmq.broker.route;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -33,6 +36,7 @@ import com.alibaba.fastjson2.JSON;
 public class RouteEventService {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
+    private static final int MAX_TOPICS_PER_EVENT = 100;
 
     public RouteEventService(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -40,40 +44,61 @@ public class RouteEventService {
             brokerController.getBrokerConfig().getBrokerName());
     }
 
-    public void publishEvent(RouteEventType eventType) {
-        publishEvent(eventType, null);
-    }
-
-    public void publishEvent(RouteEventType eventType, String affectedtopic) {
+    public void publishEvent(RouteEventType eventType, Set<String> topics) {
         if (!brokerController.getBrokerConfig().isEnableRouteChangeNotification()) {
             return;
         }
+
+        if (topics == null || topics.isEmpty()) {
+            sendEvent(eventType, null);
+            return;
+        }
+
+        List<String> topicList = new ArrayList<>(topics);
+        partitionTopics(topicList, MAX_TOPICS_PER_EVENT)
+            .forEach(batch -> sendEvent(eventType, batch));
+    }
+
+    private void sendEvent(RouteEventType eventType, List<String> topics) {
+        try {
+            Map<String, Object> eventData = createEventData(eventType, topics);
+            MessageExtBrokerInner msg = createEventMessage(eventData);
+
+            PutMessageResult result = brokerController.getMessageStore().putMessage(msg);
+            brokerController.getMessageStore().flush();
+
+            if (!result.isOk()) {
+                LOG.warn("[ROUTE_EVENT] Publish failed: {}", result.getPutMessageStatus());
+            }
+        } catch (Exception e) {
+            LOG.error("[ROUTE_EVENT] Failed to publish event: {}", eventType, e);
+        }
+    }
+
+    private Map<String, Object> createEventData(RouteEventType eventType, List<String> topics) {
         Map<String, Object> eventData = new HashMap<>();
-        PutMessageResult result;
         eventData.put(RouteEventConstants.EVENT_TYPE, eventType.name());
         eventData.put(RouteEventConstants.BROKER_NAME, brokerController.getBrokerConfig().getBrokerName());
         eventData.put(RouteEventConstants.BROKER_ID, brokerController.getBrokerConfig().getBrokerId());
         eventData.put(RouteEventConstants.TIMESTAMP, System.currentTimeMillis());
-        if (affectedtopic != null) {
-            eventData.put(RouteEventConstants.AFFECTED_TOPIC, affectedtopic);
+
+        if (topics != null && !topics.isEmpty()) {
+            eventData.put(RouteEventConstants.AFFECTED_TOPICS, topics);
         }
 
-        MessageExtBrokerInner msg = createEventMessage(eventData);
-
-        try {
-            result = brokerController.getMessageStore().putMessage(msg);
-        }
-        catch (Exception e) {
-            LOG.error("[ROUTE_EVENT] Failed to publish event: {}", eventType, e);
-            return;
-        }
-        brokerController.getMessageStore().flush();
-
-        if (!result.isOk()) {
-            LOG.error("[ROUTE_EVENT] Publish failed: {}", result.getPutMessageStatus());
-        }
+        return eventData;
     }
 
+    private List<List<String>> partitionTopics(List<String> topics, int batchSize) {
+        List<List<String>> batches = new ArrayList<>();
+
+        for (int i = 0; i < topics.size(); i += batchSize) {
+            int end = Math.min(i + batchSize, topics.size());
+            batches.add(topics.subList(i, end));
+        }
+
+        return batches;
+    }
     private MessageExtBrokerInner createEventMessage(Map<String, Object> eventData) {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
         msg.setTopic(TopicValidator.RMQ_ROUTE_EVENT_TOPIC);

@@ -1401,11 +1401,18 @@ public class BrokerController {
     protected void shutdownBasicService() {
 
         shutdown = true;
-        if (this.routeEventService != null) {
-            this.routeEventService.publishEvent(RouteEventType.SHUTDOWN);
-        }
 
         this.unregisterBrokerAll();
+
+        if (this.routeEventService != null && this.topicConfigManager != null) {
+            Set<String> topics = this.topicConfigManager.getTopicConfigTable().keySet();
+            try {
+                this.routeEventService.publishEvent(RouteEventType.SHUTDOWN, topics);
+                LOG.info("[SHUTDOWN AFTER unregisterBrokerAll]: publish {}", topics);
+            } catch (Exception e) {
+                LOG.error("Failed to publish route change event for topic: {}", topics, e);
+            }
+        }
 
         if (this.shutdownHook != null) {
             this.shutdownHook.beforeShutdown(this);
@@ -1849,16 +1856,12 @@ public class BrokerController {
 
         if (this.routeEventService != null && this.topicConfigManager != null) {
             Set<String> topics = this.topicConfigManager.getTopicConfigTable().keySet();
-            
-            for (String topic : topics) {
-                try {
-                    this.routeEventService.publishEvent(RouteEventType.START, topic);
-                    LOG.info("[START]: publish {}", topic);
-                } catch (Exception e) {
-                    LOG.error("Failed to publish route change event for topic: {}", topic, e);
-                }
+            try {
+                this.routeEventService.publishEvent(RouteEventType.START, topics);
+                LOG.info("[START]: publish {}", topics);
+            } catch (Exception e) {
+                LOG.error("Failed to publish route change event for topic: {}", topics, e);
             }
-            LOG.info("Published route change events for {} topics", topics.size());
         }
     }
 

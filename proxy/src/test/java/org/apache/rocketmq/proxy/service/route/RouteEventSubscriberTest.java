@@ -21,15 +21,12 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiConsumer;
 
 import org.apache.rocketmq.common.message.MessageExt;
@@ -39,15 +36,13 @@ import org.junit.Test;
 import com.alibaba.fastjson2.JSON;
 
 public class RouteEventSubscriberTest {
-    private TopicRouteService mockRouteService;
     private BiConsumer<String, Long> mockDirtyMarker;
     private RouteEventSubscriber subscriber;
 
     @Before
     public void setUp() {
-        mockRouteService = mock(TopicRouteService.class);
         mockDirtyMarker = mock(BiConsumer.class);
-        subscriber = new RouteEventSubscriber(mockRouteService, mockDirtyMarker);
+        subscriber = new RouteEventSubscriber(mockDirtyMarker);
     }
 
     @Test
@@ -56,16 +51,13 @@ public class RouteEventSubscriberTest {
         eventData.put("eventType", "SHUTDOWN");
         eventData.put("brokerName", "TestBroker");
         eventData.put("timestamp", System.currentTimeMillis());
+        eventData.put("affectedTopics", Arrays.asList("TopicA", "TopicB"));
 
         MessageExt msg = new MessageExt();
         msg.setBody(JSON.toJSONString(eventData).getBytes());
 
-        Set<String> topics = new HashSet<>(Arrays.asList("TopicA", "TopicB"));
-        when(mockRouteService.getBrokerTopics("TestBroker")).thenReturn(topics);
-
         invokePrivateMethod(subscriber, "processMessages", Collections.singletonList(msg));
 
-        verify(mockRouteService).removeBrokerToTopics("TestBroker");
         verify(mockDirtyMarker).accept(eq("TopicA"), anyLong());
         verify(mockDirtyMarker).accept(eq("TopicB"), anyLong());
     }
@@ -75,7 +67,7 @@ public class RouteEventSubscriberTest {
         Map<String, Object> eventData = new HashMap<>();
         eventData.put("eventType", "TOPIC_CHANGE");
         eventData.put("brokerName", "TestBroker");
-        eventData.put("affectedTopic", "TestTopic");
+        eventData.put("affectedTopics", Collections.singletonList("TestTopic"));
         eventData.put("timestamp", System.currentTimeMillis());
 
         MessageExt msg = new MessageExt();
@@ -83,7 +75,6 @@ public class RouteEventSubscriberTest {
 
         invokePrivateMethod(subscriber, "processMessages", Collections.singletonList(msg));
         
-        verify(mockRouteService).removeBrokerToTopic(eq("TestBroker"), eq("TestTopic"));
         verify(mockDirtyMarker).accept(eq("TestTopic"), anyLong());
     }
 

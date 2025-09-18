@@ -23,6 +23,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.rocketmq.broker.BrokerController;
@@ -67,7 +69,7 @@ public class RouteEventServiceTest {
     public void testPublishEventSuccessfully() {
         when(mockMessageStore.putMessage(any())).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, null));
 
-        routeEventService.publishEvent(RouteEventType.SHUTDOWN);
+        routeEventService.publishEvent(RouteEventType.SHUTDOWN, Collections.singleton("TestTopic"));
 
         verify(mockMessageStore).putMessage(any(MessageExtBrokerInner.class));
     }
@@ -76,12 +78,20 @@ public class RouteEventServiceTest {
     public void testIncludeTopicInEvent() {
         when(mockMessageStore.putMessage(any())).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, null));
 
-        routeEventService.publishEvent(RouteEventType.TOPIC_CHANGE, "TestTopic");
+        routeEventService.publishEvent(RouteEventType.TOPIC_CHANGE, Collections.singleton("TestTopic"));
 
         ArgumentCaptor<MessageExtBrokerInner> captor = ArgumentCaptor.forClass(MessageExtBrokerInner.class);
         verify(mockMessageStore).putMessage(captor.capture());
 
-        Map<String, Object> eventData = JSON.parseObject(new String(captor.getValue().getBody()), Map.class);
-        assertEquals("TestTopic", eventData.get("affectedTopic"));
+        Map<String, Object> eventData = JSON.parseObject(
+            new String(captor.getValue().getBody()), 
+            Map.class
+        );
+
+        List<String> affectedTopics = (List<String>) eventData.get(RouteEventConstants.AFFECTED_TOPICS);
+
+        List<String> expectedTopics = Collections.singletonList("TestTopic");
+
+        assertEquals(expectedTopics, affectedTopics);
     }
 }

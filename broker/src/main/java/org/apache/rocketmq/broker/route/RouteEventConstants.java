@@ -22,5 +22,5 @@ public class RouteEventConstants {
     public static final String BROKER_NAME = "brokerName";
     public static final String BROKER_ID = "brokerId";
     public static final String TIMESTAMP = "timestamp";
-    public static final String AFFECTED_TOPIC = "affectedTopic";
+    public static final String AFFECTED_TOPICS = "affectedTopics";
 }

@@ -19,7 +19,6 @@ package org.apache.rocketmq.proxy.service.route;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiConsumer;
 
 import org.apache.rocketmq.broker.route.RouteEventConstants;
@@ -39,12 +38,10 @@ import com.alibaba.fastjson2.JSON;
 
 public class RouteEventSubscriber {
     private final BiConsumer<String, Long> dirtyMarker;
-    private final TopicRouteService topicRouteService;
     private final DefaultMQPushConsumer consumer;
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    public RouteEventSubscriber(TopicRouteService topicRouteService, BiConsumer<String, Long> dirtyMarker) {
-        this.topicRouteService = topicRouteService;
+    public RouteEventSubscriber(BiConsumer<String, Long> dirtyMarker) {
         this.dirtyMarker = dirtyMarker;
         this.consumer = new DefaultMQPushConsumer("PROXY_ROUTE_EVENT_GROUP");
         this.consumer.setMessageModel(MessageModel.BROADCASTING);
@@ -70,29 +67,20 @@ public class RouteEventSubscriber {
                 Map<String, Object> event = JSON.parseObject(json, Map.class);
 
                 LOGGER.info("[ROUTE_EVENT]: accept event {}", event);
-                String brokerName = (String) event.get(RouteEventConstants.BROKER_NAME);
                 RouteEventType eventType = RouteEventType.valueOf((String) event.get(RouteEventConstants.EVENT_TYPE));
                 Long eventTimeStamp = (Long) event.get(RouteEventConstants.TIMESTAMP);
 
 
                 switch (eventType) {
-                    case SHUTDOWN:
-                        Set<String> topics  = this.topicRouteService.getBrokerTopics(brokerName);
-                        this.topicRouteService.removeBrokerToTopics(brokerName);
-
-                        for (String topic : topics) {
-                            dirtyMarker.accept(topic, eventTimeStamp);
-                        }
-                        break;
-                    
                     case START:
+                    case SHUTDOWN:
                     case TOPIC_CHANGE:
-                        String affectedTopic = (String) event.get(RouteEventConstants.AFFECTED_TOPIC);
+                        List<String> affectedTopics = (List<String>) event.get(RouteEventConstants.AFFECTED_TOPICS);
 
-                        if (affectedTopic != null) {
-                            this.topicRouteService.removeBrokerToTopic(brokerName, affectedTopic);
-
-                            dirtyMarker.accept(affectedTopic, eventTimeStamp);
+                        if (affectedTopics != null) {
+                            for (String topic : affectedTopics) {
+                                dirtyMarker.accept(topic, eventTimeStamp);
+                            }
                         } else {
                             LOGGER.info("[ROUTE_UPDATE] No affected topic specified in event: {}", event);
                         }
