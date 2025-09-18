@@ -96,9 +96,6 @@ public class DefaultMessageStoreCleanFilesTest {
         assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
         cleanCommitLogService.isSpaceFull();
         assertEquals(1 << 4, messageStore.getRunningFlags().getFlagBits() & (1 << 4));
-        messageStore.shutdown();
-        messageStore.destroy();
-
     }
 
     @Test
@@ -131,9 +128,6 @@ public class DefaultMessageStoreCleanFilesTest {
         cleanCommitLogService.isSpaceFull();
 
         assertEquals(1 << 4, messageStore.getRunningFlags().getFlagBits() & (1 << 4));
-        messageStore.shutdown();
-        messageStore.destroy();
-
     }
 
     @Test
@@ -516,12 +510,15 @@ public class DefaultMessageStoreCleanFilesTest {
 
     @After
     public void destroy() {
+
         messageStore.shutdown();
         messageStore.destroy();
 
-        MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
-        File file = new File(messageStoreConfig.getStorePathRootDir());
-        UtilAll.deleteFile(file);
+        if (messageStore != null) {
+            MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
+            File file = new File(messageStoreConfig.getStorePathRootDir());
+            UtilAll.deleteFile(file);
+        }
     }
 
     private class MessageStoreConfigForTest extends MessageStoreConfig {

@@ -238,6 +238,13 @@ public class MessageStoreConfig {
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 
+    /**
+     * When true, use RandomAccessFile for writing instead of MappedByteBuffer.
+     * This can be useful for certain scenarios where mmap is not desired.
+     */
+    @ImportantField
+    private boolean writeWithoutMmap = false;
+
     // DLedger message store config
     private boolean enableDLegerCommitLog = false;
     private String dLegerGroup;
@@ -463,6 +470,13 @@ public class MessageStoreConfig {
     private int rocksdbFlushWalFrequency = 1024;
 
     private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
+
+    /**
+     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH
+     * and the storeType was defaultRocksDB. This switch is not recommended for normal use cases (include master-slave
+     * or controller mode).
+     */
+    private boolean enableAcceleratedRecovery = false;
 
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
@@ -1138,6 +1152,14 @@ public class MessageStoreConfig {
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
         this.transientStorePoolEnable = transientStorePoolEnable;
+    }
+
+    public boolean isWriteWithoutMmap() {
+        return writeWithoutMmap;
+    }
+
+    public void setWriteWithoutMmap(final boolean writeWithoutMmap) {
+        this.writeWithoutMmap = writeWithoutMmap;
     }
 
     public int getTransientStorePoolSize() {
@@ -2008,7 +2030,16 @@ public class MessageStoreConfig {
         return enableLogConsumeQueueRepeatedlyBuildWhenRecover;
     }
 
-    public void setEnableLogConsumeQueueRepeatedlyBuildWhenRecover(boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover) {
+    public void setEnableLogConsumeQueueRepeatedlyBuildWhenRecover(
+        boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover) {
         this.enableLogConsumeQueueRepeatedlyBuildWhenRecover = enableLogConsumeQueueRepeatedlyBuildWhenRecover;
+    }
+
+    public boolean isEnableAcceleratedRecovery() {
+        return enableAcceleratedRecovery;
+    }
+
+    public void setEnableAcceleratedRecovery(boolean enableAcceleratedRecovery) {
+        this.enableAcceleratedRecovery = enableAcceleratedRecovery;
     }
 }

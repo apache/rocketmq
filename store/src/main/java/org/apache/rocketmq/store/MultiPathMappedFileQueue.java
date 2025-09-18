@@ -37,9 +37,15 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
     private final Supplier<Set<String>> fullStorePathsSupplier;
 
     public MultiPathMappedFileQueue(MessageStoreConfig messageStoreConfig, int mappedFileSize,
+        AllocateMappedFileService allocateMappedFileService,
+        Supplier<Set<String>> fullStorePathsSupplier) {
+        this(messageStoreConfig, mappedFileSize, allocateMappedFileService, fullStorePathsSupplier, null);
+    }
+    public MultiPathMappedFileQueue(MessageStoreConfig messageStoreConfig, int mappedFileSize,
                                     AllocateMappedFileService allocateMappedFileService,
-                                    Supplier<Set<String>> fullStorePathsSupplier) {
-        super(messageStoreConfig.getStorePathCommitLog(), mappedFileSize, allocateMappedFileService);
+                                    Supplier<Set<String>> fullStorePathsSupplier, RunningFlags runningFlags) {
+        super(messageStoreConfig.getStorePathCommitLog(), mappedFileSize, allocateMappedFileService, runningFlags,
+              messageStoreConfig.isWriteWithoutMmap());
         this.config = messageStoreConfig;
         this.fullStorePathsSupplier = fullStorePathsSupplier;
     }

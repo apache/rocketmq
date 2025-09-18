@@ -160,6 +160,7 @@ public class DefaultMessageStore implements MessageStore {
 
     protected StoreCheckpoint storeCheckpoint;
     private TimerMessageStore timerMessageStore;
+    private final DefaultStoreMetricsManager defaultStoreMetricsManager;
 
     private final LinkedList<CommitLogDispatcher> dispatcherList = new LinkedList<>();
 
@@ -213,6 +214,7 @@ public class DefaultMessageStore implements MessageStore {
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
         final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
+        stateMachine = new MessageStoreStateMachine(LOGGER);
         this.messageArrivingListener = messageArrivingListener;
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
@@ -237,6 +239,8 @@ public class DefaultMessageStore implements MessageStore {
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig.getTransientStorePoolSize(), messageStoreConfig.getMappedFileSizeCommitLog());
 
+        this.defaultStoreMetricsManager = new DefaultStoreMetricsManager();
+
         this.scheduledExecutorService =
             ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
 
@@ -253,8 +257,6 @@ public class DefaultMessageStore implements MessageStore {
         lockFile = new RandomAccessFile(file, "rw");
 
         parseDelayLevel();
-
-        stateMachine = new MessageStoreStateMachine(LOGGER);
     }
 
     public ConsumeQueueStoreInterface createConsumeQueueStore() {
@@ -389,7 +391,7 @@ public class DefaultMessageStore implements MessageStore {
 
         lock = lockFile.getChannel().tryLock(0, 1, false);
         if (lock == null || lock.isShared() || !lock.isValid()) {
-            throw new RuntimeException("Lock failed,MQ already started");
+            throw new RuntimeException("Lock failed, MQ already started, lock status: " + lock);
         }
 
         lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes(StandardCharsets.UTF_8)));
@@ -473,18 +475,21 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void shutdown() {
-        if (!this.shutdown) {
+        if (!this.stateMachine.getCurrentState().equals(MessageStoreStateMachine.MessageStoreState.SHUTDOWN_OK)) {
             this.shutdown = true;
             this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.SHUTDOWN_BEGIN);
 
-            this.scheduledExecutorService.shutdown();
+            if (this.scheduledExecutorService != null) {
+                this.scheduledExecutorService.shutdown();
+            }
+
             this.scheduledCleanQueueExecutorService.shutdown();
 
             try {
                 this.scheduledExecutorService.awaitTermination(3, TimeUnit.SECONDS);
                 this.scheduledCleanQueueExecutorService.awaitTermination(3, TimeUnit.SECONDS);
                 Thread.sleep(1000 * 3);
-            } catch (InterruptedException e) {
+            } catch (Exception e) {
                 LOGGER.error("shutdown Exception, ", e);
             }
 
@@ -492,18 +497,41 @@ public class DefaultMessageStore implements MessageStore {
                 this.haService.shutdown();
             }
 
-            this.storeStatsService.shutdown();
-            this.commitLog.shutdown();
-            this.reputMessageService.shutdown();
-            this.consumeQueueStore.shutdown();
+            if (this.storeStatsService != null) {
+                this.storeStatsService.shutdown();
+            }
+
+            if (this.commitLog != null) {
+                this.commitLog.shutdown();
+            }
+
+            if (this.reputMessageService != null) {
+                this.reputMessageService.shutdown();
+            }
+
+            if (this.consumeQueueStore != null) {
+                this.consumeQueueStore.shutdown();
+            }
+
             // dispatch-related services must be shut down after reputMessageService
-            this.indexService.shutdown();
+            if (this.indexService != null) {
+                this.indexService.shutdown();
+            }
+
             if (this.compactionService != null) {
                 this.compactionService.shutdown();
             }
-            this.allocateMappedFileService.shutdown();
-            this.storeCheckpoint.shutdown();
+
+            if (this.allocateMappedFileService != null) {
+                this.allocateMappedFileService.shutdown();
+            }
+
+            if (this.storeCheckpoint != null) {
+                this.storeCheckpoint.shutdown();
+            }
+
             this.perfs.shutdown();
+
             if (this.runningFlags.isWriteable() && dispatchBehindBytes() == 0) {
                 this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
                 shutDownNormal = true;
@@ -513,13 +541,23 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
-        this.transientStorePool.destroy();
+        if (this.transientStorePool != null) {
+            this.transientStorePool.destroy();
+        }
 
-        if (lockFile != null && lock != null) {
+        if (lock != null) {
             try {
                 lock.release();
+            } catch (IOException e) {
+                LOGGER.error("release file lock error", e);
+            }
+        }
+
+        if (lockFile != null) {
+            try {
                 lockFile.close();
-            } catch (IOException ignored) {
+            } catch (Throwable e) {
+                LOGGER.error("lock file close error", e);
             }
         }
     }
@@ -1802,6 +1840,7 @@ public class DefaultMessageStore implements MessageStore {
         File file = new File(fileName);
         return file.exists();
     }
+
     @Override
     public long getTimingMessageCount(String topic) {
         if (null == timerMessageStore) {
@@ -2970,12 +3009,12 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
-        return DefaultStoreMetricsManager.getMetricsView();
+        return this.defaultStoreMetricsManager.getMetricsView();
     }
 
     @Override
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
-        DefaultStoreMetricsManager.init(meter, attributesBuilderSupplier, this);
+        this.defaultStoreMetricsManager.init(meter, attributesBuilderSupplier, this);
     }
 
     /**
@@ -3019,6 +3058,10 @@ public class DefaultMessageStore implements MessageStore {
 
     public void setNotifyMessageArriveInBatch(boolean notifyMessageArriveInBatch) {
         this.notifyMessageArriveInBatch = notifyMessageArriveInBatch;
+    }
+
+    public DefaultStoreMetricsManager getDefaultStoreMetricsManager() {
+        return defaultStoreMetricsManager;
     }
 
 }

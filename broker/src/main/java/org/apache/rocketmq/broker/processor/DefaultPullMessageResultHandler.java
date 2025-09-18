@@ -122,13 +122,13 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
                 this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), getMessageResult.getMessageCount());
 
                 if (!BrokerMetricsManager.isRetryOrDlqTopic(requestHeader.getTopic())) {
-                    Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                    Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                         .put(LABEL_TOPIC, requestHeader.getTopic())
                         .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
                         .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
                         .build();
-                    BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
-                    BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
+                    this.brokerController.getBrokerMetricsManager().getMessagesOutTotal().add(getMessageResult.getMessageCount(), attributes);
+                    this.brokerController.getBrokerMetricsManager().getThroughputOutTotal().add(getMessageResult.getBufferTotalSize(), attributes);
                 }
 
                 if (!channelIsWritable(channel, requestHeader)) {

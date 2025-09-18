@@ -38,6 +38,8 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
     private final MessageStore messageStore;
     private volatile ColumnFamilyHandle offsetCFHandle;
 
+    private ConsumeQueueCompactionFilterFactory compactionFilterFactory;
+
     public ConsumeQueueRocksDBStorage(final MessageStore messageStore, final String dbPath) {
         super(dbPath);
         this.messageStore = messageStore;
@@ -65,7 +67,9 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
 
             final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
 
-            ColumnFamilyOptions cqCfOptions = RocksDBOptionsFactory.createCQCFOptions(this.messageStore);
+            this.compactionFilterFactory = new ConsumeQueueCompactionFilterFactory(messageStore::getMinPhyOffset);
+
+            ColumnFamilyOptions cqCfOptions = RocksDBOptionsFactory.createCQCFOptions(this.messageStore, this.compactionFilterFactory);
             this.cfOptions.add(cqCfOptions);
             cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cqCfOptions));
 
@@ -84,7 +88,14 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
 
     @Override
     protected void preShutdown() {
-        this.offsetCFHandle.close();
+        if (this.offsetCFHandle != null) {
+            this.offsetCFHandle.close();
+        }
+
+        if (this.compactionFilterFactory != null) {
+            this.compactionFilterFactory.close();
+        }
+
     }
 
     public byte[] getCQ(final byte[] keyBytes) throws RocksDBException {
@@ -95,7 +106,8 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
         return get(this.offsetCFHandle, this.totalOrderReadOptions, keyBytes);
     }
 
-    public List<byte[]> multiGet(final List<ColumnFamilyHandle> cfhList, final List<byte[]> keys) throws RocksDBException {
+    public List<byte[]> multiGet(final List<ColumnFamilyHandle> cfhList,
+        final List<byte[]> keys) throws RocksDBException {
         return multiGet(this.totalOrderReadOptions, cfhList, keys);
     }
 

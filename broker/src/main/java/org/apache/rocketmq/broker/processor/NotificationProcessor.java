@@ -55,6 +55,10 @@ public class NotificationProcessor implements NettyRequestProcessor {
         this.popLongPollingService = new PopLongPollingService(brokerController, this, true);
     }
 
+    public void shutdown() throws Exception {
+        this.popLongPollingService.shutdown();
+    }
+
     @Override
     public boolean rejectRequest() {
         return false;

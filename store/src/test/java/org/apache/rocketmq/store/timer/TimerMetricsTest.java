@@ -62,6 +62,7 @@ public class TimerMetricsTest {
     }
 
     @Test
+    @SuppressWarnings("DoubleBraceInitialization")
     public void testTimingDistribution() {
         String baseDir = StoreTestUtils.createBaseDir();
         TimerMetrics first = new TimerMetrics(baseDir);

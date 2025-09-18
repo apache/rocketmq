@@ -320,6 +320,8 @@ public class BrokerController {
     private AuthorizationMetadataManager authorizationMetadataManager;
     private MetadataChangeObserver metadataChangeObserver;
 
+    private ConfigContext configContext;
+
     public BrokerController(
         final BrokerConfig brokerConfig,
         final NettyServerConfig nettyServerConfig,
@@ -337,6 +339,14 @@ public class BrokerController {
         final MessageStoreConfig messageStoreConfig
     ) {
         this(brokerConfig, null, null, messageStoreConfig, null);
+    }
+
+    public BrokerController(
+        final BrokerConfig brokerConfig,
+        final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig
+    ) {
+        this(brokerConfig, null, null, messageStoreConfig, authConfig);
     }
 
     public BrokerController(
@@ -515,6 +525,10 @@ public class BrokerController {
 
     public BrokerMetricsManager getBrokerMetricsManager() {
         return brokerMetricsManager;
+    }
+
+    public void setBrokerMetricsManager(BrokerMetricsManager brokerMetricsManager) {
+        this.brokerMetricsManager = brokerMetricsManager;
     }
 
     protected void initializeRemotingServer() throws CloneNotSupportedException {
@@ -1647,6 +1661,18 @@ public class BrokerController {
             this.transactionalMessageService.close();
         }
 
+        if (this.transactionalMessageCheckListener != null) {
+            this.transactionalMessageCheckListener.shutdown();
+        }
+
+        if (transactionalMessageCheckService != null) {
+            this.transactionalMessageCheckService.shutdown();
+        }
+
+        if (transactionMetricsFlushService != null) {
+            this.transactionMetricsFlushService.shutdown();
+        }
+
         if (this.notificationProcessor != null) {
             this.notificationProcessor.getPopLongPollingService().shutdown();
         }
@@ -1668,10 +1694,6 @@ public class BrokerController {
 
         if (this.broadcastOffsetManager != null) {
             this.broadcastOffsetManager.shutdown();
-        }
-
-        if (this.messageStore != null) {
-            this.messageStore.shutdown();
         }
 
         if (this.replicasManager != null) {
@@ -1812,6 +1834,10 @@ public class BrokerController {
             if (brokerAttachedPlugin != null) {
                 brokerAttachedPlugin.shutdown();
             }
+        }
+
+        if (this.messageStore != null) {
+            this.messageStore.shutdown();
         }
     }
 
@@ -2816,5 +2842,11 @@ public class BrokerController {
         this.coldDataCgCtrService = coldDataCgCtrService;
     }
 
+    public ConfigContext getConfigContext() {
+        return configContext;
+    }
 
+    public void setConfigContext(ConfigContext configContext) {
+        this.configContext = configContext;
+    }
 }
