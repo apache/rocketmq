@@ -111,8 +111,13 @@ public class TimerLog {
     }
 
     public void shutdown() {
-        this.mappedFileQueue.flush(0);
-        //it seems do not need to call shutdown
+        try {
+            this.mappedFileQueue.flush(0);
+        } catch (Throwable e) {
+            log.error("flush error when shutdown", e);
+        }
+
+        this.mappedFileQueue.cleanResourcesAll();
     }
 
     // be careful.

@@ -176,13 +176,13 @@ public class AllocateMappedFileService extends ServiceThread {
                 if (messageStore.isTransientStorePoolEnable()) {
                     try {
                         mappedFile = ServiceLoader.load(MappedFile.class).iterator().next();
-                        mappedFile.init(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
+                        mappedFile.init(req.getFilePath(), req.getFileSize(), messageStore.getRunningFlags(), messageStore.getTransientStorePool());
                     } catch (RuntimeException e) {
                         log.warn("Use default implementation.");
-                        mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool(), writeWithoutMmap);
+                        mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), messageStore.getRunningFlags(), messageStore.getTransientStorePool(), writeWithoutMmap);
                     }
                 } else {
-                    mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), writeWithoutMmap);
+                    mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), messageStore.getRunningFlags(), writeWithoutMmap);
                 }
 
                 long elapsedTime = UtilAll.computeElapsedTimeMilliseconds(beginTime);

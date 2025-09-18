@@ -73,7 +73,9 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
         if (MixAll.isMac()) {
             return;
         }
-        messageStore.shutdown();
+        if (!messageStore.isShutdown()) {
+            messageStore.shutdown();
+        }
         messageStore.destroy();
 
         File file = new File(messageStore.getMessageStoreConfig().getStorePathRootDir());

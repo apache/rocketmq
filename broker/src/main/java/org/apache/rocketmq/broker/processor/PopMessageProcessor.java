@@ -123,6 +123,12 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         this.ckMessageNumber = new AtomicLong();
     }
 
+    public void shutdown() throws Exception {
+        popLongPollingService.shutdown();
+        queueLockManager.shutdown();
+        popBufferMergeService.shutdown();
+    }
+
     protected String getReviveTopic() {
         return reviveTopic;
     }

@@ -53,7 +53,9 @@ public class MappedFileQueue implements Swappable {
     protected long committedWhere = 0;
 
     protected volatile long storeTimestamp = 0;
-    
+
+    protected RunningFlags runningFlags;
+
     /**
      * Configuration flag to use RandomAccessFile instead of MappedByteBuffer for writing
      */
@@ -61,16 +63,25 @@ public class MappedFileQueue implements Swappable {
 
     public MappedFileQueue(final String storePath, int mappedFileSize,
         AllocateMappedFileService allocateMappedFileService) {
-        this.storePath = storePath;
-        this.mappedFileSize = mappedFileSize;
-        this.allocateMappedFileService = allocateMappedFileService;
+        this(storePath, mappedFileSize, allocateMappedFileService, null, false);
+    }
+
+    public MappedFileQueue(final String storePath, int mappedFileSize,
+        AllocateMappedFileService allocateMappedFileService, RunningFlags runningFlags) {
+        this(storePath, mappedFileSize, allocateMappedFileService, runningFlags, false);
     }
 
     public MappedFileQueue(final String storePath, int mappedFileSize,
         AllocateMappedFileService allocateMappedFileService, boolean writeWithoutMmap) {
+        this(storePath, mappedFileSize, allocateMappedFileService, null, writeWithoutMmap);
+    }
+
+    public MappedFileQueue(final String storePath, int mappedFileSize,
+        AllocateMappedFileService allocateMappedFileService, RunningFlags runningFlags, boolean writeWithoutMmap) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.allocateMappedFileService = allocateMappedFileService;
+        this.runningFlags = runningFlags;
         this.writeWithoutMmap = writeWithoutMmap;
     }
 
@@ -279,7 +290,7 @@ public class MappedFileQueue implements Swappable {
             }
 
             try {
-                MappedFile mappedFile = new DefaultMappedFile(file.getPath(), mappedFileSize, writeWithoutMmap);
+                MappedFile mappedFile = new DefaultMappedFile(file.getPath(), mappedFileSize, runningFlags, writeWithoutMmap);
 
                 mappedFile.setWrotePosition(this.mappedFileSize);
                 mappedFile.setFlushedPosition(this.mappedFileSize);
@@ -369,7 +380,7 @@ public class MappedFileQueue implements Swappable {
                     nextNextFilePath, this.mappedFileSize);
         } else {
             try {
-                mappedFile = new DefaultMappedFile(nextFilePath, this.mappedFileSize, this.writeWithoutMmap);
+                mappedFile = new DefaultMappedFile(nextFilePath, this.mappedFileSize, runningFlags, this.writeWithoutMmap);
             } catch (IOException e) {
                 log.error("create mappedFile exception", e);
             }
@@ -785,6 +796,12 @@ public class MappedFileQueue implements Swappable {
     public void shutdown(final long intervalForcibly) {
         for (MappedFile mf : this.mappedFiles) {
             mf.shutdown(intervalForcibly);
+        }
+    }
+
+    public void cleanResourcesAll() {
+        for (MappedFile mf : this.mappedFiles) {
+            mf.cleanResources();
         }
     }
 

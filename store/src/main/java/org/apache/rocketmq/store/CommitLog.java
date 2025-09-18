@@ -114,11 +114,12 @@ public class CommitLog implements Swappable {
         if (storePath.contains(MixAll.MULTI_PATH_SPLITTER)) {
             this.mappedFileQueue = new MultiPathMappedFileQueue(messageStore.getMessageStoreConfig(),
                 messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
-                messageStore.getAllocateMappedFileService(), this::getFullStorePaths);
+                messageStore.getAllocateMappedFileService(), this::getFullStorePaths, messageStore.getRunningFlags());
         } else {
             this.mappedFileQueue = new MappedFileQueue(storePath,
                 messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
                 messageStore.getAllocateMappedFileService(),
+                messageStore.getRunningFlags(),
                 messageStore.getMessageStoreConfig().isWriteWithoutMmap());
         }
 
@@ -175,6 +176,10 @@ public class CommitLog implements Swappable {
         return result;
     }
 
+    public void cleanResourceAll() {
+        mappedFileQueue.cleanResourcesAll();
+    }
+
     public void start() {
         this.flushManager.start();
         log.info("start commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
@@ -186,12 +191,17 @@ public class CommitLog implements Swappable {
     }
 
     public void shutdown() {
-        this.flushManager.shutdown();
-        log.info("shutdown commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
-        flushDiskWatcher.shutdown(true);
+        if (this.flushManager != null) {
+            this.flushManager.shutdown();
+        }
+        if (flushDiskWatcher != null) {
+            flushDiskWatcher.shutdown(true);
+        }
         if (this.coldDataCheckService != null) {
             this.coldDataCheckService.shutdown();
         }
+        putMessageThreadLocal.remove();
+        log.info("shutdown commitLog successfully. storeRoot: {}", this.defaultMessageStore.getMessageStoreConfig().getStorePathRootDir());
     }
 
     public long flush() {
@@ -1346,6 +1356,9 @@ public class CommitLog implements Swappable {
      * According to receive certain message or offset storage time if an error occurs, it returns -1
      */
     public long pickupStoreTimestamp(final long offset, final int size) {
+        if (defaultMessageStore.isShutdown()) {
+            throw new RuntimeException("message store has shutdown");
+        }
         if (offset >= this.getMinOffset() && offset + size <= this.getMaxOffset()) {
             SelectMappedBufferResult result = this.getMessage(offset, size);
             if (null != result) {
