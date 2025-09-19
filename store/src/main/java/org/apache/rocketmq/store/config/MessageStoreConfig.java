@@ -239,8 +239,11 @@ public class MessageStoreConfig {
     private boolean fastFailIfNoBufferInStorePool = false;
 
     /**
-     * When true, use RandomAccessFile for writing instead of MappedByteBuffer.
-     * This can be useful for certain scenarios where mmap is not desired.
+     * When true, use RandomAccessFile for writing instead of MappedByteBuffer. This can be useful for certain scenarios
+     * where mmap is not desired.
+     *
+     * The configurations writeWithoutMmap and transientStorePoolEnable are mutually exclusive. When both are set to
+     * true, only transientStorePoolEnable will be effective.
      */
     @ImportantField
     private boolean writeWithoutMmap = false;
