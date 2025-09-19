@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.attribute.BooleanAttribute;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.EnumAttribute;
 import org.apache.rocketmq.common.attribute.LongRangeAttribute;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -61,6 +62,9 @@ public class RocksdbTopicConfigManagerTest {
     private BrokerController brokerController;
 
     @Mock
+    private NoopMetadataChangeObserver noopMetadataChangeObserver;
+
+    @Mock
     private DefaultMessageStore defaultMessageStore;
 
     @Before
@@ -76,6 +80,7 @@ public class RocksdbTopicConfigManagerTest {
         Mockito.lenient().when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
         Mockito.lenient().when(defaultMessageStore.getStateMachineVersion()).thenReturn(0L);
         topicConfigManager = new RocksDBTopicConfigManager(brokerController);
+        Mockito.doReturn(noopMetadataChangeObserver).when(brokerController).getMetadataChangeObserver();
         topicConfigManager.load();
     }
 

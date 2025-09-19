@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -54,6 +55,9 @@ public class TopicConfigManagerV2Test {
     @Rule
     public TemporaryFolder tf = new TemporaryFolder();
 
+    @Mock
+    private NoopMetadataChangeObserver syncMetadataChangeObserver;
+
     @After
     public void cleanUp() {
         if (null != configStorage) {
@@ -70,7 +74,7 @@ public class TopicConfigManagerV2Test {
         messageStoreConfig = new MessageStoreConfig();
         Mockito.doReturn(messageStoreConfig).when(controller).getMessageStoreConfig();
         Mockito.doReturn(messageStore).when(controller).getMessageStore();
-
+        Mockito.doReturn(syncMetadataChangeObserver).when(controller).getMetadataChangeObserver();
         File configStoreDir = tf.newFolder();
         messageStoreConfig.setStorePathRootDir(configStoreDir.getAbsolutePath());
 

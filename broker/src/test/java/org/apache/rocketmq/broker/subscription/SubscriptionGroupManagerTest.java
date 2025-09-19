@@ -28,6 +28,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SubscriptionGroupAttributes;
 import org.apache.rocketmq.common.attribute.BooleanAttribute;
@@ -60,6 +61,9 @@ public class SubscriptionGroupManagerTest {
     private BrokerController brokerControllerMock;
     private SubscriptionGroupManager subscriptionGroupManager;
 
+    @Mock
+    private NoopMetadataChangeObserver syncMetadataChangeObserver;
+
     @Before
     public void before() {
         SubscriptionGroupAttributes.ALL.put("test", new BooleanAttribute(
@@ -71,6 +75,9 @@ public class SubscriptionGroupManagerTest {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(basePath);
         Mockito.lenient().when(brokerControllerMock.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+        if (!notToBeExecuted()) {
+            Mockito.doReturn(syncMetadataChangeObserver).when(brokerControllerMock).getMetadataChangeObserver();
+        }
     }
 
     @After

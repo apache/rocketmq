@@ -27,6 +27,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
@@ -64,6 +65,9 @@ public class TopicConfigManagerTest {
     @Mock
     private DefaultMessageStore defaultMessageStore;
 
+    @Mock
+    private NoopMetadataChangeObserver syncMetadataChangeObserver;
+
     @Before
     public void init() {
         BrokerConfig brokerConfig = new BrokerConfig();
@@ -74,6 +78,7 @@ public class TopicConfigManagerTest {
         Mockito.lenient().when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
         when(defaultMessageStore.getStateMachineVersion()).thenReturn(0L);
         topicConfigManager = new TopicConfigManager(brokerController);
+        Mockito.doReturn(syncMetadataChangeObserver).when(brokerController).getMetadataChangeObserver();
     }
 
     @Test

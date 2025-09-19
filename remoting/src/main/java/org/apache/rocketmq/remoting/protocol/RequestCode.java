@@ -202,9 +202,9 @@ public class RequestCode {
     public static final int PUSH_REPLY_MESSAGE_TO_CLIENT = 326;
 
     public static final int ADD_WRITE_PERM_OF_BROKER = 327;
-    
+
     public static final int GET_ALL_PRODUCER_INFO = 328;
-    
+
     public static final int DELETE_EXPIRED_COMMITLOG = 329;
 
     public static final int GET_TOPIC_CONFIG = 351;
@@ -239,11 +239,14 @@ public class RequestCode {
 
     public static final int RESET_MASTER_FLUSH_OFFSET = 908;
 
-    /**
-     * Controller code
-     */
-    public static final int CONTROLLER_ALTER_SYNC_STATE_SET = 1001;
+    public static final int GET_CONSUMER_OFFSET_SNAPSHOT = 614;
+    public static final int GET_SUBSCRIPTION_GROUP_SNAPSHOT = 615;
+    public static final int GET_TOPIC_CONFIG_SNAPSHOT = 616;
+    public static final int GET_DELAY_OFFSET_SNAPSHOT = 617;
+    public static final int GET_TOPIC_METRICS_SNAPSHOT = 618;
+    public static final int GET_MESSAGE_REQUEST_MODE_SNAPSHOT = 619;
 
+    public static final int CONTROLLER_ALTER_SYNC_STATE_SET = 1001;
     public static final int CONTROLLER_ELECT_MASTER = 1002;
 
     public static final int CONTROLLER_REGISTER_BROKER = 1003;

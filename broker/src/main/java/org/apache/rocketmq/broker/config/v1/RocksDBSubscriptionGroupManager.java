@@ -128,8 +128,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
     @Override
     public SubscriptionGroupConfig putSubscriptionGroupConfig(SubscriptionGroupConfig subscriptionGroupConfig) {
         String groupName = subscriptionGroupConfig.getGroupName();
-        SubscriptionGroupConfig oldConfig = this.subscriptionGroupTable.put(groupName, subscriptionGroupConfig);
-
+        SubscriptionGroupConfig oldConfig = super.putSubscriptionGroupConfig(subscriptionGroupConfig);
         try {
             byte[] keyBytes = groupName.getBytes(DataConverter.CHARSET_UTF8);
             byte[] valueBytes = JSON.toJSONBytes(subscriptionGroupConfig, SerializerFeature.BrowserCompatible);
@@ -143,7 +142,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
     @Override
     protected SubscriptionGroupConfig putSubscriptionGroupConfigIfAbsent(SubscriptionGroupConfig subscriptionGroupConfig) {
         String groupName = subscriptionGroupConfig.getGroupName();
-        SubscriptionGroupConfig oldConfig = this.subscriptionGroupTable.putIfAbsent(groupName, subscriptionGroupConfig);
+        SubscriptionGroupConfig oldConfig = super.putSubscriptionGroupConfigIfAbsent(subscriptionGroupConfig);
         if (oldConfig == null) {
             try {
                 byte[] keyBytes = groupName.getBytes(DataConverter.CHARSET_UTF8);
@@ -158,7 +157,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
     @Override
     protected SubscriptionGroupConfig removeSubscriptionGroupConfig(String groupName) {
-        SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.remove(groupName);
+        SubscriptionGroupConfig subscriptionGroupConfig = super.removeSubscriptionGroupConfig(groupName);
         try {
             this.rocksDBConfigManager.delete(groupName.getBytes(DataConverter.CHARSET_UTF8));
         } catch (Exception e) {

@@ -43,6 +43,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -122,9 +123,9 @@ public class TimerMessageStoreTest {
         if (null == rootDir) {
             rootDir = StoreTestUtils.createBaseDir();
         }
-
+        NoopMetadataChangeObserver noopMetadataChangeObserver = new NoopMetadataChangeObserver();
         TimerCheckpoint timerCheckpoint = new TimerCheckpoint(rootDir + File.separator + "config" + File.separator + "timercheck");
-        TimerMetrics timerMetrics = new TimerMetrics(rootDir + File.separator + "config" + File.separator + "timermetrics");
+        TimerMetrics timerMetrics = new TimerMetrics(rootDir + File.separator + "config" + File.separator + "timermetrics", noopMetadataChangeObserver);
         MessageStore ms = needMock ? mockMessageStore : messageStore;
         TimerMessageStore timerMessageStore = new TimerMessageStore(ms, storeConfig, timerCheckpoint, timerMetrics, null);
         ms.setTimerMessageStore(timerMessageStore);

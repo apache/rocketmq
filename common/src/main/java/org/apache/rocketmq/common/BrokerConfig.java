@@ -411,7 +411,7 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean usePIDColdCtrStrategy = true;
     private long cgColdReadThreshold = 3 * 1024 * 1024;
     private long globalColdReadThreshold = 100 * 1024 * 1024;
-    
+
     /**
      * The interval to fetch namesrv addr, default value is 10 second
      */
@@ -478,6 +478,38 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean enableRegisterProducer = true;
 
     private boolean enableCreateSysGroup = true;
+
+    private boolean allowMetadataIncrementalSync = false;
+
+    private int snapshotIntervalSeconds = 600;
+
+    private int metadataIncrementalSyncThreadPoolNums = 1;
+
+    private int incrementalSyncConsumerLagThreshold = 50;
+
+    public int getMetadataIncrementalSyncThreadPoolNums() {
+        return metadataIncrementalSyncThreadPoolNums;
+    }
+
+    public void setMetadataIncrementalSyncThreadPoolNums(int metadataIncrementalSyncThreadPoolNums) {
+        this.metadataIncrementalSyncThreadPoolNums = metadataIncrementalSyncThreadPoolNums;
+    }
+
+    public int getSnapshotIntervalSeconds() {
+        return snapshotIntervalSeconds;
+    }
+
+    public void setSnapshotIntervalSeconds(int snapshotIntervalSeconds) {
+        this.snapshotIntervalSeconds = snapshotIntervalSeconds;
+    }
+
+    public boolean isAllowMetadataIncrementalSync() {
+        return allowMetadataIncrementalSync;
+    }
+
+    public void setAllowMetadataIncrementalSync(boolean allowMetadataIncrementalSync) {
+        this.allowMetadataIncrementalSync = allowMetadataIncrementalSync;
+    }
 
     public String getConfigBlackList() {
         return configBlackList;
@@ -1963,11 +1995,11 @@ public class BrokerConfig extends BrokerIdentity {
     public void setUseStaticSubscription(boolean useStaticSubscription) {
         this.useStaticSubscription = useStaticSubscription;
     }
-    
+
     public long getFetchNamesrvAddrInterval() {
         return fetchNamesrvAddrInterval;
     }
-    
+
     public void setFetchNamesrvAddrInterval(final long fetchNamesrvAddrInterval) {
         this.fetchNamesrvAddrInterval = fetchNamesrvAddrInterval;
     }
@@ -2162,5 +2194,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setSplitMetadataSize(int splitMetadataSize) {
         this.splitMetadataSize = splitMetadataSize;
+    }
+
+    public int getIncrementalSyncConsumerLagThreshold() {
+        return incrementalSyncConsumerLagThreshold;
+    }
+
+    public void setIncrementalSyncConsumerLagThreshold(int incrementalSyncConsumerLagThreshold) {
+        this.incrementalSyncConsumerLagThreshold = incrementalSyncConsumerLagThreshold;
     }
 }

@@ -116,11 +116,26 @@ public class ScheduleMessageService extends ConfigManager {
     }
 
     private void updateOffset(int delayLevel, long offset) {
-        this.offsetTable.put(delayLevel, offset);
+        this.offsetTable.compute(delayLevel, (key, existingConfig) -> {
+            if (existingConfig == null) {
+                notifyDelayOffsetCreated(delayLevel, offset);
+            } else {
+                notifyDelayOffsetUpdated(delayLevel, offset);
+            }
+            return offset;
+        });
         if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getDelayOffsetUpdateVersionStep() == 0) {
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
             dataVersion.nextVersion(stateMachineVersion);
         }
+    }
+
+    private void notifyDelayOffsetCreated(int delayLevel, long offset) {
+        brokerController.getMetadataChangeObserver().onCreated(TopicValidator.RMQ_SYS_DELAY_OFFSET_SYNC, String.valueOf(delayLevel), offset);
+    }
+
+    private void notifyDelayOffsetUpdated(int delayLevel, long offset) {
+        brokerController.getMetadataChangeObserver().onUpdated(TopicValidator.RMQ_SYS_DELAY_OFFSET_SYNC, String.valueOf(delayLevel), offset);
     }
 
     public long computeDeliverTimestamp(final int delayLevel, final long storeTimestamp) {
@@ -266,6 +281,18 @@ public class ScheduleMessageService extends ConfigManager {
             return false;
         }
         return true;
+    }
+
+    public ConcurrentMap<Integer, Long> deepCopyDelayOffsetTable() {
+        ConcurrentMap<Integer, Long> newTable = new ConcurrentHashMap<>(this.offsetTable.size());
+        for (Map.Entry<Integer, Long> entry : this.offsetTable.entrySet()) {
+            Integer level = entry.getKey();
+            Long offset = entry.getValue();
+            if (offset != null) {
+                newTable.put(level, offset);
+            }
+        }
+        return newTable;
     }
 
     @Override

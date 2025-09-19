@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.subscription;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
+import org.apache.rocketmq.common.sync.NoopMetadataChangeObserver;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
@@ -59,6 +60,9 @@ public class RocksdbGroupConfigTransferTest {
     @Mock
     private DefaultMessageStore defaultMessageStore;
 
+    @Mock
+    private NoopMetadataChangeObserver syncMetadataChangeObserver;
+
     @Before
     public void init() {
         if (notToBeExecuted()) {
@@ -66,6 +70,7 @@ public class RocksdbGroupConfigTransferTest {
         }
         BrokerConfig brokerConfig = new BrokerConfig();
         Mockito.lenient().when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
+        Mockito.doReturn(syncMetadataChangeObserver).when(brokerController).getMetadataChangeObserver();
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(basePath);
         Mockito.lenient().when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);

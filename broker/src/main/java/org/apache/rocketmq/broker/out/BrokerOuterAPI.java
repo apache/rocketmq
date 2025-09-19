@@ -17,11 +17,14 @@
 package org.apache.rocketmq.broker.out;
 
 import com.alibaba.fastjson2.JSON;
+
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,6 +38,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import com.alibaba.fastjson2.TypeReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
@@ -100,6 +105,7 @@ import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.MessageRequestModeSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.RegisterBrokerBody;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
@@ -1627,6 +1633,271 @@ public class BrokerOuterAPI {
         return pullResult;
     }
 
+    public Triple<ConcurrentMap<String, TopicConfig>, DataVersion, Long> getTopicConfigSnapShot(String brokerAddr)
+            throws Exception {
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_CONFIG_SNAPSHOT, null);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, 3000);
+        if (response.getCode() != ResponseCode.SUCCESS) {
+            throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
+
+        byte[] body = response.getBody();
+        if (body == null || body.length == 0) {
+            return null;
+        }
+
+        String jsonString = new String(body, StandardCharsets.UTF_8);
+
+        Triple<LinkedHashMap<String, Object>, DataVersion, Long> rawSnapshotData =
+                JSON.parseObject(
+                        jsonString,
+                        new TypeReference<Triple<LinkedHashMap<String, Object>, DataVersion, Long>>() {
+                        }
+                );
+
+        ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        LinkedHashMap<String, Object> linkedMap = rawSnapshotData.getLeft();
+
+        if (linkedMap != null) {
+            for (Map.Entry<String, Object> entry : linkedMap.entrySet()) {
+                String topicName = entry.getKey();
+                Object value = entry.getValue();
+
+                if (value != null) {
+                    try {
+                        String configJson = JSON.toJSONString(value);
+                        TopicConfig topicConfig = JSON.parseObject(configJson, TopicConfig.class);
+
+                        if (topicConfig != null) {
+                            try {
+                                TopicConfig clonedConfig = topicConfig.clone();
+                                topicConfigTable.put(topicName, clonedConfig);
+                            } catch (CloneNotSupportedException e) {
+                                topicConfigTable.put(topicName, topicConfig);
+                            }
+                        }
+                    } catch (Exception e) {
+                        LOGGER.warn("Failed to parse TopicConfig for topic: {}, error: {}", topicName, e.getMessage());
+                    }
+                }
+            }
+        }
+
+        DataVersion dataVersion =
+                JSON.to(DataVersion.class, rawSnapshotData.getMiddle());
+
+        Long maxOffset =
+                JSON.to(Long.class, rawSnapshotData.getRight());
+
+        return Triple.of(topicConfigTable, dataVersion, maxOffset);
+    }
+
+
+    public Triple<ConcurrentMap<String, ConcurrentMap<Integer, Long>>, DataVersion, Long> getConsumerOffsetSnapShot(String brokerAddr)
+            throws Exception {
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_OFFSET_SNAPSHOT, null);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, 3000);
+
+        if (response.getCode() != ResponseCode.SUCCESS) {
+            throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
+
+        byte[] body = response.getBody();
+        if (body == null || body.length == 0) {
+            return null;
+        }
+        String jsonString = new String(body, StandardCharsets.UTF_8);
+        Triple<LinkedHashMap<String, LinkedHashMap<Integer, Long>>, DataVersion, Long> rawSnapshotData =
+                JSON.parseObject(
+                        jsonString,
+                        new TypeReference<Triple<LinkedHashMap<String, LinkedHashMap<Integer, Long>>, DataVersion, Long>>() {
+                        }
+                );
+
+        ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>();
+        LinkedHashMap<String, LinkedHashMap<Integer, Long>> linkedMap = rawSnapshotData.getLeft();
+
+        if (linkedMap != null) {
+            for (Map.Entry<String, LinkedHashMap<Integer, Long>> outerEntry : linkedMap.entrySet()) {
+                ConcurrentMap<Integer, Long> innerConcurrentMap = new ConcurrentHashMap<>(outerEntry.getValue());
+                offsetTable.put(outerEntry.getKey(), innerConcurrentMap);
+            }
+        }
+        DataVersion dataVersion =
+                JSON.to(DataVersion.class, rawSnapshotData.getMiddle());
+
+        Long maxOffset =
+                JSON.to(Long.class, rawSnapshotData.getRight());
+
+        return Triple.of(offsetTable, dataVersion, maxOffset);
+    }
+
+    public Triple<ConcurrentMap<String, SubscriptionGroupConfig>, DataVersion, Long> getSubscriptionGroupSnapShot(String brokerAddr)
+            throws Exception {
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_SUBSCRIPTION_GROUP_SNAPSHOT, null);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, 3000);
+
+        if (response.getCode() != ResponseCode.SUCCESS) {
+            throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
+
+        byte[] body = response.getBody();
+        if (body == null || body.length == 0) {
+            return null;
+        }
+
+        String jsonString = new String(body, StandardCharsets.UTF_8);
+        Triple<LinkedHashMap<String, Object>, DataVersion, Long> rawSnapshotData =
+                JSON.parseObject(
+                        jsonString,
+                        new TypeReference<Triple<LinkedHashMap<String, Object>, DataVersion, Long>>() {
+                        }
+                );
+
+        ConcurrentMap<String, SubscriptionGroupConfig> subGroupTable = new ConcurrentHashMap<>();
+        LinkedHashMap<String, Object> linkedMap = rawSnapshotData.getLeft();
+        if (linkedMap != null) {
+            for (Map.Entry<String, Object> entry : linkedMap.entrySet()) {
+                String groupName = entry.getKey();
+                String configJson = JSON.toJSONString(entry.getValue());
+                SubscriptionGroupConfig newConfig = JSON.parseObject(configJson, SubscriptionGroupConfig.class);
+
+                subGroupTable.put(groupName, newConfig);
+            }
+        }
+
+        DataVersion dataVersion =
+                JSON.to(DataVersion.class, rawSnapshotData.getMiddle());
+
+        Long maxOffset =
+                JSON.to(Long.class, rawSnapshotData.getRight());
+
+        return Triple.of(subGroupTable, dataVersion, maxOffset);
+    }
+
+    public Triple<ConcurrentMap<String, Long>, DataVersion, Long> getDelayOffsetSnapShot(String brokerAddr)
+            throws Exception {
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_DELAY_OFFSET_SNAPSHOT, null);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, 3000);
+
+        if (response.getCode() != ResponseCode.SUCCESS) {
+            throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
+
+        byte[] body = response.getBody();
+        if (body == null || body.length == 0) {
+            return null;
+        }
+
+        String jsonString = new String(body, StandardCharsets.UTF_8);
+        Triple<LinkedHashMap<String, Object>, DataVersion, Long> rawSnapshotData =
+                JSON.parseObject(
+                        jsonString,
+                        new TypeReference<Triple<LinkedHashMap<String, Object>, DataVersion, Long>>() {
+                        }
+                );
+
+        ConcurrentMap<String, Long> delayOffsetTable = new ConcurrentHashMap<>();
+        LinkedHashMap<String, Object> linkedMap = rawSnapshotData.getLeft();
+        if (linkedMap != null) {
+            for (Map.Entry<String, Object> entry : linkedMap.entrySet()) {
+                String key = entry.getKey();
+                Long offsetValue = JSON.to(Long.class, entry.getValue());
+                delayOffsetTable.put(key, offsetValue);
+            }
+        }
+
+        DataVersion dataVersion =
+                JSON.to(DataVersion.class, rawSnapshotData.getMiddle());
+
+        Long maxOffset =
+                JSON.to(Long.class, rawSnapshotData.getRight());
+
+        return Triple.of(delayOffsetTable, dataVersion, maxOffset);
+    }
+
+
+    public Triple<ConcurrentMap<String, TimerMetrics.Metric>, DataVersion, Long> getTopicMetricsSnapShot(String brokerAddr)
+            throws Exception {
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TOPIC_METRICS_SNAPSHOT, null);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, 3000);
+
+        if (response.getCode() != ResponseCode.SUCCESS) {
+            throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
+
+        byte[] body = response.getBody();
+        if (body == null || body.length == 0) {
+            return null;
+        }
+
+        String jsonString = new String(body, StandardCharsets.UTF_8);
+        Triple<LinkedHashMap<String, TimerMetrics.Metric>, DataVersion, Long> rawSnapshotData =
+                JSON.parseObject(
+                        jsonString,
+                        new TypeReference<Triple<LinkedHashMap<String, TimerMetrics.Metric>, DataVersion, Long>>() {
+                        }
+                );
+
+        ConcurrentMap<String, TimerMetrics.Metric> topicMetricsTable = new ConcurrentHashMap<>();
+        LinkedHashMap<String, TimerMetrics.Metric> linkedMap = rawSnapshotData.getLeft();
+        if (linkedMap != null) {
+            topicMetricsTable.putAll(linkedMap);
+        }
+
+        DataVersion dataVersion =
+                JSON.to(DataVersion.class, rawSnapshotData.getMiddle());
+
+        Long maxOffset =
+                JSON.to(Long.class, rawSnapshotData.getRight());
+
+        return Triple.of(topicMetricsTable, dataVersion, maxOffset);
+    }
+
+
+    public Pair<ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>>, Long> getSetMessageRequestModeSnapShot(String brokerAddr)
+            throws Exception {
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MESSAGE_REQUEST_MODE_SNAPSHOT, null);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, 3000);
+
+        if (response.getCode() != ResponseCode.SUCCESS) {
+            throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
+
+        byte[] body = response.getBody();
+        if (body == null || body.length == 0) {
+            return null;
+        }
+
+        String jsonString = new String(body, StandardCharsets.UTF_8);
+        Pair<LinkedHashMap<String, LinkedHashMap<String, SetMessageRequestModeRequestBody>>, Long> rawSnapshotData =
+                JSON.parseObject(
+                        jsonString,
+                        new TypeReference<Pair<LinkedHashMap<String, LinkedHashMap<String, SetMessageRequestModeRequestBody>>, Long>>() {
+                        }
+                );
+
+        ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> requestModeMap = new ConcurrentHashMap<>();
+        LinkedHashMap<String, LinkedHashMap<String, SetMessageRequestModeRequestBody>> linkedMap = rawSnapshotData.getObject1();
+        if (linkedMap != null) {
+            for (Map.Entry<String, LinkedHashMap<String, SetMessageRequestModeRequestBody>> outerEntry : linkedMap.entrySet()) {
+                ConcurrentHashMap<String, SetMessageRequestModeRequestBody> innerConcurrentMap = new ConcurrentHashMap<>(outerEntry.getValue());
+                requestModeMap.put(outerEntry.getKey(), innerConcurrentMap);
+            }
+        }
+
+        Long maxOffset =
+                JSON.to(Long.class, rawSnapshotData.getObject2());
+
+        return Pair.of(requestModeMap, maxOffset);
+    }
+
     private int getMaxPageSize() {
         return 2000;
     }
@@ -1634,5 +1905,4 @@ public class BrokerOuterAPI {
     private long getTimeoutMillis() {
         return TimeUnit.SECONDS.toMillis(60);
     }
-
 }

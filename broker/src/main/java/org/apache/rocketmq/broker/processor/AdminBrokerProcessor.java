@@ -22,11 +22,18 @@ import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.opentelemetry.api.common.Attributes;
+
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -405,6 +412,18 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.listAcl(ctx, request);
             case RequestCode.POP_ROLLBACK:
                 return this.transferPopToFsStore(ctx, request);
+            case RequestCode.GET_CONSUMER_OFFSET_SNAPSHOT:
+                return this.getConsumerOffsetSnapshot(ctx, request);
+            case RequestCode.GET_SUBSCRIPTION_GROUP_SNAPSHOT:
+                return this.getSubscriptionGroupSnapshot(ctx, request);
+            case RequestCode.GET_TOPIC_CONFIG_SNAPSHOT:
+                return this.getTopicConfigSnapshot(ctx, request);
+            case RequestCode.GET_DELAY_OFFSET_SNAPSHOT:
+                return this.getDelayOffsetSnapshot(ctx, request);
+            case RequestCode.GET_TOPIC_METRICS_SNAPSHOT:
+                return this.getTopicMetricsSnapshot(ctx, request);
+            case RequestCode.GET_MESSAGE_REQUEST_MODE_SNAPSHOT:
+                return this.getMessageRequestModeSnapshot(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -3407,5 +3426,142 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setRemark(e.getMessage());
         }
         return response;
+    }
+
+
+    private RemotingCommand getMessageRequestModeSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        try {
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_MESSAGE_MODE);
+            if (body != null) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setBody(body);
+            } else {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("No latest snapshot file found for message_mode.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("getMessageRequestModeSnapshot error", e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+        }
+        return response;
+    }
+
+    private RemotingCommand getTopicMetricsSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        try {
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_TIMER_METRICS);
+            if (body != null) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setBody(body);
+            } else {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("No latest snapshot file found for timer_metrics.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("getTopicMetricsSnapshot error", e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+        }
+        return response;
+    }
+
+    private RemotingCommand getDelayOffsetSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        try {
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_DELAY_OFFSET);
+            if (body != null) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setBody(body);
+            } else {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("No latest snapshot file found for delay_offset.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("getDelayOffsetSnapshot error", e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+        }
+        return response;
+    }
+
+    private RemotingCommand getTopicConfigSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        try {
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_TOPIC_CONFIG);
+            if (body != null) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setBody(body);
+            } else {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("No latest snapshot file found for topic_config.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("getTopicConfigSnapshot error", e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+        }
+        return response;
+    }
+
+    private RemotingCommand getSubscriptionGroupSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        try {
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_SUBSCRIPTION_GROUP);
+            if (body != null) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setBody(body);
+            } else {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("No latest snapshot file found for subscription_group.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("getSubscriptionGroupSnapshot error", e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+        }
+        return response;
+    }
+
+    private RemotingCommand getConsumerOffsetSnapshot(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        try {
+            byte[] body = readLatestSnapshotFile(MixAll.SNAPSHOT_NAME_CONSUMER_OFFSET);
+            if (body != null) {
+                response.setCode(ResponseCode.SUCCESS);
+                response.setBody(body);
+            } else {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("No latest snapshot file found for consumer_offset.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("getConsumerOffsetSnapshot error", e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+        }
+        return response;
+    }
+
+
+    private byte[] readLatestSnapshotFile(String snapshotName) throws IOException {
+        String snapshotDir = brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "snapshot";
+        Path dirPath = Paths.get(snapshotDir);
+
+        if (Files.notExists(dirPath)) {
+            LOGGER.warn("Snapshot directory does not exist: {}", dirPath);
+            return null;
+        }
+        Path latestFile = Files.list(dirPath)
+                .filter(path -> path.getFileName().toString().startsWith(snapshotName + "_snapshot_"))
+                .max(Comparator.comparing(path -> path.getFileName().toString()))
+                .orElse(null);
+
+        if (latestFile != null) {
+            return Files.readAllBytes(latestFile);
+        } else {
+            LOGGER.warn("No snapshot file found for: {}", snapshotName);
+            return null;
+        }
     }
 }
