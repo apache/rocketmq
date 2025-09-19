@@ -40,12 +40,12 @@ public class TopicConfigTest {
         topicConfig.setTopicMessageType(TopicMessageType.FIFO);
 
         String encode = topicConfig.encode();
-        assertThat(encode).isEqualTo("topic 8 8 6 SINGLE_TAG {\"message.type\":\"FIFO\"}");
+        assertThat(encode).isEqualTo("topic 8 8 6 SINGLE_TAG {\"+message.type\":\"FIFO\"}");
     }
 
     @Test
     public void testDecode() {
-        String encode = "topic 8 8 6 SINGLE_TAG {\"message.type\":\"FIFO\"}";
+        String encode = "topic 8 8 6 SINGLE_TAG {\"+message.type\":\"FIFO\"}";
         TopicConfig decodeTopicConfig = new TopicConfig();
         decodeTopicConfig.decode(encode);
 
