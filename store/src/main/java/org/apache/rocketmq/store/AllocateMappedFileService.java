@@ -173,16 +173,18 @@ public class AllocateMappedFileService extends ServiceThread {
 
                 MappedFile mappedFile;
                 boolean writeWithoutMmap = messageStore.getMessageStoreConfig().isWriteWithoutMmap();
+                RunningFlags runningFlags = messageStore.getMessageStoreConfig().isEnableRunningFlagsInFlush() 
+                    ? messageStore.getRunningFlags() : null;
                 if (messageStore.isTransientStorePoolEnable()) {
                     try {
                         mappedFile = ServiceLoader.load(MappedFile.class).iterator().next();
-                        mappedFile.init(req.getFilePath(), req.getFileSize(), messageStore.getRunningFlags(), messageStore.getTransientStorePool());
+                        mappedFile.init(req.getFilePath(), req.getFileSize(), runningFlags, messageStore.getTransientStorePool());
                     } catch (RuntimeException e) {
                         log.warn("Use default implementation.");
-                        mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), messageStore.getRunningFlags(), messageStore.getTransientStorePool(), writeWithoutMmap);
+                        mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), runningFlags, messageStore.getTransientStorePool(), writeWithoutMmap);
                     }
                 } else {
-                    mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), messageStore.getRunningFlags(), writeWithoutMmap);
+                    mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), runningFlags, writeWithoutMmap);
                 }
 
                 long elapsedTime = UtilAll.computeElapsedTimeMilliseconds(beginTime);
