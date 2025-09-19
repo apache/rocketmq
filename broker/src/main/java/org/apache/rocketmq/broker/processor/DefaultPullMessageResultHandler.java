@@ -119,7 +119,7 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
                 this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                     getMessageResult.getBufferTotalSize());
 
-                this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), getMessageResult.getMessageCount());
+                this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), requestHeader.getConsumerGroup(), getMessageResult.getMessageCount());
 
                 if (!BrokerMetricsManager.isRetryOrDlqTopic(requestHeader.getTopic())) {
                     Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()

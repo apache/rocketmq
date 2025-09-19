@@ -187,7 +187,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                     getMessageResult.getBufferTotalSize());
 
-                this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), getMessageResult.getMessageCount());
+                this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), requestHeader.getConsumerGroup(), getMessageResult.getMessageCount());
 
                 if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
                     final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
