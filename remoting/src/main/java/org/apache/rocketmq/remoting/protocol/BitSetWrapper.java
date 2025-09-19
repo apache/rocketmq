@@ -16,9 +16,12 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
+import java.io.Serializable;
 import java.util.BitSet;
 
-public class BitSetWrapper {
+public class BitSetWrapper implements Serializable {
+
+    private static final long serialVersionUID = 3190934141912962403L;
 
     private final BitSet value;
 
