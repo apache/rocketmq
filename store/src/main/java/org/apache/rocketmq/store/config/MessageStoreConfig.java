@@ -74,6 +74,7 @@ public class MessageStoreConfig {
     private int timerFlushIntervalMs = 1000;
     private int timerGetMessageThreadNum = 3;
     private int timerPutMessageThreadNum = 3;
+    private int timerMessageBufferSize = 512;
 
     private boolean timerEnableDisruptor = false;
 
@@ -1701,6 +1702,14 @@ public class MessageStoreConfig {
 
     public void setTimerPutMessageThreadNum(int timerPutMessageThreadNum) {
         this.timerPutMessageThreadNum = timerPutMessageThreadNum;
+    }
+
+    public int getTimerMessageBufferSize() {
+        return timerMessageBufferSize;
+    }
+
+    public void setTimerMessageBufferSize(int timerMessageBufferSize) {
+        this.timerMessageBufferSize = timerMessageBufferSize;
     }
 
     public boolean isTimerEnableDisruptor() {

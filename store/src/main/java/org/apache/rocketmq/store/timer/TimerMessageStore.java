@@ -198,7 +198,7 @@ public class TimerMessageStore {
         bufferLocal = new ThreadLocal<ByteBuffer>() {
             @Override
             protected ByteBuffer initialValue() {
-                return ByteBuffer.allocateDirect(storeConfig.getMaxMessageSize() + 100);
+                return ByteBuffer.allocateDirect(storeConfig.getMaxMessageSize() + storeConfig.getTimerMessageBufferSize());
             }
         };
 
