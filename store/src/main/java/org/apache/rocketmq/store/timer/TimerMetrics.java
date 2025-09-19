@@ -18,7 +18,6 @@ package org.apache.rocketmq.store.timer;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
-import com.google.common.io.Files;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -30,10 +29,8 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-import java.io.BufferedWriter;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 import java.io.File;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.StringWriter;
 import java.io.Writer;
