@@ -582,7 +582,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         } else {
             this.closeChannel(addr, channel);
-            throw new RemotingConnectException(addr);
+            throw new RemotingConnectException(channelRemoteAddr);
         }
     }
 

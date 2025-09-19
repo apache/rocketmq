@@ -67,7 +67,7 @@ import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
-import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+
 import org.apache.rocketmq.broker.metrics.InvocationStatus;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -557,7 +557,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         long executionTime;
         try {
-            TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
+            TopicValidator.ValidateResult result = TopicValidator.validateTopic(topic);
             if (!result.isValid()) {
                 response.setCode(ResponseCode.INVALID_PARAMETER);
                 response.setRemark(result.getRemark());
@@ -615,11 +615,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             executionTime = System.currentTimeMillis() - startTime;
             InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
                 InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
-            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+            Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                 .put(LABEL_INVOCATION_STATUS, status.getName())
                 .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topic))
                 .build();
-            BrokerMetricsManager.topicCreateExecuteTime.record(executionTime, attributes);
+            this.brokerController.getBrokerMetricsManager().getTopicCreateExecuteTime().record(executionTime, attributes);
         }
         LOGGER.info("executionTime of create topic:{} is {} ms", topic, executionTime);
         return response;
@@ -647,7 +647,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             // Valid topics
             for (TopicConfig topicConfig : topicConfigList) {
                 String topic = topicConfig.getTopicName();
-                TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
+                TopicValidator.ValidateResult result = TopicValidator.validateTopic(topic);
                 if (!result.isValid()) {
                     response.setCode(ResponseCode.INVALID_PARAMETER);
                     response.setRemark(result.getRemark());
@@ -696,11 +696,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             executionTime = System.currentTimeMillis() - startTime;
             InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
                 InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
-            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+            Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                 .put(LABEL_INVOCATION_STATUS, status.getName())
                 .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topicNames))
                 .build();
-            BrokerMetricsManager.topicCreateExecuteTime.record(executionTime, attributes);
+            this.brokerController.getBrokerMetricsManager().getTopicCreateExecuteTime().record(executionTime, attributes);
         }
         LOGGER.info("executionTime of all topics:{} is {} ms", topicNames, executionTime);
         return response;
@@ -717,7 +717,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         String topic = requestHeader.getTopic();
 
-        TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
+        TopicValidator.ValidateResult result = TopicValidator.validateTopic(topic);
         if (!result.isValid()) {
             response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(result.getRemark());
@@ -1533,31 +1533,47 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         SubscriptionGroupConfig config = RemotingSerializable.decode(request.getBody(), SubscriptionGroupConfig.class);
-        if (config != null) {
+        if (null != config) {
+            TopicValidator.ValidateResult result = TopicValidator.validateGroup(config.getGroupName());
+            if (!result.isValid()) {
+                response.setCode(ResponseCode.INVALID_PARAMETER);
+                response.setRemark(result.getRemark());
+                return response;
+            }
+
             this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfig(config);
         }
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         long executionTime = System.currentTimeMillis() - startTime;
-        LOGGER.info("executionTime of create subscriptionGroup:{} is {} ms", config.getGroupName(), executionTime);
+        if (null != config) {
+            LOGGER.info("executionTime of create subscriptionGroup:{} is {} ms", config.getGroupName(), executionTime);
+        }
         InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
             InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
-        Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+        Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
             .put(LABEL_INVOCATION_STATUS, status.getName())
             .build();
-        BrokerMetricsManager.consumerGroupCreateExecuteTime.record(executionTime, attributes);
+        this.brokerController.getBrokerMetricsManager().getConsumerGroupCreateExecuteTime().record(executionTime, attributes);
         return response;
     }
 
     private RemotingCommand updateAndCreateSubscriptionGroupList(ChannelHandlerContext ctx, RemotingCommand request) {
         final long startTime = System.nanoTime();
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         final SubscriptionGroupList subscriptionGroupList = SubscriptionGroupList.decode(request.getBody(), SubscriptionGroupList.class);
         final List<SubscriptionGroupConfig> groupConfigList = subscriptionGroupList.getGroupConfigList();
 
         final StringBuilder builder = new StringBuilder();
         for (SubscriptionGroupConfig config : groupConfigList) {
+            TopicValidator.ValidateResult result = TopicValidator.validateGroup(config.getGroupName());
+            if (!result.isValid()) {
+                response.setCode(ResponseCode.INVALID_PARAMETER);
+                response.setRemark(result.getRemark());
+                return response;
+            }
             builder.append(config.getGroupName()).append(";");
         }
         final String groupNames = builder.toString();
@@ -1565,7 +1581,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             groupNames,
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
             this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfigList(groupConfigList);
             response.setCode(ResponseCode.SUCCESS);
@@ -1575,10 +1590,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             LOGGER.info("executionTime of create updateAndCreateSubscriptionGroupList: {} is {} ms", groupNames, executionTime);
             InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
                 InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
-            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+            Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
                 .put(LABEL_INVOCATION_STATUS, status.getName())
                 .build();
-            BrokerMetricsManager.consumerGroupCreateExecuteTime.record(executionTime, attributes);
+            this.brokerController.getBrokerMetricsManager().getConsumerGroupCreateExecuteTime().record(executionTime, attributes);
         }
 
         return response;
@@ -2059,13 +2074,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     /**
      * Reset consumer offset.
      *
-     * @param topic Required, not null.
-     * @param group Required, not null.
-     * @param queueId if target queue ID is negative, all message queues will be reset; otherwise, only the target queue
-     * would get reset.
+     * @param topic     Required, not null.
+     * @param group     Required, not null.
+     * @param queueId   if target queue ID is negative, all message queues will be reset; otherwise, only the target queue
+     *                  would get reset.
      * @param timestamp if timestamp is negative, offset would be reset to broker offset at the time being; otherwise,
-     * binary search is performed to locate target offset.
-     * @param offset Target offset to reset to if target queue ID is properly provided.
+     *                  binary search is performed to locate target offset.
+     * @param offset    Target offset to reset to if target queue ID is properly provided.
      * @return Affected queues and their new offset
      */
     private RemotingCommand resetOffsetInner(String topic, String group, int queueId, long timestamp, Long offset) {

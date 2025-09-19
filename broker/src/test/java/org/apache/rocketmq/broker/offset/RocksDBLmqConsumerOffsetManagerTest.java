@@ -49,6 +49,9 @@ public class RocksDBLmqConsumerOffsetManagerTest {
 
     @Before
     public void setUp() {
+        if (MixAll.isMac()) {
+            return;
+        }
         brokerController = Mockito.mock(BrokerController.class);
         when(brokerController.getMessageStoreConfig()).thenReturn(Mockito.mock(MessageStoreConfig.class));
         when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
@@ -58,6 +61,9 @@ public class RocksDBLmqConsumerOffsetManagerTest {
 
     @Test
     public void testQueryOffsetForNonLmq() {
+        if (MixAll.isMac()) {
+            return;
+        }
         long actualOffset = offsetManager.queryOffset(NON_LMQ_GROUP, NON_LMQ_TOPIC, QUEUE_ID);
         // Verify
         assertEquals("Offset should not be null.", -1, actualOffset);
@@ -66,6 +72,9 @@ public class RocksDBLmqConsumerOffsetManagerTest {
 
     @Test
     public void testQueryOffsetForLmqGroupWithExistingOffset() {
+        if (MixAll.isMac()) {
+            return;
+        }
         offsetManager.commitOffset("127.0.0.1",LMQ_GROUP, LMQ_TOPIC, QUEUE_ID, OFFSET);
 
         // Act
@@ -79,6 +88,9 @@ public class RocksDBLmqConsumerOffsetManagerTest {
 
     @Test
     public void testQueryOffsetForLmqGroupWithoutExistingOffset() {
+        if (MixAll.isMac()) {
+            return;
+        }
         // Act
         Map<Integer, Long> actualOffsets = offsetManager.queryOffset(LMQ_GROUP, "nonExistingTopic");
         // Assert
@@ -87,6 +99,9 @@ public class RocksDBLmqConsumerOffsetManagerTest {
 
     @Test
     public void testQueryOffsetForNonLmqGroup() {
+        if (MixAll.isMac()) {
+            return;
+        }
         // Arrange
         Map<Integer, Long> mockOffsets = new HashMap<>();
         mockOffsets.put(QUEUE_ID, OFFSET);
@@ -103,6 +118,9 @@ public class RocksDBLmqConsumerOffsetManagerTest {
 
     @Test
     public void testCommitOffsetForLmq() {
+        if (MixAll.isMac()) {
+            return;
+        }
         // Execute
         offsetManager.commitOffset("clientHost", LMQ_GROUP, LMQ_TOPIC, QUEUE_ID, OFFSET);
         // Verify

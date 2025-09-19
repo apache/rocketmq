@@ -17,8 +17,9 @@
 package org.apache.rocketmq.broker.subscription;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Maps;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -27,15 +28,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
-import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SubscriptionGroupAttributes;
@@ -48,6 +45,7 @@ import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
+@SuppressWarnings("Duplicates")
 public class SubscriptionGroupManager extends ConfigManager {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
@@ -191,10 +189,6 @@ public class SubscriptionGroupManager extends ConfigManager {
 
     /**
      * set the bit value to 1 at the specific index (from 0)
-     *
-     * @param group
-     * @param topic
-     * @param forbiddenIndex from 0
      */
     public void setForbidden(String group, String topic, int forbiddenIndex) {
         int topicForbidden = getForbidden(group, topic);
@@ -204,10 +198,6 @@ public class SubscriptionGroupManager extends ConfigManager {
 
     /**
      * clear the bit value to 0 at the specific index (from 0)
-     *
-     * @param group
-     * @param topic
-     * @param forbiddenIndex from 0
      */
     public void clearForbidden(String group, String topic, int forbiddenIndex) {
         int topicForbidden = getForbidden(group, topic);
@@ -270,7 +260,8 @@ public class SubscriptionGroupManager extends ConfigManager {
         if (null == subscriptionGroupConfig) {
             if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup()
                     || MixAll.isSysConsumerGroupAndEnableCreate(group, brokerController.getBrokerConfig().isEnableCreateSysGroup())) {
-                if (group.length() > Validators.CHARACTER_MAX_LENGTH || TopicValidator.isTopicOrGroupIllegal(group)) {
+                TopicValidator.ValidateResult result = TopicValidator.validateGroup(group);
+                if (!result.isValid()) {
                     return null;
                 }
                 subscriptionGroupConfig = new SubscriptionGroupConfig();
@@ -319,9 +310,7 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
     private void printLoadDataWhenFirstBoot(final SubscriptionGroupManager sgm) {
-        Iterator<Entry<String, SubscriptionGroupConfig>> it = sgm.getSubscriptionGroupTable().entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, SubscriptionGroupConfig> next = it.next();
+        for (Entry<String, SubscriptionGroupConfig> next : sgm.getSubscriptionGroupTable().entrySet()) {
             log.info("load exist subscription group, {}", next.getValue().toString());
         }
     }

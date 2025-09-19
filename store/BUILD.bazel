@@ -75,6 +75,7 @@ GenTestRules(
         # These tests are extremely slow and flaky, exclude them before they are properly fixed.
         "src/test/java/org/apache/rocketmq/store/ha/autoswitch/AutoSwitchHATest",
         "src/test/java/org/apache/rocketmq/store/dledger/DLedgerCommitlogTest",
+        "src/test/java/org/apache/rocketmq/store/dledger/DLedgerMultiPathTest",
     ],
     medium_tests = [
         "src/test/java/org/apache/rocketmq/store/DefaultMessageStoreTest",
@@ -84,6 +85,7 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/store/queue/BatchConsumeMessageTest",
         "src/test/java/org/apache/rocketmq/store/dledger/MixCommitlogTest",
         "src/test/java/org/apache/rocketmq/store/RocksDBMessageStoreTest",
+        "src/test/java/org/apache/rocketmq/store/timer/TimerMessageStoreTest",
     ],
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [

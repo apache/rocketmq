@@ -38,6 +38,9 @@ import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
@@ -247,6 +250,8 @@ public class AdminBrokerProcessorTest {
         brokerController.setMessageStore(messageStore);
         brokerController.setAuthenticationMetadataManager(authenticationMetadataManager);
         brokerController.setAuthorizationMetadataManager(authorizationMetadataManager);
+        // Initialize BrokerMetricsManager to prevent NPE in tests
+        brokerController.setBrokerMetricsManager(new BrokerMetricsManager(brokerController));
         Field field = BrokerController.class.getDeclaredField("broker2Client");
         field.setAccessible(true);
         field.set(brokerController, broker2Client);

@@ -53,16 +53,16 @@ public class ConcurrentTreeMap<K, V> {
         lock.lock();
         try {
             if (roundQueue.put(key)) {
-                V exsit = tree.get(key);
-                if (null == exsit) {
+                V exist = tree.get(key);
+                if (null == exist) {
                     tree.put(key, value);
-                    exsit = value;
+                    exist = value;
                 }
                 log.warn("putIfAbsentAndRetExsit success. " + key);
-                return exsit;
+                return exist;
             } else {
-                V exsit = tree.get(key);
-                return exsit;
+                V exist = tree.get(key);
+                return exist;
             }
         } finally {
             lock.unlock();

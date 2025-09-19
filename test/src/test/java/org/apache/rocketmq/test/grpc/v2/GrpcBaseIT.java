@@ -135,9 +135,9 @@ public class GrpcBaseIT extends BaseConf {
     protected static final int DEFAULT_QUEUE_NUMS = 8;
 
     public void setUp() throws Exception {
-        brokerController1.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
-        brokerController2.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
-        brokerController3.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
+        brokerController1.getBrokerConfig().setTransactionCheckInterval(1 * 1000);
+        brokerController2.getBrokerConfig().setTransactionCheckInterval(1 * 1000);
+        brokerController3.getBrokerConfig().setTransactionCheckInterval(1 * 1000);
 
         header.put(GrpcConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
         header.put(GrpcConstants.LANGUAGE, "JAVA");

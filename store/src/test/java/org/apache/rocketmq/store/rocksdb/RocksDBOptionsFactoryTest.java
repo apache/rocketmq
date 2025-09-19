@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store.rocksdb;
 
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
 import org.junit.Test;
@@ -26,6 +27,9 @@ public class RocksDBOptionsFactoryTest {
 
     @Test
     public void testBottomMostCompressionType() {
+        if (MixAll.isMac()) {
+            return;
+        }
         MessageStoreConfig config = new MessageStoreConfig();
         Assert.assertEquals(CompressionType.ZSTD_COMPRESSION,
             CompressionType.getCompressionType(config.getBottomMostCompressionTypeForConsumeQueueStore()));

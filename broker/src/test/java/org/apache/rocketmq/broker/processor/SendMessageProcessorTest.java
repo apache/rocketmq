@@ -27,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import org.apache.commons.codec.DecoderException;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -102,6 +103,8 @@ public class SendMessageProcessorTest {
     @Before
     public void init() {
         brokerController.setMessageStore(messageStore);
+        // Initialize BrokerMetricsManager to prevent NPE in tests
+        brokerController.setBrokerMetricsManager(new BrokerMetricsManager(brokerController));
         TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
         topicConfigManager.getTopicConfigTable().put(topic, new TopicConfig(topic));
         SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);

@@ -18,32 +18,34 @@ package org.apache.rocketmq.common.help;
 
 public class FAQUrl {
 
-    public static final String APPLY_TOPIC_URL = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String DEFAULT_FAQ_URL = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
 
-    public static final String NAME_SERVER_ADDR_NOT_EXIST_URL = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String APPLY_TOPIC_URL = DEFAULT_FAQ_URL;
 
-    public static final String GROUP_NAME_DUPLICATE_URL = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String NAME_SERVER_ADDR_NOT_EXIST_URL = DEFAULT_FAQ_URL;
 
-    public static final String CLIENT_PARAMETER_CHECK_URL = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String GROUP_NAME_DUPLICATE_URL = DEFAULT_FAQ_URL;
 
-    public static final String SUBSCRIPTION_GROUP_NOT_EXIST = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String CLIENT_PARAMETER_CHECK_URL = DEFAULT_FAQ_URL;
 
-    public static final String CLIENT_SERVICE_NOT_OK = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String SUBSCRIPTION_GROUP_NOT_EXIST = DEFAULT_FAQ_URL;
+
+    public static final String CLIENT_SERVICE_NOT_OK = DEFAULT_FAQ_URL;
 
     // FAQ: No route info of this topic, TopicABC
-    public static final String NO_TOPIC_ROUTE_INFO = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String NO_TOPIC_ROUTE_INFO = DEFAULT_FAQ_URL;
 
-    public static final String LOAD_JSON_EXCEPTION = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String LOAD_JSON_EXCEPTION = DEFAULT_FAQ_URL;
 
-    public static final String SAME_GROUP_DIFFERENT_TOPIC = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String SAME_GROUP_DIFFERENT_TOPIC = DEFAULT_FAQ_URL;
 
-    public static final String MQLIST_NOT_EXIST = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String MQLIST_NOT_EXIST = DEFAULT_FAQ_URL;
 
-    public static final String UNEXPECTED_EXCEPTION_URL = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String UNEXPECTED_EXCEPTION_URL = DEFAULT_FAQ_URL;
 
-    public static final String SEND_MSG_FAILED = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String SEND_MSG_FAILED = DEFAULT_FAQ_URL;
 
-    public static final String UNKNOWN_HOST_EXCEPTION = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String UNKNOWN_HOST_EXCEPTION = DEFAULT_FAQ_URL;
 
     private static final String TIP_STRING_BEGIN = "\nSee ";
     private static final String TIP_STRING_END = " for further details.";

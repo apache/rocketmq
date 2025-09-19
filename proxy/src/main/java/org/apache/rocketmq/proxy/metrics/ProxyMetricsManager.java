@@ -81,7 +81,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         LABEL_MAP.put(LABEL_CLUSTER_NAME, proxyConfig.getProxyClusterName());
         LABEL_MAP.put(LABEL_NODE_ID, proxyConfig.getProxyName());
         LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase());
-        initMetrics(brokerMetricsManager.getBrokerMeter(), BrokerMetricsManager::newAttributesBuilder);
+        initMetrics(brokerMetricsManager.getBrokerMeter(), brokerMetricsManager::newAttributesBuilder);
     }
 
     public static ProxyMetricsManager initClusterMode(ProxyConfig proxyConfig) {

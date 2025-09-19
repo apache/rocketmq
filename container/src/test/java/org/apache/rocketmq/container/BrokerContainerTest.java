@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.ConfigContext;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
@@ -160,7 +161,11 @@ public class BrokerContainerTest {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(baseDir);
         messageStoreConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
-        InnerBrokerController brokerController = brokerContainer.addBroker(masterBrokerConfig, messageStoreConfig);
+        ConfigContext configContext = new ConfigContext.Builder()
+            .brokerConfig(masterBrokerConfig)
+            .messageStoreConfig(messageStoreConfig)
+            .build();
+        InnerBrokerController brokerController = brokerContainer.addBroker(configContext);
         assertThat(brokerController.isIsolated()).isFalse();
 
         brokerContainer.shutdown();
@@ -184,7 +189,11 @@ public class BrokerContainerTest {
             MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
             messageStoreConfig.setStorePathRootDir(baseDir);
             messageStoreConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
-            brokerContainer.addBroker(masterBrokerConfig, messageStoreConfig);
+            ConfigContext configContext = new ConfigContext.Builder()
+                .brokerConfig(masterBrokerConfig)
+                .messageStoreConfig(messageStoreConfig)
+                .build();
+            brokerContainer.addBroker(configContext);
         } catch (Exception e) {
             exceptionCaught = true;
         } finally {
@@ -213,8 +222,12 @@ public class BrokerContainerTest {
         slaveMessageStoreConfig.setStorePathRootDir(baseDir);
         slaveMessageStoreConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
         boolean exceptionCaught = false;
+        ConfigContext configContext = new ConfigContext.Builder()
+            .brokerConfig(slaveBrokerConfig)
+            .messageStoreConfig(slaveMessageStoreConfig)
+            .build();
         try {
-            sharedBrokerController.addBroker(slaveBrokerConfig, slaveMessageStoreConfig);
+            sharedBrokerController.addBroker(configContext);
         } catch (Exception e) {
             exceptionCaught = true;
         } finally {
@@ -238,7 +251,11 @@ public class BrokerContainerTest {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(baseDir);
         messageStoreConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
-        InnerBrokerController master = brokerContainer.addBroker(masterBrokerConfig, messageStoreConfig);
+        ConfigContext configContext = new ConfigContext.Builder()
+            .brokerConfig(masterBrokerConfig)
+            .messageStoreConfig(messageStoreConfig)
+            .build();
+        InnerBrokerController master = brokerContainer.addBroker(configContext);
         assertThat(master).isNotNull();
         master.start();
         assertThat(master.isIsolated()).isFalse();
@@ -268,7 +285,11 @@ public class BrokerContainerTest {
         messageStoreConfig.setdLegerSelfId("n0");
         messageStoreConfig.setdLegerGroup("group");
         messageStoreConfig.setdLegerPeers(String.format("n0-localhost:%d", generatePort(30900, 10000)));
-        InnerBrokerController dLedger = brokerContainer.addBroker(dLedgerBrokerConfig, messageStoreConfig);
+        ConfigContext configContext = new ConfigContext.Builder()
+            .brokerConfig(dLedgerBrokerConfig)
+            .messageStoreConfig(messageStoreConfig)
+            .build();
+        InnerBrokerController dLedger = brokerContainer.addBroker(configContext);
         assertThat(dLedger).isNotNull();
         dLedger.start();
         assertThat(dLedger.isIsolated()).isFalse();
@@ -294,7 +315,11 @@ public class BrokerContainerTest {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(baseDir);
         messageStoreConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
-        InnerBrokerController master = brokerContainer.addBroker(masterBrokerConfig, messageStoreConfig);
+        ConfigContext masterBrokerConfigContext = new ConfigContext.Builder()
+            .brokerConfig(masterBrokerConfig)
+            .messageStoreConfig(messageStoreConfig)
+            .build();
+        InnerBrokerController master = brokerContainer.addBroker(masterBrokerConfigContext);
         assertThat(master).isNotNull();
         master.start();
         assertThat(master.isIsolated()).isFalse();
@@ -308,7 +333,11 @@ public class BrokerContainerTest {
         baseDir = createBaseDir("unnittest-slave").getAbsolutePath();
         slaveMessageStoreConfig.setStorePathRootDir(baseDir);
         slaveMessageStoreConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
-        InnerBrokerController slave = brokerContainer.addBroker(slaveBrokerConfig, slaveMessageStoreConfig);
+        ConfigContext slaveBrokerConfigContext = new ConfigContext.Builder()
+            .brokerConfig(slaveBrokerConfig)
+            .messageStoreConfig(slaveMessageStoreConfig)
+            .build();
+        InnerBrokerController slave = brokerContainer.addBroker(slaveBrokerConfigContext);
         assertThat(slave).isNotNull();
         slave.start();
         assertThat(slave.isIsolated()).isFalse();
