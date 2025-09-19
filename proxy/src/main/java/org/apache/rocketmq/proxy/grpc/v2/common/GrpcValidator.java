@@ -107,7 +107,7 @@ public class GrpcValidator {
             if (tag.contains("|")) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot contain '|'");
             }
-            if (containControlCharacter(tag)) {
+            if (ConfigurationManager.getProxyConfig().isEnableControlCharacterCheck() && containControlCharacter(tag)) {
                 throw new GrpcProxyException(Code.ILLEGAL_MESSAGE_TAG, "tag cannot contain control character");
             }
         }
