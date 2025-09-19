@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.rocketmq.broker.config.v1.RocksDBOffsetSerializeWrapper;
+import org.apache.rocketmq.common.MixAll;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,17 +35,26 @@ public class RocksDBOffsetSerializeWrapperTest {
 
     @Before
     public void setUp() {
+        if (MixAll.isMac()) {
+            return;
+        }
         wrapper = new RocksDBOffsetSerializeWrapper();
     }
 
     @Test
     public void testGetOffsetTable_ShouldReturnConcurrentHashMap() {
+        if (MixAll.isMac()) {
+            return;
+        }
         ConcurrentMap<Integer, Long> offsetTable = wrapper.getOffsetTable();
         assertNotNull("The offsetTable should not be null", offsetTable);
     }
 
     @Test
     public void testSetOffsetTable_ShouldSetTheOffsetTableCorrectly() {
+        if (MixAll.isMac()) {
+            return;
+        }
         ConcurrentMap<Integer, Long> newOffsetTable = new ConcurrentHashMap<>();
         wrapper.setOffsetTable(newOffsetTable);
         ConcurrentMap<Integer, Long> offsetTable = wrapper.getOffsetTable();

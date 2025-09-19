@@ -31,9 +31,13 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -237,6 +241,16 @@ public class MixAll {
             fileParent.mkdirs();
         }
         IOTinyUtils.writeStringToFile(file, str, DEFAULT_CHARSET);
+    }
+
+    public static synchronized void fsyncDirectory(Path dir) throws IOException {
+        if (!Files.isDirectory(dir)) {
+            throw new NotDirectoryException(dir.toString());
+        }
+
+        try (FileChannel fc = FileChannel.open(dir, StandardOpenOption.READ)) {
+            fc.force(true);
+        }
     }
 
     public static String file2String(final String fileName) throws IOException {

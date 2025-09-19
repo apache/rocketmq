@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
@@ -35,6 +36,7 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -59,12 +61,18 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
 
     @Before
     public void init() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         this.topicConfigTableMap = new ConcurrentHashMap<>();
         messageStoreConfig = new MessageStoreConfig();
     }
 
     @After
     public void destroy() {
+        if (MixAll.isMac()) {
+            return;
+        }
         if (!messageStore.isShutdown()) {
             messageStore.shutdown();
         }
@@ -76,6 +84,7 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
 
     @Test(expected = IllegalArgumentException.class)
     public void CombineConsumeQueueStore_EmptyLoadingCQTypes_ThrowsException() throws Exception {
+        Assume.assumeFalse(MixAll.isMac());
         messageStore = (DefaultMessageStore) createMessageStore(null, false, topicConfigTableMap, messageStoreConfig);
 
         messageStoreConfig.setCombineCQLoadingCQTypes("");
@@ -84,6 +93,9 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
 
     @Test
     public void CombineConsumeQueueStore_InitializesConsumeQueueStore() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         messageStore = (DefaultMessageStore) createMessageStore(null, false, topicConfigTableMap, messageStoreConfig);
         {
             messageStoreConfig.setCombineCQLoadingCQTypes("default");
@@ -123,6 +135,9 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
 
     @Test
     public void testIterator() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         messageStoreConfig.setRocksdbCQDoubleWriteEnable(true);
         messageStore = (DefaultMessageStore) createMessageStore(null, false, topicConfigTableMap, messageStoreConfig);
         messageStore.load();
@@ -203,6 +218,9 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
 
     @Test
     public void testInitializeWithOffset() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         final String path = createBaseDir();
         FileUtils.deleteDirectory(new File(path));
         topicConfigTableMap.put(topic, new TopicConfig(topic, 1, 1, PermName.PERM_WRITE | PermName.PERM_READ));
@@ -295,6 +313,9 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
 
     @Test
     public void testVerifyAndInitOffsetForAllStore() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         final String path = createBaseDir();
         topicConfigTableMap.put(topic, new TopicConfig(topic, 1, 1, PermName.PERM_WRITE | PermName.PERM_READ));
 

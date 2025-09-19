@@ -286,6 +286,13 @@ public class MessageStoreConfig {
     private boolean autoMessageVersionOnTopicLen = true;
 
     /**
+     * Whether to use runningFlags when flushing data to disk.
+     * When disabled, runningFlags will be set to null during MappedFileQueue and MappedFile initialization.
+     */
+    @ImportantField
+    private boolean enableRunningFlagsInFlush = false;
+
+    /**
      * It cannot be changed after the broker is started.
      * Modifications need to be restarted to take effect.
      */
@@ -2044,5 +2051,13 @@ public class MessageStoreConfig {
 
     public void setEnableAcceleratedRecovery(boolean enableAcceleratedRecovery) {
         this.enableAcceleratedRecovery = enableAcceleratedRecovery;
+    }
+
+    public boolean isEnableRunningFlagsInFlush() {
+        return enableRunningFlagsInFlush;
+    }
+
+    public void setEnableRunningFlagsInFlush(boolean enableRunningFlagsInFlush) {
+        this.enableRunningFlagsInFlush = enableRunningFlagsInFlush;
     }
 }

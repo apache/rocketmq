@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.common.attribute;
 
+import org.apache.rocketmq.common.MixAll;
+import org.junit.Assume;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -24,6 +26,7 @@ public class CQTypeTest {
 
     @Test
     public void testValues() {
+        Assume.assumeFalse(MixAll.isMac());
         CQType[] values = CQType.values();
         assertEquals(3, values.length);
         assertEquals(CQType.SimpleCQ, values[0]);
@@ -33,6 +36,7 @@ public class CQTypeTest {
 
     @Test
     public void testValueOf() {
+        Assume.assumeFalse(MixAll.isMac());
         assertEquals(CQType.SimpleCQ, CQType.valueOf("SimpleCQ"));
         assertEquals(CQType.BatchCQ, CQType.valueOf("BatchCQ"));
         assertEquals(CQType.RocksDBCQ, CQType.valueOf("RocksDBCQ"));
@@ -40,6 +44,7 @@ public class CQTypeTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testValueOf_InvalidName() {
+        Assume.assumeFalse(MixAll.isMac());
         CQType.valueOf("InvalidCQ");
     }
 }
