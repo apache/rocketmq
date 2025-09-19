@@ -82,10 +82,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     protected volatile int flushedPosition;
     protected int fileSize;
     protected FileChannel fileChannel;
-    /**
-     * RandomAccessFile for writing when writeWithoutMmap is enabled
-     */
-    protected RandomAccessFile randomAccessFile = null;
+
     /**
      * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
      */
@@ -130,7 +127,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         public SharedByteBuffer(int size) {
             this.lock = new ReentrantLock();
-            this.buffer = ByteBuffer.allocate(size);
+            this.buffer = ByteBuffer.allocateDirect(size);
         }
 
         public void release() {
@@ -237,8 +234,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         UtilAll.ensureDirOK(this.file.getParent());
 
         try {
-            this.randomAccessFile = new RandomAccessFile(this.file, "rw");
-            this.fileChannel = this.randomAccessFile.getChannel();
+            this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
 
             if (writeWithoutMmap) {
                 // Still create MappedByteBuffer for reading operations
@@ -260,9 +256,6 @@ public class DefaultMappedFile extends AbstractMappedFile {
         } finally {
             if (!ok && this.fileChannel != null) {
                 this.fileChannel.close();
-            }
-            if (!ok && this.randomAccessFile != null) {
-                this.randomAccessFile.close();
             }
         }
     }
@@ -333,7 +326,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         if (currentPos < this.fileSize) {
             SharedByteBuffer sharedByteBuffer = null;
             ByteBuffer byteBuffer;
-            if (writeWithoutMmap && randomAccessFile != null) {
+            if (writeWithoutMmap) {
                 sharedByteBuffer = borrowSharedByteBuffer();
                 byteBuffer = sharedByteBuffer.acquire();
                 byteBuffer.position(0).limit(byteBuffer.capacity());
@@ -347,8 +340,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
             if (sharedByteBuffer != null) {
                 try {
-                    randomAccessFile.seek(currentPos);
-                    randomAccessFile.write(byteBuffer.array(), 0, result.getWroteBytes());
+                    this.fileChannel.position(currentPos);
+                    byteBuffer.position(0).limit(result.getWroteBytes());
+                    this.fileChannel.write(byteBuffer);
                 } catch (Throwable t) {
                     log.error("Failed to write to mappedFile {}", this.fileName, t);
                     return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
@@ -388,7 +382,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         if (currentPos < this.fileSize) {
             SharedByteBuffer sharedByteBuffer = null;
             ByteBuffer byteBuffer;
-            if (writeWithoutMmap && randomAccessFile != null) {
+            if (writeWithoutMmap) {
                 sharedByteBuffer = borrowSharedByteBuffer();
                 byteBuffer = sharedByteBuffer.acquire();
                 byteBuffer.position(0).limit(byteBuffer.capacity());
@@ -413,8 +407,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
             if (sharedByteBuffer != null) {
                 try {
-                    randomAccessFile.seek(currentPos);
-                    randomAccessFile.write(byteBuffer.array(), 0, result.getWroteBytes());
+                    this.fileChannel.position(currentPos);
+                    byteBuffer.position(0).limit(result.getWroteBytes());
+                    this.fileChannel.write(byteBuffer);
                 } catch (Throwable t) {
                     log.error("Failed to write to mappedFile {}", this.fileName, t);
                     return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
@@ -452,12 +447,13 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         if ((currentPos + remaining) <= this.fileSize) {
             try {
-                if (writeWithoutMmap && randomAccessFile != null) {
-                    // Use RandomAccessFile for writing
-                    randomAccessFile.seek(currentPos);
+                if (writeWithoutMmap) {
+                    // Use FileChannel for writing
+                    this.fileChannel.position(currentPos);
                     byte[] buffer = new byte[remaining];
                     data.get(buffer);
-                    randomAccessFile.write(buffer);
+                    ByteBuffer writeBuffer = ByteBuffer.wrap(buffer);
+                    this.fileChannel.write(writeBuffer);
                 } else {
                     // Use FileChannel for writing (default behavior)
                     this.fileChannel.position(currentPos);
@@ -487,10 +483,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         if ((currentPos + length) <= this.fileSize) {
             try {
-                if (writeWithoutMmap && randomAccessFile != null) {
-                    // Use RandomAccessFile for writing
-                    randomAccessFile.seek(currentPos);
-                    randomAccessFile.write(data, offset, length);
+                if (writeWithoutMmap) {
+                    // Use FileChannel for writing
+                    this.fileChannel.position(currentPos);
+                    ByteBuffer writeBuffer = ByteBuffer.wrap(data, offset, length);
+                    this.fileChannel.write(writeBuffer);
                 } else {
                     // Use MappedByteBuffer for writing (default behavior)
                     ByteBuffer buf = this.mappedByteBuffer.slice();
@@ -542,17 +539,13 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 try {
                     this.mappedByteBufferAccessCountSinceLastSwap++;
 
-                    if (writeWithoutMmap && randomAccessFile != null) {
-                        // Use RandomAccessFile for flushing
-                        randomAccessFile.getChannel().force(false);
+                    //We only append data to fileChannel or mappedByteBuffer, never both.
+                    if (writeWithoutMmap || writeBuffer != null || this.fileChannel.position() != 0) {
+                        this.fileChannel.force(false);
                     } else {
-                        //We only append data to fileChannel or mappedByteBuffer, never both.
-                        if (writeBuffer != null || this.fileChannel.position() != 0) {
-                            this.fileChannel.force(false);
-                        } else {
-                            this.mappedByteBuffer.force();
-                        }
+                        this.mappedByteBuffer.force();
                     }
+
                     this.lastFlushTime = System.currentTimeMillis();
                     FLUSHED_POSITION_UPDATER.set(this, value);
                 } catch (Throwable e) {
@@ -750,14 +743,6 @@ public class DefaultMappedFile extends AbstractMappedFile {
         } catch (Throwable e) {
             log.warn("close file channel {" + this.fileName + "} failed when cleanup", e);
         }
-        try {
-            if (this.randomAccessFile != null) {
-                this.randomAccessFile.close();
-            }
-        } catch (Throwable e) {
-            log.info("close random access file " + this.fileName + " failed", e);
-        }
-
     }
 
     @Override
@@ -769,11 +754,6 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 long lastModified = getLastModifiedTimestamp();
                 this.fileChannel.close();
                 log.info("close file channel " + this.fileName + " OK");
-
-                if (this.randomAccessFile != null) {
-                    this.randomAccessFile.close();
-                    log.info("close random access file " + this.fileName + " OK");
-                }
 
                 long beginTime = System.currentTimeMillis();
                 boolean result = this.file.delete();
