@@ -243,7 +243,7 @@ public class MessageStoreConfig {
      * where mmap is not desired.
      *
      * The configurations writeWithoutMmap and transientStorePoolEnable are mutually exclusive. When both are set to
-     * true, only transientStorePoolEnable will be effective.
+     * true, only writeWithoutMmap will be effective.
      */
     @ImportantField
     private boolean writeWithoutMmap = false;
