@@ -129,6 +129,7 @@ public class PopReviveService extends ServiceThread {
         if (messageExt.getReconsumeTimes() == 0 || msgInner.getProperties().get(MessageConst.PROPERTY_FIRST_POP_TIME) == null) {
             msgInner.getProperties().put(MessageConst.PROPERTY_FIRST_POP_TIME, String.valueOf(popCheckPoint.getPopTime()));
         }
+        msgInner.getProperties().computeIfAbsent(MessageConst.PROPERTY_ORIGIN_TOPIC, k -> popCheckPoint.getTopic());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         addRetryTopicIfNotExist(msgInner.getTopic(), popCheckPoint.getCId());
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);

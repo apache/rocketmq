@@ -24,6 +24,7 @@ public class MessageConst {
     public static final String PROPERTY_WAIT_STORE_MSG_OK = "WAIT";
     public static final String PROPERTY_DELAY_TIME_LEVEL = "DELAY";
     public static final String PROPERTY_RETRY_TOPIC = "RETRY_TOPIC";
+    public static final String PROPERTY_ORIGIN_TOPIC = "ORIGIN_TOPIC"; //Distinct for retry topic
     public static final String PROPERTY_REAL_TOPIC = "REAL_TOPIC";
     public static final String PROPERTY_REAL_QUEUE_ID = "REAL_QID";
     public static final String PROPERTY_TRANSACTION_PREPARED = "TRAN_MSG";
@@ -113,6 +114,7 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_WAIT_STORE_MSG_OK);
         STRING_HASH_SET.add(PROPERTY_DELAY_TIME_LEVEL);
         STRING_HASH_SET.add(PROPERTY_RETRY_TOPIC);
+        STRING_HASH_SET.add(PROPERTY_ORIGIN_TOPIC);
         STRING_HASH_SET.add(PROPERTY_REAL_TOPIC);
         STRING_HASH_SET.add(PROPERTY_REAL_QUEUE_ID);
         STRING_HASH_SET.add(PROPERTY_TRANSACTION_PREPARED);
