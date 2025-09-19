@@ -1030,9 +1030,8 @@ public class BrokerController {
             }
         };
 
-        if (messageStore != null) {
-            messageStore.setSendMessageBackHook(sendMessageBackHook);
-        }
+        messageStore.setSendMessageBackHook(sendMessageBackHook);
+
     }
 
     private void initialTransaction() {
