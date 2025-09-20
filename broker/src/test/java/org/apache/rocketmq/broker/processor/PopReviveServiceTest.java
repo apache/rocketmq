@@ -27,6 +27,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
@@ -95,6 +96,10 @@ public class PopReviveServiceTest {
     private BrokerController brokerController;
     @Mock
     private EscapeBridge escapeBridge;
+    @Mock
+    private BrokerMetricsManager brokerMetricsManager;
+    @Mock
+    private PopMetricsManager popMetricsManager;
     private PopMessageProcessor popMessageProcessor;
 
     private BrokerConfig brokerConfig;
@@ -118,7 +123,8 @@ public class PopReviveServiceTest {
         when(subscriptionGroupManager.findSubscriptionGroupConfig(anyString())).thenReturn(new SubscriptionGroupConfig());
 
         // Initialize BrokerMetricsManager for tests
-        when(brokerController.getBrokerMetricsManager()).thenReturn(new BrokerMetricsManager(brokerController));
+        when(brokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
+        when(brokerMetricsManager.getPopMetricsManager()).thenReturn(popMetricsManager);
 
         popMessageProcessor = new PopMessageProcessor(brokerController); // a real one, not mock
         when(brokerController.getPopMessageProcessor()).thenReturn(popMessageProcessor);
@@ -255,16 +261,17 @@ public class PopReviveServiceTest {
 
     @Test
     public void testReviveMsgFromCk_messageFound_writeRetryFailed_rewriteCK() throws Throwable {
+        brokerConfig.setSkipWhenCKRePutReachMaxTimes(false); // Ensure CK is not dropped when max times reached
         PopCheckPoint ck = buildPopCheckPoint(0, 0, 0);
         PopReviveService.ConsumeReviveObj reviveObj = new PopReviveService.ConsumeReviveObj();
         reviveObj.map.put("", ck);
-        reviveObj.endTime = System.currentTimeMillis();
+        reviveObj.endTime = System.currentTimeMillis() + 10000; // Ensure endTime is much larger than reviveTime
         StringBuilder actualRetryTopic = new StringBuilder();
         StringBuilder actualReviveTopic = new StringBuilder();
         AtomicLong actualInvisibleTime = new AtomicLong(0L);
 
         when(escapeBridge.getMessageAsync(anyString(), anyLong(), anyInt(), anyString(), anyBoolean()))
-                .thenReturn(CompletableFuture.completedFuture(Triple.of(new MessageExt(), "", false)));
+                .thenReturn(CompletableFuture.completedFuture(Triple.of(new MessageExt(), "", true)));
         when(escapeBridge.putMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenAnswer(invocation -> {
             MessageExtBrokerInner msg = invocation.getArgument(0);
             actualRetryTopic.append(msg.getTopic());
@@ -279,6 +286,10 @@ public class PopReviveServiceTest {
         });
 
         popReviveService.mergeAndRevive(reviveObj);
+        
+        // Wait for async operations to complete
+        Thread.sleep(1000);
+        
         Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, false), actualRetryTopic.toString());
         Assert.assertEquals(REVIVE_TOPIC, actualReviveTopic.toString());
         Assert.assertEquals(INVISIBLE_TIME + 10 * 1000L, actualInvisibleTime.get()); // first interval is 10s
