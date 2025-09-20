@@ -38,6 +38,7 @@ import org.apache.rocketmq.remoting.CommandCallback;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.MessageFilter;
@@ -259,13 +260,13 @@ public class PopLongPollingService extends ServiceThread {
                 if (response != null) {
                     response.setOpaque(request.getRemotingCommand().getOpaque());
                     response.markResponseType();
-                    brokerController.getRemotingServer().writeResponse(request.getChannel(), request.getRemotingCommand(), response, future -> {
+                    NettyRemotingAbstract.writeResponse(request.getChannel(), request.getRemotingCommand(), response, future -> {
                         if (!future.isSuccess()) {
                             POP_LOGGER.error("ProcessRequestWrapper response to {} failed", request.getChannel().remoteAddress(), future.cause());
                             POP_LOGGER.error(request.toString());
                             POP_LOGGER.error(response.toString());
                         }
-                    });
+                    }, brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
                 }
             } catch (Exception e1) {
                 POP_LOGGER.error("ExecuteRequestWhenWakeup run", e1);

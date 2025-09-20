@@ -229,6 +229,58 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
+    public static void writeResponse(Channel channel, RemotingCommand request, @Nullable RemotingCommand response,
+        Consumer<Future<?>> callback, RemotingMetricsManager remotingMetricsManager) {
+        if (response == null) {
+            return;
+        }
+        final AttributesBuilder attributesBuilder;
+        if (remotingMetricsManager != null) {
+            attributesBuilder = remotingMetricsManager.newAttributesBuilder();
+            attributesBuilder.put(LABEL_IS_LONG_POLLING, request.isSuspended())
+                .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
+                .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()));
+        } else {
+            attributesBuilder = null;
+        }
+        if (request.isOnewayRPC()) {
+            if (attributesBuilder != null) {
+                attributesBuilder.put(LABEL_RESULT, RESULT_ONEWAY);
+                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            }
+            return;
+        }
+        response.setOpaque(request.getOpaque());
+        response.markResponseType();
+        try {
+            channel.writeAndFlush(response).addListener((ChannelFutureListener) future -> {
+                if (future.isSuccess()) {
+                    log.debug("Response[request code: {}, response code: {}, opaque: {}] is written to channel{}",
+                        request.getCode(), response.getCode(), response.getOpaque(), channel);
+                } else {
+                    log.error("Failed to write response[request code: {}, response code: {}, opaque: {}] to channel{}",
+                        request.getCode(), response.getCode(), response.getOpaque(), channel, future.cause());
+                }
+                if (remotingMetricsManager != null) {
+                    attributesBuilder.put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future));
+                    remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+                }
+                if (callback != null) {
+                    callback.accept(future);
+                }
+            });
+        } catch (Throwable e) {
+            log.error("process request over, but response failed", e);
+            log.error(request.toString());
+            log.error(response.toString());
+            if (remotingMetricsManager != null) {
+                attributesBuilder.put(LABEL_RESULT, RESULT_WRITE_CHANNEL_FAILED);
+                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            }
+        }
+
+    }
+
     public void writeResponse(Channel channel, RemotingCommand request, @Nullable RemotingCommand response,
         Consumer<Future<?>> callback) {
         if (response == null) {

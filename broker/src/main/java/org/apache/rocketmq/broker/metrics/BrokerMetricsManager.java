@@ -161,8 +161,8 @@ public class BrokerMetricsManager {
     private LongCounter rollBackMessagesTotal = new NopLongCounter();
     private LongHistogram transactionFinishLatency = new NopLongHistogram();
 
-    private RemotingMetricsManager remotingMetricsManager;
-    private PopMetricsManager popMetricsManager;
+    private final RemotingMetricsManager remotingMetricsManager;
+    private final PopMetricsManager popMetricsManager;
 
     @SuppressWarnings("DoubleBraceInitialization")
     public static final List<String> SYSTEM_GROUP_PREFIX_LIST = new ArrayList<String>() {

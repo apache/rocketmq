@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
@@ -115,6 +116,9 @@ public class PopReviveServiceTest {
 
         when(topicConfigManager.selectTopicConfig(anyString())).thenReturn(new TopicConfig());
         when(subscriptionGroupManager.findSubscriptionGroupConfig(anyString())).thenReturn(new SubscriptionGroupConfig());
+
+        // Initialize BrokerMetricsManager for tests
+        when(brokerController.getBrokerMetricsManager()).thenReturn(new BrokerMetricsManager(brokerController));
 
         popMessageProcessor = new PopMessageProcessor(brokerController); // a real one, not mock
         when(brokerController.getPopMessageProcessor()).thenReturn(popMessageProcessor);

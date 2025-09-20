@@ -41,6 +41,7 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -355,6 +356,6 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
 
     protected void doResponse(Channel channel, RemotingCommand request,
         final RemotingCommand response) {
-        brokerController.getRemotingServer().writeResponse(channel, request, response, null);
+        NettyRemotingAbstract.writeResponse(channel, request, response, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
     }
 }

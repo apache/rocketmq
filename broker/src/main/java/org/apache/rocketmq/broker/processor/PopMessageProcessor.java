@@ -71,12 +71,14 @@ import org.apache.rocketmq.remoting.CommandCallback;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
@@ -491,7 +493,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     return null;
                 }
                 return response;
-            }).thenAccept(result -> brokerController.getRemotingServer().writeResponse(channel, request, result, null));
+            }).thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager()));
             return null;
         }
 
@@ -645,7 +647,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     return finalResponse;
             }
             return finalResponse;
-        }).thenAccept(result -> brokerController.getRemotingServer().writeResponse(channel, request, result, null));
+        }).thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager()));
         return null;
     }
 

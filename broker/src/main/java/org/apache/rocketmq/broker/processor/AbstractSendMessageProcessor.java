@@ -60,6 +60,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -542,7 +543,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
     protected void doResponse(ChannelHandlerContext ctx, RemotingCommand request,
         final RemotingCommand response) {
-        brokerController.getRemotingServer().writeResponse(ctx.channel(), request, response, null);
+        NettyRemotingAbstract.writeResponse(ctx.channel(), request, response, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
     }
 
     public void executeSendMessageHookBefore(SendMessageContext context) {
