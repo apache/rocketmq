@@ -71,6 +71,7 @@ import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESPONSE_CODE;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESULT;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_ONEWAY;
+import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_PROCESS_REQUEST_FAILED;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_WRITE_CHANNEL_FAILED;
 
 public abstract class NettyRemotingAbstract {
@@ -391,8 +392,12 @@ public abstract class NettyRemotingAbstract {
             response.setOpaque(opaque);
             this.writeResponse(ctx.channel(), cmd, response, null);
         } catch (Throwable e) {
-            // Note: Metrics recording is skipped here as no RemotingMetricsManager instance is available
-            // in this error handling context
+            if (remotingMetricsManager != null) {
+                AttributesBuilder attributesBuilder = remotingMetricsManager.newAttributesBuilder()
+                    .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(cmd.getCode()))
+                    .put(LABEL_RESULT, RESULT_PROCESS_REQUEST_FAILED);
+                remotingMetricsManager.getRpcLatency().record(cmd.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            }
         }
     }
 
