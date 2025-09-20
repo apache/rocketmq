@@ -146,20 +146,28 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             long mappedFileOffset = 0;
             long maxExtAddr = 1;
             while (true) {
+                long lastOffset = 0;
+                long lastSize = 0;
+                long lastTagsCode = 0;
+                long messageCount = 0;
                 for (int i = 0; i < mappedFileSizeLogics; i += CQ_STORE_UNIT_SIZE) {
                     long offset = byteBuffer.getLong();
                     int size = byteBuffer.getInt();
                     long tagsCode = byteBuffer.getLong();
 
                     if (offset >= 0 && size > 0) {
+                        lastOffset = offset;
+                        lastSize = size;
+                        lastTagsCode = tagsCode;
+                        messageCount++;
                         mappedFileOffset = i + CQ_STORE_UNIT_SIZE;
                         this.setMaxPhysicOffset(offset + size);
                         if (isExtAddr(tagsCode)) {
                             maxExtAddr = tagsCode;
                         }
                     } else {
-                        log.info("recover current consume queue file over,  " + mappedFile.getFileName() + " "
-                            + offset + " " + size + " " + tagsCode);
+                        log.info("recover current consume queue file over, {} lastOffset={}, lastSize={}, lastTagsCode={}, messageCount={}",
+                            mappedFile.getFileName(), lastOffset, lastSize, lastTagsCode, messageCount);
                         break;
                     }
                 }
@@ -168,19 +176,17 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     index++;
                     if (index >= mappedFiles.size()) {
 
-                        log.info("recover last consume queue file over, last mapped file "
-                            + mappedFile.getFileName());
+                        log.info("recover last consume queue file over, last mapped file {}", mappedFile.getFileName());
                         break;
                     } else {
                         mappedFile = mappedFiles.get(index);
                         byteBuffer = mappedFile.sliceByteBuffer();
                         processOffset = mappedFile.getFileFromOffset();
                         mappedFileOffset = 0;
-                        log.info("recover next consume queue file, " + mappedFile.getFileName());
+                        log.info("recover next consume queue file {} ", mappedFile.getFileName());
                     }
                 } else {
-                    log.info("recover current consume queue over " + mappedFile.getFileName() + " "
-                        + (processOffset + mappedFileOffset));
+                    log.info("recover current consume queue over, {} totalMessageCount={}", mappedFile.getFileName(), processOffset + mappedFileOffset);
                     break;
                 }
             }
