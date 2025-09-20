@@ -206,7 +206,7 @@ public class ReplicasManager {
                 return false;
             }
         }
-
+        // 同步controller的元数据
         schedulingSyncBrokerMetadata();
 
         // Register syncStateSet changed listener.

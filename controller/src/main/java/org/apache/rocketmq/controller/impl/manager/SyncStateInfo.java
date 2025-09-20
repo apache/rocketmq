@@ -28,9 +28,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SyncStateInfo implements Serializable {
     private final String clusterName;
     private final String brokerName;
+    //master版本号（任期号）
     private final AtomicInteger masterEpoch;
+    //同步副本数集合的版本（任期号）
     private final AtomicInteger syncStateSetEpoch;
-
+    //同步副本数集合包含master
     private Set<Long/*brokerId*/> syncStateSet;
 
     private Long masterBrokerId;
