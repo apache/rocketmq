@@ -144,7 +144,7 @@ public class RaftBrokerHeartBeatManagerTest {
     @Test
     public void testScanNotActiveBrokerSuccess() throws Exception {
         when(controller.isLeaderState()).thenReturn(true);
-        FieldUtils.writeDeclaredField(raftBrokerHeartBeatManager, "firstReceivedHeartbeatTime", System.currentTimeMillis() + 1000L, true);
+        FieldUtils.writeDeclaredField(raftBrokerHeartBeatManager, "firstReceivedHeartbeatTime", System.currentTimeMillis() + 10000L, true);
 
         ControllerConfig controllerConfig = mock(ControllerConfig.class);
         JraftConfig jraftConfig = mock(JraftConfig.class);
