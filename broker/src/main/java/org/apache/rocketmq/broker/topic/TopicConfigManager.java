@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.topic;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +36,7 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.route.RouteEventType;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PopAckConstants;
@@ -224,6 +226,16 @@ public class TopicConfigManager extends ConfigManager {
                 this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
             }
         }
+
+        {
+            // TopicValidator.RMQ_ROUTE_EVENT_TOPIC
+            String topic = TopicValidator.RMQ_ROUTE_EVENT_TOPIC;
+            TopicConfig topicConfig = new TopicConfig(topic);
+            TopicValidator.addSystemTopic(topic);
+            topicConfig.setReadQueueNums(1);
+            topicConfig.setWriteQueueNums(1);
+            putTopicConfig(topicConfig);
+        }
     }
 
     public TopicConfig putTopicConfig(TopicConfig topicConfig) {
@@ -310,6 +322,8 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
+
+            publishTopicChangeEvent(topicConfig.getTopicName());
         }
 
         return topicConfig;
@@ -349,6 +363,8 @@ public class TopicConfigManager extends ConfigManager {
         }
         if (createNew && register) {
             registerBrokerData(topicConfig);
+
+            publishTopicChangeEvent(topicConfig.getTopicName());            
         }
         return getTopicConfig(topicConfig.getTopicName());
     }
@@ -408,6 +424,8 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
+
+            publishTopicChangeEvent(topicConfig.getTopicName());
         }
 
         return topicConfig;
@@ -448,6 +466,8 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
+
+            publishTopicChangeEvent(topicConfig.getTopicName());
         }
 
         return topicConfig;
@@ -601,8 +621,20 @@ public class TopicConfigManager extends ConfigManager {
             log.info("delete topic config OK, topic: {}", old);
             updateDataVersion();
             this.persist();
+
+            publishTopicChangeEvent(topic);
         } else {
             log.warn("delete topic config failed, topic: {} not exists", topic);
+        }
+    }
+
+    private void publishTopicChangeEvent(String topicName) {
+        if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification() 
+            && this.brokerController.getRouteEventService() != null) {
+            this.brokerController.getRouteEventService().publishEvent(
+                RouteEventType.TOPIC_CHANGE, 
+                Collections.singleton(topicName)
+            );
         }
     }
 

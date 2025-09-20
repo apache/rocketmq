@@ -80,6 +80,8 @@ import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
 import org.apache.rocketmq.broker.processor.RecallMessageProcessor;
 import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
+import org.apache.rocketmq.broker.route.RouteEventService;
+import org.apache.rocketmq.broker.route.RouteEventType;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
@@ -165,6 +167,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -300,6 +303,7 @@ public class BrokerController {
     private TransactionMetricsFlushService transactionMetricsFlushService;
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
+    private RouteEventService routeEventService;
 
     private ConfigContext configContext;
 
@@ -879,6 +883,7 @@ public class BrokerController {
         if (!result) {
             return false;
         }
+        this.routeEventService = new RouteEventService(this);
 
         return this.recoverAndInitService();
     }
@@ -1311,6 +1316,10 @@ public class BrokerController {
         this.messageStore = messageStore;
     }
 
+    public RouteEventService getRouteEventService() {
+        return routeEventService;
+    }
+
     protected void printMasterAndSlaveDiff() {
         if (messageStore.getHaService() != null && messageStore.getHaService().getConnectionCount().get() > 0) {
             long diff = this.messageStore.slaveFallBehindMuch();
@@ -1408,6 +1417,16 @@ public class BrokerController {
         shutdown = true;
 
         this.unregisterBrokerAll();
+
+        if (this.routeEventService != null && this.topicConfigManager != null) {
+            Set<String> topics = this.topicConfigManager.getTopicConfigTable().keySet();
+            try {
+                this.routeEventService.publishEvent(RouteEventType.SHUTDOWN, topics);
+                LOG.info("[SHUTDOWN AFTER unregisterBrokerAll]: publish {}", topics);
+            } catch (Exception e) {
+                LOG.error("Failed to publish route change event for topic: {}", topics, e);
+            }
+        }
 
         if (this.shutdownHook != null) {
             this.shutdownHook.beforeShutdown(this);
@@ -1860,6 +1879,16 @@ public class BrokerController {
                 }
             }
         }, 10, 5, TimeUnit.SECONDS);
+
+        if (this.routeEventService != null && this.topicConfigManager != null) {
+            Set<String> topics = this.topicConfigManager.getTopicConfigTable().keySet();
+            try {
+                this.routeEventService.publishEvent(RouteEventType.START, topics);
+                LOG.info("[START]: publish {}", topics);
+            } catch (Exception e) {
+                LOG.error("Failed to publish route change event for topic: {}", topics, e);
+            }
+        }
     }
 
     protected void scheduleSendHeartbeat() {
