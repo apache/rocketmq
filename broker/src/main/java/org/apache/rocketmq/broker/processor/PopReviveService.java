@@ -552,21 +552,10 @@ public class PopReviveService extends ServiceThread {
         }
         CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]))
             .whenComplete((v, e) -> {
-                POP_LOGGER.info("reviveMsgFromCk whenComplete called, futureList size: {}", futureList.size());
-                for (int i = 0; i < futureList.size(); i++) {
-                    CompletableFuture<Pair<Long, Boolean>> future = futureList.get(i);
-                    POP_LOGGER.info("reviveMsgFromCk future[{}].isDone(): {}", i, future.isDone());
-                    try {
-                        Pair<Long, Boolean> pair = future.getNow(new Pair<>(0L, false));
-                        POP_LOGGER.info("reviveMsgFromCk pair[{}]: offset={}, result={}", i, pair.getObject1(), pair.getObject2());
-                        if (!pair.getObject2()) {
-                            POP_LOGGER.info("reviveMsgFromCk calling rePutCK for offset: {}", pair.getObject1());
-                            rePutCK(popCheckPoint, pair);
-                        } else {
-                            POP_LOGGER.info("reviveMsgFromCk pair.getObject2() is true, not calling rePutCK");
-                        }
-                    } catch (Exception ex) {
-                        POP_LOGGER.error("reviveMsgFromCk exception in future[{}]: {}", i, ex.getMessage(), ex);
+                for (CompletableFuture<Pair<Long, Boolean>> future : futureList) {
+                    Pair<Long, Boolean> pair = future.getNow(new Pair<>(0L, false));
+                    if (!pair.getObject2()) {
+                        rePutCK(popCheckPoint, pair);
                     }
                 }
 
