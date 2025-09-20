@@ -65,6 +65,8 @@ public class EndTransactionActivity extends AbstractMessingActivity {
                 request.getTransactionId(),
                 request.getMessageId(),
                 request.getTopic().getName(),
+                null,
+                null,
                 transactionStatus,
                 request.getSource().equals(TransactionSource.SOURCE_SERVER_CHECK))
                 .thenApply(r -> EndTransactionResponse.newBuilder()
