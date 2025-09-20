@@ -261,17 +261,16 @@ public class PopReviveServiceTest {
 
     @Test
     public void testReviveMsgFromCk_messageFound_writeRetryFailed_rewriteCK() throws Throwable {
-        brokerConfig.setSkipWhenCKRePutReachMaxTimes(false); // Ensure CK is not dropped when max times reached
         PopCheckPoint ck = buildPopCheckPoint(0, 0, 0);
         PopReviveService.ConsumeReviveObj reviveObj = new PopReviveService.ConsumeReviveObj();
         reviveObj.map.put("", ck);
-        reviveObj.endTime = System.currentTimeMillis() + 10000; // Ensure endTime is much larger than reviveTime
+        reviveObj.endTime = System.currentTimeMillis();
         StringBuilder actualRetryTopic = new StringBuilder();
         StringBuilder actualReviveTopic = new StringBuilder();
         AtomicLong actualInvisibleTime = new AtomicLong(0L);
 
         when(escapeBridge.getMessageAsync(anyString(), anyLong(), anyInt(), anyString(), anyBoolean()))
-                .thenReturn(CompletableFuture.completedFuture(Triple.of(new MessageExt(), "", true)));
+            .thenReturn(CompletableFuture.completedFuture(Triple.of(new MessageExt(), "", false)));
         when(escapeBridge.putMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenAnswer(invocation -> {
             MessageExtBrokerInner msg = invocation.getArgument(0);
             actualRetryTopic.append(msg.getTopic());
