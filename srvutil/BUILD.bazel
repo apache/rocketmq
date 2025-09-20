@@ -26,7 +26,6 @@ java_library(
         "@maven//:commons_validator_commons_validator",
         "@maven//:com_github_luben_zstd_jni",
         "@maven//:org_lz4_lz4_java",
-        "@maven//:com_alibaba_fastjson",
         "@maven//:io_netty_netty_all",
         "@maven//:commons_cli_commons_cli",
         "@maven//:com_googlecode_concurrentlinkedhashmap_concurrentlinkedhashmap_lru",

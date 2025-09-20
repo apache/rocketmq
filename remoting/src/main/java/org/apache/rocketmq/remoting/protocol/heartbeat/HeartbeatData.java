@@ -20,10 +20,12 @@
  */
 package org.apache.rocketmq.remoting.protocol.heartbeat;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+
 import java.util.HashSet;
 import java.util.Set;
-import com.alibaba.fastjson.JSON;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class HeartbeatData extends RemotingSerializable {
     private String clientID;
@@ -79,7 +81,7 @@ public class HeartbeatData extends RemotingSerializable {
     }
 
     public int computeHeartbeatFingerprint() {
-        HeartbeatData heartbeatDataCopy = JSON.parseObject(JSON.toJSONString(this), HeartbeatData.class);
+        HeartbeatData heartbeatDataCopy = JSON.parseObject(JSON.toJSONString(this, JSONWriter.Feature.ReferenceDetection), HeartbeatData.class);
         for (ConsumerData consumerData : heartbeatDataCopy.getConsumerDataSet()) {
             for (SubscriptionData subscriptionData : consumerData.getSubscriptionDataSet()) {
                 subscriptionData.setSubVersion(0L);
@@ -88,6 +90,6 @@ public class HeartbeatData extends RemotingSerializable {
         heartbeatDataCopy.setWithoutSub(false);
         heartbeatDataCopy.setHeartbeatFingerprint(0);
         heartbeatDataCopy.setClientID("");
-        return JSON.toJSONString(heartbeatDataCopy).hashCode();
+        return JSON.toJSONString(heartbeatDataCopy, JSONWriter.Feature.ReferenceDetection).hashCode();
     }
 }
