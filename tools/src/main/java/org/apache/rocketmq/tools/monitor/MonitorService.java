@@ -170,22 +170,20 @@ public class MonitorService {
         long beginTime = System.currentTimeMillis();
         this.monitorListener.beginRound();
 
-        TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
+        TopicList topicList = defaultMQAdminExt.fetchAllRetryTopicList();
         for (String topic : topicList.getTopicList()) {
-            if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                String consumerGroup = KeyBuilder.parseGroup(topic);
+            String consumerGroup = KeyBuilder.parseGroup(topic);
 
-                try {
-                    this.reportUndoneMsgs(consumerGroup);
-                } catch (Exception e) {
-                    // log.error("reportUndoneMsgs Exception", e);
-                }
+            try {
+                this.reportUndoneMsgs(consumerGroup);
+            } catch (Exception e) {
+                // log.error("reportUndoneMsgs Exception", e);
+            }
 
-                try {
-                    this.reportConsumerRunningInfo(consumerGroup);
-                } catch (Exception e) {
-                    // log.error("reportConsumerRunningInfo Exception", e);
-                }
+            try {
+                this.reportConsumerRunningInfo(consumerGroup);
+            } catch (Exception e) {
+                // log.error("reportConsumerRunningInfo Exception", e);
             }
         }
         this.monitorListener.endRound();

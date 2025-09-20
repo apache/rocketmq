@@ -2026,6 +2026,25 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
 
         throw new MQClientException(response.getCode(), response.getRemark());
     }
+    
+    public TopicList getRetryTopicListFromNameServer(final long timeoutMillis)
+            throws RemotingException, MQClientException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_RETRY_TOPIC_LIST_FROM_NAMESERVER, null);
+        RemotingCommand response = this.remotingClient.invokeSync(null, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                byte[] body = response.getBody();
+                if (body != null) {
+                    return TopicList.decode(body, TopicList.class);
+                }
+            }
+            default:
+                break;
+        }
+        
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
 
     public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName,
         final long timeoutMillis) throws RemotingCommandException,
