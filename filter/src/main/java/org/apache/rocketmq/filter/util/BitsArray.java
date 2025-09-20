@@ -16,6 +16,7 @@
  */
 
 package org.apache.rocketmq.filter.util;
+import java.util.Arrays;
 
 /**
  * Wrapper of bytes array, in order to operate single bit easily.
@@ -45,9 +46,7 @@ public class BitsArray implements Cloneable {
             temp++;
         }
         bytes = new byte[temp];
-        for (int i = 0; i < bytes.length; i++) {
-            bytes[i] = (byte) 0x00;
-        }
+        Arrays.fill(bytes, (byte) 0x00); 
     }
 
     private BitsArray(byte[] bytes, int bitLength) {
