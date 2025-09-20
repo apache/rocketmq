@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.broker.offset;
 
+import com.google.common.base.Strings;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import com.google.common.base.Strings;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.MixAll;
@@ -126,7 +125,7 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
             String topicAtGroup = next.getKey();
             if (topicAtGroup.contains(group)) {
                 String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-                if (arrays.length == 2 && group.equals(arrays[1])) {
+                if (validateOffsetTableKey(topicAtGroup) && group.equals(arrays[1])) {
                     it.remove();
                     removeConsumerOffset(topicAtGroup);
                     LOG.warn("clean lmq group offset {}", topicAtGroup);
@@ -139,7 +138,7 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
     public void assignResetOffset(String topic, String group, int queueId, long offset) {
         if (Strings.isNullOrEmpty(topic) || Strings.isNullOrEmpty(group) || queueId < 0 || offset < 0) {
             LOG.warn("Illegal arguments when assigning reset offset. Topic={}, group={}, queueId={}, offset={}",
-                    topic, group, queueId, offset);
+                topic, group, queueId, offset);
             return;
         }
         if (!MixAll.isLmq(topic) || !MixAll.isLmq(group)) {
