@@ -473,7 +473,7 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
 
     /**
      * Validates that the expression can be used in == or <> expression. Cannot
-     * not be NULL TRUE or FALSE litterals.
+     * not be NULL TRUE or FALSE literals.
      */
     public static void checkEqualOperand(Expression expr) {
         if (expr instanceof ConstantExpression) {

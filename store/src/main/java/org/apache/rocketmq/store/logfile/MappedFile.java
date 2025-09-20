@@ -263,7 +263,7 @@ public interface MappedFile {
     /**
      * Returns the flushed position of this mapped file.
      *
-     * @return the flushed posotion
+     * @return the flushed position
      */
     int getFlushedPosition();
 

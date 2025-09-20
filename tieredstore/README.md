@@ -30,7 +30,7 @@ The following are some core configurations, for more details, see [TieredMessage
 | tieredStoreFileReservedTime     | 72                                                            | hour        | Default topic TTL in tiered storage                                             |
 | tieredStoreGroupCommitCount     | 2500                                                          |             | The number of messages that trigger one batch transfer                          |
 | tieredStoreGroupCommitSize      | 33554432                                                      | byte        | The size of messages that trigger one batch transfer, 32M by default            |
-| tieredStoreMaxGroupCommitCount  | 10000                                                         |             | The maximum number of messages waiting to be transfered per queue               |
+| tieredStoreMaxGroupCommitCount  | 10000                                                         |             | The maximum number of messages waiting to be transferred per queue               |
 | readAheadCacheExpireDuration    | 1000                                                          | millisecond | Read-ahead cache expiration time                                                |
 | readAheadCacheSizeThresholdRate | 0.3                                                           |             | The maximum heap space occupied by the read-ahead cache                         |
 
