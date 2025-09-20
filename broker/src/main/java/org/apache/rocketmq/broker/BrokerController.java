@@ -285,7 +285,7 @@ public class BrokerController {
     protected volatile BrokerMemberGroup brokerMemberGroup;
     protected EscapeBridge escapeBridge;
     protected List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
-    protected volatile long shouldStartTime;
+    protected volatile long startupTime;
     private BrokerPreOnlineService brokerPreOnlineService;
     protected volatile boolean isIsolated = false;
     protected volatile long minBrokerIdInGroup = 0;
@@ -1791,7 +1791,7 @@ public class BrokerController {
 
     public void start() throws Exception {
 
-        this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
+        this.startupTime = System.currentTimeMillis();
 
         if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
             isIsolated = true;
@@ -1812,8 +1812,9 @@ public class BrokerController {
             @Override
             public void run0() {
                 try {
-                    if (System.currentTimeMillis() < shouldStartTime) {
-                        BrokerController.LOG.info("Register to namesrv after {}", shouldStartTime);
+                    long diff = System.currentTimeMillis() - startupTime;
+                    if (diff >= 0 && diff < messageStoreConfig.getDisappearTimeAfterStart()) {
+                        BrokerController.LOG.info("Register to namesrv after {}", startupTime + messageStoreConfig.getDisappearTimeAfterStart());
                         return;
                     }
                     if (isIsolated) {
@@ -2560,8 +2561,8 @@ public class BrokerController {
         return escapeBridge;
     }
 
-    public long getShouldStartTime() {
-        return shouldStartTime;
+    public long getStartupTime() {
+        return startupTime;
     }
 
     public BrokerPreOnlineService getBrokerPreOnlineService() {

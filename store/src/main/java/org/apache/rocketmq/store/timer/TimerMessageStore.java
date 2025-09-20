@@ -152,7 +152,7 @@ public class TimerMessageStore {
     private volatile BrokerRole lastBrokerRole = BrokerRole.SLAVE;
     //the dequeue is an asynchronous process, use this flag to track if the status has changed
     private boolean dequeueStatusChangeFlag = false;
-    private long shouldStartTime;
+    private long startupTime;
 
     // True if current store is master or current brokerId is equal to the minimum brokerId of the replica group in slaveActingMaster mode.
     protected volatile boolean shouldRunningDequeue;
@@ -464,7 +464,7 @@ public class TimerMessageStore {
     }
 
     public void start() {
-        this.shouldStartTime = storeConfig.getDisappearTimeAfterStart() + System.currentTimeMillis();
+        this.startupTime = System.currentTimeMillis();
         maybeMoveWriteTime();
         enqueueGetService.start();
         enqueuePutService.start();
@@ -1510,8 +1510,9 @@ public class TimerMessageStore {
             TimerMessageStore.LOGGER.info(this.getServiceName() + " service start");
             while (!this.isStopped()) {
                 try {
-                    if (System.currentTimeMillis() < shouldStartTime) {
-                        TimerMessageStore.LOGGER.info("TimerDequeueGetService ready to run after {}.", shouldStartTime);
+                    long diff = System.currentTimeMillis() - startupTime;
+                    if (diff >= 0 && diff < storeConfig.getDisappearTimeAfterStart()) {
+                        TimerMessageStore.LOGGER.info("TimerDequeueGetService ready to run after {}.", startupTime + storeConfig.getDisappearTimeAfterStart());
                         waitForRunning(1000);
                         continue;
                     }
