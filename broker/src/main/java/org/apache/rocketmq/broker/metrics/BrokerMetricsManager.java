@@ -161,6 +161,9 @@ public class BrokerMetricsManager {
     private LongCounter rollBackMessagesTotal = new NopLongCounter();
     private LongHistogram transactionFinishLatency = new NopLongHistogram();
 
+    private final RemotingMetricsManager remotingMetricsManager;
+    private final PopMetricsManager popMetricsManager;
+
     @SuppressWarnings("DoubleBraceInitialization")
     public static final List<String> SYSTEM_GROUP_PREFIX_LIST = new ArrayList<String>() {
         {
@@ -173,6 +176,8 @@ public class BrokerMetricsManager {
         brokerConfig = brokerController.getBrokerConfig();
         this.messageStore = brokerController.getMessageStore();
         this.consumerLagCalculator = new ConsumerLagCalculator(brokerController);
+        this.remotingMetricsManager = new RemotingMetricsManager();
+        this.popMetricsManager = new PopMetricsManager();
         init();
     }
 
@@ -487,7 +492,7 @@ public class BrokerMetricsManager {
         SdkMeterProviderUtil.setCardinalityLimit(createSubGroupTimeViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
         providerBuilder.registerView(createSubGroupTimeSelector, createSubGroupTimeViewBuilder.build());
 
-        for (Pair<InstrumentSelector, ViewBuilder> selectorViewPair : RemotingMetricsManager.getMetricsView()) {
+        for (Pair<InstrumentSelector, ViewBuilder> selectorViewPair : this.remotingMetricsManager.getMetricsView()) {
             ViewBuilder viewBuilder = selectorViewPair.getObject2();
             SdkMeterProviderUtil.setCardinalityLimit(viewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
             providerBuilder.registerView(selectorViewPair.getObject1(), viewBuilder.build());
@@ -499,7 +504,7 @@ public class BrokerMetricsManager {
             providerBuilder.registerView(selectorViewPair.getObject1(), viewBuilder.build());
         }
 
-        for (Pair<InstrumentSelector, ViewBuilder> selectorViewPair : PopMetricsManager.getMetricsView()) {
+        for (Pair<InstrumentSelector, ViewBuilder> selectorViewPair : this.popMetricsManager.getMetricsView()) {
             ViewBuilder viewBuilder = selectorViewPair.getObject2();
             SdkMeterProviderUtil.setCardinalityLimit(viewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
             providerBuilder.registerView(selectorViewPair.getObject1(), viewBuilder.build());
@@ -749,13 +754,13 @@ public class BrokerMetricsManager {
 
     private void initOtherMetrics() {
         if (brokerConfig.isEnableRemotingMetrics()) {
-            RemotingMetricsManager.initMetrics(brokerMeter, this::newAttributesBuilder);
+            this.remotingMetricsManager.initMetrics(brokerMeter, this::newAttributesBuilder);
         }
         if (brokerConfig.isEnableMessageStoreMetrics()) {
             messageStore.initMetrics(brokerMeter, this::newAttributesBuilder);
         }
         if (brokerConfig.isEnablePopMetrics()) {
-            PopMetricsManager.initMetrics(brokerMeter, brokerController, this::newAttributesBuilder);
+            this.popMetricsManager.initMetrics(brokerMeter, brokerController, this::newAttributesBuilder);
         }
     }
 
@@ -800,6 +805,14 @@ public class BrokerMetricsManager {
                 loggingMetricExporter.shutdown();
             }
         }
+    }
+
+    public RemotingMetricsManager getRemotingMetricsManager() {
+        return remotingMetricsManager;
+    }
+
+    public PopMetricsManager getPopMetricsManager() {
+        return popMetricsManager;
     }
 
 }

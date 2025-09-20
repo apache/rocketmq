@@ -44,7 +44,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.ForbiddenType;
@@ -55,6 +54,7 @@ import org.apache.rocketmq.remoting.protocol.RequestSource;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
@@ -579,7 +579,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             beginTimeMills
                         );
                     })
-                    .thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result));
+                    .thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager()));
             }
         }
 
@@ -812,7 +812,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                                 LOGGER.error(request.toString());
                                 LOGGER.error(response.toString());
                             }
-                        });
+                        }, brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
                     } catch (Throwable e) {
                         LOGGER.error("processRequestWrapper process request over, but response failed", e);
                         LOGGER.error(request.toString());

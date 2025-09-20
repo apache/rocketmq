@@ -83,7 +83,10 @@ public class DefaultStoreMetricsManager {
     private ObservableLongGauge timerMessageSnapshot = new NopObservableLongGauge();
     private LongHistogram timerMessageSetLatency = new NopLongHistogram();
 
+    private RocksDBStoreMetricsManager rocksDBStoreMetricsManager;
+
     public DefaultStoreMetricsManager() {
+        this.rocksDBStoreMetricsManager = new RocksDBStoreMetricsManager();
     }
 
     public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
@@ -109,7 +112,7 @@ public class DefaultStoreMetricsManager {
         DefaultMessageStore messageStore) {
 
         // Also add some metrics for rocksdb's monitoring.
-        RocksDBStoreMetricsManager.init(meter, attributesBuilderSupplier, messageStore.getQueueStore());
+        this.rocksDBStoreMetricsManager.init(meter, attributesBuilderSupplier, messageStore.getQueueStore());
 
         this.attributesBuilderSupplier = attributesBuilderSupplier;
         this.messageStoreConfig = messageStore.getMessageStoreConfig();
@@ -323,5 +326,9 @@ public class DefaultStoreMetricsManager {
 
     public void setMessageStoreConfig(MessageStoreConfig messageStoreConfig) {
         this.messageStoreConfig = messageStoreConfig;
+    }
+
+    public RocksDBStoreMetricsManager getRocksDBStoreMetricsManager() {
+        return rocksDBStoreMetricsManager;
     }
 }

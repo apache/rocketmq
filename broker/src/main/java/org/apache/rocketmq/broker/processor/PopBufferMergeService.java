@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
@@ -326,7 +325,7 @@ public class PopBufferMergeService extends ServiceThread {
                     eclipse, count.get(), countCk, counter.get(), offsetBufferSize);
             }
         }
-        PopMetricsManager.recordPopBufferScanTimeConsume(eclipse);
+        brokerController.getBrokerMetricsManager().getPopMetricsManager().recordPopBufferScanTimeConsume(eclipse);
         scanTimes++;
 
         if (scanTimes >= countOfMinute1) {
@@ -612,7 +611,7 @@ public class PopBufferMergeService extends ServiceThread {
     }
 
     private void handleCkMessagePutResult(PutMessageResult putMessageResult, final PopCheckPointWrapper pointWrapper) {
-        PopMetricsManager.incPopReviveCkPutCount(pointWrapper.getCk(), putMessageResult.getPutMessageStatus());
+        brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveCkPutCount(pointWrapper.getCk(), putMessageResult.getPutMessageStatus());
         if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
@@ -674,7 +673,7 @@ public class PopBufferMergeService extends ServiceThread {
 
     private void handleAckPutMessageResult(AckMsg ackMsg, PutMessageResult putMessageResult,
         PopCheckPointWrapper pointWrapper, AtomicInteger count, byte msgIndex) {
-        PopMetricsManager.incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
+        brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
         if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT

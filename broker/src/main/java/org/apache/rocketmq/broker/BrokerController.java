@@ -294,7 +294,7 @@ public class BrokerController {
     protected final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
     protected ReplicasManager replicasManager;
     private long lastSyncTimeMs = System.currentTimeMillis();
-    private BrokerMetricsManager brokerMetricsManager;
+    protected BrokerMetricsManager brokerMetricsManager;
     private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
     private ColdDataCgCtrService coldDataCgCtrService;
     private TransactionMetricsFlushService transactionMetricsFlushService;
@@ -505,7 +505,7 @@ public class BrokerController {
     }
 
     protected void initializeRemotingServer() throws CloneNotSupportedException {
-        RemotingServer tcpRemotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
+        NettyRemotingServer tcpRemotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
         NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
 
         int listeningPort = nettyServerConfig.getListenPort() - 2;
@@ -514,7 +514,13 @@ public class BrokerController {
         }
         fastConfig.setListenPort(listeningPort);
 
-        RemotingServer fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
+        NettyRemotingServer fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
+
+        // Set RemotingMetricsManager on both remoting servers
+        if (this.brokerMetricsManager != null) {
+            tcpRemotingServer.setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+            fastRemotingServer.setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+        }
 
         remotingServerMap.put(TCP_REMOTING_SERVER, tcpRemotingServer);
         remotingServerMap.put(FAST_REMOTING_SERVER, fastRemotingServer);
