@@ -54,7 +54,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -543,7 +542,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
     protected void doResponse(ChannelHandlerContext ctx, RemotingCommand request,
         final RemotingCommand response) {
-        NettyRemotingAbstract.writeResponse(ctx.channel(), request, response);
+        brokerController.getRemotingServer().writeResponse(ctx.channel(), request, response, null);
     }
 
     public void executeSendMessageHookBefore(SendMessageContext context) {

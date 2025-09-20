@@ -54,4 +54,15 @@ public interface RemotingServer extends RemotingService {
         throws InterruptedException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException;
 
+    /**
+     * Write response with metrics recording.
+     *
+     * @param channel the channel to write to
+     * @param request the original request
+     * @param response the response to write
+     * @param callback callback to execute after write completion
+     */
+    void writeResponse(final Channel channel, final RemotingCommand request, 
+        final RemotingCommand response, final java.util.function.Consumer<io.netty.util.concurrent.Future<?>> callback);
+
 }

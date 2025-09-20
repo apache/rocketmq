@@ -44,7 +44,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.ForbiddenType;
@@ -579,7 +578,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             beginTimeMills
                         );
                     })
-                    .thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result));
+                    .thenAccept(result -> brokerController.getRemotingServer().writeResponse(channel, request, result, null));
             }
         }
 
@@ -806,7 +805,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     response.setOpaque(request.getOpaque());
                     response.markResponseType();
                     try {
-                        NettyRemotingAbstract.writeResponse(channel, request, response, future -> {
+                        brokerController.getRemotingServer().writeResponse(channel, request, response, future -> {
                             if (!future.isSuccess()) {
                                 LOGGER.error("processRequestWrapper response to {} failed", channel.remoteAddress(), future.cause());
                                 LOGGER.error(request.toString());

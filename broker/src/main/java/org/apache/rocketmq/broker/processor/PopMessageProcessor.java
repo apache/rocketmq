@@ -71,7 +71,6 @@ import org.apache.rocketmq.remoting.CommandCallback;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -472,12 +471,13 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                         channel.writeAndFlush(fileRegion)
                             .addListener((ChannelFutureListener) future -> {
                                 tmpGetMessageResult.release();
-                                Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
+                                RemotingMetricsManager remotingMetricsManager = brokerController.getBrokerMetricsManager().getRemotingMetricsManager();
+                                Attributes attributes = remotingMetricsManager.newAttributesBuilder()
                                     .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
                                     .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()))
-                                    .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
+                                    .put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future))
                                     .build();
-                                RemotingMetricsManager.rpcLatency.record(
+                                remotingMetricsManager.getRpcLatency().record(
                                     request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
                                 if (!future.isSuccess()) {
                                     POP_LOGGER.error("Fail to transfer messages from page cache to {}",
@@ -491,7 +491,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     return null;
                 }
                 return response;
-            }).thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result));
+            }).thenAccept(result -> brokerController.getRemotingServer().writeResponse(channel, request, result, null));
             return null;
         }
 
@@ -621,12 +621,13 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                             channel.writeAndFlush(fileRegion)
                                 .addListener((ChannelFutureListener) future -> {
                                     tmpGetMessageResult.release();
-                                    Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
+                                    RemotingMetricsManager remotingMetricsManager = brokerController.getBrokerMetricsManager().getRemotingMetricsManager();
+                                    Attributes attributes = remotingMetricsManager.newAttributesBuilder()
                                         .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
                                         .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(finalResponse.getCode()))
-                                        .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
+                                        .put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future))
                                         .build();
-                                    RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
+                                    remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
                                     if (!future.isSuccess()) {
                                         POP_LOGGER.error("Fail to transfer messages from page cache to {}",
                                             channel.remoteAddress(), future.cause());
@@ -644,7 +645,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     return finalResponse;
             }
             return finalResponse;
-        }).thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result));
+        }).thenAccept(result -> brokerController.getRemotingServer().writeResponse(channel, request, result, null));
         return null;
     }
 

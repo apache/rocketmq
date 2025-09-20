@@ -23,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
@@ -38,7 +37,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -291,7 +289,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
                 && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
                 POP_LOGGER.error("change Invisible, put ack msg fail: {}, {}", ackMsg, putMessageResult);
             }
-            PopMetricsManager.incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
+            brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
             return CompletableFuture.completedFuture(true);
         }).exceptionally(e -> {
             POP_LOGGER.error("change Invisible, put ack msg error: {}, {}", requestHeader.getExtraInfo(), e.getMessage());
@@ -334,7 +332,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             }
 
             if (putMessageResult != null) {
-                PopMetricsManager.incPopReviveCkPutCount(ck, putMessageResult.getPutMessageStatus());
+                brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveCkPutCount(ck, putMessageResult.getPutMessageStatus());
                 if (putMessageResult.isOk()) {
                     this.brokerController.getBrokerStatsManager().incBrokerCkNums(1);
                     this.brokerController.getBrokerStatsManager().incGroupCkNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
@@ -357,6 +355,6 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
 
     protected void doResponse(Channel channel, RemotingCommand request,
         final RemotingCommand response) {
-        NettyRemotingAbstract.writeResponse(channel, request, response);
+        brokerController.getRemotingServer().writeResponse(channel, request, response, null);
     }
 }
