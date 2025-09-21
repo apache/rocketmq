@@ -143,14 +143,15 @@ public class RaftBrokerHeartBeatManagerTest {
 
     @Test
     public void testScanNotActiveBrokerSuccess() throws Exception {
+        ControllerConfig controllerConfig = new ControllerConfig();
+        JraftConfig jraftConfig = new JraftConfig();
+        jraftConfig.setjRaftScanWaitTimeoutMs(10000);
+        controllerConfig.setJraftConfig(jraftConfig);
+        raftBrokerHeartBeatManager = new RaftBrokerHeartBeatManager(controllerConfig);
+        controller = mock(JRaftController.class);
+        FieldUtils.writeDeclaredField(raftBrokerHeartBeatManager, "controller", controller, true);
         when(controller.isLeaderState()).thenReturn(true);
         FieldUtils.writeDeclaredField(raftBrokerHeartBeatManager, "firstReceivedHeartbeatTime", System.currentTimeMillis() + 10000L, true);
-
-        ControllerConfig controllerConfig = mock(ControllerConfig.class);
-        JraftConfig jraftConfig = mock(JraftConfig.class);
-        when(jraftConfig.getjRaftScanWaitTimeoutMs()).thenReturn(10000);
-        when(controllerConfig.getJraftConfig()).thenReturn(jraftConfig);
-        FieldUtils.writeDeclaredField(raftBrokerHeartBeatManager, "controllerConfig", controllerConfig, true);
 
         List<BrokerIdentityInfo> inactiveBrokers = new ArrayList<>();
         BrokerIdentityInfo brokerInfo = new BrokerIdentityInfo("testCluster", "testBroker", 1L);
