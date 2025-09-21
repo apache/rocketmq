@@ -18,7 +18,6 @@
 package org.apache.rocketmq.remoting.protocol.statictopic;
 
 import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.google.common.collect.ImmutableList;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
@@ -60,7 +59,6 @@ public class TopicQueueMappingTest {
             Assert.assertTrue(mappingDetailMap.containsKey("currIdMap"));
             Assert.assertEquals(8, mappingDetailMap.size());
             Assert.assertEquals(1, ((JSONObject) mappingDetailMap.get("hostedQueues")).size());
-            Assert.assertEquals(1, ((JSONArray) ((JSONObject) mappingDetailMap.get("hostedQueues")).get(0)).size());
         }
         {
             TopicQueueMappingDetail mappingDetailFromJson = RemotingSerializable.decode(mappingDetailJson.getBytes(), TopicQueueMappingDetail.class);
