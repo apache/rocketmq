@@ -167,7 +167,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -1404,15 +1403,8 @@ public class BrokerController {
 
         this.unregisterBrokerAll();
 
-        if (this.routeEventService != null && this.topicConfigManager != null
-            && this.brokerConfig.isEnableRouteChangeNotification()) {
-            Set<String> topics = this.topicConfigManager.getTopicConfigTable().keySet();
-            try {
-                this.routeEventService.publishEvent(RouteEventType.SHUTDOWN, topics);
-                LOG.info("[SHUTDOWN AFTER unregisterBrokerAll]: publish {}", topics);
-            } catch (Exception e) {
-                LOG.error("Failed to publish route change event for topic: {}", topics, e);
-            }
+        if (this.routeEventService != null) {
+            this.routeEventService.publishEvent(RouteEventType.SHUTDOWN);
         }
 
         if (this.shutdownHook != null) {
@@ -1800,17 +1792,10 @@ public class BrokerController {
         if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
             this.registerBrokerAll(true, false, true);
-
-            if (this.routeEventService != null && this.topicConfigManager != null
-                && this.brokerConfig.isEnableRouteChangeNotification()) {
-                Set<String> topics = this.topicConfigManager.getTopicConfigTable().keySet();
-                try {
-                    this.routeEventService.publishEvent(RouteEventType.START, topics);
-                    LOG.info("[START]: publish {}", topics);
-                } catch (Exception e) {
-                    LOG.error("Failed to publish route change event for topic: {}", topics, e);
-                }
+            if (this.routeEventService != null) {
+                this.routeEventService.publishEvent(RouteEventType.START);
             }
+
         }
 
         scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {

@@ -57,8 +57,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     private final MQClientAPIFactory mqClientAPIFactory;
     private MQFaultStrategy mqFaultStrategy;
 
-    private RouteEventSubscriber routeEventSubscriber;
-    private RouteCacheRefresher routeCacheRefresher;
+    private RouteChangeNotifier routeChangeNotifier;
 
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ScheduledExecutorService scheduledExecutorService;
@@ -89,7 +88,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView load(String topic) throws Exception {
                     try {
                         TopicRouteData topicRouteData = mqClientAPIFactory.getClient().getTopicRouteInfoFromNameServer(topic, Duration.ofSeconds(3).toMillis());
-                        log.info("[topicCache]: load topic: {} topicRouteData: {}", topic, topicRouteData);
 
                         return buildMessageQueueView(topic, topicRouteData);
                     } catch (Exception e) {
@@ -104,7 +102,10 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView reload(@NonNull String key,
                     @NonNull MessageQueueView oldValue) throws Exception {
                     try {
-                        markCompleted(key);
+                        if (routeChangeNotifier != null) {
+                            routeChangeNotifier.markCompleted(key);
+                        }
+
                         return load(key);
                     } catch (Exception e) {
                         log.warn(String.format("reload topic route from namesrv. topic: %s", key), e);
@@ -142,24 +143,12 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             }
         }, serviceDetector);
 
-        this.routeCacheRefresher = new RouteCacheRefresher(
+        this.routeChangeNotifier = new RouteChangeNotifier(
             this.topicCache,
             this.cacheRefreshExecutor
         );
 
-        this.routeEventSubscriber = new RouteEventSubscriber(
-            (topic, timeStamp) -> {
-                this.routeCacheRefresher.markCacheDirty(topic, timeStamp);
-            }
-        );
-
         this.init();
-    }
-
-    private void markCompleted(String topic) {
-        if (routeCacheRefresher != null) {
-            routeCacheRefresher.markCompleted(topic);
-        }
     }
 
     // pickup one topic in the topic cache
@@ -182,8 +171,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         }
 
         if (ConfigurationManager.getProxyConfig().isEnableRouteChangeNotification()) {
-            this.routeCacheRefresher.shutdown();
-            this.routeEventSubscriber.shutdown();
+            this.routeChangeNotifier.shutdown();
         }
     }
 
@@ -194,8 +182,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         }
 
         if (ConfigurationManager.getProxyConfig().isEnableRouteChangeNotification()) {
-            this.routeEventSubscriber.start();
-            this.routeCacheRefresher.start();
+            this.routeChangeNotifier.start();
         }
     }
 

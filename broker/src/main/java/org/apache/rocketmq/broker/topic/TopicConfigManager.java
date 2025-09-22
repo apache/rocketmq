@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.broker.topic;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -608,31 +607,13 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     public void deleteTopicConfig(final String topic) {
-        deleteTopicConfig(topic, true);
-    }
-
-    public void deleteTopicConfig(final String topic, boolean publishEvent) {
         TopicConfig old = removeTopicConfig(topic);
         if (old != null) {
             log.info("delete topic config OK, topic: {}", old);
             updateDataVersion();
             this.persist();
-
-            if (publishEvent) {
-                publishTopicChangeEvent(topic);
-            }
         } else {
             log.warn("delete topic config failed, topic: {} not exists", topic);
-        }
-    }
-
-    private void publishTopicChangeEvent(String topicName) {
-        if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
-            && this.brokerController.getRouteEventService() != null) {
-            this.brokerController.getRouteEventService().publishEvent(
-                RouteEventType.TOPIC_CHANGE,
-                Collections.singleton(topicName)
-            );
         }
     }
 
@@ -777,8 +758,13 @@ public class TopicConfigManager extends ConfigManager {
         } else {
             this.brokerController.registerIncrementBrokerData(topicConfig, dataVersion);
         }
+        if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()) {
+            this.brokerController.getRouteEventService().publishEvent(
+                RouteEventType.TOPIC_CHANGE,
+                topicConfig.getTopicName()
+            );
+        }
 
-        publishTopicChangeEvent(topicConfig.getTopicName());
     }
 
     public boolean containsTopic(String topic) {

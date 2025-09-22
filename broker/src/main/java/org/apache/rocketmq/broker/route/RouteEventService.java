@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.route;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,19 +45,46 @@ public class RouteEventService {
             brokerController.getBrokerConfig().getBrokerName());
     }
 
-    public void publishEvent(RouteEventType eventType, Set<String> topics) {
+    public void publishEvent(RouteEventType eventType) {
         if (!brokerController.getBrokerConfig().isEnableRouteChangeNotification()) {
             return;
         }
 
-        if (topics == null || topics.isEmpty()) {
-            sendEvent(eventType, null);
+        if (brokerController.getTopicConfigManager() == null) {
             return;
         }
 
-        List<String> topicList = new ArrayList<>(topics);
-        partitionTopics(topicList, MAX_TOPICS_PER_EVENT)
-            .forEach(batch -> sendEvent(eventType, batch));
+        Set<String> topics = brokerController.getTopicConfigManager().getTopicConfigTable().keySet();
+        publishEventInternal(eventType, topics);
+    }
+
+    public void publishEvent(RouteEventType eventType, String topicName) {
+        if (!brokerController.getBrokerConfig().isEnableRouteChangeNotification()) {
+            return;
+        }
+
+        if (topicName == null) {
+            return;
+        }
+
+        publishEventInternal(eventType, Collections.singleton(topicName));
+    }
+
+    private void publishEventInternal(RouteEventType eventType, Set<String> topics) {
+        try {
+            if (topics == null || topics.isEmpty()) {
+                sendEvent(eventType, null);
+                return;
+            }
+
+            List<String> topicList = new ArrayList<>(topics);
+            partitionTopics(topicList, MAX_TOPICS_PER_EVENT)
+                .forEach(batch -> sendEvent(eventType, batch));
+
+            LOG.info("[{}]: published event for {} topics", eventType, topics.size());
+        } catch (Exception e) {
+            LOG.error("Failed to publish {} event for topics: {}", eventType, topics, e);
+        }
     }
 
     private void sendEvent(RouteEventType eventType, List<String> topics) {
