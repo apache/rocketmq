@@ -20,17 +20,21 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.store.PutMessageResult;
 
 import com.alibaba.fastjson2.JSON;
 
@@ -88,18 +92,36 @@ public class RouteEventService {
     }
 
     private void sendEvent(RouteEventType eventType, List<String> topics) {
-        try {
-            Map<String, Object> eventData = createEventData(eventType, topics);
-            MessageExtBrokerInner msg = createEventMessage(eventData);
+        Map<String, Object> eventData = createEventData(eventType, topics);
+        MessageExtBrokerInner msg = createEventMessage(eventData);
+        TopicPublishInfo routeInfo = brokerController.getTopicRouteInfoManager()
+            .tryToFindTopicPublishInfo(TopicValidator.RMQ_ROUTE_EVENT_TOPIC);
 
-            PutMessageResult result = brokerController.getMessageStore().putMessage(msg);
-            brokerController.getMessageStore().flush();
+        if (routeInfo == null || !routeInfo.ok()) {
+            LOG.warn("No route info for ROUTE_EVENT_TOPIC");
+            return;
+        }
 
-            if (!result.isOk()) {
-                LOG.warn("[ROUTE_EVENT] Publish failed: {}", result.getPutMessageStatus());
+        String currentBroker = brokerController.getBrokerConfig().getBrokerName();
+        Set<String> processedBrokers = new HashSet<>();
+        processedBrokers.add(currentBroker);
+
+        for (MessageQueue mq : routeInfo.getMessageQueueList()) {
+            if (processedBrokers.contains(mq.getBrokerName())) {
+                continue;
             }
-        } catch (Exception e) {
-            LOG.error("[ROUTE_EVENT] Failed to publish event: {}", eventType, e);
+
+            try {
+                SendResult result = brokerController.getEscapeBridge()
+                    .putMessageToRemoteBroker(msg, mq.getBrokerName());
+
+                if (result != null && result.getSendStatus() == SendStatus.SEND_OK) {
+                    LOG.debug("Event sent to broker: {}", mq.getBrokerName());
+                }
+                processedBrokers.add(mq.getBrokerName());
+            } catch (Exception e) {
+                LOG.warn("Failed to send to broker: {}", mq.getBrokerName(), e);
+            }
         }
     }
 
