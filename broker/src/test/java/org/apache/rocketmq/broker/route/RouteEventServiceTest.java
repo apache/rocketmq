@@ -51,17 +51,17 @@ public class RouteEventServiceTest {
     public void setUp() {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setEnableRouteChangeNotification(true);
-        
+
         brokerController = new BrokerController(
             brokerConfig,
             new NettyServerConfig(),
             new NettyClientConfig(),
             new MessageStoreConfig()
         );
-        
+
         mockMessageStore = mock(MessageStore.class);
         brokerController.setMessageStore(mockMessageStore);
-        
+
         routeEventService = new RouteEventService(brokerController);
     }
 
@@ -84,7 +84,7 @@ public class RouteEventServiceTest {
         verify(mockMessageStore).putMessage(captor.capture());
 
         Map<String, Object> eventData = JSON.parseObject(
-            new String(captor.getValue().getBody()), 
+            new String(captor.getValue().getBody()),
             Map.class
         );
 

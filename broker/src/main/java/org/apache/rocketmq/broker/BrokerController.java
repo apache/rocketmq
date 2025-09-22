@@ -1404,7 +1404,8 @@ public class BrokerController {
 
         this.unregisterBrokerAll();
 
-        if (this.routeEventService != null && this.topicConfigManager != null) {
+        if (this.routeEventService != null && this.topicConfigManager != null
+            && this.brokerConfig.isEnableRouteChangeNotification()) {
             Set<String> topics = this.topicConfigManager.getTopicConfigTable().keySet();
             try {
                 this.routeEventService.publishEvent(RouteEventType.SHUTDOWN, topics);
@@ -1799,6 +1800,17 @@ public class BrokerController {
         if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
             this.registerBrokerAll(true, false, true);
+
+            if (this.routeEventService != null && this.topicConfigManager != null
+                && this.brokerConfig.isEnableRouteChangeNotification()) {
+                Set<String> topics = this.topicConfigManager.getTopicConfigTable().keySet();
+                try {
+                    this.routeEventService.publishEvent(RouteEventType.START, topics);
+                    LOG.info("[START]: publish {}", topics);
+                } catch (Exception e) {
+                    LOG.error("Failed to publish route change event for topic: {}", topics, e);
+                }
+            }
         }
 
         scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
@@ -1854,15 +1866,6 @@ public class BrokerController {
             }
         }, 10, 5, TimeUnit.SECONDS);
 
-        if (this.routeEventService != null && this.topicConfigManager != null) {
-            Set<String> topics = this.topicConfigManager.getTopicConfigTable().keySet();
-            try {
-                this.routeEventService.publishEvent(RouteEventType.START, topics);
-                LOG.info("[START]: publish {}", topics);
-            } catch (Exception e) {
-                LOG.error("Failed to publish route change event for topic: {}", topics, e);
-            }
-        }
     }
 
     protected void scheduleSendHeartbeat() {

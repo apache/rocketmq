@@ -95,7 +95,7 @@ public class SlaveSynchronize {
                         if (!newTopicConfigTable.containsKey(entry.getKey())) {
                             iterator.remove();
                         }
-                        topicConfigManager.deleteTopicConfig(entry.getKey());
+                        topicConfigManager.deleteTopicConfig(entry.getKey(), false);
                     }
 
                     //update

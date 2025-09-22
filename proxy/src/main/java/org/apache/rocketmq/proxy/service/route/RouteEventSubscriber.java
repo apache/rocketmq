@@ -28,6 +28,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -45,6 +46,7 @@ public class RouteEventSubscriber {
         this.dirtyMarker = dirtyMarker;
         this.consumer = new DefaultMQPushConsumer("PROXY_ROUTE_EVENT_GROUP");
         this.consumer.setMessageModel(MessageModel.BROADCASTING);
+        this.consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
     }
     public void start() {
         try {

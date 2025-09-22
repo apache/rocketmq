@@ -83,7 +83,7 @@ public class RouteCacheRefresherTest {
         assertTrue(pendingTopics.contains("TestTopic"));
     }
 
-    private void invokePrivateMethod(Object obj, String methodName, String arg) 
+    private void invokePrivateMethod(Object obj, String methodName, String arg)
         throws Exception {
 
         java.lang.reflect.Method method = obj.getClass().getDeclaredMethod(methodName, String.class);

@@ -36,7 +36,7 @@ import com.alibaba.fastjson2.JSON;
 public class RouteEventService {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
-    private static final int MAX_TOPICS_PER_EVENT = 100;
+    private static final int MAX_TOPICS_PER_EVENT = 5000;
 
     public RouteEventService(BrokerController brokerController) {
         this.brokerController = brokerController;

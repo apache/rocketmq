@@ -322,8 +322,6 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
-
-            publishTopicChangeEvent(topicConfig.getTopicName());
         }
 
         return topicConfig;
@@ -363,8 +361,6 @@ public class TopicConfigManager extends ConfigManager {
         }
         if (createNew && register) {
             registerBrokerData(topicConfig);
-
-            publishTopicChangeEvent(topicConfig.getTopicName());            
         }
         return getTopicConfig(topicConfig.getTopicName());
     }
@@ -424,8 +420,6 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
-
-            publishTopicChangeEvent(topicConfig.getTopicName());
         }
 
         return topicConfig;
@@ -466,8 +460,6 @@ public class TopicConfigManager extends ConfigManager {
 
         if (createNew) {
             registerBrokerData(topicConfig);
-
-            publishTopicChangeEvent(topicConfig.getTopicName());
         }
 
         return topicConfig;
@@ -616,23 +608,29 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     public void deleteTopicConfig(final String topic) {
+        deleteTopicConfig(topic, true);
+    }
+
+    public void deleteTopicConfig(final String topic, boolean publishEvent) {
         TopicConfig old = removeTopicConfig(topic);
         if (old != null) {
             log.info("delete topic config OK, topic: {}", old);
             updateDataVersion();
             this.persist();
 
-            publishTopicChangeEvent(topic);
+            if (publishEvent) {
+                publishTopicChangeEvent(topic);
+            }
         } else {
             log.warn("delete topic config failed, topic: {} not exists", topic);
         }
     }
 
     private void publishTopicChangeEvent(String topicName) {
-        if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification() 
+        if (this.brokerController.getBrokerConfig().isEnableRouteChangeNotification()
             && this.brokerController.getRouteEventService() != null) {
             this.brokerController.getRouteEventService().publishEvent(
-                RouteEventType.TOPIC_CHANGE, 
+                RouteEventType.TOPIC_CHANGE,
                 Collections.singleton(topicName)
             );
         }
@@ -779,6 +777,8 @@ public class TopicConfigManager extends ConfigManager {
         } else {
             this.brokerController.registerIncrementBrokerData(topicConfig, dataVersion);
         }
+
+        publishTopicChangeEvent(topicConfig.getTopicName());
     }
 
     public boolean containsTopic(String topic) {

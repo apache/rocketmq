@@ -74,11 +74,11 @@ public class RouteEventSubscriberTest {
         msg.setBody(JSON.toJSONString(eventData).getBytes());
 
         invokePrivateMethod(subscriber, "processMessages", Collections.singletonList(msg));
-        
+
         verify(mockDirtyMarker).accept(eq("TestTopic"), anyLong());
     }
 
-    private void invokePrivateMethod(Object obj, String methodName, List<MessageExt> arg) 
+    private void invokePrivateMethod(Object obj, String methodName, List<MessageExt> arg)
         throws Exception {
 
         java.lang.reflect.Method method = obj.getClass().getDeclaredMethod(methodName, List.class);
