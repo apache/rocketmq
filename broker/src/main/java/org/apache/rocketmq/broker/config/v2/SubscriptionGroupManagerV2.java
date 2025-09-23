@@ -132,6 +132,7 @@ public class SubscriptionGroupManagerV2 extends SubscriptionGroupManager {
         if (config == null || MixAll.isLmq(config.getGroupName())) {
             return;
         }
+        super.updateSubscriptionGroupConfigWithoutPersist(config);
         ByteBuf keyBuf = ConfigHelper.keyBufOf(TableId.SUBSCRIPTION_GROUP, config.getGroupName());
         ByteBuf valueBuf = ConfigHelper.valueBufOf(config, SerializationType.JSON);
         try (WriteBatch writeBatch = new WriteBatch()) {
@@ -147,7 +148,6 @@ public class SubscriptionGroupManagerV2 extends SubscriptionGroupManager {
             keyBuf.release();
             valueBuf.release();
         }
-        super.updateSubscriptionGroupConfigWithoutPersist(config);
     }
 
     @Override

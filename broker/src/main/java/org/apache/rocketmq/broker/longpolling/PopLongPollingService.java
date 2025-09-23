@@ -35,10 +35,10 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.CommandCallback;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.MessageFilter;
@@ -266,7 +266,7 @@ public class PopLongPollingService extends ServiceThread {
                             POP_LOGGER.error(request.toString());
                             POP_LOGGER.error(response.toString());
                         }
-                    });
+                    }, brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
                 }
             } catch (Exception e1) {
                 POP_LOGGER.error("ExecuteRequestWhenWakeup run", e1);

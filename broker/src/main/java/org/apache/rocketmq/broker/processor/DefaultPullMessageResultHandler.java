@@ -152,12 +152,13 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
                         channel.writeAndFlush(fileRegion)
                             .addListener((ChannelFutureListener) future -> {
                                 getMessageResult.release();
-                                Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
+                                RemotingMetricsManager remotingMetricsManager = brokerController.getBrokerMetricsManager().getRemotingMetricsManager();
+                                Attributes attributes = remotingMetricsManager.newAttributesBuilder()
                                     .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
                                     .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(finalResponse.getCode()))
-                                    .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
+                                    .put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future))
                                     .build();
-                                RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
+                                remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
                                 if (!future.isSuccess()) {
                                     log.error("Fail to transfer messages from page cache to {}", channel.remoteAddress(), future.cause());
                                 }

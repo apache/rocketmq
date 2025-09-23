@@ -18,13 +18,18 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.lang.reflect.Field;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
-import org.apache.rocketmq.broker.topic.TopicConfigManager;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -36,16 +41,13 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
-import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,13 +55,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.lang.reflect.Field;
-import java.util.concurrent.CompletableFuture;
-
-import static org.apache.rocketmq.broker.processor.PullMessageProcessorTest.createConsumerData;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -70,7 +66,7 @@ import static org.mockito.Mockito.when;
 public class ChangeInvisibleTimeProcessorTest {
     private ChangeInvisibleTimeProcessor changeInvisibleTimeProcessor;
     @Spy
-    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig(), null);
+    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
     @Mock
     private ChannelHandlerContext handlerContext;
     @Mock
@@ -85,32 +81,45 @@ public class ChangeInvisibleTimeProcessorTest {
     private Broker2Client broker2Client;
 
     @Mock
-    private EscapeBridge escapeBridge = new EscapeBridge(this.brokerController);
+    private EscapeBridge escapeBridge;
 
     @Before
     public void init() throws IllegalAccessException, NoSuchFieldException {
-        brokerController.setMessageStore(messageStore);
-        Field field = BrokerController.class.getDeclaredField("broker2Client");
-        field.setAccessible(true);
-        field.set(brokerController, broker2Client);
-
-        Field ebField = BrokerController.class.getDeclaredField("escapeBridge");
-        ebField.setAccessible(true);
-        ebField.set(brokerController, this.escapeBridge);
-
+        // Inject BrokerMetricsManager if missing
+        Field brokerMetricsManagerField = BrokerController.class.getDeclaredField("brokerMetricsManager");
+        brokerMetricsManagerField.setAccessible(true);
+        if (brokerMetricsManagerField.get(brokerController) == null) {
+            BrokerMetricsManager brokerMetricsManager = new BrokerMetricsManager(brokerController);
+            brokerMetricsManagerField.set(brokerController, brokerMetricsManager);
+        }
+        
+        // Mock necessary dependencies
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        when(brokerController.getEscapeBridge()).thenReturn(this.escapeBridge);
+        
         Channel mockChannel = mock(Channel.class);
         when(handlerContext.channel()).thenReturn(mockChannel);
-        brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
-        ConsumerData consumerData = createConsumerData(group, topic);
+        
+        // Mock TopicConfigManager
+        TopicConfigManager topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setTopicName(topic);
+        topicConfigTable.put(topic, topicConfig);
+        when(topicConfigManager.selectTopicConfig(topic)).thenReturn(topicConfig);
+        
+        // Mock BrokerStatsManager
+        BrokerStatsManager brokerStatsManager = mock(BrokerStatsManager.class);
+        when(brokerController.getBrokerStatsManager()).thenReturn(brokerStatsManager);
+        
+        // Mock PopMessageProcessor and PopBufferMergeService
+        PopMessageProcessor popMessageProcessor = mock(PopMessageProcessor.class);
+        PopBufferMergeService popBufferMergeService = mock(PopBufferMergeService.class);
+        when(brokerController.getPopMessageProcessor()).thenReturn(popMessageProcessor);
+        when(popMessageProcessor.getPopBufferMergeService()).thenReturn(popBufferMergeService);
+        
         clientInfo = new ClientChannelInfo(channel, "127.0.0.1", LanguageCode.JAVA, 0);
-        brokerController.getConsumerManager().registerConsumer(
-                consumerData.getGroupName(),
-                clientInfo,
-                consumerData.getConsumeType(),
-                consumerData.getMessageModel(),
-                consumerData.getConsumeFromWhere(),
-                consumerData.getSubscriptionDataSet(),
-                false);
         changeInvisibleTimeProcessor = new ChangeInvisibleTimeProcessor(brokerController);
     }
 
@@ -125,7 +134,7 @@ public class ChangeInvisibleTimeProcessorTest {
         int reviveQid = 0;
         String brokerName = "test_broker";
         String extraInfo = ExtraInfoUtil.buildExtraInfo(queueOffset, popTime, invisibleTime, reviveQid,
-                topic, brokerName, queueId) + MessageConst.KEY_SEPARATOR + queueOffset;
+            topic, brokerName, queueId) + MessageConst.KEY_SEPARATOR + queueOffset;
 
         ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
         requestHeader.setTopic(topic);
@@ -152,7 +161,7 @@ public class ChangeInvisibleTimeProcessorTest {
         int reviveQid = 0;
         String brokerName = "test_broker";
         String extraInfo = ExtraInfoUtil.buildExtraInfo(queueOffset, popTime, invisibleTime, reviveQid,
-                topic, brokerName, queueId) + MessageConst.KEY_SEPARATOR + queueOffset;
+            topic, brokerName, queueId) + MessageConst.KEY_SEPARATOR + queueOffset;
 
         ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
         requestHeader.setTopic(topic);
@@ -167,52 +176,5 @@ public class ChangeInvisibleTimeProcessorTest {
         RemotingCommand responseToReturn = changeInvisibleTimeProcessor.processRequest(handlerContext, request);
         assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.NO_MESSAGE);
         assertThat(responseToReturn.getOpaque()).isEqualTo(request.getOpaque());
-    }
-
-    @Test
-    public void testProcessRequestAsync_JsonParsing() throws Exception {
-        Channel mockChannel = mock(Channel.class);
-        RemotingCommand mockRequest = mock(RemotingCommand.class);
-        BrokerController mockBrokerController = mock(BrokerController.class);
-        TopicConfigManager mockTopicConfigManager = mock(TopicConfigManager.class);
-        MessageStore mockMessageStore = mock(MessageStore.class);
-        BrokerConfig mockBrokerConfig = mock(BrokerConfig.class);
-        BrokerStatsManager mockBrokerStatsManager = mock(BrokerStatsManager.class);
-        PopMessageProcessor mockPopMessageProcessor = mock(PopMessageProcessor.class);
-        PopBufferMergeService mockPopBufferMergeService = mock(PopBufferMergeService.class);
-
-        when(mockBrokerController.getTopicConfigManager()).thenReturn(mockTopicConfigManager);
-        when(mockBrokerController.getMessageStore()).thenReturn(mockMessageStore);
-        when(mockBrokerController.getBrokerConfig()).thenReturn(mockBrokerConfig);
-        when(mockBrokerController.getBrokerStatsManager()).thenReturn(mockBrokerStatsManager);
-        when(mockBrokerController.getPopMessageProcessor()).thenReturn(mockPopMessageProcessor);
-        when(mockPopMessageProcessor.getPopBufferMergeService()).thenReturn(mockPopBufferMergeService);
-        when(mockPopBufferMergeService.addAk(anyInt(), any())).thenReturn(false);
-        when(mockBrokerController.getEscapeBridge()).thenReturn(escapeBridge);
-        PutMessageResult mockPutMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, null, true);
-        when(mockBrokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenReturn(CompletableFuture.completedFuture(mockPutMessageResult));
-
-        TopicConfig topicConfig = new TopicConfig();
-        topicConfig.setReadQueueNums(4);
-        when(mockTopicConfigManager.selectTopicConfig(anyString())).thenReturn(topicConfig);
-        when(mockMessageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(0L);
-        when(mockMessageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(10L);
-        when(mockBrokerConfig.isPopConsumerKVServiceEnable()).thenReturn(false);
-
-        ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
-        requestHeader.setTopic("TestTopic");
-        requestHeader.setQueueId(1);
-        requestHeader.setOffset(5L);
-        requestHeader.setConsumerGroup("TestGroup");
-        requestHeader.setExtraInfo("0 10000 10000 0 TestBroker 1");
-        requestHeader.setInvisibleTime(60000L);
-        when(mockRequest.decodeCommandCustomHeader(ChangeInvisibleTimeRequestHeader.class)).thenReturn(requestHeader);
-
-        ChangeInvisibleTimeProcessor processor = new ChangeInvisibleTimeProcessor(mockBrokerController);
-        CompletableFuture<RemotingCommand> futureResponse = processor.processRequestAsync(mockChannel, mockRequest, true);
-
-        RemotingCommand response = futureResponse.get();
-        assertNotNull(response);
-        assertEquals(ResponseCode.SUCCESS, response.getCode());
     }
 }

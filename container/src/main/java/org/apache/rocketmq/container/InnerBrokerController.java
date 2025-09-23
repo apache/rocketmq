@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -48,6 +49,14 @@ public class InnerBrokerController extends BrokerController {
     protected void initializeRemotingServer() {
         RemotingServer remotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort());
         RemotingServer fastRemotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort() - 2);
+
+        if (this.brokerMetricsManager != null && remotingServer instanceof NettyRemotingServer) {
+            ((NettyRemotingServer) remotingServer).setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+        }
+
+        if (this.brokerMetricsManager != null && fastRemotingServer instanceof NettyRemotingServer) {
+            ((NettyRemotingServer) fastRemotingServer).setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+        }
 
         setRemotingServer(remotingServer);
         setFastRemotingServer(fastRemotingServer);

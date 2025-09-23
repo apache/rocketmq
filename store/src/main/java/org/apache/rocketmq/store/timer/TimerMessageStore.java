@@ -953,6 +953,11 @@ public class TimerMessageStore {
         }
         int checkNum = 0;
         while (true) {
+            if (!isRunningDequeue()) {
+                LOGGER.info("Not Running dequeue, skip checkDequeueLatch for delayedTime:{}", delayedTime);
+                break;
+            }
+            
             if (dequeuePutQueue.size() > 0
                 || !checkStateForGetMessages(AbstractStateService.WAITING)
                 || !checkStateForPutMessages(AbstractStateService.WAITING)) {

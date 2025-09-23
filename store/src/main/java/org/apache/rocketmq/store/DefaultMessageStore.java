@@ -3025,7 +3025,8 @@ public class DefaultMessageStore implements MessageStore {
      */
     public boolean isTransientStorePoolEnable() {
         return this.messageStoreConfig.isTransientStorePoolEnable() &&
-            (this.brokerConfig.isEnableControllerMode() || this.messageStoreConfig.getBrokerRole() != BrokerRole.SLAVE);
+            (this.brokerConfig.isEnableControllerMode() || this.messageStoreConfig.getBrokerRole() != BrokerRole.SLAVE)
+            && !messageStoreConfig.isWriteWithoutMmap();
     }
 
     public long getReputFromOffset() {
