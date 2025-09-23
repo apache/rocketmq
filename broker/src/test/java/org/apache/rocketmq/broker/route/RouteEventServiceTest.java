@@ -86,7 +86,7 @@ public class RouteEventServiceTest {
     public void testPublishEventSuccessfully() {
         when(mockMessageStore.putMessage(any())).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, null));
 
-        routeEventService.publishEvent(RouteEventType.SHUTDOWN, "TestTopic");
+        routeEventService.publishEvent(RouteEventType.TOPIC_CHANGE, "TestTopic");
 
         verify(mockMessageStore).putMessage(any(MessageExtBrokerInner.class));
     }

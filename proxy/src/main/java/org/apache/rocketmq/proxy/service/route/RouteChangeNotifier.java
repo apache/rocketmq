@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.broker.route.RouteEventConstants;
 import org.apache.rocketmq.broker.route.RouteEventType;
@@ -52,7 +53,7 @@ public class RouteChangeNotifier {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     
     private final LoadingCache<String, MessageQueueView> topicCache;
-    private final ThreadPoolExecutor executor;
+    private final ThreadPoolExecutor routeRefreshExecutor;
     
     private final ConcurrentMap<String, Long> dirtyTopics = new ConcurrentHashMap<>();
     private final Queue<String> pendingTopics = new ConcurrentLinkedQueue<>();
@@ -61,13 +62,20 @@ public class RouteChangeNotifier {
     private final DefaultMQPushConsumer consumer;
     private final BiConsumer<String, Long> dirtyMarker;
     
-    public RouteChangeNotifier(LoadingCache<String, MessageQueueView> topicCache,
-                       ThreadPoolExecutor executor) {
+    public RouteChangeNotifier(LoadingCache<String, MessageQueueView> topicCache) {
         this.topicCache = topicCache;
-        this.executor = executor;
 
         this.scheduler = ThreadUtils.newSingleThreadScheduledExecutor(
             new ThreadFactoryImpl("RouteUpdaterScheduler_")
+        );
+
+        this.routeRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
+            2,
+            4,
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            "TopicRouteCacheRefresh",
+            1000
         );
 
         this.consumer = new DefaultMQPushConsumer("PROXY_ROUTE_EVENT_GROUP");
@@ -92,6 +100,10 @@ public class RouteChangeNotifier {
 
         if (scheduler != null) {
             scheduler.shutdown();
+        }
+
+        if (routeRefreshExecutor != null) {
+            routeRefreshExecutor.shutdown();
         }
     }
     
@@ -177,7 +189,7 @@ public class RouteChangeNotifier {
         }
 
         for (String topic : batch) {
-            executor.execute(() -> {
+            routeRefreshExecutor.execute(() -> {
                 refreshSingleRoute(topic);
                 markCompleted(topic);
             });

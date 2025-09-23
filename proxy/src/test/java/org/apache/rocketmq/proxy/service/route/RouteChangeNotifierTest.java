@@ -48,7 +48,7 @@ public class RouteChangeNotifierTest {
     public void setUp() {
         mockCache = mock(LoadingCache.class);
         mockExecutor = mock(ThreadPoolExecutor.class);
-        notifier = new RouteChangeNotifier(mockCache, mockExecutor);
+        notifier = new RouteChangeNotifier(mockCache);
     }
 
     @Test

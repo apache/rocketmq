@@ -102,7 +102,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView reload(@NonNull String key,
                     @NonNull MessageQueueView oldValue) throws Exception {
                     try {
-                        if (routeChangeNotifier != null) {
+                        if (routeChangeNotifier != null
+                            && ConfigurationManager.getProxyConfig().isEnableRouteChangeNotification()) {
                             routeChangeNotifier.markCompleted(key);
                         }
 
@@ -143,10 +144,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             }
         }, serviceDetector);
 
-        this.routeChangeNotifier = new RouteChangeNotifier(
-            this.topicCache,
-            this.cacheRefreshExecutor
-        );
+        this.routeChangeNotifier = new RouteChangeNotifier(this.topicCache);
 
         this.init();
     }
