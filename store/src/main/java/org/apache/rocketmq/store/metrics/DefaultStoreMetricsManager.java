@@ -36,7 +36,7 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
-import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.timer.Slot;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
@@ -63,7 +63,7 @@ import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABE
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_TIMING_BOUND;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_TOPIC;
 
-public class DefaultStoreMetricsManager {
+public class DefaultStoreMetricsManager implements StoreMetricsManager {
     private Supplier<AttributesBuilder> attributesBuilderSupplier;
     private MessageStoreConfig messageStoreConfig;
 
@@ -109,7 +109,7 @@ public class DefaultStoreMetricsManager {
     }
 
     public void init(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier,
-        DefaultMessageStore messageStore) {
+        MessageStore messageStore) {
 
         // Also add some metrics for rocksdb's monitoring.
         this.rocksDBStoreMetricsManager.init(meter, attributesBuilderSupplier, messageStore.getQueueStore());
@@ -322,10 +322,6 @@ public class DefaultStoreMetricsManager {
     // Setter methods for testing
     public void setAttributesBuilderSupplier(Supplier<AttributesBuilder> attributesBuilderSupplier) {
         this.attributesBuilderSupplier = attributesBuilderSupplier;
-    }
-
-    public void setMessageStoreConfig(MessageStoreConfig messageStoreConfig) {
-        this.messageStoreConfig = messageStoreConfig;
     }
 
     public RocksDBStoreMetricsManager getRocksDBStoreMetricsManager() {

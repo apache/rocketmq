@@ -61,6 +61,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
+import org.apache.rocketmq.store.metrics.StoreMetricsManager;
 import org.rocksdb.RocksDBException;
 
 public abstract class AbstractPluginMessageStore implements MessageStore {
@@ -291,6 +292,11 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public long dispatchBehindBytes() {
         return next.dispatchBehindBytes();
+    }
+
+    @Override
+    public long flushBehindBytes() {
+        return next.flushBehindBytes();
     }
 
     @Override
@@ -665,5 +671,10 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public MessageStoreStateMachine getStateMachine() {
         return next.getStateMachine();
+    }
+
+    @Override
+    public StoreMetricsManager getStoreMetricsManager() {
+        return next.getStoreMetricsManager();
     }
 }

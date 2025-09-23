@@ -67,6 +67,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
+import org.apache.rocketmq.store.metrics.StoreMetricsManager;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
@@ -767,11 +768,12 @@ public class TimerMessageStore {
                             }
                         }
                         // Record timer message set latency
-                        if (messageStore instanceof DefaultMessageStore) {
-                            DefaultStoreMetricsManager metricsManager = ((DefaultMessageStore) messageStore).getDefaultStoreMetricsManager();
-                            Attributes attributes = metricsManager.newAttributesBuilder()
+                        StoreMetricsManager metricsManager = messageStore.getStoreMetricsManager();
+                        if (metricsManager instanceof DefaultStoreMetricsManager) {
+                            DefaultStoreMetricsManager defaultMetricsManager = (DefaultStoreMetricsManager) metricsManager;
+                            Attributes attributes = defaultMetricsManager.newAttributesBuilder()
                                 .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
-                            metricsManager.getTimerMessageSetLatency().record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
+                            defaultMetricsManager.getTimerMessageSetLatency().record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
                         }
                     }
                 } catch (Exception e) {
@@ -1440,8 +1442,9 @@ public class TimerMessageStore {
         protected void putMessageToTimerWheel(TimerRequest req) {
             try {
                 perfCounterTicks.startTick(ENQUEUE_PUT);
-                if (messageStore instanceof DefaultMessageStore) {
-                    ((DefaultMessageStore) messageStore).getDefaultStoreMetricsManager().incTimerEnqueueCount(getRealTopic(req.getMsg()));
+                StoreMetricsManager metricsManager = messageStore.getStoreMetricsManager();
+                if (metricsManager instanceof DefaultStoreMetricsManager) {
+                    ((DefaultStoreMetricsManager) metricsManager).incTimerEnqueueCount(getRealTopic(req.getMsg()));
                 }
                 if (shouldRunningDequeue && req.getDelayTime() < currWriteTimeMs) {
                     req.setEnqueueTime(Long.MAX_VALUE);
@@ -1589,8 +1592,9 @@ public class TimerMessageStore {
                                 perfCounterTicks.startTick(DEQUEUE_PUT);
 
                                 MessageExt msgExt = tr.getMsg();
-                                if (messageStore instanceof DefaultMessageStore) {
-                                    ((DefaultMessageStore) messageStore).getDefaultStoreMetricsManager().incTimerDequeueCount(getRealTopic(msgExt));
+                                StoreMetricsManager metricsManager = messageStore.getStoreMetricsManager();
+                                if (metricsManager instanceof DefaultStoreMetricsManager) {
+                                    ((DefaultStoreMetricsManager) metricsManager).incTimerDequeueCount(getRealTopic(msgExt));
                                 }
 
                                 if (tr.getEnqueueTime() == Long.MAX_VALUE) {
