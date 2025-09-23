@@ -151,7 +151,7 @@ public class RaftBrokerHeartBeatManagerTest {
         controller = mock(JRaftController.class);
         FieldUtils.writeDeclaredField(raftBrokerHeartBeatManager, "controller", controller, true);
         when(controller.isLeaderState()).thenReturn(true);
-        FieldUtils.writeDeclaredField(raftBrokerHeartBeatManager, "firstReceivedHeartbeatTime", System.currentTimeMillis() + 10000L, true);
+        FieldUtils.writeDeclaredField(raftBrokerHeartBeatManager, "firstReceivedHeartbeatTime", 1000, true);
 
         List<BrokerIdentityInfo> inactiveBrokers = new ArrayList<>();
         BrokerIdentityInfo brokerInfo = new BrokerIdentityInfo("testCluster", "testBroker", 1L);

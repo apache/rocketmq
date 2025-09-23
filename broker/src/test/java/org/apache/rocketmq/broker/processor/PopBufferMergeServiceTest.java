@@ -21,6 +21,8 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -49,6 +51,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -201,6 +204,13 @@ public class PopBufferMergeServiceTest {
         EscapeBridge escapeBridge = mock(EscapeBridge.class);
         when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
         when(brokerController.getBrokerConfig().isAppendAckAsync()).thenReturn(false);
+        BrokerMetricsManager brokerMetricsManager = mock(BrokerMetricsManager.class);
+        PopMetricsManager popMetricsManager = mock(PopMetricsManager.class);
+
+        when(brokerMetricsManager.getPopMetricsManager()).thenReturn(popMetricsManager);
+        when(brokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
+        doNothing().when(popMetricsManager).incPopReviveCkPutCount(any(), any());
+        when(brokerMetricsManager.getPopMetricsManager()).thenReturn(popMetricsManager);
 
         when(escapeBridge.putMessageToSpecificQueue(any())).thenAnswer(invocation -> {
             MessageExtBrokerInner capturedMessage = invocation.getArgument(0);
