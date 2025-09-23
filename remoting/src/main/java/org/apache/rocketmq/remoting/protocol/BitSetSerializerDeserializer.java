@@ -16,38 +16,37 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson2.JSONFactory;
 import com.alibaba.fastjson2.JSONReader;
 import com.alibaba.fastjson2.JSONWriter;
 import com.alibaba.fastjson2.reader.ObjectReader;
 import com.alibaba.fastjson2.writer.ObjectWriter;
 
 import java.lang.reflect.Type;
+import java.util.Base64;
 import java.util.BitSet;
 
-public class BitSetCodec implements ObjectReader<BitSetWrapper>, ObjectWriter<BitSetWrapper> {
-
-    static {
-        JSONFactory.getDefaultObjectWriterProvider().register(BitSetWrapper.class, new BitSetCodec());
-        JSONFactory.getDefaultObjectReaderProvider().register(BitSetWrapper.class, new BitSetCodec());
-    }
+public class BitSetSerializerDeserializer implements ObjectReader<BitSet>, ObjectWriter<BitSet> {
 
     @Override
     public void write(JSONWriter writer, Object object, Object fieldName, Type fieldType, long features) {
         if (object == null) {
-            writer.writeNull();
+            writer.writeBase64(null);
         } else {
-            writer.writeBinary(((BitSetWrapper) object).getValue().toByteArray());
+            writer.writeBase64(((BitSet) object).toByteArray());
         }
     }
 
     @Override
-    public BitSetWrapper readObject(JSONReader reader, Type fieldType, Object fieldName, long features) {
-        byte[] bytes = reader.readBinary();
-        if (bytes != null) {
-            return new BitSetWrapper(BitSet.valueOf(bytes));
+    public BitSet readObject(JSONReader reader, Type fieldType, Object fieldName, long features) {
+        if (reader.nextIfNull()) {
+            return null;
         }
-        return null;
+        String base64 = reader.readString();
+        if (base64 == null || base64.isEmpty()) {
+            return null;
+        }
+        byte[] bytes = Base64.getDecoder().decode(base64);
+        return BitSet.valueOf(bytes);
     }
 
     @Override
@@ -56,7 +55,7 @@ public class BitSetCodec implements ObjectReader<BitSetWrapper>, ObjectWriter<Bi
     }
 
     @Override
-    public Class<BitSetWrapper> getObjectClass() {
+    public Class<BitSet> getObjectClass() {
         return ObjectReader.super.getObjectClass();
     }
 }

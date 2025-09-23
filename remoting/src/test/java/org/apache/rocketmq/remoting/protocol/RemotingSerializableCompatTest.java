@@ -26,7 +26,6 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,7 +48,7 @@ public class RemotingSerializableCompatTest {
         
         for (Class<? extends RemotingSerializable> clazz : subTypes) {
             if (clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers()) || clazz.getSimpleName().endsWith("Test")
-                    || clazz.isAnonymousClass() || clazz.getName().contains("$") || clazz.getName().contains("BatchAckMessageRequestBody")) {
+                    || clazz.isAnonymousClass() || clazz.getName().contains("$")) {
                 continue;
             }
             try {
@@ -228,11 +227,6 @@ public class RemotingSerializableCompatTest {
         }
         if (type == String.class) {
             return "test";
-        }
-        if (type == BitSetWrapper.class) {
-            BitSet bitSet = new BitSet();
-            bitSet.set(0);
-            return new BitSetWrapper(bitSet);
         }
         return null;
     }
