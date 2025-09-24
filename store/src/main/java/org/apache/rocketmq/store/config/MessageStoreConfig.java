@@ -240,7 +240,8 @@ public class MessageStoreConfig {
 
     /**
      * When true, use RandomAccessFile for writing instead of MappedByteBuffer. This can be useful for certain scenarios
-     * where mmap is not desired.
+     * where mmap is not desired. When enabled, runningFlags will be set to null during MappedFileQueue and MappedFile
+     * initialization to avoid conflicts with non-mmap operations.
      *
      * The configurations writeWithoutMmap and transientStorePoolEnable are mutually exclusive. When both are set to
      * true, only writeWithoutMmap will be effective.
@@ -285,12 +286,6 @@ public class MessageStoreConfig {
      */
     private boolean autoMessageVersionOnTopicLen = true;
 
-    /**
-     * Whether to use runningFlags when flushing data to disk.
-     * When disabled, runningFlags will be set to null during MappedFileQueue and MappedFile initialization.
-     */
-    @ImportantField
-    private boolean enableRunningFlagsInFlush = false;
 
     /**
      * It cannot be changed after the broker is started.
@@ -2053,11 +2048,4 @@ public class MessageStoreConfig {
         this.enableAcceleratedRecovery = enableAcceleratedRecovery;
     }
 
-    public boolean isEnableRunningFlagsInFlush() {
-        return enableRunningFlagsInFlush;
-    }
-
-    public void setEnableRunningFlagsInFlush(boolean enableRunningFlagsInFlush) {
-        this.enableRunningFlagsInFlush = enableRunningFlagsInFlush;
-    }
 }

@@ -111,8 +111,8 @@ public class CommitLog implements Swappable {
 
     public CommitLog(final DefaultMessageStore messageStore) {
         String storePath = messageStore.getMessageStoreConfig().getStorePathCommitLog();
-        RunningFlags runningFlags = messageStore.getMessageStoreConfig().isEnableRunningFlagsInFlush() 
-            ? messageStore.getRunningFlags() : null;
+        boolean writeWithoutMmap = messageStore.getMessageStoreConfig().isWriteWithoutMmap();
+        RunningFlags runningFlags = writeWithoutMmap ? null : messageStore.getRunningFlags();
         
         if (storePath.contains(MixAll.MULTI_PATH_SPLITTER)) {
             this.mappedFileQueue = new MultiPathMappedFileQueue(messageStore.getMessageStoreConfig(),
@@ -123,7 +123,7 @@ public class CommitLog implements Swappable {
                 messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
                 messageStore.getAllocateMappedFileService(),
                 runningFlags,
-                messageStore.getMessageStoreConfig().isWriteWithoutMmap());
+                writeWithoutMmap);
         }
 
         this.defaultMessageStore = messageStore;

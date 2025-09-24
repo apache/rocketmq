@@ -173,8 +173,7 @@ public class AllocateMappedFileService extends ServiceThread {
 
                 MappedFile mappedFile;
                 boolean writeWithoutMmap = messageStore.getMessageStoreConfig().isWriteWithoutMmap();
-                RunningFlags runningFlags = messageStore.getMessageStoreConfig().isEnableRunningFlagsInFlush() 
-                    ? messageStore.getRunningFlags() : null;
+                RunningFlags runningFlags = writeWithoutMmap ? null : messageStore.getRunningFlags();
                 if (messageStore.isTransientStorePoolEnable()) {
                     try {
                         mappedFile = ServiceLoader.load(MappedFile.class).iterator().next();
