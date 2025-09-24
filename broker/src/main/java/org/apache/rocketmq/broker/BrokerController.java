@@ -302,7 +302,7 @@ public class BrokerController {
     private TransactionMetricsFlushService transactionMetricsFlushService;
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
-    private RouteEventService routeEventService;
+    protected RouteEventService routeEventService;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -463,6 +463,8 @@ public class BrokerController {
         if (this.authConfig != null && this.authConfig.isMigrateAuthFromV1Enabled()) {
             new AuthMigrator(this.authConfig).migrate();
         }
+        
+        this.routeEventService = new RouteEventService(this);
     }
 
     public AuthConfig getAuthConfig() {
@@ -868,7 +870,6 @@ public class BrokerController {
         if (!result) {
             return false;
         }
-        this.routeEventService = new RouteEventService(this);
 
         return this.recoverAndInitService();
     }

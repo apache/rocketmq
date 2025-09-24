@@ -141,7 +141,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean slaveReadEnable = false;
 
-    private boolean enableRouteChangeNotification = true;
+    private boolean enableRouteChangeNotification = false;
 
     private boolean disableConsumeIfConsumerReadSlowly = false;
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
