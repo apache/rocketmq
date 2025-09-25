@@ -81,7 +81,6 @@ public class MessageStoreConfig {
     private boolean timerInterceptDelayLevel = false;
     private int timerMaxDelaySec = 3600 * 24 * 3;
     private boolean timerWheelSnapshotFlush = false;
-    private boolean timerWheelDefaultFlush = true;
     private boolean timerWheelEnable = true;
 
     /**
@@ -1748,14 +1747,6 @@ public class MessageStoreConfig {
 
     public boolean isTimerWarmEnable() {
         return timerWarmEnable;
-    }
-
-    public boolean isTimerWheelDefaultFlush() {
-        return timerWheelDefaultFlush;
-    }
-
-    public void setTimerWheelDefaultFlush(boolean timerWheelDefaultFlush) {
-        this.timerWheelDefaultFlush = timerWheelDefaultFlush;
     }
 
     public boolean isTimerWheelSnapshotFlush() {

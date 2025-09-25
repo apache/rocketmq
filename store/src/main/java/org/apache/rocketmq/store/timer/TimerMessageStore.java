@@ -179,9 +179,13 @@ public class TimerMessageStore {
         long snapOffset = -1;
         if (storeConfig.isTimerWheelSnapshotFlush()) {
             snapOffset = TimerWheel.getMaxSnapshotFlag(timerWheelPath);
-            // correct recover offset
-            timerCheckpoint.setLastTimerLogFlushPos(snapOffset);
-            LOGGER.info("found timerWheel snapshot offset {}", snapOffset);
+            if (snapOffset > 0) {
+                // correct recover offset
+                timerCheckpoint.setLastTimerLogFlushPos(snapOffset);
+                LOGGER.info("found timerWheel snapshot offset {}", snapOffset);
+            } else {
+                LOGGER.info("not found timerWheel snapshot", snapOffset);
+            }
         }
         this.timerWheel = new TimerWheel(
             timerWheelPath, this.slotsTotal, precisionMs, snapOffset);
@@ -1836,14 +1840,11 @@ public class TimerMessageStore {
             synchronized (lockWhenFlush) {
                 prepareTimerCheckPoint();
                 timerLog.getMappedFileQueue().flush(0);
-                if (storeConfig.isTimerWheelDefaultFlush()) {
-                    timerWheel.flush();
+                if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
+                    lastSnapshotTime = System.currentTimeMillis();
+                    timerWheel.backup(timerLog.getMappedFileQueue().getFlushedWhere());
+                    timerCheckpoint.flush();
                 }
-            }
-            if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
-                lastSnapshotTime = System.currentTimeMillis();
-                timerWheel.backup(timerLog.getMappedFileQueue().getFlushedWhere());
-                timerCheckpoint.flush();
             }
             if (System.currentTimeMillis() - start > storeConfig.getTimerProgressLogIntervalMs()) {
                 start = System.currentTimeMillis();
