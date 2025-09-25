@@ -20,7 +20,11 @@
     <parent>
         <artifactId>rocketmq-all</artifactId>
         <groupId>org.apache.rocketmq</groupId>
+<<<<<<< HEAD
         <version>5.3.6-RocksDB-SNAPSHOT</version>
+=======
+        <version>${revision}</version>
+>>>>>>> opencore/develop
     </parent>
 
     <modelVersion>4.0.0</modelVersion>

@@ -454,6 +454,7 @@ public class AutoSwitchHATest {
     }
 
     @Test
+    @SuppressWarnings("DoubleBraceInitialization")
     public void testCheckSynchronizingSyncStateSetFlag() throws Exception {
         // Step1: broker1 as leader, broker2 as follower
         init(defaultMappedFileSize);

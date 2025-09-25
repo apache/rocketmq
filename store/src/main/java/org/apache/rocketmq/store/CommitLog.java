@@ -169,7 +169,7 @@ public class CommitLog implements Swappable {
             scanFileAndSetReadMode(LibC.MADV_RANDOM);
         }
         this.mappedFileQueue.checkSelf();
-        log.info("load commit log " + (result ? "OK" : "Failed"));
+        log.info("load commit log {}", result ? "OK" : "Failed");
         return result;
     }
 
@@ -367,14 +367,14 @@ public class CommitLog implements Swappable {
                     index++;
                     if (index >= mappedFiles.size()) {
                         // Current branch can not happen
-                        log.info("recover last 3 physics file over, last mapped file " + mappedFile.getFileName());
+                        log.info("recover last 3 physics file over, last mapped file {}", mappedFile.getFileName());
                         break;
                     } else {
                         mappedFile = mappedFiles.get(index);
                         byteBuffer = mappedFile.sliceByteBuffer();
                         processOffset = mappedFile.getFileFromOffset();
                         mappedFileOffset = 0;
-                        log.info("recover next physics file, " + mappedFile.getFileName());
+                        log.info("recover next physics file, {}", mappedFile.getFileName());
                     }
                 }
                 // Intermediate file read error
@@ -382,7 +382,7 @@ public class CommitLog implements Swappable {
                     if (size > 0) {
                         log.warn("found a half message at {}, it will be truncated.", processOffset + mappedFileOffset);
                     }
-                    log.info("recover physics file end, " + mappedFile.getFileName());
+                    log.info("recover physics file end, {}", mappedFile.getFileName());
                     break;
                 }
             }
@@ -453,7 +453,7 @@ public class CommitLog implements Swappable {
                 case BLANK_MAGIC_CODE:
                     return new DispatchRequest(0, true /* success */);
                 default:
-                    log.warn("found a illegal magic code 0x" + Integer.toHexString(magicCode));
+                    log.warn("found a illegal magic code 0x{}", Integer.toHexString(magicCode));
                     return new DispatchRequest(-1, false /* success */);
             }
 
@@ -772,14 +772,14 @@ public class CommitLog implements Swappable {
                         if (index >= mappedFiles.size()) {
                             // The current branch under normal circumstances should
                             // not happen
-                            log.info("recover physics file over, last mapped file " + mappedFile.getFileName());
+                            log.info("recover physics file over, last mapped file {}", mappedFile.getFileName());
                             break;
                         } else {
                             mappedFile = mappedFiles.get(index);
                             byteBuffer = mappedFile.sliceByteBuffer();
                             processOffset = mappedFile.getFileFromOffset();
                             mappedFileOffset = 0;
-                            log.info("recover next physics file, " + mappedFile.getFileName());
+                            log.info("recover next physics file, {}", mappedFile.getFileName());
                         }
                     }
                 } else {
@@ -788,7 +788,7 @@ public class CommitLog implements Swappable {
                         log.warn("found a half message at {}, it will be truncated.", processOffset + mappedFileOffset);
                     }
 
-                    log.info("recover physics file end, " + mappedFile.getFileName() + " pos=" + byteBuffer.position());
+                    log.info("recover physics file end, {} pos={}", mappedFile.getFileName(), byteBuffer.position());
                     break;
                 }
             }
@@ -1025,7 +1025,7 @@ public class CommitLog implements Swappable {
                     }
                 }
                 if (null == mappedFile) {
-                    log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                    log.error("create mapped file1 error, topic: {} clientAddr: {}", msg.getTopic(), msg.getBornHostString());
                     beginTimeInLock = 0;
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
                 }
@@ -1042,7 +1042,7 @@ public class CommitLog implements Swappable {
                         mappedFile = this.mappedFileQueue.getLastMappedFile(0);
                         if (null == mappedFile) {
                             // XXX: warn and notify me
-                            log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                            log.error("create mapped file2 error, topic: {} clientAddr: {}", msg.getTopic(), msg.getBornHostString());
                             beginTimeInLock = 0;
                             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
                         }
@@ -1392,7 +1392,7 @@ public class CommitLog implements Swappable {
         try {
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(startOffset);
             if (null == mappedFile) {
-                log.error("appendData getLastMappedFile error  " + startOffset);
+                log.error("appendData getLastMappedFile error {}", startOffset);
                 return false;
             }
 
@@ -1462,7 +1462,7 @@ public class CommitLog implements Swappable {
 
         @Override
         public void run() {
-            CommitLog.log.info(this.getServiceName() + " service started");
+            CommitLog.log.info("{} service started", this.getServiceName());
             while (!this.isStopped()) {
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitIntervalCommitLog();
 
@@ -1490,16 +1490,16 @@ public class CommitLog implements Swappable {
                     }
                     this.waitForRunning(interval);
                 } catch (Throwable e) {
-                    CommitLog.log.error(this.getServiceName() + " service has exception. ", e);
+                    CommitLog.log.error("{} service has exception. ", this.getServiceName(), e);
                 }
             }
 
             boolean result = false;
             for (int i = 0; i < RETRY_TIMES_OVER && !result; i++) {
                 result = CommitLog.this.mappedFileQueue.commit(0);
-                CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
+                CommitLog.log.info("{} service shutdown, retry {} times {}", this.getServiceName(), i + 1, result ? "OK" : "Not OK");
             }
-            CommitLog.log.info(this.getServiceName() + " service end");
+            CommitLog.log.info("{} service end", this.getServiceName());
         }
     }
 
@@ -1509,7 +1509,7 @@ public class CommitLog implements Swappable {
 
         @Override
         public void run() {
-            CommitLog.log.info(this.getServiceName() + " service started");
+            CommitLog.log.info("{} service started", this.getServiceName());
 
             while (!this.isStopped()) {
                 boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
@@ -1553,7 +1553,7 @@ public class CommitLog implements Swappable {
                         log.info("Flush data to disk costs {} ms", past);
                     }
                 } catch (Throwable e) {
-                    CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
+                    CommitLog.log.warn("{} service has exception. ", this.getServiceName(), e);
                     this.printFlushProgress();
                 }
             }
@@ -1562,12 +1562,12 @@ public class CommitLog implements Swappable {
             boolean result = false;
             for (int i = 0; i < RETRY_TIMES_OVER && !result; i++) {
                 result = CommitLog.this.mappedFileQueue.flush(0);
-                CommitLog.log.info(this.getServiceName() + " service shutdown, retry " + (i + 1) + " times " + (result ? "OK" : "Not OK"));
+                CommitLog.log.info("{} service shutdown, retry {} times {}", this.getServiceName(), i + 1, result ? "OK" : "Not OK");
             }
 
             this.printFlushProgress();
 
-            CommitLog.log.info(this.getServiceName() + " service end");
+            CommitLog.log.info("{} service end", this.getServiceName());
         }
 
         @Override
@@ -1694,14 +1694,14 @@ public class CommitLog implements Swappable {
 
         @Override
         public void run() {
-            CommitLog.log.info(this.getServiceName() + " service started");
+            CommitLog.log.info("{} service started", this.getServiceName());
 
             while (!this.isStopped()) {
                 try {
                     this.waitForRunning(10);
                     this.doCommit();
                 } catch (Exception e) {
-                    CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
+                    CommitLog.log.warn("{} service has exception. ", this.getServiceName(), e);
                 }
             }
 
@@ -1716,7 +1716,7 @@ public class CommitLog implements Swappable {
             this.swapRequests();
             this.doCommit();
 
-            CommitLog.log.info(this.getServiceName() + " service end");
+            CommitLog.log.info("{} service end", this.getServiceName());
         }
 
         @Override
@@ -1802,14 +1802,14 @@ public class CommitLog implements Swappable {
         }
 
         public void run() {
-            CommitLog.log.info(this.getServiceName() + " service started");
+            CommitLog.log.info("{} service started", this.getServiceName());
 
             while (!this.isStopped()) {
                 try {
                     this.waitForRunning(1);
                     this.doCommit();
                 } catch (Exception e) {
-                    CommitLog.log.warn(this.getServiceName() + " service has exception. ", e);
+                    CommitLog.log.warn("{} service has exception. ", this.getServiceName(), e);
                 }
             }
 
@@ -1827,7 +1827,7 @@ public class CommitLog implements Swappable {
 
             this.doCommit();
 
-            CommitLog.log.info(this.getServiceName() + " service end");
+            CommitLog.log.info("{} service end", this.getServiceName());
         }
 
         @Override
@@ -1901,7 +1901,7 @@ public class CommitLog implements Swappable {
 
             // Exceeds the maximum message
             if (msgLen > this.messageStoreConfig.getMaxMessageSize()) {
-                log.warn("message size exceeded, msg total size: " + msgLen + ", maxMessageSize: " + this.messageStoreConfig.getMaxMessageSize());
+                log.warn("message size exceeded, msg total size: {}, maxMessageSize: {}", msgLen, this.messageStoreConfig.getMaxMessageSize());
                 return new AppendMessageResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED);
             }
 
@@ -2182,7 +2182,7 @@ public class CommitLog implements Swappable {
                         //flushOK=false;
                     }
                     if (flushStatus != PutMessageStatus.PUT_OK) {
-                        log.error("do groupcommit, wait for flush failed, topic: " + messageExt.getTopic() + " tags: " + messageExt.getTags() + " client address: " + messageExt.getBornHostString());
+                        log.error("do groupcommit, wait for flush failed, topic: {} tags: {} client address: {}", messageExt.getTopic(), messageExt.getTags(), messageExt.getBornHostString());
                         putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
                     }
                 } else {
@@ -2336,7 +2336,7 @@ public class CommitLog implements Swappable {
                     long costTime = this.systemClock.now() - beginClockTimestamp;
                     log.info("[{}] scanFilesInPageCache-cost {} ms.", costTime > 30 * 1000 ? "NOTIFYME" : "OK", costTime);
                 } catch (Throwable e) {
-                    log.warn(this.getServiceName() + " service has e: {}", e);
+                    log.warn("{} service has e: ", this.getServiceName() , e);
                 }
             }
             log.info("{} service end", this.getServiceName());

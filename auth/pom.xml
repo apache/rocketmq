@@ -13,7 +13,11 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
+<<<<<<< HEAD
         <version>5.3.6-RocksDB-SNAPSHOT</version>
+=======
+        <version>${revision}</version>
+>>>>>>> opencore/develop
     </parent>
     <artifactId>rocketmq-auth</artifactId>
     <name>rocketmq-auth ${project.version}</name>

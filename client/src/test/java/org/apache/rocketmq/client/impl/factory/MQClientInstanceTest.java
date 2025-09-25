@@ -54,6 +54,7 @@ import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -126,6 +127,13 @@ public class MQClientInstanceTest {
         FieldUtils.writeDeclaredField(mqClientInstance, "consumerTable", consumerTable, true);
         FieldUtils.writeDeclaredField(mqClientInstance, "clientConfig", clientConfig, true);
         FieldUtils.writeDeclaredField(mqClientInstance, "topicRouteTable", topicRouteTable, true);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        brokerAddrTable.clear();
+        consumerTable.clear();
+        topicRouteTable.clear();
     }
 
     @Test
@@ -229,7 +237,7 @@ public class MQClientInstanceTest {
     @Test
     public void testTopicRouteData2TopicPublishInfoWithOrderTopicConf() {
         TopicRouteData topicRouteData = createTopicRouteData();
-        when(topicRouteData.getOrderTopicConf()).thenReturn("127.0.0.1:4");
+        topicRouteData.setOrderTopicConf("127.0.0.1:4");
         TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
         assertFalse(actual.isHaveTopicRouterInfo());
         assertEquals(4, actual.getMessageQueueList().size());
@@ -238,7 +246,7 @@ public class MQClientInstanceTest {
     @Test
     public void testTopicRouteData2TopicPublishInfoWithTopicQueueMappingByBroker() {
         TopicRouteData topicRouteData = createTopicRouteData();
-        when(topicRouteData.getTopicQueueMappingByBroker()).thenReturn(Collections.singletonMap(topic, new TopicQueueMappingInfo()));
+        topicRouteData.setTopicQueueMappingByBroker(Collections.singletonMap(topic, new TopicQueueMappingInfo()));
         TopicPublishInfo actual = MQClientInstance.topicRouteData2TopicPublishInfo(topic, topicRouteData);
         assertFalse(actual.isHaveTopicRouterInfo());
         assertEquals(0, actual.getMessageQueueList().size());
@@ -247,7 +255,7 @@ public class MQClientInstanceTest {
     @Test
     public void testTopicRouteData2TopicSubscribeInfo() {
         TopicRouteData topicRouteData = createTopicRouteData();
-        when(topicRouteData.getTopicQueueMappingByBroker()).thenReturn(Collections.singletonMap(topic, new TopicQueueMappingInfo()));
+        topicRouteData.setTopicQueueMappingByBroker(Collections.singletonMap(topic, new TopicQueueMappingInfo()));
         Set<MessageQueue> actual = MQClientInstance.topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
         assertNotNull(actual);
         assertEquals(0, actual.size());
@@ -320,7 +328,8 @@ public class MQClientInstanceTest {
         DefaultMQProducer defaultMQProducer = mock(DefaultMQProducer.class);
         TopicRouteData topicRouteData = createTopicRouteData();
         when(mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(anyLong())).thenReturn(topicRouteData);
-        assertFalse(mqClientInstance.updateTopicRouteInfoFromNameServer(topic, true, defaultMQProducer));
+        assertTrue(mqClientInstance.updateTopicRouteInfoFromNameServer(topic, true, defaultMQProducer));
+        assertEquals(topicRouteData, topicRouteTable.get(topic));
     }
 
     @Test
@@ -450,9 +459,9 @@ public class MQClientInstanceTest {
     }
 
     private TopicRouteData createTopicRouteData() {
-        TopicRouteData result = mock(TopicRouteData.class);
-        when(result.getBrokerDatas()).thenReturn(createBrokerDatas());
-        when(result.getQueueDatas()).thenReturn(createQueueDatas());
+        TopicRouteData result = new TopicRouteData();
+        result.setBrokerDatas(createBrokerDatas());
+        result.setQueueDatas(createQueueDatas());
         return result;
     }
 
