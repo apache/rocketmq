@@ -122,7 +122,6 @@ public class Timeline {
         log.info("Timeline shutdown success");
     }
 
-
     public void putRecord(TimerRocksDBRecord timerRecord) throws InterruptedException {
         if (null == timerRecord) {
             return;

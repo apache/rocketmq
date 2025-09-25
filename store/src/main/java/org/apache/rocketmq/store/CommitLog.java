@@ -325,14 +325,18 @@ public class CommitLog implements Swappable {
     public void recoverNormally(long dispatchFromPhyOffset) throws RocksDBException {
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
+        int maxRecoverNum = this.defaultMessageStore.getMessageStoreConfig().getCommitLogRecoverMaxNum();
+        if (maxRecoverNum <= 0) {
+            maxRecoverNum = 10;
+        }
+        log.info("recoverNormally maxRecoverNum: {}", maxRecoverNum);
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
             int index = mappedFiles.size() - 1;
-            int maxCount = 10;
             while (index > 0) {
                 MappedFile mappedFile = mappedFiles.get(index);
-                maxCount--;
-                if (isMappedFileMatchedRecover(mappedFile, true) || maxCount <= 0) {
+                maxRecoverNum--;
+                if (isMappedFileMatchedRecover(mappedFile, true) || maxRecoverNum <= 0) {
                     // It's safe to recover from this mapped file
                     break;
                 }
@@ -709,16 +713,20 @@ public class CommitLog implements Swappable {
         // recover by the minimum time stamp
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
+        int maxRecoverNum = this.defaultMessageStore.getMessageStoreConfig().getCommitLogRecoverMaxNum();
+        if (maxRecoverNum <= 0) {
+            maxRecoverNum = 10;
+        }
+        log.info("recoverAbnormally maxRecoverNum: {}", maxRecoverNum);
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
             // Looking beginning to recover from which file
             int index = mappedFiles.size() - 1;
-            int maxCount = 10;
             MappedFile mappedFile = null;
             for (; index >= 0; index--) {
                 mappedFile = mappedFiles.get(index);
-                maxCount--;
-                if (this.isMappedFileMatchedRecover(mappedFile, false) || maxCount <= 0) {
+                maxRecoverNum--;
+                if (this.isMappedFileMatchedRecover(mappedFile, false) || maxRecoverNum <= 0) {
                     log.info("recover from this mapped file " + mappedFile.getFileName());
                     break;
                 }

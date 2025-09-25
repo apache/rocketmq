@@ -238,7 +238,7 @@ public class TransactionalMessageRocksDBService {
             if (channel != null) {
                 brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
             } else {
-                log.warn("TransactionalMessageRocksDBService checkProducerTransactionState failed, channel is null. groupId={}, msgId: {}", groupId, msgExt.getMsgId());
+                log.warn("TransactionalMessageRocksDBService checkProducerTransactionState failed, channel is null. groupId: {}, msgId: {}", groupId, msgExt.getMsgId());
             }
         } catch (Exception e) {
             log.error("TransactionalMessageRocksDBService sendCheckMessage error: {}, msgId: {}", e.getMessage(), msgExt.getMsgId());

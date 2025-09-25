@@ -99,16 +99,16 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         try {
             UtilAll.ensureDirOK(this.dbPath);
             initOptions();
-            ColumnFamilyOptions indexOptions = RocksDBOptionsFactory.createIndexCFOptions();
-            ColumnFamilyOptions timerOptions = RocksDBOptionsFactory.createTimerCFOptions();
+            ColumnFamilyOptions indexCFOptions = RocksDBOptionsFactory.createIndexCFOptions();
+            ColumnFamilyOptions timerCFOptions = RocksDBOptionsFactory.createTimerCFOptions();
             ColumnFamilyOptions transCFOptions = RocksDBOptionsFactory.createTransCFOptions();
-            this.cfOptions.add(indexOptions);
-            this.cfOptions.add(timerOptions);
+            this.cfOptions.add(indexCFOptions);
+            this.cfOptions.add(timerCFOptions);
             this.cfOptions.add(transCFOptions);
 
             List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
-            cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, indexOptions));
-            cfDescriptors.add(new ColumnFamilyDescriptor(TIMER_COLUMN_FAMILY, timerOptions));
+            cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, indexCFOptions));
+            cfDescriptors.add(new ColumnFamilyDescriptor(TIMER_COLUMN_FAMILY, timerCFOptions));
             cfDescriptors.add(new ColumnFamilyDescriptor(TRANS_COLUMN_FAMILY, transCFOptions));
             this.open(cfDescriptors);
             this.defaultCFHandle = cfHandles.get(0);

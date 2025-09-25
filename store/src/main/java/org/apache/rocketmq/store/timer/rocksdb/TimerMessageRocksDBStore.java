@@ -528,7 +528,7 @@ public class TimerMessageRocksDBStore {
                     for (TimerRocksDBRecord record : trs) {
                         executor.submit(new Task(countDownLatch, record));
                     }
-                    countDownLatch.await(20, TimeUnit.SECONDS);
+                    countDownLatch.await();
                     log.info("TimerMessageReputService reput messages to commitlog, cost: {}, trs size: {}", System.currentTimeMillis() - start, trs.size());
                     if (this.writeCheckPoint && !CollectionUtils.isEmpty(trs) && trs.get(trs.size() - 1).getCheckPoint() > 0L) {
                         messageRocksDBStorage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT, trs.get(trs.size() - 1).getCheckPoint());

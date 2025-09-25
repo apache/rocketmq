@@ -104,6 +104,7 @@ public class MessageStoreConfig {
     private int timerMetricSmallThreshold = 1000000;
     private int timerProgressLogIntervalMs = 10 * 1000;
 
+    private int commitLogRecoverMaxNum = 10;
     private boolean timerRocksDBEnable = false;
     private boolean timerRocksDBStopScan = false;
     private long timerRocksDBPrecisionMs = 1000L;
@@ -2148,5 +2149,13 @@ public class MessageStoreConfig {
 
     public void setTimerRocksDBRollRangeHours(int timerRocksDBRollRangeHours) {
         this.timerRocksDBRollRangeHours = timerRocksDBRollRangeHours;
+    }
+
+    public int getCommitLogRecoverMaxNum() {
+        return commitLogRecoverMaxNum;
+    }
+
+    public void setCommitLogRecoverMaxNum(int commitLogRecoverMaxNum) {
+        this.commitLogRecoverMaxNum = commitLogRecoverMaxNum;
     }
 }
