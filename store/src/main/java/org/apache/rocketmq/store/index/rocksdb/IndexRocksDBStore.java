@@ -199,7 +199,7 @@ public class IndexRocksDBStore {
                 }
             }
             try {
-                while (!originIndexMsgQueue.offer(new IndexRocksDBRecord(topic,null,null, storeTime, uniqKey, reqOffsetPy), 3, TimeUnit.SECONDS)) {
+                while (!originIndexMsgQueue.offer(new IndexRocksDBRecord(topic, null, null, storeTime, uniqKey, reqOffsetPy), 3, TimeUnit.SECONDS)) {
                     if (System.currentTimeMillis() % 1000 == 0) {
                         logError.error("IndexRocksDBStore buildIndex uniqKey error, topic: {}, storeTime: {}, uniqKey: {}, reqOffsetPy: {}", topic, storeTime, uniqKey, reqOffsetPy);
                     }
