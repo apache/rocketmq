@@ -121,7 +121,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
                 } catch (Exception e) {
                     logError.error("MessageRocksDBStorage flush timer wal failed, error: {}", e.getMessage());
                 }
-            }, 5, 5, TimeUnit.MINUTES);
+            }, 1, 1, TimeUnit.MINUTES);
 
             log.info("MessageRocksDBStorage init success, dbPath: {}", this.dbPath);
         } catch (final Exception e) {

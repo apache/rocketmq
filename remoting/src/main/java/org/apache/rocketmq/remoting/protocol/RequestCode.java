@@ -299,4 +299,5 @@ public class RequestCode {
     public static final int AUTH_LIST_ACL = 3010;
 
     public static final int SWITCH_TIMER_ENGINE = 5001;
+    public static final int TEST_TIMER_COUNT = 5002;
 }

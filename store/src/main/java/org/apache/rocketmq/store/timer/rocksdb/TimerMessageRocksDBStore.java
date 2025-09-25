@@ -497,7 +497,7 @@ public class TimerMessageRocksDBStore {
         private final boolean writeCheckPoint;
         ExecutorService executor = new ThreadPoolExecutor(
             6,
-            8,
+            6,
             60,
             TimeUnit.SECONDS,
             new LinkedBlockingQueue<>(10000),
@@ -529,8 +529,9 @@ public class TimerMessageRocksDBStore {
                         executor.submit(new Task(countDownLatch, record));
                     }
                     countDownLatch.await();
-                    log.info("TimerMessageReputService reput messages to commitlog, cost: {}, trs size: {}", System.currentTimeMillis() - start, trs.size());
+                    log.info("TimerMessageReputService reput messages to commitlog, cost: {}, trs size: {}, checkPoint: {}", System.currentTimeMillis() - start, trs.size(), trs.get(trs.size() - 1).getCheckPoint());
                     if (this.writeCheckPoint && !CollectionUtils.isEmpty(trs) && trs.get(trs.size() - 1).getCheckPoint() > 0L) {
+                        log.info("TimerMessageReputService reput messages to commitlog, checkPoint: {}", trs.get(trs.size() - 1).getCheckPoint());
                         messageRocksDBStorage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT, trs.get(trs.size() - 1).getCheckPoint());
                     }
                 } catch (Exception e) {
@@ -601,6 +602,11 @@ public class TimerMessageRocksDBStore {
                 return null;
             }
         }
+    }
+
+    public void testComputeTotalNum(long checkpoint, long checkRange) {
+        long count = timeline.scanRecordsToQueueForTest(checkpoint, checkRange);
+        log.info("testComputeTotalNum test checkpoint: {}, checkRange: {}, count: {}", checkpoint, checkRange, count);
     }
 
 }

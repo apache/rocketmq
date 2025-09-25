@@ -256,6 +256,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.apache.rocketmq.common.message.MessageConst.TIMER_TEST_RANGE;
+import static org.apache.rocketmq.common.message.MessageConst.TIMER_TEST_START;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 
 public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdown {
@@ -3654,6 +3656,19 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SWITCH_TIMER_ENGINE, null);
         request.addExtField(TIMER_ENGINE_TYPE, engineType);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        assert response != null;
+        if (response.getCode() == SUCCESS) {
+            return;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public void testTimerCount(String brokerAddr, String start, String range, long timeoutMillis) throws RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.TEST_TIMER_COUNT, null);
+        request.addExtField(TIMER_TEST_START, start);
+        request.addExtField(TIMER_TEST_RANGE, range);
         RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
         assert response != null;
         if (response.getCode() == SUCCESS) {

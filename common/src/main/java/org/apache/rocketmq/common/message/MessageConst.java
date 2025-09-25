@@ -97,6 +97,9 @@ public class MessageConst {
     public final static String TIMER_ENGINE_ROCKSDB_TIMELINE = "R";
     public final static String TIMER_ENGINE_FILE_TIME_WHEEL = "F";
 
+    public final static String TIMER_TEST_START = "S";
+    public final static String TIMER_TEST_RANGE = "R";
+
     public static final HashSet<String> STRING_HASH_SET = new HashSet<>(64);
 
     public static final String PROPERTY_TIMER_ENQUEUE_MS = "TIMER_ENQUEUE_MS";

@@ -197,7 +197,7 @@ public class Timeline {
                 boolean hasMoreData = trs.size() >= MAX_BATCH_SIZE_FROM_ROCKSDB;
                 lastKey = hasMoreData ? trs.get(trs.size() - 1).getKeyBytes() : null;
                 if (null == lastKey) {
-                    trs.get(trs.size() - 1).setCheckPoint(checkpoint);
+                    trs.get(trs.size() - 1).setCheckPoint(checkpoint + checkRange);
                 }
                 while (!queue.offer(trs, 3, TimeUnit.SECONDS)) {
                     log.debug("Timeline scanRecordsToQueue offer to queue error, queue size: {}, records size: {}", queue.size(), trs.size());
@@ -213,6 +213,42 @@ public class Timeline {
         log.info("Timeline scan records from rocksdb, checkpoint: {}, records size: {}", checkpoint, count);
         return true;
     }
+
+    public long scanRecordsToQueueForTest(long checkpoint, long checkRange) {
+        if (checkpoint <= 0L || checkRange <= 0L ) {
+            logError.error("Timeline scanRecordsToQueue param error, checkpoint: {}, checkRange: {}", checkpoint, checkRange);
+            return 0;
+        }
+        if (storeConfig.isTimerStopDequeue()) {
+            logError.info("Timeline scanRecordsToQueue storeConfig isTimerStopDequeue is true, stop to scan records to queue");
+            return 0;
+        }
+        long count = 0;
+        byte[] lastKey = null;
+        while (true) {
+            try {
+                List<TimerRocksDBRecord> trs = messageRocksDBStorage.scanRecordsForTimer(TIMER_COLUMN_FAMILY, checkpoint, checkpoint + checkRange, MAX_BATCH_SIZE_FROM_ROCKSDB, lastKey);
+                if (null == trs || CollectionUtils.isEmpty(trs)) {
+                    break;
+                }
+                count += trs.size();
+                boolean hasMoreData = trs.size() >= MAX_BATCH_SIZE_FROM_ROCKSDB;
+                lastKey = hasMoreData ? trs.get(trs.size() - 1).getKeyBytes() : null;
+                if (null == lastKey) {
+                    trs.get(trs.size() - 1).setCheckPoint(checkpoint);
+                }
+                if (!hasMoreData) {
+                    break;
+                }
+            } catch (Exception e) {
+                logError.error("Timeline scanRecordsToQueue error: {}", e.getMessage());
+                return 0;
+            }
+        }
+        log.info("Timeline scan records from rocksdb, checkpoint: {}, records size: {}", checkpoint, count);
+        return count;
+    }
+
 
     public class TimelineIndexBuildService extends ServiceThread {
         private final Logger log = Timeline.log;

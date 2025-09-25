@@ -237,6 +237,8 @@ import org.apache.rocketmq.store.util.LibC;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_INVOCATION_STATUS;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
 import static org.apache.rocketmq.common.message.MessageConst.TIMER_ENGINE_TYPE;
+import static org.apache.rocketmq.common.message.MessageConst.TIMER_TEST_RANGE;
+import static org.apache.rocketmq.common.message.MessageConst.TIMER_TEST_START;
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
 public class AdminBrokerProcessor implements NettyRequestProcessor {
@@ -408,6 +410,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.transferPopToFsStore(ctx, request);
             case RequestCode.SWITCH_TIMER_ENGINE:
                 return this.switchTimerEngine(ctx, request);
+            case RequestCode.TEST_TIMER_COUNT:
+                return this.testTimerCount(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -3469,5 +3473,34 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             LOGGER.error("switchTimerEngine error : {}", e.getMessage());
         }
         return response;
+    }
+
+    private RemotingCommand testTimerCount(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        if (null == request.getExtFields()) {
+            LOGGER.info("testTimerCount extFields is null");
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("param error, extFields is null");
+            return response;
+        }
+        String startT = request.getExtFields().get(TIMER_TEST_START);
+        String startR = request.getExtFields().get(TIMER_TEST_RANGE);
+        if (StringUtils.isEmpty(startT) || StringUtils.isEmpty(startR)) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("param error");
+            return response;
+        }
+
+        try {
+            this.brokerController.getTimerMessageRocksDBStore().testComputeTotalNum(Long.valueOf(startT), Long.valueOf(startR));
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark("switch timer engine success");
+            LOGGER.info("switchTimerEngine success");
+            return response;
+        } catch (Exception e) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("param error");
+            return response;
+        }
     }
 }
