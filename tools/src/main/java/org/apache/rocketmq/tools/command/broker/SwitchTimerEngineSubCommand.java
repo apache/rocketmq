@@ -28,7 +28,7 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class SwitchTimerEnginSubCommand implements SubCommand {
+public class SwitchTimerEngineSubCommand implements SubCommand {
     private static final String ROCKSDB_TIMELINE = "ROCKSDB_TIMELINE";
     private static final String FILE_TIME_WHEEL = "FILE_TIME_WHEEL";
 

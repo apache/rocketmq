@@ -164,7 +164,7 @@ public class TimerRocksDBRecord {
 
     @Override
     public String toString() {
-        return "TimerMessageRecord{" +
+        return "TimerRocksDBRecord{" +
             "delayTime=" + delayTime +
             ", uniqKey=" + uniqKey +
             ", sizePy=" + sizePy +

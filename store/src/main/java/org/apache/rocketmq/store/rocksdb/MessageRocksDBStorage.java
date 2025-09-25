@@ -420,16 +420,16 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     public void deleteRecordsForTimer(byte[] columnFamily, long lowerTime, long upperTime) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
         if (null == cfHandle || lowerTime <= 0L || upperTime <= 0L || lowerTime > upperTime) {
-            logError.error("MessageRocksDBStorage rangeDeleteRecordsForTimer param error, cfHandle: {}, lowerTime: {}, upperTime: {}", cfHandle, lowerTime, upperTime);
+            logError.error("MessageRocksDBStorage deleteRecordsForTimer param error, cfHandle: {}, lowerTime: {}, upperTime: {}", cfHandle, lowerTime, upperTime);
             return;
         }
         byte[] startKey = ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array();
         byte[] endKey = ByteBuffer.allocate(Long.BYTES + END_SUFFIX_BYTES.length).putLong(upperTime).put(END_SUFFIX_BYTES).array();
         try {
             rangeDelete(cfHandle, ableWalWriteOptions, startKey, endKey);
-            log.info("MessageRocksDBStorage rangeDeleteRecordsForTimer success, lowerTime: {}, upperTime: {}", lowerTime, upperTime);
+            log.info("MessageRocksDBStorage deleteRecordsForTimer success, lowerTime: {}, upperTime: {}", lowerTime, upperTime);
         } catch (Exception e) {
-            logError.error("MessageRocksDBStorage rangeDeleteRecordsForTimer param error, lowerTime: {}, upperTime: {}, error: {}", lowerTime, upperTime, e.getMessage());
+            logError.error("MessageRocksDBStorage deleteRecordsForTimer param error, lowerTime: {}, upperTime: {}, error: {}", lowerTime, upperTime, e.getMessage());
         }
     }
 
@@ -641,11 +641,11 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     }
 
     private ColumnFamilyHandle getColumnFamily(byte[] columnFamily) {
-        if (columnFamily == RocksDB.DEFAULT_COLUMN_FAMILY) {
+        if (Arrays.equals(columnFamily, RocksDB.DEFAULT_COLUMN_FAMILY)) {
             return this.defaultCFHandle;
-        } else if (columnFamily == TIMER_COLUMN_FAMILY) {
+        } else if (Arrays.equals(columnFamily, TIMER_COLUMN_FAMILY)) {
             return this.timerCFHandle;
-        } else if (columnFamily == TRANS_COLUMN_FAMILY) {
+        } else if (Arrays.equals(columnFamily, TRANS_COLUMN_FAMILY)) {
             return this.transCFHandle;
         }
         throw new RuntimeException("Unknown column family");

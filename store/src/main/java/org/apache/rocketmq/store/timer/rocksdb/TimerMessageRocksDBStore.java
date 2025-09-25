@@ -136,7 +136,7 @@ public class TimerMessageRocksDBStore {
                 long commitOffsetRocksDB = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
                 long maxCommitOffset = Math.max(commitOffsetFile, commitOffsetRocksDB);
                 this.readOffset.set(maxCommitOffset);
-                log.info("restart TimerMessageRocksDBStore has benn recover running, commitOffsetFile: {}, commitOffsetRocksDB: {}, readOffset: {}", commitOffsetFile, commitOffsetRocksDB, readOffset);
+                log.info("restart TimerMessageRocksDBStore has benn recover running, commitOffsetFile: {}, commitOffsetRocksDB: {}, readOffset: {}", commitOffsetFile, commitOffsetRocksDB, readOffset.get());
             } else {
                 this.load();
                 this.start();
@@ -432,10 +432,10 @@ public class TimerMessageRocksDBStore {
                 return;
             }
             if (readOffset.get() < cq.getMinOffsetInQueue()) {
-                logError.warn("scanSysTimerTopic readOffset: {} is smaller than minOffsetInQueue: {}, use minOffsetInQueue to scan timer sysTimerTopic", readOffset, cq.getMinOffsetInQueue());
+                logError.warn("scanSysTimerTopic readOffset: {} is smaller than minOffsetInQueue: {}, use minOffsetInQueue to scan timer sysTimerTopic", readOffset.get(), cq.getMinOffsetInQueue());
                 readOffset.set(cq.getMinOffsetInQueue());
             } else if (readOffset.get() > cq.getMaxOffsetInQueue()) {
-                logError.warn("scanSysTimerTopic readOffset: {} is bigger than maxOffsetInQueue: {}, use maxOffsetInQueue to scan timer sysTimerTopic", readOffset, cq.getMaxOffsetInQueue());
+                logError.warn("scanSysTimerTopic readOffset: {} is bigger than maxOffsetInQueue: {}, use maxOffsetInQueue to scan timer sysTimerTopic", readOffset.get(), cq.getMaxOffsetInQueue());
                 readOffset.set(cq.getMaxOffsetInQueue());
             }
             ReferredIterator<CqUnit> iterator = null;
@@ -449,7 +449,7 @@ public class TimerMessageRocksDBStore {
                     try {
                         CqUnit cqUnit = iterator.next();
                         if (null == cqUnit) {
-                            logError.error("scanSysTimerTopic cqUnit is null, readOffset: {}", readOffset);
+                            logError.error("scanSysTimerTopic cqUnit is null, readOffset: {}", readOffset.get());
                             break;
                         }
                         long offsetPy = cqUnit.getPos();
