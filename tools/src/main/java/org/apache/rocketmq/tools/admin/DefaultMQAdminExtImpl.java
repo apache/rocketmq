@@ -2062,11 +2062,4 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         this.mqClientInstance.getMQClientAPIImpl().switchTimerEngine(brokerAddr, desTimerEngine, timeoutMillis);
     }
 
-    @Override
-    public void testTimerCount(String brokerAddr, long startTime, long range)
-        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
-        UnsupportedEncodingException, InterruptedException, MQBrokerException {
-        this.mqClientInstance.getMQClientAPIImpl().testTimerCount(brokerAddr, String.valueOf(startTime), String.valueOf(range), timeoutMillis);
-    }
-
 }

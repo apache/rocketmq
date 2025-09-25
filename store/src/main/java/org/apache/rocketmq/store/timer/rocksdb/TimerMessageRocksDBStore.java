@@ -604,9 +604,4 @@ public class TimerMessageRocksDBStore {
         }
     }
 
-    public void testComputeTotalNum(long checkpoint, long checkRange) {
-        long count = timeline.scanRecordsToQueueForTest(checkpoint, checkRange);
-        log.info("testComputeTotalNum test checkpoint: {}, checkRange: {}, count: {}", checkpoint, checkRange, count);
-    }
-
 }

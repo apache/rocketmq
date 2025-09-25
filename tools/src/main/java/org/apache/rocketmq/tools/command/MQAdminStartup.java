@@ -50,7 +50,6 @@ import org.apache.rocketmq.tools.command.broker.RemoveColdDataFlowCtrGroupConfig
 import org.apache.rocketmq.tools.command.broker.ResetMasterFlushOffsetSubCommand;
 import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
 import org.apache.rocketmq.tools.command.broker.SwitchTimerEnginSubCommand;
-import org.apache.rocketmq.tools.command.broker.TestTimerCountCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateColdDataFlowCtrGroupConfigSubCommand;
 import org.apache.rocketmq.tools.command.cluster.CLusterSendMsgRTCommand;
@@ -301,8 +300,6 @@ public class MQAdminStartup {
         initCommand(new RocksDBConfigToJsonCommand());
         initCommand(new CheckRocksdbCqWriteProgressCommand());
         initCommand(new SwitchTimerEnginSubCommand());
-        initCommand(new TestTimerCountCommand());
-
     }
 
     private static void printHelp() {

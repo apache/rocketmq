@@ -998,11 +998,4 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         UnsupportedEncodingException, InterruptedException, MQBrokerException {
         defaultMQAdminExtImpl.switchTimerEngine(brokerAddr, desTimerEngine);
     }
-
-    @Override
-    public void testTimerCount(String brokerAddr, long startTime, long range)
-        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
-        UnsupportedEncodingException, InterruptedException, MQBrokerException {
-        defaultMQAdminExtImpl.testTimerCount(brokerAddr, startTime, range);
-    }
 }
