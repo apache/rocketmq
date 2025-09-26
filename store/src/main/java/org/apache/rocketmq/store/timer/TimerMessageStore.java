@@ -1840,10 +1840,14 @@ public class TimerMessageStore {
             synchronized (lockWhenFlush) {
                 prepareTimerCheckPoint();
                 timerLog.getMappedFileQueue().flush(0);
-                if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
-                    lastSnapshotTime = System.currentTimeMillis();
-                    timerWheel.backup(timerLog.getMappedFileQueue().getFlushedWhere());
-                    timerCheckpoint.flush();
+                if (storeConfig.isTimerWheelSnapshotFlush()) {
+                    if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
+                        lastSnapshotTime = System.currentTimeMillis();
+                        timerWheel.backup(timerLog.getMappedFileQueue().getFlushedWhere());
+                        timerCheckpoint.flush();
+                    }
+                } else {
+                    timerWheel.flush();
                 }
             }
             if (System.currentTimeMillis() - start > storeConfig.getTimerProgressLogIntervalMs()) {
