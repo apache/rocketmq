@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.auth.authentication.strategy;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.context.AuthenticationContext;
@@ -30,7 +30,7 @@ import org.apache.rocketmq.common.utils.ExceptionUtils;
 public abstract class AbstractAuthenticationStrategy implements AuthenticationStrategy {
 
     protected final AuthConfig authConfig;
-    protected final List<String> authenticationWhitelist = new ArrayList<>();
+    protected final Set<String> authenticationWhitelist = new HashSet<>();
     protected final AuthenticationProvider<AuthenticationContext> authenticationProvider;
 
     public AbstractAuthenticationStrategy(AuthConfig authConfig, Supplier<?> metadataService) {
