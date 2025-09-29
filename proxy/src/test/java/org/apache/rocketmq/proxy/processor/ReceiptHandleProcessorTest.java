@@ -18,20 +18,38 @@ package org.apache.rocketmq.proxy.processor;
 
 import io.netty.channel.local.LocalChannel;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
-import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
+import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.proxy.service.ServiceManager;
+import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
-public class ReceiptHandleProcessorTest extends BaseProcessorTest {
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.class)
+public class ReceiptHandleProcessorTest extends InitConfigTest {
+
+    @Mock
+    protected MessagingProcessor messagingProcessor;
+    @Mock
+    protected ServiceManager serviceManager;
+    @Mock
+    protected ConsumerManager consumerManager;
+    @Mock
+    protected MetadataService metadataService;
+
     private static final ProxyContext PROXY_CONTEXT = ProxyContext.create();
     private static final String CONSUMER_GROUP = "consumerGroup";
     private static final String TOPIC = "topic";
@@ -49,6 +67,8 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
     @Before
     public void before() throws Throwable {
         super.before();
+        when(serviceManager.getConsumerManager()).thenReturn(consumerManager);
+        when(serviceManager.getMetadataService()).thenReturn(metadataService);
         this.receiptHandleProcessor = new ReceiptHandleProcessor(this.messagingProcessor, this.serviceManager);
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         String receiptHandle = ReceiptHandle.builder()
@@ -64,7 +84,6 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
             .build().encode();
         PROXY_CONTEXT.withVal(ContextVariable.CLIENT_ID, "channel-id");
         PROXY_CONTEXT.withVal(ContextVariable.CHANNEL, new LocalChannel());
-        Mockito.doNothing().when(consumerManager).appendConsumerIdsChangeListener(Mockito.any(ConsumerIdsChangeListener.class));
         messageReceiptHandle = new MessageReceiptHandle(CONSUMER_GROUP, TOPIC, QUEUE_ID, receiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES);
     }
@@ -73,7 +92,6 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
     public void testStart() throws Exception {
         receiptHandleProcessor.start();
         receiptHandleProcessor.addReceiptHandle(PROXY_CONTEXT, PROXY_CONTEXT.getChannel(), CONSUMER_GROUP, MSG_ID, messageReceiptHandle);
-        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(CONSUMER_GROUP))).thenReturn(new SubscriptionGroupConfig());
         Mockito.when(consumerManager.findChannel(Mockito.eq(CONSUMER_GROUP), Mockito.eq(PROXY_CONTEXT.getChannel()))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         Mockito.verify(messagingProcessor, Mockito.timeout(10000).times(1))
             .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
