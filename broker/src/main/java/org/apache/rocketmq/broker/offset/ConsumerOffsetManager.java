@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.offset;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,9 +27,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.google.common.base.Strings;
-
 import java.util.function.Function;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
@@ -217,8 +215,7 @@ public class ConsumerOffsetManager extends ConfigManager {
             }
         }
         if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
-            long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            dataVersion.nextVersion(stateMachineVersion);
+            updateDataVersion();
         }
     }
 
@@ -376,6 +373,12 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public DataVersion getDataVersion() {
         return dataVersion;
+    }
+
+    public void updateDataVersion() {
+        long stateMachineVersion = brokerController.getMessageStore() != null ?
+            brokerController.getMessageStore().getStateMachineVersion() : 0;
+        dataVersion.nextVersion(stateMachineVersion);
     }
 
     public void setDataVersion(DataVersion dataVersion) {
