@@ -1,8 +1,8 @@
 # TLS Configuration
-This section introduce TLS configuration in RocketMQ.
+This section introduces TLS configuration in RocketMQ.
 
-## 1 Generate Certification Files
-User can generate certification files using OpenSSL. Suggested to generate files in Linux.
+## 1 Generate Certificate Files
+Users can generate certificate files using OpenSSL. It is suggested to generate files in Linux.
 
 ### 1.1 Generate ca.pem
 ```shell
@@ -107,7 +107,7 @@ Add following parameters in JVM. The value of "tls.config.file" needs to be repl
 -Dtls.client.authServer=true -Dtls.enable=true  -Dtls.test.mode.enable=false  -Dtls.config.file=/opt/certs/tlsclient.properties
 ```
 
-Enable TLS for client linke following:
+Enable TLS for client like the following:
 ```Java
 public class ExampleProducer {
     public static void main(String[] args) throws Exception {
