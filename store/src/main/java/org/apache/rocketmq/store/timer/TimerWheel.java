@@ -42,9 +42,7 @@ public class TimerWheel {
     public static final int BLANK = -1, IGNORE = -2;
     public final int slotsTotal;
     public final int precisionMs;
-    private String fileName;
-    private final RandomAccessFile randomAccessFile;
-    private final FileChannel fileChannel;
+    private final String fileName;
     private MappedByteBuffer mappedByteBuffer;
     private final ByteBuffer byteBuffer;
     private final ThreadLocal<ByteBuffer> localBuffer = new ThreadLocal<ByteBuffer>() {
@@ -71,6 +69,7 @@ public class TimerWheel {
         File file = new File(finalFileName);
         UtilAll.ensureDirOK(file.getParent());
 
+        RandomAccessFile randomAccessFile = null;
         try {
             randomAccessFile = new RandomAccessFile(finalFileName, "rw");
             if (file.exists() && randomAccessFile.length() != 0 &&
@@ -79,9 +78,8 @@ public class TimerWheel {
                     randomAccessFile.length(), wheelLength));
             }
             randomAccessFile.setLength(wheelLength);
-            fileChannel = randomAccessFile.getChannel();
             if (snapOffset < 0) {
-                mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, wheelLength);
+                mappedByteBuffer = randomAccessFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, wheelLength);
                 assert wheelLength == mappedByteBuffer.remaining();
             }
             this.byteBuffer = ByteBuffer.allocateDirect(wheelLength);
@@ -92,6 +90,10 @@ public class TimerWheel {
         } catch (IOException e) {
             log.error("map file " + finalFileName + " Failed. ", e);
             throw e;
+        } finally {
+            if (randomAccessFile != null) {
+                randomAccessFile.close();
+            }
         }
     }
 
@@ -112,15 +114,12 @@ public class TimerWheel {
         UtilAll.cleanBuffer(this.mappedByteBuffer);
         UtilAll.cleanBuffer(this.byteBuffer);
         localBuffer.remove();
-
-        try {
-            this.fileChannel.close();
-        } catch (Throwable t) {
-            log.error("Shutdown error in timer wheel", t);
-        }
     }
 
     public void flush() {
+        if (mappedByteBuffer == null) {
+            return;
+        }
         ByteBuffer bf = localBuffer.get();
         bf.position(0);
         bf.limit(wheelLength);
