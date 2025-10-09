@@ -1844,11 +1844,11 @@ public class TimerMessageStore {
                     if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
                         lastSnapshotTime = System.currentTimeMillis();
                         timerWheel.backup(timerLog.getMappedFileQueue().getFlushedWhere());
-                        timerCheckpoint.flush();
                     }
                 } else {
                     timerWheel.flush();
                 }
+                timerCheckpoint.flush();
             }
             if (System.currentTimeMillis() - start > storeConfig.getTimerProgressLogIntervalMs()) {
                 start = System.currentTimeMillis();
