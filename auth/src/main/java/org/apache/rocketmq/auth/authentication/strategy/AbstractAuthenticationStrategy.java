@@ -30,7 +30,7 @@ import org.apache.rocketmq.common.utils.ExceptionUtils;
 public abstract class AbstractAuthenticationStrategy implements AuthenticationStrategy {
 
     protected final AuthConfig authConfig;
-    protected final Set<String> authenticationWhitelist = new HashSet<>();
+    protected final Set<String> authenticationWhiteSet = new HashSet<>();
     protected final AuthenticationProvider<AuthenticationContext> authenticationProvider;
 
     public AbstractAuthenticationStrategy(AuthConfig authConfig, Supplier<?> metadataService) {
@@ -42,7 +42,7 @@ public abstract class AbstractAuthenticationStrategy implements AuthenticationSt
         if (StringUtils.isNotBlank(authConfig.getAuthenticationWhitelist())) {
             String[] whitelist = StringUtils.split(authConfig.getAuthenticationWhitelist(), ",");
             for (String rpcCode : whitelist) {
-                this.authenticationWhitelist.add(StringUtils.trim(rpcCode));
+                this.authenticationWhiteSet.add(StringUtils.trim(rpcCode));
             }
         }
     }
@@ -57,7 +57,7 @@ public abstract class AbstractAuthenticationStrategy implements AuthenticationSt
         if (this.authenticationProvider == null) {
             return;
         }
-        if (this.authenticationWhitelist.contains(context.getRpcCode())) {
+        if (this.authenticationWhiteSet.contains(context.getRpcCode())) {
             return;
         }
         try {
