@@ -581,7 +581,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         } else {
             this.closeChannel(addr, channel);
-            throw new RemotingConnectException(addr);
+            throw new RemotingConnectException(channelRemoteAddr);
         }
     }
 
@@ -746,6 +746,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     long costTime = System.currentTimeMillis() - beginStartTime;
                     if (timeoutMillis < costTime) {
                         invokeCallback.operationFail(new RemotingTooMuchRequestException("invokeAsync call the addr[" + channelRemoteAddr + "] timeout"));
+                        return;
                     }
                     this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, new InvokeCallbackWrapper(invokeCallback, addr));
                 } else {

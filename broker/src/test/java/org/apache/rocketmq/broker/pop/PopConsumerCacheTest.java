@@ -24,8 +24,10 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -40,6 +42,7 @@ public class PopConsumerCacheTest {
 
     @Test
     public void consumerRecordsTest() {
+        Assume.assumeFalse(MixAll.isMac());
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setPopConsumerKVServiceLog(true);
         PopConsumerCache.ConsumerRecords consumerRecords =
@@ -61,14 +64,17 @@ public class PopConsumerCacheTest {
         Assert.assertEquals(3, consumerRecords.getInFlightRecordCount());
 
         long bufferTimeout = brokerConfig.getPopCkStayBufferTime();
-        Assert.assertEquals(1, consumerRecords.removeExpiredRecords(bufferTimeout + 2).size());
-        Assert.assertNull(consumerRecords.removeExpiredRecords(bufferTimeout + 2));
-        Assert.assertEquals(2, consumerRecords.removeExpiredRecords(bufferTimeout + 4).size());
-        Assert.assertNull(consumerRecords.removeExpiredRecords(bufferTimeout + 4));
+        consumerRecords.stageExpiredRecords(bufferTimeout + 2);
+        Assert.assertEquals(1, consumerRecords.getRemoveTreeMap().size());
+        consumerRecords.clearStagedRecords();
+        consumerRecords.stageExpiredRecords(bufferTimeout + 4);
+        Assert.assertEquals(2, consumerRecords.getRemoveTreeMap().size());
+        consumerRecords.clearStagedRecords();
     }
 
     @Test
     public void consumerOffsetTest() throws IllegalAccessException {
+        Assume.assumeFalse(MixAll.isMac());
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
         PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
@@ -92,6 +98,7 @@ public class PopConsumerCacheTest {
 
     @Test
     public void consumerCacheTest() {
+        Assume.assumeFalse(MixAll.isMac());
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
         PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);

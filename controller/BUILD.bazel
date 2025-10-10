@@ -23,7 +23,6 @@ java_library(
     deps = [
         "//common",
         "//remoting",
-        "//client",
         "//srvutil", 
         "@maven//:io_openmessaging_storage_dledger",
         "@maven//:org_apache_commons_commons_lang3",
@@ -65,7 +64,6 @@ java_library(
         ":controller",
         "//common",
         "//remoting",
-        "//client",
         "//srvutil", 
         "@maven//:io_openmessaging_storage_dledger",
         "//:test_deps",

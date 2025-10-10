@@ -193,7 +193,8 @@ public class SlaveSynchronize {
                         subscriptionGroupManager.deleteSubscriptionGroupConfig(configEntry.getKey());
                     }
                     // update
-                    newSubscriptionGroupTable.values().forEach(subscriptionGroupManager::updateSubscriptionGroupConfigWithoutPersist);
+                    newSubscriptionGroupTable.values().forEach(subscriptionGroupManager::putSubscriptionGroupConfig);
+                    subscriptionGroupManager.updateDataVersion();
                     // persist
                     subscriptionGroupManager.persist();
                     LOGGER.info("Update slave Subscription Group from master, {}", masterAddrBak);

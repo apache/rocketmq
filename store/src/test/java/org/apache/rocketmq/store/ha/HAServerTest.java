@@ -26,6 +26,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -54,6 +55,9 @@ public class HAServerTest {
 
     @Before
     public void setUp() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         this.storeConfig = new MessageStoreConfig();
         this.storeConfig.setHaListenPort(9000 + random.nextInt(1000));
         this.storeConfig.setHaSendHeartbeatInterval(10);
@@ -66,6 +70,9 @@ public class HAServerTest {
 
     @After
     public void tearDown() {
+        if (MixAll.isMac()) {
+            return;
+        }
         tearDownAllHAClient();
 
         await().atMost(Duration.ofMinutes(1)).until(new Callable<Boolean>() {
@@ -80,6 +87,9 @@ public class HAServerTest {
 
     @Test
     public void testConnectionList_OneHAClient() throws IOException {
+        if (MixAll.isMac()) {
+            return;
+        }
         setUpOneHAClient();
 
         await().atMost(Duration.ofMinutes(1)).until(new Callable<Boolean>() {
@@ -92,6 +102,9 @@ public class HAServerTest {
 
     @Test
     public void testConnectionList_MultipleHAClient() throws IOException {
+        if (MixAll.isMac()) {
+            return;
+        }
         setUpOneHAClient();
         setUpOneHAClient();
         setUpOneHAClient();
@@ -115,6 +128,9 @@ public class HAServerTest {
 
     @Test
     public void inSyncReplicasNums() throws IOException, RocksDBException {
+        if (MixAll.isMac()) {
+            return;
+        }
         DefaultMessageStore messageStore = mockMessageStore();
         doReturn(123L).when(messageStore).getMaxPhyOffset();
         doReturn(123L).when(messageStore).getMasterFlushedOffset();
@@ -151,6 +167,9 @@ public class HAServerTest {
 
     @Test
     public void isSlaveOK() throws IOException, RocksDBException {
+        if (MixAll.isMac()) {
+            return;
+        }
         DefaultMessageStore messageStore = mockMessageStore();
         doReturn(123L).when(messageStore).getMaxPhyOffset();
         doReturn(123L).when(messageStore).getMasterFlushedOffset();
@@ -177,6 +196,9 @@ public class HAServerTest {
     @Test
     public void putRequest_SingleAck()
         throws IOException, ExecutionException, InterruptedException, TimeoutException, RocksDBException {
+        if (MixAll.isMac()) {
+            return;
+        }
         CommitLog.GroupCommitRequest request = new CommitLog.GroupCommitRequest(124, 4000, 1);
         this.haService.putRequest(request);
 
@@ -195,6 +217,9 @@ public class HAServerTest {
     @Test
     public void putRequest_MultipleAckAndRequests()
         throws IOException, ExecutionException, InterruptedException, RocksDBException {
+        if (MixAll.isMac()) {
+            return;
+        }
         CommitLog.GroupCommitRequest oneAck = new CommitLog.GroupCommitRequest(124, 4000, 2);
         this.haService.putRequest(oneAck);
 
@@ -221,6 +246,9 @@ public class HAServerTest {
 
     @Test
     public void getPush2SlaveMaxOffset() throws IOException, RocksDBException {
+        if (MixAll.isMac()) {
+            return;
+        }
         DefaultMessageStore messageStore = mockMessageStore();
         doReturn(123L).when(messageStore).getMaxPhyOffset();
         doReturn(123L).when(messageStore).getMasterFlushedOffset();

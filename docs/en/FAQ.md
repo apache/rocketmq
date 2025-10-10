@@ -8,7 +8,7 @@ The following questions are frequently asked with regard to the RocketMQ project
 
    Please refer to [Why RocketMQ](http://rocketmq.apache.org/docs/motivation)
 
-2. Do I have to install other softeware, such as zookeeper, to use RocketMQ?
+2. Do I have to install other software, such as zookeeper, to use RocketMQ?
 
    No. RocketMQ can run independently.
 
@@ -24,9 +24,9 @@ The following questions are frequently asked with regard to the RocketMQ project
 
 ### 2. How to reconsume message when consumption fails?
 
-&#8195;1) Cluster consumption pattern, The consumer business logic code returns Action.ReconsumerLater, NULL, or throws an exception, if a message failed to be consumed, it will retry for up to 16 times, after that, the message would be descarded.
+&#8195;1) Cluster consumption pattern, The consumer business logic code returns Action.ReconsumerLater, NULL, or throws an exception, if a message failed to be consumed, it will retry for up to 16 times, after that, the message would be discarded.
   
-&#8195;2) Broadcast consumption patternThe broadcaset consumption still ensures that a message is consumered at least once, but no resend option is provided.
+&#8195;2) Broadcast consumption pattern. The broadcast consumption still ensures that a message is consumed at least once, but no resend option is provided.
 
 ### 3. How to query the failed message if there is a consumption failure?
 

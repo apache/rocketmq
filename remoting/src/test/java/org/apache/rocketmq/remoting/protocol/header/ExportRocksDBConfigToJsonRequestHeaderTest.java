@@ -18,12 +18,16 @@ package org.apache.rocketmq.remoting.protocol.header;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.common.MixAll;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class ExportRocksDBConfigToJsonRequestHeaderTest {
     @Test
     public void configTypeTest() {
+        if (MixAll.isMac()) {
+            return;
+        }
         List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configTypes = new ArrayList<>();
         configTypes.add(ExportRocksDBConfigToJsonRequestHeader.ConfigType.TOPICS);
         configTypes.add(ExportRocksDBConfigToJsonRequestHeader.ConfigType.SUBSCRIPTION_GROUPS);

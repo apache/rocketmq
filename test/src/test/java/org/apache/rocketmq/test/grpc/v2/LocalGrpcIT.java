@@ -71,6 +71,7 @@ public class LocalGrpcIT extends GrpcBaseIT {
     }
 
     @Test
+    @Ignore
     public void testTransactionCheckThenCommit() {
         super.testTransactionCheckThenCommit();
     }

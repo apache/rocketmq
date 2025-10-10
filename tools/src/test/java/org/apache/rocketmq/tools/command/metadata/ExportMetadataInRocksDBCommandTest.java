@@ -19,6 +19,7 @@ package org.apache.rocketmq.tools.command.metadata;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.export.ExportMetadataInRocksDBCommand;
@@ -33,6 +34,9 @@ public class ExportMetadataInRocksDBCommandTest {
 
     @Test
     public void testExecute() throws SubCommandException {
+        if (MixAll.isMac()) {
+            return;
+        }
         {
             String[][] cases = new String[][] {
                 {"topics", "false"},

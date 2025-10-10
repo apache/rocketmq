@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicyType;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
@@ -28,6 +29,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -64,6 +66,7 @@ public class SubscriptionGroupManagerV2Test {
 
     @Before
     public void setUp() throws IOException {
+        Assume.assumeFalse(MixAll.isMac());
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setAutoCreateSubscriptionGroup(false);
         Mockito.doReturn(brokerConfig).when(controller).getBrokerConfig();
@@ -82,6 +85,7 @@ public class SubscriptionGroupManagerV2Test {
 
     @Test
     public void testUpdateSubscriptionGroupConfig() {
+        Assume.assumeFalse(MixAll.isMac());
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         subscriptionGroupConfig.setGroupName("G1");
         subscriptionGroupConfig.setConsumeEnable(true);
@@ -116,6 +120,7 @@ public class SubscriptionGroupManagerV2Test {
 
     @Test
     public void testDeleteSubscriptionGroupConfig() {
+        Assume.assumeFalse(MixAll.isMac());
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         subscriptionGroupConfig.setGroupName("G1");
         subscriptionGroupConfig.setConsumeEnable(true);

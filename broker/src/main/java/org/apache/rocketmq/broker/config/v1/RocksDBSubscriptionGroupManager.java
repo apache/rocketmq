@@ -114,7 +114,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         } else {
             log.info("dataVersion is not greater than kvDataVersion, no need to merge group metaData, dataVersion={}, kvDataVersion={}", dataVersion, kvDataVersion);
         }
-        log.info("finish marge subscription config from json file and merge to rocksdb");
+        log.info("finish merge subscription config from json file and merge to rocksdb");
         this.persist();
 
         return true;

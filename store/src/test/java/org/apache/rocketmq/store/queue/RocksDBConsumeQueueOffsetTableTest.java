@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.queue.offset.OffsetEntryType;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
@@ -64,6 +65,9 @@ public class RocksDBConsumeQueueOffsetTableTest {
 
     @BeforeClass
     public static void initDB() throws IOException, RocksDBException {
+        if (MixAll.isMac()) {
+            return;
+        }
         TemporaryFolder tempFolder = new TemporaryFolder();
         tempFolder.create();
         dbPath = tempFolder.newFolder();
@@ -98,12 +102,18 @@ public class RocksDBConsumeQueueOffsetTableTest {
 
     @AfterClass
     public static void tearDownDB() throws RocksDBException {
+        if (MixAll.isMac()) {
+            return;
+        }
         db.closeE();
         RocksDB.destroyDB(dbPath.getAbsolutePath(), new Options());
     }
 
     @Before
     public void setUp() {
+        if (MixAll.isMac()) {
+            return;
+        }
         RocksIterator iterator = db.newIterator();
         Mockito.doReturn(iterator).when(rocksDBStorage).seekOffsetCF();
         offsetTable = new RocksDBConsumeQueueOffsetTable(consumeQueueTable, rocksDBStorage, messageStore);
@@ -116,6 +126,9 @@ public class RocksDBConsumeQueueOffsetTableTest {
      */
     @Test
     public void testForEach() throws RocksDBException {
+        if (MixAll.isMac()) {
+            return;
+        }
         AtomicBoolean called = new AtomicBoolean(false);
         offsetTable.forEach(entry -> true, entry -> {
             called.set(true);

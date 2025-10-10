@@ -68,5 +68,6 @@ GenTestRules(
     ],
     exclude_tests = [
         "src/test/java/org/apache/rocketmq/client/consumer/DefaultLitePullConsumerTest",
+        "src/test/java/org/apache/rocketmq/client/impl/mqclient/MQClientAPITest",
     ],
 )

@@ -28,10 +28,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.io.FileUtils;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.rocksdb.RocksDB;
@@ -64,6 +66,7 @@ public class PopConsumerRocksdbStoreTest {
 
     @Test
     public void rocksdbStoreWriteDeleteTest() {
+        Assume.assumeFalse(MixAll.isMac());
         String filePath = getRandomStorePath();
         PopConsumerKVStore consumerStore = new PopConsumerRocksdbStore(filePath);
         Assert.assertEquals(filePath, consumerStore.getFilePath());
@@ -127,6 +130,7 @@ public class PopConsumerRocksdbStoreTest {
     @Ignore
     @SuppressWarnings("ConstantValue")
     public void tombstoneDeletionTest() throws IllegalAccessException, NoSuchFieldException {
+        Assume.assumeFalse(MixAll.isMac());
         PopConsumerRocksdbStore rocksdbStore = new PopConsumerRocksdbStore(getRandomStorePath());
         rocksdbStore.start();
 

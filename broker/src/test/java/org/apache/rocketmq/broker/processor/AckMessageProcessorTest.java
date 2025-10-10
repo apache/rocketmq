@@ -22,6 +22,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -102,6 +103,12 @@ public class AckMessageProcessorTest {
         field.set(brokerController, broker2Client);
         EscapeBridge escapeBridge = new EscapeBridge(brokerController);
         Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
+        
+        // Initialize BrokerMetricsManager for tests
+        Field bmmField = BrokerController.class.getDeclaredField("brokerMetricsManager");
+        bmmField.setAccessible(true);
+        bmmField.set(brokerController, new BrokerMetricsManager(brokerController));
+        
         Channel mockChannel = mock(Channel.class);
         when(handlerContext.channel()).thenReturn(mockChannel);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());

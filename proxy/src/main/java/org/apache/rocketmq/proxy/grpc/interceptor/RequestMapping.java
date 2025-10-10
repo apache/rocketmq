@@ -33,6 +33,7 @@ import java.util.Map;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 public class RequestMapping {
+    @SuppressWarnings("DoubleBraceInitialization")
     private final static Map<String, Integer> REQUEST_MAP = new HashMap<String, Integer>() {
         {
             // v2

@@ -294,12 +294,14 @@ public class BrokerController {
     protected final List<ScheduledFuture<?>> scheduledFutures = new ArrayList<>();
     protected ReplicasManager replicasManager;
     private long lastSyncTimeMs = System.currentTimeMillis();
-    private BrokerMetricsManager brokerMetricsManager;
+    protected BrokerMetricsManager brokerMetricsManager;
     private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
     private ColdDataCgCtrService coldDataCgCtrService;
     private TransactionMetricsFlushService transactionMetricsFlushService;
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
+
+    private ConfigContext configContext;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -318,6 +320,14 @@ public class BrokerController {
         final MessageStoreConfig messageStoreConfig
     ) {
         this(brokerConfig, null, null, messageStoreConfig, null);
+    }
+
+    public BrokerController(
+        final BrokerConfig brokerConfig,
+        final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig
+    ) {
+        this(brokerConfig, null, null, messageStoreConfig, authConfig);
     }
 
     public BrokerController(
@@ -490,8 +500,12 @@ public class BrokerController {
         return brokerMetricsManager;
     }
 
+    public void setBrokerMetricsManager(BrokerMetricsManager brokerMetricsManager) {
+        this.brokerMetricsManager = brokerMetricsManager;
+    }
+
     protected void initializeRemotingServer() throws CloneNotSupportedException {
-        RemotingServer tcpRemotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
+        NettyRemotingServer tcpRemotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
         NettyServerConfig fastConfig = (NettyServerConfig) this.nettyServerConfig.clone();
 
         int listeningPort = nettyServerConfig.getListenPort() - 2;
@@ -500,7 +514,13 @@ public class BrokerController {
         }
         fastConfig.setListenPort(listeningPort);
 
-        RemotingServer fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
+        NettyRemotingServer fastRemotingServer = new NettyRemotingServer(fastConfig, this.clientHousekeepingService);
+
+        // Set RemotingMetricsManager on both remoting servers
+        if (this.brokerMetricsManager != null) {
+            tcpRemotingServer.setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+            fastRemotingServer.setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+        }
 
         remotingServerMap.put(TCP_REMOTING_SERVER, tcpRemotingServer);
         remotingServerMap.put(FAST_REMOTING_SERVER, fastRemotingServer);
@@ -1446,6 +1466,18 @@ public class BrokerController {
             this.transactionalMessageService.close();
         }
 
+        if (this.transactionalMessageCheckListener != null) {
+            this.transactionalMessageCheckListener.shutdown();
+        }
+
+        if (transactionalMessageCheckService != null) {
+            this.transactionalMessageCheckService.shutdown();
+        }
+
+        if (transactionMetricsFlushService != null) {
+            this.transactionMetricsFlushService.shutdown();
+        }
+
         if (this.notificationProcessor != null) {
             this.notificationProcessor.getPopLongPollingService().shutdown();
         }
@@ -1467,10 +1499,6 @@ public class BrokerController {
 
         if (this.broadcastOffsetManager != null) {
             this.broadcastOffsetManager.shutdown();
-        }
-
-        if (this.messageStore != null) {
-            this.messageStore.shutdown();
         }
 
         if (this.replicasManager != null) {
@@ -1538,6 +1566,10 @@ public class BrokerController {
 
         if (this.transactionalMessageCheckService != null) {
             this.transactionalMessageCheckService.shutdown(false);
+        }
+        
+        if (this.loadBalanceExecutor != null) {
+            this.loadBalanceExecutor.shutdown();
         }
 
         if (this.endTransactionExecutor != null) {
@@ -1607,6 +1639,10 @@ public class BrokerController {
             if (brokerAttachedPlugin != null) {
                 brokerAttachedPlugin.shutdown();
             }
+        }
+
+        if (this.messageStore != null) {
+            this.messageStore.shutdown();
         }
     }
 
@@ -2611,5 +2647,11 @@ public class BrokerController {
         this.coldDataCgCtrService = coldDataCgCtrService;
     }
 
+    public ConfigContext getConfigContext() {
+        return configContext;
+    }
 
+    public void setConfigContext(ConfigContext configContext) {
+        this.configContext = configContext;
+    }
 }

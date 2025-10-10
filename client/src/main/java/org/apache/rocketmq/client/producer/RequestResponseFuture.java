@@ -107,10 +107,6 @@ public class RequestResponseFuture {
         this.sendRequestOk = sendRequestOk;
     }
 
-    public void acquireCountDownLatch() {
-        this.countDownLatch.countDown();
-    }
-
     public Message getRequestMsg() {
         return requestMsg;
     }
