@@ -16,8 +16,8 @@ It offers a variety of features:
 
 * Messaging patterns including publish/subscribe, request/reply and streaming
 * Financial grade transactional message
-* Built-in fault tolerance and high availability configuration options base on [DLedger Controller](docs/en/controller/quick_start.md)
-* Built-in message tracing capability, also support opentracing
+* Built-in fault tolerance and high availability configuration options based on [DLedger Controller](docs/en/controller/quick_start.md)
+* Built-in message tracing capability, also supports opentracing
 * Versatile big-data and streaming ecosystem integration
 * Message retroactivity by time or offset
 * Reliable FIFO and strict ordered messaging in the same queue
@@ -80,7 +80,7 @@ $ tail -f ~/logs/rocketmqlogs/namesrv.log
 The Name Server boot success...
 ```
 
-For Windows users, you need set environment variables first:
+For Windows users, you need to set environment variables first:
 - From the desktop, right click the Computer icon.
 - Choose Properties from the context menu.
 - Click the Advanced system settings link.
@@ -139,7 +139,7 @@ Before your operations, make sure that `kubectl` and related kubeconfig file ins
 $ git clone https://github.com/apache/rocketmq-operator
 $ cd rocketmq-operator && make deploy
 
-### check whether CRDs is successfully installed
+### check whether CRDs are successfully installed
 $ kubectl get crd | grep rocketmq.apache.org
 brokers.rocketmq.apache.org                 2022-05-12T09:23:18Z
 consoles.rocketmq.apache.org                2022-05-12T09:23:19Z
@@ -156,7 +156,7 @@ rocketmq-operator-6f65c77c49-8hwmj   1/1     Running   0          93s
 ### create RocketMQ cluster resource
 $ cd example && kubectl create -f rocketmq_v1alpha1_rocketmq_cluster.yaml
 
-### check whether cluster resources is running
+### check whether cluster resources are running
 $ kubectl get sts
 NAME                 READY   AGE
 broker-0-master      1/1     107m
@@ -182,7 +182,7 @@ name-service         1/1     107m
 * [RocketMQ Dashboard](https://github.com/apache/rocketmq-dashboard): Operation and maintenance console of Apache RocketMQ.
 * [RocketMQ Connect](https://github.com/apache/rocketmq-connect): A tool for scalably and reliably streaming data between Apache RocketMQ and other systems.
 * [RocketMQ MQTT](https://github.com/apache/rocketmq-mqtt): A new MQTT protocol architecture model, based on which Apache RocketMQ can better support messages from terminals such as IoT devices and Mobile APP.
-* [RocketMQ EventBridge](https://github.com/apache/rocketmq-eventbridge): EventBridge make it easier to build a event-driven application.
+* [RocketMQ EventBridge](https://github.com/apache/rocketmq-eventbridge): EventBridge makes it easier to build an event-driven application.
 * [RocketMQ Incubating Community Projects](https://github.com/apache/rocketmq-externals): Incubator community projects of Apache RocketMQ, including [logappender](https://github.com/apache/rocketmq-externals/tree/master/logappender), [rocketmq-ansible](https://github.com/apache/rocketmq-externals/tree/master/rocketmq-ansible), [rocketmq-beats-integration](https://github.com/apache/rocketmq-externals/tree/master/rocketmq-beats-integration), [rocketmq-cloudevents-binding](https://github.com/apache/rocketmq-externals/tree/master/rocketmq-cloudevents-binding), etc.
 * [RocketMQ Site](https://github.com/apache/rocketmq-site): The repository for Apache RocketMQ website.
 * [RocketMQ E2E](https://github.com/apache/rocketmq-e2e): A project for testing Apache RocketMQ, including end-to-end, performance, compatibility tests.
