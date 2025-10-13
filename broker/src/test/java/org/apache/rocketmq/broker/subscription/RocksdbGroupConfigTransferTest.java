@@ -334,7 +334,7 @@ public class RocksdbGroupConfigTransferTest {
     }
 
     private boolean notToBeExecuted() {
-        return MixAll.isMac();
+        return MixAll.isMac() || MixAll.isWindows();
     }
 
 }
