@@ -149,9 +149,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                         continue;
                     }
                     if (StringUtils.isNotBlank(resourceFilter)) {
-                        entries.removeIf(entry ->
-                                entry.toResourceStr() == null || !entry.toResourceStr().contains(resourceFilter)
-                        );
+                        entries.removeIf(entry -> !entry.toResourceStr().contains(resourceFilter));
                     }
                     if (CollectionUtils.isEmpty(entries)) {
                         policyIterator.remove();
