@@ -1837,9 +1837,13 @@ public class TimerMessageStore {
             while (!this.isStopped()) {
                 try {
                     this.flush();
-                    waitForRunning(storeConfig.getTimerFlushIntervalMs());
                 } catch (Throwable e) {
                     TimerMessageStore.LOGGER.error("Error occurred in " + getServiceName(), e);
+                }
+                try {
+                    waitForRunning(storeConfig.getTimerFlushIntervalMs());
+                } catch (Throwable e) {
+                    // ignore interrupt
                 }
             }
             TimerMessageStore.LOGGER.info(this.getServiceName() + " service end");
