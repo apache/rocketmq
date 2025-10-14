@@ -28,6 +28,7 @@ import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.auth.authorization.model.Policy;
+import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
@@ -249,7 +250,11 @@ public class AuthorizationMetadataManagerTest {
 
         List<Acl> acls8 = this.authorizationMetadataManager.listAcl("test-2", "test-2").join();
         Assert.assertEquals(acls8.size(), 1);
-        Assert.assertEquals(acls8.get(0).getPolicy(PolicyType.CUSTOM).getEntries().size(), 2);
+        List<PolicyEntry> policyEntries = acls8.get(0).getPolicy(PolicyType.CUSTOM).getEntries();
+        Assert.assertEquals(policyEntries.size(), 2);
+        for (PolicyEntry policyEntry : policyEntries) {
+            Assert.assertTrue(policyEntry.toResourceStr().contains("test-2"));
+        }
     }
 
     private void clearAllUsers() {
