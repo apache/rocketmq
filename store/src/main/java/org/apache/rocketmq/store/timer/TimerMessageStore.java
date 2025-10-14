@@ -1500,7 +1500,11 @@ public class TimerMessageStore {
                 CountDownLatch latch = new CountDownLatch(trs.size());
                 for (TimerRequest req : trs) {
                     req.setLatch(latch);
-                    synchronized (lockWhenFlush) {
+                    if (storeConfig.isTimerWheelSnapshotFlush()) {
+                        synchronized (lockWhenFlush) {
+                            this.putMessageToTimerWheel(req);
+                        }
+                    } else {
                         this.putMessageToTimerWheel(req);
                     }
                 }
@@ -1845,17 +1849,20 @@ public class TimerMessageStore {
         long lastSnapshotTime = System.currentTimeMillis();
 
         public void flush() throws IOException {
-            synchronized (lockWhenFlush) {
-                prepareTimerCheckPoint();
-                timerLog.getMappedFileQueue().flush(0);
-                if (storeConfig.isTimerWheelSnapshotFlush()) {
+            if (storeConfig.isTimerWheelSnapshotFlush()) {
+                synchronized (lockWhenFlush) {
+                    prepareTimerCheckPoint();
+                    timerLog.getMappedFileQueue().flush(0);
                     if (System.currentTimeMillis() - lastSnapshotTime > storeConfig.getTimerWheelSnapshotIntervalMs()) {
                         lastSnapshotTime = System.currentTimeMillis();
                         timerWheel.backup(timerLog.getMappedFileQueue().getFlushedWhere());
                     }
-                } else {
-                    timerWheel.flush();
+                    timerCheckpoint.flush();
                 }
+            } else {
+                prepareTimerCheckPoint();
+                timerLog.getMappedFileQueue().flush(0);
+                timerWheel.flush();
                 timerCheckpoint.flush();
             }
             if (System.currentTimeMillis() - start > storeConfig.getTimerProgressLogIntervalMs()) {
