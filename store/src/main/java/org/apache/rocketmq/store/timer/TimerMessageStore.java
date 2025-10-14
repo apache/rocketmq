@@ -189,13 +189,15 @@ public class TimerMessageStore {
             }
         }
 
-        RunningFlags runningFlags = messageStore.getMessageStoreConfig().isEnableRunningFlagsInFlush()
-            ? messageStore.getRunningFlags() : null;
+        RunningFlags runningFlags = null;
+        if (storeConfig.isEnableRunningFlagsInFlush() && messageStore != null) {
+            runningFlags = messageStore.getRunningFlags();
+        }
 
         this.timerWheel = new TimerWheel(
             timerWheelPath, this.slotsTotal, precisionMs, snapOffset);
         this.timerLog = new TimerLog(getTimerLogPath(storeConfig.getStorePathRootDir()), timerLogFileSize,
-            runningFlags, messageStore.getMessageStoreConfig().isWriteWithoutMmap());
+            runningFlags, storeConfig.isWriteWithoutMmap());
         this.timerMetrics = timerMetrics;
         this.timerCheckpoint = timerCheckpoint;
         this.lastBrokerRole = storeConfig.getBrokerRole();
