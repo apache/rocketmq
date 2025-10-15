@@ -24,13 +24,11 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
-
-import java.util.concurrent.ThreadLocalRandom;
 
 public class DefaultTransactionalMessageCheckListener extends AbstractTransactionalMessageCheckListener {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
@@ -62,7 +60,6 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
 
     private MessageExtBrokerInner toMessageExtBrokerInner(MessageExt msgExt) {
         TopicConfig topicConfig = this.getBrokerController().getTopicConfigManager().createTopicOfTranCheckMaxTime(TCMT_QUEUE_NUMS, PermName.PERM_READ | PermName.PERM_WRITE);
-        int queueId = ThreadLocalRandom.current().nextInt(99999999) % TCMT_QUEUE_NUMS;
         MessageExtBrokerInner inner = new MessageExtBrokerInner();
         inner.setTopic(topicConfig.getTopicName());
         inner.setBody(msgExt.getBody());
@@ -70,7 +67,7 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
         MessageAccessor.setProperties(inner, msgExt.getProperties());
         inner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
         inner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(msgExt.getTags()));
-        inner.setQueueId(queueId);
+        inner.setQueueId(0);
         inner.setSysFlag(msgExt.getSysFlag());
         inner.setBornHost(msgExt.getBornHost());
         inner.setBornTimestamp(msgExt.getBornTimestamp());

@@ -84,7 +84,7 @@ public class BrokerPreOnlineServiceTest {
 
         innerBrokerController = new InnerBrokerController(brokerContainer,
             defaultMessageStore.getBrokerConfig(),
-            defaultMessageStore.getMessageStoreConfig());
+            defaultMessageStore.getMessageStoreConfig(), null);
 
         innerBrokerController.setTransactionalMessageCheckService(new TransactionalMessageCheckService(innerBrokerController));
 

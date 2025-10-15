@@ -84,19 +84,24 @@ public class TimerCheckpoint {
     }
 
     public void shutdown() {
-        if (null == this.mappedByteBuffer) {
-            return;
-        }
-
-        this.flush();
-
-        // unmap mappedByteBuffer
-        UtilAll.cleanBuffer(this.mappedByteBuffer);
 
         try {
-            this.fileChannel.close();
-        } catch (IOException e) {
+            this.flush();
+        } catch (Throwable e) {
             log.error("Shutdown error in timer check point", e);
+        }
+
+        if (null != this.mappedByteBuffer) {
+            // unmap mappedByteBuffer
+            UtilAll.cleanBuffer(this.mappedByteBuffer);
+        }
+
+        if (null != this.fileChannel) {
+            try {
+                this.fileChannel.close();
+            } catch (Throwable e) {
+                log.error("Shutdown error in timer check point", e);
+            }
         }
     }
 

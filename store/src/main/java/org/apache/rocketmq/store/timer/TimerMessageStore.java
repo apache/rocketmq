@@ -67,6 +67,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
+import org.apache.rocketmq.store.metrics.StoreMetricsManager;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
@@ -529,32 +530,93 @@ public class TimerMessageStore {
             return;
         }
         state = SHUTDOWN;
+
+        if (this.scheduler != null) {
+            List<Runnable> remainingTasks = this.scheduler.shutdownNow();
+            if (!remainingTasks.isEmpty()) {
+                LOGGER.info("Timer scheduler shutdown interrupted {} tasks", remainingTasks.size());
+            }
+
+            try {
+                if (!this.scheduler.awaitTermination(30, TimeUnit.SECONDS)) {
+                    LOGGER.warn("Timer scheduler did not terminate gracefully");
+                }
+            } catch (InterruptedException e) {
+                LOGGER.warn("Interrupted while waiting for scheduler termination", e);
+            }
+        }
+
         //first save checkpoint
-        prepareTimerCheckPoint();
-        timerFlushService.shutdown();
-        timerLog.shutdown();
-        timerCheckpoint.shutdown();
-
-        enqueuePutQueue.clear(); //avoid blocking
-        dequeueGetQueue.clear(); //avoid blocking
-        dequeuePutQueue.clear(); //avoid blocking
-
-        enqueueGetService.shutdown();
-        enqueuePutService.shutdown();
-        dequeueWarmService.shutdown();
-        dequeueGetService.shutdown();
-        for (int i = 0; i < dequeueGetMessageServices.length; i++) {
-            dequeueGetMessageServices[i].shutdown();
+        if (timerCheckpoint != null) {
+            prepareTimerCheckPoint();
         }
-        for (int i = 0; i < dequeuePutMessageServices.length; i++) {
-            dequeuePutMessageServices[i].shutdown();
-        }
-        timerWheel.shutdown(false);
 
-        this.scheduler.shutdown();
-        UtilAll.cleanBuffer(this.bufferLocal.get());
-        this.bufferLocal.remove();
+        if (timerFlushService != null) {
+            timerFlushService.shutdown();
+        }
+
+        if (timerCheckpoint != null) {
+            timerCheckpoint.shutdown();
+        }
+
+        if (enqueuePutQueue != null) {
+            enqueuePutQueue.clear(); //avoid blocking
+        }
+
+        if (dequeueGetQueue != null) {
+            dequeueGetQueue.clear(); //avoid blocking
+        }
+
+        if (dequeuePutQueue != null) {
+            dequeuePutQueue.clear(); //avoid blocking
+        }
+
+        if (enqueueGetService != null) {
+            enqueueGetService.shutdown();
+        }
+
+        if (enqueuePutService != null) {
+            enqueuePutService.shutdown();
+        }
+
+        if (dequeueWarmService != null) {
+            dequeueWarmService.shutdown();
+        }
+
+        if (dequeueGetService != null) {
+            dequeueGetService.shutdown();
+        }
+
+        if (dequeueGetMessageServices != null) {
+            for (TimerDequeueGetMessageService dequeueGetMessageServices : dequeueGetMessageServices) {
+                if (dequeueGetMessageServices != null) {
+                    dequeueGetMessageServices.shutdown();
+                }
+            }
+        }
+
+        if (dequeuePutMessageServices != null) {
+            for (TimerDequeuePutMessageService dequeuePutMessageServices : dequeuePutMessageServices) {
+                if (dequeuePutMessageServices != null) {
+                    dequeuePutMessageServices.shutdown();
+                }
+            }
+        }
+
+        if (timerWheel != null) {
+            timerWheel.shutdown(false);
+        }
+
+        if (timerLog != null) {
+            timerLog.shutdown();
+        }
+
+        if (this.bufferLocal != null) {
+            UtilAll.cleanBuffer(this.bufferLocal.get());
+            this.bufferLocal.remove();
+        }
     }
+
 
     protected void maybeMoveWriteTime() {
         if (currWriteTimeMs < formatTimeMs(System.currentTimeMillis())) {
@@ -581,7 +643,11 @@ public class TimerMessageStore {
                     currQueueOffset = Math.min(currQueueOffset, timerCheckpoint.getMasterTimerQueueOffset());
                     commitQueueOffset = currQueueOffset;
                     prepareTimerCheckPoint();
-                    timerCheckpoint.flush();
+                    try {
+                        timerCheckpoint.flush();
+                    } catch (Throwable e) {
+                        LOGGER.error("Error in flush timerCheckpoint", e);
+                    }
                     currReadTimeMs = timerCheckpoint.getLastReadTimeMs();
                     commitReadTimeMs = currReadTimeMs;
                 }
@@ -701,9 +767,14 @@ public class TimerMessageStore {
                                 return false;
                             }
                         }
-                        Attributes attributes = DefaultStoreMetricsManager.newAttributesBuilder()
+                        // Record timer message set latency
+                        StoreMetricsManager metricsManager = messageStore.getStoreMetricsManager();
+                        if (metricsManager instanceof DefaultStoreMetricsManager) {
+                            DefaultStoreMetricsManager defaultMetricsManager = (DefaultStoreMetricsManager) metricsManager;
+                            Attributes attributes = defaultMetricsManager.newAttributesBuilder()
                                 .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
-                        DefaultStoreMetricsManager.timerMessageSetLatency.record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
+                            defaultMetricsManager.getTimerMessageSetLatency().record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
+                        }
                     }
                 } catch (Exception e) {
                     // here may cause the message loss
@@ -884,6 +955,11 @@ public class TimerMessageStore {
         }
         int checkNum = 0;
         while (true) {
+            if (!isRunningDequeue()) {
+                LOGGER.info("Not Running dequeue, skip checkDequeueLatch for delayedTime:{}", delayedTime);
+                break;
+            }
+            
             if (dequeuePutQueue.size() > 0
                 || !checkStateForGetMessages(AbstractStateService.WAITING)
                 || !checkStateForPutMessages(AbstractStateService.WAITING)) {
@@ -1366,7 +1442,10 @@ public class TimerMessageStore {
         protected void putMessageToTimerWheel(TimerRequest req) {
             try {
                 perfCounterTicks.startTick(ENQUEUE_PUT);
-                DefaultStoreMetricsManager.incTimerEnqueueCount(getRealTopic(req.getMsg()));
+                StoreMetricsManager metricsManager = messageStore.getStoreMetricsManager();
+                if (metricsManager instanceof DefaultStoreMetricsManager) {
+                    ((DefaultStoreMetricsManager) metricsManager).incTimerEnqueueCount(getRealTopic(req.getMsg()));
+                }
                 if (shouldRunningDequeue && req.getDelayTime() < currWriteTimeMs) {
                     req.setEnqueueTime(Long.MAX_VALUE);
                     dequeuePutQueue.put(req);
@@ -1471,7 +1550,18 @@ public class TimerMessageStore {
     public class TimerDequeuePutMessageService extends AbstractStateService {
         @Override
         public String getServiceName() {
-            return getServiceThreadName() + this.getClass().getSimpleName();
+            String brokerIdentifier = "";
+            if (TimerMessageStore.this.messageStore instanceof DefaultMessageStore) {
+                try {
+                    DefaultMessageStore defaultStore = (DefaultMessageStore) TimerMessageStore.this.messageStore;
+                    if (defaultStore.getBrokerConfig().isInBrokerContainer()) {
+                        brokerIdentifier = defaultStore.getBrokerConfig().getIdentifier();
+                    }
+                } catch (Exception e) {
+                    LOGGER.warn("Failed to get broker identifier", e);
+                }
+            }
+            return brokerIdentifier + this.getClass().getSimpleName();
         }
 
         @Override
@@ -1502,7 +1592,10 @@ public class TimerMessageStore {
                                 perfCounterTicks.startTick(DEQUEUE_PUT);
 
                                 MessageExt msgExt = tr.getMsg();
-                                DefaultStoreMetricsManager.incTimerDequeueCount(getRealTopic(msgExt));
+                                StoreMetricsManager metricsManager = messageStore.getStoreMetricsManager();
+                                if (metricsManager instanceof DefaultStoreMetricsManager) {
+                                    ((DefaultStoreMetricsManager) metricsManager).incTimerDequeueCount(getRealTopic(msgExt));
+                                }
 
                                 if (tr.getEnqueueTime() == Long.MAX_VALUE) {
                                     // Never enqueue, mark it.
@@ -1573,7 +1666,7 @@ public class TimerMessageStore {
             TimerMessageStore.LOGGER.info(this.getServiceName() + " service start");
             //Mark different rounds
             boolean isRound = true;
-            Map<String ,MessageExt> avoidDeleteLose = new HashMap<>();
+            Map<String, MessageExt> avoidDeleteLose = new HashMap<>();
             while (!this.isStopped()) {
                 try {
                     setState(AbstractStateService.WAITING);
@@ -1594,7 +1687,7 @@ public class TimerMessageStore {
                                     //The deletion message is received first and the common message is received once
                                     if (!isRound) {
                                         isRound = true;
-                                        for (MessageExt messageExt: avoidDeleteLose.values()) {
+                                        for (MessageExt messageExt : avoidDeleteLose.values()) {
                                             addMetric(messageExt, 1);
                                         }
                                         avoidDeleteLose.clear();

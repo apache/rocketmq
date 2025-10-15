@@ -36,8 +36,10 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
@@ -135,6 +137,14 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                 ).thenAccept(popResult -> {
                     if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
                         if (PopStatus.FOUND.equals(popResult.getPopStatus())) {
+                            GrpcClientChannel clientChannel = grpcChannelManager.getChannel(ctx.getClientID());
+                            if (clientChannel == null) {
+                                GrpcProxyException e = new GrpcProxyException(Code.MESSAGE_NOT_FOUND,
+                                    String.format("The client [%s] is disconnected.", ctx.getClientID()));
+                                popResult.getMsgFoundList().forEach(messageExt ->
+                                    writer.processThrowableWhenWriteMessage(e, ctx, request, messageExt));
+                                throw e;
+                            }
                             List<MessageExt> messageExtList = popResult.getMsgFoundList();
                             for (MessageExt messageExt : messageExtList) {
                                 String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
@@ -142,7 +152,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                                     MessageReceiptHandle messageReceiptHandle =
                                         new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
                                             messageExt.getQueueOffset(), messageExt.getReconsumeTimes());
-                                    messagingProcessor.addReceiptHandle(ctx, grpcChannelManager.getChannel(ctx.getClientID()), group, messageExt.getMsgId(), messageReceiptHandle);
+                                    messagingProcessor.addReceiptHandle(ctx, clientChannel, group, messageExt.getMsgId(), messageReceiptHandle);
                                 }
                             }
                         }

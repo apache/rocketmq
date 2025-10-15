@@ -21,9 +21,10 @@ import java.util.Objects;
 
 public class EpochEntry extends RemotingSerializable {
 
+    public static final long LAST_EPOCH_END_OFFSET = Long.MAX_VALUE;
     private int epoch;
     private long startOffset;
-    private long endOffset = Long.MAX_VALUE;
+    private long endOffset = LAST_EPOCH_END_OFFSET;
 
     public EpochEntry(EpochEntry entry) {
         this.epoch = entry.getEpoch();

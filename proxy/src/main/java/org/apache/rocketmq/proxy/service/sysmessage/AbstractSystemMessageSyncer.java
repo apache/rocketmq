@@ -156,10 +156,6 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
     }
 
     protected void createSysTopic() {
-        if (this.adminService.topicExist(this.getBroadcastTopicName())) {
-            return;
-        }
-
         String clusterName = this.getBroadcastTopicClusterName();
         if (StringUtils.isEmpty(clusterName)) {
             throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "system topic cluster cannot be empty");

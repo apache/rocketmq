@@ -31,9 +31,13 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -57,6 +61,10 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
+    /**
+     * unify the home dir
+     */
+    public static final String ROCKETMQ_HOME_DIR = System.getProperty(ROCKETMQ_HOME_PROPERTY, System.getenv(ROCKETMQ_HOME_ENV));
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
     public static final String NAMESRV_ADDR_PROPERTY = "rocketmq.namesrv.addr";
     public static final String MESSAGE_COMPRESS_TYPE = "rocketmq.message.compressType";
@@ -178,6 +186,10 @@ public class MixAll {
         return consumerGroup.startsWith(CID_RMQ_SYS_PREFIX);
     }
 
+    public static boolean isSysConsumerGroupAndEnableCreate(final String consumerGroup, final boolean isEnableCreateSysGroup) {
+        return isEnableCreateSysGroup && isSysConsumerGroup(consumerGroup);
+    }
+
     public static boolean isPredefinedGroup(final String consumerGroup) {
         return PREDEFINE_GROUP_SET.contains(consumerGroup);
     }
@@ -229,6 +241,16 @@ public class MixAll {
             fileParent.mkdirs();
         }
         IOTinyUtils.writeStringToFile(file, str, DEFAULT_CHARSET);
+    }
+
+    public static synchronized void fsyncDirectory(Path dir) throws IOException {
+        if (!Files.isDirectory(dir)) {
+            throw new NotDirectoryException(dir.toString());
+        }
+
+        try (FileChannel fc = FileChannel.open(dir, StandardOpenOption.READ)) {
+            fc.force(true);
+        }
     }
 
     public static String file2String(final String fileName) throws IOException {
@@ -530,7 +552,7 @@ public class MixAll {
         return path.normalize().toString();
     }
 
-    public static boolean isSysConsumerGroupForNoColdReadLimit(String consumerGroup) {
+    public static boolean isSysConsumerGroupPullMessage(String consumerGroup) {
         if (DEFAULT_CONSUMER_GROUP.equals(consumerGroup)
             || TOOLS_CONSUMER_GROUP.equals(consumerGroup)
             || SCHEDULE_CONSUMER_GROUP.equals(consumerGroup)
@@ -552,5 +574,14 @@ public class MixAll {
         return !topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
             && !topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)
             && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
+    }
+
+    public static String adjustConfigForPlatform(String config) {
+        if (StringUtils.isNotBlank(config)) {
+            if (isWindows()) {
+                config = StringUtils.replace(config, "\\", "\\\\");
+            }
+        }
+        return config;
     }
 }

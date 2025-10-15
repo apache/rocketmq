@@ -17,19 +17,6 @@
 package org.apache.rocketmq.client.impl;
 
 import com.alibaba.fastjson.JSON;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
@@ -61,7 +48,6 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.AttributeParser;
@@ -115,7 +101,6 @@ import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.CheckClientRequestBody;
-import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
@@ -154,12 +139,10 @@ import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressR
 import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicListRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.DeleteAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
@@ -169,7 +152,10 @@ import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonReq
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.GetBrokerAclConfigResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllSubscriptionGroupRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllSubscriptionGroupResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsInBrokerHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerConnectionListRequestHeader;
@@ -221,7 +207,6 @@ import org.apache.rocketmq.remoting.protocol.header.UnlockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGroupForbiddenRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ViewBrokerStatsDataRequestHeader;
@@ -251,6 +236,25 @@ import org.apache.rocketmq.remoting.protocol.subscription.GroupForbidden;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.rpchook.DynamicalExtFieldRPCHook;
 import org.apache.rocketmq.remoting.rpchook.StreamTypeRPCHook;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 
@@ -496,112 +500,6 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         }
 
         throw new MQClientException(response.getCode(), response.getRemark());
-    }
-
-    public void createPlainAccessConfig(final String addr, final PlainAccessConfig plainAccessConfig,
-        final long timeoutMillis)
-        throws RemotingException, InterruptedException, MQClientException {
-        CreateAccessConfigRequestHeader requestHeader = new CreateAccessConfigRequestHeader();
-        requestHeader.setAccessKey(plainAccessConfig.getAccessKey());
-        requestHeader.setSecretKey(plainAccessConfig.getSecretKey());
-        requestHeader.setAdmin(plainAccessConfig.isAdmin());
-        requestHeader.setDefaultGroupPerm(plainAccessConfig.getDefaultGroupPerm());
-        requestHeader.setDefaultTopicPerm(plainAccessConfig.getDefaultTopicPerm());
-        requestHeader.setWhiteRemoteAddress(plainAccessConfig.getWhiteRemoteAddress());
-        requestHeader.setTopicPerms(UtilAll.join(plainAccessConfig.getTopicPerms(), ","));
-        requestHeader.setGroupPerms(UtilAll.join(plainAccessConfig.getGroupPerms(), ","));
-
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_ACL_CONFIG, requestHeader);
-
-        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
-            request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-            case ResponseCode.SUCCESS: {
-                return;
-            }
-            default:
-                break;
-        }
-
-        throw new MQClientException(response.getCode(), response.getRemark());
-    }
-
-    public void deleteAccessConfig(final String addr, final String accessKey, final long timeoutMillis)
-        throws RemotingException, InterruptedException, MQClientException {
-        DeleteAccessConfigRequestHeader requestHeader = new DeleteAccessConfigRequestHeader();
-        requestHeader.setAccessKey(accessKey);
-
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_ACL_CONFIG, requestHeader);
-
-        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
-            request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-            case ResponseCode.SUCCESS: {
-                return;
-            }
-            default:
-                break;
-        }
-
-        throw new MQClientException(response.getCode(), response.getRemark());
-    }
-
-    public void updateGlobalWhiteAddrsConfig(final String addr, final String globalWhiteAddrs, String aclFileFullPath,
-        final long timeoutMillis)
-        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader = new UpdateGlobalWhiteAddrsConfigRequestHeader();
-        requestHeader.setGlobalWhiteAddrs(globalWhiteAddrs);
-        requestHeader.setAclFileFullPath(aclFileFullPath);
-
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_GLOBAL_WHITE_ADDRS_CONFIG, requestHeader);
-
-        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
-            request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-            case ResponseCode.SUCCESS: {
-                return;
-            }
-            default:
-                break;
-        }
-
-        throw new MQClientException(response.getCode(), response.getRemark());
-    }
-
-    public ClusterAclVersionInfo getBrokerClusterAclInfo(final String addr,
-        final long timeoutMillis) throws RemotingCommandException, InterruptedException, RemotingTimeoutException,
-        RemotingSendRequestException, RemotingConnectException, MQBrokerException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_BROKER_CLUSTER_ACL_INFO, null);
-
-        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-            case ResponseCode.SUCCESS: {
-                GetBrokerAclConfigResponseHeader responseHeader =
-                    (GetBrokerAclConfigResponseHeader) response.decodeCommandCustomHeader(GetBrokerAclConfigResponseHeader.class);
-
-                ClusterAclVersionInfo clusterAclVersionInfo = new ClusterAclVersionInfo();
-                clusterAclVersionInfo.setClusterName(responseHeader.getClusterName());
-                clusterAclVersionInfo.setBrokerName(responseHeader.getBrokerName());
-                clusterAclVersionInfo.setBrokerAddr(responseHeader.getBrokerAddr());
-                clusterAclVersionInfo.setAclConfigDataVersion(DataVersion.fromJson(responseHeader.getVersion(), DataVersion.class));
-                HashMap<String, Object> dataVersionMap = JSON.parseObject(responseHeader.getAllAclFileVersion(), HashMap.class);
-                Map<String, DataVersion> allAclConfigDataVersion = new HashMap<>(dataVersionMap.size(), 1);
-                for (Map.Entry<String, Object> entry : dataVersionMap.entrySet()) {
-                    allAclConfigDataVersion.put(entry.getKey(), DataVersion.fromJson(JSON.toJSONString(entry.getValue()), DataVersion.class));
-                }
-                clusterAclVersionInfo.setAllAclConfigDataVersion(allAclConfigDataVersion);
-                return clusterAclVersionInfo;
-            }
-            default:
-                break;
-        }
-
-        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
-
     }
 
     public SendResult sendMessage(
@@ -2918,21 +2816,81 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public SubscriptionGroupWrapper getAllSubscriptionGroup(final String brokerAddr,
-        long timeoutMillis) throws InterruptedException,
-        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, null);
-        RemotingCommand response = this.remotingClient
-            .invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), brokerAddr), request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-            case ResponseCode.SUCCESS: {
-                return SubscriptionGroupWrapper.decode(response.getBody(), SubscriptionGroupWrapper.class);
+    public SubscriptionGroupWrapper getAllSubscriptionGroup(final String brokerAddr, long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQBrokerException, RemotingCommandException {
+
+        DataVersion currentDataVersion = null;
+        int groupSeq = 0;
+        ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable = new ConcurrentHashMap<>();
+        ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable = new ConcurrentHashMap<>();
+        long beginTime = System.nanoTime();
+        while (true) {
+            long leftTime = timeoutMillis - TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime);
+            if (leftTime < 0) {
+                throw new RemotingTimeoutException("invokeSync call timeout");
             }
-            default:
-                break;
+
+            GetAllSubscriptionGroupRequestHeader requestHeader = new GetAllSubscriptionGroupRequestHeader();
+            requestHeader.setGroupSeq(groupSeq);
+            requestHeader.setMaxGroupNum(clientConfig.getMaxPageSizeInGetMetadata());
+            requestHeader.setDataVersion(Optional.ofNullable(currentDataVersion)
+                .map(DataVersion::toJson).orElse(StringUtils.EMPTY));
+            log.info("getAllSubscriptionGroup from seq {}, max {}, dataVersion {}",
+                    groupSeq, requestHeader.getMaxGroupNum(), requestHeader.getDataVersion());
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, requestHeader);
+            RemotingCommand response = this.remotingClient.invokeSync(
+                MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), brokerAddr), request, leftTime);
+
+            assert response != null;
+            if (response.getCode() == SUCCESS) {
+                SubscriptionGroupWrapper subscriptionGroupWrapper =
+                    SubscriptionGroupWrapper.decode(response.getBody(), SubscriptionGroupWrapper.class);
+                subscriptionGroupTable.putAll(subscriptionGroupWrapper.getSubscriptionGroupTable());
+                forbiddenTable.putAll(subscriptionGroupWrapper.getForbiddenTable());
+
+                DataVersion newDataVersion = subscriptionGroupWrapper.getDataVersion();
+                if (currentDataVersion == null) {
+                    // fill dataVersion before break the loop to compatible with old version server
+                    currentDataVersion = newDataVersion;
+                }
+
+                groupSeq += subscriptionGroupWrapper.getSubscriptionGroupTable().size();
+
+                GetAllSubscriptionGroupResponseHeader responseHeader =
+                    response.decodeCommandCustomHeader(GetAllSubscriptionGroupResponseHeader.class);
+                Integer totalGroupNum = Optional.ofNullable(responseHeader)
+                    .map(GetAllSubscriptionGroupResponseHeader::getTotalGroupNum).orElse(null);
+
+                if (Objects.isNull(totalGroupNum)) {
+                    // the server side don't support totalGroupNum, all data is returned
+                    break;
+                }
+
+                if (!Objects.equals(currentDataVersion, newDataVersion)) {
+                    log.error("dataVersion changed, currentDataVersion: {}, newDataVersion: {}",
+                        currentDataVersion, newDataVersion);
+                    currentDataVersion = newDataVersion;
+                    groupSeq = 0;
+                    subscriptionGroupTable.clear();
+                    forbiddenTable.clear();
+                    continue;
+                }
+
+                if (groupSeq >= totalGroupNum - 1) {
+                    log.info("get all subscription group config, totalGroupNum: {}", totalGroupNum);
+                    break;
+                }
+            } else {
+                throw new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr);
+            }
         }
-        throw new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr);
+
+        SubscriptionGroupWrapper allSubscriptionGroup = new SubscriptionGroupWrapper();
+        allSubscriptionGroup.setSubscriptionGroupTable(subscriptionGroupTable);
+        allSubscriptionGroup.setForbiddenTable(forbiddenTable);
+        allSubscriptionGroup.setDataVersion(currentDataVersion);
+        return allSubscriptionGroup;
     }
 
     public SubscriptionGroupConfig getSubscriptionGroupConfig(final String brokerAddr, String group,
@@ -2954,23 +2912,77 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         throw new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr);
     }
 
-    public TopicConfigSerializeWrapper getAllTopicConfig(final String addr,
-        long timeoutMillis) throws RemotingConnectException,
-        RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, null);
+    public TopicConfigSerializeWrapper getAllTopicConfig(final String addr, long timeoutMillis)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+        InterruptedException, MQBrokerException, RemotingCommandException {
 
-        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
-            request, timeoutMillis);
-        assert response != null;
-        switch (response.getCode()) {
-            case ResponseCode.SUCCESS: {
-                return TopicConfigSerializeWrapper.decode(response.getBody(), TopicConfigSerializeWrapper.class);
+        DataVersion currentDataVersion = null;
+        int topicSeq = 0;
+        ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        long beginTime = System.nanoTime();
+        while (true) {
+            long leftTime = timeoutMillis - TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - beginTime);
+            if (leftTime <= 0) {
+                throw new RemotingTimeoutException("invokeSync call timeout");
             }
-            default:
-                break;
+
+            GetAllTopicConfigRequestHeader requestHeader = new GetAllTopicConfigRequestHeader();
+            requestHeader.setTopicSeq(topicSeq);
+            requestHeader.setMaxTopicNum(clientConfig.getMaxPageSizeInGetMetadata());
+            requestHeader.setDataVersion(Optional.ofNullable(currentDataVersion).
+                map(DataVersion::toJson).orElse(StringUtils.EMPTY));
+            log.info("getAllTopicConfig from seq {}, max {}, dataVersion {}",
+                    topicSeq, requestHeader.getMaxTopicNum(), requestHeader.getDataVersion());
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_TOPIC_CONFIG, requestHeader);
+
+            RemotingCommand response = this.remotingClient.invokeSync(
+                MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, leftTime);
+
+            assert response != null;
+            if (response.getCode() == SUCCESS) {
+                TopicConfigSerializeWrapper topicConfigSerializeWrapper =
+                    TopicConfigSerializeWrapper.decode(response.getBody(), TopicConfigSerializeWrapper.class);
+                topicConfigTable.putAll(topicConfigSerializeWrapper.getTopicConfigTable());
+                topicSeq += topicConfigSerializeWrapper.getTopicConfigTable().size();
+
+                DataVersion newDataVersion = topicConfigSerializeWrapper.getDataVersion();
+                if (currentDataVersion == null) {
+                    // fill dataVersion before break the loop to compatible with old version server
+                    currentDataVersion = newDataVersion;
+                }
+
+                GetAllTopicConfigResponseHeader responseHeader =
+                    response.decodeCommandCustomHeader(GetAllTopicConfigResponseHeader.class);
+                Integer totalTopicNum = Optional.ofNullable(responseHeader)
+                    .map(GetAllTopicConfigResponseHeader::getTotalTopicNum).orElse(null);
+
+                if (Objects.isNull(totalTopicNum)) {       // compatible with old version server
+                    // the server side don't support totalTopicNum, all data is returned
+                    break;
+                }
+
+                if (!Objects.equals(currentDataVersion, newDataVersion)) {
+                    log.error("dataVersion changed, currentDataVersion: {}, newDataVersion: {}", currentDataVersion, newDataVersion);
+                    currentDataVersion = newDataVersion;
+                    topicSeq = 0;
+                    topicConfigTable.clear();
+                    continue;
+                }
+
+                if (topicSeq >= totalTopicNum - 1) {
+                    log.info("get all topic config, totalTopicNum: {}", totalTopicNum);
+                    break;
+                }
+            } else {
+                throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+            }
+
         }
 
-        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        topicConfigSerializeWrapper.setDataVersion(currentDataVersion);
+        topicConfigSerializeWrapper.setTopicConfigTable(topicConfigTable);
+        return topicConfigSerializeWrapper;
     }
 
     public void updateNameServerConfig(final Properties properties, final List<String> nameServers, long timeoutMillis)

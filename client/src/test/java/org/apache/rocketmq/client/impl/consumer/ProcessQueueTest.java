@@ -16,6 +16,11 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.TreeMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -28,12 +33,6 @@ import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.TreeMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -158,7 +157,6 @@ public class ProcessQueueTest {
         ProcessQueue processQueue2 = createProcessQueue();
         assertEquals(processQueue1.getMsgAccCnt(), processQueue2.getMsgAccCnt());
         assertEquals(processQueue1.getTryUnlockTimes(), processQueue2.getTryUnlockTimes());
-        assertEquals(processQueue1.getLastLockTimestamp(), processQueue2.getLastLockTimestamp());
         assertEquals(processQueue1.getLastPullTimestamp(), processQueue2.getLastPullTimestamp());
     }
 

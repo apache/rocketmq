@@ -61,12 +61,12 @@ public class MultiProtocolTlsHelper extends TlsHelper {
             log.info("Using JDK SSL provider");
         }
 
-        SslContextBuilder sslContextBuilder = null;
+        SslContextBuilder sslContextBuilder;
         if (tlsTestModeEnable) {
             SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
             sslContextBuilder = SslContextBuilder
                 .forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
-                .sslProvider(SslProvider.OPENSSL)
+                .sslProvider(provider)
                 .clientAuth(ClientAuth.OPTIONAL);
         } else {
             sslContextBuilder = SslContextBuilder.forServer(

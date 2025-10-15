@@ -24,9 +24,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class MomentStatsItemSet {
+    private static final Logger COMMERCIAL_LOG = LoggerFactory.getLogger(LoggerName.COMMERCIAL_LOGGER_NAME);
     private final ConcurrentMap<String/* key */, MomentStatsItem> statsItemTable =
         new ConcurrentHashMap<>(128);
     private final String statsName;
@@ -72,6 +75,13 @@ public class MomentStatsItemSet {
     public void setValue(final String statsKey, final int value) {
         MomentStatsItem statsItem = this.getAndCreateStatsItem(statsKey);
         statsItem.getValue().set(value);
+        statsItem.setLastUpdateTimestamp(System.currentTimeMillis());
+    }
+
+    public void setValue(final String statsKey, final long value) {
+        MomentStatsItem statsItem = this.getAndCreateStatsItem(statsKey);
+        statsItem.getValue().set(value);
+        statsItem.setLastUpdateTimestamp(System.currentTimeMillis());
     }
 
     public void delValueByInfixKey(final String statsKey, String separator) {
@@ -108,5 +118,18 @@ public class MomentStatsItemSet {
         }
 
         return statsItem;
+    }
+
+    public void cleanResource(int maxStatsIdleTimeInMinutes) {
+        COMMERCIAL_LOG.info("CleanStatisticItem: kind:{}, size:{}", statsName, this.statsItemTable.size());
+        Iterator<Entry<String, MomentStatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MomentStatsItem> next = it.next();
+            MomentStatsItem statsItem = next.getValue();
+            if (System.currentTimeMillis() - statsItem.getLastUpdateTimestamp() > maxStatsIdleTimeInMinutes * 60 * 1000L) {
+                it.remove();
+                COMMERCIAL_LOG.info("CleanStatisticItem: removeKind:{}, removeKey:{}", statsName, statsItem.getStatsKey());
+            }
+        }
     }
 }

@@ -138,6 +138,12 @@ public class ClientActivity extends AbstractMessingActivity {
             String clientId = ctx.getClientID();
             LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
             Settings clientSettings = grpcClientSettingsManager.removeAndGetClientSettings(ctx);
+            if (clientSettings == null) {
+                future.complete(NotifyClientTerminationResponse.newBuilder()
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, "cannot find client settings for this client"))
+                    .build());
+                return future;
+            }
 
             switch (clientSettings.getClientType()) {
                 case PRODUCER:

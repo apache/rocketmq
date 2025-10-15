@@ -358,7 +358,14 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     @Override
     public void changeInvisibleDuration(ChangeInvisibleDurationRequest request,
         StreamObserver<ChangeInvisibleDurationResponse> responseObserver) {
-        Function<Status, ChangeInvisibleDurationResponse> statusResponseCreator = status -> ChangeInvisibleDurationResponse.newBuilder().setStatus(status).build();
+        Function<Status, ChangeInvisibleDurationResponse> statusResponseCreator = status -> {
+            ChangeInvisibleDurationResponse.Builder builder =
+                ChangeInvisibleDurationResponse.newBuilder().setStatus(status);
+            if (Code.TOO_MANY_REQUESTS.equals(status.getCode())) {
+                builder.setReceiptHandle(request.getReceiptHandle());
+            }
+            return builder.build();
+        };
         ProxyContext context = createContext();
         try {
             this.addExecutor(this.consumerThreadPoolExecutor,

@@ -46,6 +46,7 @@ public class ConsumeMessageContext {
     private BrokerStatsManager.StatsType commercialRcvStats;
     private int commercialRcvTimes;
     private int commercialRcvSize;
+    private int filterMessageCount;
 
     private String namespace;
     public String getConsumerGroup() {
@@ -230,5 +231,13 @@ public class ConsumeMessageContext {
 
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+    }
+
+    public int getFilterMessageCount() {
+        return filterMessageCount;
+    }
+
+    public void setFilterMessageCount(int filterMessageCount) {
+        this.filterMessageCount = filterMessageCount;
     }
 }

@@ -179,6 +179,18 @@ public class NetworkUtil {
         }
     }
 
+    public static String denormalizeHostAddress(final String bracketedAddress) {
+        if (bracketedAddress == null) {
+            return null;
+        }
+
+        if (bracketedAddress.startsWith("[") && bracketedAddress.endsWith("]")) {
+            return bracketedAddress.substring(1, bracketedAddress.length() - 1);
+        } else {
+            return bracketedAddress;
+        }
+    }
+
     public static SocketAddress string2SocketAddress(final String addr) {
         int split = addr.lastIndexOf(":");
         String host = addr.substring(0, split);
@@ -208,6 +220,20 @@ public class NetworkUtil {
             }
         } catch (SecurityException e) {
             //Ignore
+        }
+        return false;
+    }
+
+    // valid various ipv6 format like:
+    // with scope 2001:0db8:85a3:0000:0000:8a2e:0370:7334%eth0
+    // with bracketed [2001:0db8:85a3:0000:0000:8a2e:0370:7334]
+    public static boolean validCommonInet6Address(String ipOrCidr) {
+        String  ipWithoutBracketed = denormalizeHostAddress(ipOrCidr);
+        if (ipWithoutBracketed != null && ipWithoutBracketed.length() != 0) {
+            InetAddressValidator validator = InetAddressValidator.getInstance();
+            if (validator.isValidInet6Address(ipWithoutBracketed.split("%")[0])) {
+                return true;
+            }
         }
         return false;
     }

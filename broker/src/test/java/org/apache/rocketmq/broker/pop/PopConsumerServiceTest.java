@@ -195,7 +195,7 @@ public class PopConsumerServiceTest {
         GetMessageResult result = new GetMessageResult();
         result.setStatus(GetMessageStatus.FOUND);
         result.getMessageQueueOffset().add(100L);
-        consumerService.addGetMessageResult(
+        consumerService.handleGetMessageResult(
             context, result, topicId, queueId, PopConsumerRecord.RetryType.NORMAL_TOPIC, 100);
         Assert.assertEquals(1, context.getGetMessageResultList().size());
     }

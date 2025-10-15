@@ -52,7 +52,7 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
     public void schedule(final StatisticsItem item) {
         setItemSampleBrief(item.getStatKind(), item.getStatObject(), new StatisticsItemSampleBrief(item, tpsItemNames));
 
-        // print log every ${interval} miliseconds
+        // print log every ${interval} milliseconds
         ScheduledFuture future = executor.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {

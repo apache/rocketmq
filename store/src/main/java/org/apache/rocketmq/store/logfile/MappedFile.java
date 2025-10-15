@@ -28,6 +28,7 @@ import org.apache.rocketmq.store.AppendMessageCallback;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.CompactionAppendMsgCallback;
 import org.apache.rocketmq.store.PutMessageContext;
+import org.apache.rocketmq.store.RunningFlags;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
@@ -220,7 +221,7 @@ public interface MappedFile {
     /**
      * Destroys the file and delete it from the file system.
      *
-     * @param intervalForcibly If {@code true} then this method will destroy the file forcibly and ignore the reference
+     * @param intervalForcibly The time interval in milliseconds after which any remaining references will be forcibly released during destroy
      * @return true if success; false otherwise.
      */
     boolean destroy(long intervalForcibly);
@@ -228,7 +229,7 @@ public interface MappedFile {
     /**
      * Shutdowns the file and mark it unavailable.
      *
-     * @param intervalForcibly If {@code true} then this method will shutdown the file forcibly and ignore the reference
+     * @param intervalForcibly The time interval in milliseconds after which any remaining references will be forcibly released during shutdown
      */
     void shutdown(long intervalForcibly);
 
@@ -328,6 +329,8 @@ public interface MappedFile {
      */
     void cleanSwapedMap(boolean force);
 
+    void cleanResources();
+
     /**
      * Get recent swap map time
      */
@@ -368,7 +371,7 @@ public interface MappedFile {
      * @param transientStorePool transient store pool
      * @throws IOException
      */
-    void init(String fileName, int fileSize, TransientStorePool transientStorePool) throws IOException;
+    void init(String fileName, int fileSize, RunningFlags runningFlags, TransientStorePool transientStorePool) throws IOException;
 
     Iterator<SelectMappedBufferResult> iterator(int pos);
 

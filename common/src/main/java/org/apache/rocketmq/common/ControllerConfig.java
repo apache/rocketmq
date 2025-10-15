@@ -21,7 +21,7 @@ import java.util.Arrays;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
 
 public class ControllerConfig {
-    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String rocketmqHome = MixAll.ROCKETMQ_HOME_DIR;
     private String configStorePath = System.getProperty("user.home") + File.separator + "controller" + File.separator + "controller.properties";
     public static final String DLEDGER_CONTROLLER = "DLedger";
     public static final String JRAFT_CONTROLLER = "jRaft";

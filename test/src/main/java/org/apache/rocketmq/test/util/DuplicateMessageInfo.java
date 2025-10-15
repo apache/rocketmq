@@ -101,17 +101,17 @@ public class DuplicateMessageInfo<T> {
         if (bPrintLog) {
             String logFileNameStr = "D:" + File.separator + "checkDuplicatedMessageInfo.txt";
             File logFileNameFile = new File(logFileNameStr);
-            OutputStream out = new FileOutputStream(logFileNameFile, true);
+            try (OutputStream out = new FileOutputStream(logFileNameFile, true)) {
 
-            String strToWrite;
-            byte[] byteToWrite;
-            strToWrite = strBuilder + titleString;
-            for (int i = 0; i < msgListSize; i++)
-                strToWrite += strBQueue.get(i).toString() + "\r\n";
+                String strToWrite;
+                byte[] byteToWrite;
+                strToWrite = strBuilder + titleString;
+                for (int i = 0; i < msgListSize; i++)
+                    strToWrite += strBQueue.get(i).toString() + "\r\n";
 
-            byteToWrite = strToWrite.getBytes(StandardCharsets.UTF_8);
-            out.write(byteToWrite);
-            out.close();
+                byteToWrite = strToWrite.getBytes(StandardCharsets.UTF_8);
+                out.write(byteToWrite);
+            }
         }
     }
 

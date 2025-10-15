@@ -325,22 +325,25 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
 
     public CompletableFuture<ByteBuffer> readAsync(long position, int length) {
         CompletableFuture<ByteBuffer> future = new CompletableFuture<>();
+
         if (position < 0 || position >= commitPosition) {
-            future.completeExceptionally(new TieredStoreException(
-                TieredStoreErrorCode.ILLEGAL_PARAM, "FileSegment read position is illegal position"));
+            future.completeExceptionally(new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM,
+                String.format("FileSegment read position illegal, filePath=%s, fileType=%s, position=%d, length=%d, commit=%d",
+                    filePath, fileType, position, length, commitPosition)));
             return future;
         }
 
         if (length <= 0) {
-            future.completeExceptionally(new TieredStoreException(
-                TieredStoreErrorCode.ILLEGAL_PARAM, "FileSegment read length illegal"));
+            future.completeExceptionally(new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM,
+                String.format("FileSegment read length illegal, filePath=%s, fileType=%s, position=%d, length=%d, commit=%d",
+                    filePath, fileType, position, length, commitPosition)));
             return future;
         }
 
         int readableBytes = (int) (commitPosition - position);
         if (readableBytes < length) {
             length = readableBytes;
-            log.debug("FileSegment#readAsync, expect request position is greater than commit position, " +
+            log.debug("FileSegment expect request position is greater than commit position, " +
                     "file: {}, request position: {}, commit position: {}, change length from {} to {}",
                 getPath(), position, commitPosition, length, readableBytes);
         }

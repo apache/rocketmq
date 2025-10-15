@@ -190,7 +190,7 @@ public class SubscriptionGroupConfig {
             prime * result + (int) (whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
         result = prime * result + groupSysFlag;
         result = prime * result + consumeTimeoutMinute;
-        result = prime * result + subscriptionDataSet.hashCode();
+        result = prime * result + ((subscriptionDataSet == null) ? 0 : subscriptionDataSet.hashCode());
         result = prime * result + attributes.hashCode();
         return result;
     }
