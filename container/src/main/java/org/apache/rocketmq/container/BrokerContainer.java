@@ -371,8 +371,7 @@ public class BrokerContainer implements IBrokerContainer {
             throw new Exception("Can not add broker to container when duplicationEnable is true currently");
         }
 
-        int ratio = storeConfig.getAccessMessageInMemoryMaxRatio() - 10;
-        storeConfig.setAccessMessageInMemoryMaxRatio(Math.max(ratio, 0));
+        storeConfig.setAccessMessageInMemoryMaxRatio(storeConfig.getAccessMessageInMemoryMaxRatio());
         InnerSalveBrokerController slaveBroker = new InnerSalveBrokerController(this, slaveBrokerConfig, storeConfig, authConfig);
         BrokerIdentity brokerIdentity = slaveBroker.getBrokerIdentity();
         final InnerSalveBrokerController previousBroker = slaveBrokerControllers.putIfAbsent(brokerIdentity, slaveBroker);
