@@ -16,9 +16,7 @@
  */
 package org.apache.rocketmq.auth.authorization.strategy;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
