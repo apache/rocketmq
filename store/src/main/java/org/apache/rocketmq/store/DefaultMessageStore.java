@@ -113,6 +113,7 @@ import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
+import org.apache.rocketmq.store.metrics.StoreMetricsManager;
 import org.rocksdb.RocksDBException;
 
 public class DefaultMessageStore implements MessageStore {
@@ -1573,6 +1574,7 @@ public class DefaultMessageStore implements MessageStore {
         return this.reputMessageService.behindMs();
     }
 
+    @Override
     public long flushBehindBytes() {
         if (this.messageStoreConfig.isTransientStorePoolEnable()) {
             return this.commitLog.remainHowManyDataToCommit() + this.commitLog.remainHowManyDataToFlush();
@@ -2239,7 +2241,7 @@ public class DefaultMessageStore implements MessageStore {
         private boolean isSpaceToDelete() {
             cleanImmediately = false;
 
-            String commitLogStorePath = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
+            String commitLogStorePath = DefaultMessageStore.this.getStorePathPhysic();
             String[] storePaths = commitLogStorePath.trim().split(MixAll.MULTI_PATH_SPLITTER);
             Set<String> fullStorePath = new HashSet<>();
             double minPhysicRatio = 100;
@@ -3062,6 +3064,11 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public DefaultStoreMetricsManager getDefaultStoreMetricsManager() {
+        return defaultStoreMetricsManager;
+    }
+
+    @Override
+    public StoreMetricsManager getStoreMetricsManager() {
         return defaultStoreMetricsManager;
     }
 

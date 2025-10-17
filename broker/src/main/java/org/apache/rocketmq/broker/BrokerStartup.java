@@ -124,6 +124,10 @@ public class BrokerStartup {
         NettyClientConfig nettyClientConfig = new NettyClientConfig();
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         AuthConfig authConfig = new AuthConfig();
+
+        nettyServerConfig.setListenPort(10911);
+        messageStoreConfig.setHaListenPort(0);
+
         Properties properties = new Properties();
         if (StringUtils.isNotBlank(filePath)) {
             systemConfigFileHelper.setFile(filePath);
@@ -160,9 +164,6 @@ public class BrokerStartup {
         NettyServerConfig nettyServerConfig = configContext.getNettyServerConfig();
         AuthConfig authConfig = configContext.getAuthConfig();
         Properties properties = configContext.getProperties();
-
-        nettyServerConfig.setListenPort(10911);
-        configContext.getMessageStoreConfig().setHaListenPort(0);
 
         if (null == brokerConfig.getRocketmqHome()) {
             System.out.printf("Please set the %s variable in your environment " +

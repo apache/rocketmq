@@ -28,6 +28,7 @@ import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.auth.authorization.model.Policy;
+import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
@@ -220,6 +221,10 @@ public class AuthorizationMetadataManagerTest {
             "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
         this.authorizationMetadataManager.createAcl(acl2).join();
 
+        Acl acl3 = AuthTestHelper.buildAcl("User:test-2", "Topic:acl-2,Group:acl-2", "PUB,SUB",
+            "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
+        this.authorizationMetadataManager.createAcl(acl3).join();
+
         List<Acl> acls1 = this.authorizationMetadataManager.listAcl(null, null).join();
         Assert.assertEquals(acls1.size(), 2);
 
@@ -235,13 +240,21 @@ public class AuthorizationMetadataManagerTest {
 
         List<Acl> acls5 = this.authorizationMetadataManager.listAcl(null, "test-1").join();
         Assert.assertEquals(acls5.size(), 1);
-        Assert.assertEquals(acls4.get(0).getPolicy(PolicyType.CUSTOM).getEntries().size(), 1);
+        Assert.assertEquals(acls5.get(0).getPolicy(PolicyType.CUSTOM).getEntries().size(), 2);
 
         List<Acl> acls6 = this.authorizationMetadataManager.listAcl("User:abc", null).join();
         Assert.assertTrue(CollectionUtils.isEmpty(acls6));
 
         List<Acl> acls7 = this.authorizationMetadataManager.listAcl(null, "Topic:abc").join();
         Assert.assertTrue(CollectionUtils.isEmpty(acls7));
+
+        List<Acl> acls8 = this.authorizationMetadataManager.listAcl("test-2", "test-2").join();
+        Assert.assertEquals(acls8.size(), 1);
+        List<PolicyEntry> policyEntries = acls8.get(0).getPolicy(PolicyType.CUSTOM).getEntries();
+        Assert.assertEquals(policyEntries.size(), 2);
+        for (PolicyEntry policyEntry : policyEntries) {
+            Assert.assertTrue(policyEntry.toResourceStr().contains("test-2"));
+        }
     }
 
     private void clearAllUsers() {

@@ -10,7 +10,7 @@
 
 Solution: Execute  `export NAMESRV_ADDR=ip:9876` (ip refers to the address of NameServer deployed in the cluster) on the VM that deploys the RocketMQ cluster.Then you will execute commands of "mqadmin" successfully.
 
-## 2 The inconsistent version of RocketMQ between the producer and consumer leads to the problem that message can't be consumed normally.
+## 2 The inconsistent version of RocketMQ between the producer and consumer leads to the problem that messages can't be consumed normally.
 
 > Problem: The same producer sends a message, consumer A can consume, but consumer B can't consume, and the RocketMQ Console appears:
 >
