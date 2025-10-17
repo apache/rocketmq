@@ -18,6 +18,8 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.JSON;
+import org.apache.rocketmq.remoting.protocol.body.BatchAck;
 import org.junit.Test;
 import org.objenesis.ObjenesisStd;
 import org.reflections.Reflections;
@@ -26,6 +28,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -37,6 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class RemotingSerializableCompatTest {
@@ -64,6 +68,25 @@ public class RemotingSerializableCompatTest {
                 System.err.printf("Class %s: incompatible, error: %s\n", clazz.getName(), e.getMessage());
             }
         }
+    }
+
+    @Test
+    public void testCompatibilityCheckWithBitSet() {
+        BitSet bitSet = new BitSet();
+        bitSet.set(1);
+        bitSet.set(3);
+        bitSet.set(5);
+        String fastjson1Str = "{\"b\":\"Kg==\",\"c\":\"DEFAULT_CONSUMER\",\"it\":5000,\"pt\":1760694281326,\"q\":1,\"r\":\"0\",\"rq\":2,\"so\":100,\"t\":\"myTopic\"}";
+        BatchAck batchAck = JSON.parseObject(fastjson1Str, BatchAck.class);
+        assertEquals(bitSet, batchAck.getBitSet());
+        assertEquals("DEFAULT_CONSUMER", batchAck.getConsumerGroup());
+        assertEquals(5000, batchAck.getInvisibleTime());
+        assertEquals(1760694281326L, batchAck.getPopTime());
+        assertEquals(1, batchAck.getQueueId());
+        assertEquals("0", batchAck.getRetry());
+        assertEquals(2, batchAck.getReviveQueueId());
+        assertEquals(100, batchAck.getStartOffset());
+        assertEquals("myTopic", batchAck.getTopic());
     }
     
     private void fillDefaultFields(final Object obj, final Class<?> clazz) throws Exception {
