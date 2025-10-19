@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.auth.authorization.chain;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -25,6 +24,7 @@ import org.apache.rocketmq.auth.authentication.enums.UserStatus;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
+import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.authorization.context.DefaultAuthorizationContext;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
@@ -59,7 +59,6 @@ public class UserAuthorizationHandlerTest {
         if (MixAll.isMac()) {
             return;
         }
-
         this.authConfig = AuthTestHelper.createDefaultConfig();
         this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(this.authConfig);
         this.handler = new UserAuthorizationHandler(this.authConfig, null);
@@ -81,11 +80,9 @@ public class UserAuthorizationHandlerTest {
         if (MixAll.isMac()) {
             return;
         }
-        DefaultAuthorizationContext ctx = new DefaultAuthorizationContext();
-        ctx.setSubject(User.of("no_such_user"));
-        ctx.setResource(Resource.ofTopic("t1"));
-        ctx.setActions(Collections.singletonList(Action.SUB));
-        ctx.setSourceIp("127.0.0.1");
+        User noSuchUser = User.of("no_such_user", "pwd");
+        DefaultAuthorizationContext ctx = buildContext(noSuchUser, Resource.ofTopic("t1"), Action.SUB, "127.0.0.1");
+
         AuthorizationException authorizationException = Assert.assertThrows(AuthorizationException.class, () -> {
             try {
                 handler.handle(ctx, nextChain).join();
@@ -101,17 +98,13 @@ public class UserAuthorizationHandlerTest {
         if (MixAll.isMac()) {
             return;
         }
-        User u = User.of("disabled", "pwd");
-        authenticationMetadataManager.createUser(u).join();
+        User user = User.of("disabled", "pwd");
+        authenticationMetadataManager.createUser(user).join();
         User saved = authenticationMetadataManager.getUser("disabled").join();
         saved.setUserStatus(UserStatus.DISABLE);
         authenticationMetadataManager.updateUser(saved).join();
 
-        DefaultAuthorizationContext ctx = new DefaultAuthorizationContext();
-        ctx.setSubject(User.of("disabled"));
-        ctx.setResource(Resource.ofTopic("t1"));
-        ctx.setActions(Collections.singletonList(Action.SUB));
-        ctx.setSourceIp("127.0.0.1");
+        DefaultAuthorizationContext ctx = buildContext(user, Resource.ofTopic("t1"), Action.SUB, "127.0.0.1");
 
         AuthorizationException authorizationException = Assert.assertThrows(AuthorizationException.class, () -> {
             try {
@@ -133,11 +126,7 @@ public class UserAuthorizationHandlerTest {
         User superUser = User.of("super", "pwd", UserType.SUPER);
         authenticationMetadataManager.createUser(superUser).join();
 
-        DefaultAuthorizationContext ctx = new DefaultAuthorizationContext();
-        ctx.setSubject(User.of("super"));
-        ctx.setResource(Resource.ofTopic("t1"));
-        ctx.setActions(Collections.singletonList(Action.SUB));
-        ctx.setSourceIp("127.0.0.1");
+        DefaultAuthorizationContext ctx = buildContext(superUser, Resource.ofTopic("t1"), Action.SUB, "127.0.0.1");
 
         handler.handle(ctx, nextChain).join();
         // super user should bypass the next chain
@@ -149,19 +138,19 @@ public class UserAuthorizationHandlerTest {
         if (MixAll.isMac()) {
             return;
         }
-        User normal = User.of("normal", "pwd", UserType.NORMAL);
-        authenticationMetadataManager.createUser(normal).join();
+        User normalUser = User.of("normal", "pwd", UserType.NORMAL);
+        authenticationMetadataManager.createUser(normalUser).join();
 
-        DefaultAuthorizationContext ctx = new DefaultAuthorizationContext();
-        ctx.setSubject(User.of("normal"));
-        ctx.setResource(Resource.ofTopic("t1"));
-        ctx.setActions(Collections.singletonList(Action.SUB));
-        ctx.setSourceIp("127.0.0.1");
+        DefaultAuthorizationContext ctx = buildContext(normalUser, Resource.ofTopic("t1"), Action.SUB, "127.0.0.1");
 
         when(nextChain.handle(any())).thenReturn(CompletableFuture.completedFuture(null));
         handler.handle(ctx, nextChain).join();
         // normal user should go to the next chain
         verify(nextChain, times(1)).handle(any());
+    }
+
+    private DefaultAuthorizationContext buildContext(Subject subject, Resource resource, Action action, String sourceIp) {
+        return DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
     }
 
     private void clearAllUsers() {
