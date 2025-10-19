@@ -17,7 +17,10 @@
 package org.apache.rocketmq.auth.authorization.chain;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.auth.authentication.enums.UserStatus;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
@@ -162,7 +165,10 @@ public class UserAuthorizationHandlerTest {
     }
 
     private void clearAllUsers() {
-        authenticationMetadataManager.listUser(null).join()
-                .forEach(u -> authenticationMetadataManager.deleteUser(u.getUsername()).join());
+        List<User> users = this.authenticationMetadataManager.listUser(null).join();
+        if (CollectionUtils.isEmpty(users)) {
+            return;
+        }
+        users.forEach(user -> this.authenticationMetadataManager.deleteUser(user.getUsername()).join());
     }
 }
