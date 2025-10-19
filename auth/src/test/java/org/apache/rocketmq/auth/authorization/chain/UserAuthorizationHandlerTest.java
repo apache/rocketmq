@@ -146,7 +146,7 @@ public class UserAuthorizationHandlerTest {
         if (MixAll.isMac()) {
             return;
         }
-        User normal = User.of("normal", "pwd");
+        User normal = User.of("normal", "pwd", UserType.NORMAL);
         authenticationMetadataManager.createUser(normal).join();
 
         DefaultAuthorizationContext ctx = new DefaultAuthorizationContext();
