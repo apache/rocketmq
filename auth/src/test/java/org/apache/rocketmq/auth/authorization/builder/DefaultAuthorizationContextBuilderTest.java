@@ -516,7 +516,8 @@ public class DefaultAuthorizationContextBuilderTest {
         java.util.Set<org.apache.rocketmq.common.message.MessageQueue> lockMqSet = new java.util.HashSet<>();
 
         lockMqSet.add(new org.apache.rocketmq.common.message.MessageQueue("topic", "broker-a", 0));
-        lockMqSet.add(new org.apache.rocketmq.common.message.MessageQueue("%RETRY%group", "broker-a", 1)); // skipped
+        // retry topic, should be skipped
+        lockMqSet.add(new org.apache.rocketmq.common.message.MessageQueue("%RETRY%group", "broker-a", 1));
         lockBatchRequestBody.setMqSet(lockMqSet);
 
         request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
@@ -544,7 +545,8 @@ public class DefaultAuthorizationContextBuilderTest {
         unlockBatchRequestBody.setConsumerGroup("group");
         java.util.Set<org.apache.rocketmq.common.message.MessageQueue> unlockMqSet = new java.util.HashSet<>();
         unlockMqSet.add(new org.apache.rocketmq.common.message.MessageQueue("topic", "broker-a", 0));
-        unlockMqSet.add(new org.apache.rocketmq.common.message.MessageQueue("%RETRY%group", "broker-a", 1)); // skipped
+        // retry topic, should be skipped
+        unlockMqSet.add(new org.apache.rocketmq.common.message.MessageQueue("%RETRY%group", "broker-a", 1));
         unlockBatchRequestBody.setMqSet(unlockMqSet);
 
         request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, null);
