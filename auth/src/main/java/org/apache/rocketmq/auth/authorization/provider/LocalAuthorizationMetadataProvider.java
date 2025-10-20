@@ -148,7 +148,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                     if (CollectionUtils.isEmpty(entries)) {
                         continue;
                     }
-                    if (StringUtils.isNotBlank(resourceFilter) && !subjectKey.contains(resourceFilter)) {
+                    if (StringUtils.isNotBlank(resourceFilter)) {
                         entries.removeIf(entry -> !entry.toResourceStr().contains(resourceFilter));
                     }
                     if (CollectionUtils.isEmpty(entries)) {

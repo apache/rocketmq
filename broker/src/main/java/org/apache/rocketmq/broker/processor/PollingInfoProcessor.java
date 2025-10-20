@@ -106,7 +106,7 @@ public class PollingInfoProcessor implements NettyRequestProcessor {
             return response;
         }
         String key = KeyBuilder.buildPollingKey(requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueId());
-        ConcurrentSkipListSet<PopRequest> queue = this.brokerController.getPopMessageProcessor().getPollingMap().get(key);
+        ConcurrentSkipListSet<PopRequest> queue = this.brokerController.getPopMessageProcessor().getPollingMap().getIfPresent(key);
         if (queue != null) {
             responseHeader.setPollingNum(queue.size());
         } else {

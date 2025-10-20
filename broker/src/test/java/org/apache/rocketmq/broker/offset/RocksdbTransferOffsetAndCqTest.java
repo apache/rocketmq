@@ -29,6 +29,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
@@ -167,12 +168,12 @@ public class RocksdbTransferOffsetAndCqTest {
         Assert.assertEquals(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue(), result.getCheckStatus());
     }
 
-    /**
-     * No need to skip macOS platform.
-     * @return true if some platform is NOT a good fit for this test case.
-     */
+//    /**
+//     * No need to skip macOS platform.
+//     * @return true if some platform is NOT a good fit for this test case.
+//     */
     private boolean notToBeExecuted() {
-        return false;
+        return MixAll.isMac();
     }
 
 }

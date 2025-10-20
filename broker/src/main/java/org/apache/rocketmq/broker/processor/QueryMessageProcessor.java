@@ -111,12 +111,13 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                     .writeAndFlush(fileRegion)
                     .addListener((ChannelFutureListener) future -> {
                         queryMessageResult.release();
-                        Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
+                        RemotingMetricsManager remotingMetricsManager = brokerController.getBrokerMetricsManager().getRemotingMetricsManager();
+                        Attributes attributes = remotingMetricsManager.newAttributesBuilder()
                             .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
                             .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()))
-                            .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
+                            .put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future))
                             .build();
-                        RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
+                        remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
                         if (!future.isSuccess()) {
                             LOGGER.error("transfer query message by page cache failed, ", future.cause());
                         }
@@ -156,12 +157,13 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                     .writeAndFlush(fileRegion)
                     .addListener((ChannelFutureListener) future -> {
                         selectMappedBufferResult.release();
-                        Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
+                        RemotingMetricsManager remotingMetricsManager = brokerController.getBrokerMetricsManager().getRemotingMetricsManager();
+                        Attributes attributes = remotingMetricsManager.newAttributesBuilder()
                             .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
                             .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()))
-                            .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
+                            .put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future))
                             .build();
-                        RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
+                        remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
                         if (!future.isSuccess()) {
                             LOGGER.error("Transfer one message from page cache failed, ", future.cause());
                         }

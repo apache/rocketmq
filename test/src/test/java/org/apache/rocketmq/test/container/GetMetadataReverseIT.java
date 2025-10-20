@@ -126,7 +126,7 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
         });
 
         //Add back master
-        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas = brokerContainer1.addBroker(buildConfigContext(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig()));
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
 
@@ -205,7 +205,7 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
         });
 
         //Add back master
-        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas = brokerContainer1.addBroker(buildConfigContext(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig()));
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
 
@@ -276,7 +276,7 @@ public class GetMetadataReverseIT extends ContainerIntegrationTestBase {
         });
 
         //Add back master
-        master1With3Replicas = brokerContainer1.addBroker(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig());
+        master1With3Replicas = brokerContainer1.addBroker(buildConfigContext(master1With3Replicas.getBrokerConfig(), master1With3Replicas.getMessageStoreConfig()));
         master1With3Replicas.start();
         cancelIsolatedBroker(master1With3Replicas);
 

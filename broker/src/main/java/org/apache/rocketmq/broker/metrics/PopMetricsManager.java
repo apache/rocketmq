@@ -61,14 +61,18 @@ import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.LABEL_REVIVE
 
 public class PopMetricsManager {
     private static final Logger log = LoggerFactory.getLogger(PopMetricsManager.class);
-    public static Supplier<AttributesBuilder> attributesBuilderSupplier;
+    
+    private Supplier<AttributesBuilder> attributesBuilderSupplier;
 
-    private static LongHistogram popBufferScanTimeConsume = new NopLongHistogram();
-    private static LongCounter popRevivePutTotal = new NopLongCounter();
-    private static LongCounter popReviveGetTotal = new NopLongCounter();
-    private static LongCounter popReviveRetryMessageTotal = new NopLongCounter();
+    private LongHistogram popBufferScanTimeConsume = new NopLongHistogram();
+    private LongCounter popRevivePutTotal = new NopLongCounter();
+    private LongCounter popReviveGetTotal = new NopLongCounter();
+    private LongCounter popReviveRetryMessageTotal = new NopLongCounter();
 
-    public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
+    public PopMetricsManager() {
+    }
+
+    public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
         List<Double> rpcCostTimeBuckets = Arrays.asList(
             (double) Duration.ofMillis(1).toMillis(),
             (double) Duration.ofMillis(10).toMillis(),
@@ -87,22 +91,22 @@ public class PopMetricsManager {
         return Lists.newArrayList(new Pair<>(popBufferScanTimeConsumeSelector, popBufferScanTimeConsumeViewBuilder));
     }
 
-    public static void initMetrics(Meter meter, BrokerController brokerController,
+    public void initMetrics(Meter meter, BrokerController brokerController,
         Supplier<AttributesBuilder> attributesBuilderSupplier) {
-        PopMetricsManager.attributesBuilderSupplier = attributesBuilderSupplier;
+        this.attributesBuilderSupplier = attributesBuilderSupplier;
 
-        popBufferScanTimeConsume = meter.histogramBuilder(HISTOGRAM_POP_BUFFER_SCAN_TIME_CONSUME)
+        this.popBufferScanTimeConsume = meter.histogramBuilder(HISTOGRAM_POP_BUFFER_SCAN_TIME_CONSUME)
             .setDescription("Time consuming of pop buffer scan")
             .setUnit("milliseconds")
             .ofLongs()
             .build();
-        popRevivePutTotal = meter.counterBuilder(COUNTER_POP_REVIVE_IN_MESSAGE_TOTAL)
+        this.popRevivePutTotal = meter.counterBuilder(COUNTER_POP_REVIVE_IN_MESSAGE_TOTAL)
             .setDescription("Total number of put message to revive topic")
             .build();
-        popReviveGetTotal = meter.counterBuilder(COUNTER_POP_REVIVE_OUT_MESSAGE_TOTAL)
+        this.popReviveGetTotal = meter.counterBuilder(COUNTER_POP_REVIVE_OUT_MESSAGE_TOTAL)
             .setDescription("Total number of get message from revive topic")
             .build();
-        popReviveRetryMessageTotal = meter.counterBuilder(COUNTER_POP_REVIVE_RETRY_MESSAGES_TOTAL)
+        this.popReviveRetryMessageTotal = meter.counterBuilder(COUNTER_POP_REVIVE_RETRY_MESSAGES_TOTAL)
             .setDescription("Total number of put message to pop retry topic")
             .build();
 
@@ -126,24 +130,24 @@ public class PopMetricsManager {
             .buildWithCallback(measurement -> calculatePopReviveLatency(brokerController, measurement));
     }
 
-    private static void calculatePopBufferOffsetSize(BrokerController brokerController,
+    private void calculatePopBufferOffsetSize(BrokerController brokerController,
         ObservableLongMeasurement measurement) {
         PopBufferMergeService popBufferMergeService = brokerController.getPopMessageProcessor().getPopBufferMergeService();
-        measurement.record(popBufferMergeService.getOffsetTotalSize(), newAttributesBuilder().build());
+        measurement.record(popBufferMergeService.getOffsetTotalSize(), this.newAttributesBuilder().build());
     }
 
-    private static void calculatePopBufferCkSize(BrokerController brokerController,
+    private void calculatePopBufferCkSize(BrokerController brokerController,
         ObservableLongMeasurement measurement) {
         PopBufferMergeService popBufferMergeService = brokerController.getPopMessageProcessor().getPopBufferMergeService();
-        measurement.record(popBufferMergeService.getBufferedCKSize(), newAttributesBuilder().build());
+        measurement.record(popBufferMergeService.getBufferedCKSize(), this.newAttributesBuilder().build());
     }
 
-    private static void calculatePopReviveLatency(BrokerController brokerController,
+    private void calculatePopReviveLatency(BrokerController brokerController,
         ObservableLongMeasurement measurement) {
         PopReviveService[] popReviveServices = brokerController.getAckMessageProcessor().getPopReviveServices();
         for (PopReviveService popReviveService : popReviveServices) {
             try {
-                measurement.record(popReviveService.getReviveBehindMillis(), newAttributesBuilder()
+                measurement.record(popReviveService.getReviveBehindMillis(), this.newAttributesBuilder()
                     .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
                     .build());
             } catch (ConsumeQueueException e) {
@@ -152,12 +156,12 @@ public class PopMetricsManager {
         }
     }
 
-    private static void calculatePopReviveLag(BrokerController brokerController,
+    private void calculatePopReviveLag(BrokerController brokerController,
         ObservableLongMeasurement measurement) {
         PopReviveService[] popReviveServices = brokerController.getAckMessageProcessor().getPopReviveServices();
         for (PopReviveService popReviveService : popReviveServices) {
             try {
-                measurement.record(popReviveService.getReviveBehindMessages(), newAttributesBuilder()
+                measurement.record(popReviveService.getReviveBehindMessages(), this.newAttributesBuilder()
                     .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
                     .build());
             } catch (ConsumeQueueException e) {
@@ -166,60 +170,87 @@ public class PopMetricsManager {
         }
     }
 
-    public static void incPopReviveAckPutCount(AckMsg ackMsg, PutMessageStatus status) {
+    public void incPopReviveAckPutCount(AckMsg ackMsg, PutMessageStatus status) {
         incPopRevivePutCount(ackMsg.getConsumerGroup(), ackMsg.getTopic(), PopReviveMessageType.ACK, status, 1);
     }
 
-    public static void incPopReviveCkPutCount(PopCheckPoint checkPoint, PutMessageStatus status) {
+    public void incPopReviveCkPutCount(PopCheckPoint checkPoint, PutMessageStatus status) {
         incPopRevivePutCount(checkPoint.getCId(), checkPoint.getTopic(), PopReviveMessageType.CK, status, 1);
     }
 
-    public static void incPopRevivePutCount(String group, String topic, PopReviveMessageType messageType,
+    public void incPopRevivePutCount(String group, String topic, PopReviveMessageType messageType,
         PutMessageStatus status, int num) {
-        Attributes attributes = newAttributesBuilder()
+        Attributes attributes = this.newAttributesBuilder()
             .put(LABEL_CONSUMER_GROUP, group)
             .put(LABEL_TOPIC, topic)
             .put(LABEL_REVIVE_MESSAGE_TYPE, messageType.name())
             .put(LABEL_PUT_STATUS, status.name())
             .build();
-        popRevivePutTotal.add(num, attributes);
+        this.popRevivePutTotal.add(num, attributes);
     }
 
-    public static void incPopReviveAckGetCount(AckMsg ackMsg, int queueId) {
+    public void incPopReviveAckGetCount(AckMsg ackMsg, int queueId) {
         incPopReviveGetCount(ackMsg.getConsumerGroup(), ackMsg.getTopic(), PopReviveMessageType.ACK, queueId, 1);
     }
 
-    public static void incPopReviveCkGetCount(PopCheckPoint checkPoint, int queueId) {
+    public void incPopReviveCkGetCount(PopCheckPoint checkPoint, int queueId) {
         incPopReviveGetCount(checkPoint.getCId(), checkPoint.getTopic(), PopReviveMessageType.CK, queueId, 1);
     }
 
-    public static void incPopReviveGetCount(String group, String topic, PopReviveMessageType messageType, int queueId,
+    public void incPopReviveGetCount(String group, String topic, PopReviveMessageType messageType, int queueId,
         int num) {
-        AttributesBuilder builder = newAttributesBuilder();
+        AttributesBuilder builder = this.newAttributesBuilder();
         Attributes attributes = builder
             .put(LABEL_CONSUMER_GROUP, group)
             .put(LABEL_TOPIC, topic)
             .put(LABEL_QUEUE_ID, queueId)
             .put(LABEL_REVIVE_MESSAGE_TYPE, messageType.name())
             .build();
-        popReviveGetTotal.add(num, attributes);
+        this.popReviveGetTotal.add(num, attributes);
     }
 
-    public static void incPopReviveRetryMessageCount(PopCheckPoint checkPoint, PutMessageStatus status) {
-        AttributesBuilder builder = newAttributesBuilder();
+    public void incPopReviveRetryMessageCount(PopCheckPoint checkPoint, PutMessageStatus status) {
+        AttributesBuilder builder = this.newAttributesBuilder();
         Attributes attributes = builder
             .put(LABEL_CONSUMER_GROUP, checkPoint.getCId())
             .put(LABEL_TOPIC, checkPoint.getTopic())
             .put(LABEL_PUT_STATUS, status.name())
             .build();
-        popReviveRetryMessageTotal.add(1, attributes);
+        this.popReviveRetryMessageTotal.add(1, attributes);
     }
 
-    public static void recordPopBufferScanTimeConsume(long time) {
-        popBufferScanTimeConsume.record(time, newAttributesBuilder().build());
+    public void recordPopBufferScanTimeConsume(long time) {
+        this.popBufferScanTimeConsume.record(time, this.newAttributesBuilder().build());
     }
 
-    public static AttributesBuilder newAttributesBuilder() {
-        return attributesBuilderSupplier != null ? attributesBuilderSupplier.get() : Attributes.builder();
+    public AttributesBuilder newAttributesBuilder() {
+        return this.attributesBuilderSupplier != null ? this.attributesBuilderSupplier.get() : Attributes.builder();
     }
+
+    // Getter methods for external access
+    public LongHistogram getPopBufferScanTimeConsume() {
+        return popBufferScanTimeConsume;
+    }
+
+    public LongCounter getPopRevivePutTotal() {
+        return popRevivePutTotal;
+    }
+
+    public LongCounter getPopReviveGetTotal() {
+        return popReviveGetTotal;
+    }
+
+    public LongCounter getPopReviveRetryMessageTotal() {
+        return popReviveRetryMessageTotal;
+    }
+
+    public Supplier<AttributesBuilder> getAttributesBuilderSupplier() {
+        return attributesBuilderSupplier;
+    }
+
+    // Setter methods for testing
+    public void setAttributesBuilderSupplier(Supplier<AttributesBuilder> attributesBuilderSupplier) {
+        this.attributesBuilderSupplier = attributesBuilderSupplier;
+    }
+
 }

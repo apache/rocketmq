@@ -3,7 +3,7 @@
 We are always very happy to have contributions, whether for trivial cleanups or big new features.
 We want to have high quality, well documented codes for each programming language, as well as the surrounding [ecosystem](https://github.com/apache/rocketmq-externals) of integration tools that people use with RocketMQ.
 
-Nor is code the only way to contribute to the project. We strongly value documentation, integration with other project, and gladly accept improvements for these aspects.
+Nor is code the only way to contribute to the project. We strongly value documentation, integration with other projects, and gladly accept improvements for these aspects.
 
 Recommend reading:
  * [Contributors Tech Guide](http://www.apache.org/dev/contributors)
@@ -34,15 +34,15 @@ More details of squash can be found at [stackoverflow](https://stackoverflow.com
 
 We are always interested in adding new contributors. What we look for are series of contributions, good taste and ongoing interest in the project. If you are interested in becoming a committer, please let one of the existing committers know and they can help you walk through the process.
 
-Nowadays,we have several important contribution points:
+Nowadays, we have several important contribution points:
 #### Wiki & JavaDoc
 #### RocketMQ SDK(C++\.Net\Php\Python\Go\Node.js)
 #### RocketMQ Connectors
 
-##### Prerequisite
-If you want to contribute the above listing points, you must abide our some prerequisites:
+##### Prerequisites
+If you want to contribute to the above listed points, you must abide by the following prerequisites:
 
-###### Readability - API must have Javadoc, some very important methods also must have javadoc
-###### Testability - 80% above unit test coverage about main process
-###### Maintainability - Comply with our [checkstyle spec](style/rmq_checkstyle.xml), and at least 3 month update frequency
+###### Readability - API must have Javadoc, and some very important methods must also have Javadoc
+###### Testability - Above 80% unit test coverage for the main process
+###### Maintainability - Comply with our [checkstyle spec](style/rmq_checkstyle.xml), and at least a 3-month update frequency
 ###### Deployability - We encourage you to deploy into [maven repository](http://search.maven.org/)

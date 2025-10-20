@@ -46,6 +46,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
+import org.apache.rocketmq.store.metrics.StoreMetricsManager;
 import org.rocksdb.RocksDBException;
 
 /**
@@ -512,6 +513,13 @@ public interface MessageStore {
     long dispatchBehindBytes();
 
     /**
+     * Get number of the bytes that have been stored in commit log and not yet flushed to disk.
+     *
+     * @return number of the bytes to flush.
+     */
+    long flushBehindBytes();
+
+    /**
      * Get number of the milliseconds that have been stored in commit log and not yet dispatched to consume queue.
      *
      * @return number of the milliseconds to dispatch.
@@ -906,6 +914,13 @@ public interface MessageStore {
      * @return state machine version
      */
     long getStateMachineVersion();
+
+    /**
+     * Get store metrics manager
+     *
+     * @return store metrics manager
+     */
+    StoreMetricsManager getStoreMetricsManager();
 
     /**
      * Check message and return size

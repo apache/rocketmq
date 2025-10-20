@@ -65,7 +65,9 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
 
     @After
     public void destroy() {
-        messageStore.shutdown();
+        if (!messageStore.isShutdown()) {
+            messageStore.shutdown();
+        }
         messageStore.destroy();
 
         File file = new File(messageStore.getMessageStoreConfig().getStorePathRootDir());
