@@ -185,7 +185,7 @@ public class DefaultStoreMetricsManager implements StoreMetricsManager {
                 .ofLongs()
                 .buildWithCallback(measurement -> {
                     TimerMessageStore timerMessageStore = messageStore.getTimerMessageStore();
-                    measurement.record(timerMessageStore.getDequeueBehind(), this.newAttributesBuilder().build());
+                    measurement.record(timerMessageStore.getDequeueBehindMillis(), this.newAttributesBuilder().build());
                 });
             this.timingMessages = meter.gaugeBuilder(GAUGE_TIMING_MESSAGES)
                 .setDescription("Current message number in timing")
