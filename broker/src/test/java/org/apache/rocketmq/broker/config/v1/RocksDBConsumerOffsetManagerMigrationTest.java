@@ -127,16 +127,14 @@ public class RocksDBConsumerOffsetManagerMigrationTest {
         // Create data in separate RocksDB mode
         RocksDBConsumerOffsetManager separateManager = new RocksDBConsumerOffsetManager(brokerController, false);
         separateManager.load();
-        
-        ConcurrentMap<Integer, Long> offsetMap = new ConcurrentHashMap<>();
-        offsetMap.put(0, 100L);
-        offsetMap.put(1, 200L);
-        separateManager.getOffsetTable().put(TEST_KEY, offsetMap);
+
+        separateManager.commitOffset("client", TEST_GROUP, TEST_TOPIC, 0, 100L);
+        separateManager.commitOffset("client", TEST_GROUP, TEST_TOPIC, 1, 200L);
         separateManager.persist();
         separateManager.stop();
 
         long version = separateManager.getDataVersion().getCounter().get();
-        Assert.assertEquals(1, version);
+        Assert.assertEquals(2, version);
 
         // Create another separate manager - should not trigger migration
         RocksDBConsumerOffsetManager anotherSeparateManager = new RocksDBConsumerOffsetManager(brokerController, false);
