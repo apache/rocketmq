@@ -18,7 +18,6 @@
 package org.apache.rocketmq.broker.config.v1;
 
 import java.io.File;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
