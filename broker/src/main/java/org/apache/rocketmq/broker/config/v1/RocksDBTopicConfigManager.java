@@ -19,6 +19,8 @@ package org.apache.rocketmq.broker.config.v1;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.StringUtils;
@@ -32,8 +34,8 @@ import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.rocksdb.CompressionType;
 
 public class RocksDBTopicConfigManager extends TopicConfigManager {
-    private final static String VERSION_COLUMN_FAMILY = "topicVersion";
-    private final static String TOPIC_COLUMN_FAMILY = "topic";
+    private static final String VERSION_COLUMN_FAMILY = "topicVersion";
+    private static final String TOPIC_COLUMN_FAMILY = "topic";
 
     protected transient RocksDBConfigManager rocksDBConfigManager;
     private final boolean useSingleRocksDBForAllConfigs;
@@ -176,10 +178,11 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         if (StringUtils.isBlank(storePathRootDir)) {
             storePathRootDir = brokerController.getMessageStoreConfig().getStorePathRootDir();
         }
+        Path rootPath = Paths.get(storePathRootDir);
         if (useSingleRocksDBForAllConfigs) {
-            return storePathRootDir + File.separator + "config" + File.separator + "metadata" + File.separator;
+            return rootPath.resolve("config").resolve("metadata").toString();
         }
-        return storePathRootDir + File.separator + "config" + File.separator + "topics" + File.separator;
+        return rootPath.resolve("config").resolve("topics").toString();
     }
 
     @Override

@@ -18,6 +18,8 @@ package org.apache.rocketmq.broker.config.v1;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.StringUtils;
@@ -37,8 +39,8 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final static String VERSION_COLUMN_FAMILY = "consumerOffsetVersion";
-    private final static String OFFSET_COLUMN_FAMILY = "consumerOffset";
+    private static final String VERSION_COLUMN_FAMILY = "consumerOffsetVersion";
+    private static final String OFFSET_COLUMN_FAMILY = "consumerOffset";
 
     protected transient RocksDBConfigManager rocksDBConfigManager;
     private final boolean useSingleRocksDBForAllConfigs;
@@ -141,10 +143,11 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         if (StringUtils.isBlank(storePathRootDir)) {
             storePathRootDir = brokerController.getMessageStoreConfig().getStorePathRootDir();
         }
+        Path rootPath = Paths.get(storePathRootDir);
         if (useSingleRocksDBForAllConfigs) {
-            return storePathRootDir + java.io.File.separator + "config" + java.io.File.separator + "metadata" + java.io.File.separator;
+            return rootPath.resolve("config").resolve("metadata").toString();
         }
-        return storePathRootDir + java.io.File.separator + "config" + java.io.File.separator + "consumerOffsets" + java.io.File.separator;
+        return rootPath.resolve("config").resolve("consumerOffsets").toString();
     }
 
     @Override

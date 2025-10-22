@@ -19,6 +19,8 @@ package org.apache.rocketmq.broker.config.v1;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,8 +39,8 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
     protected transient RocksDBConfigManager rocksDBConfigManager;
 
-    private final static String VERSION_COLUMN_FAMILY = "subscriptionGroupVersion";
-    private final static String GROUP_COLUMN_FAMILY = "subscriptionGroup";
+    private static final String VERSION_COLUMN_FAMILY = "subscriptionGroupVersion";
+    private static final String GROUP_COLUMN_FAMILY = "subscriptionGroup";
     private static final String FORBIDDEN_COLUMN_FAMILY_NAME = "forbidden";
 
     private final boolean useSingleRocksDBForAllConfigs;
@@ -217,13 +219,14 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
     }
 
     public String rocksdbConfigFilePath(String storePathRootDir, boolean useSingleRocksDBForAllConfigs) {
-        if (org.apache.commons.lang3.StringUtils.isBlank(storePathRootDir)) {
+        if (StringUtils.isBlank(storePathRootDir)) {
             storePathRootDir = brokerController.getMessageStoreConfig().getStorePathRootDir();
         }
+        Path rootPath = Paths.get(storePathRootDir);
         if (useSingleRocksDBForAllConfigs) {
-            return storePathRootDir + java.io.File.separator + "config" + java.io.File.separator + "metadata" + java.io.File.separator;
+            return rootPath.resolve("config").resolve("metadata").toString();
         }
-        return storePathRootDir + java.io.File.separator + "config" + java.io.File.separator + "subscriptionGroups" + java.io.File.separator;
+        return rootPath.resolve("config").resolve("subscriptionGroups").toString();
     }
 
     @Override
