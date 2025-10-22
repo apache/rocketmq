@@ -151,7 +151,7 @@ public class ConsumeQueueTest extends QueueTestBase {
             DispatchRequest request = new DispatchRequest(consumeQueue.getTopic(), consumeQueue.getQueueId(), i * msgSize, msgSize, i,
                 System.currentTimeMillis(), i, null, null, 0, 0, null);
             request.setBitMap(new byte[10]);
-            messageStore.getQueueStore().putMessagePositionInfoWrapper(consumeQueue, request);
+            ((AbstractConsumeQueueStore) messageStore.getQueueStore()).putMessagePositionInfoWrapper(consumeQueue, request);
         }
         Assert.assertEquals(0, consumeQueue.getMinLogicOffset());
         Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
@@ -200,7 +200,7 @@ public class ConsumeQueueTest extends QueueTestBase {
             }
             Assert.assertEquals(msgNum, queueOffset);
         }
-        messageStore.getQueueStore().destroy(consumeQueue);
+        ((AbstractConsumeQueueStore) messageStore.getQueueStore()).destroy(consumeQueue);
     }
 
     @Test

@@ -154,7 +154,7 @@ public class BrokerOuterAPITest {
                 } else if (invocation.getArgument(0) == nameserver2) {
                     return buildResponse(Boolean.FALSE);
                 } else if (invocation.getArgument(0) == nameserver3) {
-                    TimeUnit.MILLISECONDS.sleep(timeOut + 20);
+                    TimeUnit.MILLISECONDS.sleep(timeOut + 100);  // Increase sleep time to force timeout
                     return buildResponse(Boolean.TRUE);
                 }
                 return buildResponse(Boolean.TRUE);

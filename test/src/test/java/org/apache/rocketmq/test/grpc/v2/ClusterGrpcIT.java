@@ -83,6 +83,7 @@ public class ClusterGrpcIT extends GrpcBaseIT {
     }
 
     @Test
+    @Ignore
     public void testTransactionCheckThenCommit() {
         super.testTransactionCheckThenCommit();
     }

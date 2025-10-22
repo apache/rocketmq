@@ -17,7 +17,6 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
-
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.StoreType;
@@ -239,6 +238,16 @@ public class MessageStoreConfig {
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 
+    /**
+     * When true, use RandomAccessFile for writing instead of MappedByteBuffer. This can be useful for certain scenarios
+     * where mmap is not desired.
+     *
+     * The configurations writeWithoutMmap and transientStorePoolEnable are mutually exclusive. When both are set to
+     * true, only writeWithoutMmap will be effective.
+     */
+    @ImportantField
+    private boolean writeWithoutMmap = false;
+
     // DLedger message store config
     private boolean enableDLegerCommitLog = false;
     private String dLegerGroup;
@@ -275,6 +284,13 @@ public class MessageStoreConfig {
      * Enable this config to resolve this issue. https://github.com/apache/rocketmq/issues/5568
      */
     private boolean autoMessageVersionOnTopicLen = true;
+
+    /**
+     * Whether to use runningFlags when flushing data to disk.
+     * When disabled, runningFlags will be set to null during MappedFileQueue and MappedFile initialization.
+     */
+    @ImportantField
+    private boolean enableRunningFlagsInFlush = false;
 
     /**
      * It cannot be changed after the broker is started.
@@ -428,6 +444,18 @@ public class MessageStoreConfig {
     private boolean rocksdbCQDoubleWriteEnable = false;
 
     /**
+     * CombineConsumeQueueStore
+     * combineCQLoadingCQTypes is used to configure the loading types of CQ. load / recover / start order: [default -> defaultRocksDB]
+     * combineCQPreferCQType is used to configure the preferred CQ type when reading. Make sure the CQ type is included in combineCQLoadingCQTypes
+     * combineAssignOffsetCQType is used to configure the CQ type when assign offset. Make sure the CQ type is included in combineCQLoadingCQTypes
+     */
+    private String combineCQLoadingCQTypes = StoreType.DEFAULT.getStoreType() + ";" + StoreType.DEFAULT_ROCKSDB.getStoreType();
+    private String combineCQPreferCQType = StoreType.DEFAULT.getStoreType();
+    private String combineAssignOffsetCQType = StoreType.DEFAULT.getStoreType();
+    private boolean combineCQEnableCheckSelf = false;
+    private int combineCQMaxExtraSearchCommitLogFiles = 3;
+
+    /**
      * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
      * The following values are valid:
      * <ul>
@@ -453,6 +481,13 @@ public class MessageStoreConfig {
 
     private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
 
+    /**
+     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH
+     * and the storeType was defaultRocksDB. This switch is not recommended for normal use cases (include master-slave
+     * or controller mode).
+     */
+    private boolean enableAcceleratedRecovery = false;
+
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
     }
@@ -471,6 +506,8 @@ public class MessageStoreConfig {
      * Use AdaptiveBackOffLock
      **/
     private boolean useABSLock = false;
+
+    private boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover = false;
 
     public boolean isRocksdbCQDoubleWriteEnable() {
         return rocksdbCQDoubleWriteEnable;
@@ -1125,6 +1162,14 @@ public class MessageStoreConfig {
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
         this.transientStorePoolEnable = transientStorePoolEnable;
+    }
+
+    public boolean isWriteWithoutMmap() {
+        return writeWithoutMmap;
+    }
+
+    public void setWriteWithoutMmap(final boolean writeWithoutMmap) {
+        this.writeWithoutMmap = writeWithoutMmap;
     }
 
     public int getTransientStorePoolSize() {
@@ -1949,5 +1994,70 @@ public class MessageStoreConfig {
 
     public boolean getUseABSLock() {
         return useABSLock;
+    }
+
+    public String getCombineCQPreferCQType() {
+        return combineCQPreferCQType;
+    }
+
+    public void setCombineCQPreferCQType(String combineCQPreferCQType) {
+        this.combineCQPreferCQType = combineCQPreferCQType;
+    }
+
+    public String getCombineCQLoadingCQTypes() {
+        return combineCQLoadingCQTypes;
+    }
+
+    public void setCombineCQLoadingCQTypes(String combineCQLoadingCQTypes) {
+        this.combineCQLoadingCQTypes = combineCQLoadingCQTypes;
+    }
+
+    public String getCombineAssignOffsetCQType() {
+        return combineAssignOffsetCQType;
+    }
+
+    public void setCombineAssignOffsetCQType(String combineAssignOffsetCQType) {
+        this.combineAssignOffsetCQType = combineAssignOffsetCQType;
+    }
+
+    public boolean isCombineCQEnableCheckSelf() {
+        return combineCQEnableCheckSelf;
+    }
+
+    public void setCombineCQEnableCheckSelf(boolean combineCQEnableCheckSelf) {
+        this.combineCQEnableCheckSelf = combineCQEnableCheckSelf;
+    }
+
+    public int getCombineCQMaxExtraSearchCommitLogFiles() {
+        return combineCQMaxExtraSearchCommitLogFiles;
+    }
+
+    public void setCombineCQMaxExtraSearchCommitLogFiles(int combineCQMaxExtraSearchCommitLogFiles) {
+        this.combineCQMaxExtraSearchCommitLogFiles = combineCQMaxExtraSearchCommitLogFiles;
+    }
+
+    public boolean isEnableLogConsumeQueueRepeatedlyBuildWhenRecover() {
+        return enableLogConsumeQueueRepeatedlyBuildWhenRecover;
+    }
+
+    public void setEnableLogConsumeQueueRepeatedlyBuildWhenRecover(
+        boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover) {
+        this.enableLogConsumeQueueRepeatedlyBuildWhenRecover = enableLogConsumeQueueRepeatedlyBuildWhenRecover;
+    }
+
+    public boolean isEnableAcceleratedRecovery() {
+        return enableAcceleratedRecovery;
+    }
+
+    public void setEnableAcceleratedRecovery(boolean enableAcceleratedRecovery) {
+        this.enableAcceleratedRecovery = enableAcceleratedRecovery;
+    }
+
+    public boolean isEnableRunningFlagsInFlush() {
+        return enableRunningFlagsInFlush;
+    }
+
+    public void setEnableRunningFlagsInFlush(boolean enableRunningFlagsInFlush) {
+        this.enableRunningFlagsInFlush = enableRunningFlagsInFlush;
     }
 }

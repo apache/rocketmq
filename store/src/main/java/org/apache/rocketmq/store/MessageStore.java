@@ -16,6 +16,10 @@
  */
 package org.apache.rocketmq.store;
 
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -42,11 +46,8 @@ import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
+import org.apache.rocketmq.store.metrics.StoreMetricsManager;
 import org.rocksdb.RocksDBException;
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.ViewBuilder;
 
 /**
  * This class defines contracting interfaces to implement, allowing third-party vendor to use customized message store.
@@ -512,6 +513,13 @@ public interface MessageStore {
     long dispatchBehindBytes();
 
     /**
+     * Get number of the bytes that have been stored in commit log and not yet flushed to disk.
+     *
+     * @return number of the bytes to flush.
+     */
+    long flushBehindBytes();
+
+    /**
      * Get number of the milliseconds that have been stored in commit log and not yet dispatched to consume queue.
      *
      * @return number of the milliseconds to dispatch.
@@ -531,14 +539,6 @@ public interface MessageStore {
      * @return flushed offset
      */
     long getFlushedWhere();
-
-    /**
-     * Reset written offset.
-     *
-     * @param phyOffset new offset.
-     * @return true if success; false otherwise.
-     */
-    boolean resetWriteOffset(long phyOffset);
 
     /**
      * Get confirm offset.
@@ -916,6 +916,13 @@ public interface MessageStore {
     long getStateMachineVersion();
 
     /**
+     * Get store metrics manager
+     *
+     * @return store metrics manager
+     */
+    StoreMetricsManager getStoreMetricsManager();
+
+    /**
      * Check message and return size
      *
      * @param byteBuffer
@@ -991,4 +998,6 @@ public interface MessageStore {
      * notify message arrive if necessary
      */
     void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest);
+
+    MessageStoreStateMachine getStateMachine();
 }

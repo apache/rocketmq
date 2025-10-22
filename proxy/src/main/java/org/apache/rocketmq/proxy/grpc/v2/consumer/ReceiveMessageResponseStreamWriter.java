@@ -64,9 +64,15 @@ public class ReceiveMessageResponseStreamWriter {
                             .setStatus(ResponseBuilder.getInstance().buildStatus(Code.MESSAGE_NOT_FOUND, "no match message"))
                             .build());
                     } else {
-                        streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
-                            .build());
+                        try {
+                            streamObserver.onNext(ReceiveMessageResponse.newBuilder()
+                                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
+                                .build());
+                        } catch (Throwable t) {
+                            messageFoundList.forEach(messageExt ->
+                                this.processThrowableWhenWriteMessage(t, ctx, request, messageExt));
+                            throw t;
+                        }
                         Iterator<MessageExt> messageIterator = messageFoundList.iterator();
                         while (messageIterator.hasNext()) {
                             MessageExt curMessageExt = messageIterator.next();

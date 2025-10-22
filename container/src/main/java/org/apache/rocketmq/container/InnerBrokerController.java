@@ -18,6 +18,7 @@ package org.apache.rocketmq.container;
 
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
@@ -25,6 +26,7 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -35,9 +37,10 @@ public class InnerBrokerController extends BrokerController {
     public InnerBrokerController(
         final BrokerContainer brokerContainer,
         final BrokerConfig brokerConfig,
-        final MessageStoreConfig messageStoreConfig
+        final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig
     ) {
-        super(brokerConfig, messageStoreConfig);
+        super(brokerConfig, messageStoreConfig, authConfig);
         this.brokerContainer = brokerContainer;
         this.brokerOuterAPI = this.brokerContainer.getBrokerOuterAPI();
     }
@@ -46,6 +49,14 @@ public class InnerBrokerController extends BrokerController {
     protected void initializeRemotingServer() {
         RemotingServer remotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort());
         RemotingServer fastRemotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort() - 2);
+
+        if (this.brokerMetricsManager != null && remotingServer instanceof NettyRemotingServer) {
+            ((NettyRemotingServer) remotingServer).setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+        }
+
+        if (this.brokerMetricsManager != null && fastRemotingServer instanceof NettyRemotingServer) {
+            ((NettyRemotingServer) fastRemotingServer).setRemotingMetricsManager(this.brokerMetricsManager.getRemotingMetricsManager());
+        }
 
         setRemotingServer(remotingServer);
         setFastRemotingServer(fastRemotingServer);

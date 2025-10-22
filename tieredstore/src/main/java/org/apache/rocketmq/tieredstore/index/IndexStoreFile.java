@@ -285,7 +285,7 @@ public class IndexStoreFile implements IndexFile {
                 buffer.position(this.getItemPosition(slotValue));
                 buffer.get(bytes);
                 IndexItem indexItem = new IndexItem(bytes);
-                long storeTimestamp = indexItem.getTimeDiff() + beginTimestamp.get();
+                long storeTimestamp = indexItem.getTimeDiff() * 1000L + beginTimestamp.get();
                 if (hashCode == indexItem.getHashCode() &&
                     beginTime <= storeTimestamp && storeTimestamp <= endTime) {
                     result.add(indexItem);
@@ -314,7 +314,8 @@ public class IndexStoreFile implements IndexFile {
     protected CompletableFuture<List<IndexItem>> queryAsyncFromSegmentFile(
         String key, int maxCount, long beginTime, long endTime) {
 
-        if (this.fileSegment == null || !UPLOAD.equals(this.fileStatus.get())) {
+        if (this.fileSegment == null || !UPLOAD.equals(this.fileStatus.get()) ||
+            this.fileSegment.getCommitPosition() <= this.getSlotPosition(0)) {
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
@@ -353,7 +354,7 @@ public class IndexStoreFile implements IndexFile {
                 for (int i = 0; i < size; i++) {
                     itemBuffer.get(bytes);
                     IndexItem indexItem = new IndexItem(bytes);
-                    long storeTimestamp = indexItem.getTimeDiff() + beginTimestamp.get();
+                    long storeTimestamp = indexItem.getTimeDiff() * 1000L + beginTimestamp.get();
                     if (hashCode == indexItem.getHashCode() &&
                         beginTime <= storeTimestamp && storeTimestamp <= endTime &&
                         result.size() < maxCount) {

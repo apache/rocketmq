@@ -164,8 +164,8 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         if (this.deleteOptions != null) {
             this.deleteOptions.close();
         }
-        if (this.defaultCFHandle != null) {
-            this.defaultCFHandle.close();
+        if (this.columnFamilyHandle != null) {
+            this.columnFamilyHandle.close();
         }
     }
 }

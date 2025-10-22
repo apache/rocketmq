@@ -295,7 +295,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         cancelIsolatedBroker(master1With3Replicas);
 
         //Add back master
-        master2With3Replicas = brokerContainer2.addBroker(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig());
+        master2With3Replicas = brokerContainer2.addBroker(buildConfigContext(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig()));
         master2With3Replicas.start();
         cancelIsolatedBroker(master2With3Replicas);
 
@@ -388,7 +388,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         cancelIsolatedBroker(master1With3Replicas);
 
         //Add back master
-        master2With3Replicas = brokerContainer2.addBroker(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig());
+        master2With3Replicas = brokerContainer2.addBroker(buildConfigContext(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig()));
         master2With3Replicas.start();
         cancelIsolatedBroker(master2With3Replicas);
 
@@ -482,12 +482,12 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         cancelIsolatedBroker(master1With3Replicas);
 
         //Add back master
-        master2With3Replicas = brokerContainer2.addBroker(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig());
+        master2With3Replicas = brokerContainer2.addBroker(buildConfigContext(master2With3Replicas.getBrokerConfig(), master2With3Replicas.getMessageStoreConfig()));
         master2With3Replicas.start();
         cancelIsolatedBroker(master2With3Replicas);
 
         //Add back slave1 to container3
-        slave1InBrokerContainer3 = brokerContainer3.addBroker(slave1InBrokerContainer3.getBrokerConfig(), slave1InBrokerContainer3.getMessageStoreConfig());
+        slave1InBrokerContainer3 = brokerContainer3.addBroker(buildConfigContext(slave1InBrokerContainer3.getBrokerConfig(), slave1InBrokerContainer3.getMessageStoreConfig()));
         slave1InBrokerContainer3.start();
         cancelIsolatedBroker(slave1InBrokerContainer3);
 

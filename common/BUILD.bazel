@@ -57,6 +57,7 @@ java_library(
         "@maven//:com_google_guava_guava",
         "@maven//:com_alibaba_fastjson",
         "@maven//:com_alibaba_fastjson2_fastjson2",
+        "@maven//:commons_codec_commons_codec",
         "@maven//:io_netty_netty_all",
         "@maven//:io_opentelemetry_opentelemetry_api",
         "@maven//:io_opentelemetry_opentelemetry_context",

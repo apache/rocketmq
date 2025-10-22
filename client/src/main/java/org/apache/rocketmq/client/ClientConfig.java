@@ -111,6 +111,8 @@ public class ClientConfig {
      */
     protected String traceTopic;
 
+    protected int maxPageSizeInGetMetadata = 2000;
+
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());
@@ -513,6 +515,14 @@ public class ClientConfig {
 
     public void setTraceTopic(String traceTopic) {
         this.traceTopic = traceTopic;
+    }
+
+    public int getMaxPageSizeInGetMetadata() {
+        return maxPageSizeInGetMetadata;
+    }
+
+    public void setMaxPageSizeInGetMetadata(int maxPageSizeInGetMetadata) {
+        this.maxPageSizeInGetMetadata = maxPageSizeInGetMetadata;
     }
 
     @Override

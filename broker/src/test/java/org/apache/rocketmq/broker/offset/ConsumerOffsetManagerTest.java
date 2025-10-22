@@ -40,6 +40,7 @@ public class ConsumerOffsetManagerTest {
     private ConsumerOffsetManager consumerOffsetManager;
 
     @Before
+    @SuppressWarnings("DoubleBraceInitialization")
     public void init() {
         brokerController = Mockito.mock(BrokerController.class);
         consumerOffsetManager = new ConsumerOffsetManager(brokerController);
@@ -77,6 +78,10 @@ public class ConsumerOffsetManagerTest {
         consumerOffsetManager.commitPullOffset("Pull", group, topic, 0, 100);
         consumerOffsetManager.removeOffset(group);
         Assert.assertFalse(consumerOffsetManager.getOffsetTable().containsKey(topic + TOPIC_GROUP_SEPARATOR + group));
+
+        consumerOffsetManager.commitPullOffset("Pull", group, topic, 0, 100);
+        consumerOffsetManager.clearPullOffset(group, topic);
+        Assert.assertEquals(-1L, consumerOffsetManager.queryPullOffset(group, topic, 0));
     }
 
     @Test

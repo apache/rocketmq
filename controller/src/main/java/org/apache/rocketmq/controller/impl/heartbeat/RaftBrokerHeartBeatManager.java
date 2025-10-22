@@ -63,7 +63,7 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
 
     // resolve the scene
     // when controller all down and startup again, we wait for some time to avoid electing a new leader,which is not necessary
-    private long firstReceivedHeartbeatTime = -1;
+    private volatile long firstReceivedHeartbeatTime = -1;
 
     public RaftBrokerHeartBeatManager(ControllerConfig controllerConfig) {
         this.scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RaftBrokerHeartbeatManager_scheduledService_"));
@@ -188,7 +188,8 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         }
 
         // if has not received any heartbeat from broker, we do not need to scan
-        if (this.firstReceivedHeartbeatTime + controllerConfig.getJraftConfig().getjRaftScanWaitTimeoutMs() < System.currentTimeMillis()) {
+        if (this.firstReceivedHeartbeatTime == -1 ||
+            this.firstReceivedHeartbeatTime + controllerConfig.getJraftConfig().getjRaftScanWaitTimeoutMs() > System.currentTimeMillis()) {
             log.info("has not received any heartbeat from broker, skip scan not active broker");
             return;
         }

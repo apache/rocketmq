@@ -150,10 +150,17 @@ public class DefaultHAService implements HAService {
         if (this.haClient != null) {
             this.haClient.shutdown();
         }
-        this.acceptSocketService.shutdown(true);
+        if (this.acceptSocketService != null) {
+            this.acceptSocketService.shutdown(true);
+        }
         this.destroyConnections();
-        this.groupTransferService.shutdown();
-        this.haConnectionStateNotificationService.shutdown();
+        if (this.groupTransferService != null) {
+            groupTransferService.shutdown();
+        }
+
+        if (this.haConnectionStateNotificationService != null) {
+            this.haConnectionStateNotificationService.shutdown();
+        }
     }
 
     public void destroyConnections() {

@@ -16,20 +16,20 @@
  */
 package org.apache.rocketmq.store.rocksdb;
 
+import java.util.function.LongSupplier;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.store.MessageStore;
 import org.rocksdb.AbstractCompactionFilter;
 import org.rocksdb.AbstractCompactionFilterFactory;
 import org.rocksdb.RemoveConsumeQueueCompactionFilter;
 
 public class ConsumeQueueCompactionFilterFactory extends AbstractCompactionFilterFactory<RemoveConsumeQueueCompactionFilter> {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
-    private final MessageStore messageStore;
+    private final LongSupplier minPhyOffsetSupplier;
 
-    public ConsumeQueueCompactionFilterFactory(final MessageStore messageStore) {
-        this.messageStore = messageStore;
+    public ConsumeQueueCompactionFilterFactory(final LongSupplier minPhyOffsetSupplier) {
+        this.minPhyOffsetSupplier = minPhyOffsetSupplier;
     }
 
     @Override
@@ -39,7 +39,7 @@ public class ConsumeQueueCompactionFilterFactory extends AbstractCompactionFilte
 
     @Override
     public RemoveConsumeQueueCompactionFilter createCompactionFilter(final AbstractCompactionFilter.Context context) {
-        long minPhyOffset = this.messageStore.getMinPhyOffset();
+        long minPhyOffset = this.minPhyOffsetSupplier.getAsLong();
         LOGGER.info("manualCompaction minPhyOffset: {}, isFull: {}, isManual: {}",
                 minPhyOffset, context.isFullCompaction(), context.isManualCompaction());
         return new RemoveConsumeQueueCompactionFilter(minPhyOffset);

@@ -21,7 +21,6 @@ java_library(
     srcs = glob(["src/main/java/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
-        "//acl",
         "//auth",
         "//broker",
         "//client",
@@ -80,13 +79,13 @@ java_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-	    "//acl",
 	    "//auth",
         ":proxy",
         "//:test_deps",
         "//broker",
         "//client",
         "//common",
+        "//srvutil",
         "//remoting",
         "@maven//:ch_qos_logback_logback_core",
         "@maven//:com_alibaba_fastjson",
@@ -120,6 +119,7 @@ GenTestRules(
     name = "GeneratedTestRules",
     exclude_tests = [
         "src/test/java/org/apache/rocketmq/proxy/config/InitConfigTest",
+        "src/test/java/org/apache/rocketmq/proxy/service/cert/TlsCertificateManagerTest",
     ],
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [

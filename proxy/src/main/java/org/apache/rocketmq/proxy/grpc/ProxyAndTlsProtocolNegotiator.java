@@ -36,16 +36,23 @@ import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessageDecoder
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
+import io.grpc.netty.shaded.io.netty.handler.ssl.OpenSsl;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslHandler;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslProvider;
+
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.grpc.netty.shaded.io.netty.util.AsciiString;
 import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.cert.CertificateException;
 import java.util.List;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
@@ -73,7 +80,13 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     private static SslContext sslContext;
 
     public ProxyAndTlsProtocolNegotiator() {
-        sslContext = loadSslContext();
+        try {
+            loadSslContext();
+            log.info("SslContext created for proxy server");
+        } catch (IOException | CertificateException e) {
+            log.error("SslContext init error", e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -90,35 +103,36 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     public void close() {
     }
 
-    private static SslContext loadSslContext() {
-        try {
-            ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-            if (proxyConfig.isTlsTestModeEnable()) {
-                SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
-                return GrpcSslContexts.forServer(selfSignedCertificate.certificate(),
-                                selfSignedCertificate.privateKey())
-                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                        .clientAuth(ClientAuth.NONE)
-                        .build();
-            } else {
-                String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
-                String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
-                try (InputStream serverKeyInputStream = Files.newInputStream(
-                        Paths.get(tlsKeyPath));
-                     InputStream serverCertificateStream = Files.newInputStream(
-                             Paths.get(tlsCertPath))) {
-                    SslContext res = GrpcSslContexts.forServer(serverCertificateStream,
-                                    serverKeyInputStream)
-                            .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                            .clientAuth(ClientAuth.NONE)
-                            .build();
-                    log.info("grpc load TLS configured OK");
-                    return res;
-                }
+    public static void loadSslContext() throws CertificateException, IOException {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        SslProvider provider;
+        if (OpenSsl.isAvailable()) {
+            provider = SslProvider.OPENSSL;
+            log.info("Using OpenSSL provider");
+        } else {
+            provider = SslProvider.JDK;
+            log.info("Using JDK SSL provider");
+        }
+        if (proxyConfig.isTlsTestModeEnable()) {
+            SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
+            sslContext = GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
+                .sslProvider(provider)
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .clientAuth(ClientAuth.NONE)
+                .build();
+        } else {
+            String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
+            String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
+            try (InputStream serverKeyInputStream = Files.newInputStream(
+                Paths.get(tlsKeyPath));
+                 InputStream serverCertificateStream = Files.newInputStream(
+                     Paths.get(tlsCertPath))) {
+                sslContext = GrpcSslContexts.forServer(serverCertificateStream,
+                        serverKeyInputStream)
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .clientAuth(ClientAuth.NONE)
+                    .build();
             }
-        } catch (Exception e) {
-            log.error("grpc tls set failed. msg: {}, e:", e.getMessage(), e);
-            throw new RuntimeException("grpc tls set failed: " + e.getMessage());
         }
     }
 
@@ -135,15 +149,14 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         @Override
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
             try {
-                ProtocolDetectionResult<HAProxyProtocolVersion> ha = HAProxyMessageDecoder.detectProtocol(
-                        in);
+                ProtocolDetectionResult<HAProxyProtocolVersion> ha = HAProxyMessageDecoder.detectProtocol(in);
                 if (ha.state() == ProtocolDetectionState.NEEDS_MORE_DATA) {
                     return;
                 }
                 if (ha.state() == ProtocolDetectionState.DETECTED) {
                     ctx.pipeline().addAfter(ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
-                            .addAfter(HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
-                            .addAfter(HA_PROXY_HANDLER, TLS_MODE_HANDLER, new TlsModeHandler(grpcHandler));
+                        .addAfter(HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
+                        .addAfter(HA_PROXY_HANDLER, TLS_MODE_HANDLER, new TlsModeHandler(grpcHandler));
                 } else {
                     ctx.pipeline().addAfter(ctx.name(), TLS_MODE_HANDLER, new TlsModeHandler(grpcHandler));
                 }
@@ -209,7 +222,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                     msg.tlvs().forEach(tlv -> handleHAProxyTLV(tlv, builder));
                 }
                 pne = InternalProtocolNegotiationEvent
-                        .withAttributes(InternalProtocolNegotiationEvent.getDefault(), builder.build());
+                    .withAttributes(InternalProtocolNegotiationEvent.getDefault(), builder.build());
             } finally {
                 msg.release();
             }
@@ -244,9 +257,9 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
 
         public TlsModeHandler(GrpcHttp2ConnectionHandler grpcHandler) {
             this.ssl = InternalProtocolNegotiators.serverTls(sslContext)
-                    .newHandler(grpcHandler);
+                .newHandler(grpcHandler);
             this.plaintext = InternalProtocolNegotiators.serverPlaintext()
-                    .newHandler(grpcHandler);
+                .newHandler(grpcHandler);
         }
 
         @Override
@@ -258,7 +271,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                 } else if (TlsMode.DISABLED.equals(tlsMode)) {
                     ctx.pipeline().addAfter(ctx.name(), null, this.plaintext);
                 } else {
-                    // in SslHandler.isEncrypted, it need at least 5 bytes to judge is encrypted or not
+                    // in SslHandler.isEncrypted, it needs at least 5 bytes to judge is encrypted or not
                     if (in.readableBytes() < SSL_RECORD_HEADER_LENGTH) {
                         return;
                     }

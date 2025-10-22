@@ -17,13 +17,13 @@
 package org.apache.rocketmq.auth.migration;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.rocketmq.acl.plain.PlainPermissionManager;
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
 import org.apache.rocketmq.auth.config.AuthConfig;
-import org.apache.rocketmq.common.AclConfig;
-import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.auth.migration.v1.PlainPermissionManager;
+import org.apache.rocketmq.auth.migration.v1.AclConfig;
+import org.apache.rocketmq.auth.migration.v1.PlainAccessConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

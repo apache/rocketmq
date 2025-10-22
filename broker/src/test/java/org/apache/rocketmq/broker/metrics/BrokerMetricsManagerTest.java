@@ -43,16 +43,36 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class BrokerMetricsManagerTest {
 
+    private BrokerMetricsManager createTestBrokerMetricsManager() {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        String storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-"
+                + UUID.randomUUID();
+        messageStoreConfig.setStorePathRootDir(storePathRootDir);
+        BrokerConfig brokerConfig = new BrokerConfig();
+
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig.setListenPort(0);
+
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig,
+                new NettyClientConfig(), messageStoreConfig);
+
+        return new BrokerMetricsManager(brokerController);
+    }
+
     @Test
     public void testNewAttributesBuilder() {
-        Attributes attributes = BrokerMetricsManager.newAttributesBuilder().put("a", "b")
+        BrokerMetricsManager metricsManager = createTestBrokerMetricsManager();
+        Attributes attributes = metricsManager.newAttributesBuilder().put("a", "b")
                 .build();
         assertThat(attributes.get(AttributeKey.stringKey("a"))).isEqualTo("b");
     }
 
     @Test
     public void testCustomizedAttributesBuilder() {
-        BrokerMetricsManager.attributesBuilderSupplier = () -> new AttributesBuilder() {
+        BrokerMetricsManager metricsManager = createTestBrokerMetricsManager();
+        
+        // Create a custom attributes builder supplier for testing
+        metricsManager.setAttributesBuilderSupplier(() -> new AttributesBuilder() {
             private AttributesBuilder attributesBuilder = Attributes.builder();
 
             @Override
@@ -77,8 +97,9 @@ public class BrokerMetricsManagerTest {
                 attributesBuilder.putAll(attributes);
                 return this;
             }
-        };
-        Attributes attributes = BrokerMetricsManager.newAttributesBuilder().put("a", "b")
+        });
+        
+        Attributes attributes = metricsManager.newAttributesBuilder().put("a", "b")
                 .build();
         assertThat(attributes.get(AttributeKey.stringKey("a"))).isEqualTo("b");
         assertThat(attributes.get(AttributeKey.stringKey("customized"))).isEqualTo("value");

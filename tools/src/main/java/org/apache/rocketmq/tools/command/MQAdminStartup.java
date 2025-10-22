@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.tools.command;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -27,10 +25,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.apache.rocketmq.tools.command.acl.ClusterAclConfigVersionListSubCommand;
-import org.apache.rocketmq.tools.command.acl.DeleteAccessConfigSubCommand;
-import org.apache.rocketmq.tools.command.acl.UpdateAccessConfigSubCommand;
-import org.apache.rocketmq.tools.command.acl.UpdateGlobalWhiteAddrSubCommand;
 import org.apache.rocketmq.tools.command.auth.CopyAclsSubCommand;
 import org.apache.rocketmq.tools.command.auth.CopyUsersSubCommand;
 import org.apache.rocketmq.tools.command.auth.CreateAclSubCommand;
@@ -121,11 +115,13 @@ import org.apache.rocketmq.tools.command.topic.UpdateTopicListSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MQAdminStartup {
     protected static final List<SubCommand> SUB_COMMANDS = new ArrayList<>();
 
-    private static final String ROCKETMQ_HOME = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
-        System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private static final String ROCKETMQ_HOME = MixAll.ROCKETMQ_HOME_DIR;
 
     public static void main(String[] args) {
         main0(args, null);
@@ -260,12 +256,6 @@ public class MQAdminStartup {
         initCommand(new QueryConsumeQueueCommand());
         initCommand(new SendMessageCommand());
         initCommand(new ConsumeMessageCommand());
-
-        //for acl command
-        initCommand(new UpdateAccessConfigSubCommand());
-        initCommand(new DeleteAccessConfigSubCommand());
-        initCommand(new ClusterAclConfigVersionListSubCommand());
-        initCommand(new UpdateGlobalWhiteAddrSubCommand());
 
         initCommand(new UpdateStaticTopicSubCommand());
         initCommand(new RemappingStaticTopicSubCommand());

@@ -99,8 +99,8 @@ public class SlaveSynchronize {
                     }
 
                     //update
-                    newTopicConfigTable.values().forEach(topicConfigManager::updateSingleTopicConfigWithoutPersist);
-
+                    newTopicConfigTable.values().forEach(topicConfigManager::putTopicConfig);
+                    topicConfigManager.updateDataVersion();
                     topicConfigManager.persist();
                 }
                 if (topicWrapper.getTopicQueueMappingDetailMap() != null
@@ -193,7 +193,8 @@ public class SlaveSynchronize {
                         subscriptionGroupManager.deleteSubscriptionGroupConfig(configEntry.getKey());
                     }
                     // update
-                    newSubscriptionGroupTable.values().forEach(subscriptionGroupManager::updateSubscriptionGroupConfigWithoutPersist);
+                    newSubscriptionGroupTable.values().forEach(subscriptionGroupManager::putSubscriptionGroupConfig);
+                    subscriptionGroupManager.updateDataVersion();
                     // persist
                     subscriptionGroupManager.persist();
                     LOGGER.info("Update slave Subscription Group from master, {}", masterAddrBak);

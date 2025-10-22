@@ -311,7 +311,6 @@ public class AuthorizationEvaluatorTest {
         Acl acl = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub", "192.168.0.0/24", Decision.DENY);
         this.authorizationMetadataManager.createAcl(acl).join();
 
-
         Assert.assertThrows(AuthorizationException.class, () -> {
             Subject subject = Subject.of("User:test");
             Resource resource = Resource.ofTopic("test");
@@ -343,6 +342,46 @@ public class AuthorizationEvaluatorTest {
             context.setRpcCode("10");
             this.evaluator.evaluate(Collections.singletonList(context));
         }
+    }
+
+    @Test
+    public void evaluate9() {
+        if (MixAll.isMac()) {
+            return;
+        }
+        User user = User.of("test", "test");
+        this.authenticationMetadataManager.createUser(user).join();
+
+        Acl acl0 = AuthTestHelper.buildAcl("User:test", "*", "Pub", "192.168.0.0/24", Decision.ALLOW);
+        this.authorizationMetadataManager.createAcl(acl0).join();
+        Acl acl1 = AuthTestHelper.buildAcl("User:test", "Topic:*", "Pub", "192.168.0.0/24", Decision.ALLOW);
+        this.authorizationMetadataManager.createAcl(acl1).join();
+        Acl acl2 = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub", "192.168.0.0/24", Decision.ALLOW);
+        this.authorizationMetadataManager.createAcl(acl2).join();
+        Acl acl3 = AuthTestHelper.buildAcl("User:test", "Topic:test_*", "Pub", "192.168.0.0/24", Decision.DENY);
+        this.authorizationMetadataManager.createAcl(acl3).join();
+        Acl acl4 = AuthTestHelper.buildAcl("User:test", "Topic:test_001", "Pub", "192.168.0.0/24", Decision.DENY);
+        this.authorizationMetadataManager.createAcl(acl4).join();
+
+        Assert.assertThrows(AuthorizationException.class, () -> {
+            Subject subject = Subject.of("User:test");
+            Resource resource = Resource.ofTopic("test_001");
+            Action action = Action.PUB;
+            String sourceIp = "192.168.0.1";
+            DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
+            context.setRpcCode("10");
+            this.evaluator.evaluate(Collections.singletonList(context));
+        });
+
+        Assert.assertThrows(AuthorizationException.class, () -> {
+            Subject subject = Subject.of("User:test");
+            Resource resource = Resource.ofTopic("test_002");
+            Action action = Action.PUB;
+            String sourceIp = "192.168.0.1";
+            DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
+            context.setRpcCode("10");
+            this.evaluator.evaluate(Collections.singletonList(context));
+        });
     }
 
     private void clearAllUsers() {

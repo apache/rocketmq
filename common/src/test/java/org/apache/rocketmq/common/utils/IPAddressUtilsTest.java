@@ -18,6 +18,8 @@ package org.apache.rocketmq.common.utils;
 
 import org.junit.Test;
 
+import static org.apache.rocketmq.common.utils.NetworkUtil.validCommonInet6Address;
+
 public class IPAddressUtilsTest {
 
     @Test
@@ -72,4 +74,19 @@ public class IPAddressUtilsTest {
         assert IPAddressUtils.isValidIPOrCidr(ipv4Cidr);
         assert IPAddressUtils.isValidIPOrCidr(ipv6Cidr);
     }
+
+    @Test
+    public void isValidIPv6Common() {
+        String ipv6WithoutScope = "2001:0db8:85a3:0000:0000:8a2e:0370:7334";
+        assert validCommonInet6Address(ipv6WithoutScope);
+        String ipv6WithScope = "2001:0db8:85a3:0000:0000:8a2e:0370:7334%eth0";
+        assert validCommonInet6Address(ipv6WithScope);
+        String ipv6WithBracketedAndScope = "[2001:0db8:85a3:0000:0000:8a2e:0370:7334%eth0]";
+        assert validCommonInet6Address(ipv6WithBracketedAndScope);
+        String ipv4 = "192.168.1.0";
+        assert !validCommonInet6Address(ipv4);
+        String ipv4Cidr = "192.168.1.0/24";
+        assert !validCommonInet6Address(ipv4Cidr);
+    }
+
 }

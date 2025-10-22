@@ -1,6 +1,6 @@
-# The system configuration
+# The System Configuration (RocketMQ 5.x)
 
-This section focuses on the configuration of the system (JVM/OS)
+This section focuses on the configuration of the system (JVM/OS) for **RocketMQ 5.x**.
 
 ## **1 JVM Options** ##
 
@@ -16,56 +16,42 @@ If you don’t care about the boot time of RocketMQ broker, pre-touch the Java h
     
     -XX:+AlwaysPreTouch
 
-Disable biased locking maybe reduce JVM pauses:
+Disable biased locking to potentially reduce JVM pauses:
 
     -XX:-UseBiasedLocking
 
-As for garbage collection, G1 collector with JDK 1.8 is recommended:
+As for garbage collection, the G1 collector with JDK 1.8 is recommended:
 
-    -XX:+UseG1GC -XX:G1HeapRegionSize=16m 
+    -XX:+UseG1GC -XX:G1HeapRegionSize=16m
     -XX:G1ReservePercent=25
     -XX:InitiatingHeapOccupancyPercent=30
 
-These GC options looks a little aggressive, but it’s proved to have good performance in our production environment
+These GC options may seem a bit aggressive, but they have been proven to provide good performance in our production environment.
 
-Don’t set a too small value for -XX:MaxGCPauseMillis, otherwise JVM will use a small young generation to achieve this goal which will cause very frequent minor GC.So use rolling GC log file is recommended:
+Do not set a too small value for -XX:MaxGCPauseMillis, as it may cause the JVM to use a small young generation, leading to frequent minor GCs. Using a rolling GC log file is recommended:
     
-    -XX:+UseGCLogFileRotation 
-    -XX:NumberOfGCLogFiles=5 
+    -XX:+UseGCLogFileRotation
+    -XX:NumberOfGCLogFiles=5
     -XX:GCLogFileSize=30m
     
-If write GC file will increase latency of broker, consider redirect GC log file to a memory file system:
+If writing GC logs to disk increases broker latency, consider redirecting the GC log file to a memory file system:
     
     -Xloggc:/dev/shm/mq_gc_%p.log123
 
-## 2 Linux Kernel Parameters ##
+## **2 Linux Kernel Parameters** ##
 
-There is a os.sh script that lists a lot of kernel parameters in folder bin which can be used for production use with minor changes. Below parameters need attention, and more details please refer to documentation for /proc/sys/vm/*.
+There is an `os.sh` script in the `bin` folder that lists several kernel parameters that can be used for production with minor modifications. Below parameters require attention. For more details, refer to the documentation for `/proc/sys/vm/*`.
 
+- **vm.extra_free_kbytes**: Tells the VM to keep extra free memory between the threshold where background reclaim (kswapd) kicks in and the threshold where direct reclaim (by allocating processes) kicks in. RocketMQ uses this parameter to avoid high latency in memory allocation. (Kernel version-specific)
 
+- **vm.min_free_kbytes**: If set lower than 1024KB, the system may become subtly broken and prone to deadlocks under high loads.
 
+- **vm.max_map_count**: Limits the maximum number of memory map areas a process may have. RocketMQ uses `mmap` to load `CommitLog` and `ConsumeQueue`, so setting a higher value is recommended.
 
-- **vm.extra_free_kbytes**, tells the VM to keep extra free memory between the threshold where background reclaim (kswapd) kicks in, and the threshold where direct reclaim (by allocating processes) kicks in. RocketMQ uses this parameter to avoid high latency in memory allocation. (It is specific to the kernel version）
+- **vm.swappiness**: Defines how aggressively the kernel swaps memory pages. Higher values increase aggressiveness, while lower values decrease the amount of swap. A value of **10** is recommended to avoid swap latency.
 
+- **File descriptor limits**: RocketMQ requires open file descriptors for files (`CommitLog` and `ConsumeQueue`) and network connections. It is recommended to set this to **655350**.
 
+- **Disk scheduler**: The **deadline I/O scheduler** is recommended for RocketMQ as it attempts to provide a guaranteed latency for requests.
 
-- **vm.min_free_kbytes**, if you set this to lower than 1024KB, your system will become subtly broken, and prone to deadlock under high loads.
-
-
-
-
-
-- **vm.max_map_count**, limits the maximum number of memory map areas a process may have. RocketMQ will use mmap to load CommitLog and ConsumeQueue, so set a bigger value for this parameter is recommended.
-
-
-
-- **vm.swappiness**, define how aggressive the kernel will swap memory pages. Higher values will increase aggressiveness, lower values decrease the amount of swap. 10 is recommended for this value to avoid swap latency.
-
-
-
-- **File descriptor limits**, RocketMQ needs open file descriptors for files(CommitLog and ConsumeQueue) and network connections. We recommend setting  655350 for file descriptors.
-
-
-
-- **Disk scheduler**, the deadline I/O scheduler is recommended for RocketMQ, which attempts to provide a guaranteed latency for requests.
-
+---

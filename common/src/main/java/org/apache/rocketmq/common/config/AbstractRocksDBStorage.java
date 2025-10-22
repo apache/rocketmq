@@ -28,6 +28,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ThreadUtils;
@@ -47,6 +49,8 @@ import org.rocksdb.Priority;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.RocksIterator;
+import org.rocksdb.Slice;
 import org.rocksdb.Statistics;
 import org.rocksdb.Status;
 import org.rocksdb.WriteBatch;
@@ -311,6 +315,105 @@ public abstract class AbstractRocksDBStorage {
         }
     }
 
+    public void iterate(ColumnFamilyHandle columnFamilyHandle, final byte[] prefix, BiConsumer<byte[], byte[]> callback)
+        throws RocksDBException {
+
+        if (ArrayUtils.isEmpty(prefix)) {
+            throw new RocksDBException("Prefix is not allowed to be null");
+        }
+
+        iterate(columnFamilyHandle, prefix, null, null, callback);
+    }
+
+    public void iterate(ColumnFamilyHandle columnFamilyHandle, byte[] prefix,
+        final byte[] start, final byte[] end, BiConsumer<byte[], byte[]> callback) throws RocksDBException {
+
+        if (ArrayUtils.isEmpty(prefix) && ArrayUtils.isEmpty(start)) {
+            throw new RocksDBException("To determine lower boundary, prefix and start may not be null at the same "
+                + "time.");
+        }
+
+        if (ArrayUtils.isEmpty(prefix) && ArrayUtils.isEmpty(end)) {
+            throw new RocksDBException("To determine upper boundary, prefix and end may not be null at the same time.");
+        }
+
+        if (columnFamilyHandle == null) {
+            return;
+        }
+
+        ReadOptions readOptions = null;
+        Slice startSlice = null;
+        Slice endSlice = null;
+        Slice prefixSlice = null;
+        RocksIterator iterator = null;
+        try {
+            readOptions = new ReadOptions();
+            readOptions.setTotalOrderSeek(true);
+            readOptions.setReadaheadSize(4L * 1024 * 1024);
+            boolean hasStart = !ArrayUtils.isEmpty(start);
+            boolean hasPrefix = !ArrayUtils.isEmpty(prefix);
+
+            if (hasStart) {
+                startSlice = new Slice(start);
+                readOptions.setIterateLowerBound(startSlice);
+            }
+
+            if (!ArrayUtils.isEmpty(end)) {
+                endSlice = new Slice(end);
+                readOptions.setIterateUpperBound(endSlice);
+            }
+
+            if (!hasStart && hasPrefix) {
+                prefixSlice = new Slice(prefix);
+                readOptions.setIterateLowerBound(prefixSlice);
+            }
+
+            iterator = db.newIterator(columnFamilyHandle, readOptions);
+            if (hasStart) {
+                iterator.seek(start);
+            } else if (hasPrefix) {
+                iterator.seek(prefix);
+            }
+
+            while (iterator.isValid()) {
+                byte[] key = iterator.key();
+                if (hasPrefix && !checkPrefix(key, prefix)) {
+                    break;
+                }
+                callback.accept(iterator.key(), iterator.value());
+                iterator.next();
+            }
+        } finally {
+            if (startSlice != null) {
+                startSlice.close();
+            }
+            if (endSlice != null) {
+                endSlice.close();
+            }
+            if (prefixSlice != null) {
+                prefixSlice.close();
+            }
+            if (readOptions != null) {
+                readOptions.close();
+            }
+            if (iterator != null) {
+                iterator.close();
+            }
+        }
+    }
+
+    private boolean checkPrefix(byte[] key, byte[] upperBound) {
+        if (key.length < upperBound.length) {
+            return false;
+        }
+        for (int i = 0; i < upperBound.length; i++) {
+            if (key[i] > upperBound[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     protected void manualCompactionDefaultCfRange(CompactRangeOptions compactRangeOptions) {
         if (!hold()) {
             return;
@@ -384,10 +487,16 @@ public abstract class AbstractRocksDBStorage {
                 return true;
             }
 
+            manualCompactionThread.shutdownNow();
+
+            manualCompactionThread.awaitTermination(30, TimeUnit.SECONDS);
+
             final FlushOptions flushOptions = new FlushOptions();
             flushOptions.setWaitForFlush(true);
             try {
                 flush(flushOptions);
+            } catch (Throwable e) {
+                LOGGER.error("flush rocksdb wal failed when shutdown", e);
             } finally {
                 flushOptions.close();
             }
@@ -418,10 +527,22 @@ public abstract class AbstractRocksDBStorage {
             }
             //4. close db.
             if (db != null && !this.readOnly) {
-                this.db.syncWal();
+                try {
+                    this.db.syncWal();
+                } catch (Throwable e) {
+                    LOGGER.error("rocksdb sync wal failed when shutdown", e);
+                } finally {
+                    flushOptions.close();
+                }
+
             }
             if (db != null) {
-                this.db.closeE();
+                try {
+                    this.db.closeE();
+                } catch (Throwable e) {
+                    LOGGER.error("rocksdb db closeE failed when shutdown", e);
+                }
+
             }
             // Close DBOptions after RocksDB instance is closed.
             if (this.options != null) {

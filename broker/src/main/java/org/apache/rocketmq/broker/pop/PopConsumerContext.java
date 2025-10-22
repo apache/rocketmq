@@ -35,6 +35,8 @@ public class PopConsumerContext {
 
     private final boolean fifo;
 
+    private final int initMode;
+
     private final String attemptId;
 
     private final AtomicLong restCount;
@@ -50,13 +52,14 @@ public class PopConsumerContext {
     private List<PopConsumerRecord> popConsumerRecordList;
 
     public PopConsumerContext(String clientHost,
-        long popTime, long invisibleTime, String groupId, boolean fifo, String attemptId) {
+        long popTime, long invisibleTime, String groupId, boolean fifo, int initMode, String attemptId) {
 
         this.clientHost = clientHost;
         this.popTime = popTime;
         this.invisibleTime = invisibleTime;
         this.groupId = groupId;
         this.fifo = fifo;
+        this.initMode = initMode;
         this.attemptId = attemptId;
         this.restCount = new AtomicLong(0);
         this.startOffsetInfo = new StringBuilder();
@@ -118,6 +121,10 @@ public class PopConsumerContext {
 
     public boolean isFifo() {
         return fifo;
+    }
+
+    public int getInitMode() {
+        return initMode;
     }
 
     public long getInvisibleTime() {

@@ -53,6 +53,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -90,16 +91,17 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
         messageExtList.add(createMessageExt(TOPIC, "tag"));
         messageExtList.add(createMessageExt(TOPIC, "tag"));
         PopResult popResult = new PopResult(PopStatus.FOUND, messageExtList);
+        ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+            .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+            .setFilterExpression(FilterExpression.newBuilder()
+                .setType(FilterType.TAG)
+                .setExpression("*")
+                .build())
+            .build();
         writer.writeAndComplete(
             ProxyContext.create(),
-            ReceiveMessageRequest.newBuilder()
-                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
-                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
-                .setFilterExpression(FilterExpression.newBuilder()
-                    .setType(FilterType.TAG)
-                    .setExpression("*")
-                    .build())
-                .build(),
+            receiveMessageRequest,
             popResult
         );
 
@@ -114,6 +116,16 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
         assertEquals(messageExtList.get(0).getMsgId(), responseArgumentCaptor.getAllValues().get(1).getMessage().getSystemProperties().getMessageId());
 
         assertEquals(messageExtList.get(1).getMsgId(), changeInvisibleTimeMsgIdCaptor.getValue());
+
+        // case: fail to write response status at first step
+        doThrow(new RuntimeException()).when(streamObserver).onNext(any());
+        writer.writeAndComplete(
+            ProxyContext.create(),
+            receiveMessageRequest,
+            popResult
+        );
+        verify(this.messagingProcessor, times(3))
+            .changeInvisibleTime(any(), any(), anyString(), anyString(), anyString(), anyLong());
     }
 
     @Test

@@ -90,6 +90,42 @@ public class ConsumeQueueExt {
         }
     }
 
+    /**
+     * Constructor with writeWithoutMmap support.
+     *
+     * @param topic topic
+     * @param queueId id of queue
+     * @param storePath root dir of files to store.
+     * @param mappedFileSize file size
+     * @param bitMapLength bit map length.
+     * @param writeWithoutMmap whether to use RandomAccessFile instead of MappedByteBuffer
+     */
+    public ConsumeQueueExt(final String topic,
+        final int queueId,
+        final String storePath,
+        final int mappedFileSize,
+        final int bitMapLength,
+        final boolean writeWithoutMmap) {
+
+        this.storePath = storePath;
+        this.mappedFileSize = mappedFileSize;
+
+        this.topic = topic;
+        this.queueId = queueId;
+
+        String queueDir = this.storePath
+            + File.separator + topic
+            + File.separator + queueId;
+
+        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null, writeWithoutMmap);
+
+        if (bitMapLength > 0) {
+            this.tempContainer = ByteBuffer.allocate(
+                bitMapLength / Byte.SIZE
+            );
+        }
+    }
+
     public long getTotalSize() {
         return this.mappedFileQueue.getTotalFileSize();
     }
