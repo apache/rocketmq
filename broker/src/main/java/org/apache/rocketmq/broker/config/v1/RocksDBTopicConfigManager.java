@@ -44,7 +44,8 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         super(brokerController, false);
 
         this.useSingleRocksDBForAllConfigs = useSingleRocksDB;
-        this.storePathRootDir = storePathRootDir;
+        this.storePathRootDir = StringUtils.isBlank(storePathRootDir) ?
+            brokerController.getMessageStoreConfig().getStorePathRootDir() : storePathRootDir;
 
         long flushInterval = brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs();
         CompressionType compressionType =

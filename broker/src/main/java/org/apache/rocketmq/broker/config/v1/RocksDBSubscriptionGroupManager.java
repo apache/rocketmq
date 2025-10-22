@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -48,7 +49,8 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         super(brokerController, false);
 
         this.useSingleRocksDBForAllConfigs = useSingleRocksDB;
-        this.storePathRootDir = storePathRootDir;
+        this.storePathRootDir = StringUtils.isBlank(storePathRootDir) ?
+            brokerController.getMessageStoreConfig().getStorePathRootDir() : storePathRootDir;
 
         long flushInterval = brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs();
         CompressionType compressionType =

@@ -49,7 +49,8 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         super(brokerController);
 
         this.useSingleRocksDBForAllConfigs = useSingleRocksDB;
-        this.storePathRootDir = storePathRootDir;
+        this.storePathRootDir = StringUtils.isBlank(storePathRootDir) ?
+            brokerController.getMessageStoreConfig().getStorePathRootDir() : storePathRootDir;
 
         long flushInterval = brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs();
         CompressionType compressionType =
