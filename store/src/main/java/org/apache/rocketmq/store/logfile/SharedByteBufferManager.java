@@ -28,7 +28,7 @@ public class SharedByteBufferManager {
 
     private static final int MAX_SHARED_NUM = 16;
     private static volatile SharedByteBufferManager instance;
-    private static final Object lock = new Object();
+    private static final Object LOCK = new Object();
 
     private SharedByteBuffer[] sharedByteBuffers;
     private int bufferSize;
@@ -43,7 +43,7 @@ public class SharedByteBufferManager {
      */
     public static SharedByteBufferManager getInstance() {
         if (instance == null) {
-            synchronized (lock) {
+            synchronized (LOCK) {
                 if (instance == null) {
                     instance = new SharedByteBufferManager();
                 }
