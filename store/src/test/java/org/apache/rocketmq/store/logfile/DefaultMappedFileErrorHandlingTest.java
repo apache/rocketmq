@@ -27,7 +27,6 @@ import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.CompactionAppendMsgCallback;
 import org.apache.rocketmq.store.PutMessageContext;
-import org.apache.rocketmq.store.logfile.SharedByteBufferManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

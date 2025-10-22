@@ -22,7 +22,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.store.logfile.SharedByteBufferManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

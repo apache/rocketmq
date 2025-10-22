@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.TransientStorePool;
-import org.apache.rocketmq.store.logfile.SharedByteBufferManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
