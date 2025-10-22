@@ -53,7 +53,7 @@ public class SharedByteBufferManager {
     }
 
     /**
-     * Initialize shared buffers with specified buffer size
+     * Initialize shared buffers with specified messageSize size
      *
      * @param maxMessageSize max messageSize size
      */
@@ -78,7 +78,8 @@ public class SharedByteBufferManager {
      */
     public SharedByteBuffer borrowSharedByteBuffer() {
         if (!initialized) {
-            throw new IllegalStateException("SharedByteBufferManager not initialized");
+            // Initialize with default size if not initialized
+            init(4 * 1024 * 1024); // Default 4MB
         }
         int idx = ThreadLocalRandom.current().nextInt(MAX_SHARED_NUM);
         return sharedByteBuffers[idx];

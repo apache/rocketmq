@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.TransientStorePool;
+import org.apache.rocketmq.store.logfile.SharedByteBufferManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,6 +38,9 @@ public class DefaultMappedFileWriteWithoutMmapTest {
         storePath = System.getProperty("user.home") + File.separator + "unitteststore" + System.currentTimeMillis();
         fileName = storePath + File.separator + "00000000000000000000";
         UtilAll.ensureDirOK(storePath);
+
+        // Initialize SharedByteBufferManager for tests
+        SharedByteBufferManager.getInstance().init(4 * 1024 * 1024); // 4MB default
     }
 
     @After

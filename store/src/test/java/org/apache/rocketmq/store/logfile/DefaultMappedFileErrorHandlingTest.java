@@ -27,6 +27,7 @@ import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.CompactionAppendMsgCallback;
 import org.apache.rocketmq.store.PutMessageContext;
+import org.apache.rocketmq.store.logfile.SharedByteBufferManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,6 +44,9 @@ public class DefaultMappedFileErrorHandlingTest {
         storePath = System.getProperty("user.home") + File.separator + "unitteststore" + System.currentTimeMillis();
         fileName = storePath + File.separator + "00000000000000000000";
         UtilAll.ensureDirOK(storePath);
+
+        // Initialize SharedByteBufferManager for tests
+        SharedByteBufferManager.getInstance().init(4 * 1024 * 1024); // 4MB default
     }
 
     @After
