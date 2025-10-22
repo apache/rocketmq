@@ -318,8 +318,6 @@ public class DefaultMappedFile extends AbstractMappedFile {
                     } catch (Throwable t) {
                         log.error("Failed to write to mappedFile {}", this.fileName, t);
                         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
-                    } finally {
-                        sharedByteBuffer.release();
                     }
                 }
 
