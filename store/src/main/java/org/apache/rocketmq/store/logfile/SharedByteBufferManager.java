@@ -78,7 +78,6 @@ public class SharedByteBufferManager {
      */
     public SharedByteBuffer borrowSharedByteBuffer() {
         if (!initialized) {
-            // Initialize with default size if not initialized
             throw new IllegalStateException("SharedByteBufferManager not initialized");
         }
         int idx = ThreadLocalRandom.current().nextInt(MAX_SHARED_NUM);
