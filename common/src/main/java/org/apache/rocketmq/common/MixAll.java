@@ -614,6 +614,10 @@ public class MixAll {
         long current = startHour;
         while (current <= endHour) {
             result.add(current);
+            //protect system self 30 * 24
+            if (result.size() >= 720) {
+                return result;
+            }
             current += MILLS_FOR_HOUR;
         }
         return result;

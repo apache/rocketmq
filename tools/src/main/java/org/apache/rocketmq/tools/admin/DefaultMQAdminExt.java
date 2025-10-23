@@ -993,8 +993,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public void switchTimerEngine(String brokerAddr, String desTimerEngine)
-        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+    public void switchTimerEngine(String brokerAddr, String desTimerEngine) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         UnsupportedEncodingException, InterruptedException, MQBrokerException {
         defaultMQAdminExtImpl.switchTimerEngine(brokerAddr, desTimerEngine);
     }

@@ -361,7 +361,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
                             writeBatch.put(cfHandle, keyBytes, valueBytes);
                         }
                     } else {
-                        logError.error("MessageRocksDBStorage record actionFlag error, actionFlag: {}", record.getActionFlag());
+                        logError.error("MessageRocksDBStorage writeRecordsForTimer record actionFlag error, actionFlag: {}", record.getActionFlag());
                     }
                 } catch (Exception e) {
                     logError.error("MessageRocksDBStorage writeRecordsForTimer error: {}", e.getMessage());
@@ -381,8 +381,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         RocksIterator iterator = null;
         try (ReadOptions readOptions = new ReadOptions()
             .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array()))
-            .setIterateUpperBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()))
-            .setPrefixSameAsStart(true)) {
+            .setIterateUpperBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()))) {
             iterator = db.newIterator(cfHandle, readOptions);
             if (null == startKey || startKey.length == 0) {
                 iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());

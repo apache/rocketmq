@@ -450,8 +450,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
-        int maxNum, long begin, long end, String indexType, String lastKey) {
+    public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key, int maxNum, long begin, long end, String indexType, String lastKey) {
         long earliestTimeInNextStore = next.getEarliestMessageTime();
         if (earliestTimeInNextStore <= 0) {
             log.warn("TieredMessageStore queryMessageAsync: get earliest message time in next store failed: {}", earliestTimeInNextStore);

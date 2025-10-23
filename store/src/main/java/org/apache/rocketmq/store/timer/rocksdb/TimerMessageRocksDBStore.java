@@ -28,7 +28,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-
 import com.conversantmedia.util.concurrent.DisruptorBlockingQueue;
 import com.google.common.util.concurrent.RateLimiter;
 import io.opentelemetry.api.common.Attributes;
@@ -60,7 +59,6 @@ import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 import org.apache.rocketmq.store.util.PerfCounter;
-
 import static org.apache.rocketmq.common.message.MessageConst.PROPERTY_TIMER_ROLL_LABEL;
 import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TIMER_COLUMN_FAMILY;
 import static org.apache.rocketmq.store.timer.TimerMessageStore.TIMER_TOPIC;
@@ -99,8 +97,7 @@ public class TimerMessageRocksDBStore {
         final BrokerStatsManager brokerStatsManager) {
         this.messageStore = messageStore;
         this.storeConfig = messageStore.getMessageStoreConfig();
-        this.precisionMs = storeConfig.getTimerRocksDBPrecisionMs() < 100L ? 1000L
-            : storeConfig.getTimerRocksDBPrecisionMs();
+        this.precisionMs = storeConfig.getTimerRocksDBPrecisionMs() < 100L ? 1000L : storeConfig.getTimerRocksDBPrecisionMs();
         expirationThresholdMillis = precisionMs - 1L;
         this.messageRocksDBStorage = messageStore.getMessageRocksDBStorage();
         this.timerMetrics = timerMetrics;
@@ -119,10 +116,8 @@ public class TimerMessageRocksDBStore {
         if (this.state == RUNNING) {
             return;
         }
-        long commitOffsetFile = null != this.messageStore.getTimerMessageStore()
-            ? this.messageStore.getTimerMessageStore().getCommitQueueOffset() : 0L;
-        long commitOffsetRocksDB = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY,
-            MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
+        long commitOffsetFile = null != this.messageStore.getTimerMessageStore() ? this.messageStore.getTimerMessageStore().getCommitQueueOffset() : 0L;
+        long commitOffsetRocksDB = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
         long maxCommitOffset = Math.max(commitOffsetFile, commitOffsetRocksDB);
         this.readOffset.set(maxCommitOffset);
         this.expiredMessageReputService.start();
@@ -130,10 +125,7 @@ public class TimerMessageRocksDBStore {
         this.timeline.start();
         this.timerSysTopicScanService.start();
         this.state = RUNNING;
-        log.info(
-            "TimerMessageRocksDBStore start success, start commitOffsetFile: {}, commitOffsetRocksDB: {}, readOffset:"
-                + " {}",
-            commitOffsetFile, commitOffsetRocksDB, this.readOffset.get());
+        log.info("TimerMessageRocksDBStore start success, start commitOffsetFile: {}, commitOffsetRocksDB: {}, readOffset: {}", commitOffsetFile, commitOffsetRocksDB, this.readOffset.get());
     }
 
     public synchronized boolean restart() {
@@ -144,16 +136,11 @@ public class TimerMessageRocksDBStore {
                 return true;
             }
             if (this.state == RUNNING && this.storeConfig.isTimerRocksDBStopScan()) {
-                long commitOffsetFile = null != this.messageStore.getTimerMessageStore()
-                    ? this.messageStore.getTimerMessageStore().getCommitQueueOffset() : 0L;
-                long commitOffsetRocksDB = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY,
-                    MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
+                long commitOffsetFile = null != this.messageStore.getTimerMessageStore() ? this.messageStore.getTimerMessageStore().getCommitQueueOffset() : 0L;
+                long commitOffsetRocksDB = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
                 long maxCommitOffset = Math.max(commitOffsetFile, commitOffsetRocksDB);
                 this.readOffset.set(maxCommitOffset);
-                log.info(
-                    "restart TimerMessageRocksDBStore has benn recover running, commitOffsetFile: {}, "
-                        + "commitOffsetRocksDB: {}, readOffset: {}",
-                    commitOffsetFile, commitOffsetRocksDB, readOffset.get());
+                log.info("restart TimerMessageRocksDBStore has benn recover running, commitOffsetFile: {}, commitOffsetRocksDB: {}, readOffset: {}", commitOffsetFile, commitOffsetRocksDB, readOffset.get());
             } else {
                 this.load();
                 this.start();
@@ -228,8 +215,7 @@ public class TimerMessageRocksDBStore {
         if (null == messageRocksDBStorage || !storeConfig.isTransRocksDBEnable()) {
             return 0L;
         }
-        return messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY,
-            MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
+        return messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
     }
 
     public Timeline getTimeline() {
@@ -244,10 +230,8 @@ public class TimerMessageRocksDBStore {
             this.expiredMessageQueue = new LinkedBlockingDeque<>(TIME_UP_CAPACITY);
             this.rollMessageQueue = new LinkedBlockingDeque<>(ROLL_CAPACITY);
         }
-        this.expiredMessageReputService = new TimerMessageReputService(expiredMessageQueue,
-            storeConfig.getTimerRocksDBTimeExpiredMaxTps(), true);
-        this.rollMessageReputService = new TimerMessageReputService(rollMessageQueue,
-            storeConfig.getTimerRocksDBRollMaxTps(), false);
+        this.expiredMessageReputService = new TimerMessageReputService(expiredMessageQueue, storeConfig.getTimerRocksDBTimeExpiredMaxTps(), true);
+        this.rollMessageReputService = new TimerMessageReputService(rollMessageQueue, storeConfig.getTimerRocksDBRollMaxTps(), false);
         this.timeline = new Timeline(messageStore, messageRocksDBStorage, this, timerMetrics);
         this.timerSysTopicScanService = new TimerSysTopicScanService();
     }
@@ -294,8 +278,7 @@ public class TimerMessageRocksDBStore {
 
     private MessageExt getMessageByCommitOffset(long offsetPy, int sizePy) {
         if (offsetPy < 0L || sizePy <= 0 || sizePy > storeConfig.getMaxMessageSize()) {
-            logError.error("getMessageByCommitOffset param error, offsetPy: {}, sizePy: {}, maxMsgSize: {}", offsetPy,
-                sizePy, storeConfig.getMaxMessageSize());
+            logError.error("getMessageByCommitOffset param error, offsetPy: {}, sizePy: {}, maxMsgSize: {}", offsetPy, sizePy, storeConfig.getMaxMessageSize());
             return null;
         }
         if (sizePy > bufferLocal.get().limit()) {
@@ -305,7 +288,7 @@ public class TimerMessageRocksDBStore {
         for (int i = 0; i < MAX_GET_MSG_TIMES; i++) {
             MessageExt msgExt = StoreUtil.getMessage(offsetPy, sizePy, messageStore, bufferLocal.get());
             if (null == msgExt) {
-                log.warn("Fail to read msg from commitLog offsetPy:{} sizePy:{}", offsetPy, sizePy);
+                log.warn("Fail to read msg from commitLog offsetPy: {} sizePy: {}", offsetPy, sizePy);
             } else {
                 return msgExt;
             }
@@ -335,8 +318,7 @@ public class TimerMessageRocksDBStore {
         }
         String delayTimeStr = msgExt.getProperty(MessageConst.PROPERTY_TIMER_OUT_MS);
         if (StringUtils.isEmpty(delayTimeStr)) {
-            logError.error("getDelayTime is empty, queueOffset: {}, delayTimeStr: {}", msgExt.getQueueOffset(),
-                delayTimeStr);
+            logError.error("getDelayTime is empty, queueOffset: {}, delayTimeStr: {}", msgExt.getQueueOffset(), delayTimeStr);
             return null;
         }
         try {
@@ -368,8 +350,7 @@ public class TimerMessageRocksDBStore {
                     if (null != brokerStatsManager) {
                         brokerStatsManager.incTopicPutNums(message.getTopic(), 1, 1);
                         if (null != putMessageResult.getAppendMessageResult()) {
-                            brokerStatsManager.incTopicPutSize(message.getTopic(),
-                                putMessageResult.getAppendMessageResult().getWroteBytes());
+                            brokerStatsManager.incTopicPutSize(message.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
                         }
                         brokerStatsManager.incBrokerPutNums(message.getTopic(), 1);
                     }
@@ -457,16 +438,10 @@ public class TimerMessageRocksDBStore {
                 return;
             }
             if (readOffset.get() < cq.getMinOffsetInQueue()) {
-                logError.warn(
-                    "scanSysTimerTopic readOffset: {} is smaller than minOffsetInQueue: {}, use minOffsetInQueue to "
-                        + "scan timer sysTimerTopic",
-                    readOffset.get(), cq.getMinOffsetInQueue());
+                logError.warn("scanSysTimerTopic readOffset: {} is smaller than minOffsetInQueue: {}, use minOffsetInQueue to scan timer sysTimerTopic", readOffset.get(), cq.getMinOffsetInQueue());
                 readOffset.set(cq.getMinOffsetInQueue());
             } else if (readOffset.get() > cq.getMaxOffsetInQueue()) {
-                logError.warn(
-                    "scanSysTimerTopic readOffset: {} is bigger than maxOffsetInQueue: {}, use maxOffsetInQueue to "
-                        + "scan timer sysTimerTopic",
-                    readOffset.get(), cq.getMaxOffsetInQueue());
+                logError.warn("scanSysTimerTopic readOffset: {} is bigger than maxOffsetInQueue: {}, use maxOffsetInQueue to scan timer sysTimerTopic", readOffset.get(), cq.getMaxOffsetInQueue());
                 readOffset.set(cq.getMaxOffsetInQueue());
             }
             ReferredIterator<CqUnit> iterator = null;
@@ -501,20 +476,15 @@ public class TimerMessageRocksDBStore {
                             readOffset.incrementAndGet();
                             continue;
                         }
-                        TimerRocksDBRecord timerRecord = new TimerRocksDBRecord(delayedTime,
-                            MessageClientIDSetter.getUniqID(msgExt), offsetPy, sizePy, queueOffset, msgExt);
+                        TimerRocksDBRecord timerRecord = new TimerRocksDBRecord(delayedTime, MessageClientIDSetter.getUniqID(msgExt), offsetPy, sizePy, queueOffset, msgExt);
                         timeline.putRecord(timerRecord);
                         readOffset.incrementAndGet();
 
                         StoreMetricsManager metricsManager = messageStore.getStoreMetricsManager();
                         if (metricsManager instanceof DefaultStoreMetricsManager) {
-                            DefaultStoreMetricsManager defaultMetricsManager
-                                = (DefaultStoreMetricsManager)metricsManager;
-                            Attributes attributes = defaultMetricsManager.newAttributesBuilder()
-                                .put(DefaultStoreMetricsConstant.LABEL_TOPIC,
-                                    msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
-                            defaultMetricsManager.getTimerMessageSetLatency().record(
-                                (delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
+                            DefaultStoreMetricsManager defaultMetricsManager = (DefaultStoreMetricsManager)metricsManager;
+                            Attributes attributes = defaultMetricsManager.newAttributesBuilder().put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
+                            defaultMetricsManager.getTimerMessageSetLatency().record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
                         }
                     } catch (Exception e) {
                         logError.error("Unknown error in scan the system topic error: {}", e.getMessage());
@@ -546,8 +516,7 @@ public class TimerMessageRocksDBStore {
             new ThreadPoolExecutor.CallerRunsPolicy()
         );
 
-        public TimerMessageReputService(BlockingQueue<List<TimerRocksDBRecord>> queue, double maxTps,
-            boolean writeCheckPoint) {
+        public TimerMessageReputService(BlockingQueue<List<TimerRocksDBRecord>> queue, double maxTps, boolean writeCheckPoint) {
             this.queue = queue;
             this.rateLimiter = RateLimiter.create(maxTps);
             this.writeCheckPoint = writeCheckPoint;
@@ -573,15 +542,10 @@ public class TimerMessageRocksDBStore {
                         executor.submit(new Task(countDownLatch, record));
                     }
                     countDownLatch.await();
-                    log.info(
-                        "TimerMessageReputService reput messages to commitlog, cost: {}, trs size: {}, checkPoint: {}",
-                        System.currentTimeMillis() - start, trs.size(), trs.get(trs.size() - 1).getCheckPoint());
-                    if (this.writeCheckPoint && !CollectionUtils.isEmpty(trs) && trs.get(trs.size() - 1).getCheckPoint()
-                        > 0L) {
-                        log.info("TimerMessageReputService reput messages to commitlog, checkPoint: {}",
-                            trs.get(trs.size() - 1).getCheckPoint());
-                        messageRocksDBStorage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY,
-                            MessageRocksDBStorage.TIMELINE_CHECK_POINT, trs.get(trs.size() - 1).getCheckPoint());
+                    log.info("TimerMessageReputService reput messages to commitlog, cost: {}, trs size: {}, checkPoint: {}", System.currentTimeMillis() - start, trs.size(), trs.get(trs.size() - 1).getCheckPoint());
+                    if (this.writeCheckPoint && !CollectionUtils.isEmpty(trs) && trs.get(trs.size() - 1).getCheckPoint() > 0L) {
+                        log.info("TimerMessageReputService reput messages to commitlog, checkPoint: {}", trs.get(trs.size() - 1).getCheckPoint());
+                        messageRocksDBStorage.writeCheckPointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.TIMELINE_CHECK_POINT, trs.get(trs.size() - 1).getCheckPoint());
                     }
                 } catch (Exception e) {
                     logError.error("TimerMessageReputService error: {}", e.getMessage());

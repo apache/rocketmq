@@ -2217,8 +2217,7 @@ public class DefaultMessageStore implements MessageStore {
                 if (null == request || StringUtils.isEmpty(request.getTopic())) {
                     return;
                 }
-                if (!request.getTopic().equals(TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC)
-                    && !request.getTopic().equals(TopicValidator.RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC)) {
+                if (!request.getTopic().equals(TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC) && !request.getTopic().equals(TopicValidator.RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC)) {
                     return;
                 }
                 if (null == DefaultMessageStore.this.transMessageRocksDBStore) {
