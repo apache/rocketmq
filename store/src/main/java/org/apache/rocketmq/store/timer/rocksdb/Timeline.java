@@ -385,6 +385,10 @@ public class Timeline {
                         rollRangeHour = storeConfig.getTimerRocksDBRollRangeHours();
                     }
                     this.waitForRunning(TimeUnit.HOURS.toMillis(rollIntervalHour));
+                    if (stopped) {
+                        log.info(this.getServiceName() + " service end");
+                        return;
+                    }
                 } catch (Exception e) {
                     logError.error("Timeline TimelineRollService wait error: {}", e.getMessage());
                 }
