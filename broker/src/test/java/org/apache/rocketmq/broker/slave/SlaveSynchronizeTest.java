@@ -55,6 +55,8 @@ import java.io.UnsupportedEncodingException;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -113,13 +115,9 @@ public class SlaveSynchronizeTest {
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         when(brokerController.getTimerMessageStore()).thenReturn(timerMessageStore);
         when(brokerController.getTimerCheckpoint()).thenReturn(timerCheckpoint);
-        when(topicConfigManager.getDataVersion()).thenReturn(new DataVersion());
-        when(topicConfigManager.getTopicConfigTable()).thenReturn(new ConcurrentHashMap<>());
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
         when(consumerOffsetManager.getOffsetTable()).thenReturn(new ConcurrentHashMap<>());
         when(consumerOffsetManager.getDataVersion()).thenReturn(new DataVersion());
-        when(subscriptionGroupManager.getDataVersion()).thenReturn(new DataVersion());
-        when(subscriptionGroupManager.getSubscriptionGroupTable()).thenReturn(new ConcurrentHashMap<>());
         when(queryAssignmentProcessor.getMessageRequestModeManager()).thenReturn(messageRequestModeManager);
         when(messageRequestModeManager.getMessageRequestModeMap()).thenReturn(new ConcurrentHashMap<>());
         when(messageStoreConfig.isTimerWheelEnable()).thenReturn(true);
@@ -136,17 +134,31 @@ public class SlaveSynchronizeTest {
     public void testSyncAll() throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         MQBrokerException, InterruptedException, UnsupportedEncodingException, RemotingCommandException {
         TopicConfig newTopicConfig = new TopicConfig("NewTopic");
-        when(brokerOuterAPI.getAllTopicConfig(anyString())).thenReturn(createTopicConfigWrapper(newTopicConfig));
+        TopicConfigAndMappingSerializeWrapper topicConfigWrapper = createTopicConfigWrapper(newTopicConfig);
+        when(brokerOuterAPI.getAllTopicConfig(anyString())).thenReturn(topicConfigWrapper);
         when(brokerOuterAPI.getAllConsumerOffset(anyString())).thenReturn(createConsumerOffsetWrapper());
         when(brokerOuterAPI.getAllDelayOffset(anyString())).thenReturn("");
-        when(brokerOuterAPI.getAllSubscriptionGroupConfig(anyString())).thenReturn(createSubscriptionGroupWrapper());
+        SubscriptionGroupWrapper subscriptionGroupWrapper = createSubscriptionGroupWrapper();
+        when(brokerOuterAPI.getAllSubscriptionGroupConfig(anyString())).thenReturn(subscriptionGroupWrapper);
         when(brokerOuterAPI.getAllMessageRequestMode(anyString())).thenReturn(createMessageRequestModeWrapper());
         when(brokerOuterAPI.getTimerMetrics(anyString())).thenReturn(createTimerMetricsWrapper());
+
+        TopicConfigManager topicConfigManager = new TopicConfigManager();
+        TopicConfigManager spiedTopicConfigManager = spy(topicConfigManager);
+        doNothing().when(spiedTopicConfigManager).persist();
+        SubscriptionGroupManager groupConfigManager = new SubscriptionGroupManager();
+        SubscriptionGroupManager spiedGroupConfigManager = spy(groupConfigManager);
+        doNothing().when(spiedGroupConfigManager).persist();
+        when(brokerController.getTopicConfigManager()).thenReturn(spiedTopicConfigManager);
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(spiedGroupConfigManager);
+
         slaveSynchronize.syncAll();
-        Assert.assertEquals(1, this.brokerController.getTopicConfigManager().getDataVersion().getStateVersion());
-        Assert.assertEquals(1, this.brokerController.getTopicQueueMappingManager().getDataVersion().getStateVersion());
+        long topicVer = topicConfigWrapper.getDataVersion().getStateVersion();
+        long groupVer = subscriptionGroupWrapper.getDataVersion().getStateVersion();
+        Assert.assertEquals(topicVer, this.brokerController.getTopicConfigManager().getDataVersion().getStateVersion());
+        Assert.assertEquals(topicVer, this.brokerController.getTopicQueueMappingManager().getDataVersion().getStateVersion());
         Assert.assertEquals(1, consumerOffsetManager.getDataVersion().getStateVersion());
-        Assert.assertEquals(1, subscriptionGroupManager.getDataVersion().getStateVersion());
+        Assert.assertEquals(groupVer, this.brokerController.getSubscriptionGroupManager().getDataVersion().getStateVersion());
         Assert.assertEquals(1, timerMetrics.getDataVersion().getStateVersion());
     }
 
@@ -167,7 +179,7 @@ public class SlaveSynchronizeTest {
         wrapper.setTopicConfigTable(new ConcurrentHashMap<>());
         wrapper.getTopicConfigTable().put(topicConfig.getTopicName(), topicConfig);
         DataVersion dataVersion = new DataVersion();
-        dataVersion.setStateVersion(1L);
+        dataVersion.setStateVersion(5L);
         wrapper.setDataVersion(dataVersion);
         wrapper.setMappingDataVersion(dataVersion);
         return wrapper;
@@ -186,7 +198,7 @@ public class SlaveSynchronizeTest {
         SubscriptionGroupWrapper wrapper = new SubscriptionGroupWrapper();
         wrapper.setSubscriptionGroupTable(new ConcurrentHashMap<>());
         DataVersion dataVersion = new DataVersion();
-        dataVersion.setStateVersion(1L);
+        dataVersion.setStateVersion(5L);
         wrapper.setDataVersion(dataVersion);
         return wrapper;
     }
