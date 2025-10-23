@@ -207,6 +207,16 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         }
     }
 
+    @Override
+    public void setDataVersion(DataVersion dataVersion) {
+        try {
+            rocksDBConfigManager.setKvDataVersion(dataVersion);
+        } catch (Exception e) {
+            log.error("set group config dataVersion error", e);
+            throw new RuntimeException(e);
+        }
+    }
+
     protected void decodeForbidden(byte[] key, byte[] body) {
         String forbiddenGroupName = new String(key, DataConverter.CHARSET_UTF8);
         JSONObject jsonObject = JSON.parseObject(new String(body, DataConverter.CHARSET_UTF8));

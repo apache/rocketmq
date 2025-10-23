@@ -758,6 +758,8 @@ public class TopicConfigManager extends ConfigManager {
         dataVersion.nextVersion(stateMachineVersion);
     }
 
-
+    public void setDataVersion(DataVersion dataVersion) {
+        this.dataVersion.assignNewOne(dataVersion);
+    }
 
 }

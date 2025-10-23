@@ -163,4 +163,14 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public void setDataVersion(DataVersion dataVersion) {
+        try {
+            rocksDBConfigManager.setKvDataVersion(dataVersion);
+        } catch (Exception e) {
+            log.error("set group config dataVersion error", e);
+            throw new RuntimeException(e);
+        }
+    }
 }

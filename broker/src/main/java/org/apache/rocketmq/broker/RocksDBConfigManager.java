@@ -128,6 +128,11 @@ public class RocksDBConfigManager {
         this.configRocksDBStorage.updateKvDataVersion(JSON.toJSONString(kvDataVersion).getBytes(StandardCharsets.UTF_8));
     }
 
+    public void setKvDataVersion(DataVersion dataVersion)  throws Exception {
+        this.kvDataVersion = dataVersion;
+        this.configRocksDBStorage.updateKvDataVersion(JSON.toJSONString(kvDataVersion).getBytes(StandardCharsets.UTF_8));
+    }
+    
     public DataVersion getKvDataVersion() {
         return kvDataVersion;
     }
