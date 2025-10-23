@@ -516,4 +516,6 @@ public interface MQAdminExt extends MQAdmin {
 
     void exportPopRecords(String brokerAddr, long timeout) throws RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void switchTimerEngine(String brokerAddr, String desTimerEngine) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
 }

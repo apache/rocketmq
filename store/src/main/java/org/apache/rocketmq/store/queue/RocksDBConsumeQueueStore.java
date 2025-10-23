@@ -621,6 +621,9 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 }
 
                 messageStore.getIndexService().deleteExpiredFile(minOffset);
+                if (messageStoreConfig.isIndexRocksDBEnable()) {
+                    messageStore.getIndexRocksDBStore().deleteExpiredIndex();
+                }
             }
         }
 
