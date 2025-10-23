@@ -77,6 +77,7 @@ public class Timeline {
         initService();
     }
 
+
     private void initService() {
         this.timelineIndexBuildService = new TimelineIndexBuildService();
         this.timelineForwardService = new TimelineForwardService();
