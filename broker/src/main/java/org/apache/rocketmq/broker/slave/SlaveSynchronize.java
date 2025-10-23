@@ -94,13 +94,12 @@ public class SlaveSynchronize {
                         Map.Entry<String, TopicConfig> entry = iterator.next();
                         if (!newTopicConfigTable.containsKey(entry.getKey())) {
                             iterator.remove();
+                            topicConfigManager.deleteTopicConfig(entry.getKey());
                         }
-                        topicConfigManager.deleteTopicConfig(entry.getKey());
                     }
 
                     //update
                     newTopicConfigTable.values().forEach(topicConfigManager::putTopicConfig);
-                    topicConfigManager.updateDataVersion();
                     topicConfigManager.persist();
                 }
                 if (topicWrapper.getTopicQueueMappingDetailMap() != null
@@ -189,12 +188,11 @@ public class SlaveSynchronize {
                         Map.Entry<String, SubscriptionGroupConfig> configEntry = iterator.next();
                         if (!newSubscriptionGroupTable.containsKey(configEntry.getKey())) {
                             iterator.remove();
+                            subscriptionGroupManager.deleteSubscriptionGroupConfig(configEntry.getKey());
                         }
-                        subscriptionGroupManager.deleteSubscriptionGroupConfig(configEntry.getKey());
                     }
                     // update
                     newSubscriptionGroupTable.values().forEach(subscriptionGroupManager::putSubscriptionGroupConfig);
-                    subscriptionGroupManager.updateDataVersion();
                     // persist
                     subscriptionGroupManager.persist();
                     LOGGER.info("Update slave Subscription Group from master, {}", masterAddrBak);
