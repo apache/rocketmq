@@ -192,8 +192,12 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
             return loadConsumerOffsets(path);
         }
 
-        ConfigRocksDBStorage configRocksDBStorage = new ConfigRocksDBStorage(path, true);
-        configRocksDBStorage.start();
+        ConfigRocksDBStorage configRocksDBStorage = ConfigRocksDBStorage.getStore(path, true);
+        if (!configRocksDBStorage.start()) {
+            System.out.print("Failed to initialize ConfigRocksDBStorage.\n");
+            return null;
+        }
+
         RocksIterator iterator = configRocksDBStorage.iterator();
         try {
             final Map<String, JSONObject> configMap = new HashMap<>();
@@ -208,10 +212,17 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                 configTable.put(name, jsonObject);
                 iterator.next();
             }
-            byte[] kvDataVersion = configRocksDBStorage.getKvDataVersion();
-            if (kvDataVersion != null) {
-                configMap.put("dataVersion",
-                    JSONObject.parseObject(new String(kvDataVersion, DataConverter.CHARSET_UTF8)));
+
+            // Try to get data version
+            try {
+                byte[] kvDataVersion = configRocksDBStorage.get("kvDataVersion",
+                    "kvDataVersionKey".getBytes(DataConverter.CHARSET_UTF8));
+                if (kvDataVersion != null) {
+                    configMap.put("dataVersion",
+                        JSONObject.parseObject(new String(kvDataVersion, DataConverter.CHARSET_UTF8)));
+                }
+            } catch (Exception e) {
+                // Ignore if data version is not available
             }
 
             if (ExportRocksDBConfigToJsonRequestHeader.ConfigType.TOPICS.equals(configType)) {
@@ -224,7 +235,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
         } catch (Exception e) {
             System.out.print("Error occurred while converting RocksDB kv config to json, " + "configType=" + configType + ", " + e.getMessage() + "\n");
         } finally {
-            configRocksDBStorage.shutdown();
+            ConfigRocksDBStorage.shutdown(path);
         }
         return null;
     }
@@ -284,8 +295,12 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
     }
 
     private static Map<String, JSONObject> loadConsumerOffsets(String path) {
-        ConfigRocksDBStorage configRocksDBStorage = new ConfigRocksDBStorage(path, true);
-        configRocksDBStorage.start();
+        ConfigRocksDBStorage configRocksDBStorage = ConfigRocksDBStorage.getStore(path, true);
+        if (!configRocksDBStorage.start()) {
+            System.out.print("Failed to initialize ConfigRocksDBStorage for consumer offsets.\n");
+            return null;
+        }
+
         RocksIterator iterator = configRocksDBStorage.iterator();
         try {
             final Map<String, JSONObject> configMap = new HashMap<>();
@@ -305,7 +320,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
         } catch (Exception e) {
             System.out.print("Error occurred while converting RocksDB kv config to json, " + "configType=consumerOffsets, " + e.getMessage() + "\n");
         } finally {
-            configRocksDBStorage.shutdown();
+            ConfigRocksDBStorage.shutdown(path);
         }
         return null;
     }
