@@ -83,8 +83,6 @@ public class SlaveSynchronize {
                 TopicConfigManager topicConfigManager = this.brokerController.getTopicConfigManager();
                 if (!topicConfigManager.getDataVersion().equals(topicWrapper.getDataVersion())) {
 
-                    topicConfigManager.getDataVersion().assignNewOne(topicWrapper.getDataVersion());
-
                     ConcurrentMap<String, TopicConfig> newTopicConfigTable = topicWrapper.getTopicConfigTable();
                     ConcurrentMap<String, TopicConfig> topicConfigTable = topicConfigManager.getTopicConfigTable();
 
@@ -100,6 +98,7 @@ public class SlaveSynchronize {
 
                     //update
                     newTopicConfigTable.values().forEach(topicConfigManager::putTopicConfig);
+                    topicConfigManager.getDataVersion().assignNewOne(topicWrapper.getDataVersion());
                     topicConfigManager.persist();
                 }
                 if (topicWrapper.getTopicQueueMappingDetailMap() != null
@@ -176,7 +175,6 @@ public class SlaveSynchronize {
                 if (!this.brokerController.getSubscriptionGroupManager().getDataVersion()
                         .equals(subscriptionWrapper.getDataVersion())) {
                     SubscriptionGroupManager subscriptionGroupManager = this.brokerController.getSubscriptionGroupManager();
-                    subscriptionGroupManager.getDataVersion().assignNewOne(subscriptionWrapper.getDataVersion());
 
                     ConcurrentMap<String, SubscriptionGroupConfig> curSubscriptionGroupTable =
                             subscriptionGroupManager.getSubscriptionGroupTable();
@@ -193,6 +191,7 @@ public class SlaveSynchronize {
                     }
                     // update
                     newSubscriptionGroupTable.values().forEach(subscriptionGroupManager::putSubscriptionGroupConfig);
+                    subscriptionGroupManager.getDataVersion().assignNewOne(subscriptionWrapper.getDataVersion());
                     // persist
                     subscriptionGroupManager.persist();
                     LOGGER.info("Update slave Subscription Group from master, {}", masterAddrBak);
