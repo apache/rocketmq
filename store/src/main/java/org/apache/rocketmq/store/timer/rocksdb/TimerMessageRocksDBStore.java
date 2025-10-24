@@ -434,7 +434,6 @@ public class TimerMessageRocksDBStore {
         private void scanSysTimerTopic() {
             ConsumeQueueInterface cq = messageStore.getConsumeQueue(TIMER_TOPIC, 0);
             if (null == cq) {
-                logError.error("scanSysTimerTopic get cq is null");
                 return;
             }
             if (readOffset.get() < cq.getMinOffsetInQueue()) {
