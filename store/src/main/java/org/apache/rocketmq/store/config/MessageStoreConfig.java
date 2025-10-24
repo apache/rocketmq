@@ -108,12 +108,12 @@ public class MessageStoreConfig {
     private boolean timerRocksDBEnable = false;
     private boolean timerRocksDBStopScan = false;
     private long timerRocksDBPrecisionMs = 1000L;
-    private double timerRocksDBRollMaxTps = 6000.0;
+    private double timerRocksDBRollMaxTps = 8000.0;
     private double timerRocksDBTimeExpiredMaxTps = 200000.0;
     private int timerRocksDBRollIntervalHours = 1;
     private int timerRocksDBRollRangeHours = 2;
-    private boolean timerRecallToTimeWheelEnable = false;
-    private boolean timerRecallToTimelineEnable = false;
+    private boolean timerRecallToTimeWheelEnable = true;
+    private boolean timerRecallToTimelineEnable = true;
 
     private boolean transRocksDBEnable = false;
     private boolean transWriteOriginTransHalfEnable = true;

@@ -423,6 +423,10 @@ public class Timeline {
             while (!this.isStopped()) {
                 try {
                     this.waitForRunning(TimeUnit.MINUTES.toMillis(30));
+                    if (stopped) {
+                        log.info(this.getServiceName() + " service end");
+                        return;
+                    }
                 } catch (Exception e) {
                     logError.error("Timeline TimelineDeleteService wait error: {}", e.getMessage());
                 }

@@ -828,6 +828,11 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 }
 
                 messageStore.getIndexService().deleteExpiredFile(minOffset);
+                if (messageStoreConfig.isIndexRocksDBEnable()) {
+                    //todo
+                    log.info("在文件版CQ的时候删除RocksDB 索引");
+                    messageStore.getIndexRocksDBStore().deleteExpiredIndex();
+                }
             }
         }
 
