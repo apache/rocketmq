@@ -40,7 +40,7 @@ public class DefaultMappedFilePerformanceTest {
         UtilAll.ensureDirOK(storePath);
 
         // Initialize SharedByteBufferManager for tests
-        SharedByteBufferManager.getInstance().init(4 * 1024 * 1024); // 4MB default
+        SharedByteBufferManager.getInstance().init(4 * 1024 * 1024, 16); // 4MB default, 16 shared buffers
     }
 
     @After

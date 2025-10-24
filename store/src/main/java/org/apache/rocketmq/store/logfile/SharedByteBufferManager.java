@@ -26,12 +26,12 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class SharedByteBufferManager {
 
-    private static final int MAX_SHARED_NUM = 16;
     private static volatile SharedByteBufferManager instance;
     private static final Object LOCK = new Object();
 
     private SharedByteBuffer[] sharedByteBuffers;
     private int bufferSize;
+    private int maxSharedNum;
     private volatile boolean initialized = false;
 
     private SharedByteBufferManager() {
@@ -53,18 +53,20 @@ public class SharedByteBufferManager {
     }
 
     /**
-     * Initialize shared buffers with specified messageSize size
+     * Initialize shared buffers with specified messageSize size and shared buffer number
      *
      * @param maxMessageSize max messageSize size
+     * @param sharedBufferNum number of shared buffers
      */
-    public synchronized void init(int maxMessageSize) {
+    public synchronized void init(int maxMessageSize, int sharedBufferNum) {
         if (!initialized) {
             //Reserve 64kb for encoding buffer outside body
             bufferSize = Integer.MAX_VALUE - maxMessageSize >= 64 * 1024 ?
                 maxMessageSize + 64 * 1024 : Integer.MAX_VALUE;
 
-            this.sharedByteBuffers = new SharedByteBuffer[MAX_SHARED_NUM];
-            for (int i = 0; i < MAX_SHARED_NUM; i++) {
+            this.maxSharedNum = sharedBufferNum;
+            this.sharedByteBuffers = new SharedByteBuffer[maxSharedNum];
+            for (int i = 0; i < maxSharedNum; i++) {
                 this.sharedByteBuffers[i] = new SharedByteBuffer(bufferSize);
             }
             this.initialized = true;
@@ -80,7 +82,7 @@ public class SharedByteBufferManager {
         if (!initialized) {
             throw new IllegalStateException("SharedByteBufferManager not initialized");
         }
-        int idx = ThreadLocalRandom.current().nextInt(MAX_SHARED_NUM);
+        int idx = ThreadLocalRandom.current().nextInt(maxSharedNum);
         return sharedByteBuffers[idx];
     }
 

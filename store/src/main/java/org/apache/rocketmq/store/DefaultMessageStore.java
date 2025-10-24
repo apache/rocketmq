@@ -242,7 +242,7 @@ public class DefaultMessageStore implements MessageStore {
         this.transientStorePool = new TransientStorePool(messageStoreConfig.getTransientStorePoolSize(), messageStoreConfig.getMappedFileSizeCommitLog());
 
         if (messageStoreConfig.isWriteWithoutMmap()) {
-            SharedByteBufferManager.getInstance().init(messageStoreConfig.getMaxMessageSize());
+            SharedByteBufferManager.getInstance().init(messageStoreConfig.getMaxMessageSize(), messageStoreConfig.getSharedByteBufferNum());
         }
 
         this.defaultStoreMetricsManager = new DefaultStoreMetricsManager();
