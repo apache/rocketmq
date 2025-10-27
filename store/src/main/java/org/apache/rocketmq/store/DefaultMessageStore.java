@@ -103,6 +103,7 @@ import org.apache.rocketmq.store.kv.CommitLogDispatcherCompaction;
 import org.apache.rocketmq.store.kv.CompactionService;
 import org.apache.rocketmq.store.kv.CompactionStore;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.logfile.SharedByteBufferManager;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
 import org.apache.rocketmq.store.queue.CombineConsumeQueueStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
@@ -239,6 +240,10 @@ public class DefaultMessageStore implements MessageStore {
             new ConcurrentReputMessageService() : new ReputMessageService();
 
         this.transientStorePool = new TransientStorePool(messageStoreConfig.getTransientStorePoolSize(), messageStoreConfig.getMappedFileSizeCommitLog());
+
+        if (messageStoreConfig.isWriteWithoutMmap()) {
+            SharedByteBufferManager.getInstance().init(messageStoreConfig.getMaxMessageSize(), messageStoreConfig.getSharedByteBufferNum());
+        }
 
         this.defaultStoreMetricsManager = new DefaultStoreMetricsManager();
 
