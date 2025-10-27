@@ -507,6 +507,9 @@ public class MessageStoreConfig {
      */
     private boolean enableAcceleratedRecovery = false;
 
+    // Shared byte buffer manager configuration
+    private int sharedByteBufferNum = 16;
+
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
     }
@@ -2206,5 +2209,13 @@ public class MessageStoreConfig {
 
     public void setCommitLogRecoverMaxNum(int commitLogRecoverMaxNum) {
         this.commitLogRecoverMaxNum = commitLogRecoverMaxNum;
+    }
+
+    public int getSharedByteBufferNum() {
+        return sharedByteBufferNum;
+    }
+
+    public void setSharedByteBufferNum(int sharedByteBufferNum) {
+        this.sharedByteBufferNum = sharedByteBufferNum;
     }
 }

@@ -88,7 +88,7 @@
     </issueManagement>
 
     <properties>
-        <revision>5.3.5-rocksdb-SNAPSHOT</revision>
+        <revision>5.3.6-rocksdb-SNAPSHOT</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.root>${basedir}</project.root>
