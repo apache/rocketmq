@@ -232,6 +232,7 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
+import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
 import org.apache.rocketmq.store.util.LibC;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_INVOCATION_STATUS;
@@ -3416,7 +3417,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand switchTimerEngine(ChannelHandlerContext ctx, RemotingCommand request) {
+    private synchronized RemotingCommand switchTimerEngine(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         if (!this.brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
             LOGGER.info("switchTimerEngine error, broker timerWheelEnable is false");
@@ -3440,6 +3441,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             Properties properties = new Properties();
             boolean result = false;
             if (MessageConst.TIMER_ENGINE_ROCKSDB_TIMELINE.equals(engineType)) {
+                if (this.brokerController.getTimerMessageRocksDBStore() == null) {
+                    response.setCode(ResponseCode.INVALID_PARAMETER);
+                    response.setRemark("timerUseRocksDB muse be configured true when broker start");
+                    return response;
+                }
                 result = this.brokerController.getTimerMessageRocksDBStore().restart();
                 if (result) {
                     properties.put("timerStopEnqueue", Boolean.TRUE.toString());
