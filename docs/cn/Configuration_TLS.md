@@ -52,6 +52,10 @@ tls.server.certPath=/opt/certFiles/server.pem
 tls.server.authClient=false
 # The store path of trusted certificates for verifying the client endpoint's certificate
 tls.server.trustCertPath=/opt/certFiles/ca.pem
+# The ciphers in TLS
+# tls.ciphers=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+# The protocols in TLS
+# tls.protocols=TLSv1.2,TLSv1.3
 ```
 
 如果需要客户端连接时也进行认证，则还需要在该文件中增加以下内容
@@ -66,6 +70,10 @@ tls.client.certPath=/opt/certFiles/client.pem
 tls.client.authServer=false                    
 # The store path of trusted certificates for verifying the server endpoint's certificate
 tls.client.trustCertPath=/opt/certFiles/ca.pem
+# The ciphers in TLS
+# tls.ciphers=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+# The protocols in TLS
+# tls.protocols=TLSv1.2,TLSv1.3
 ```
 
 
@@ -96,6 +104,10 @@ tls.client.keyPassword=123456
 tls.client.certPath=/opt/certFiles/client.pem               
 # The store path of trusted certificates for verifying the server endpoint's certificate
 tls.client.trustCertPath=/opt/certFiles/ca.pem
+# The ciphers in TLS
+# tls.ciphers=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+# The protocols in TLS
+# tls.protocols=TLSv1.2,TLSv1.3
 ```
 
 JVM中需要加以下参数.tls.config.file的值需要使用之前创建的文件：

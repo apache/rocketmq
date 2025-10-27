@@ -94,6 +94,7 @@ public class MultiProtocolTlsHelper extends TlsHelper {
             ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
             ApplicationProtocolNames.HTTP_2));
 
+        moreTlsConfig(sslContextBuilder);
         return sslContextBuilder.build();
     }
 

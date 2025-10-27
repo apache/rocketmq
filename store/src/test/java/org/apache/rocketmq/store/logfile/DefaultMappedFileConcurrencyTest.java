@@ -40,6 +40,9 @@ public class DefaultMappedFileConcurrencyTest {
         storePath = System.getProperty("user.home") + File.separator + "unitteststore" + System.currentTimeMillis();
         fileName = storePath + File.separator + "00000000000000000000";
         UtilAll.ensureDirOK(storePath);
+
+        // Initialize SharedByteBufferManager for tests
+        SharedByteBufferManager.getInstance().init(4 * 1024 * 1024, 16); // 4MB default, 16 shared buffers
     }
 
     @After

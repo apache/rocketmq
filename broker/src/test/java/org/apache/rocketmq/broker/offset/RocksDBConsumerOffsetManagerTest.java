@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
-import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
@@ -49,6 +49,7 @@ public class RocksDBConsumerOffsetManagerTest {
         brokerController = Mockito.mock(BrokerController.class);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         Mockito.when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
 
         consumerOffsetManager = new RocksDBConsumerOffsetManager(brokerController);
         consumerOffsetManager.load();
@@ -110,6 +111,6 @@ public class RocksDBConsumerOffsetManagerTest {
     }
 
     private boolean notToBeExecuted() {
-        return MixAll.isMac();
+        return false;
     }
 }
