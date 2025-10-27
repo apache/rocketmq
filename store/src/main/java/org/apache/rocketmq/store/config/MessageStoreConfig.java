@@ -488,6 +488,9 @@ public class MessageStoreConfig {
      */
     private boolean enableAcceleratedRecovery = false;
 
+    // Shared byte buffer manager configuration
+    private int sharedByteBufferNum = 16;
+
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
     }
@@ -2059,5 +2062,13 @@ public class MessageStoreConfig {
 
     public void setEnableRunningFlagsInFlush(boolean enableRunningFlagsInFlush) {
         this.enableRunningFlagsInFlush = enableRunningFlagsInFlush;
+    }
+
+    public int getSharedByteBufferNum() {
+        return sharedByteBufferNum;
+    }
+
+    public void setSharedByteBufferNum(int sharedByteBufferNum) {
+        this.sharedByteBufferNum = sharedByteBufferNum;
     }
 }

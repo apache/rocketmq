@@ -471,6 +471,12 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private String configManagerVersion = ConfigManagerVersion.V1.getVersion();
 
+    /**
+     * Whether to use a single RocksDB instance with multiple column families for all configs
+     * instead of separate RocksDB instances for Topic, Group, and Offset configs
+     */
+    private boolean useSingleRocksDBForAllConfigs = false;
+
     private boolean allowRecallWhenBrokerNotWriteable = true;
 
     private boolean recallMessageEnable = false;
@@ -2114,6 +2120,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setConfigManagerVersion(String configManagerVersion) {
         this.configManagerVersion = configManagerVersion;
+    }
+
+    public boolean isUseSingleRocksDBForAllConfigs() {
+        return useSingleRocksDBForAllConfigs;
+    }
+
+    public void setUseSingleRocksDBForAllConfigs(boolean useSingleRocksDBForAllConfigs) {
+        this.useSingleRocksDBForAllConfigs = useSingleRocksDBForAllConfigs;
     }
 
     public boolean isAllowRecallWhenBrokerNotWriteable() {

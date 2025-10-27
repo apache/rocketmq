@@ -40,9 +40,12 @@ import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.rocksdb.RocksIterator;
+import org.rocksdb.RocksDB;
 
 public class LocalAuthorizationMetadataProvider implements AuthorizationMetadataProvider {
+
+    private final static String AUTH_METADATA_COLUMN_FAMILY = new String(RocksDB.DEFAULT_COLUMN_FAMILY,
+        StandardCharsets.UTF_8);
 
     private ConfigRocksDBStorage storage;
 
@@ -50,7 +53,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
 
     @Override
     public void initialize(AuthConfig authConfig, Supplier<?> metadataService) {
-        this.storage = new ConfigRocksDBStorage(authConfig.getAuthConfigPath() + File.separator + "acls");
+        this.storage = ConfigRocksDBStorage.getStore(authConfig.getAuthConfigPath() + File.separator + "acls", false);
         if (!this.storage.start()) {
             throw new RuntimeException("Failed to load rocksdb for auth_acl, please check whether it is occupied.");
         }
@@ -77,7 +80,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
             Subject subject = acl.getSubject();
             byte[] keyBytes = subject.getSubjectKey().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(acl);
-            this.storage.put(keyBytes, keyBytes.length, valueBytes);
+            this.storage.put(AUTH_METADATA_COLUMN_FAMILY, keyBytes, keyBytes.length, valueBytes);
             this.storage.flushWAL();
             this.aclCache.invalidate(subject.getSubjectKey());
         } catch (Exception e) {
@@ -90,7 +93,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
     public CompletableFuture<Void> deleteAcl(Subject subject) {
         try {
             byte[] keyBytes = subject.getSubjectKey().getBytes(StandardCharsets.UTF_8);
-            this.storage.delete(keyBytes);
+            this.storage.delete(AUTH_METADATA_COLUMN_FAMILY, keyBytes);
             this.storage.flushWAL();
             this.aclCache.invalidate(subject.getSubjectKey());
         } catch (Exception e) {
@@ -105,7 +108,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
             Subject subject = acl.getSubject();
             byte[] keyBytes = subject.getSubjectKey().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(acl);
-            this.storage.put(keyBytes, keyBytes.length, valueBytes);
+            this.storage.put(AUTH_METADATA_COLUMN_FAMILY, keyBytes, keyBytes.length, valueBytes);
             this.storage.flushWAL();
             this.aclCache.invalidate(subject.getSubjectKey());
         } catch (Exception e) {
@@ -126,20 +129,18 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
     @Override
     public CompletableFuture<List<Acl>> listAcl(String subjectFilter, String resourceFilter) {
         List<Acl> result = new ArrayList<>();
-        try (RocksIterator iterator = this.storage.iterator()) {
-            iterator.seekToFirst();
-            while (iterator.isValid()) {
-                String subjectKey = new String(iterator.key(), StandardCharsets.UTF_8);
+        CompletableFuture<List<Acl>> future = new CompletableFuture<>();
+        try {
+            this.storage.iterate(AUTH_METADATA_COLUMN_FAMILY, (key, value) -> {
+                String subjectKey = new String(key, StandardCharsets.UTF_8);
                 if (StringUtils.isNotBlank(subjectFilter) && !subjectKey.contains(subjectFilter)) {
-                    iterator.next();
-                    continue;
+                    return;
                 }
                 Subject subject = Subject.of(subjectKey);
-                Acl acl = JSON.parseObject(new String(iterator.value(), StandardCharsets.UTF_8), Acl.class);
+                Acl acl = JSON.parseObject(new String(value, StandardCharsets.UTF_8), Acl.class);
                 List<Policy> policies = acl.getPolicies();
                 if (!CollectionUtils.isNotEmpty(policies)) {
-                    iterator.next();
-                    continue;
+                    return;
                 }
                 Iterator<Policy> policyIterator = policies.iterator();
                 while (policyIterator.hasNext()) {
@@ -158,10 +159,12 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                 if (CollectionUtils.isNotEmpty(policies)) {
                     result.add(Acl.of(subject, policies));
                 }
-                iterator.next();
-            }
+            });
+        } catch (Exception e) {
+            future.completeExceptionally(e);
         }
-        return CompletableFuture.completedFuture(result);
+        future.complete(result);
+        return future;
     }
 
     @Override
@@ -185,7 +188,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                 byte[] keyBytes = subjectKey.getBytes(StandardCharsets.UTF_8);
                 Subject subject = Subject.of(subjectKey);
 
-                byte[] valueBytes = this.storage.get(keyBytes);
+                byte[] valueBytes = this.storage.get(AUTH_METADATA_COLUMN_FAMILY, keyBytes);
                 if (ArrayUtils.isEmpty(valueBytes)) {
                     return EMPTY_ACL;
                 }
