@@ -146,7 +146,7 @@ public class IndexRocksDBStore {
             long endOffsetPy = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
             if (reqOffsetPy < endOffsetPy) {
                 if (System.currentTimeMillis() % 1000 == 0) {
-                    logError.warn("IndexRocksDBStore recover buildIndex, but ignore, build index offset reqOffsetPy: {}, endOffsetPy: {}", reqOffsetPy, endOffsetPy);
+                    log.warn("IndexRocksDBStore recover buildIndex, but ignore, build index offset reqOffsetPy: {}, endOffsetPy: {}", reqOffsetPy, endOffsetPy);
                 }
                 return;
             }

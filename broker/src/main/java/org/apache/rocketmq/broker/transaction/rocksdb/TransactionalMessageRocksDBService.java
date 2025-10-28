@@ -136,7 +136,7 @@ public class TransactionalMessageRocksDBService {
                     continue;
                 }
                 try {
-                    if (halfRecord.getCheckTimes() >= brokerController.getBrokerConfig().getTransactionCheckMax()) {
+                    if (halfRecord.getCheckTimes() > brokerController.getBrokerConfig().getTransactionCheckMax()) {
                         halfRecord.setDelete(true);
                         updateList.add(halfRecord);
                         log.info("TransactionalMessageRocksDBService checkTransRecordsStatus checkTimes > {}, need delete, checkTimes: {}, msgId: {}", brokerController.getBrokerConfig().getTransactionCheckMax(), halfRecord.getCheckTimes(), halfRecord.getUniqKey());
@@ -154,7 +154,7 @@ public class TransactionalMessageRocksDBService {
                     }
                     resolveHalfMsg(msgExt);
                     halfRecord.setCheckTimes(halfRecord.getCheckTimes() + 1);
-                    if (halfRecord.getCheckTimes() >= brokerController.getBrokerConfig().getTransactionCheckMax()) {
+                    if (halfRecord.getCheckTimes() > brokerController.getBrokerConfig().getTransactionCheckMax()) {
                         halfRecord.setDelete(true);
                         log.info("TransactionalMessageRocksDBService checkTransRecordsStatus checkTimes > {}, need delete, checkTimes: {}, msgId: {}", brokerController.getBrokerConfig().getTransactionCheckMax(), halfRecord.getCheckTimes(), halfRecord.getUniqKey());
                     }

@@ -110,7 +110,7 @@ public class TransMessageRocksDBStore {
         long endOffsetPy = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
         if (reqOffsetPy < endOffsetPy) {
             if (System.currentTimeMillis() % 1000 == 0) {
-                logError.warn("TransMessageRocksDBStore buildTransIndex recover, but ignore, reqOffsetPy: {}, endOffsetPy: {}", reqOffsetPy, endOffsetPy);
+                log.warn("TransMessageRocksDBStore buildTransIndex recover, but ignore, reqOffsetPy: {}, endOffsetPy: {}", reqOffsetPy, endOffsetPy);
             }
             return;
         }
