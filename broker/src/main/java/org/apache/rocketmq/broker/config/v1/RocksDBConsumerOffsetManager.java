@@ -157,17 +157,21 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     @Override
     public synchronized void persist() {
-        try (WriteBatch writeBatch = new WriteBatch()) {
-            for (Entry<String, ConcurrentMap<Integer, Long>> entry : this.offsetTable.entrySet()) {
-                putWriteBatch(writeBatch, entry.getKey(), entry.getValue());
-                if (writeBatch.getDataSize() >= 4 * 1024) {
-                    this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+        if (!rocksDBConfigManager.isStop) {
+            try (WriteBatch writeBatch = new WriteBatch()) {
+                for (Entry<String, ConcurrentMap<Integer, Long>> entry : this.offsetTable.entrySet()) {
+                    putWriteBatch(writeBatch, entry.getKey(), entry.getValue());
+                    if (writeBatch.getDataSize() >= 4 * 1024) {
+                        this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+                    }
                 }
+                this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+                this.rocksDBConfigManager.flushWAL();
+            } catch (Exception e) {
+                log.error("consumer offset persist Failed", e);
             }
-            this.rocksDBConfigManager.batchPutWithWal(writeBatch);
-            this.rocksDBConfigManager.flushWAL();
-        } catch (Exception e) {
-            log.error("consumer offset persist Failed", e);
+        } else {
+            log.warn("RocksDBConsumerOffsetManager has been stopped, persist fail");
         }
     }
 
