@@ -234,15 +234,6 @@ public class RocksDBOptionsFactory {
             .setBlockCache(new LRUCache(2048 * SizeUnit.MB, 8, false))
             .setWholeKeyFiltering(true);
 
-        CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal()
-            .setSizeRatio(100)
-            .setMaxSizeAmplificationPercent(25)
-            .setAllowTrivialMove(true)
-            .setMinMergeWidth(2)
-            .setMaxMergeWidth(Integer.MAX_VALUE)
-            .setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize)
-            .setCompressionSizePercent(-1);
-
         //noinspection resource
         return new ColumnFamilyOptions()
             .setMaxWriteBufferNumber(6)
@@ -255,7 +246,6 @@ public class RocksDBOptionsFactory {
             .setNumLevels(7)
             .setCompactionPriority(CompactionPriority.MinOverlappingRatio)
             .setCompactionStyle(CompactionStyle.LEVEL)
-            .setCompactionOptionsUniversal(compactionOption)
             .setMaxCompactionBytes(256 * SizeUnit.MB)
             .setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB)
             .setHardPendingCompactionBytesLimit(256 * SizeUnit.GB)
