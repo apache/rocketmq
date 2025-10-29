@@ -90,7 +90,6 @@ public class QueryMessageProcessorTest {
         Assert.assertEquals(response.getCode(), ResponseCode.QUERY_NOT_FOUND);
 
         result.addMessage(new SelectMappedBufferResult(0, null, 1, null));
-        when(messageStore.queryMessage(anyString(),anyString(),anyInt(),anyLong(),anyLong())).thenReturn(result);
         response = queryMessageProcessor.processRequest(handlerContext, request);
         Assert.assertNull(response);
     }
