@@ -181,7 +181,7 @@ public class TimerCheckpoint {
         this.masterTimerQueueOffset = masterTimerQueueOffset;
     }
 
-    public void updateDateVersion(long stateVersion) {
+    public void updateDataVersion(long stateVersion) {
         dataVersion.nextVersion(stateVersion);
     }
 
