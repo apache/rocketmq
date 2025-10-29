@@ -1,0 +1,189 @@
+name: Issue Advisor
+
+permissions:
+  issues: write
+  contents: read
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  analyze-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Get issue information
+        id: issue-info
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = context.payload.issue;
+            return {
+              title: issue.title,
+              body: issue.body || '',
+              labels: issue.labels.map(l => l.name).join(', '),
+              author: issue.user.login
+            };
+
+      - name: Analyze issue with AI
+        id: ai-analysis
+        uses: actions/github-script@v6
+        env:
+          ISSUE_TITLE: ${{ steps.issue-info.outputs.result.title }}
+          ISSUE_BODY: ${{ steps.issue-info.outputs.result.body }}
+          ISSUE_LABELS: ${{ steps.issue-info.outputs.result.labels }}
+        with:
+          script: |
+            const issueTitle = process.env.ISSUE_TITLE;
+            const issueBody = process.env.ISSUE_BODY;
+            const issueLabels = process.env.ISSUE_LABELS;
+            
+            // 分析 issue 类型
+            let issueType = 'general';
+            let priority = 'medium';
+            let recommendations = [];
+            
+            // 判断 issue 类型
+            if (issueLabels.includes('bug') || issueTitle.toLowerCase().includes('[bug]')) {
+              issueType = 'bug';
+              recommendations.push('请确保提供了完整的重现步骤和环境信息');
+              recommendations.push('检查是否有相关的错误日志或堆栈跟踪');
+              recommendations.push('建议添加最小可复现示例（Minimal Reproducible Example）');
+            } else if (issueLabels.includes('enhancement') || issueTitle.toLowerCase().includes('feature')) {
+              issueType = 'feature';
+              recommendations.push('建议详细描述功能需求和使用场景');
+              recommendations.push('可以提供设计方案或 API 设计草图');
+              recommendations.push('说明该功能对用户的价值和预期收益');
+            } else if (issueLabels.includes('question')) {
+              issueType = 'question';
+              recommendations.push('建议先查阅官方文档：https://rocketmq.apache.org/docs/');
+              recommendations.push('可以在 GitHub Discussions 中讨论：https://github.com/apache/rocketmq/discussions');
+              recommendations.push('搜索已有的 Issues 看是否有类似问题');
+            } else if (issueTitle.toLowerCase().includes('doc') || issueLabels.includes('documentation')) {
+              issueType = 'documentation';
+              recommendations.push('请指明具体的文档页面或章节');
+              recommendations.push('说明当前文档的问题和改进建议');
+              recommendations.push('如果可能，欢迎直接提交文档 PR');
+            }
+            
+            // 分析优先级
+            const urgentKeywords = ['crash', 'critical', 'data loss', 'security', 'urgent'];
+            const highKeywords = ['error', 'exception', 'fail', 'broken', 'not working'];
+            const combinedText = (issueTitle + ' ' + issueBody).toLowerCase();
+            
+            if (urgentKeywords.some(keyword => combinedText.includes(keyword))) {
+              priority = 'high';
+            } else if (highKeywords.some(keyword => combinedText.includes(keyword))) {
+              priority = 'medium-high';
+            }
+            
+            // 检查 issue 质量
+            let qualityIssues = [];
+            if (!issueBody || issueBody.length < 50) {
+              qualityIssues.push('Issue 描述过于简短，建议提供更详细的信息');
+            }
+            if (!issueBody.includes('version') && !issueBody.includes('版本')) {
+              qualityIssues.push('建议提供 RocketMQ 版本信息');
+            }
+            
+            return {
+              type: issueType,
+              priority: priority,
+              recommendations: recommendations,
+              qualityIssues: qualityIssues
+            };
+
+      - name: Post AI analysis comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const analysis = ${{ steps.ai-analysis.outputs.result }};
+            
+            // 构建评论内容
+            let comment = '## 🤖 Issue Advisor 分析报告\n\n';
+            
+            // Issue 类型
+            const typeEmojis = {
+              bug: '🐛',
+              feature: '✨',
+              question: '❓',
+              documentation: '📚',
+              general: '📝'
+            };
+            comment += `**Issue 类型**: ${typeEmojis[analysis.type] || '📝'} ${analysis.type}\n`;
+            
+            // 优先级
+            const priorityEmojis = {
+              high: '🔴',
+              'medium-high': '🟡',
+              medium: '🟢',
+              low: '⚪️'
+            };
+            comment += `**建议优先级**: ${priorityEmojis[analysis.priority] || '🟢'} ${analysis.priority}\n\n`;
+            
+            // 处理建议
+            if (analysis.recommendations && analysis.recommendations.length > 0) {
+              comment += '### 📋 处理建议\n\n';
+              analysis.recommendations.forEach((rec, index) => {
+                comment += `${index + 1}. ${rec}\n`;
+              });
+              comment += '\n';
+            }
+            
+            // 质量问题
+            if (analysis.qualityIssues && analysis.qualityIssues.length > 0) {
+              comment += '### ⚠️ Issue 质量建议\n\n';
+              analysis.qualityIssues.forEach((issue, index) => {
+                comment += `${index + 1}. ${issue}\n`;
+              });
+              comment += '\n';
+            }
+            
+            // 通用建议
+            comment += '### 💡 通用建议\n\n';
+            comment += '- 确保使用最新版本的 RocketMQ\n';
+            comment += '- 提供完整的配置文件（隐藏敏感信息）\n';
+            comment += '- 如果是性能问题，请提供性能测试数据\n';
+            comment += '- 欢迎提交 Pull Request 来解决问题\n\n';
+            
+            
+            comment += '---\n';
+            comment += '*本分析由 AI 自动生成，仅供参考。维护者会尽快审查此 Issue。*';
+            
+            // 发布评论
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+            
+            core.info('Successfully posted AI analysis comment');
+
+      - name: Add labels based on analysis
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const labels = [];
+            
+            
+            // 添加 AI 分析标签
+            labels.push('ai-analyzed');
+            
+            if (labels.length > 0) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: labels
+                });
+                core.info(`Added labels: ${labels.join(', ')}`);
+              } catch (error) {
+                core.warning(`Failed to add labels: ${error.message}`);
+              }
+            }
+
