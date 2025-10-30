@@ -178,7 +178,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         return this.subscriptionsForHeartbeat;
     }
 
-    public void BuildSubscriptionsForHeartbeat(Map<String, MessageSelector> messageSelectorMap) throws Exception {
+    public synchronized void BuildSubscriptionsForHeartbeat(Map<String, MessageSelector> messageSelectorMap) throws Exception {
         this.subscriptionsForHeartbeat.clear();
         for (Map.Entry<String, MessageSelector> entry : messageSelectorMap.entrySet()) {
             SubscriptionData subscriptionData = FilterAPI.build(entry.getKey(),
