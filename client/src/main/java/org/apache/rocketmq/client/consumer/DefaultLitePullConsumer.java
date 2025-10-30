@@ -174,19 +174,6 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     private RPCHook rpcHook;
 
-    public Set<SubscriptionData> getSubscriptionsForHeartbeat() {
-        return this.subscriptionsForHeartbeat;
-    }
-
-    public synchronized void buildSubscriptionsForHeartbeat(Map<String, MessageSelector> messageSelectorMap) throws Exception {
-        this.subscriptionsForHeartbeat.clear();
-        for (Map.Entry<String, MessageSelector> entry : messageSelectorMap.entrySet()) {
-            SubscriptionData subscriptionData = FilterAPI.build(entry.getKey(),
-                entry.getValue().getExpression(), entry.getValue().getExpressionType());
-            this.subscriptionsForHeartbeat.add(subscriptionData);
-        }
-    }
-
     private final Set<SubscriptionData> subscriptionsForHeartbeat = new HashSet<>();
 
     /**
@@ -635,5 +622,18 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setEnableMsgTrace(boolean enableMsgTrace) {
         this.enableTrace = enableMsgTrace;
+    }
+
+    public Set<SubscriptionData> getSubscriptionsForHeartbeat() {
+        return this.subscriptionsForHeartbeat;
+    }
+
+    public synchronized void buildSubscriptionsForHeartbeat(Map<String, MessageSelector> messageSelectorMap) throws Exception {
+        this.subscriptionsForHeartbeat.clear();
+        for (Map.Entry<String, MessageSelector> entry : messageSelectorMap.entrySet()) {
+            SubscriptionData subscriptionData = FilterAPI.build(entry.getKey(),
+                entry.getValue().getExpression(), entry.getValue().getExpressionType());
+            this.subscriptionsForHeartbeat.add(subscriptionData);
+        }
     }
 }
