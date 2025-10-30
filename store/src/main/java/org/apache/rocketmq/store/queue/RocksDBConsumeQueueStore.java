@@ -551,7 +551,12 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public ConsumeQueueInterface getConsumeQueue(String topic, int queueId) {
-        return findOrCreateConsumeQueue(topic, queueId);
+        ConcurrentMap<Integer, ConsumeQueueInterface> map = this.consumeQueueTable.get(topic);
+        if (null == map) {
+            return null;
+        }
+        
+        return map.get(queueId);
     }
 
     @Override

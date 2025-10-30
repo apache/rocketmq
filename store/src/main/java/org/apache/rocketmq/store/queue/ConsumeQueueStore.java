@@ -181,7 +181,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
-        ConsumeQueueInterface logic = findOrCreateConsumeQueue(topic, queueId);
+        ConsumeQueueInterface logic = getConsumeQueue(topic, queueId);
         if (logic != null) {
             long resultOffset = logic.getOffsetInQueueByTime(timestamp, boundaryType);
             // Make sure the result offset is in valid range.
@@ -193,7 +193,14 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     private FileQueueLifeCycle getLifeCycle(String topic, int queueId) {
-        return findOrCreateConsumeQueue(topic, queueId);
+        return getLifeCycle(topic, queueId, true);
+    }
+
+    private FileQueueLifeCycle getLifeCycle(String topic, int queueId, boolean create) {
+        if (create) {
+            return findOrCreateConsumeQueue(topic, queueId);
+        }
+        return getConsumeQueue(topic, queueId);
     }
 
     public boolean load(ConsumeQueueInterface consumeQueue) {
@@ -297,12 +304,12 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public long getMinOffsetInQueue(String topic, int queueId) {
-        ConsumeQueueInterface logic = findOrCreateConsumeQueue(topic, queueId);
+        ConsumeQueueInterface logic = getConsumeQueue(topic, queueId);
         if (logic != null) {
             return logic.getMinOffsetInQueue();
         }
 
-        return -1;
+        return 0;
     }
 
     public void checkSelf(ConsumeQueueInterface consumeQueue) {
@@ -320,7 +327,10 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     public boolean flush(ConsumeQueueInterface consumeQueue, int flushLeastPages) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
+        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId(), false);
+        if (fileQueueLifeCycle == null) {
+            return false;
+        }
         return fileQueueLifeCycle.flush(flushLeastPages);
     }
 
@@ -334,17 +344,26 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public void destroy(ConsumeQueueInterface consumeQueue) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
+        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId(), false);
+        if (fileQueueLifeCycle == null) {
+            return;
+        }
         fileQueueLifeCycle.destroy();
     }
 
     public int deleteExpiredFile(ConsumeQueueInterface consumeQueue, long minCommitLogPos) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
+        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId(), false);
+        if (fileQueueLifeCycle == null) {
+            return 0;
+        }
         return fileQueueLifeCycle.deleteExpiredFile(minCommitLogPos);
     }
 
     public void truncateDirtyLogicFiles(ConsumeQueueInterface consumeQueue, long phyOffset) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
+        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId(), false);
+        if (fileQueueLifeCycle == null) {
+            return;
+        }
         fileQueueLifeCycle.truncateDirtyLogicFiles(phyOffset);
     }
 
@@ -360,12 +379,19 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     public boolean isFirstFileAvailable(ConsumeQueueInterface consumeQueue) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
+        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId(), false);
+        if (fileQueueLifeCycle == null) {
+            return false;
+        }
+
         return fileQueueLifeCycle.isFirstFileAvailable();
     }
 
     public boolean isFirstFileExist(ConsumeQueueInterface consumeQueue) {
-        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
+        FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId(), false);
+        if (fileQueueLifeCycle == null) {
+            return false;
+        }
         return fileQueueLifeCycle.isFirstFileExist();
     }
 
