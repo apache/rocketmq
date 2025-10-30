@@ -187,7 +187,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         }
     }
 
-    private Set<SubscriptionData> subscriptionsForHeartbeat = new HashSet<>();
+    private final Set<SubscriptionData> subscriptionsForHeartbeat = new HashSet<>();
 
     /**
      * Default constructor.
