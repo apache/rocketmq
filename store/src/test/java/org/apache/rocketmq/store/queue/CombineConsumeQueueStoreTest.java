@@ -132,7 +132,7 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
         Assert.assertEquals(0, messageStore.getMaxOffsetInQueue(topic, queueId));
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, queueId));
 
-        ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = messageStore.findConsumeQueue(topic, queueId);
         Assert.assertEquals(CQType.SimpleCQ, consumeQueue.getCQType());
         Assert.assertEquals(0, consumeQueue.getMaxOffsetInQueue());
         Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
@@ -149,7 +149,7 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
             checkCQ(consumeQueue, msgNum, msgSize);
 
             CombineConsumeQueueStore combineConsumeQueueStore = (CombineConsumeQueueStore) messageStore.getQueueStore();
-            ConsumeQueueInterface rocksDBConsumeQueue = combineConsumeQueueStore.getRocksDBConsumeQueueStore().getConsumeQueue(topic, queueId);
+            ConsumeQueueInterface rocksDBConsumeQueue = combineConsumeQueueStore.getRocksDBConsumeQueueStore().findOrCreateConsumeQueue(topic, queueId);
             Assert.assertEquals(CQType.RocksDBCQ, rocksDBConsumeQueue.getCQType());
             Assert.assertEquals(msgNum, rocksDBConsumeQueue.getMaxOffsetInQueue());
             checkCQ(rocksDBConsumeQueue, msgNum, msgSize);

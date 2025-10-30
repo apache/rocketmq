@@ -141,7 +141,7 @@ public class ConsumeQueueTest extends QueueTestBase {
         Assert.assertEquals(0, messageStore.getMaxOffsetInQueue(topic, 0));
         Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
 
-        ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueue(topic, 0);
+        ConsumeQueueInterface consumeQueue = messageStore.findConsumeQueue(topic, 0);
         Assert.assertEquals(CQType.SimpleCQ, consumeQueue.getCQType());
         Assert.assertEquals(0, consumeQueue.getMaxOffsetInQueue());
         Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
