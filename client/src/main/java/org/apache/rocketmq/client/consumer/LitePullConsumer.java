@@ -106,7 +106,7 @@ public interface LitePullConsumer {
      */
     void setSubExpressionForAssign(final String topic, final String subExpression);
 
-    void BuildSubscriptionsForHeartbeat(Map<String, MessageSelector> subExpressionMap) throws Exception;
+    void buildSubscriptionsForHeartbeat(Map<String, MessageSelector> subExpressionMap) throws Exception;
 
     /**
      * Fetch data for the topics or partitions specified using assign API
