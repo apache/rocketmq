@@ -139,7 +139,7 @@ public class ConsumeQueueTest extends QueueTestBase {
         String topic = UUID.randomUUID().toString();
         //The initial min max offset, before and after the creation of consume queue
         Assert.assertEquals(0, messageStore.getMaxOffsetInQueue(topic, 0));
-        Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+        Assert.assertEquals(-1, messageStore.getMinOffsetInQueue(topic, 0));
 
         ConsumeQueueInterface consumeQueue = messageStore.findConsumeQueue(topic, 0);
         Assert.assertEquals(CQType.SimpleCQ, consumeQueue.getCQType());

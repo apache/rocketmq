@@ -130,7 +130,7 @@ public class CombineConsumeQueueStoreTest extends QueueTestBase {
 
         //The initial min max offset, before and after the creation of consume queue
         Assert.assertEquals(0, messageStore.getMaxOffsetInQueue(topic, queueId));
-        Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, queueId));
+        Assert.assertEquals(-1, messageStore.getMinOffsetInQueue(topic, queueId));
 
         ConsumeQueueInterface consumeQueue = messageStore.findConsumeQueue(topic, queueId);
         Assert.assertEquals(CQType.SimpleCQ, consumeQueue.getCQType());
