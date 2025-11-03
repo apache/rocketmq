@@ -57,7 +57,7 @@ import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
 import sun.misc.Unsafe;
-import sun.nio.ch.DirectBuffer;
+
 
 public class DefaultMappedFile extends AbstractMappedFile {
     public static final int OS_PAGE_SIZE = 1024 * 4;
@@ -914,7 +914,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public void mlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
+        final long address = PlatformDependent.directBufferAddress(this.mappedByteBuffer);
         Pointer pointer = new Pointer(address);
         {
             int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize));
@@ -930,7 +930,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public void munlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
+        final long address = PlatformDependent.directBufferAddress(this.mappedByteBuffer);
         Pointer pointer = new Pointer(address);
         int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
