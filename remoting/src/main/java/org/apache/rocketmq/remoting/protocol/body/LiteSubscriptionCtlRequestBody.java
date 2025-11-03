@@ -15,35 +15,21 @@
  * limitations under the License.
  */
 
-/**
- * $Id: MessageModel.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
-package org.apache.rocketmq.remoting.protocol.heartbeat;
+package org.apache.rocketmq.remoting.protocol.body;
 
-/**
- * Message model
- */
-public enum MessageModel {
-    /**
-     * broadcast
-     */
-    BROADCASTING("BROADCASTING"),
-    /**
-     * clustering
-     */
-    CLUSTERING("CLUSTERING"),
-    /**
-     * for lite consumer
-     */
-    LITE_SELECTIVE("LITE_SELECTIVE");
+import java.util.Set;
+import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-    private String modeCN;
+public class LiteSubscriptionCtlRequestBody extends RemotingSerializable {
 
-    MessageModel(String modeCN) {
-        this.modeCN = modeCN;
+    private Set<LiteSubscriptionDTO> subscriptionSet;
+
+    public void setSubscriptionSet(Set<LiteSubscriptionDTO> subscriptionSet) {
+        this.subscriptionSet = subscriptionSet;
     }
 
-    public String getModeCN() {
-        return modeCN;
+    public Set<LiteSubscriptionDTO> getSubscriptionSet() {
+        return subscriptionSet;
     }
 }

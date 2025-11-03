@@ -15,35 +15,15 @@
  * limitations under the License.
  */
 
-/**
- * $Id: MessageModel.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
-package org.apache.rocketmq.remoting.protocol.heartbeat;
+package org.apache.rocketmq.remoting.protocol.header;
 
-/**
- * Message model
- */
-public enum MessageModel {
-    /**
-     * broadcast
-     */
-    BROADCASTING("BROADCASTING"),
-    /**
-     * clustering
-     */
-    CLUSTERING("CLUSTERING"),
-    /**
-     * for lite consumer
-     */
-    LITE_SELECTIVE("LITE_SELECTIVE");
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
-    private String modeCN;
+public class LiteSubscriptionCtlRequestHeader extends RpcRequestHeader {
 
-    MessageModel(String modeCN) {
-        this.modeCN = modeCN;
-    }
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
-    public String getModeCN() {
-        return modeCN;
     }
 }

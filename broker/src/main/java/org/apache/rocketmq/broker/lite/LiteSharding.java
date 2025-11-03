@@ -15,35 +15,9 @@
  * limitations under the License.
  */
 
-/**
- * $Id: MessageModel.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
-package org.apache.rocketmq.remoting.protocol.heartbeat;
+package org.apache.rocketmq.broker.lite;
 
-/**
- * Message model
- */
-public enum MessageModel {
-    /**
-     * broadcast
-     */
-    BROADCASTING("BROADCASTING"),
-    /**
-     * clustering
-     */
-    CLUSTERING("CLUSTERING"),
-    /**
-     * for lite consumer
-     */
-    LITE_SELECTIVE("LITE_SELECTIVE");
+public interface LiteSharding {
 
-    private String modeCN;
-
-    MessageModel(String modeCN) {
-        this.modeCN = modeCN;
-    }
-
-    public String getModeCN() {
-        return modeCN;
-    }
+    String shardingByLmqName(String parentTopic, String lmqName);
 }

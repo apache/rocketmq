@@ -15,35 +15,34 @@
  * limitations under the License.
  */
 
-/**
- * $Id: MessageModel.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
-package org.apache.rocketmq.remoting.protocol.heartbeat;
+package org.apache.rocketmq.remoting.protocol.header;
 
-/**
- * Message model
- */
-public enum MessageModel {
-    /**
-     * broadcast
-     */
-    BROADCASTING("BROADCASTING"),
-    /**
-     * clustering
-     */
-    CLUSTERING("CLUSTERING"),
-    /**
-     * for lite consumer
-     */
-    LITE_SELECTIVE("LITE_SELECTIVE");
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-    private String modeCN;
+public class GetLiteTopicInfoRequestHeader implements CommandCustomHeader {
 
-    MessageModel(String modeCN) {
-        this.modeCN = modeCN;
+    private String parentTopic;
+    private String liteTopic;
+
+    @Override
+    public void checkFields() throws RemotingCommandException {
+
     }
 
-    public String getModeCN() {
-        return modeCN;
+    public String getParentTopic() {
+        return parentTopic;
+    }
+
+    public void setParentTopic(String parentTopic) {
+        this.parentTopic = parentTopic;
+    }
+
+    public String getLiteTopic() {
+        return liteTopic;
+    }
+
+    public void setLiteTopic(String liteTopic) {
+        this.liteTopic = liteTopic;
     }
 }

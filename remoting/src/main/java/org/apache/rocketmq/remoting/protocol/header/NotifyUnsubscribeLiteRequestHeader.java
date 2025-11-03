@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -24,68 +24,23 @@ import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
-import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
+import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
-@RocketMQAction(value = RequestCode.ACK_MESSAGE, action = Action.SUB)
-public class AckMessageRequestHeader extends TopicQueueRequestHeader {
-    @CFNotNull
-    @RocketMQResource(ResourceType.GROUP)
-    private String consumerGroup;
-    @CFNotNull
-    @RocketMQResource(ResourceType.TOPIC)
-    private String topic;
-    @CFNotNull
-    private Integer queueId;
-    @CFNotNull
-    private String extraInfo;
+@RocketMQAction(value = RequestCode.NOTIFY_UNSUBSCRIBE_LITE, action = Action.SUB)
+public class NotifyUnsubscribeLiteRequestHeader extends RpcRequestHeader {
 
     @CFNotNull
-    private Long offset;
-
     private String liteTopic;
+
+    @RocketMQResource(ResourceType.GROUP)
+    @CFNotNull
+    private String consumerGroup;
+
+    @CFNotNull
+    private String clientId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
-    }
-
-    public void setOffset(Long offset) {
-        this.offset = offset;
-    }
-
-    public Long getOffset() {
-        return offset;
-    }
-
-    public String getConsumerGroup() {
-        return consumerGroup;
-    }
-
-    public void setExtraInfo(String extraInfo) {
-        this.extraInfo = extraInfo;
-    }
-
-    public String getExtraInfo() {
-        return extraInfo;
-    }
-
-    public void setConsumerGroup(String consumerGroup) {
-        this.consumerGroup = consumerGroup;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
-    }
-
-    public Integer getQueueId() {
-        return queueId;
-    }
-
-    public void setQueueId(Integer queueId) {
-        this.queueId = queueId;
     }
 
     public String getLiteTopic() {
@@ -96,16 +51,28 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
         this.liteTopic = liteTopic;
     }
 
+    public String getConsumerGroup() {
+        return consumerGroup;
+    }
+
+    public void setConsumerGroup(String consumerGroup) {
+        this.consumerGroup = consumerGroup;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
+
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("consumerGroup", consumerGroup)
-            .add("topic", topic)
-            .add("queueId", queueId)
-            .add("extraInfo", extraInfo)
-            .add("offset", offset)
-            .add("liteTopic", liteTopic)
-            .omitNullValues()
-            .toString();
+        return "NotifyUnsubscribeLiteRequestHeader{" +
+            "liteTopic='" + liteTopic + '\'' +
+            ", consumerGroup='" + consumerGroup + '\'' +
+            ", clientId='" + clientId + '\'' +
+            '}';
     }
 }

@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
-import org.apache.rocketmq.common.action.Action;
-import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RequestCode;
-import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
+import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
-@RocketMQAction(value = RequestCode.ACK_MESSAGE, action = Action.SUB)
-public class AckMessageRequestHeader extends TopicQueueRequestHeader {
+public class PopLiteMessageRequestHeader extends RpcRequestHeader {
+
+    @CFNotNull
+    private String clientId;
     @CFNotNull
     @RocketMQResource(ResourceType.GROUP)
     private String consumerGroup;
@@ -35,37 +35,31 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
     @RocketMQResource(ResourceType.TOPIC)
     private String topic;
     @CFNotNull
-    private Integer queueId;
+    private int maxMsgNum;
     @CFNotNull
-    private String extraInfo;
-
+    private long invisibleTime;
     @CFNotNull
-    private Long offset;
+    private long pollTime;
+    @CFNotNull
+    private long bornTime;
 
-    private String liteTopic;
+    private String attemptId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
+
     }
 
-    public void setOffset(Long offset) {
-        this.offset = offset;
+    public String getClientId() {
+        return clientId;
     }
 
-    public Long getOffset() {
-        return offset;
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
     }
 
     public String getConsumerGroup() {
         return consumerGroup;
-    }
-
-    public void setExtraInfo(String extraInfo) {
-        this.extraInfo = extraInfo;
-    }
-
-    public String getExtraInfo() {
-        return extraInfo;
     }
 
     public void setConsumerGroup(String consumerGroup) {
@@ -80,20 +74,48 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
         this.topic = topic;
     }
 
-    public Integer getQueueId() {
-        return queueId;
+    public int getMaxMsgNum() {
+        return maxMsgNum;
     }
 
-    public void setQueueId(Integer queueId) {
-        this.queueId = queueId;
+    public void setMaxMsgNum(int maxMsgNum) {
+        this.maxMsgNum = maxMsgNum;
     }
 
-    public String getLiteTopic() {
-        return liteTopic;
+    public long getInvisibleTime() {
+        return invisibleTime;
     }
 
-    public void setLiteTopic(String liteTopic) {
-        this.liteTopic = liteTopic;
+    public void setInvisibleTime(long invisibleTime) {
+        this.invisibleTime = invisibleTime;
+    }
+
+    public long getPollTime() {
+        return pollTime;
+    }
+
+    public void setPollTime(long pollTime) {
+        this.pollTime = pollTime;
+    }
+
+    public long getBornTime() {
+        return bornTime;
+    }
+
+    public void setBornTime(long bornTime) {
+        this.bornTime = bornTime;
+    }
+
+    public String getAttemptId() {
+        return attemptId;
+    }
+
+    public void setAttemptId(String attemptId) {
+        this.attemptId = attemptId;
+    }
+
+    public boolean isTimeoutTooMuch() {
+        return System.currentTimeMillis() - bornTime - pollTime > 500;
     }
 
     @Override
@@ -101,11 +123,12 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
         return MoreObjects.toStringHelper(this)
             .add("consumerGroup", consumerGroup)
             .add("topic", topic)
-            .add("queueId", queueId)
-            .add("extraInfo", extraInfo)
-            .add("offset", offset)
-            .add("liteTopic", liteTopic)
-            .omitNullValues()
+            .add("maxMsgNum", maxMsgNum)
+            .add("invisibleTime", invisibleTime)
+            .add("pollTime", pollTime)
+            .add("bornTime", bornTime)
+            .add("attemptId", attemptId)
+            .add("clientId", clientId)
             .toString();
     }
 }
