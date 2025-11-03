@@ -18,11 +18,13 @@ package org.apache.rocketmq.broker.config.v1;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.RocksDBConfigManager;
+import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -31,13 +33,37 @@ import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.rocksdb.CompressionType;
 
 public class RocksDBTopicConfigManager extends TopicConfigManager {
+    private static final String VERSION_COLUMN_FAMILY = "topicVersion";
+    private static final String TOPIC_COLUMN_FAMILY = "topic";
 
     protected transient RocksDBConfigManager rocksDBConfigManager;
+    private final boolean useSingleRocksDBForAllConfigs;
+    private final String storePathRootDir;
+
+    public RocksDBTopicConfigManager(BrokerController brokerController, boolean useSingleRocksDB,
+        String storePathRootDir) {
+        super(brokerController, false);
+
+        this.useSingleRocksDBForAllConfigs = useSingleRocksDB;
+        this.storePathRootDir = StringUtils.isBlank(storePathRootDir) ?
+            brokerController.getMessageStoreConfig().getStorePathRootDir() : storePathRootDir;
+
+        long flushInterval = brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs();
+        CompressionType compressionType =
+            CompressionType.getCompressionType(brokerController.getMessageStoreConfig().getRocksdbCompressionType());
+        String rocksDBPath = rocksdbConfigFilePath(storePathRootDir, useSingleRocksDB);
+
+        this.rocksDBConfigManager = useSingleRocksDB ? new RocksDBConfigManager(rocksDBPath, flushInterval,
+            compressionType, TOPIC_COLUMN_FAMILY, VERSION_COLUMN_FAMILY) : new RocksDBConfigManager(rocksDBPath,
+            flushInterval, compressionType);
+    }
+
+    public RocksDBTopicConfigManager(BrokerController brokerController, boolean useSingleRocksDBForAllConfigs) {
+        this(brokerController, useSingleRocksDBForAllConfigs, null);
+    }
 
     public RocksDBTopicConfigManager(BrokerController brokerController) {
-        super(brokerController, false);
-        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs(),
-            CompressionType.getCompressionType(brokerController.getMessageStoreConfig().getRocksdbCompressionType()));
+        this(brokerController, brokerController.getBrokerConfig().isUseSingleRocksDBForAllConfigs(), null);
     }
 
     @Override
@@ -47,6 +73,9 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         }
         if (!loadDataVersion() || !loadTopicConfig()) {
             return false;
+        }
+        if (useSingleRocksDBForAllConfigs) {
+            migrateFromSeparateRocksDBs();
         }
         this.init();
         return true;
@@ -114,7 +143,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         try {
             byte[] keyBytes = topicName.getBytes(DataConverter.CHARSET_UTF8);
             byte[] valueBytes = JSON.toJSONBytes(topicConfig, SerializerFeature.BrowserCompatible);
-            this.rocksDBConfigManager.put(keyBytes, keyBytes.length, valueBytes);
+            this.rocksDBConfigManager.put(keyBytes, valueBytes);
         } catch (Exception e) {
             log.error("kv put topic Failed, {}", topicConfig.toString(), e);
         }
@@ -144,10 +173,21 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         super.persist();
     }
 
-    public String rocksdbConfigFilePath() {
-        return this.brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config" + File.separator + "topics" + File.separator;
+    public String rocksdbConfigFilePath(String storePathRootDir, boolean useSingleRocksDBForAllConfigs) {
+        if (StringUtils.isBlank(storePathRootDir)) {
+            storePathRootDir = brokerController.getMessageStoreConfig().getStorePathRootDir();
+        }
+        Path rootPath = Paths.get(storePathRootDir);
+        if (useSingleRocksDBForAllConfigs) {
+            return rootPath.resolve("config").resolve("metadata").toString();
+        }
+        return rootPath.resolve("config").resolve("topics").toString();
     }
 
+    @Override
+    public String configFilePath() {
+        return BrokerPathConfigHelper.getTopicConfigPath(this.storePathRootDir);
+    }
 
     @Override
     public DataVersion getDataVersion() {
@@ -161,6 +201,96 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         } catch (Exception e) {
             log.error("update topic config dataVersion error", e);
             throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Migrate data from separate RocksDB instances to the unified RocksDB when useSingleRocksDBForAllConfigs is
+     * enabled.
+     * This method will only be called when switching from separate RocksDB mode to unified mode.
+     * It opens the separate RocksDB in read-only mode, compares versions, and imports data if needed.
+     */
+    private void migrateFromSeparateRocksDBs() {
+        String separateRocksDBPath = rocksdbConfigFilePath(this.storePathRootDir, false);
+
+        // Check if separate RocksDB exists
+        if (!UtilAll.isPathExists(separateRocksDBPath)) {
+            log.info("Separate RocksDB for topics does not exist at {}, no migration needed", separateRocksDBPath);
+            return;
+        }
+
+        log.info("Starting migration from separate RocksDB at {} to unified RocksDB", separateRocksDBPath);
+
+        // Open separate RocksDB in read-only mode
+        RocksDBConfigManager separateRocksDBConfigManager = null;
+        try {
+            long memTableFlushIntervalMs = brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs();
+            org.rocksdb.CompressionType compressionType =
+                org.rocksdb.CompressionType.getCompressionType(brokerController.getMessageStoreConfig().getRocksdbCompressionType());
+
+            separateRocksDBConfigManager = new RocksDBConfigManager(separateRocksDBPath, memTableFlushIntervalMs,
+                compressionType);
+
+            // Initialize in read-only mode
+            if (!separateRocksDBConfigManager.init(true)) {
+                log.error("Failed to initialize separate RocksDB in read-only mode");
+                return;
+            }
+
+            // Load data version from separate RocksDB
+            if (!separateRocksDBConfigManager.loadDataVersion()) {
+                log.error("Failed to load data version from separate RocksDB");
+                return;
+            }
+
+            DataVersion separateDataVersion = separateRocksDBConfigManager.getKvDataVersion();
+            DataVersion unifiedDataVersion = this.getDataVersion();
+
+            log.info("Comparing data versions - Separate: {}, Unified: {}", separateDataVersion, unifiedDataVersion);
+
+            // Compare versions and import if separate version is newer
+            if (separateDataVersion.getCounter().get() > unifiedDataVersion.getCounter().get()) {
+                log.info("Separate RocksDB has newer data, importing...");
+
+                // Load topic configs from separate RocksDB
+                if (separateRocksDBConfigManager.loadData(this::importTopicConfig)) {
+                    log.info("Successfully imported topic configs from separate RocksDB");
+
+                    this.getDataVersion().assignNewOne(separateDataVersion);
+                    this.getDataVersion().nextVersion(); // Make it one version higher
+                    updateDataVersion();
+                    log.info("Updated unified data version to {}", this.getDataVersion());
+                } else {
+                    log.error("Failed to import topic configs from separate RocksDB");
+                }
+            } else {
+                log.info("Unified RocksDB is already up-to-date, no migration needed");
+            }
+        } catch (Exception e) {
+            log.error("Error during migration from separate RocksDB", e);
+        } finally {
+            if (separateRocksDBConfigManager != null) {
+                try {
+                    separateRocksDBConfigManager.stop();
+                } catch (Exception e) {
+                    log.warn("Error stopping separate RocksDB config manager", e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Import a topic config from the separate RocksDB during migration
+     *
+     * @param key  The topic name bytes
+     * @param body The topic config data bytes
+     */
+    private void importTopicConfig(byte[] key, byte[] body) {
+        try {
+            decodeTopicConfig(key, body);
+            this.rocksDBConfigManager.put(key, body);
+        } catch (Exception e) {
+            log.error("Error importing topic config", e);
         }
     }
 }
