@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.AckCallback;
 import org.apache.rocketmq.client.consumer.AckResult;
@@ -173,14 +174,12 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
         request.setBody(msg.getBody());
 
-        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
-            CompletableFuture<SendResult> future0 = new CompletableFuture<>();
+        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenApply(response -> {
             try {
-                future0.complete(this.processSendResponse(brokerName, msg, response, brokerAddr));
+                return this.processSendResponse(brokerName, msg, response, brokerAddr);
             } catch (Exception e) {
-                future0.completeExceptionally(e);
+                throw new CompletionException(e);
             }
-            return future0;
         });
     }
 
