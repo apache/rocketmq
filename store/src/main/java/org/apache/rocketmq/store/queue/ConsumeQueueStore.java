@@ -309,7 +309,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             return logic.getMinOffsetInQueue();
         }
 
-        return 0;
+        return -1L;
     }
 
     public void checkSelf(ConsumeQueueInterface consumeQueue) {

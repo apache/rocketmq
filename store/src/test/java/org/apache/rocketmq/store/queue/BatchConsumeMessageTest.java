@@ -206,7 +206,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
 
         // The initial min max offset, before and after the creation of consume queue
         Assert.assertEquals(0, messageStore.getMaxOffsetInQueue(topic, 0));
-        Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+        Assert.assertEquals(-1, messageStore.getMinOffsetInQueue(topic, 0));
 
         int batchNum = 10;
         long timeMid = -1;
