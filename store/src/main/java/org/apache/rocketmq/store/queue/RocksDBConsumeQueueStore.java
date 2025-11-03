@@ -551,12 +551,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public ConsumeQueueInterface getConsumeQueue(String topic, int queueId) {
-        ConcurrentMap<Integer, ConsumeQueueInterface> map = this.consumeQueueTable.get(topic);
-        if (null == map) {
-            return null;
-        }
-        
-        return map.get(queueId);
+        // since rocksdb cq use lazy loading, we need to create it if not exist
+        return findOrCreateConsumeQueue(topic, queueId);
     }
 
     @Override
