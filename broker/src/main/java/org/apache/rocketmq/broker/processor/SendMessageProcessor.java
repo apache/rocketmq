@@ -33,6 +33,7 @@ import org.apache.rocketmq.common.attribute.CleanupPolicy;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -280,6 +281,13 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             oriProps.put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, uniqKey);
         }
 
+        // liteTopic multi dispatch
+        String liteTopic = oriProps.get(MessageConst.PROPERTY_LITE_TOPIC);
+        if (StringUtils.isNotEmpty(liteTopic)) {
+            String lmqName = LiteUtil.toLmqName(requestHeader.getTopic(), liteTopic);
+            oriProps.put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, lmqName);
+        }
+
         MessageAccessor.setProperties(msgInner, oriProps);
         // check properties to ensure exclusive, don't check topic meta config to keep the behavior consistent
         int msgPriority = msgInner.getPriority();
@@ -445,8 +453,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setRemark("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
                 break;
             case LMQ_CONSUME_QUEUE_NUM_EXCEEDED:
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("[LMQ_CONSUME_QUEUE_NUM_EXCEEDED]broker config enableLmq and enableMultiDispatch, lmq consumeQueue num exceed maxLmqConsumeQueueNum config num, default limit 2w.");
+                response.setCode(ResponseCode.LMQ_QUOTA_EXCEEDED);
+                response.setRemark("[LMQ_CONSUME_QUEUE_NUM_EXCEEDED]lmq consume queue num exceeded.");
                 break;
             case UNKNOWN_ERROR:
                 response.setCode(ResponseCode.SYSTEM_ERROR);

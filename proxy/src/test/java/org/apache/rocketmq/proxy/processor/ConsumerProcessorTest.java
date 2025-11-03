@@ -167,7 +167,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             .thenReturn(CompletableFuture.completedFuture(innerAckResult));
 
         AckResult ackResult = this.consumerProcessor.ackMessage(createContext(), handle, MessageClientIDSetter.createUniqID(),
-            CONSUMER_GROUP, TOPIC, 3000).get();
+            CONSUMER_GROUP, TOPIC, null, 3000).get();
 
         assertEquals(AckStatus.OK, ackResult.getStatus());
         assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP, new BrokerConfig().isEnableRetryTopicV2()), requestHeaderArgumentCaptor.getValue().getTopic());
@@ -290,7 +290,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             .thenReturn(CompletableFuture.completedFuture(innerAckResult));
 
         AckResult ackResult = this.consumerProcessor.changeInvisibleTime(createContext(), handle, MessageClientIDSetter.createUniqID(),
-            CONSUMER_GROUP, TOPIC, 1000, 3000).get();
+            CONSUMER_GROUP, TOPIC, 1000, null, 3000).get();
 
         assertEquals(AckStatus.OK, ackResult.getStatus());
         assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP, new BrokerConfig().isEnableRetryTopicV2()), requestHeaderArgumentCaptor.getValue().getTopic());

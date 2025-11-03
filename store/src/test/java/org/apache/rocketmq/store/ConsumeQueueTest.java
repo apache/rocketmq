@@ -32,6 +32,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -221,7 +222,7 @@ public class ConsumeQueueTest {
         msg.setStoreHost(storeHost);
         msg.setBornHost(bornHost);
         for (int i = 0; i < 1; i++) {
-            msg.putUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%123,%LMQ%456");
+            MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%123,%LMQ%456");
             msg.putUserProperty(String.valueOf(i), "imagoodperson" + i);
         }
         msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));

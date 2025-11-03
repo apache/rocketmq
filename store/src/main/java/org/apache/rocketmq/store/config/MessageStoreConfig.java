@@ -282,6 +282,7 @@ public class MessageStoreConfig {
     private boolean enableLmq = false;
     private boolean enableMultiDispatch = false;
     private int maxLmqConsumeQueueNum = 20000;
+    private boolean enableLmqQuota = false;
 
     private boolean enableScheduleAsyncDeliver = false;
     private int scheduleAsyncDeliverMaxPendingLimit = 2000;
@@ -1652,6 +1653,14 @@ public class MessageStoreConfig {
 
     public void setMaxLmqConsumeQueueNum(int maxLmqConsumeQueueNum) {
         this.maxLmqConsumeQueueNum = maxLmqConsumeQueueNum;
+    }
+
+    public boolean isEnableLmqQuota() {
+        return enableLmqQuota;
+    }
+
+    public void setEnableLmqQuota(boolean enableLmqQuota) {
+        this.enableLmqQuota = enableLmqQuota;
     }
 
     public boolean isEnableScheduleAsyncDeliver() {

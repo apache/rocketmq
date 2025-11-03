@@ -37,6 +37,8 @@ import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.lite.LiteSubscriptionAction;
+import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -137,12 +139,15 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
 
     protected static Settings mergeSubscriptionData(Settings settings, SubscriptionGroupConfig groupConfig) {
         Settings.Builder resultSettingsBuilder = settings.toBuilder();
-        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
 
         resultSettingsBuilder.getSubscriptionBuilder()
-            .setReceiveBatchSize(config.getGrpcClientConsumerLongPollingBatchSize())
-            .setLongPollingTimeout(Durations.fromMillis(config.getGrpcClientConsumerMaxLongPollingTimeoutMillis()))
-            .setFifo(groupConfig.isConsumeMessageOrderly());
+            .setReceiveBatchSize(proxyConfig.getGrpcClientConsumerLongPollingBatchSize())
+            .setLongPollingTimeout(Durations.fromMillis(proxyConfig.getGrpcClientConsumerMaxLongPollingTimeoutMillis()))
+            .setFifo(groupConfig.isConsumeMessageOrderly())
+            // client-side lite subscription quota limit
+            .setLiteSubscriptionQuota(groupConfig.getLiteSubClientQuota())
+            .setMaxLiteTopicSize(proxyConfig.getMaxLiteTopicSize());
 
         resultSettingsBuilder.getBackoffPolicyBuilder().setMaxAttempts(groupConfig.getRetryMaxTimes() + 1);
 
@@ -213,6 +218,41 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
         return "GrpcClientSettingsManagerCleaner";
     }
 
+    /**
+     * Remove all lite subscriptions when client offline.
+     * 
+     * @param ctx       Proxy context
+     * @param clientId  Client identifier
+     * @param settings  Current client settings, if available
+     */
+    public void offlineClientLiteSubscription(ProxyContext ctx, String clientId, Settings settings) {
+        if (settings == null) {
+            settings = getRawClientSettings(clientId);
+        }
+        if (settings == null || ClientType.LITE_PUSH_CONSUMER != settings.getClientType()) {
+            return;
+        }
+        try {
+            String topic = settings.getSubscription().getSubscriptions(0).getTopic().getName();
+            String group = settings.getSubscription().getGroup().getName();
+            log.info("offlineClientLiteSubscription, topic:{}, group:{}, clientId:{}", topic, group, clientId);
+            LiteSubscriptionDTO liteSubscriptionDTO = new LiteSubscriptionDTO()
+                .setAction(LiteSubscriptionAction.COMPLETE_REMOVE)
+                .setClientId(clientId)
+                .setGroup(group)
+                .setTopic(topic);
+            this.messagingProcessor.syncLiteSubscription(ctx, liteSubscriptionDTO, java.time.Duration.ofSeconds(2).toMillis())
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null) {
+                        log.error("offlineClientLiteSubscription failed, topic:{}, group:{}, clientId:{}",
+                            topic, group, clientId, throwable);
+                    }
+                });
+        } catch (Exception e) {
+            log.error("offlineClientLiteSubscription error, clientId:{}, settings:{}", clientId, settings, e);
+        }
+    }
+
     @Override
     public void run() {
         while (!this.isStopped()) {
@@ -226,7 +266,9 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
         for (String clientId : clientIdSet) {
             try {
                 CLIENT_SETTINGS_MAP.computeIfPresent(clientId, (clientIdKey, settings) -> {
-                    if (!settings.getClientType().equals(ClientType.PUSH_CONSUMER) && !settings.getClientType().equals(ClientType.SIMPLE_CONSUMER)) {
+                    if (!settings.getClientType().equals(ClientType.PUSH_CONSUMER) &&
+                        !settings.getClientType().equals(ClientType.SIMPLE_CONSUMER) &&
+                        !settings.getClientType().equals(ClientType.LITE_PUSH_CONSUMER)) {
                         return settings;
                     }
                     String consumerGroup = settings.getSubscription().getGroup().getName();

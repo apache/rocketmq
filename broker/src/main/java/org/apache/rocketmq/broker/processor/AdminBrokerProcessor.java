@@ -67,7 +67,7 @@ import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
-
+import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
 import org.apache.rocketmq.broker.metrics.InvocationStatus;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -90,6 +90,7 @@ import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.FIleReadaheadMode;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -800,6 +801,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         try {
+            if (LiteMetadataUtil.isLiteMessageType(topic, brokerController)) {
+                brokerController.getLiteLifecycleManager().cleanByParentTopic(topic);
+            }
             for (String topicToClean : topicsToClean) {
                 // delete topic
                 deleteTopicInBroker(topicToClean);
@@ -1181,9 +1185,27 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return rewriteResult;
         }
 
-        long offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
-            requestHeader.getTimestamp(), requestHeader.getBoundaryType());
+        boolean queryOffset = true;
+        String topic = requestHeader.getTopic();
+        int queueId = requestHeader.getQueueId();
+        String liteTopic = requestHeader.getLiteTopic();
+        if (StringUtils.isNotBlank(liteTopic)) {
+            topic = LiteUtil.toLmqName(topic, liteTopic);
+            long maxOffset = 0;
+            if (queueId == 0) {
+                maxOffset = this.brokerController.getLiteLifecycleManager().getMaxOffsetInQueue(topic);
+            }
+            // lite topic check max offset first
+            if (maxOffset <= 0) {
+                queryOffset = false;
+            }
+        }
 
+        long offset = 0L;
+        if (queryOffset) {
+            offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(topic, queueId,
+                requestHeader.getTimestamp(), requestHeader.getBoundaryType());
+        }
         responseHeader.setOffset(offset);
 
         response.setCode(ResponseCode.SUCCESS);
@@ -1678,7 +1700,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(requestHeader.getGroupName());
 
-        if (requestHeader.isCleanOffset()) {
+        if (requestHeader.isCleanOffset()
+            || LiteMetadataUtil.isLiteGroupType(requestHeader.getGroupName(), this.brokerController)) {
             this.brokerController.getConsumerOffsetManager().removeOffset(requestHeader.getGroupName());
             this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNumByGroupName(requestHeader.getGroupName());
         }

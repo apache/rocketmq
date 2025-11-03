@@ -52,6 +52,14 @@ public class TopicAttributes {
         -1
     );
 
+    public static final LongRangeAttribute LITE_EXPIRATION_ATTRIBUTE = new LongRangeAttribute(
+        "lite.topic.expiration",
+        true,
+        -1,
+        Long.MAX_VALUE,
+        -1
+    );
+
     public static final Map<String, Attribute> ALL;
 
     static {
@@ -60,5 +68,6 @@ public class TopicAttributes {
         ALL.put(CLEANUP_POLICY_ATTRIBUTE.getName(), CLEANUP_POLICY_ATTRIBUTE);
         ALL.put(TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), TOPIC_MESSAGE_TYPE_ATTRIBUTE);
         ALL.put(TOPIC_RESERVE_TIME_ATTRIBUTE.getName(), TOPIC_RESERVE_TIME_ATTRIBUTE);
+        ALL.put(LITE_EXPIRATION_ATTRIBUTE.getName(), LITE_EXPIRATION_ATTRIBUTE);
     }
 }
