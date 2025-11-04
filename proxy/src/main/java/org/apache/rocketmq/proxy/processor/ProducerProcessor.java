@@ -104,7 +104,7 @@ public class ProducerProcessor extends AbstractProcessor {
                 timeoutMillis)
                 .whenCompleteAsync((sendResultList, throwable) -> {
                     long endTimestamp = System.currentTimeMillis();
-                    if (throwable != null) {
+                    if (throwable == null) {
                         for (SendResult sendResult : sendResultList) {
                             int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
                             if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
@@ -113,9 +113,9 @@ public class ProducerProcessor extends AbstractProcessor {
                                 fillTransactionData(ctx, producerGroup, finalMessageQueue, sendResult, messageList);
                             }
                         }
-                        this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp - beginTimestampFirst, true, false);
-                    } else {
                         this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp - beginTimestampFirst, false, true);
+                    } else {
+                        this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp - beginTimestampFirst, true, false);
                     }
                 }, this.executor);
         } catch (Throwable t) {
