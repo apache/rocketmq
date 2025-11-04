@@ -349,7 +349,8 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             flatAppendFile.destroyExpiredFile(expireTimestamp);
             timeStoreTable.entrySet().removeIf(entry ->
                 IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()) &&
-                    entry.getKey() < flatAppendFile.getMinTimestamp());
+                    (flatAppendFile.getFileSegmentList().isEmpty() ||
+                        entry.getKey() < flatAppendFile.getMinTimestamp()));
             int tableSize = (int) timeStoreTable.entrySet().stream()
                 .filter(entry -> IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()))
                 .count();
