@@ -37,6 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+
+import io.netty.util.internal.PlatformDependent;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -1049,7 +1051,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             return true;
         }
         try {
-            long addr = ((DirectBuffer) mappedByteBuffer).address() + position;
+            long addr = PlatformDependent.directBufferAddress(mappedByteBuffer) + position;
             return (boolean) IS_LOADED_METHOD.invoke(mappedByteBuffer, mappingAddr(addr), size, pageCount(size));
         } catch (Exception e) {
             log.info("invoke isLoaded0 of file {} error:", file.getAbsolutePath(), e);
