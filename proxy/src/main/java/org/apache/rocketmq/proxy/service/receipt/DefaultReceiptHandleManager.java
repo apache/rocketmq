@@ -138,7 +138,28 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
     }
 
     protected boolean clientIsOffline(ReceiptHandleGroupKey groupKey) {
-        return this.consumerManager.findChannel(groupKey.getGroup(), groupKey.getChannel()) == null;
+        if (groupKey != null && groupKey.getChannel() != null) {
+            Channel channel = groupKey.getChannel();
+            ClientChannelInfo clientChannelInfo = this.consumerManager.findChannel(groupKey.getGroup(),
+                channel);
+            if (clientChannelInfo != null) {
+                boolean channelInactive = !channel.isActive();
+                if (channelInactive) {
+                    log.info("clientIsOffline: consumer channel is inactive, confirmed offline. group:{}, channel:{}",
+                        groupKey.getGroup(), channel);
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                log.warn("clientIsOffline: consumer not found in ConsumerManager. group:{}, channel:{}",
+                    groupKey.getGroup(), channel);
+                return true;
+            }
+        } else {
+            log.warn("clientIsOffline: consumer or channel is empty. group:{}", groupKey);
+            return true;
+        }
     }
 
     protected void scheduleRenewTask() {
