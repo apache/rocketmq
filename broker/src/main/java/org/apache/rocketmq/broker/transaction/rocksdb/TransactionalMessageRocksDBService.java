@@ -105,7 +105,7 @@ public class TransactionalMessageRocksDBService {
         while (true) {
             try {
                 List<TransRocksDBRecord> trs = messageRocksDBStorage.scanRecordsForTrans(TRANS_COLUMN_FAMILY, MAX_BATCH_SIZE_FROM_ROCKSDB, lastKey);
-                if (null == trs || CollectionUtils.isEmpty(trs)) {
+                if (CollectionUtils.isEmpty(trs)) {
                     log.info("TransactionalMessageRocksDBService checkTransStatus trs is empty");
                     break;
                 }
