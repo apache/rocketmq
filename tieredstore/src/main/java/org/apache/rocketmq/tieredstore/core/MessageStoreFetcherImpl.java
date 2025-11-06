@@ -210,8 +210,12 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
         // Pop revive will cause a large number of random reads,
         // so the amount of pre-fetch message num needs to be reduced.
         int fetchSize = maxCount == 1 ? 32 : storeConfig.getReadAheadMessageCountThreshold();
+
+        // In the current design, when the min offset cache expires,
+        // this method may trigger an RPC call, causing buffer fetch thread starvation
         return fetchMessageThenPutToCache(flatFile, queueOffset, fetchSize)
-            .thenApply(maxOffset -> getMessageFromCache(flatFile, queueOffset, maxCount, messageFilter));
+            .thenApplyAsync(maxOffset -> getMessageFromCache(flatFile, queueOffset, maxCount, messageFilter),
+                messageStore.getStoreExecutor().commonExecutor);
     }
 
     public CompletableFuture<GetMessageResultExt> getMessageFromTieredStoreAsync(
