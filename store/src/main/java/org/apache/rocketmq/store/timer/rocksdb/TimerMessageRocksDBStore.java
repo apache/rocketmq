@@ -140,7 +140,7 @@ public class TimerMessageRocksDBStore {
                 long commitOffsetRocksDB = messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
                 long maxCommitOffset = Math.max(commitOffsetFile, commitOffsetRocksDB);
                 this.readOffset.set(maxCommitOffset);
-                log.info("restart TimerMessageRocksDBStore has benn recover running, commitOffsetFile: {}, commitOffsetRocksDB: {}, readOffset: {}", commitOffsetFile, commitOffsetRocksDB, readOffset.get());
+                log.info("restart TimerMessageRocksDBStore has been recover running, commitOffsetFile: {}, commitOffsetRocksDB: {}, readOffset: {}", commitOffsetFile, commitOffsetRocksDB, readOffset.get());
             } else {
                 this.load();
                 this.start();
@@ -212,7 +212,7 @@ public class TimerMessageRocksDBStore {
     }
 
     public long getCommitOffsetInRocksDB() {
-        if (null == messageRocksDBStorage || !storeConfig.isTransRocksDBEnable()) {
+        if (null == messageRocksDBStorage || !storeConfig.isTimerRocksDBEnable()) {
             return 0L;
         }
         return messageRocksDBStorage.getCheckpointForTimer(TIMER_COLUMN_FAMILY, MessageRocksDBStorage.SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
