@@ -144,7 +144,7 @@ public class CommandUtil {
                 return addr;
             }
         }
-        throw new Exception(String.format("No broker address for broker name %s.%n", brokerData));
+        throw new Exception(String.format("No broker address for broker name %s.", brokerName));
     }
 
     public static Set<String> fetchMasterAndSlaveAddrByBrokerName(final MQAdminExt adminExt, final String brokerName)
