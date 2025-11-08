@@ -442,6 +442,10 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
                 if (flatFile == null) {
                     continue;
                 }
+                if (indexItem.getOffset() < flatFile.getCommitLogMinOffset() ||
+                    indexItem.getOffset() > flatFile.getCommitLogMaxOffset()) {
+                    continue;
+                }
                 CompletableFuture<SelectMappedBufferResult> getMessageFuture = flatFile
                     .getCommitLogAsync(indexItem.getOffset(), indexItem.getSize())
                     .thenApply(messageBuffer -> new SelectMappedBufferResult(
