@@ -51,7 +51,6 @@ public class GetBrokerConfigCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(final Options options) {
-
         OptionGroup group = new OptionGroup();
         group.addOption(new Option("b", "brokerAddr", true, "get which broker"));
         group.addOption(new Option("c", "clusterName", true, "get which cluster"));
