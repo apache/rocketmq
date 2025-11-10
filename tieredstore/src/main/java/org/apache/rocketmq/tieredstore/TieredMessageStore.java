@@ -83,6 +83,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         this.storeConfig = new MessageStoreConfig();
         this.context = context;
         this.context.registerConfiguration(this.storeConfig);
+        this.storeConfig.setWriteWithoutMmap(context.getMessageStoreConfig().isWriteWithoutMmap());
         this.brokerName = this.storeConfig.getBrokerName();
         this.defaultStore = next;
 
