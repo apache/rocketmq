@@ -1951,7 +1951,7 @@ public class TimerMessageStore {
         if (shouldRunningDequeue) {
             timerCheckpoint.setMasterTimerQueueOffset(commitQueueOffset);
             if (commitReadTimeMs != lastCommitReadTimeMs || commitQueueOffset != lastCommitQueueOffset) {
-                timerCheckpoint.updateDateVersion(messageStore.getStateMachineVersion());
+                timerCheckpoint.updateDataVersion(messageStore.getStateMachineVersion());
                 lastCommitReadTimeMs = commitReadTimeMs;
                 lastCommitQueueOffset = commitQueueOffset;
             }

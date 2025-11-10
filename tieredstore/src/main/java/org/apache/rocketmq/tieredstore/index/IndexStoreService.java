@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
@@ -238,7 +237,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             ConcurrentNavigableMap<Long, IndexFile> pendingMap =
                 this.timeStoreTable.subMap(beginTime, true, endTime, true);
             List<CompletableFuture<Void>> futureList = new ArrayList<>(pendingMap.size());
-            ConcurrentHashMap<String /* queueId-offset */, IndexItem> result = new ConcurrentHashMap<>();
+            ConcurrentSkipListMap<String /* queueId-offset */, IndexItem> result = new ConcurrentSkipListMap<>();
 
             for (Map.Entry<Long, IndexFile> entry : pendingMap.descendingMap().entrySet()) {
                 CompletableFuture<Void> completableFuture = entry.getValue()
@@ -246,7 +245,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
                     .thenAccept(itemList -> itemList.forEach(indexItem -> {
                         if (result.size() < maxCount) {
                             result.put(String.format(
-                                "%d-%d", indexItem.getQueueId(), indexItem.getOffset()), indexItem);
+                                "%d-%20d", indexItem.getQueueId(), indexItem.getOffset()), indexItem);
                         }
                     }));
                 futureList.add(completableFuture);
@@ -349,7 +348,8 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             flatAppendFile.destroyExpiredFile(expireTimestamp);
             timeStoreTable.entrySet().removeIf(entry ->
                 IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()) &&
-                    entry.getKey() < flatAppendFile.getMinTimestamp());
+                    (flatAppendFile.getFileSegmentList().isEmpty() ||
+                        entry.getKey() < flatAppendFile.getMinTimestamp()));
             int tableSize = (int) timeStoreTable.entrySet().stream()
                 .filter(entry -> IndexFile.IndexStatusEnum.UPLOAD.equals(entry.getValue().getFileStatus()))
                 .count();

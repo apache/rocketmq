@@ -198,8 +198,9 @@ public class ConsumerProcessor extends AbstractProcessor {
                 }, this.executor);
         } catch (Throwable t) {
             future.completeExceptionally(t);
+            FutureUtils.addExecutor(future, this.executor);
         }
-        return FutureUtils.addExecutor(future, this.executor);
+        return future;
     }
 
     private void fillUniqIDIfNeed(MessageExt messageExt) {
@@ -340,8 +341,9 @@ public class ConsumerProcessor extends AbstractProcessor {
                 }, this.executor);
         } catch (Throwable t) {
             future.completeExceptionally(t);
+            FutureUtils.addExecutor(future, this.executor);
         }
-        return FutureUtils.addExecutor(future, this.executor);
+        return future;
     }
 
     protected String createHandle(String handleString, long commitLogOffset) {

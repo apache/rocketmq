@@ -674,7 +674,13 @@ public class BrokerMetricsManager {
             .setDescription("Consumer lag messages")
             .ofLongs()
             .buildWithCallback(measurement ->
-                consumerLagCalculator.calculateLag(result -> measurement.record(result.lag, buildLagAttributes(result))));
+                consumerLagCalculator.calculateLag(result -> {
+                    // Note: 'record' method uses HashMap which may cause
+                    // concurrent access issues when Pull thread executes Pop callbacks.
+                    synchronized (this) {
+                        measurement.record(result.lag, buildLagAttributes(result));
+                    }
+                }));
 
         consumerLagLatency = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_LAG_LATENCY)
             .setDescription("Consumer lag time")
