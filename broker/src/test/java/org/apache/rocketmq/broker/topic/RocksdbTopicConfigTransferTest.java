@@ -79,6 +79,15 @@ public class RocksdbTopicConfigTransferTest {
         if (notToBeExecuted()) {
             return;
         }
+
+        if (rocksdbTopicConfigManager != null) {
+            rocksdbTopicConfigManager.stop();
+        }
+
+        if (jsonTopicConfigManager != null) {
+            jsonTopicConfigManager.stop();
+        }
+
         Path pathToBeDeleted = Paths.get(basePath);
         try {
             Files.walk(pathToBeDeleted)
@@ -92,9 +101,6 @@ public class RocksdbTopicConfigTransferTest {
                     });
         } catch (IOException e) {
             // ignore
-        }
-        if (rocksdbTopicConfigManager != null) {
-            rocksdbTopicConfigManager.stop();
         }
     }
 

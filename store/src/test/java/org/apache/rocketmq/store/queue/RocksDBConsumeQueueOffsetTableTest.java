@@ -22,9 +22,12 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.queue.offset.OffsetEntryType;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -62,6 +65,8 @@ public class RocksDBConsumeQueueOffsetTableTest {
 
     private static String topicName;
 
+    private RocksIterator iterator;
+
     @BeforeClass
     public static void initDB() throws IOException, RocksDBException {
         TemporaryFolder tempFolder = new TemporaryFolder();
@@ -98,15 +103,28 @@ public class RocksDBConsumeQueueOffsetTableTest {
 
     @AfterClass
     public static void tearDownDB() throws RocksDBException {
-        db.closeE();
-        RocksDB.destroyDB(dbPath.getAbsolutePath(), new Options());
+        if (db != null) {
+            db.closeE();
+        }
+
+        if (dbPath != null) {
+            RocksDB.destroyDB(dbPath.getAbsolutePath(), new Options());
+            UtilAll.deleteFile(dbPath);
+        }
     }
 
     @Before
     public void setUp() {
-        RocksIterator iterator = db.newIterator();
+        iterator = db.newIterator();
         Mockito.doReturn(iterator).when(rocksDBStorage).seekOffsetCF();
         offsetTable = new RocksDBConsumeQueueOffsetTable(consumeQueueTable, rocksDBStorage, messageStore);
+    }
+
+    @After
+    public void tearDown() {
+        if (iterator != null) {
+            iterator.close();
+        }
     }
 
     /**

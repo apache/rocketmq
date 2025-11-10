@@ -78,6 +78,15 @@ public class RocksdbGroupConfigTransferTest {
         if (notToBeExecuted()) {
             return;
         }
+
+        if (rocksDBSubscriptionGroupManager != null) {
+            rocksDBSubscriptionGroupManager.stop();
+        }
+
+        if (jsonSubscriptionGroupManager != null) {
+            jsonSubscriptionGroupManager.stop();
+        }
+
         Path pathToBeDeleted = Paths.get(basePath);
 
         try {
@@ -92,9 +101,6 @@ public class RocksdbGroupConfigTransferTest {
                     });
         } catch (IOException e) {
             // ignore
-        }
-        if (rocksDBSubscriptionGroupManager != null) {
-            rocksDBSubscriptionGroupManager.stop();
         }
     }
 
@@ -282,7 +288,7 @@ public class RocksdbGroupConfigTransferTest {
     }
 
     @Test
-    public void theSecondTimeLoadRocksdbTopicConfigManager() {
+    public void theSecondTimeLoadRocksdbSubscriptionGroupManager() {
         if (notToBeExecuted()) {
             return;
         }

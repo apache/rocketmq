@@ -22,6 +22,7 @@ import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -53,8 +54,15 @@ public class RocksDBLmqConsumerOffsetManagerTest {
         when(brokerController.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
         offsetManager = new RocksDBConsumerOffsetManager(brokerController);
+        offsetManager.load();
     }
 
+    @After
+    public void tearDown() {
+        if (offsetManager != null) {
+            offsetManager.stop();
+        }
+    }
 
     @Test
     public void testQueryOffsetForNonLmq() {

@@ -112,6 +112,9 @@ public class PopConsumerServiceTest {
 
     @After
     public void shutdown() throws IOException {
+        if (consumerService != null) {
+            consumerService.shutdown();
+        }
         FileUtils.deleteDirectory(new File(filePath));
     }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.topic;
 
+import java.io.File;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.Attribute;
 import org.apache.rocketmq.common.attribute.BooleanAttribute;
 import org.apache.rocketmq.common.attribute.CQType;
@@ -87,6 +89,8 @@ public class RocksdbTopicConfigManagerTest {
         if (topicConfigManager != null) {
             topicConfigManager.stop();
         }
+
+        UtilAll.deleteFile(new File(basePath));
     }
 
     @Test

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.broker.offset;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.StoreType;
@@ -43,6 +45,7 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.awaitility.Awaitility;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,6 +96,32 @@ public class RocksdbTransferOffsetAndCqTest {
         consumerOffsetManager.load();
 
         rocksdbConsumerOffsetManager = new RocksDBConsumerOffsetManager(brokerController);
+    }
+
+    @After
+    public void tearDown() {
+        if (notToBeExecuted()) {
+            return;
+        }
+
+        if (rocksdbConsumerOffsetManager != null) {
+            rocksdbConsumerOffsetManager.stop();
+        }
+
+        if (consumerOffsetManager != null) {
+            consumerOffsetManager.stop();
+        }
+
+        if (defaultMessageStore != null) {
+            ConsumeQueueStoreInterface cqStore = defaultMessageStore.getQueueStore();
+            cqStore.shutdown();
+            cqStore.destroy(false);
+
+            defaultMessageStore.shutdown();
+            defaultMessageStore.destroy();
+        }
+
+        UtilAll.deleteFile(new File(basePath));
     }
 
     @Test
