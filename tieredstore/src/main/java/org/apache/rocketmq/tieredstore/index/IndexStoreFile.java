@@ -247,7 +247,6 @@ public class IndexStoreFile implements IndexFile {
                 if (writeWithoutMmap && fileChannel != null) {
                     // Use FileChannel for writing
                     ByteBuffer itemBuffer = indexItem.getByteBuffer();
-                    itemBuffer.rewind();
                     fileChannel.position(itemPosition);
                     fileChannel.write(itemBuffer);
                     
@@ -276,7 +275,7 @@ public class IndexStoreFile implements IndexFile {
                     this.getTimestamp(), topic, key, hashCode % this.hashSlotMaxCount, itemIndex, slotOldValue, indexItem);
             }
             return AppendResult.SUCCESS;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("IndexStoreFile put key error, topic: {}, topicId: {}, queueId: {}, keySet: {}, offset: {}, " +
                 "size: {}, timestamp: {}", topic, topicId, queueId, keySet, offset, size, timestamp, e);
         } finally {
@@ -437,7 +436,7 @@ public class IndexStoreFile implements IndexFile {
             buffer = compactToNewFile();
             log.debug("IndexStoreFile do compaction, timestamp: {}, file size: {}, cost: {}ms",
                 this.getTimestamp(), buffer.capacity(), stopwatch.elapsed(TimeUnit.MICROSECONDS));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("IndexStoreFile do compaction, timestamp: {}, cost: {}ms",
                 this.getTimestamp(), stopwatch.elapsed(TimeUnit.MICROSECONDS), e);
             return null;
