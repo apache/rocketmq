@@ -338,7 +338,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 .thenApply(time -> {
                     Attributes latencyAttributes = TieredStoreMetricsManager.newAttributesBuilder()
                         .put(TieredStoreMetricsConstant.LABEL_OPERATION,
-                                TieredStoreMetricsConstant.OPERATION_API_GET_TIME_BY_OFFSET)
+                            TieredStoreMetricsConstant.OPERATION_API_GET_TIME_BY_OFFSET)
                         .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
                         .build();
                     TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
@@ -465,7 +465,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
             dispatcher.shutdown();
         }
         if (indexService != null) {
-            if (defaultStore.getRunningFlags().isStoreWriteable()) {
+            if (defaultStore.getRunningFlags() != null && defaultStore.getRunningFlags().isStoreWriteable()) {
                 indexService.shutdown();
             } else {
                 indexService.forceShutdown();
