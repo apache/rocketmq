@@ -62,8 +62,8 @@ public class IndexStoreFileTest {
     @Parameterized.Parameters(name = "writeWithoutMmap={0}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
-            { false },
-            { true }
+            { true },
+            { false }
         });
     }
 
