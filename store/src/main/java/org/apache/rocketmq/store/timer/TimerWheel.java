@@ -92,6 +92,11 @@ public class TimerWheel {
         } catch (IOException e) {
             log.error("map file " + finalFileName + " Failed. ", e);
             throw e;
+        } finally {
+            if (randomAccessFile != null) {
+                randomAccessFile.close();
+                randomAccessFile = null;
+            }
         }
     }
 
