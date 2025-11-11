@@ -465,8 +465,13 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
             dispatcher.shutdown();
         }
         if (indexService != null) {
-            indexService.shutdown();
+            if (defaultStore.getRunningFlags().isStoreWriteable()) {
+                indexService.shutdown();
+            } else {
+                indexService.forceShutdown();
+            }
         }
+
         if (flatFileStore != null) {
             flatFileStore.shutdown();
         }

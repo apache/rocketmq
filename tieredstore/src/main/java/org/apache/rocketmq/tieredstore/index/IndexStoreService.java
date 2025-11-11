@@ -415,6 +415,11 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     }
 
     @Override
+    public void forceShutdown() {
+        super.shutdown();
+    }
+
+    @Override
     public void run() {
         while (!this.isStopped()) {
             long expireTimestamp = System.currentTimeMillis()
