@@ -438,13 +438,14 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             if (autoCreateNewFile) {
                 this.forceUpload();
             }
-            this.timeStoreTable.forEach((timestamp, file) -> file.shutdown());
-            this.timeStoreTable.clear();
         } catch (Exception e) {
             log.error("IndexStoreService shutdown error", e);
         } finally {
+            this.timeStoreTable.forEach((timestamp, file) -> file.shutdown());
+            this.timeStoreTable.clear();
             readWriteLock.writeLock().unlock();
         }
+
         log.info(this.getServiceName() + " service shutdown");
     }
 }
