@@ -184,9 +184,12 @@ public class PopLongPollingService extends ServiceThread {
         // Process retry topic messages
         String originGroup = properties.get(MessageConst.PROPERTY_ORIGIN_GROUP);
         // In the case of pop consumption, there is no long polling hanging on the retry topic, so the wake-up is skipped.
+        if (StringUtils.isBlank(originGroup)) {
+            return;
+        }
         // %RETRY%GROUP is used for pull mode, so the wake-up is skipped.
         int originTopicStartIndex = prefix.length() + originGroup.length() + 1;
-        if (StringUtils.isBlank(originGroup) || topic.length() <= originTopicStartIndex) {
+        if (topic.length() <= originTopicStartIndex) {
             return;
         }
         String originTopic = topic.substring(originTopicStartIndex);
