@@ -520,8 +520,23 @@ public class IndexStoreFile implements IndexFile {
         }
 
         this.flushNewMetadata(newBuffer, true, compactFileChannel);
-        newBuffer.flip();
-        return newBuffer;
+
+        if (writeWithoutMmap && compactFileChannel != null) {
+            // When using FileChannel, we need to read the data back from file
+            // because MappedByteBuffer is read-only in this mode
+            compactFileChannel.force(false);
+            ByteBuffer readBuffer = ByteBuffer.allocate(fileMaxLength);
+            compactFileChannel.position(0);
+            while (readBuffer.hasRemaining()) {
+                compactFileChannel.read(readBuffer);
+            }
+            readBuffer.flip();
+            return readBuffer;
+        } else {
+            // When using MappedByteBuffer, the data is already in the buffer
+            newBuffer.flip();
+            return newBuffer;
+        }
     }
 
     @Override
