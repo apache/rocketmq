@@ -468,9 +468,11 @@ public class IndexStoreFile implements IndexFile {
             }
             if (this.mappedFile != null) {
                 this.mappedFile.shutdown(TimeUnit.SECONDS.toMillis(10));
+                this.mappedFile.cleanResources();
             }
             if (this.compactMappedFile != null) {
                 this.compactMappedFile.shutdown(TimeUnit.SECONDS.toMillis(10));
+                this.compactMappedFile.cleanResources();
             }
         } catch (Exception e) {
             log.error("IndexStoreFile shutdown failed, timestamp: {}, status: {}", this.getTimestamp(), fileStatus.get(), e);
