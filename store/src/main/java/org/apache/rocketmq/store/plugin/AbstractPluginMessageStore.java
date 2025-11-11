@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -163,6 +164,11 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
         return next.getOffsetInQueueByTime(topic, queueId, timestamp);
+    }
+
+    @Override
+    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
+        return next.getOffsetInQueueByTime(topic, queueId, timestamp, boundaryType);
     }
 
     @Override
