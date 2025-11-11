@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tieredstore.index;
 
 import com.google.common.base.Stopwatch;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
@@ -392,6 +393,8 @@ public class IndexStoreFile implements IndexFile {
             buffer = compactToNewFile();
             log.debug("IndexStoreFile do compaction, timestamp: {}, file size: {}, cost: {}ms",
                 this.getTimestamp(), buffer.capacity(), stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
         } catch (Exception e) {
             log.error("IndexStoreFile do compaction, timestamp: {}, cost: {}ms",
                 this.getTimestamp(), stopwatch.elapsed(TimeUnit.MICROSECONDS), e);

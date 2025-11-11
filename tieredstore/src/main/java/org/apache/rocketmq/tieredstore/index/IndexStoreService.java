@@ -417,15 +417,19 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     @Override
     public void run() {
         while (!this.isStopped()) {
-            long expireTimestamp = System.currentTimeMillis()
-                - TimeUnit.HOURS.toMillis(storeConfig.getTieredStoreFileReservedTime());
-            this.destroyExpiredFile(expireTimestamp);
-            IndexFile indexFile = this.getNextSealedFile();
-            if (indexFile != null) {
-                if (this.doCompactThenUploadFile(indexFile)) {
-                    this.setCompactTimestamp(indexFile.getTimestamp());
-                    continue;
+            try {
+                long expireTimestamp = System.currentTimeMillis()
+                    - TimeUnit.HOURS.toMillis(storeConfig.getTieredStoreFileReservedTime());
+                this.destroyExpiredFile(expireTimestamp);
+                IndexFile indexFile = this.getNextSealedFile();
+                if (indexFile != null) {
+                    if (this.doCompactThenUploadFile(indexFile)) {
+                        this.setCompactTimestamp(indexFile.getTimestamp());
+                        continue;
+                    }
                 }
+            } catch (Throwable e) {
+                log.error("IndexStoreService running error", e);
             }
             this.waitForRunning(TimeUnit.SECONDS.toMillis(10));
         }
