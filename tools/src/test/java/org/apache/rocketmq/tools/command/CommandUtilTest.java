@@ -104,9 +104,7 @@ public class CommandUtilTest {
 
     @Test
     public void testFetchBrokerNameByAddrThrowsCorrectExceptionWhenNothingFound() {
-        assertThatThrownBy( () -> {
-            CommandUtil.fetchBrokerNameByAddr(defaultMQAdminExtImpl, "127.0.0.2:10911");
-        })
+        assertThatThrownBy(() -> CommandUtil.fetchBrokerNameByAddr(defaultMQAdminExtImpl, "127.0.0.2:10911"))
                 .isInstanceOf(Exception.class)
                 .hasMessageContaining("Make sure the specified clusterName exists or the name server connected to is correct.");
 
