@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.state.StateEventListener;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -53,7 +54,6 @@ import org.apache.rocketmq.proxy.common.ReceiptHandleGroupKey;
 import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
-import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
@@ -172,7 +172,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
 
     protected void renewMessage(ProxyContext context, ReceiptHandleGroupKey key, ReceiptHandleGroup group, String msgID, String handleStr) {
         try {
-            group.computeIfPresent(msgID, handleStr, messageReceiptHandle -> startRenewMessage(context, key, messageReceiptHandle));
+            group.computeIfPresent(msgID, handleStr, messageReceiptHandle -> startRenewMessage(context, key, messageReceiptHandle), 0);
         } catch (Exception e) {
             log.error("error when renew message. msgID:{}, handleStr:{}", msgID, handleStr, e);
         }
