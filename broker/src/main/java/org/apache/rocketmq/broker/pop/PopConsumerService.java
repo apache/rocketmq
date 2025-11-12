@@ -624,6 +624,7 @@ public class PopConsumerService extends ServiceThread {
             msgInner.getProperties().get(MessageConst.PROPERTY_FIRST_POP_TIME) == null) {
             msgInner.getProperties().put(MessageConst.PROPERTY_FIRST_POP_TIME, String.valueOf(record.getPopTime()));
         }
+        msgInner.getProperties().put(MessageConst.PROPERTY_ORIGIN_GROUP, record.getGroupId());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 
         PutMessageResult putMessageResult =

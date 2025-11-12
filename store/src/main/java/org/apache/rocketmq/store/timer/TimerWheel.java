@@ -43,7 +43,9 @@ public class TimerWheel {
     public final int slotsTotal;
     public final int precisionMs;
     private final String fileName;
-    private MappedByteBuffer mappedByteBuffer;
+    private final MappedByteBuffer mappedByteBuffer;
+    private final RandomAccessFile randomAccessFile;
+    private final FileChannel fileChannel;
     private final ByteBuffer byteBuffer;
     private final ThreadLocal<ByteBuffer> localBuffer = new ThreadLocal<ByteBuffer>() {
         @Override
@@ -69,7 +71,6 @@ public class TimerWheel {
         File file = new File(finalFileName);
         UtilAll.ensureDirOK(file.getParent());
 
-        RandomAccessFile randomAccessFile = null;
         try {
             randomAccessFile = new RandomAccessFile(finalFileName, "rw");
             if (file.exists() && randomAccessFile.length() != 0 &&
@@ -79,8 +80,13 @@ public class TimerWheel {
             }
             randomAccessFile.setLength(wheelLength);
             if (snapOffset < 0) {
-                mappedByteBuffer = randomAccessFile.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, wheelLength);
+                fileChannel = randomAccessFile.getChannel();
+                mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, wheelLength);
                 assert wheelLength == mappedByteBuffer.remaining();
+            } else {
+                fileChannel = null;
+                mappedByteBuffer = null;
+                randomAccessFile.close();
             }
             this.byteBuffer = ByteBuffer.allocateDirect(wheelLength);
             this.byteBuffer.put(Files.readAllBytes(file.toPath()));
@@ -90,10 +96,6 @@ public class TimerWheel {
         } catch (IOException e) {
             log.error("map file " + finalFileName + " Failed. ", e);
             throw e;
-        } finally {
-            if (randomAccessFile != null) {
-                randomAccessFile.close();
-            }
         }
     }
 
@@ -114,6 +116,12 @@ public class TimerWheel {
         UtilAll.cleanBuffer(this.mappedByteBuffer);
         UtilAll.cleanBuffer(this.byteBuffer);
         localBuffer.remove();
+
+        try {
+            this.fileChannel.close();
+        } catch (Throwable t) {
+            log.error("Shutdown error in timer wheel", t);
+        }
     }
 
     public void flush() {
