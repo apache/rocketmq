@@ -86,6 +86,7 @@ public class TimerWheel {
             } else {
                 fileChannel = null;
                 mappedByteBuffer = null;
+                randomAccessFile.close();
             }
             this.byteBuffer = ByteBuffer.allocateDirect(wheelLength);
             this.byteBuffer.put(Files.readAllBytes(file.toPath()));
