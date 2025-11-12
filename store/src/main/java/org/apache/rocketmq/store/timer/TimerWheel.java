@@ -43,9 +43,9 @@ public class TimerWheel {
     public final int slotsTotal;
     public final int precisionMs;
     private final String fileName;
-    private MappedByteBuffer mappedByteBuffer;
-    private RandomAccessFile randomAccessFile;
-    private FileChannel fileChannel;
+    private final MappedByteBuffer mappedByteBuffer;
+    private final RandomAccessFile randomAccessFile;
+    private final FileChannel fileChannel;
     private final ByteBuffer byteBuffer;
     private final ThreadLocal<ByteBuffer> localBuffer = new ThreadLocal<ByteBuffer>() {
         @Override
@@ -83,6 +83,9 @@ public class TimerWheel {
                 fileChannel = randomAccessFile.getChannel();
                 mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, wheelLength);
                 assert wheelLength == mappedByteBuffer.remaining();
+            } else {
+                fileChannel = null;
+                mappedByteBuffer = null;
             }
             this.byteBuffer = ByteBuffer.allocateDirect(wheelLength);
             this.byteBuffer.put(Files.readAllBytes(file.toPath()));
@@ -92,11 +95,6 @@ public class TimerWheel {
         } catch (IOException e) {
             log.error("map file " + finalFileName + " Failed. ", e);
             throw e;
-        } finally {
-            if (randomAccessFile != null) {
-                randomAccessFile.close();
-                randomAccessFile = null;
-            }
         }
     }
 
@@ -120,7 +118,6 @@ public class TimerWheel {
 
         try {
             this.fileChannel.close();
-            this.fileChannel = null;
         } catch (Throwable t) {
             log.error("Shutdown error in timer wheel", t);
         }
