@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -91,20 +92,26 @@ public class IndexStoreFile implements IndexFile {
     private final AtomicInteger hashSlotCount = new AtomicInteger(0);
     private final AtomicInteger indexItemCount = new AtomicInteger(0);
 
+    private final boolean writeWithoutMmap;
     private MappedFile mappedFile;
     private ByteBuffer byteBuffer;
     private MappedFile compactMappedFile;
     private FileSegment fileSegment;
 
+    private FileChannel fileChannel;
+
     public IndexStoreFile(MessageStoreConfig storeConfig, long timestamp) throws IOException {
+        this.writeWithoutMmap = storeConfig.isWriteWithoutMmap();
         this.hashSlotMaxCount = storeConfig.getTieredStoreIndexFileMaxHashSlotNum();
         this.indexItemMaxCount = storeConfig.getTieredStoreIndexFileMaxIndexNum();
         this.fileStatus = new AtomicReference<>(UNSEALED);
         this.fileReadWriteLock = new ReentrantReadWriteLock();
         this.mappedFile = new DefaultMappedFile(
             Paths.get(storeConfig.getStorePathRootDir(), FILE_DIRECTORY_NAME, String.valueOf(timestamp)).toString(),
-            this.getItemPosition(indexItemMaxCount));
+            this.getItemPosition(indexItemMaxCount),
+            this.writeWithoutMmap);
         this.byteBuffer = this.mappedFile.getMappedByteBuffer();
+        this.fileChannel = this.mappedFile.getFileChannel();
 
         this.beginTimestamp.set(timestamp);
         this.endTimestamp.set(byteBuffer.getLong(INDEX_BEGIN_TIME_STAMP));
@@ -114,6 +121,7 @@ public class IndexStoreFile implements IndexFile {
     }
 
     public IndexStoreFile(MessageStoreConfig storeConfig, FileSegment fileSegment) {
+        this.writeWithoutMmap = storeConfig.isWriteWithoutMmap();
         this.fileSegment = fileSegment;
         this.fileStatus = new AtomicReference<>(UPLOAD);
         this.fileReadWriteLock = new ReentrantReadWriteLock();
@@ -158,12 +166,31 @@ public class IndexStoreFile implements IndexFile {
         return (keyHash < 0) ? -keyHash : keyHash;
     }
 
-    protected void flushNewMetadata(ByteBuffer byteBuffer, boolean end) {
-        byteBuffer.putInt(INDEX_MAGIC_CODE, !end ? BEGIN_MAGIC_CODE : END_MAGIC_CODE);
-        byteBuffer.putLong(INDEX_BEGIN_TIME_STAMP, this.beginTimestamp.get());
-        byteBuffer.putLong(INDEX_END_TIME_STAMP, this.endTimestamp.get());
-        byteBuffer.putInt(INDEX_SLOT_COUNT, this.hashSlotCount.get());
-        byteBuffer.putInt(INDEX_ITEM_INDEX, this.indexItemCount.get());
+    protected void flushNewMetadata(ByteBuffer byteBuffer, boolean end) throws IOException {
+        flushNewMetadata(byteBuffer, end, null);
+    }
+
+    protected void flushNewMetadata(ByteBuffer byteBuffer, boolean end, FileChannel channel) throws IOException {
+        FileChannel targetChannel = channel != null ? channel : fileChannel;
+        if (writeWithoutMmap && targetChannel != null) {
+            // Use FileChannel for writing
+            ByteBuffer writeBuffer = ByteBuffer.allocate(INDEX_HEADER_SIZE);
+            writeBuffer.putInt(!end ? BEGIN_MAGIC_CODE : END_MAGIC_CODE);
+            writeBuffer.putLong(this.beginTimestamp.get());
+            writeBuffer.putLong(this.endTimestamp.get());
+            writeBuffer.putInt(this.hashSlotCount.get());
+            writeBuffer.putInt(this.indexItemCount.get());
+            writeBuffer.flip();
+            targetChannel.position(INDEX_MAGIC_CODE);
+            targetChannel.write(writeBuffer);
+        } else {
+            // Use ByteBuffer for writing
+            byteBuffer.putInt(INDEX_MAGIC_CODE, !end ? BEGIN_MAGIC_CODE : END_MAGIC_CODE);
+            byteBuffer.putLong(INDEX_BEGIN_TIME_STAMP, this.beginTimestamp.get());
+            byteBuffer.putLong(INDEX_END_TIME_STAMP, this.endTimestamp.get());
+            byteBuffer.putInt(INDEX_SLOT_COUNT, this.hashSlotCount.get());
+            byteBuffer.putInt(INDEX_ITEM_INDEX, this.indexItemCount.get());
+        }
     }
 
     protected int getSlotPosition(int slotIndex) {
@@ -216,9 +243,26 @@ public class IndexStoreFile implements IndexFile {
                 IndexItem indexItem = new IndexItem(
                     topicId, queueId, offset, size, hashCode, timeDiff, slotOldValue);
                 int itemIndex = this.indexItemCount.incrementAndGet();
-                this.byteBuffer.position(this.getItemPosition(itemIndex));
-                this.byteBuffer.put(indexItem.getByteBuffer());
-                this.byteBuffer.putInt(slotPosition, itemIndex);
+                int itemPosition = this.getItemPosition(itemIndex);
+
+                if (writeWithoutMmap && fileChannel != null) {
+                    // Use FileChannel for writing
+                    ByteBuffer itemBuffer = indexItem.getByteBuffer();
+                    fileChannel.position(itemPosition);
+                    fileChannel.write(itemBuffer);
+
+                    ByteBuffer slotBuffer = ByteBuffer.allocate(Integer.BYTES);
+                    slotBuffer.putInt(0, itemIndex);
+                    slotBuffer.position(0);
+                    slotBuffer.limit(Integer.BYTES);
+                    fileChannel.position(slotPosition);
+                    fileChannel.write(slotBuffer);
+                } else {
+                    // Use ByteBuffer for writing
+                    this.byteBuffer.position(itemPosition);
+                    this.byteBuffer.put(indexItem.getByteBuffer());
+                    this.byteBuffer.putInt(slotPosition, itemIndex);
+                }
 
                 if (slotOldValue <= INVALID_INDEX) {
                     this.hashSlotCount.incrementAndGet();
@@ -232,7 +276,7 @@ public class IndexStoreFile implements IndexFile {
                     this.getTimestamp(), topic, key, hashCode % this.hashSlotMaxCount, itemIndex, slotOldValue, indexItem);
             }
             return AppendResult.SUCCESS;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("IndexStoreFile put key error, topic: {}, topicId: {}, queueId: {}, keySet: {}, offset: {}, " +
                 "size: {}, timestamp: {}", topic, topicId, queueId, keySet, offset, size, timestamp, e);
         } finally {
@@ -395,7 +439,7 @@ public class IndexStoreFile implements IndexFile {
                 this.getTimestamp(), buffer.capacity(), stopwatch.elapsed(TimeUnit.MICROSECONDS));
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("IndexStoreFile do compaction, timestamp: {}, cost: {}ms",
                 this.getTimestamp(), stopwatch.elapsed(TimeUnit.MICROSECONDS), e);
             return null;
@@ -426,8 +470,9 @@ public class IndexStoreFile implements IndexFile {
         int writePosition = INDEX_HEADER_SIZE + (hashSlotMaxCount * HASH_SLOT_SIZE);
         int fileMaxLength = writePosition + COMPACT_INDEX_ITEM_SIZE * indexItemCount.get();
 
-        compactMappedFile = new DefaultMappedFile(this.getCompactedFilePath(), fileMaxLength);
+        compactMappedFile = new DefaultMappedFile(this.getCompactedFilePath(), fileMaxLength, writeWithoutMmap);
         MappedByteBuffer newBuffer = compactMappedFile.getMappedByteBuffer();
+        FileChannel compactFileChannel = compactMappedFile.getFileChannel();
 
         for (int i = 0; i < hashSlotMaxCount; i++) {
             int slotPosition = this.getSlotPosition(i);
@@ -440,24 +485,48 @@ public class IndexStoreFile implements IndexFile {
                 buffer.get(payload);
                 int newSlotValue = payloadBuffer.getInt(COMPACT_INDEX_ITEM_SIZE);
                 buffer.limit(COMPACT_INDEX_ITEM_SIZE);
-                newBuffer.position(writePosition);
-                newBuffer.put(payload, 0, COMPACT_INDEX_ITEM_SIZE);
+
+                if (writeWithoutMmap && compactFileChannel != null) {
+                    // Use FileChannel for writing
+                    ByteBuffer writeBuffer = ByteBuffer.wrap(payload, 0, COMPACT_INDEX_ITEM_SIZE);
+                    compactFileChannel.position(writePosition);
+                    compactFileChannel.write(writeBuffer);
+                } else {
+                    // Use ByteBuffer for writing
+                    newBuffer.position(writePosition);
+                    newBuffer.put(payload, 0, COMPACT_INDEX_ITEM_SIZE);
+                }
                 log.trace("IndexStoreFile do compaction, write item, slot: {}, current: {}, next: {}", i, slotValue, newSlotValue);
                 slotValue = newSlotValue;
                 writePosition += COMPACT_INDEX_ITEM_SIZE;
             }
 
             int length = writePosition - writeBeginPosition;
-            newBuffer.putInt(slotPosition, writeBeginPosition);
-            newBuffer.putInt(slotPosition + Integer.BYTES, length);
+            if (writeWithoutMmap && compactFileChannel != null) {
+                // Use FileChannel for writing
+                ByteBuffer slotWriteBuffer = ByteBuffer.allocate(Integer.BYTES * 2);
+                slotWriteBuffer.putInt(0, writeBeginPosition);
+                slotWriteBuffer.putInt(Integer.BYTES, length);
+                slotWriteBuffer.position(0);
+                slotWriteBuffer.limit(Integer.BYTES * 2);
+                compactFileChannel.position(slotPosition);
+                compactFileChannel.write(slotWriteBuffer);
+            } else {
+                // Use ByteBuffer for writing
+                newBuffer.putInt(slotPosition, writeBeginPosition);
+                newBuffer.putInt(slotPosition + Integer.BYTES, length);
+            }
 
             if (length > 0) {
                 log.trace("IndexStoreFile do compaction, write slot, slot: {}, begin: {}, length: {}", i, writeBeginPosition, length);
             }
         }
 
-        this.flushNewMetadata(newBuffer, true);
-        newBuffer.flip();
+        this.flushNewMetadata(newBuffer, true, compactFileChannel);
+
+        // Set position and limit for reading
+        newBuffer.position(0);
+        newBuffer.limit(fileMaxLength);
         return newBuffer;
     }
 

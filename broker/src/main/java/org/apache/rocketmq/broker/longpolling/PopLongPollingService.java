@@ -27,18 +27,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.KeyBuilder;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.CommandCallback;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.MessageFilter;
@@ -167,13 +171,31 @@ public class PopLongPollingService extends ServiceThread {
 
     public void notifyMessageArrivingWithRetryTopic(final String topic, final int queueId, long offset,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
-        String notifyTopic;
-        if (KeyBuilder.isPopRetryTopicV2(topic)) {
-            notifyTopic = KeyBuilder.parseNormalTopic(topic);
+        if (NamespaceUtil.isRetryTopic(topic)) {
+            notifyMessageArrivingFromRetry(topic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
         } else {
-            notifyTopic = topic;
+            notifyMessageArriving(topic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
         }
-        notifyMessageArriving(notifyTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
+    }
+
+    private void notifyMessageArrivingFromRetry(String topic, int queueId, Long tagsCode, long msgStoreTime, byte[] filterBitMap,
+        Map<String, String> properties) {
+        String prefix = MixAll.RETRY_GROUP_TOPIC_PREFIX;
+        String originGroup = properties.get(MessageConst.PROPERTY_ORIGIN_GROUP);
+        // In the case of pop consumption, there is no long polling hanging on the retry topic, so the wake-up is skipped.
+        if (StringUtils.isBlank(originGroup)) {
+            return;
+        }
+        // %RETRY%GROUP is used for pull mode, so the wake-up is skipped.
+        int originTopicStartIndex = prefix.length() + originGroup.length() + 1;
+        if (topic.length() <= originTopicStartIndex) {
+            return;
+        }
+        String originTopic = topic.substring(originTopicStartIndex);
+        if (queueId >= 0) {
+            notifyMessageArriving(originTopic, -1, originGroup, true, tagsCode, msgStoreTime, filterBitMap, properties);
+        }
+        notifyMessageArriving(originTopic, queueId, originGroup, true, tagsCode, msgStoreTime, filterBitMap, properties);
     }
 
     public void notifyMessageArriving(final String topic, final int queueId, long offset,

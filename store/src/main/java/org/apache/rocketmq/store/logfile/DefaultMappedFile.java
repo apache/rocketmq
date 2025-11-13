@@ -592,7 +592,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         if (runningFlags == null) {
             return false;
         }
-        return runningFlags.getAndMakeNotWriteable();
+        return runningFlags.getAndMakeStoreNotWriteable();
     }
 
     public boolean isWriteable() {
