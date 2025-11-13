@@ -70,6 +70,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
     protected final ScheduledExecutorService scheduledExecutorService =
         ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RenewalScheduledThread_"));
     protected final ThreadPoolExecutor renewalWorkerService;
+    protected final ThreadPoolExecutor returnHandleGroupWorkerService;
 
     public DefaultReceiptHandleManager(MetadataService metadataService, ConsumerManager consumerManager, StateEventListener<RenewEvent> eventListener) {
         this.metadataService = metadataService;
@@ -81,6 +82,13 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             proxyConfig.getRenewMaxThreadPoolNums(),
             1, TimeUnit.MINUTES,
             "RenewalWorkerThread",
+            proxyConfig.getRenewThreadPoolQueueCapacity()
+        );
+        this.returnHandleGroupWorkerService = ThreadPoolMonitor.createAndMonitor(
+            proxyConfig.getReturnHandleGroupThreadPoolNums(),
+            proxyConfig.getReturnHandleGroupThreadPoolNums() * 2,
+            1, TimeUnit.MINUTES,
+            "ReturnHandleGroupWorkerThread",
             proxyConfig.getRenewThreadPoolQueueCapacity()
         );
         consumerManager.appendConsumerIdsChangeListener(new ConsumerIdsChangeListener() {
@@ -237,22 +245,31 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         if (key == null) {
             return;
         }
-        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         ReceiptHandleGroup handleGroup = receiptHandleGroupMap.remove(key);
-        if (handleGroup == null) {
+        returnHandleGroupWorkerService.submit(() -> returnHandleGroup(key, handleGroup, 0, 0));
+    }
+
+    // When trying for the first time, do not wait for the handle lock, and try to process all handles that can be locked first,
+    // and then wait for the lock when processing HandleData for the second time.
+    private void returnHandleGroup(ReceiptHandleGroupKey key, ReceiptHandleGroup handleGroup, long lockTimeout, int attemptTimes) {
+        if (handleGroup == null || handleGroup.isEmpty() || attemptTimes > 2) {
             return;
         }
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         handleGroup.scan((msgID, handle, v) -> {
             try {
                 handleGroup.computeIfPresent(msgID, handle, messageReceiptHandle -> {
                     CompletableFuture<AckResult> future = new CompletableFuture<>();
                     eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, proxyConfig.getInvisibleTimeMillisWhenClear(), RenewEvent.EventType.CLEAR_GROUP, future));
                     return CompletableFuture.completedFuture(null);
-                });
+                }, lockTimeout);
             } catch (Exception e) {
                 log.error("error when clear handle for group. key:{}", key, e);
             }
         });
+        if (!handleGroup.isEmpty()) {
+            returnHandleGroupWorkerService.submit(() -> returnHandleGroup(key, handleGroup, proxyConfig.getLockTimeoutMsInHandleGroup(), attemptTimes + 1));
+        }
     }
 
     protected void clearAllHandle() {

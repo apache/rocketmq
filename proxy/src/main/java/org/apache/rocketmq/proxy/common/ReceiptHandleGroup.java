@@ -121,14 +121,12 @@ public class ReceiptHandleGroup {
                 } else {
                     // if the lock is expired, can be acquired again
                     long expiredTimeMs = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 3;
-                    if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
-                        synchronized (this) {
-                            if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
-                                log.warn("HandleData lock expired, acquire lock success and reset lock time. " +
-                                    "MessageReceiptHandle={}, lockTime={}", messageReceiptHandle, currentTimeMs);
-                                this.lastLockTimeMs.set(currentTimeMs);
-                                return currentTimeMs;
-                            }
+                    long lockTime = this.lastLockTimeMs.get();
+                    if (currentTimeMs - lockTime > expiredTimeMs) {
+                        if (this.lastLockTimeMs.compareAndSet(lockTime, currentTimeMs)) {
+                            log.warn("HandleData lock expired, acquire lock success and reset lock time. " +
+                                "MessageReceiptHandle={}, lockTime={}", messageReceiptHandle, currentTimeMs);
+                            return currentTimeMs;
                         }
                     }
                 }
