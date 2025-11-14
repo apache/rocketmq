@@ -55,6 +55,14 @@ import java.util.concurrent.TimeUnit;
 
 public class ProxyStartup {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    /**
+     * proxy components container, manager components with method start/shutdown/...
+     * - gRPC thread pool executor
+     * - message processor (wrap broker controller)
+     * - grpc server
+     * - remoting protocol server
+     * - ...
+     */
     private static final ProxyStartAndShutdown PROXY_START_AND_SHUTDOWN = new ProxyStartAndShutdown();
 
     private static class ProxyStartAndShutdown extends AbstractStartAndShutdown {
@@ -73,8 +81,10 @@ public class ProxyStartup {
             // init thread pool monitor for proxy.
             initThreadPoolMonitor();
 
+            // init business thread pool for grpc server
             ThreadPoolExecutor executor = createServerExecutor();
 
+            // create message processor, wrap broker controller in local mode
             MessagingProcessor messagingProcessor = createMessagingProcessor();
 
             // tls cert update
