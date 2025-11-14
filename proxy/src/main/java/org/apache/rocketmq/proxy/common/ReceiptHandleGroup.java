@@ -200,6 +200,14 @@ public class ReceiptHandleGroup {
         return this.receiptHandleMap.isEmpty();
     }
 
+    public long getHandleNum() {
+        long handleNum = 0L;
+        for (Map.Entry<String, Map<HandleKey, HandleData>> entry : receiptHandleMap.entrySet()) {
+            handleNum += entry.getValue().size();
+        }
+        return handleNum;
+    }
+
     public MessageReceiptHandle get(String msgID, String handle) {
         Map<HandleKey, HandleData> handleMap = this.receiptHandleMap.get(msgID);
         if (handleMap == null) {

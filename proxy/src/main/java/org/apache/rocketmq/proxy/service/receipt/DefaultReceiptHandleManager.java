@@ -246,13 +246,13 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             return;
         }
         ReceiptHandleGroup handleGroup = receiptHandleGroupMap.remove(key);
-        returnHandleGroupWorkerService.submit(() -> returnHandleGroup(key, handleGroup, 0, 0));
+        returnHandleGroupWorkerService.submit(() -> returnHandleGroup(key, handleGroup));
     }
 
-    // When trying for the first time, do not wait for the handle lock, and try to process all handles that can be locked first,
-    // and then wait for the lock when processing HandleData for the second time.
-    private void returnHandleGroup(ReceiptHandleGroupKey key, ReceiptHandleGroup handleGroup, long lockTimeout, int attemptTimes) {
-        if (handleGroup == null || handleGroup.isEmpty() || attemptTimes > 2) {
+    // There is no longer any waiting for lock, and only the locked handles will be processed immediately,
+    // while the handles that cannot be acquired will be kept waiting for the next scheduling.
+    private void returnHandleGroup(ReceiptHandleGroupKey key, ReceiptHandleGroup handleGroup) {
+        if (handleGroup == null || handleGroup.isEmpty()) {
             return;
         }
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
@@ -262,13 +262,15 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                     CompletableFuture<AckResult> future = new CompletableFuture<>();
                     eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, proxyConfig.getInvisibleTimeMillisWhenClear(), RenewEvent.EventType.CLEAR_GROUP, future));
                     return CompletableFuture.completedFuture(null);
-                }, lockTimeout);
+                }, 0);
             } catch (Exception e) {
                 log.error("error when clear handle for group. key:{}", key, e);
             }
         });
+        // scheduleRenewTask will trigger cleanup again
         if (!handleGroup.isEmpty()) {
-            returnHandleGroupWorkerService.submit(() -> returnHandleGroup(key, handleGroup, proxyConfig.getLockTimeoutMsInHandleGroup(), attemptTimes + 1));
+            log.warn("The handle cannot be completely cleared, the remaining quantity is {}, key:{}", handleGroup.getHandleNum(), key);
+            receiptHandleGroupMap.putIfAbsent(key, handleGroup);
         }
     }
 
