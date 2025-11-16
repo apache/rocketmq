@@ -415,17 +415,26 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     }
 
     @Override
+    public void forceShutdown() {
+        super.shutdown();
+    }
+
+    @Override
     public void run() {
         while (!this.isStopped()) {
-            long expireTimestamp = System.currentTimeMillis()
-                - TimeUnit.HOURS.toMillis(storeConfig.getTieredStoreFileReservedTime());
-            this.destroyExpiredFile(expireTimestamp);
-            IndexFile indexFile = this.getNextSealedFile();
-            if (indexFile != null) {
-                if (this.doCompactThenUploadFile(indexFile)) {
-                    this.setCompactTimestamp(indexFile.getTimestamp());
-                    continue;
+            try {
+                long expireTimestamp = System.currentTimeMillis()
+                    - TimeUnit.HOURS.toMillis(storeConfig.getTieredStoreFileReservedTime());
+                this.destroyExpiredFile(expireTimestamp);
+                IndexFile indexFile = this.getNextSealedFile();
+                if (indexFile != null) {
+                    if (this.doCompactThenUploadFile(indexFile)) {
+                        this.setCompactTimestamp(indexFile.getTimestamp());
+                        continue;
+                    }
                 }
+            } catch (Throwable e) {
+                log.error("IndexStoreService running error", e);
             }
             this.waitForRunning(TimeUnit.SECONDS.toMillis(10));
         }
@@ -434,13 +443,14 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             if (autoCreateNewFile) {
                 this.forceUpload();
             }
-            this.timeStoreTable.forEach((timestamp, file) -> file.shutdown());
-            this.timeStoreTable.clear();
         } catch (Exception e) {
             log.error("IndexStoreService shutdown error", e);
         } finally {
+            this.timeStoreTable.forEach((timestamp, file) -> file.shutdown());
+            this.timeStoreTable.clear();
             readWriteLock.writeLock().unlock();
         }
+
         log.info(this.getServiceName() + " service shutdown");
     }
 }
