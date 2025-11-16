@@ -104,6 +104,7 @@ public class ProducerProcessor extends AbstractProcessor {
             SendMessageRequestHeader requestHeader = buildSendMessageRequestHeader(messageList, producerGroup, sysFlag, messageQueue.getQueueId());
 
             AddressableMessageQueue finalMessageQueue = messageQueue;
+            // call SendMessageProcessor of broker
             future = this.serviceManager.getMessageService().sendMessage(
                 ctx,
                 messageQueue,

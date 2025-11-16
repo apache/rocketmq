@@ -46,6 +46,9 @@ import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestH
 
 public interface MessageService {
 
+    /**
+     * call SendMessageProcessor of broker
+     */
     CompletableFuture<List<SendResult>> sendMessage(
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,
