@@ -66,6 +66,14 @@ public class ProducerProcessor extends AbstractProcessor {
         this.topicMessageTypeValidator = new DefaultTopicMessageTypeValidator();
     }
 
+    /**
+     * send message
+     *  1. validate message type
+     *  2. select queue
+     *  3. set message id if not set
+     *  4. call message service
+     *  5. fill transaction data if send succeed and is transaction message
+     */
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, QueueSelector queueSelector,
         String producerGroup, int sysFlag, List<Message> messageList, long timeoutMillis) {
         CompletableFuture<List<SendResult>> future = new CompletableFuture<>();
