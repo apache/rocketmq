@@ -135,32 +135,21 @@ public class NotificationProcessor implements NettyRequestProcessor {
         }
         int randomQ = random.nextInt(100);
         boolean hasMsg = false;
-        boolean needRetry = randomQ % 5 == 0;
         BrokerConfig brokerConfig = brokerController.getBrokerConfig();
-        if (needRetry) {
+        if (requestHeader.getQueueId() < 0) {
+            // read all queue
+            hasMsg = hasMsgFromTopic(topicConfig, randomQ, requestHeader);
+        } else {
+            int queueId = requestHeader.getQueueId();
+            hasMsg = hasMsgFromQueue(topicConfig.getTopicName(), requestHeader, queueId);
+        }
+        // if it doesn't have message, fetch retry
+        if (!hasMsg) {
             String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2());
             hasMsg = hasMsgFromTopic(retryTopic, randomQ, requestHeader);
             if (!hasMsg && brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
                 String retryTopicConfigV1 = KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup());
                 hasMsg = hasMsgFromTopic(retryTopicConfigV1, randomQ, requestHeader);
-            }
-        }
-        if (!hasMsg) {
-            if (requestHeader.getQueueId() < 0) {
-                // read all queue
-                hasMsg = hasMsgFromTopic(topicConfig, randomQ, requestHeader);
-            } else {
-                int queueId = requestHeader.getQueueId();
-                hasMsg = hasMsgFromQueue(topicConfig.getTopicName(), requestHeader, queueId);
-            }
-            // if it doesn't have message, fetch retry again
-            if (!needRetry && !hasMsg) {
-                String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2());
-                hasMsg = hasMsgFromTopic(retryTopic, randomQ, requestHeader);
-                if (!hasMsg && brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
-                    String retryTopicConfigV1 = KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup());
-                    hasMsg = hasMsgFromTopic(retryTopicConfigV1, randomQ, requestHeader);
-                }
             }
         }
 
