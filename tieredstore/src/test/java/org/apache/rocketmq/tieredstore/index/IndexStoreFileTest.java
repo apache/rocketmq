@@ -39,7 +39,13 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import java.util.Arrays;
+import java.util.Collection;
+
+@RunWith(Parameterized.class)
 public class IndexStoreFileTest {
 
     private static final String TOPIC_NAME = "TopicTest";
@@ -49,6 +55,17 @@ public class IndexStoreFileTest {
     private static final int MESSAGE_SIZE = 1024;
     private static final String KEY = "MessageKey";
     private static final Set<String> KEY_SET = Collections.singleton(KEY);
+
+    @Parameterized.Parameter
+    public boolean writeWithoutMmap;
+
+    @Parameterized.Parameters(name = "writeWithoutMmap={0}")
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+            { true },
+            { false }
+        });
+    }
 
     private String filePath;
     private MessageStoreConfig storeConfig;
@@ -64,6 +81,7 @@ public class IndexStoreFileTest {
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(5);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(20);
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.PosixFileSegment");
+        storeConfig.setWriteWithoutMmap(writeWithoutMmap);
         indexStoreFile = new IndexStoreFile(storeConfig, System.currentTimeMillis());
     }
 
