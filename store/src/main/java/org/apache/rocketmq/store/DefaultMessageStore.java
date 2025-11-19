@@ -2536,7 +2536,7 @@ public class DefaultMessageStore implements MessageStore {
             if (!isCommitLogAvailable) {
                 currentReputTimestamp = System.currentTimeMillis();
             }
-            for (boolean doNext = true; isCommitLogAvailable && doNext; ) {
+            for (boolean doNext = true; isCommitLogAvailable() && doNext; ) {
 
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
 

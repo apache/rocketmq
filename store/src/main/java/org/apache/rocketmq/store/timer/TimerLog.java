@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.timer;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.RunningFlags;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -45,8 +46,12 @@ public class TimerLog {
     private final int fileSize;
 
     public TimerLog(final String storePath, final int fileSize) {
+        this(storePath, fileSize, null, false);
+    }
+
+    public TimerLog(final String storePath, final int fileSize, RunningFlags runningFlags, boolean writeWithoutMmap) {
         this.fileSize = fileSize;
-        this.mappedFileQueue = new MappedFileQueue(storePath, fileSize, null);
+        this.mappedFileQueue = new MappedFileQueue(storePath, fileSize, null, runningFlags, writeWithoutMmap);
     }
 
     public boolean load() {

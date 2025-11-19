@@ -135,8 +135,8 @@
         <caffeine.version>2.9.3</caffeine.version>
         <spring.version>5.3.27</spring.version>
         <okio-jvm.version>3.4.0</okio-jvm.version>
-        <opentelemetry.version>1.29.0</opentelemetry.version>
-        <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
+        <opentelemetry.version>1.44.1</opentelemetry.version>
+        <opentelemetry-exporter-prometheus.version>1.44.1-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
         <s3.version>2.20.29</s3.version>
         <rocksdb.version>1.0.2</rocksdb.version>
