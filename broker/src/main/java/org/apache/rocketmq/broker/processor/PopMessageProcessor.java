@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -228,18 +227,16 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
         final long beginTimeMills = this.brokerController.getMessageStore().now();
 
-        // fill bron time to properties if not exist, why we need this?
-        request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        if (Objects.equals(request.getExtFields().get(BORN_TIME), "0")) {
-            request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        }
-
         Channel channel = ctx.channel();
         RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
         response.setOpaque(request.getOpaque());
 
         final PopMessageRequestHeader requestHeader =
             request.decodeCommandCustomHeader(PopMessageRequestHeader.class, true);
+        if (requestHeader.getBornTime() == 0) {
+            request.addExtField(BORN_TIME, String.valueOf(beginTimeMills));
+            requestHeader.setBornTime(beginTimeMills);
+        }
         final PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
 
         // Pop mode only supports consumption in cluster load balancing mode

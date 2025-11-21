@@ -272,7 +272,7 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
 
         @Override
         protected void onErr(String key, Exception e) {
-            log.error("load user failed. username:{}", key, e);
+            log.error("load acl failed. subject:{}", key, e);
         }
     }
 

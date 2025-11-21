@@ -204,6 +204,21 @@ public class AuthorizationMetadataManagerTest {
     }
 
     @Test
+    public void testGetAclWithNullSubject() {
+        if (MixAll.isMac()) {
+            return;
+        }
+        AuthorizationException authorizationException = Assert.assertThrows(AuthorizationException.class, () -> {
+            try {
+                this.authorizationMetadataManager.getAcl(null).join();
+            } catch (Exception e) {
+                AuthTestHelper.handleException(e);
+            }
+        });
+        Assert.assertEquals("The subject is null.", authorizationException.getMessage());
+    }
+
+    @Test
     public void listAcl() {
         if (MixAll.isMac()) {
             return;
