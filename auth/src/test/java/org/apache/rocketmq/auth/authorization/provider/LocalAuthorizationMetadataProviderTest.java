@@ -34,17 +34,17 @@ public class LocalAuthorizationMetadataProviderTest {
         authConfig.setAuthConfigPath(tempFolder.newFolder("auth-test").getAbsolutePath());
 
         LocalAuthorizationMetadataProvider provider = new LocalAuthorizationMetadataProvider();
-        // Initialize provider so that the internal cache refresh executor is created
+        // Initialize provider to create the internal cache refresh executor
         provider.initialize(authConfig, () -> null);
 
-        // Verify that the scheduled executor is created and still running after initialize
+        // After initialization, the executor should exist and not be shutdown
         Assert.assertNotNull(provider.cacheRefreshExecutor);
         Assert.assertFalse(provider.cacheRefreshExecutor.isShutdown());
 
-        // When provider is shutdown, the executor should also be terminated to avoid thread leak
+        // Shutdown provider should also shutdown its executor to release resources
         provider.shutdown();
 
-        // Verify that the cache refresh executor is properly shutdown
+        // Verify that the cache refresh executor has been shutdown
         Assert.assertTrue(provider.cacheRefreshExecutor.isShutdown());
     }
 }

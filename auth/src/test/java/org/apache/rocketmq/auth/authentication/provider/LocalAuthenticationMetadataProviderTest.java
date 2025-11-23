@@ -37,11 +37,11 @@ public class LocalAuthenticationMetadataProviderTest {
         // Initialize provider to create the internal cache refresh executor
         provider.initialize(authConfig, () -> null);
 
-        // After initialize, the executor should exist and not be shutdown
+        // After initialization, the executor should exist and not be shutdown
         Assert.assertNotNull(provider.cacheRefreshExecutor);
         Assert.assertFalse(provider.cacheRefreshExecutor.isShutdown());
 
-        // Shutdown provider should also shutdown its executor and free resources
+        // Shutdown provider should also shutdown its executor to release resources
         provider.shutdown();
 
         // Verify that the cache refresh executor has been shutdown
