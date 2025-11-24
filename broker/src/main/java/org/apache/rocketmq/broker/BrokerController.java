@@ -1663,11 +1663,35 @@ public class BrokerController {
         if (scheduledExecutorService == null) {
             return;
         }
+        
+        // Graceful shutdown: stop accepting new tasks and wait for submitted tasks to complete
         scheduledExecutorService.shutdown();
+        
         try {
-            scheduledExecutorService.awaitTermination(5000, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException ignore) {
-            BrokerController.LOG.warn("shutdown ScheduledExecutorService was Interrupted!  ", ignore);
+            // Wait for tasks to complete, at most 30 seconds
+            if (!scheduledExecutorService.awaitTermination(30000, TimeUnit.MILLISECONDS)) {
+                // If timeout, force shutdown all tasks
+                BrokerController.LOG.warn("ScheduledExecutorService did not terminate gracefully, forcing shutdown...");
+                List<Runnable> pendingTasks = scheduledExecutorService.shutdownNow();
+                
+                if (!pendingTasks.isEmpty()) {
+                    BrokerController.LOG.warn("ScheduledExecutorService had {} pending tasks that were cancelled", 
+                        pendingTasks.size());
+                }
+                
+                // Wait again for a period to ensure all tasks are terminated
+                if (!scheduledExecutorService.awaitTermination(5000, TimeUnit.MILLISECONDS)) {
+                    BrokerController.LOG.error("ScheduledExecutorService did not terminate after forced shutdown");
+                } else {
+                    BrokerController.LOG.info("ScheduledExecutorService terminated successfully after forced shutdown");
+                }
+            } else {
+                BrokerController.LOG.debug("ScheduledExecutorService terminated gracefully");
+            }
+        } catch (InterruptedException e) {
+            // If interrupted during waiting, force shutdown
+            BrokerController.LOG.warn("shutdown ScheduledExecutorService was Interrupted, forcing shutdown...", e);
+            scheduledExecutorService.shutdownNow();
             Thread.currentThread().interrupt();
         }
     }
