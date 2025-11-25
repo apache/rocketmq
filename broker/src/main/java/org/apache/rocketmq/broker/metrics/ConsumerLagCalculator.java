@@ -239,6 +239,8 @@ public class ConsumerLagCalculator {
             calculate(info, lagRecorder);
         });
 
+        // Set the maximum wait time to 10 seconds to avoid indefinite blocking
+        // in case of a fast fail that causes the future to not complete its execution.
         try {
             CompletableFuture.allOf(futures.toArray(
                 new CompletableFuture[0])).get(10, TimeUnit.SECONDS);
