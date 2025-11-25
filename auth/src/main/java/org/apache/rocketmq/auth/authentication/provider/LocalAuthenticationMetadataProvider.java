@@ -46,6 +46,8 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
 
     private LoadingCache<String, User> userCache;
 
+    protected ThreadPoolExecutor cacheRefreshExecutor;
+
     @Override
     public void initialize(AuthConfig authConfig, Supplier<?> metadataService) {
         this.storage = ConfigRocksDBStorage.getStore(authConfig.getAuthConfigPath() + File.separator + "users", false);
@@ -53,7 +55,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
             throw new RuntimeException("Failed to load rocksdb for auth_user, please check whether it is occupied");
         }
 
-        ThreadPoolExecutor cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
+        this.cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
             1,
             1,
             1000 * 60,
@@ -143,6 +145,9 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
     public void shutdown() {
         if (this.storage != null) {
             this.storage.shutdown();
+        }
+        if (this.cacheRefreshExecutor != null) {
+            this.cacheRefreshExecutor.shutdown();
         }
     }
 

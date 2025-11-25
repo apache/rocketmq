@@ -37,6 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+
+import io.netty.util.internal.PlatformDependent;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -57,7 +59,7 @@ import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
 import sun.misc.Unsafe;
-import sun.nio.ch.DirectBuffer;
+
 
 public class DefaultMappedFile extends AbstractMappedFile {
     public static final int OS_PAGE_SIZE = 1024 * 4;
@@ -914,7 +916,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public void mlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
+        final long address = PlatformDependent.directBufferAddress(this.mappedByteBuffer);
         Pointer pointer = new Pointer(address);
         {
             int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize));
@@ -930,7 +932,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public void munlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
+        final long address = PlatformDependent.directBufferAddress(this.mappedByteBuffer);
         Pointer pointer = new Pointer(address);
         int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
@@ -1049,7 +1051,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             return true;
         }
         try {
-            long addr = ((DirectBuffer) mappedByteBuffer).address() + position;
+            long addr = PlatformDependent.directBufferAddress(mappedByteBuffer) + position;
             return (boolean) IS_LOADED_METHOD.invoke(mappedByteBuffer, mappingAddr(addr), size, pageCount(size));
         } catch (Exception e) {
             log.info("invoke isLoaded0 of file {} error:", file.getAbsolutePath(), e);
