@@ -175,6 +175,7 @@ public class ConsumerManageProcessorTest {
 
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
         when(consumerOffsetManager.queryOffset(anyString(),anyString(),anyInt())).thenReturn(0L);
+        when(consumerOffsetManager.hasOffsetRecord(anyString(), anyString())).thenReturn(true);
         response = consumerManageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
