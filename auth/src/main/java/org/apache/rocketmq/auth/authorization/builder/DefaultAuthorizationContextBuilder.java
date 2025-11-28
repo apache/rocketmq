@@ -306,7 +306,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     }
                     break;
                 case RequestCode.UNLOCK_BATCH_MQ:
-                    UnlockBatchRequestBody unlockBatchRequestBody = LockBatchRequestBody.decode(command.getBody(), UnlockBatchRequestBody.class);
+                    UnlockBatchRequestBody unlockBatchRequestBody = UnlockBatchRequestBody.decode(command.getBody(), UnlockBatchRequestBody.class);
                     group = Resource.ofGroup(unlockBatchRequestBody.getConsumerGroup());
                     result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
                     if (CollectionUtils.isNotEmpty(unlockBatchRequestBody.getMqSet())) {

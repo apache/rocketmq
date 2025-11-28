@@ -16,13 +16,26 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson.JSON;
 import com.github.benmanes.caffeine.cache.Cache;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.FileRegion;
 import io.opentelemetry.api.common.Attributes;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
@@ -31,6 +44,7 @@ import org.apache.rocketmq.broker.longpolling.PollingHeader;
 import org.apache.rocketmq.broker.longpolling.PollingResult;
 import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
 import org.apache.rocketmq.broker.longpolling.PopRequest;
+
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
 import org.apache.rocketmq.broker.pop.PopConsumerContext;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -75,21 +89,6 @@ import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.BatchAckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
-
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Random;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_RETRY;
@@ -228,18 +227,16 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
         final long beginTimeMills = this.brokerController.getMessageStore().now();
 
-        // fill bron time to properties if not exist, why we need this?
-        request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        if (Objects.equals(request.getExtFields().get(BORN_TIME), "0")) {
-            request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        }
-
         Channel channel = ctx.channel();
         RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
         response.setOpaque(request.getOpaque());
 
         final PopMessageRequestHeader requestHeader =
             request.decodeCommandCustomHeader(PopMessageRequestHeader.class, true);
+        if (requestHeader.getBornTime() == 0) {
+            request.addExtField(BORN_TIME, String.valueOf(beginTimeMills));
+            requestHeader.setBornTime(beginTimeMills);
+        }
         final PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
 
         // Pop mode only supports consumption in cluster load balancing mode

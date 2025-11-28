@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,11 +34,13 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
-import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 import static org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData.SUB_ALL;
 
@@ -170,6 +173,8 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private TraceDispatcher traceDispatcher = null;
 
     private RPCHook rpcHook;
+
+    private final Set<SubscriptionData> subscriptionsForHeartbeat = new HashSet<>();
 
     /**
      * Default constructor.
@@ -617,5 +622,18 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setEnableMsgTrace(boolean enableMsgTrace) {
         this.enableTrace = enableMsgTrace;
+    }
+
+    public Set<SubscriptionData> getSubscriptionsForHeartbeat() {
+        return this.subscriptionsForHeartbeat;
+    }
+
+    public synchronized void buildSubscriptionsForHeartbeat(Map<String, MessageSelector> messageSelectorMap) throws Exception {
+        this.subscriptionsForHeartbeat.clear();
+        for (Map.Entry<String, MessageSelector> entry : messageSelectorMap.entrySet()) {
+            SubscriptionData subscriptionData = FilterAPI.build(entry.getKey(),
+                entry.getValue().getExpression(), entry.getValue().getExpressionType());
+            this.subscriptionsForHeartbeat.add(subscriptionData);
+        }
     }
 }

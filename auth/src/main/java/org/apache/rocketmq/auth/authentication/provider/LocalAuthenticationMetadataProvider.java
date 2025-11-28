@@ -35,22 +35,27 @@ import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.rocksdb.RocksIterator;
+import org.rocksdb.RocksDB;
 
 public class LocalAuthenticationMetadataProvider implements AuthenticationMetadataProvider {
+
+    private final static String AUTH_METADATA_COLUMN_FAMILY = new String(RocksDB.DEFAULT_COLUMN_FAMILY,
+        StandardCharsets.UTF_8);
 
     private ConfigRocksDBStorage storage;
 
     private LoadingCache<String, User> userCache;
 
+    protected ThreadPoolExecutor cacheRefreshExecutor;
+
     @Override
     public void initialize(AuthConfig authConfig, Supplier<?> metadataService) {
-        this.storage = new ConfigRocksDBStorage(authConfig.getAuthConfigPath() + File.separator + "users");
+        this.storage = ConfigRocksDBStorage.getStore(authConfig.getAuthConfigPath() + File.separator + "users", false);
         if (!this.storage.start()) {
             throw new RuntimeException("Failed to load rocksdb for auth_user, please check whether it is occupied");
         }
 
-        ThreadPoolExecutor cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
+        this.cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
             1,
             1,
             1000 * 60,
@@ -72,7 +77,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
         try {
             byte[] keyBytes = user.getUsername().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(user);
-            this.storage.put(keyBytes, keyBytes.length, valueBytes);
+            this.storage.put(AUTH_METADATA_COLUMN_FAMILY, keyBytes, keyBytes.length, valueBytes);
             this.storage.flushWAL();
             this.userCache.invalidate(user.getUsername());
         } catch (Exception e) {
@@ -84,7 +89,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
     @Override
     public CompletableFuture<Void> deleteUser(String username) {
         try {
-            this.storage.delete(username.getBytes(StandardCharsets.UTF_8));
+            this.storage.delete(AUTH_METADATA_COLUMN_FAMILY, username.getBytes(StandardCharsets.UTF_8));
             this.storage.flushWAL();
             this.userCache.invalidate(username);
         } catch (Exception e) {
@@ -98,7 +103,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
         try {
             byte[] keyBytes = user.getUsername().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(user);
-            this.storage.put(keyBytes, keyBytes.length, valueBytes);
+            this.storage.put(AUTH_METADATA_COLUMN_FAMILY, keyBytes, keyBytes.length, valueBytes);
             this.storage.flushWAL();
             this.userCache.invalidate(user.getUsername());
         } catch (Exception e) {
@@ -119,26 +124,30 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
     @Override
     public CompletableFuture<List<User>> listUser(String filter) {
         List<User> result = new ArrayList<>();
-        try (RocksIterator iterator = this.storage.iterator()) {
-            iterator.seekToFirst();
-            while (iterator.isValid()) {
-                String username = new String(iterator.key(), StandardCharsets.UTF_8);
+        CompletableFuture<List<User>> future = new CompletableFuture<>();
+        try {
+            this.storage.iterate(AUTH_METADATA_COLUMN_FAMILY, (key, value) -> {
+                String username = new String(key, StandardCharsets.UTF_8);
                 if (StringUtils.isNotBlank(filter) && !username.contains(filter)) {
-                    iterator.next();
-                    continue;
+                    return;
                 }
-                User user = JSON.parseObject(new String(iterator.value(), StandardCharsets.UTF_8), User.class);
+                User user = JSON.parseObject(new String(value, StandardCharsets.UTF_8), User.class);
                 result.add(user);
-                iterator.next();
-            }
+            });
+        } catch (Exception e) {
+            future.completeExceptionally(e);
         }
-        return CompletableFuture.completedFuture(result);
+        future.complete(result);
+        return future;
     }
 
     @Override
     public void shutdown() {
         if (this.storage != null) {
             this.storage.shutdown();
+        }
+        if (this.cacheRefreshExecutor != null) {
+            this.cacheRefreshExecutor.shutdown();
         }
     }
 
@@ -154,7 +163,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
         public User load(String username) {
             try {
                 byte[] keyBytes = username.getBytes(StandardCharsets.UTF_8);
-                byte[] valueBytes = storage.get(keyBytes);
+                byte[] valueBytes = storage.get(AUTH_METADATA_COLUMN_FAMILY, keyBytes);
                 if (ArrayUtils.isEmpty(valueBytes)) {
                     return EMPTY_USER;
                 }

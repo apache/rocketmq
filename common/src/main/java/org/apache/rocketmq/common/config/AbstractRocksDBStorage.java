@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.config;
 
 import com.google.common.collect.Maps;
 import io.netty.buffer.PooledByteBufAllocator;
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -480,6 +481,10 @@ public abstract class AbstractRocksDBStorage {
      */
     protected abstract void preShutdown();
 
+    public boolean isLoaded() {
+        return loaded;
+    }
+
     public synchronized boolean shutdown() {
         try {
             if (!this.loaded) {
@@ -506,7 +511,9 @@ public abstract class AbstractRocksDBStorage {
             //1. close column family handles
             preShutdown();
 
-            this.defaultCFHandle.close();
+            if (this.defaultCFHandle.isOwningHandle()) {
+                this.defaultCFHandle.close();
+            }
 
             //2. close column family options.
             for (final ColumnFamilyOptions opt : this.cfOptions) {
@@ -709,6 +716,24 @@ public abstract class AbstractRocksDBStorage {
             }
             map.forEach((key, value) -> logger.info("level: {}\n{}", key, value.toString()));
         } catch (Exception ignored) {
+        }
+    }
+
+    public void destroy() {
+        recursiveDelete(new File(dbPath));
+    }
+
+    void recursiveDelete(File file) {
+        if (file.isFile()) {
+            if (file.delete()) {
+                LOGGER.info("Delete rocksdb file={}", file.getAbsolutePath());
+            }
+        } else {
+            File[] files = file.listFiles();
+            for (File f : files) {
+                recursiveDelete(f);
+            }
+            file.delete();
         }
     }
 }

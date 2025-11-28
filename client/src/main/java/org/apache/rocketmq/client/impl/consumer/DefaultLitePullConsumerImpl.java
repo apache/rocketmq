@@ -63,6 +63,8 @@ import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
@@ -73,8 +75,6 @@ import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
@@ -1122,7 +1122,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         Set<SubscriptionData> subSet = new HashSet<>();
 
         subSet.addAll(this.rebalanceImpl.getSubscriptionInner().values());
-
+        subSet.addAll(this.defaultLitePullConsumer.getSubscriptionsForHeartbeat());
+        
         return subSet;
     }
 

@@ -33,12 +33,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Iterator;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+
+import io.netty.util.internal.PlatformDependent;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -59,7 +59,7 @@ import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.util.LibC;
 import sun.misc.Unsafe;
-import sun.nio.ch.DirectBuffer;
+
 
 public class DefaultMappedFile extends AbstractMappedFile {
     public static final int OS_PAGE_SIZE = 1024 * 4;
@@ -116,29 +116,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
      */
     private long stopTimestamp = -1;
 
-    private static int maxSharedNum = 16;
-    private static final SharedByteBuffer[] SHARED_BYTE_BUFFER;
+
 
     protected RunningFlags runningFlags;
 
-    static class SharedByteBuffer {
-        private final ReentrantLock lock;
-        private final ByteBuffer buffer;
 
-        public SharedByteBuffer(int size) {
-            this.lock = new ReentrantLock();
-            this.buffer = ByteBuffer.allocateDirect(size);
-        }
-
-        public void release() {
-            this.lock.unlock();
-        }
-
-        public ByteBuffer acquire() {
-            this.lock.lock();
-            return buffer;
-        }
-    }
 
     static {
         WROTE_POSITION_UPDATER = AtomicIntegerFieldUpdater.newUpdater(DefaultMappedFile.class, "wrotePosition");
@@ -156,18 +138,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
             }
         }
         IS_LOADED_METHOD = isLoaded0method;
-
-        SHARED_BYTE_BUFFER = new SharedByteBuffer[maxSharedNum];
-        for (int i = 0; i < maxSharedNum; i++) {
-            SHARED_BYTE_BUFFER[i] = new SharedByteBuffer(4 * 1024 * 1024);
-        }
     }
 
-    private static SharedByteBuffer borrowSharedByteBuffer() {
-        int idx = ThreadLocalRandom.current().nextInt(maxSharedNum);
-        SharedByteBuffer buffer = SHARED_BYTE_BUFFER[idx];
-        return buffer;
-    }
+
 
     public DefaultMappedFile() {
     }
@@ -324,10 +297,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
         long fileFromOffset = this.getFileFromOffset();
 
         if (currentPos < this.fileSize) {
-            SharedByteBuffer sharedByteBuffer = null;
+            SharedByteBufferManager.SharedByteBuffer sharedByteBuffer = null;
             ByteBuffer byteBuffer;
             if (writeWithoutMmap) {
-                sharedByteBuffer = borrowSharedByteBuffer();
+                sharedByteBuffer = SharedByteBufferManager.getInstance().borrowSharedByteBuffer();
                 byteBuffer = sharedByteBuffer.acquire();
                 byteBuffer.position(0).limit(byteBuffer.capacity());
                 fileFromOffset += currentPos;
@@ -336,24 +309,28 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 byteBuffer.position(currentPos);
             }
 
-            AppendMessageResult result = cb.doAppend(byteBuffer, fileFromOffset, this.fileSize - currentPos, byteBufferMsg);
+            try {
+                AppendMessageResult result = cb.doAppend(byteBuffer, fileFromOffset, this.fileSize - currentPos, byteBufferMsg);
 
-            if (sharedByteBuffer != null) {
-                try {
-                    this.fileChannel.position(currentPos);
-                    byteBuffer.position(0).limit(result.getWroteBytes());
-                    this.fileChannel.write(byteBuffer);
-                } catch (Throwable t) {
-                    log.error("Failed to write to mappedFile {}", this.fileName, t);
-                    return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
-                } finally {
+                if (sharedByteBuffer != null) {
+                    try {
+                        this.fileChannel.position(currentPos);
+                        byteBuffer.position(0).limit(result.getWroteBytes());
+                        this.fileChannel.write(byteBuffer);
+                    } catch (Throwable t) {
+                        log.error("Failed to write to mappedFile {}", this.fileName, t);
+                        return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+                    }
+                }
+
+                WROTE_POSITION_UPDATER.addAndGet(this, result.getWroteBytes());
+                this.storeTimestamp = result.getStoreTimestamp();
+                return result;
+            } finally {
+                if (sharedByteBuffer != null) {
                     sharedByteBuffer.release();
                 }
             }
-
-            WROTE_POSITION_UPDATER.addAndGet(this, result.getWroteBytes());
-            this.storeTimestamp = result.getStoreTimestamp();
-            return result;
         }
         log.error("MappedFile.appendMessage return null, wrotePosition: {} fileSize: {}", currentPos, this.fileSize);
         return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
@@ -380,10 +357,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
         long fileFromOffset = this.getFileFromOffset();
 
         if (currentPos < this.fileSize) {
-            SharedByteBuffer sharedByteBuffer = null;
+            SharedByteBufferManager.SharedByteBuffer sharedByteBuffer = null;
             ByteBuffer byteBuffer;
             if (writeWithoutMmap) {
-                sharedByteBuffer = borrowSharedByteBuffer();
+                sharedByteBuffer = SharedByteBufferManager.getInstance().borrowSharedByteBuffer();
                 byteBuffer = sharedByteBuffer.acquire();
                 byteBuffer.position(0).limit(byteBuffer.capacity());
                 fileFromOffset += currentPos;
@@ -393,27 +370,31 @@ public class DefaultMappedFile extends AbstractMappedFile {
             }
 
             AppendMessageResult result;
-            if (messageExt instanceof MessageExtBatch && !((MessageExtBatch) messageExt).isInnerBatch()) {
-                // traditional batch message
-                result = cb.doAppend(fileFromOffset, byteBuffer, this.fileSize - currentPos,
-                    (MessageExtBatch) messageExt, putMessageContext);
-            } else if (messageExt instanceof MessageExtBrokerInner) {
-                // traditional single message or newly introduced inner-batch message
-                result = cb.doAppend(fileFromOffset, byteBuffer, this.fileSize - currentPos,
-                    (MessageExtBrokerInner) messageExt, putMessageContext);
-            } else {
-                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
-            }
-
-            if (sharedByteBuffer != null) {
-                try {
-                    this.fileChannel.position(currentPos);
-                    byteBuffer.position(0).limit(result.getWroteBytes());
-                    this.fileChannel.write(byteBuffer);
-                } catch (Throwable t) {
-                    log.error("Failed to write to mappedFile {}", this.fileName, t);
+            try {
+                if (messageExt instanceof MessageExtBatch && !((MessageExtBatch) messageExt).isInnerBatch()) {
+                    // traditional batch message
+                    result = cb.doAppend(fileFromOffset, byteBuffer, this.fileSize - currentPos,
+                        (MessageExtBatch) messageExt, putMessageContext);
+                } else if (messageExt instanceof MessageExtBrokerInner) {
+                    // traditional single message or newly introduced inner-batch message
+                    result = cb.doAppend(fileFromOffset, byteBuffer, this.fileSize - currentPos,
+                        (MessageExtBrokerInner) messageExt, putMessageContext);
+                } else {
                     return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
-                } finally {
+                }
+
+                if (sharedByteBuffer != null) {
+                    try {
+                        this.fileChannel.position(currentPos);
+                        byteBuffer.position(0).limit(result.getWroteBytes());
+                        this.fileChannel.write(byteBuffer);
+                    } catch (Throwable t) {
+                        log.error("Failed to write to mappedFile {}", this.fileName, t);
+                        return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+                    }
+                }
+            } finally {
+                if (sharedByteBuffer != null) {
                     sharedByteBuffer.release();
                 }
             }
@@ -613,7 +594,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         if (runningFlags == null) {
             return false;
         }
-        return runningFlags.getAndMakeNotWriteable();
+        return runningFlags.getAndMakeStoreNotWriteable();
     }
 
     public boolean isWriteable() {
@@ -935,7 +916,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public void mlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
+        final long address = PlatformDependent.directBufferAddress(this.mappedByteBuffer);
         Pointer pointer = new Pointer(address);
         {
             int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize));
@@ -951,7 +932,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public void munlock() {
         final long beginTime = System.currentTimeMillis();
-        final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
+        final long address = PlatformDependent.directBufferAddress(this.mappedByteBuffer);
         Pointer pointer = new Pointer(address);
         int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
@@ -1070,7 +1051,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             return true;
         }
         try {
-            long addr = ((DirectBuffer) mappedByteBuffer).address() + position;
+            long addr = PlatformDependent.directBufferAddress(mappedByteBuffer) + position;
             return (boolean) IS_LOADED_METHOD.invoke(mappedByteBuffer, mappingAddr(addr), size, pageCount(size));
         } catch (Exception e) {
             log.info("invoke isLoaded0 of file {} error:", file.getAbsolutePath(), e);

@@ -19,7 +19,6 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.longpolling.PollingHeader;
@@ -79,16 +78,17 @@ public class NotificationProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        if (Objects.equals(request.getExtFields().get(BORN_TIME), "0")) {
-            request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        }
         Channel channel = ctx.channel();
 
         RemotingCommand response = RemotingCommand.createResponseCommand(NotificationResponseHeader.class);
         final NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.readCustomHeader();
         final NotificationRequestHeader requestHeader =
-            (NotificationRequestHeader) request.decodeCommandCustomHeader(NotificationRequestHeader.class);
+            request.decodeCommandCustomHeader(NotificationRequestHeader.class, true);
+        if (requestHeader.getBornTime() == 0) {
+            final long beginTimeMills = this.brokerController.getMessageStore().now();
+            request.addExtField(BORN_TIME, String.valueOf(beginTimeMills));
+            requestHeader.setBornTime(beginTimeMills);
+        }
 
         response.setOpaque(request.getOpaque());
 
@@ -135,32 +135,21 @@ public class NotificationProcessor implements NettyRequestProcessor {
         }
         int randomQ = random.nextInt(100);
         boolean hasMsg = false;
-        boolean needRetry = randomQ % 5 == 0;
         BrokerConfig brokerConfig = brokerController.getBrokerConfig();
-        if (needRetry) {
+        if (requestHeader.getQueueId() < 0) {
+            // read all queue
+            hasMsg = hasMsgFromTopic(topicConfig, randomQ, requestHeader);
+        } else {
+            int queueId = requestHeader.getQueueId();
+            hasMsg = hasMsgFromQueue(topicConfig.getTopicName(), requestHeader, queueId);
+        }
+        // if it doesn't have message, fetch retry
+        if (!hasMsg) {
             String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2());
             hasMsg = hasMsgFromTopic(retryTopic, randomQ, requestHeader);
             if (!hasMsg && brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
                 String retryTopicConfigV1 = KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup());
                 hasMsg = hasMsgFromTopic(retryTopicConfigV1, randomQ, requestHeader);
-            }
-        }
-        if (!hasMsg) {
-            if (requestHeader.getQueueId() < 0) {
-                // read all queue
-                hasMsg = hasMsgFromTopic(topicConfig, randomQ, requestHeader);
-            } else {
-                int queueId = requestHeader.getQueueId();
-                hasMsg = hasMsgFromQueue(topicConfig.getTopicName(), requestHeader, queueId);
-            }
-            // if it doesn't have message, fetch retry again
-            if (!needRetry && !hasMsg) {
-                String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2());
-                hasMsg = hasMsgFromTopic(retryTopic, randomQ, requestHeader);
-                if (!hasMsg && brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
-                    String retryTopicConfigV1 = KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup());
-                    hasMsg = hasMsgFromTopic(retryTopicConfigV1, randomQ, requestHeader);
-                }
             }
         }
 
