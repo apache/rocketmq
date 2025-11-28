@@ -271,6 +271,7 @@ public class ProxyConfig implements ConfigFile {
     private long remotingWaitTimeMillsInDefaultQueue = 3 * 1000;
 
     private boolean enableBatchAck = false;
+    private boolean namespaceEnable = false;
 
     @Override
     public void initData() {
@@ -1544,5 +1545,13 @@ public class ProxyConfig implements ConfigFile {
 
     public void setReturnHandleGroupThreadPoolNums(int returnHandleGroupThreadPoolNums) {
         this.returnHandleGroupThreadPoolNums = returnHandleGroupThreadPoolNums;
+    }
+
+    public boolean isNamespaceEnable() {
+        return namespaceEnable;
+    }
+
+    public void setNamespaceEnable(boolean namespaceEnable) {
+        this.namespaceEnable = namespaceEnable;
     }
 }
