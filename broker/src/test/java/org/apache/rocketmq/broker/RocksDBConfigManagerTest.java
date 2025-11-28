@@ -17,17 +17,14 @@
 
 package org.apache.rocketmq.broker;
 
-import com.alibaba.fastjson2.JSON;
+import org.apache.rocketmq.broker.config.v1.RocksDBConfigManager;
 import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.nio.charset.StandardCharsets;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -51,10 +48,8 @@ public class RocksDBConfigManagerTest {
     public void testLoadDataVersion() throws Exception {
         DataVersion expected = new DataVersion();
         expected.nextVersion();
-        String jsonData = JSON.toJSONString(expected);
-        byte[] mockDataVersion = jsonData.getBytes(StandardCharsets.UTF_8);
 
-        when(rocksDBConfigManager.configRocksDBStorage.getKvDataVersion()).thenReturn(mockDataVersion);
+        when(rocksDBConfigManager.getKvDataVersion()).thenReturn(expected);
 
         boolean result = rocksDBConfigManager.loadDataVersion();
 
@@ -67,9 +62,6 @@ public class RocksDBConfigManagerTest {
     public void testUpdateKvDataVersion() throws Exception {
         rocksDBConfigManager.updateKvDataVersion();
 
-        DataVersion expectedDataVersion = rocksDBConfigManager.getKvDataVersion();
-        verify(rocksDBConfigManager.configRocksDBStorage, times(1)).updateKvDataVersion(
-                eq(JSON.toJSONString(expectedDataVersion).getBytes(StandardCharsets.UTF_8))
-        );
+        verify(rocksDBConfigManager, times(1)).updateKvDataVersion();
     }
 }

@@ -18,7 +18,7 @@ package org.apache.rocketmq.broker.config.v1;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.RocksDBConfigManager;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentMap;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -55,6 +56,9 @@ public class RocksDBSubscriptionGroupManagerTest {
         when(messageStoreConfig.getMemTableFlushIntervalMs()).thenReturn(1000L);
         when(messageStoreConfig.getRocksdbCompressionType()).thenReturn("LZ4_COMPRESSION");
         when(messageStoreConfig.getStorePathRootDir()).thenReturn("/");
+        BrokerConfig brokerConfig = mock(BrokerConfig.class);
+        when(brokerConfig.isUseSingleRocksDBForAllConfigs()).thenReturn(true);
+        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         rocksDBSubscriptionGroupManager = new RocksDBSubscriptionGroupManager(brokerController);
         FieldUtils.writeDeclaredField(rocksDBSubscriptionGroupManager, "rocksDBConfigManager", rocksDBConfigManager, true);
     }

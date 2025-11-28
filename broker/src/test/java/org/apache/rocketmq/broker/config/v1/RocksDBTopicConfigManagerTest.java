@@ -18,7 +18,7 @@ package org.apache.rocketmq.broker.config.v1;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.RocksDBConfigManager;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
@@ -34,7 +34,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,6 +59,9 @@ public class RocksDBTopicConfigManagerTest {
         when(messageStoreConfig.getMemTableFlushIntervalMs()).thenReturn(1000L);
         when(messageStoreConfig.getRocksdbCompressionType()).thenReturn("LZ4_COMPRESSION");
         when(messageStoreConfig.getStorePathRootDir()).thenReturn("/");
+        BrokerConfig brokerConfig = mock(BrokerConfig.class);
+        when(brokerConfig.isUseSingleRocksDBForAllConfigs()).thenReturn(true);
+        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         rocksDBTopicConfigManager = new RocksDBTopicConfigManager(brokerController);
         FieldUtils.writeDeclaredField(rocksDBTopicConfigManager, "rocksDBConfigManager", rocksDBConfigManager, true);
     }
@@ -89,6 +92,6 @@ public class RocksDBTopicConfigManagerTest {
         newTopicConfig.setWriteQueueNums(10);
 
         assertNull(rocksDBTopicConfigManager.putTopicConfig(newTopicConfig));
-        verify(rocksDBConfigManager, times(1)).put(any(byte[].class), anyInt(), any(byte[].class));
+        verify(rocksDBConfigManager, times(1)).put(any(byte[].class), any(byte[].class));
     }
 }
