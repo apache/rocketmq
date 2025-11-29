@@ -931,7 +931,7 @@ public class RouteInfoManager {
         RemotingCommand request =
             RemotingCommand.createRequestCommand(RequestCode.NOTIFY_MIN_BROKER_ID_CHANGE, requestHeader);
         for (String brokerAddr : brokerAddrsNotify) {
-            this.namesrvController.getRemotingClient().invokeOneway(brokerAddr, request, 300);
+            this.namesrvController.getRemotingClient().invokeOneway(brokerAddr, request, 3000);
         }
     }
 
