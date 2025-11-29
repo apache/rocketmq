@@ -20,6 +20,7 @@ package org.apache.rocketmq.broker.client;
 import com.google.common.collect.ImmutableSet;
 import io.netty.channel.Channel;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -214,6 +215,9 @@ public class ConsumerManagerTest {
     
     @Test
     public void testRegisterConsumerWithoutSub() {
+        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
+        Broker2Client broker2Client = mock(Broker2Client.class);
+        when(brokerController.getBroker2Client()).thenReturn(broker2Client);
         ConsumerGroupInfo groupInfo = new ConsumerGroupInfo(GROUP, CONSUME_PASSIVELY,
                 MessageModel.CLUSTERING, ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
         SubscriptionData subscriptionData = new SubscriptionData(TOPIC, "*");
