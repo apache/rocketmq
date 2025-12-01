@@ -19,13 +19,15 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.MessageQueue;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class GrpcConverterTest {
     @Test
-    public void testBuildMessageQueue() {
+    public void testBuildMessageQueue() throws Exception{
+        ConfigurationManager.intConfig();
         String topic = "topic";
         String brokerName = "brokerName";
         int queueId = 1;

@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.service.client.ProxyClientRemotingProcessor;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -87,6 +88,7 @@ public class ProxyClientRemotingProcessorTest {
             ProxyContext.create().setRemoteAddress("127.0.0.1:8888").setLocalAddress("127.0.0.1:10911"), "clientId");
         when(producerManager.getAvailableChannel(anyString()))
             .thenReturn(grpcClientChannel);
+        ConfigurationManager.intConfig();
 
         ProxyClientRemotingProcessor processor = new ProxyClientRemotingProcessor(producerManager);
         CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
