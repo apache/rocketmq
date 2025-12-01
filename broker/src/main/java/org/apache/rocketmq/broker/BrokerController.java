@@ -1442,10 +1442,6 @@ public class BrokerController {
             this.pullRequestHoldService.shutdown();
         }
 
-        if (this.popConsumerService != null) {
-            this.popConsumerService.shutdown();
-        }
-
         if (this.popMessageProcessor.getPopLongPollingService() != null) {
             this.popMessageProcessor.getPopLongPollingService().shutdown();
         }
@@ -1639,6 +1635,10 @@ public class BrokerController {
             if (brokerAttachedPlugin != null) {
                 brokerAttachedPlugin.shutdown();
             }
+        }
+
+        if (this.popConsumerService != null) {
+            this.popConsumerService.shutdown();
         }
 
         if (this.messageStore != null) {
