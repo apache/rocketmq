@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RemotingServer;
@@ -82,9 +81,9 @@ public class InnerBrokerController extends BrokerController {
             this.registerBrokerAll(true, false, true);
         }
 
-        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 try {
                     if (System.currentTimeMillis() < shouldStartTime) {
                         BrokerController.LOG.info("Register to namesrv after {}", shouldStartTime);
@@ -104,9 +103,9 @@ public class InnerBrokerController extends BrokerController {
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
             scheduleSendHeartbeat();
 
-            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
-                public void run0() {
+                public void run() {
                     try {
                         InnerBrokerController.this.syncBrokerMemberGroup();
                     } catch (Throwable e) {

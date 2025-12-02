@@ -97,7 +97,6 @@ import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageC
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
 import org.apache.rocketmq.broker.util.HookUtils;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
@@ -1814,9 +1813,9 @@ public class BrokerController {
             this.registerBrokerAll(true, false, true);
         }
 
-        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 try {
                     if (System.currentTimeMillis() < shouldStartTime) {
                         BrokerController.LOG.info("Register to namesrv after {}", shouldStartTime);
@@ -1836,9 +1835,9 @@ public class BrokerController {
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
             scheduleSendHeartbeat();
 
-            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
-                public void run0() {
+                public void run() {
                     try {
                         BrokerController.this.syncBrokerMemberGroup();
                     } catch (Throwable e) {
@@ -1869,9 +1868,9 @@ public class BrokerController {
     }
 
     protected void scheduleSendHeartbeat() {
-        scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 if (isIsolated) {
                     return;
                 }

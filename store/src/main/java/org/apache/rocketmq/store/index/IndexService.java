@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -339,9 +338,9 @@ public class IndexService {
             if (indexFile != null) {
                 final IndexFile flushThisFile = prevIndexFile;
 
-                Thread flushThread = new Thread(new AbstractBrokerRunnable(defaultMessageStore.getBrokerConfig()) {
+                Thread flushThread = new Thread(new Runnable() {
                     @Override
-                    public void run0() {
+                    public void run() {
                         IndexService.this.flush(flushThisFile);
                     }
                 }, "FlushIndexFileThread");
