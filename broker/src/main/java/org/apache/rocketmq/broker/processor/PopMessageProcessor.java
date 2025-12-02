@@ -44,7 +44,6 @@ import org.apache.rocketmq.broker.longpolling.PollingHeader;
 import org.apache.rocketmq.broker.longpolling.PollingResult;
 import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
 import org.apache.rocketmq.broker.longpolling.PopRequest;
-
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
 import org.apache.rocketmq.broker.pop.PopConsumerContext;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -806,7 +805,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                         this.brokerController.getConsumerOrderInfoManager().update(requestHeader.getAttemptId(), isRetry, topic,
                             requestHeader.getConsumerGroup(),
                             queueId, popTime, requestHeader.getInvisibleTime(), result.getMessageQueueOffset(),
-                            orderCountInfo);
+                            orderCountInfo, result);
                         this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
                             requestHeader.getConsumerGroup(), topic, queueId, finalOffset);
                     } else {
