@@ -74,9 +74,7 @@ public class SqlFilterIT extends BaseConf {
         producer.send("TagC", msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize * 3, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(msgSize * 2, CONSUME_TIME);
-        assertThat(producer.getAllMsgBody())
-            .containsAllIn(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                consumer.getListener().getAllMsgBody()));
+        assertThat(producer.getAllMsgBody()).containsAllIn(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(), consumer.getListener().getAllMsgBody()));
 
         assertThat(consumer.getListener().getAllMsgBody().size()).isEqualTo(msgSize * 2);
     }
@@ -90,7 +88,8 @@ public class SqlFilterIT extends BaseConf {
         DefaultMQPullConsumer consumer = new DefaultMQPullConsumer(group);
         consumer.setNamesrvAddr(NAMESRV_ADDR);
         consumer.start();
-        Thread.sleep(3000);
+        consumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
+        consumer.getDefaultMQPullConsumerImpl().getRebalanceImpl().getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
         producer.send("TagA", msgSize);
         producer.send("TagB", msgSize);
         producer.send("TagC", msgSize);
@@ -102,8 +101,7 @@ public class SqlFilterIT extends BaseConf {
             SINGLE_MQ:
             while (true) {
                 try {
-                    PullResult pullResult =
-                        consumer.pull(mq, selector, getMessageQueueOffset(mq), 32);
+                    PullResult pullResult = consumer.pull(mq, selector, getMessageQueueOffset(mq), 32);
                     putMessageQueueOffset(mq, pullResult.getNextBeginOffset());
                     switch (pullResult.getPullStatus()) {
                         case FOUND:
