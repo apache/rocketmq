@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.broker.offset;
+package org.apache.rocketmq.broker.pop.orderly;
 
 import java.time.Duration;
 import java.util.Map;
@@ -51,11 +51,11 @@ public class ConsumerOrderInfoManagerTest {
     private static final int QUEUE_ID_1 = 1;
 
     private long popTime;
-    private ConsumerOrderInfoManager consumerOrderInfoManager;
+    private QueueLevelConsumerManager consumerOrderInfoManager;
 
     @Before
     public void before() {
-        consumerOrderInfoManager = new ConsumerOrderInfoManager();
+        consumerOrderInfoManager = new QueueLevelConsumerManager();
         popTime = System.currentTimeMillis();
     }
 
@@ -387,7 +387,7 @@ public class ConsumerOrderInfoManagerTest {
         TopicConfig topicConfig = new TopicConfig(TOPIC);
         when(topicConfigManager.selectTopicConfig(eq(TOPIC))).thenReturn(topicConfig);
 
-        ConsumerOrderInfoManager consumerOrderInfoManager = new ConsumerOrderInfoManager(brokerController);
+        QueueLevelConsumerManager consumerOrderInfoManager = new QueueLevelConsumerManager(brokerController);
 
         {
             consumerOrderInfoManager.update(null, false,
@@ -444,7 +444,7 @@ public class ConsumerOrderInfoManagerTest {
 
             consumerOrderInfoManager.autoClean();
             assertEquals(1, consumerOrderInfoManager.getTable().size());
-            for (ConcurrentHashMap<Integer, ConsumerOrderInfoManager.OrderInfo> orderInfoMap : consumerOrderInfoManager.getTable().values()) {
+            for (ConcurrentHashMap<Integer, QueueLevelConsumerManager.OrderInfo> orderInfoMap : consumerOrderInfoManager.getTable().values()) {
                 assertEquals(1, orderInfoMap.size());
                 assertNotNull(orderInfoMap.get(QUEUE_ID_0));
                 break;
@@ -453,13 +453,13 @@ public class ConsumerOrderInfoManagerTest {
     }
 
     private void assertEncodeAndDecode() {
-        ConsumerOrderInfoManager.OrderInfo prevOrderInfo = consumerOrderInfoManager.getTable().values().stream().findFirst()
+        QueueLevelConsumerManager.OrderInfo prevOrderInfo = consumerOrderInfoManager.getTable().values().stream().findFirst()
             .get().get(QUEUE_ID_0);
 
         String dataEncoded = consumerOrderInfoManager.encode();
 
         consumerOrderInfoManager.decode(dataEncoded);
-        ConsumerOrderInfoManager.OrderInfo newOrderInfo = consumerOrderInfoManager.getTable().values().stream().findFirst()
+        QueueLevelConsumerManager.OrderInfo newOrderInfo = consumerOrderInfoManager.getTable().values().stream().findFirst()
             .get().get(QUEUE_ID_0);
 
         assertNotSame(prevOrderInfo, newOrderInfo);
@@ -482,7 +482,7 @@ public class ConsumerOrderInfoManagerTest {
             1,
             Lists.newArrayList(2L, 3L, 4L),
             new StringBuilder());
-        ConsumerOrderInfoManager.OrderInfo orderInfo = consumerOrderInfoManager.getTable().values().stream().findFirst()
+        QueueLevelConsumerManager.OrderInfo orderInfo = consumerOrderInfoManager.getTable().values().stream().findFirst()
             .get().get(QUEUE_ID_0);
 
         orderInfo.setInvisibleTime(null);
