@@ -5,8 +5,8 @@
 [![Maven Central][maven-central-image]][maven-central-url]
 [![Release][release-image]][release-url]
 [![License][license-image]][license-url]
-[![Average Time to Resolve An Issue][percentage-of-issues-still-open-image]][percentage-of-issues-still-open-url]
-[![Percentage of Issues Still Open][average-time-to-resolve-an-issue-image]][average-time-to-resolve-an-issue-url]
+[![Average Time to Resolve An Issue][average-time-to-resolve-an-issue-image]][average-time-to-resolve-an-issue-url]
+[![Percentage of Issues Still Open][percentage-of-issues-still-open-image]][percentage-of-issues-still-open-url]
 [![Twitter Follow][twitter-follow-image]][twitter-follow-url]
 
 **[Apache RocketMQ](https://rocketmq.apache.org) is a distributed messaging and streaming platform with low latency, high performance and reliability, trillion-level capacity and flexible scalability.**
@@ -49,21 +49,21 @@ $ java -version
 java version "1.8.0_121"
 ```
 
-For Windows users, click [here](https://dist.apache.org/repos/dist/release/rocketmq/5.3.3/rocketmq-all-5.3.3-bin-release.zip) to download the 5.3.3 RocketMQ binary release,
+For Windows users, click [here](https://dist.apache.org/repos/dist/release/rocketmq/5.3.4/rocketmq-all-5.3.4-bin-release.zip) to download the 5.3.4 RocketMQ binary release,
 unpack it to your local disk, such as `D:\rocketmq`.
 For macOS and Linux users, execute following commands:
 
 ```shell
 # Download release from the Apache mirror
-$ wget https://dist.apache.org/repos/dist/release/rocketmq/5.3.3/rocketmq-all-5.3.3-bin-release.zip
+$ wget https://dist.apache.org/repos/dist/release/rocketmq/5.3.4/rocketmq-all-5.3.4-bin-release.zip
 
 # Unpack the release
-$ unzip rocketmq-all-5.3.3-bin-release.zip
+$ unzip rocketmq-all-5.3.4-bin-release.zip
 ```
 
 Prepare a terminal and change to the extracted `bin` directory:
 ```shell
-$ cd rocketmq-all-5.3.3-bin-release/bin
+$ cd rocketmq-all-5.3.4-bin-release/bin
 ```
 
 **1) Start NameServer**
@@ -98,17 +98,17 @@ The Name Server boot success...
 For macOS and Linux users:
 ```shell
 ### start Broker
-$ nohup sh bin/mqbroker -n localhost:9876 &
+$ nohup sh mqbroker -n localhost:9876 &
 
 ### check whether Broker is successfully started, eg: Broker's IP is 192.168.1.2, Broker's name is broker-a
 $ tail -f ~/logs/rocketmqlogs/broker.log
-The broker[broker-a, 192.169.1.2:10911] boot success...
+The broker[broker-a, 192.168.1.2:10911] boot success...
 ```
 
 For Windows users:
 ```shell
 $ mqbroker.cmd -n localhost:9876
-The broker[broker-a, 192.169.1.2:10911] boot success...
+The broker[broker-a, 192.168.1.2:10911] boot success...
 ```
 
 ### Run RocketMQ in Docker
@@ -239,7 +239,7 @@ services.
 [maven-central-image]: https://maven-badges.herokuapp.com/maven-central/org.apache.rocketmq/rocketmq-all/badge.svg
 [maven-central-url]: http://search.maven.org/#search%7Cga%7C1%7Corg.apache.rocketmq
 [release-image]: https://img.shields.io/badge/release-download-orange.svg
-[release-url]: https://www.apache.org/licenses/LICENSE-2.0.html
+[release-url]: https://rocketmq.apache.org/download/
 [license-image]: https://img.shields.io/badge/license-Apache%202-4EB1BA.svg
 [license-url]: https://www.apache.org/licenses/LICENSE-2.0.html
 [average-time-to-resolve-an-issue-image]: http://isitmaintained.com/badge/resolution/apache/rocketmq.svg
