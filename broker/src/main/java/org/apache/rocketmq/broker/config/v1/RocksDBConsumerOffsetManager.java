@@ -157,7 +157,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     @Override
     public synchronized void persist() {
-        if (!rocksDBConfigManager.isStop) {
+        if (rocksDBConfigManager.isLoaded()) {
             try (WriteBatch writeBatch = new WriteBatch()) {
                 for (Entry<String, ConcurrentMap<Integer, Long>> entry : this.offsetTable.entrySet()) {
                     putWriteBatch(writeBatch, entry.getKey(), entry.getValue());

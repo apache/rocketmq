@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.broker.offset;
+package org.apache.rocketmq.broker.pop.orderly;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -43,7 +43,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
     private static final int QUEUE_ID_0 = 0;
 
     private long popTime;
-    private ConsumerOrderInfoManager consumerOrderInfoManager;
+    private QueueLevelConsumerManager consumerOrderInfoManager;
     private AtomicBoolean notified;
 
     private final BrokerConfig brokerConfig = new BrokerConfig();
@@ -61,7 +61,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
             return null;
         }).when(popMessageProcessor).notifyLongPollingRequestIfNeed(anyString(), anyString(), anyInt());
 
-        consumerOrderInfoManager = new ConsumerOrderInfoManager(brokerController);
+        consumerOrderInfoManager = new QueueLevelConsumerManager(brokerController);
         popTime = System.currentTimeMillis();
     }
 
@@ -158,7 +158,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
 
     @Test
     public void testRecover() {
-        ConsumerOrderInfoManager savedConsumerOrderInfoManager = new ConsumerOrderInfoManager();
+        QueueLevelConsumerManager savedConsumerOrderInfoManager = new QueueLevelConsumerManager();
         savedConsumerOrderInfoManager.update(
             null,
             false,

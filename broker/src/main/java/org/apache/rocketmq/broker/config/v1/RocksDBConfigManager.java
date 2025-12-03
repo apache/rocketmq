@@ -38,7 +38,6 @@ public class RocksDBConfigManager {
 
     public static final Charset CHARSET = StandardCharsets.UTF_8;
 
-    public volatile boolean isStop = false;
     public ConfigRocksDBStorage configRocksDBStorage = null;
     private FlushOptions flushOptions = null;
     private volatile long lastFlushMemTableMicroSecond = 0;
@@ -72,9 +71,12 @@ public class RocksDBConfigManager {
     }
 
     public boolean init(boolean readOnly) {
-        this.isStop = false;
         this.configRocksDBStorage = ConfigRocksDBStorage.getStore(filePath, readOnly, compressionType);
         return this.configRocksDBStorage.start();
+    }
+
+    public boolean isLoaded() {
+        return this.configRocksDBStorage != null && this.configRocksDBStorage.isLoaded();
     }
 
     public boolean init() {
@@ -113,7 +115,6 @@ public class RocksDBConfigManager {
     }
 
     public boolean stop() {
-        this.isStop = true;
         ConfigRocksDBStorage.shutdown(filePath);
         if (this.flushOptions != null) {
             this.flushOptions.close();
@@ -123,7 +124,7 @@ public class RocksDBConfigManager {
 
     public void flushWAL() {
         try {
-            if (this.isStop) {
+            if (!isLoaded()) {
                 return;
             }
             if (this.configRocksDBStorage != null) {
@@ -183,4 +184,5 @@ public class RocksDBConfigManager {
 
         return configRocksDBStorage.getStatistics();
     }
+
 }

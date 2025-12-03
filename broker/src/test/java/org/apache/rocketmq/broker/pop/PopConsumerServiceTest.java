@@ -35,7 +35,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
-import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
+import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.processor.PopMessageProcessor;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -233,7 +233,7 @@ public class PopConsumerServiceTest {
         // fifo block
         PopConsumerContext context = new PopConsumerContext(
             clientHost, System.currentTimeMillis(), 20000, groupId, false, ConsumeInitMode.MIN, attemptId);
-        consumerService.setFifoBlocked(context, groupId, topicId, queueId, Collections.singletonList(100L));
+        consumerService.setFifoBlocked(context, groupId, topicId, queueId, Collections.singletonList(100L), resetGetMessageResult);
         Mockito.when(brokerController.getConsumerOrderInfoManager()
             .checkBlock(anyString(), anyString(), anyString(), anyInt(), anyLong())).thenReturn(true);
         Assert.assertTrue(consumerService.isFifoBlocked(context, groupId, topicId, queueId));

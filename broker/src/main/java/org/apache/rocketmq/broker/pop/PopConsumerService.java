@@ -167,7 +167,7 @@ public class PopConsumerService extends ServiceThread {
 
         if (GetMessageStatus.FOUND.equals(result.getStatus()) && !result.getMessageQueueOffset().isEmpty()) {
             if (context.isFifo()) {
-                this.setFifoBlocked(context, context.getGroupId(), topicId, queueId, result.getMessageQueueOffset());
+                this.setFifoBlocked(context, context.getGroupId(), topicId, queueId, result.getMessageQueueOffset(), result);
             }
             // build response header here
             context.addGetMessageResult(result, topicId, queueId, retryType, offset);
@@ -275,10 +275,10 @@ public class PopConsumerService extends ServiceThread {
      * Fifo message does not have retry feature in broker
      */
     public void setFifoBlocked(PopConsumerContext context,
-        String groupId, String topicId, int queueId, List<Long> queueOffsetList) {
+        String groupId, String topicId, int queueId, List<Long> queueOffsetList, GetMessageResult getMessageResult) {
         brokerController.getConsumerOrderInfoManager().update(
             context.getAttemptId(), false, topicId, groupId, queueId,
-            context.getPopTime(), context.getInvisibleTime(), queueOffsetList, context.getOrderCountInfoBuilder());
+            context.getPopTime(), context.getInvisibleTime(), queueOffsetList, context.getOrderCountInfoBuilder(), getMessageResult);
     }
 
     public boolean isFifoBlocked(PopConsumerContext context, String groupId, String topicId, int queueId) {
