@@ -280,6 +280,7 @@ public class RequestCode {
     public static final short GET_BROKER_LIVE_INFO_REQUEST = 1016;
     public static final short GET_SYNC_STATE_DATA_REQUEST = 1017;
     public static final short RAFT_BROKER_HEART_BEAT_EVENT_REQUEST = 1018;
+    public static final int GET_ALL_RETRY_TOPIC_LIST_FROM_NAMESERVER = 1019;
 
     public static final int UPDATE_COLD_DATA_FLOW_CTR_CONFIG = 2001;
     public static final int REMOVE_COLD_DATA_FLOW_CTR_CONFIG = 2002;

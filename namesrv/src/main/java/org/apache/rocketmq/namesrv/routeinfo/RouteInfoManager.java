@@ -18,20 +18,6 @@ package org.apache.rocketmq.namesrv.routeinfo;
 
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -64,6 +50,22 @@ import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 
 public class RouteInfoManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
@@ -196,16 +198,27 @@ public class RouteInfoManager {
     }
 
     public TopicList getAllTopicList() {
+        return getTopicListByFilter("getAllTopicList", null);
+    }
+    
+    public TopicList getAllRetryTopicList() {
+        return getTopicListByFilter("getAllRetryTopicList", topic -> topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX));
+    }
+    
+    private TopicList getTopicListByFilter(String logPrefix, Predicate<String> filter) {
         TopicList topicList = new TopicList();
         try {
             this.lock.readLock().lockInterruptibly();
-            topicList.getTopicList().addAll(this.topicQueueTable.keySet());
+            for (String topic : this.topicQueueTable.keySet()) {
+                if (filter == null || filter.test(topic)) {
+                    topicList.getTopicList().add(topic);
+                }
+            }
         } catch (Exception e) {
-            log.error("getAllTopicList Exception", e);
+            log.error("{} Exception", logPrefix, e);
         } finally {
             this.lock.readLock().unlock();
         }
-
         return topicList;
     }
 

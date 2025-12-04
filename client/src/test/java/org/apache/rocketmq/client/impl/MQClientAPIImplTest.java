@@ -1333,6 +1333,19 @@ public class MQClientAPIImplTest {
         assertEquals(1, actual.getTopicList().size());
         assertEquals(defaultBrokerAddr, actual.getBrokerAddr());
     }
+    
+    @Test
+    public void assertGetRetryTopicListFromNameServer() throws RemotingException, InterruptedException, MQClientException {
+        mockInvokeSync();
+        TopicList responseBody = new TopicList();
+        responseBody.setBrokerAddr(defaultBrokerAddr);
+        responseBody.getTopicList().add("%RETRY%group");
+        setResponseBody(responseBody);
+        TopicList actual = mqClientAPI.getRetryTopicListFromNameServer(defaultTimeout);
+        assertNotNull(actual);
+        assertEquals(1, actual.getTopicList().size());
+        assertEquals(defaultBrokerAddr, actual.getBrokerAddr());
+    }
 
     @Test
     public void assertWipeWritePermOfBroker() throws RemotingException, InterruptedException, MQClientException {

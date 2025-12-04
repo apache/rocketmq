@@ -256,6 +256,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public TopicList fetchAllTopicList() throws RemotingException, MQClientException, InterruptedException {
         return this.defaultMQAdminExtImpl.fetchAllTopicList();
     }
+    
+    @Override
+    public TopicList fetchAllRetryTopicList() throws RemotingException, MQClientException, InterruptedException {
+        return this.defaultMQAdminExtImpl.fetchAllRetryTopicList();
+    }
 
     @Override
     public TopicList fetchTopicsByCLuster(

@@ -163,7 +163,6 @@ public class ProcessQueueTest {
     private ProcessQueue createProcessQueue() {
         ProcessQueue result = new ProcessQueue();
         result.setMsgAccCnt(1);
-        result.incTryUnlockTimes();
         return result;
     }
 
