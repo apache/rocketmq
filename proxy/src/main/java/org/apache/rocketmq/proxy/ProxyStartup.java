@@ -47,6 +47,7 @@ import org.apache.rocketmq.proxy.remoting.RemotingProtocolServer;
 import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.util.Date;
 import java.util.List;
@@ -65,6 +66,10 @@ public class ProxyStartup {
     }
 
     public static void main(String[] args) {
+        // Bridge java.util.logging to SLF4J
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
+        
         try {
             // parse argument from command line
             CommandLineArgument commandLineArgument = parseCommandLineArgument(args);
