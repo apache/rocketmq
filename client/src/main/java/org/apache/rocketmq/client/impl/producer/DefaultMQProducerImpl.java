@@ -816,13 +816,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         continue;
                     } catch (RemotingException e) {
                         endTimestamp = System.currentTimeMillis();
-                        if (this.mqFaultStrategy.isStartDetectorEnable()) {
-                            // Set this broker unreachable when detecting schedule task is running for RemotingException.
-                            this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true, false);
-                        } else {
-                            // Otherwise, isolate this broker.
-                            this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true, true);
-                        }
+                        // Set this broker unreachable when detecting schedule task is running for RemotingException.
+                        // Otherwise, isolate this broker.
+                        this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true, !this.mqFaultStrategy.isStartDetectorEnable());
                         log.warn("sendKernelImpl exception, resend at once, InvokeID: {}, RT: {}ms, Broker: {}", invokeID, endTimestamp - beginTimestampPrev, mq, e);
                         if (log.isDebugEnabled()) {
                             log.debug(msg.toString());
