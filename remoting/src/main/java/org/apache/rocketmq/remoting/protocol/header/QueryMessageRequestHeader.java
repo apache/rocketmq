@@ -42,6 +42,8 @@ public class QueryMessageRequestHeader extends TopicRequestHeader {
     private Long beginTimestamp;
     @CFNotNull
     private Long endTimestamp;
+    private String indexType;
+    private String lastKey;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -86,5 +88,21 @@ public class QueryMessageRequestHeader extends TopicRequestHeader {
 
     public void setEndTimestamp(Long endTimestamp) {
         this.endTimestamp = endTimestamp;
+    }
+
+    public String getIndexType() {
+        return indexType;
+    }
+
+    public void setIndexType(String indexType) {
+        this.indexType = indexType;
+    }
+
+    public String getLastKey() {
+        return lastKey;
+    }
+
+    public void setLastKey(String lastKey) {
+        this.lastKey = lastKey;
     }
 }

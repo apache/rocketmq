@@ -63,7 +63,7 @@ public class RouteActivity extends AbstractMessingActivity {
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
         try {
             validateTopic(request.getTopic());
-            List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
+            List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(ctx, request.getEndpoints());
 
             String topicName = request.getTopic().getName();
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
@@ -101,7 +101,7 @@ public class RouteActivity extends AbstractMessingActivity {
 
         try {
             validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
-            List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
+            List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(ctx, request.getEndpoints());
 
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
                 ctx,
@@ -184,8 +184,7 @@ public class RouteActivity extends AbstractMessingActivity {
         return Permission.NONE;
     }
 
-    protected List<org.apache.rocketmq.proxy.common.Address> convertToAddressList(Endpoints endpoints) {
-
+    protected List<org.apache.rocketmq.proxy.common.Address> convertToAddressList(ProxyContext ctx, Endpoints endpoints) {
         boolean useEndpointPort = ConfigurationManager.getProxyConfig().isUseEndpointPortFromRequest();
 
         List<org.apache.rocketmq.proxy.common.Address> addressList = new ArrayList<>();
@@ -198,9 +197,8 @@ public class RouteActivity extends AbstractMessingActivity {
                 org.apache.rocketmq.proxy.common.Address.AddressScheme.valueOf(endpoints.getScheme().name()),
                 HostAndPort.fromParts(address.getHost(), port)));
         }
-
+        log.debug("gRPC build address. clientId={}, addressList={}", ctx.getClientID(), addressList);
         return addressList;
-
     }
 
     protected Map<String /*brokerName*/, Map<Long /*brokerID*/, Broker>> buildBrokerMap(

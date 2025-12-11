@@ -56,8 +56,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import com.alibaba.fastjson.JSON;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
@@ -99,6 +100,7 @@ import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
+import org.apache.rocketmq.store.index.rocksdb.IndexRocksDBStore;
 import org.apache.rocketmq.store.kv.CommitLogDispatcherCompaction;
 import org.apache.rocketmq.store.kv.CompactionService;
 import org.apache.rocketmq.store.kv.CompactionStore;
@@ -111,8 +113,11 @@ import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
+import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
+import org.apache.rocketmq.store.transaction.TransMessageRocksDBStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 import org.apache.rocketmq.store.metrics.StoreMetricsManager;
 import org.rocksdb.RocksDBException;
@@ -132,6 +137,7 @@ public class DefaultMessageStore implements MessageStore {
     protected final CleanCommitLogService cleanCommitLogService;
 
     protected final IndexService indexService;
+    protected final IndexRocksDBStore indexRocksDBStore;
 
     private final AllocateMappedFileService allocateMappedFileService;
 
@@ -161,8 +167,11 @@ public class DefaultMessageStore implements MessageStore {
     private boolean notifyMessageArriveInBatch = false;
 
     protected StoreCheckpoint storeCheckpoint;
+    private MessageRocksDBStorage messageRocksDBStorage;
     private TimerMessageStore timerMessageStore;
     private final DefaultStoreMetricsManager defaultStoreMetricsManager;
+    private TimerMessageRocksDBStore timerMessageRocksDBStore;
+    private TransMessageRocksDBStore transMessageRocksDBStore;
 
     private final LinkedList<CommitLogDispatcher> dispatcherList = new LinkedList<>();
 
@@ -230,9 +239,12 @@ public class DefaultMessageStore implements MessageStore {
         this.consumeQueueStore = createConsumeQueueStore();
         this.cleanCommitLogService = new CleanCommitLogService();
         this.storeStatsService = new StoreStatsService(getBrokerIdentity());
+        this.messageRocksDBStorage = new MessageRocksDBStorage(getMessageStoreConfig());
         this.indexService = new IndexService(this);
+        this.indexRocksDBStore = new IndexRocksDBStore(this);
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
+        this.dispatcherList.addLast(new CommitLogDispatcherBuildTransIndex());
 
         initializeHAService();
 
@@ -390,7 +402,6 @@ public class DefaultMessageStore implements MessageStore {
         if (this.isTransientStorePoolEnable()) {
             this.transientStorePool.init();
         }
-
         this.allocateMappedFileService.start();
 
         this.indexService.start();
@@ -524,6 +535,10 @@ public class DefaultMessageStore implements MessageStore {
                 this.indexService.shutdown();
             }
 
+            if (this.indexRocksDBStore != null) {
+                this.indexRocksDBStore.shutdown();
+            }
+
             if (this.compactionService != null) {
                 this.compactionService.shutdown();
             }
@@ -551,6 +566,10 @@ public class DefaultMessageStore implements MessageStore {
             this.transientStorePool.destroy();
         }
 
+        if (this.messageRocksDBStorage != null) {
+            this.messageRocksDBStorage.shutdown();
+        }
+
         if (lock != null) {
             try {
                 lock.release();
@@ -573,6 +592,7 @@ public class DefaultMessageStore implements MessageStore {
         this.consumeQueueStore.destroy(false);
         this.commitLog.destroy();
         this.indexService.destroy();
+        this.indexRocksDBStore.destroy();
         this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
         this.deleteFile(StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
     }
@@ -1060,8 +1080,28 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
+    public TimerMessageRocksDBStore getTimerRocksDBStore() {
+        return this.timerMessageRocksDBStore;
+    }
+
+    @Override
+    public TransMessageRocksDBStore getTransRocksDBStore() {
+        return this.transMessageRocksDBStore;
+    }
+
+    @Override
     public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
         this.timerMessageStore = timerMessageStore;
+    }
+
+    @Override
+    public void setTimerMessageRocksDBStore(TimerMessageRocksDBStore timerMessageRocksDBStore) {
+        this.timerMessageRocksDBStore = timerMessageRocksDBStore;
+    }
+
+    @Override
+    public void setTransRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
+        this.transMessageRocksDBStore = transMessageRocksDBStore;
     }
 
     @Override
@@ -1310,8 +1350,15 @@ public class DefaultMessageStore implements MessageStore {
         long lastQueryMsgTime = end;
 
         for (int i = 0; i < 3; i++) {
-            QueryOffsetResult queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime);
-            if (queryOffsetResult.getPhyOffsets().isEmpty()) {
+            QueryOffsetResult queryOffsetResult = null;
+            if (messageStoreConfig.isIndexFileReadEnable()) {
+                queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime, null);
+                LOGGER.debug("indexService query Message queryOffsetResult : {}", JSON.toJSONString(queryOffsetResult));
+            } else if (messageStoreConfig.isIndexRocksDBEnable()) {
+                queryOffsetResult = this.indexRocksDBStore.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime, null, null);
+                LOGGER.debug("indexRocksDBStore query Message queryOffsetResult : {}", JSON.toJSONString(queryOffsetResult));
+            }
+            if (null == queryOffsetResult || CollectionUtils.isEmpty(queryOffsetResult.getPhyOffsets())) {
                 break;
             }
 
@@ -1349,13 +1396,67 @@ public class DefaultMessageStore implements MessageStore {
                 break;
             }
         }
+        return queryMessageResult;
+    }
 
+    @Override
+    public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end, String indexType, String lastKey) {
+        QueryMessageResult queryMessageResult = new QueryMessageResult();
+        long lastQueryMsgTime = end;
+        for (int i = 0; i < 3; i++) {
+            QueryOffsetResult queryOffsetResult = null;
+            if (messageStoreConfig.isIndexFileReadEnable()) {
+                queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime, indexType);
+                LOGGER.debug("indexService query Message queryOffsetResult : {}", JSON.toJSONString(queryOffsetResult));
+            } else if (messageStoreConfig.isIndexRocksDBEnable()) {
+                queryOffsetResult = this.indexRocksDBStore.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime, indexType, lastKey);
+                LOGGER.debug("indexRocksDBStore query Message queryOffsetResult : {}", JSON.toJSONString(queryOffsetResult));
+            }
+            if (null == queryOffsetResult || CollectionUtils.isEmpty(queryOffsetResult.getPhyOffsets())) {
+                break;
+            }
+            Collections.sort(queryOffsetResult.getPhyOffsets());
+            queryMessageResult.setIndexLastUpdatePhyoffset(queryOffsetResult.getIndexLastUpdatePhyoffset());
+            queryMessageResult.setIndexLastUpdateTimestamp(queryOffsetResult.getIndexLastUpdateTimestamp());
+            for (int m = 0; m < queryOffsetResult.getPhyOffsets().size(); m++) {
+                long offset = queryOffsetResult.getPhyOffsets().get(m);
+                try {
+                    MessageExt msg = this.lookMessageByOffset(offset);
+                    if (0 == m && null != msg) {
+                        lastQueryMsgTime = msg.getStoreTimestamp();
+                    }
+                    SelectMappedBufferResult result = this.commitLog.getData(offset, false);
+                    if (result != null) {
+                        int size = result.getByteBuffer().getInt(0);
+                        result.getByteBuffer().limit(size);
+                        result.setSize(size);
+                        queryMessageResult.addMessage(result);
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("queryMessage exception", e);
+                }
+            }
+
+            if (queryMessageResult.getBufferTotalSize() > 0) {
+                break;
+            }
+
+            if (lastQueryMsgTime < begin) {
+                break;
+            }
+        }
         return queryMessageResult;
     }
 
     @Override public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
         int maxNum, long begin, long end) {
         return CompletableFuture.completedFuture(queryMessage(topic, key, maxNum, begin, end));
+    }
+
+    @Override
+    public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
+        int maxNum, long begin, long end, String indexType, String lastKey) {
+        return CompletableFuture.completedFuture(queryMessage(topic, key, maxNum, begin, end, indexType, lastKey));
     }
 
     @Override
@@ -1775,23 +1876,23 @@ public class DefaultMessageStore implements MessageStore {
 
     private void addScheduleTask() {
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 DefaultMessageStore.this.cleanFilesPeriodically();
             }
         }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 DefaultMessageStore.this.checkSelf();
             }
         }, 1, 10, TimeUnit.MINUTES);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 if (DefaultMessageStore.this.getMessageStoreConfig().isDebugLockEnable()) {
                     try {
                         if (DefaultMessageStore.this.commitLog.getBeginTimeInLock() != 0) {
@@ -1810,9 +1911,9 @@ public class DefaultMessageStore implements MessageStore {
             }
         }, 1, 1, TimeUnit.SECONDS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 DefaultMessageStore.this.storeCheckpoint.flush();
             }
         }, 1, 1, TimeUnit.SECONDS);
@@ -2102,7 +2203,34 @@ public class DefaultMessageStore implements MessageStore {
         @Override
         public void dispatch(DispatchRequest request) {
             if (DefaultMessageStore.this.messageStoreConfig.isMessageIndexEnable()) {
-                DefaultMessageStore.this.indexService.buildIndex(request);
+                if (DefaultMessageStore.this.messageStoreConfig.isIndexFileWriteEnable()) {
+                    DefaultMessageStore.this.indexService.buildIndex(request);
+                }
+                if (DefaultMessageStore.this.messageStoreConfig.isIndexRocksDBEnable()) {
+                    DefaultMessageStore.this.indexRocksDBStore.buildIndex(request);
+                }
+            }
+        }
+    }
+
+    class CommitLogDispatcherBuildTransIndex implements CommitLogDispatcher {
+
+        @Override
+        public void dispatch(DispatchRequest request) {
+            if (DefaultMessageStore.this.messageStoreConfig.isTransRocksDBEnable()) {
+                if (null == request || StringUtils.isEmpty(request.getTopic())) {
+                    return;
+                }
+                if (!request.getTopic().equals(TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC) && !request.getTopic().equals(TopicValidator.RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC)) {
+                    return;
+                }
+                if (null == DefaultMessageStore.this.transMessageRocksDBStore) {
+                    if (System.currentTimeMillis() % 1000 == 0) {
+                        LOGGER.error("CommitLogDispatcherBuildTransIndex dispatch error, transMessageRocksDBStore is null");
+                    }
+                    return;
+                }
+                DefaultMessageStore.this.transMessageRocksDBStore.buildTransIndex(request);
             }
         }
     }
@@ -3060,6 +3188,11 @@ public class DefaultMessageStore implements MessageStore {
         return stateMachine;
     }
 
+    @Override
+    public MessageRocksDBStorage getMessageRocksDBStorage() {
+        return this.messageRocksDBStorage;
+    }
+
     public boolean isNotifyMessageArriveInBatch() {
         return notifyMessageArriveInBatch;
     }
@@ -3077,4 +3210,7 @@ public class DefaultMessageStore implements MessageStore {
         return defaultStoreMetricsManager;
     }
 
+    public IndexRocksDBStore getIndexRocksDBStore() {
+        return indexRocksDBStore;
+    }
 }

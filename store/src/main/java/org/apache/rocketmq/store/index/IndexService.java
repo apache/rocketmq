@@ -21,9 +21,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -202,8 +203,55 @@ public class IndexService {
         return new QueryOffsetResult(phyOffsets, indexLastUpdateTimestamp, indexLastUpdatePhyoffset);
     }
 
+    public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end, String indexType) {
+        List<Long> phyOffsets = new ArrayList<>(maxNum);
+        long indexLastUpdateTimestamp = 0;
+        long indexLastUpdatePhyoffset = 0;
+        maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
+        try {
+            this.readWriteLock.readLock().lock();
+            if (!this.indexFileList.isEmpty()) {
+                for (int i = this.indexFileList.size(); i > 0; i--) {
+                    IndexFile f = this.indexFileList.get(i - 1);
+                    boolean lastFile = i == this.indexFileList.size();
+                    if (lastFile) {
+                        indexLastUpdateTimestamp = f.getEndTimestamp();
+                        indexLastUpdatePhyoffset = f.getEndPhyOffset();
+                    }
+
+                    if (f.isTimeMatched(begin, end)) {
+                        String queryKey;
+                        if (!StringUtils.isEmpty(indexType) && MessageConst.INDEX_TAG_TYPE.equals(indexType)) {
+                            queryKey = buildKey(topic, key, MessageConst.INDEX_TAG_TYPE);
+                        } else {
+                            queryKey = buildKey(topic, key);
+                        }
+                        f.selectPhyOffset(phyOffsets, queryKey, maxNum, begin, end);
+                    }
+
+                    if (f.getBeginTimestamp() < begin) {
+                        break;
+                    }
+
+                    if (phyOffsets.size() >= maxNum) {
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("queryMsg queryOffset exception", e);
+        } finally {
+            this.readWriteLock.readLock().unlock();
+        }
+
+        return new QueryOffsetResult(phyOffsets, indexLastUpdateTimestamp, indexLastUpdatePhyoffset);
+    }
+
     private String buildKey(final String topic, final String key) {
         return topic + "#" + key;
+    }
+    private String buildKey(final String topic, final String key, final String indexType) {
+        return topic + "#" + indexType + "#" + key;
     }
 
     public void buildIndex(DispatchRequest req) {
@@ -248,6 +296,19 @@ public class IndexService {
                     }
                 }
             }
+
+            Map<String, String> propertiesMap = req.getPropertiesMap();
+            if (null != propertiesMap && propertiesMap.containsKey(MessageConst.PROPERTY_TAGS)) {
+                String tags = req.getPropertiesMap().get(MessageConst.PROPERTY_TAGS);
+                if (!StringUtils.isEmpty(tags)) {
+                    indexFile = putKey(indexFile, msg, buildKey(topic, tags, MessageConst.INDEX_TAG_TYPE));
+                    if (indexFile == null) {
+                        LOGGER.error("putKey error commitlog {} uniqkey {}", req.getCommitLogOffset(), req.getUniqKey());
+                        return;
+                    }
+                }
+            }
+
         } else {
             LOGGER.error("build index error, stop building index");
         }
@@ -339,9 +400,9 @@ public class IndexService {
             if (indexFile != null) {
                 final IndexFile flushThisFile = prevIndexFile;
 
-                Thread flushThread = new Thread(new AbstractBrokerRunnable(defaultMessageStore.getBrokerConfig()) {
+                Thread flushThread = new Thread(new Runnable() {
                     @Override
-                    public void run0() {
+                    public void run() {
                         IndexService.this.flush(flushThisFile);
                     }
                 }, "FlushIndexFileThread");

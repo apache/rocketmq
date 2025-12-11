@@ -68,7 +68,6 @@ import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLockImpl;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
-import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
 
@@ -341,12 +340,18 @@ public class CommitLog implements Swappable {
     public void recoverNormally(long dispatchFromPhyOffset) throws RocksDBException {
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
+        int maxRecoverNum = this.defaultMessageStore.getMessageStoreConfig().getCommitLogRecoverMaxNum();
+        if (maxRecoverNum <= 0) {
+            maxRecoverNum = 10;
+        }
+        log.info("recoverNormally maxRecoverNum: {}", maxRecoverNum);
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
             int index = mappedFiles.size() - 1;
             while (index > 0) {
                 MappedFile mappedFile = mappedFiles.get(index);
-                if (isMappedFileMatchedRecover(mappedFile, true)) {
+                maxRecoverNum--;
+                if (isMappedFileMatchedRecover(mappedFile, true) || maxRecoverNum <= 0) {
                     // It's safe to recover from this mapped file
                     break;
                 }
@@ -733,6 +738,11 @@ public class CommitLog implements Swappable {
         // recover by the minimum time stamp
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
+        int maxRecoverNum = this.defaultMessageStore.getMessageStoreConfig().getCommitLogRecoverMaxNum();
+        if (maxRecoverNum <= 0) {
+            maxRecoverNum = 10;
+        }
+        log.info("recoverAbnormally maxRecoverNum: {}", maxRecoverNum);
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
             // Looking beginning to recover from which file
@@ -740,8 +750,9 @@ public class CommitLog implements Swappable {
             MappedFile mappedFile = null;
             for (; index >= 0; index--) {
                 mappedFile = mappedFiles.get(index);
-                if (this.isMappedFileMatchedRecover(mappedFile, false)) {
-                    log.info("recover from this mapped file {}", mappedFile.getFileName());
+                maxRecoverNum--;
+                if (this.isMappedFileMatchedRecover(mappedFile, false) || maxRecoverNum <= 0) {
+                    log.info("recover from this mapped file " + mappedFile.getFileName());
                     break;
                 }
             }
@@ -911,8 +922,18 @@ public class CommitLog implements Swappable {
                 storeTimestamp, phyOffset, this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp(), recoverNormally);
         }
 
-        return this.defaultMessageStore.getQueueStore()
-            .isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
+        return isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
+    }
+
+    private boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp, boolean recoverNormally) throws RocksDBException {
+        boolean result = this.defaultMessageStore.getQueueStore().isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
+        if (null != this.defaultMessageStore.getTransRocksDBStore() && defaultMessageStore.getMessageStoreConfig().isTransRocksDBEnable() && !defaultMessageStore.getMessageStoreConfig().isTransWriteOriginTransHalfEnable()) {
+            result = result && this.defaultMessageStore.getTransRocksDBStore().isMappedFileMatchedRecover(phyOffset);
+        }
+        if (null != this.defaultMessageStore.getIndexRocksDBStore() && defaultMessageStore.getMessageStoreConfig().isIndexRocksDBEnable()) {
+            result = result && this.defaultMessageStore.getIndexRocksDBStore().isMappedFileMatchedRecover(phyOffset);
+        }
+        return result;
     }
 
     public boolean resetOffset(long offset) {
@@ -2297,6 +2318,10 @@ public class CommitLog implements Swappable {
         return defaultMessageStore;
     }
 
+    public MappedFile getEarliestMappedFile() {
+        return mappedFileQueue.getEarliestMappedFile();
+    }
+
     @Override
     public void swapMap(int reserveNum, long forceSwapIntervalMs, long normalSwapIntervalMs) {
         this.getMappedFileQueue().swapMap(reserveNum, forceSwapIntervalMs, normalSwapIntervalMs);
@@ -2477,14 +2502,17 @@ public class CommitLog implements Swappable {
                 if (null == consumeQueue) {
                     return false;
                 }
-                ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(offset, 1);
-                if (null == bufferConsumeQueue || !bufferConsumeQueue.hasNext()) {
+                CqUnit cqUnit = consumeQueue.get(offset);
+                if (null == cqUnit) {
                     return false;
                 }
-                return defaultMessageStore.checkInColdAreaByCommitOffset(bufferConsumeQueue.next().getPos(), getMaxOffset());
+                long offsetPy = cqUnit.getPos();
+                if (offsetPy < 0L) {
+                    return false;
+                }
+                return defaultMessageStore.checkInColdAreaByCommitOffset(offsetPy, getMaxOffset());
             } catch (Exception e) {
-                log.error("isMsgInColdArea group: {}, topic: {}, queueId: {}, offset: {}",
-                    group, topic, queueId, offset, e);
+                log.error("isMsgInColdArea group: {}, topic: {}, queueId: {}, offset: {}", group, topic, queueId, offset, e);
             }
             return false;
         }

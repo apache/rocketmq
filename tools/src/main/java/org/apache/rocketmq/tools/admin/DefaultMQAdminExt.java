@@ -160,6 +160,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         return defaultMQAdminExtImpl.queryMessage(clusterName, topic, key, maxNum, begin, end);
     }
 
+    public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end, String keyType, String lastKey)
+        throws MQClientException, InterruptedException, RemotingException {
+        return defaultMQAdminExtImpl.queryMessage(clusterName, topic, key, maxNum, begin, end, keyType, lastKey);
+    }
+
     @Override
     public void start() throws MQClientException {
         defaultMQAdminExtImpl.start();
@@ -985,5 +990,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public void exportPopRecords(String brokerAddr, long timeout) throws RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         defaultMQAdminExtImpl.exportPopRecords(brokerAddr, timeout);
+    }
+
+    @Override
+    public void switchTimerEngine(String brokerAddr, String desTimerEngine) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+        UnsupportedEncodingException, InterruptedException, MQBrokerException {
+        defaultMQAdminExtImpl.switchTimerEngine(brokerAddr, desTimerEngine);
     }
 }

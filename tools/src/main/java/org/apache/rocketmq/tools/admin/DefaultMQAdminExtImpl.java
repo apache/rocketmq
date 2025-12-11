@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.tools.admin;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
@@ -1738,9 +1738,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin,
         long end) throws MQClientException, InterruptedException, RemotingException {
-        return this.mqClientInstance.getMQAdminImpl().queryMessage(clusterName, topic, key, maxNum, begin, end, false);
+        return this.mqClientInstance.getMQAdminImpl().queryMessage(clusterName, topic, key, maxNum, begin, end, false, MessageConst.INDEX_KEY_TYPE, null);
     }
 
+    public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end, String keyType, String lastKey) throws MQClientException, InterruptedException, RemotingException {
+        return this.mqClientInstance.getMQAdminImpl().queryMessage(clusterName, topic, key, maxNum, begin, end, false, keyType, lastKey);
+    }
     @Override
     public void updateConsumeOffset(String brokerAddr, String consumeGroup, MessageQueue mq,
         long offset) throws RemotingException, InterruptedException, MQBrokerException {
@@ -2052,4 +2055,10 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         this.mqClientInstance.getMQClientAPIImpl().exportPopRecord(brokerAddr, timeout);
     }
+
+    @Override
+    public void switchTimerEngine(String brokerAddr, String desTimerEngine) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException {
+        this.mqClientInstance.getMQClientAPIImpl().switchTimerEngine(brokerAddr, desTimerEngine, timeoutMillis);
+    }
+
 }

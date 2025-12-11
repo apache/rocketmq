@@ -944,4 +944,20 @@ public class MappedFileQueue implements Swappable {
 
         return result;
     }
+
+    public MappedFile getEarliestMappedFile() {
+        MappedFile mappedFile = null;
+        while (!this.mappedFiles.isEmpty()) {
+            try {
+                mappedFile = this.mappedFiles.get(0);
+                break;
+            } catch (IndexOutOfBoundsException e) {
+                //continue;
+            } catch (Exception e) {
+                log.error("getEarliestMappedFile error: {}", e.getMessage());
+                break;
+            }
+        }
+        return mappedFile;
+    }
 }
