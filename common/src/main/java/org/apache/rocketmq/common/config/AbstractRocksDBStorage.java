@@ -488,6 +488,10 @@ public abstract class AbstractRocksDBStorage {
      */
     protected abstract void preShutdown();
 
+    public boolean isLoaded() {
+        return loaded;
+    }
+
     public synchronized boolean shutdown() {
         try {
             if (!this.loaded) {

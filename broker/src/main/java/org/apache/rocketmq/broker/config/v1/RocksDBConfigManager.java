@@ -16,10 +16,7 @@
  */
 package org.apache.rocketmq.broker.config.v1;
 
-import com.alibaba.fastjson.JSON;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.function.BiConsumer;
+import com.alibaba.fastjson2.JSON;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -33,12 +30,15 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.Statistics;
 import org.rocksdb.WriteBatch;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.function.BiConsumer;
+
 public class RocksDBConfigManager {
     protected static final Logger BROKER_LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     public static final Charset CHARSET = StandardCharsets.UTF_8;
 
-    public volatile boolean isStop = false;
     public ConfigRocksDBStorage configRocksDBStorage = null;
     private FlushOptions flushOptions = null;
     private volatile long lastFlushMemTableMicroSecond = 0;
@@ -72,9 +72,12 @@ public class RocksDBConfigManager {
     }
 
     public boolean init(boolean readOnly) {
-        this.isStop = false;
         this.configRocksDBStorage = ConfigRocksDBStorage.getStore(filePath, readOnly, compressionType);
         return this.configRocksDBStorage.start();
+    }
+
+    public boolean isLoaded() {
+        return this.configRocksDBStorage != null && this.configRocksDBStorage.isLoaded();
     }
 
     public boolean init() {
@@ -113,7 +116,6 @@ public class RocksDBConfigManager {
     }
 
     public boolean stop() {
-        this.isStop = true;
         ConfigRocksDBStorage.shutdown(filePath);
         if (this.flushOptions != null) {
             this.flushOptions.close();
@@ -123,7 +125,7 @@ public class RocksDBConfigManager {
 
     public void flushWAL() {
         try {
-            if (this.isStop) {
+            if (!isLoaded()) {
                 return;
             }
             if (this.configRocksDBStorage != null) {
@@ -183,4 +185,5 @@ public class RocksDBConfigManager {
 
         return configRocksDBStorage.getStatistics();
     }
+
 }

@@ -16,25 +16,9 @@
  */
 package org.apache.rocketmq.broker.pop;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
-import java.nio.ByteBuffer;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
@@ -64,6 +48,23 @@ import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PopConsumerService extends ServiceThread {
 
@@ -167,7 +168,7 @@ public class PopConsumerService extends ServiceThread {
 
         if (GetMessageStatus.FOUND.equals(result.getStatus()) && !result.getMessageQueueOffset().isEmpty()) {
             if (context.isFifo()) {
-                this.setFifoBlocked(context, context.getGroupId(), topicId, queueId, result.getMessageQueueOffset());
+                this.setFifoBlocked(context, context.getGroupId(), topicId, queueId, result.getMessageQueueOffset(), result);
             }
             // build response header here
             context.addGetMessageResult(result, topicId, queueId, retryType, offset);
@@ -275,10 +276,10 @@ public class PopConsumerService extends ServiceThread {
      * Fifo message does not have retry feature in broker
      */
     public void setFifoBlocked(PopConsumerContext context,
-        String groupId, String topicId, int queueId, List<Long> queueOffsetList) {
+        String groupId, String topicId, int queueId, List<Long> queueOffsetList, GetMessageResult getMessageResult) {
         brokerController.getConsumerOrderInfoManager().update(
             context.getAttemptId(), false, topicId, groupId, queueId,
-            context.getPopTime(), context.getInvisibleTime(), queueOffsetList, context.getOrderCountInfoBuilder());
+            context.getPopTime(), context.getInvisibleTime(), queueOffsetList, context.getOrderCountInfoBuilder(), getMessageResult);
     }
 
     public boolean isFifoBlocked(PopConsumerContext context, String groupId, String topicId, int queueId) {
@@ -624,6 +625,7 @@ public class PopConsumerService extends ServiceThread {
             msgInner.getProperties().get(MessageConst.PROPERTY_FIRST_POP_TIME) == null) {
             msgInner.getProperties().put(MessageConst.PROPERTY_FIRST_POP_TIME, String.valueOf(record.getPopTime()));
         }
+        msgInner.getProperties().put(MessageConst.PROPERTY_ORIGIN_GROUP, record.getGroupId());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 
         PutMessageResult putMessageResult =

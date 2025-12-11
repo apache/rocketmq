@@ -401,9 +401,9 @@ public class IndexService {
             if (indexFile != null) {
                 final IndexFile flushThisFile = prevIndexFile;
 
-                Thread flushThread = new Thread(new AbstractBrokerRunnable(defaultMessageStore.getBrokerConfig()) {
+                Thread flushThread = new Thread(new Runnable() {
                     @Override
-                    public void run0() {
+                    public void run() {
                         IndexService.this.flush(flushThisFile);
                     }
                 }, "FlushIndexFileThread");

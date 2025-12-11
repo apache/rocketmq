@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.auth.authorization.strategy;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
@@ -30,7 +30,7 @@ import org.apache.rocketmq.common.utils.ExceptionUtils;
 public abstract class AbstractAuthorizationStrategy implements AuthorizationStrategy {
 
     protected final AuthConfig authConfig;
-    protected final List<String> authorizationWhitelist = new ArrayList<>();
+    protected final Set<String> authorizationWhiteSet = new HashSet<>();
     protected final AuthorizationProvider<AuthorizationContext> authorizationProvider;
 
     public AbstractAuthorizationStrategy(AuthConfig authConfig, Supplier<?> metadataService) {
@@ -42,7 +42,7 @@ public abstract class AbstractAuthorizationStrategy implements AuthorizationStra
         if (StringUtils.isNotBlank(authConfig.getAuthorizationWhitelist())) {
             String[] whitelist = StringUtils.split(authConfig.getAuthorizationWhitelist(), ",");
             for (String rpcCode : whitelist) {
-                this.authorizationWhitelist.add(StringUtils.trim(rpcCode));
+                this.authorizationWhiteSet.add(StringUtils.trim(rpcCode));
             }
         }
     }
@@ -57,7 +57,7 @@ public abstract class AbstractAuthorizationStrategy implements AuthorizationStra
         if (this.authorizationProvider == null) {
             return;
         }
-        if (this.authorizationWhitelist.contains(context.getRpcCode())) {
+        if (this.authorizationWhiteSet.contains(context.getRpcCode())) {
             return;
         }
         try {

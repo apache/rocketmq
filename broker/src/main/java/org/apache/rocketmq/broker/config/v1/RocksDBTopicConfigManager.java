@@ -16,12 +16,8 @@
  */
 package org.apache.rocketmq.broker.config.v1;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
@@ -31,6 +27,11 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.rocksdb.CompressionType;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 public class RocksDBTopicConfigManager extends TopicConfigManager {
     private static final String VERSION_COLUMN_FAMILY = "topicVersion";
@@ -142,7 +143,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         TopicConfig oldTopicConfig = this.topicConfigTable.put(topicName, topicConfig);
         try {
             byte[] keyBytes = topicName.getBytes(DataConverter.CHARSET_UTF8);
-            byte[] valueBytes = JSON.toJSONBytes(topicConfig, SerializerFeature.BrowserCompatible);
+            byte[] valueBytes = JSON.toJSONBytes(topicConfig, JSONWriter.Feature.BrowserCompatible);
             this.rocksDBConfigManager.put(keyBytes, valueBytes);
         } catch (Exception e) {
             log.error("kv put topic Failed, {}", topicConfig.toString(), e);

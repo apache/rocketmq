@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.offset;
+package org.apache.rocketmq.broker.pop.orderly;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
@@ -32,14 +32,16 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
-public class ConsumerOrderInfoLockManager {
+public class QueueLevelConsumerOrderInfoLockManager {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    private ConsumerOrderInfoManager consumerOrderInfoManager;
+
     private final BrokerController brokerController;
     private final Map<Key, Timeout> timeoutMap = new ConcurrentHashMap<>();
     private final Timer timer;
     private static final int TIMER_TICK_MS = 100;
 
-    public ConsumerOrderInfoLockManager(BrokerController brokerController) {
+    public QueueLevelConsumerOrderInfoLockManager(BrokerController brokerController) {
         this.brokerController = brokerController;
         this.timer = new HashedWheelTimer(
             new ThreadFactoryImpl("ConsumerOrderInfoLockManager_"),
@@ -47,22 +49,22 @@ public class ConsumerOrderInfoLockManager {
     }
 
     /**
-     * when ConsumerOrderInfoManager load from disk, recover data
+     * when QueueLevelConsumerManager load from disk, recover data
      */
-    public void recover(Map<String/* topic@group*/, ConcurrentHashMap<Integer/*queueId*/, ConsumerOrderInfoManager.OrderInfo>> table) {
+    public void recover(Map<String/* topic@group*/, ConcurrentHashMap<Integer/*queueId*/, QueueLevelConsumerManager.OrderInfo>> table) {
         if (!this.brokerController.getBrokerConfig().isEnableNotifyAfterPopOrderLockRelease()) {
             return;
         }
-        for (Map.Entry<String, ConcurrentHashMap<Integer, ConsumerOrderInfoManager.OrderInfo>> entry : table.entrySet()) {
+        for (Map.Entry<String, ConcurrentHashMap<Integer, QueueLevelConsumerManager.OrderInfo>> entry : table.entrySet()) {
             String topicAtGroup = entry.getKey();
-            ConcurrentHashMap<Integer/*queueId*/, ConsumerOrderInfoManager.OrderInfo> qs = entry.getValue();
-            String[] arrays = ConsumerOrderInfoManager.decodeKey(topicAtGroup);
+            ConcurrentHashMap<Integer/*queueId*/, QueueLevelConsumerManager.OrderInfo> qs = entry.getValue();
+            String[] arrays = QueueLevelConsumerManager.decodeKey(topicAtGroup);
             if (arrays.length != 2) {
                 continue;
             }
             String topic = arrays[0];
             String group = arrays[1];
-            for (Map.Entry<Integer, ConsumerOrderInfoManager.OrderInfo> qsEntry : qs.entrySet()) {
+            for (Map.Entry<Integer, QueueLevelConsumerManager.OrderInfo> qsEntry : qs.entrySet()) {
                 Long lockFreeTimestamp = qsEntry.getValue().getLockFreeTimestamp();
                 if (lockFreeTimestamp == null || lockFreeTimestamp <= System.currentTimeMillis()) {
                     continue;
@@ -72,7 +74,7 @@ public class ConsumerOrderInfoLockManager {
         }
     }
 
-    public void updateLockFreeTimestamp(String topic, String group, int queueId, ConsumerOrderInfoManager.OrderInfo orderInfo) {
+    public void updateLockFreeTimestamp(String topic, String group, int queueId, QueueLevelConsumerManager.OrderInfo orderInfo) {
         this.updateLockFreeTimestamp(topic, group, queueId, orderInfo.getLockFreeTimestamp());
     }
 

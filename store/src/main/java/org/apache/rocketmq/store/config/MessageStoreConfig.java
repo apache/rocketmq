@@ -80,6 +80,7 @@ public class MessageStoreConfig {
     private boolean timerEnableCheckMetrics = true;
     private boolean timerInterceptDelayLevel = false;
     private int timerMaxDelaySec = 3600 * 24 * 3;
+    private boolean timerWheelSnapshotFlush = false;
     private boolean timerWheelEnable = true;
 
     /**
@@ -103,6 +104,7 @@ public class MessageStoreConfig {
 
     private int timerMetricSmallThreshold = 1000000;
     private int timerProgressLogIntervalMs = 10 * 1000;
+    private int timerWheelSnapshotIntervalMs = 10 * 1000;
 
     private int commitLogRecoverMaxNum = 10;
     private boolean timerRocksDBEnable = false;
@@ -1769,6 +1771,14 @@ public class MessageStoreConfig {
         return timerWarmEnable;
     }
 
+    public boolean isTimerWheelSnapshotFlush() {
+        return timerWheelSnapshotFlush;
+    }
+
+    public void setTimerWheelSnapshotFlush(boolean timerWheelSnapshotFlush) {
+        this.timerWheelSnapshotFlush = timerWheelSnapshotFlush;
+    }
+
     public boolean isTimerWheelEnable() {
         return timerWheelEnable;
     }
@@ -1812,6 +1822,14 @@ public class MessageStoreConfig {
 
     public int getTimerProgressLogIntervalMs() {
         return timerProgressLogIntervalMs;
+    }
+
+    public int getTimerWheelSnapshotIntervalMs() {
+        return timerWheelSnapshotIntervalMs;
+    }
+
+    public void setTimerWheelSnapshotIntervalMs(int timerWheelSnapshotIntervalMs) {
+        this.timerWheelSnapshotIntervalMs = timerWheelSnapshotIntervalMs;
     }
 
     public void setTimerProgressLogIntervalMs(final int timerProgressLogIntervalMs) {

@@ -16,9 +16,21 @@
  */
 package org.apache.rocketmq.store.timer;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
+import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+
 import java.io.File;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -36,16 +48,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.rocketmq.common.ConfigManager;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.remoting.protocol.DataVersion;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TimerMetrics extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -135,11 +137,11 @@ public class TimerMetrics extends ConfigManager {
         return timingCount;
     }
 
-    protected void write0(Writer writer) {
+    protected void write0(Writer writer) throws IOException {
         TimerMetricsSerializeWrapper wrapper = new TimerMetricsSerializeWrapper();
         wrapper.setTimingCount(timingCount);
         wrapper.setDataVersion(dataVersion);
-        JSON.writeJSONString(writer, wrapper, SerializerFeature.BrowserCompatible);
+        writer.write(JSON.toJSONString(wrapper, JSONWriter.Feature.BrowserCompatible));
     }
 
     @Override public String encode() {
@@ -152,7 +154,7 @@ public class TimerMetrics extends ConfigManager {
 
     @Override public void decode(String jsonString) {
         if (jsonString != null) {
-            TimerMetricsSerializeWrapper timerMetricsSerializeWrapper = TimerMetricsSerializeWrapper.fromJson(jsonString, TimerMetricsSerializeWrapper.class);                                                         
+            TimerMetricsSerializeWrapper timerMetricsSerializeWrapper = TimerMetricsSerializeWrapper.fromJson(jsonString, TimerMetricsSerializeWrapper.class);
             if (timerMetricsSerializeWrapper != null) {
                 this.timingCount.putAll(timerMetricsSerializeWrapper.getTimingCount());
                 this.dataVersion.assignNewOne(timerMetricsSerializeWrapper.getDataVersion());
@@ -179,7 +181,7 @@ public class TimerMetrics extends ConfigManager {
         while (iterator.hasNext()) {
             Map.Entry<String, Metric> entry = iterator.next();
             final String topic = entry.getKey();
-            if (topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX) || topic.startsWith(MixAll.LMQ_PREFIX)) {                                                                                                         
+            if (topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX) || topic.startsWith(MixAll.LMQ_PREFIX)) {
                 continue;
             }
             if (topics.contains(topic)) {

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.impl;
 
+import com.alibaba.fastjson2.JSON;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.AckCallback;
 import org.apache.rocketmq.client.consumer.AckResult;
@@ -34,6 +35,7 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.common.Pair;
@@ -2029,6 +2031,22 @@ public class MQClientAPIImplTest {
         public NettyClientConfig getNettyClientConfig() {
             return nettyClientConfig;
         }
+    }
+
+    @Test
+    public void testCheckRocksdbCqWriteProgress() throws Exception {
+        RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "Success");
+        CheckRocksdbCqWriteResult expectedResult = new CheckRocksdbCqWriteResult();
+        expectedResult.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue());
+        response.setBody(JSON.toJSONString(expectedResult).getBytes());
+
+        when(remotingClient.invokeSync(any(String.class), any(RemotingCommand.class), any(Long.class)))
+                .thenReturn(response);
+
+        CheckRocksdbCqWriteResult result = mqClientAPI.checkRocksdbCqWriteProgress(
+                "brokerAddr", "testTopic", 12345L, 3000L);
+
+        assertEquals(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue(), result.getCheckStatus());
     }
 
     private Properties createProperties() {

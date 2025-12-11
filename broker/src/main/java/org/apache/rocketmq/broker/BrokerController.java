@@ -18,6 +18,29 @@ package org.apache.rocketmq.broker;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+import java.net.InetSocketAddress;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
@@ -58,11 +81,12 @@ import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
 import org.apache.rocketmq.broker.offset.BroadcastOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
-import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.pop.PopConsumerService;
+import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
+import org.apache.rocketmq.broker.pop.orderly.QueueLevelConsumerManager;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.AdminBrokerProcessor;
 import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
@@ -98,7 +122,6 @@ import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageC
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
 import org.apache.rocketmq.broker.util.HookUtils;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
@@ -392,7 +415,7 @@ public class BrokerController {
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener, this.brokerStatsManager, this.brokerConfig);
         this.producerManager = new ProducerManager(this.brokerStatsManager);
         this.consumerFilterManager = new ConsumerFilterManager(this);
-        this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
+        this.consumerOrderInfoManager = new QueueLevelConsumerManager(this);
         this.popInflightMessageCounter = new PopInflightMessageCounter(this);
         this.popConsumerService = brokerConfig.isPopConsumerKVServiceInit() ? new PopConsumerService(this) : null;
         this.clientHousekeepingService = new ClientHousekeepingService(this);
@@ -1470,10 +1493,6 @@ public class BrokerController {
             this.pullRequestHoldService.shutdown();
         }
 
-        if (this.popConsumerService != null) {
-            this.popConsumerService.shutdown();
-        }
-
         if (this.popMessageProcessor.getPopLongPollingService() != null) {
             this.popMessageProcessor.getPopLongPollingService().shutdown();
         }
@@ -1682,6 +1701,10 @@ public class BrokerController {
             }
         }
 
+        if (this.popConsumerService != null) {
+            this.popConsumerService.shutdown();
+        }
+
         if (this.messageStore != null) {
             this.messageStore.shutdown();
         }
@@ -1859,9 +1882,9 @@ public class BrokerController {
             this.registerBrokerAll(true, false, true);
         }
 
-        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 try {
                     if (System.currentTimeMillis() < shouldStartTime) {
                         BrokerController.LOG.info("Register to namesrv after {}", shouldStartTime);
@@ -1881,9 +1904,9 @@ public class BrokerController {
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
             scheduleSendHeartbeat();
 
-            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
-                public void run0() {
+                public void run() {
                     try {
                         BrokerController.this.syncBrokerMemberGroup();
                     } catch (Throwable e) {
@@ -1914,9 +1937,9 @@ public class BrokerController {
     }
 
     protected void scheduleSendHeartbeat() {
-        scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        scheduledFutures.add(this.brokerHeartbeatExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 if (isIsolated) {
                     return;
                 }

@@ -16,17 +16,9 @@
  */
 package org.apache.rocketmq.tieredstore.metadata;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import com.google.common.annotations.VisibleForTesting;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
@@ -35,6 +27,15 @@ import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.metadata.entity.FileSegmentMetadata;
 import org.apache.rocketmq.tieredstore.metadata.entity.QueueMetadata;
 import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
+
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 public class DefaultMetadataStore extends ConfigManager implements MetadataStore {
 
@@ -80,12 +81,9 @@ public class DefaultMetadataStore extends ConfigManager implements MetadataStore
         dataWrapper.setIndexFileSegmentTable(new ConcurrentHashMap<>(indexFileSegmentTable));
 
         if (prettyFormat) {
-            return JSON.toJSONString(
-                dataWrapper, SerializerFeature.DisableCircularReferenceDetect, SerializerFeature.PrettyFormat);
-        } else {
-            return JSON.toJSONString(
-                dataWrapper, SerializerFeature.DisableCircularReferenceDetect);
+            return JSON.toJSONString(dataWrapper, JSONWriter.Feature.PrettyFormat);
         }
+        return JSON.toJSONString(dataWrapper);
     }
 
     @Override

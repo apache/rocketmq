@@ -17,11 +17,9 @@
 
 package org.apache.rocketmq.tools.command.export;
 
-import com.alibaba.fastjson.JSONObject;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -33,6 +31,11 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.rocksdb.RocksIterator;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 
 public class ExportMetadataInRocksDBCommand implements SubCommand {
     private static final String TOPICS_JSON_CONFIG = "topics";
@@ -118,8 +121,8 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
             );
 
             jsonConfig.put(configType.equalsIgnoreCase(TOPICS_JSON_CONFIG) ? "topicConfigTable" : "subscriptionGroupTable",
-                (JSONObject) JSONObject.toJSON(configTable));
-            final String jsonConfigStr = JSONObject.toJSONString(jsonConfig, true);
+                (JSONObject) JSON.toJSON(configTable));
+            final String jsonConfigStr = JSONObject.toJSONString(jsonConfig, JSONWriter.Feature.PrettyFormat);
             System.out.print(jsonConfigStr + "\n");
         } else {
             AtomicLong count = new AtomicLong(0);

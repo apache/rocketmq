@@ -176,19 +176,26 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
 
     @Override
     public CompletableFuture<Acl> getAcl(Subject subject) {
-        CompletableFuture<? extends Subject> subjectFuture;
-        if (subject.isSubject(SubjectType.USER)) {
-            User user = (User) subject;
-            subjectFuture = this.getAuthenticationMetadataProvider().getUser(user.getUsername());
-        } else {
-            subjectFuture = CompletableFuture.completedFuture(subject);
-        }
-        return subjectFuture.thenCompose(sub -> {
-            if (sub == null) {
-                throw new AuthorizationException("The subject is not exist.");
+        try {
+            if (subject == null) {
+                throw new AuthorizationException("The subject is null.");
             }
-            return this.getAuthorizationMetadataProvider().getAcl(subject);
-        });
+            CompletableFuture<? extends Subject> subjectFuture;
+            if (subject.isSubject(SubjectType.USER)) {
+                User user = (User) subject;
+                subjectFuture = this.getAuthenticationMetadataProvider().getUser(user.getUsername());
+            } else {
+                subjectFuture = CompletableFuture.completedFuture(subject);
+            }
+            return subjectFuture.thenCompose(sub -> {
+                if (sub == null) {
+                    throw new AuthorizationException("The subject is not exist.");
+                }
+                return this.getAuthorizationMetadataProvider().getAcl(sub);
+            });
+        } catch (Exception e) {
+            return this.handleException(e);
+        }
     }
 
     @Override
