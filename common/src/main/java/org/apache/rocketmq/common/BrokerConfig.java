@@ -245,6 +245,7 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean popConsumerKVServiceInit = false;
     private boolean popConsumerKVServiceEnable = false;
     private int popReviveMaxReturnSizePerRead = 16 * 1024;
+    private int popReviveConcurrency = 32;
     private int popReviveMaxAttemptTimes = 16;
 
     private boolean realTimeNotifyConsumerChange = true;
@@ -667,6 +668,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setPopConsumerKVServiceEnable(boolean popConsumerKVServiceEnable) {
         this.popConsumerKVServiceEnable = popConsumerKVServiceEnable;
+    }
+
+    public int getPopReviveConcurrency() {
+        return popReviveConcurrency;
+    }
+
+    public void setPopReviveConcurrency(int popReviveConcurrency) {
+        this.popReviveConcurrency = popReviveConcurrency;
     }
 
     public int getPopReviveMaxReturnSizePerRead() {
