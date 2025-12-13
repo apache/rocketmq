@@ -1442,6 +1442,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (msg.getDelayTimeLevel() != 0) {
             MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
         }
+        if (msg.getDelayTimeMs() != 0) {
+            MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_MS);
+        }
+        if (msg.getDelayTimeSec() != 0) {
+            MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_SEC);
+        }
+        if (msg.getDeliverTimeMs() != 0) {
+            MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELIVER_MS);
+        }
 
         Validators.checkMessage(msg, this.defaultMQProducer);
 
