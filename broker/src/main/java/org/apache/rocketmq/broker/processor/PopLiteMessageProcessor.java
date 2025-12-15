@@ -372,7 +372,8 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    private void recordPopLiteMetrics(GetMessageResult result, String parentTopic, String group) {
+    @VisibleForTesting
+    protected void recordPopLiteMetrics(GetMessageResult result, String parentTopic, String group) {
         Attributes attributes = this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
             .put(LABEL_TOPIC, parentTopic)
             .put(LABEL_CONSUMER_GROUP, group)

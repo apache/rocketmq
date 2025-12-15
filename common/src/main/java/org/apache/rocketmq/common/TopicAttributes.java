@@ -18,6 +18,7 @@ package org.apache.rocketmq.common;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.attribute.Attribute;
 import org.apache.rocketmq.common.attribute.EnumAttribute;
 import org.apache.rocketmq.common.attribute.LongRangeAttribute;
@@ -56,7 +57,7 @@ public class TopicAttributes {
         "lite.topic.expiration",
         true,
         -1,
-        Long.MAX_VALUE,
+        TimeUnit.DAYS.toMinutes(30),
         -1
     );
 

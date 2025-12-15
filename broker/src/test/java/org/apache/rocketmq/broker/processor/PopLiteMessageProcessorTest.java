@@ -59,9 +59,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
@@ -335,6 +337,8 @@ public class PopLiteMessageProcessorTest {
         GetMessageResult getResult = mockGetMessageResult(GetMessageStatus.FOUND, msgCount, 100L);
         getResult.getMessageQueueOffset().add(0L);
         getResult.getMessageQueueOffset().add(1L);
+
+        doNothing().when(popLiteMessageProcessor).recordPopLiteMetrics(any(), anyString(), anyString());
 
         Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.handleGetMessageResult(
             getResult, "parentTopic", "group", "lmqName", System.currentTimeMillis(), 6000L, "attemptId");

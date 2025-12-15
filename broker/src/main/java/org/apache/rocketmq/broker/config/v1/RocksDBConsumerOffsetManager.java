@@ -197,8 +197,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             }
         }
         if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
-            long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            dataVersion.nextVersion(stateMachineVersion);
+            updateDataVersion();
         }
         if (!brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
             return;

@@ -370,7 +370,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         }
         String lmqName = LiteUtil.toLmqName(requestHeader.getTopic(), requestHeader.getLiteTopic());
         long maxOffset = this.brokerController.getLiteLifecycleManager().getMaxOffsetInQueue(lmqName);
-        if (requestHeader.getOffset() > maxOffset) { // TODO moling. minOffset
+        if (requestHeader.getOffset() > maxOffset) {
             POP_LOGGER.warn("process lite offset illegal, {}, {}, {}", lmqName, requestHeader.getOffset(), maxOffset);
             response.setCode(ResponseCode.NO_MESSAGE);
             return CompletableFuture.completedFuture(response);

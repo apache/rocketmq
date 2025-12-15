@@ -740,7 +740,7 @@ public class AdminBrokerProcessorTest {
 
         SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
         requestHeader.setTopic(topic);
-        requestHeader.setQueueId(1);
+        requestHeader.setQueueId(0);
         requestHeader.setTimestamp(timestamp);
         requestHeader.setLiteTopic(liteTopic);
         requestHeader.setBoundaryType(BoundaryType.LOWER);

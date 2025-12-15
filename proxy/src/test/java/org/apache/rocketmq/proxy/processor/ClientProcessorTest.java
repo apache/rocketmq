@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.processor;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
@@ -27,8 +28,9 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 class ClientProcessorTest {
 
     @Mock
@@ -53,8 +56,8 @@ class ClientProcessorTest {
     private ClientProcessor clientProcessor;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
+    void setUp() throws Exception {
+        ConfigurationManager.intConfig();
         clientProcessor = new ClientProcessor(messagingProcessor, serviceManager);
     }
 
@@ -180,7 +183,7 @@ class ClientProcessorTest {
     void testValidateLiteSubscriptionQuota_exceedsQuota_throwsException() {
         String group = "group";
         int quota = 10;
-        int actual = 15;
+        int actual = 15 + 300 /*quota buffer*/;
 
         when(groupConfig.getLiteSubClientQuota()).thenReturn(quota);
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);

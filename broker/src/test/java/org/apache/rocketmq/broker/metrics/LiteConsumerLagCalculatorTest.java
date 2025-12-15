@@ -285,9 +285,9 @@ public class LiteConsumerLagCalculatorTest {
         LiteConsumerLagCalculator spyCalculator = spy(liteConsumerLagCalculator);
 
         // Mock getStoreTimestamp method on the spy
-        doReturn(timestamp1).when(spyCalculator).getStoreTimestamp(lmqName1, consumerOffset1 + 1);
-        doReturn(timestamp2).when(spyCalculator).getStoreTimestamp(lmqName2, consumerOffset2 + 1);
-        doReturn(timestamp3).when(spyCalculator).getStoreTimestamp(lmqName3, consumerOffset3 + 1);
+        doReturn(timestamp1).when(spyCalculator).getStoreTimestamp(lmqName1, consumerOffset1);
+        doReturn(timestamp2).when(spyCalculator).getStoreTimestamp(lmqName2, consumerOffset2);
+        doReturn(timestamp3).when(spyCalculator).getStoreTimestamp(lmqName3, consumerOffset3);
 
         // Mock getMaxOffset method on the spy
         doReturn(100L).when(spyCalculator).getMaxOffset(lmqName1);

@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.lite;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -101,7 +100,6 @@ public class GetLiteClientInfoSubCommand implements SubCommand {
         }
     }
 
-    @VisibleForTesting
     static void printHeader() {
         System.out.printf("%-30s %-20s %-30s %-30s %n",
             "#Broker",
@@ -111,7 +109,6 @@ public class GetLiteClientInfoSubCommand implements SubCommand {
         );
     }
 
-    @VisibleForTesting
     static void printRow(
         GetLiteClientInfoResponseBody responseBody,
         String brokerName,

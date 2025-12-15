@@ -33,6 +33,7 @@ import org.apache.rocketmq.broker.lite.LiteSubscriptionRegistry;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.metrics.LiteConsumerLagCalculator;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -123,6 +124,9 @@ public class LiteManagerProcessorTest {
     @Mock
     private LiteEventDispatcher liteEventDispatcher;
 
+    @Mock
+    private PopLiteMessageProcessor popLiteMessageProcessor;
+
     private LiteManagerProcessor processor;
 
     @Before
@@ -136,9 +140,17 @@ public class LiteManagerProcessorTest {
         when(brokerController.getLiteSubscriptionRegistry()).thenReturn(liteSubscriptionRegistry);
         when(brokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
         when(brokerController.getLiteEventDispatcher()).thenReturn(liteEventDispatcher);
+        when(brokerController.getPopLiteMessageProcessor()).thenReturn(popLiteMessageProcessor);
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+
+        ConsumerOrderInfoManager consumerOrderInfoManager = new ConsumerOrderInfoManager(brokerController);
+        when(popLiteMessageProcessor.getConsumerOrderInfoManager()).thenReturn(consumerOrderInfoManager);
 
         when(messageStore.getQueueStore()).thenReturn(consumeQueueStore);
+        when(consumeQueueStore.getConsumeQueueTable()).thenReturn(new ConcurrentHashMap<>());
         when(brokerMetricsManager.getLiteConsumerLagCalculator()).thenReturn(liteConsumerLagCalculator);
+
+        when(consumerOffsetManager.getOffsetTable()).thenReturn(new ConcurrentHashMap<>());
     }
 
     @Test
@@ -699,6 +711,11 @@ public class LiteManagerProcessorTest {
         requestHeader.setClientId(clientId);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.TRIGGER_LITE_DISPATCH, requestHeader);
         request.makeCustomHeaderToNet();
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteBindTopic("parent_topic");
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
 
         RemotingCommand response = processor.triggerLiteDispatch(ctx, request);
 

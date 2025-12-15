@@ -17,7 +17,6 @@
 package org.apache.rocketmq.tools.command.lite;
 
 import com.alibaba.fastjson2.JSON;
-import com.google.common.annotations.VisibleForTesting;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -97,7 +96,6 @@ public class GetBrokerLiteInfoSubCommand implements SubCommand {
         }
     }
 
-    @VisibleForTesting
     static void printHeader() {
         System.out.printf("%-30s %-17s %-10s %-14s %-20s %-17s %-15s %-18s %-15s%n",
             "#Broker",
@@ -112,7 +110,6 @@ public class GetBrokerLiteInfoSubCommand implements SubCommand {
         );
     }
 
-    @VisibleForTesting
     static void printRow(
         GetBrokerLiteInfoResponseBody responseBody,
         String brokerAddr,

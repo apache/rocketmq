@@ -514,7 +514,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         String lmqName = LiteUtil.toLmqName(requestHeader.getTopic(), requestHeader.getLiteTopic());
         long ackOffset = requestHeader.getOffset();
         long maxOffset = this.brokerController.getLiteLifecycleManager().getMaxOffsetInQueue(lmqName);
-        if (ackOffset > maxOffset) { // TODO moling. minOffset
+        if (ackOffset > maxOffset) {
             POP_LOGGER.warn("ack lite offset illegal, {}, {}, {}", lmqName, ackOffset, maxOffset);
             response.setCode(ResponseCode.NO_MESSAGE);
             response.setRemark("ack offset illegal.");

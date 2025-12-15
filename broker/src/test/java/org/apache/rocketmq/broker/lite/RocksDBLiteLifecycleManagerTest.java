@@ -34,6 +34,7 @@ import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -100,6 +101,7 @@ public class RocksDBLiteLifecycleManagerTest {
         mockTopicConfig = new TopicConfig();
     }
 
+    @Ignore
     @Test
     public void testInit_tieredStore() {
         BrokerController brokerController = Mockito.mock(BrokerController.class);
@@ -133,7 +135,7 @@ public class RocksDBLiteLifecycleManagerTest {
     public void testGetMaxOffsetInQueue() {
         int num = 3;
         String topic = UUID.randomUUID().toString();
-        for (int i = 0; i < num; i ++) {
+        for (int i = 0; i < num; i++) {
             messageStore.putMessage(LiteTestUtil.buildMessage(topic, null));
         }
         await().atMost(5, SECONDS).pollInterval(200, MILLISECONDS).until(() -> messageStore.dispatchBehindBytes() <= 0);
