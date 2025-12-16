@@ -33,7 +33,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.alibaba.fastjson</groupId>
+            <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
         </dependency>
         <dependency>
