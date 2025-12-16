@@ -1438,20 +1438,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             throw new MQClientException("tranExecutor is null", null);
         }
 
-        // ignore DelayTimeLevel parameter
-        if (msg.getDelayTimeLevel() != 0) {
-            MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
-        }
-        if (msg.getDelayTimeMs() != 0) {
-            MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_MS);
-        }
-        if (msg.getDelayTimeSec() != 0) {
-            MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELAY_SEC);
-        }
-        if (msg.getDeliverTimeMs() != 0) {
-            MessageAccessor.clearProperty(msg, MessageConst.PROPERTY_TIMER_DELIVER_MS);
-        }
-
+        ensureNotDelayedForTransactional(msg);
         Validators.checkMessage(msg, this.defaultMQProducer);
 
         SendResult sendResult = null;
@@ -1508,7 +1495,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         try {
             this.endTransaction(msg, sendResult, localTransactionState, localException);
         } catch (Exception e) {
-            log.warn("local transaction execute " + localTransactionState + ", but end broker transaction failed", e);
+            log.warn("local transaction execute {}, but end broker transaction failed", localTransactionState, e);
         }
 
         TransactionSendResult transactionSendResult = new TransactionSendResult();
@@ -1519,6 +1506,15 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         transactionSendResult.setTransactionId(sendResult.getTransactionId());
         transactionSendResult.setLocalTransactionState(localTransactionState);
         return transactionSendResult;
+    }
+
+    private void ensureNotDelayedForTransactional(final Message msg) throws MQClientException {
+        if (msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
+                || msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null
+                || msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null
+                || msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null) {
+            throw new MQClientException("Transactional messages do not support delayed delivery", null);
+        }
     }
 
     /**
