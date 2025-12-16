@@ -44,6 +44,7 @@ public class MessageConst {
     public static final String PROPERTY_EXTEND_UNIQ_INFO = "EXTEND_UNIQ_INFO";
     public static final String PROPERTY_MAX_RECONSUME_TIMES = "MAX_RECONSUME_TIMES";
     public static final String PROPERTY_CONSUME_START_TIMESTAMP = "CONSUME_START_TIME";
+    public static final String PROPERTY_PRIORITY = "_SYS_MSG_PRIORITY_";
     public static final String PROPERTY_INNER_NUM = "INNER_NUM";
     public static final String PROPERTY_INNER_BASE = "INNER_BASE";
     public static final String DUP_INFO = "DUP_INFO";
@@ -169,5 +170,6 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_DLQ_ORIGIN_TOPIC);
         STRING_HASH_SET.add(PROPERTY_DLQ_ORIGIN_MESSAGE_ID);
         STRING_HASH_SET.add(PROPERTY_CRC32);
+        STRING_HASH_SET.add(PROPERTY_PRIORITY);
     }
 }

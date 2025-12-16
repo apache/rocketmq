@@ -262,6 +262,12 @@ public class SendMessageActivity extends AbstractMessingActivity {
         // set delay level or deliver timestamp
         fillDelayMessageProperty(message, messageWithHeader);
 
+        // set priority
+        if (message.getSystemProperties().hasPriority()) {
+            int priority = message.getSystemProperties().getPriority();
+            messageWithHeader.setPriority(priority);
+        }
+
         // set reconsume times
         int reconsumeTimes = message.getSystemProperties().getDeliveryAttempt();
         MessageAccessor.setReconsumeTime(messageWithHeader, String.valueOf(reconsumeTimes));

@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
@@ -512,11 +513,15 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         // considered the same type because they share the same retry flag in previous fields.
         // Therefore, needRetryV1 is designed as a subset of needRetry, and within a single request,
         // only one type of retry topic is able to call popMsgFromQueue.
-        boolean needRetry = randomQ < brokerConfig.getPopFromRetryProbability();
+        boolean usePriorityMode = TopicMessageType.PRIORITY.equals(topicConfig.getTopicMessageType())
+            && !requestHeader.isOrder() && randomQ < subscriptionGroupConfig.getPriorityFactor();
+        boolean needRetry = randomQ < (usePriorityMode ?
+            brokerConfig.getPopFromRetryProbabilityForPriority() : brokerConfig.getPopFromRetryProbability());
         boolean needRetryV1 = false;
         if (brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
             needRetryV1 = randomQ % 2 == 0;
         }
+        randomQ = usePriorityMode ? 0 : randomQ; // reset randomQ
         long popTime = System.currentTimeMillis();
         CompletableFuture<Long> getMessageFuture = CompletableFuture.completedFuture(0L);
         if (needRetry && !requestHeader.isOrder()) {
@@ -653,7 +658,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         StringBuilder msgOffsetInfo, StringBuilder orderCountInfo, int randomQ, CompletableFuture<Long> getMessageFuture) {
         if (topicConfig != null) {
             for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
-                int queueId = (randomQ + i) % topicConfig.getReadQueueNums();
+                int index = (brokerController.getBrokerConfig().isPriorityOrderAsc() ?
+                    topicConfig.getReadQueueNums() - 1 - i : i) + randomQ;
+                int queueId = index % topicConfig.getReadQueueNums();
                 getMessageFuture = getMessageFuture.thenCompose(restNum ->
                     popMsgFromQueue(topicConfig.getTopicName(), requestHeader.getAttemptId(), isRetry,
                         getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, messageFilter,

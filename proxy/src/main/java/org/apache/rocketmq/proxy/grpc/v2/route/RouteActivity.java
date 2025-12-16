@@ -306,6 +306,8 @@ public class RouteActivity extends AbstractMessingActivity {
                 return Collections.singletonList(MessageType.TRANSACTION);
             case DELAY:
                 return Collections.singletonList(MessageType.DELAY);
+            case PRIORITY:
+                return Collections.singletonList(MessageType.PRIORITY);
             case MIXED:
                 return Arrays.asList(MessageType.NORMAL, MessageType.FIFO, MessageType.DELAY, MessageType.TRANSACTION);
             default:

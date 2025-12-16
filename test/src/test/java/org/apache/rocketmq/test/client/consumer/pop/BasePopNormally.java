@@ -18,11 +18,15 @@
 package org.apache.rocketmq.test.client.consumer.pop;
 
 import java.util.concurrent.CompletableFuture;
+
+import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -68,5 +72,9 @@ public class BasePopNormally extends BasePop {
         return client.popMessageAsync(
             brokerAddr, messageQueue, invisibleTime, maxNums, group, 3000, false,
             ConsumeInitMode.MIN, false, ExpressionType.TAG, "*");
+    }
+
+    protected CompletableFuture<AckResult> ackMessageAsync(MessageExt messageExt) {
+        return client.ackMessageAsync(brokerAddr, topic, group, messageExt.getProperty(MessageConst.PROPERTY_POP_CK));
     }
 }

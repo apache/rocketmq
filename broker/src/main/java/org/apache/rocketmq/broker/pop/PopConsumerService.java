@@ -25,9 +25,11 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
@@ -38,6 +40,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
@@ -324,6 +327,23 @@ public class PopConsumerService extends ServiceThread {
         });
     }
 
+    protected CompletableFuture<PopConsumerContext> getMessageFromTopicAsync(CompletableFuture<PopConsumerContext> future,
+        String clientHost, String groupId, String topicId, long requestCount, int batchSize, MessageFilter filter,
+        PopConsumerRecord.RetryType retryType) {
+        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topicId);
+        if (null == topicConfig) {
+            return future;
+        }
+        for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
+            long index = (brokerController.getBrokerConfig().isPriorityOrderAsc() ?
+                topicConfig.getReadQueueNums() - 1 - i : i) + requestCount;
+            int current = (int) index % topicConfig.getReadQueueNums();
+            future = this.getMessageAsync(future, clientHost, groupId,
+                topicId, current, batchSize, filter, retryType);
+        }
+        return future;
+    }
+
     public CompletableFuture<PopConsumerContext> popAsync(String clientHost, long popTime, long invisibleTime,
         String groupId, String topicId, int queueId, int batchSize, boolean fifo, String attemptId, int initMode,
         MessageFilter filter) {
@@ -336,6 +356,12 @@ public class PopConsumerService extends ServiceThread {
             return CompletableFuture.completedFuture(popConsumerContext);
         }
 
+        SubscriptionGroupConfig subscriptionGroupConfig =
+            this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(groupId);
+        if (null == subscriptionGroupConfig || !subscriptionGroupConfig.isConsumeEnable()) {
+            return CompletableFuture.completedFuture(popConsumerContext);
+        }
+
         log.debug("PopConsumerService popAsync, groupId={}, topicId={}, queueId={}, " +
                 "batchSize={}, invisibleTime={}, fifo={}, attemptId={}, filter={}",
             groupId, topicId, queueId, batchSize, invisibleTime, fifo, attemptId, filter);
@@ -345,7 +371,13 @@ public class PopConsumerService extends ServiceThread {
         String retryTopicV2 = KeyBuilder.buildPopRetryTopicV2(topicId, groupId);
         long requestCount = Objects.requireNonNull(ConcurrentHashMapUtils.computeIfAbsent(
             requestCountTable, requestKey, k -> new AtomicLong(0L))).getAndIncrement();
-        boolean preferRetry = requestCount % 5L == 0L;
+        boolean usePriorityMode = TopicMessageType.PRIORITY.equals(topicConfig.getTopicMessageType())
+            && !fifo && requestCount % 100L < subscriptionGroupConfig.getPriorityFactor();
+        int probability = usePriorityMode ?
+            brokerConfig.getPopFromRetryProbabilityForPriority() : brokerConfig.getPopFromRetryProbability();
+        probability = Math.max(0, Math.min(100, probability)); // [51, 100] means always
+        boolean preferRetry = probability > 0 && requestCount % (100 / probability) == 0L;
+        requestCount = usePriorityMode ? 0 : requestCount; // use requestCount as randomQ
 
         CompletableFuture<PopConsumerContext> getMessageFuture =
             CompletableFuture.completedFuture(popConsumerContext);
@@ -353,13 +385,13 @@ public class PopConsumerService extends ServiceThread {
         try {
             if (!fifo && preferRetry) {
                 if (brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
-                    getMessageFuture = this.getMessageAsync(getMessageFuture, clientHost, groupId,
-                        retryTopicV1, 0, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V1);
+                    getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
+                        retryTopicV1, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V1);
                 }
 
                 if (brokerConfig.isEnableRetryTopicV2()) {
-                    getMessageFuture = this.getMessageAsync(getMessageFuture, clientHost, groupId,
-                        retryTopicV2, 0, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V2);
+                    getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
+                        retryTopicV2, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V2);
                 }
             }
 
@@ -367,21 +399,18 @@ public class PopConsumerService extends ServiceThread {
                 getMessageFuture = this.getMessageAsync(getMessageFuture, clientHost, groupId,
                     topicId, queueId, batchSize, filter, PopConsumerRecord.RetryType.NORMAL_TOPIC);
             } else {
-                for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
-                    int current = (int) ((requestCount + i) % topicConfig.getReadQueueNums());
-                    getMessageFuture = this.getMessageAsync(getMessageFuture, clientHost, groupId,
-                        topicId, current, batchSize, filter, PopConsumerRecord.RetryType.NORMAL_TOPIC);
-                }
+                getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
+                    topicId, requestCount, batchSize, filter, PopConsumerRecord.RetryType.NORMAL_TOPIC);
 
                 if (!fifo && !preferRetry) {
                     if (brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
-                        getMessageFuture = this.getMessageAsync(getMessageFuture, clientHost, groupId,
-                            retryTopicV1, 0, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V1);
+                        getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
+                            retryTopicV1, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V1);
                     }
 
                     if (brokerConfig.isEnableRetryTopicV2()) {
-                        getMessageFuture = this.getMessageAsync(getMessageFuture, clientHost, groupId,
-                            retryTopicV2, 0, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V2);
+                        getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
+                            retryTopicV2, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V2);
                     }
                 }
             }
@@ -568,21 +597,33 @@ public class PopConsumerService extends ServiceThread {
         return consumerRecords.size();
     }
 
-    public void createRetryTopicIfNeeded(String groupId, String topicId) {
-        TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topicId);
-        if (topicConfig != null) {
+    public void createRetryTopicIfNeeded(String groupId, String retryTopic) {
+        TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(retryTopic);
+        if (topicConfig != null && !brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
             return;
         }
 
-        topicConfig = new TopicConfig(topicId, 1, 1,
+        int retryQueueNum = PopAckConstants.retryQueueNum;
+        if (brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
+            String normalTopic = KeyBuilder.parseNormalTopic(retryTopic, groupId);
+            TopicConfig normalConfig = brokerController.getTopicConfigManager().selectTopicConfig(normalTopic); // always exists
+            retryQueueNum = normalConfig.getWriteQueueNums();
+            if (topicConfig != null && topicConfig.getWriteQueueNums() == normalConfig.getWriteQueueNums()) {
+                return;
+            }
+        }
+
+        topicConfig = new TopicConfig(retryTopic, retryQueueNum, retryQueueNum,
             PermName.PERM_READ | PermName.PERM_WRITE, 0);
         topicConfig.setTopicFilterType(TopicFilterType.SINGLE_TAG);
         brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
-        long offset = this.brokerController.getConsumerOffsetManager().queryOffset(groupId, topicId, 0);
-        if (offset < 0) {
-            this.brokerController.getConsumerOffsetManager().commitOffset(
-                "InitPopOffset", groupId, topicId, 0, 0);
+        for (int i = 0; i < retryQueueNum; i++) {
+            long offset = this.brokerController.getConsumerOffsetManager().queryOffset(groupId, retryTopic, i);
+            if (offset < 0) {
+                this.brokerController.getConsumerOffsetManager().commitOffset(
+                    "InitPopOffset", groupId, retryTopic, i, 0);
+            }
         }
     }
 
@@ -605,7 +646,7 @@ public class PopConsumerService extends ServiceThread {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(retryTopic);
         msgInner.setBody(messageExt.getBody() != null ? messageExt.getBody() : new byte[] {});
-        msgInner.setQueueId(0);
+        msgInner.setQueueId(getRetryQueueId(retryTopic, messageExt));
         if (messageExt.getTags() != null) {
             msgInner.setTags(messageExt.getTags());
         } else {
@@ -645,6 +686,18 @@ public class PopConsumerService extends ServiceThread {
                 msgInner.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
         }
         return true;
+    }
+
+    private int getRetryQueueId(String retryTopic, MessageExt oriMsg) {
+        if (!brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
+            return 0;
+        }
+        int oriQueueId = oriMsg.getQueueId(); // original qid of normal or retry topic
+        if (oriQueueId > brokerController.getTopicConfigManager().selectTopicConfig(retryTopic).getWriteQueueNums() - 1) {
+            log.warn("not expected, {}, {}, {}", retryTopic, oriQueueId, oriMsg.getMsgId());
+            return 0; // fallback
+        }
+        return oriQueueId;
     }
 
     // Export kv store record to revive topic
