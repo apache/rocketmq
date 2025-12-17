@@ -62,14 +62,12 @@ public class PopPriorityIT extends BasePopNormally {
 
     @Parameterized.Parameters
     public static List<Object[]> params() {
-        return new ArrayList<Object[]>() {
-            {
-                add(new Object[] {false, true});
-                add(new Object[] {false, false});
-                add(new Object[] {true, true});
-                add(new Object[] {true, false});
-            }
-        };
+        List<Object[]> result = new ArrayList<>();
+        result.add(new Object[] {false, true});
+        result.add(new Object[] {false, false});
+        result.add(new Object[] {true, true});
+        result.add(new Object[] {true, false});
+        return result;
     }
 
     @Before
