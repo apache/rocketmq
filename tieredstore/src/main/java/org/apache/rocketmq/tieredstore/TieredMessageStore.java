@@ -357,6 +357,11 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
+    public long getMessageStoreTimeStamp(String topic, int queueId, long consumeQueueOffset) {
+        return getMessageStoreTimeStampAsync(topic, queueId, consumeQueueOffset).join();
+    }
+
+    @Override
     public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
         long consumeQueueOffset) {
         if (fetchFromCurrentStore(topic, queueId, consumeQueueOffset)) {
