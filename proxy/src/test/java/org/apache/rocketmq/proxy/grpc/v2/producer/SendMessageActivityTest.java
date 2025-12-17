@@ -269,6 +269,34 @@ public class SendMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testPriorityMessage() {
+        String msgId = MessageClientIDSetter.createUniqID();
+        Message message = Message.newBuilder()
+            .setTopic(Resource.newBuilder()
+                .setName(TOPIC)
+                .build())
+            .setSystemProperties(SystemProperties.newBuilder()
+                .setMessageId(msgId)
+                .setQueueId(0)
+                .setMessageType(MessageType.PRIORITY)
+                .setPriority(5)
+                .setBodyEncoding(Encoding.GZIP)
+                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                .build())
+            .setBody(ByteString.copyFromUtf8("123"))
+            .build();
+        org.apache.rocketmq.common.message.Message messageExt = this.sendMessageActivity.buildMessage(null,
+            Lists.newArrayList(
+                message
+            ),
+            Resource.newBuilder().setName(TOPIC).build()).get(0);
+
+        assertEquals(MessageClientIDSetter.getUniqID(messageExt), msgId);
+        assertEquals(5, messageExt.getPriority());
+    }
+
+    @Test
     public void testSendOrderMessageQueueSelector() throws Exception {
         TopicRouteData topicRouteData = new TopicRouteData();
         QueueData queueData = new QueueData();
