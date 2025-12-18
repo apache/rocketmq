@@ -106,4 +106,9 @@ public class LocalGrpcIT extends GrpcBaseIT {
     public void testConsumeOrderly() throws Exception {
         super.testConsumeOrderly();
     }
+
+    @Test
+    public void testSimpleConsumerSendAndRecvPriorityMessage() throws Exception {
+        super.testSimpleConsumerSendAndRecvPriorityMessage();
+    }
 }
