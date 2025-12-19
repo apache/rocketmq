@@ -329,7 +329,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public void setTransRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
+    public void setTransMessageRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
         this.transMessageRocksDBStore = transMessageRocksDBStore;
     }
 

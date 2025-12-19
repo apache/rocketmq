@@ -218,7 +218,7 @@ public interface MessageStore {
 
     void setTimerMessageRocksDBStore(TimerMessageRocksDBStore timerMessageRocksDBStore);
 
-    void setTransRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore);
+    void setTransMessageRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore);
 
     /**
      * Get the offset of the message in the commit log, which is also known as physical offset.
