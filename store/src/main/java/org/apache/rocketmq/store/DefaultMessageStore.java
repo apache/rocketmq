@@ -1080,12 +1080,12 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public TimerMessageRocksDBStore getTimerRocksDBStore() {
+    public TimerMessageRocksDBStore getTimerMessageRocksDBStore() {
         return this.timerMessageRocksDBStore;
     }
 
     @Override
-    public TransMessageRocksDBStore getTransRocksDBStore() {
+    public TransMessageRocksDBStore getTransMessageRocksDBStore() {
         return this.transMessageRocksDBStore;
     }
 

@@ -318,7 +318,7 @@ public class TimerMessageStore {
         }
         currQueueOffset = Math.min(currQueueOffset, timerCheckpoint.getMasterTimerQueueOffset());
         if (storeConfig.isTimerRocksDBEnable()) {
-            long commitOffsetInRocksDB = messageStore.getTimerRocksDBStore().getCommitOffsetInRocksDB();
+            long commitOffsetInRocksDB = messageStore.getTimerMessageRocksDBStore().getCommitOffsetInRocksDB();
             LOGGER.info("recover time wheel, currQueueOffset: {}, commitOffsetInRocksDB: {}", currQueueOffset, commitOffsetInRocksDB);
             currQueueOffset = Math.max(currQueueOffset, commitOffsetInRocksDB);
         }
@@ -2087,12 +2087,12 @@ public class TimerMessageStore {
             LOGGER.error("recallToTimeline param error, delayTime: {}, offsetPy: {}, sizePy: {}, messageExt: {}", delayTime, offsetPy, sizePy, messageExt);
             return;
         }
-        if (null == messageStore.getTimerRocksDBStore() || null == messageStore.getTimerRocksDBStore().getTimeline()) {
+        if (null == messageStore.getTimerMessageRocksDBStore() || null == messageStore.getTimerMessageRocksDBStore().getTimeline()) {
             LOGGER.error("recallToTimeline error, timerRocksDBStore is null or timeline is null");
             return;
         }
         try {
-            messageStore.getTimerRocksDBStore().getTimeline().putDeleteRecord(delayTime, messageExt.getMsgId(), offsetPy, sizePy, messageExt.getQueueOffset(), messageExt);
+            messageStore.getTimerMessageRocksDBStore().getTimeline().putDeleteRecord(delayTime, messageExt.getMsgId(), offsetPy, sizePy, messageExt.getQueueOffset(), messageExt);
         } catch (Exception e) {
             LOGGER.error("recallToTimeline error: {}", e.getMessage());
         }
@@ -2109,7 +2109,7 @@ public class TimerMessageStore {
                 LOGGER.info("restart TimerMessageStore has been running");
                 return true;
             }
-            long commitOffsetRocksDB = this.messageStore.getTimerRocksDBStore().getCommitOffsetInRocksDB();
+            long commitOffsetRocksDB = this.messageStore.getTimerMessageRocksDBStore().getCommitOffsetInRocksDB();
             long commitOffsetFile = this.messageStore.getTimerMessageStore().getCommitQueueOffset();
             long maxCommitOffset = Math.max(commitOffsetFile, commitOffsetRocksDB);
             currQueueOffset = maxCommitOffset;

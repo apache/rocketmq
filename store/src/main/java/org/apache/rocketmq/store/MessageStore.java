@@ -210,9 +210,9 @@ public interface MessageStore {
 
     TimerMessageStore getTimerMessageStore();
 
-    TimerMessageRocksDBStore getTimerRocksDBStore();
+    TimerMessageRocksDBStore getTimerMessageRocksDBStore();
 
-    TransMessageRocksDBStore getTransRocksDBStore();
+    TransMessageRocksDBStore getTransMessageRocksDBStore();
 
     void setTimerMessageStore(TimerMessageStore timerMessageStore);
 
