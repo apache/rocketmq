@@ -221,12 +221,12 @@ public class AutoSwitchHATest {
         // Step2, shutdown store2
         this.messageStore2.shutdown();
 
-        // Put message, which should put failed.
+        // Put message, which should succeed because slave is removed from syncStateSet, only master remains
         final PutMessageResult putMessageResult = this.messageStore1.putMessage(buildMessage());
-        assertEquals(putMessageResult.getPutMessageStatus(), PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
+        assertEquals(PutMessageStatus.PUT_OK,putMessageResult.getPutMessageStatus());
 
-        // The confirmOffset still don't change, because syncStateSet contains broker2, but broker2 shutdown
-        assertEquals(confirmOffset, this.messageStore1.getConfirmOffset());
+        // The confirmOffset should update because syncStateSet only contains master after slave shutdown
+        assertTrue(this.messageStore1.getConfirmOffset() >= confirmOffset);
 
         // Step3, shutdown store1, start store2, change store2 to master, epoch = 2
         this.messageStore1.shutdown();
@@ -296,10 +296,19 @@ public class AutoSwitchHATest {
         this.messageStore2.shutdown();
         this.messageStore2.destroy();
 
+        // Wait for connection to be removed and syncStateSet to be updated by removeConnection
+        await().atMost(10, TimeUnit.SECONDS).until(() -> {
+            AutoSwitchHAService haService = (AutoSwitchHAService) this.messageStore1.getHaService();
+            return haService.getConnectionCount().get() == 0
+                && haService.getLocalSyncStateSet().size() == 1;
+        });
+
+        // Now manually set syncStateSet back to {1, 2} to test the scenario where
+        // syncStateSet contains a disconnected slave
         ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(result);
 
         final PutMessageResult putMessageResult = this.messageStore1.putMessage(buildMessage());
-        assertEquals(putMessageResult.getPutMessageStatus(), PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
+        assertEquals(PutMessageStatus.FLUSH_SLAVE_TIMEOUT,putMessageResult.getPutMessageStatus());
     }
 
     @Ignore

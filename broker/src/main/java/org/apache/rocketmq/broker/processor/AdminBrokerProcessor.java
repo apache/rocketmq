@@ -16,8 +16,9 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.JSONWriter;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -236,6 +237,7 @@ import org.apache.rocketmq.store.util.LibC;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_INVOCATION_STATUS;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
+import static org.apache.rocketmq.common.message.MessageConst.TIMER_ENGINE_TYPE;
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
 public class AdminBrokerProcessor implements NettyRequestProcessor {
@@ -405,6 +407,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.listAcl(ctx, request);
             case RequestCode.POP_ROLLBACK:
                 return this.transferPopToFsStore(ctx, request);
+            case RequestCode.SWITCH_TIMER_ENGINE:
+                return this.switchTimerEngine(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -2785,7 +2789,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             } else {
                 ConsumerFilterData filterData = this.brokerController.getConsumerFilterManager()
                     .get(requestHeader.getTopic(), requestHeader.getConsumerGroup());
-                body.setFilterData(JSON.toJSONString(filterData, true));
+                body.setFilterData(JSON.toJSONString(filterData, JSONWriter.Feature.PrettyFormat));
 
                 messageFilter = new ExpressionMessageFilter(subscriptionData, filterData,
                     this.brokerController.getConsumerFilterManager());
@@ -2879,7 +2883,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private MessageExtBrokerInner toMessageExtBrokerInner(MessageExt msgExt) {
         MessageExtBrokerInner inner = new MessageExtBrokerInner();
-        inner.setTopic(TransactionalMessageUtil.buildHalfTopic());
+        if (brokerController.getMessageStoreConfig().isTransRocksDBEnable() && !brokerController.getMessageStoreConfig().isTransWriteOriginTransHalfEnable()) {
+            inner.setTopic(TransactionalMessageUtil.buildHalfTopicForRocksDB());
+        } else {
+            inner.setTopic(TransactionalMessageUtil.buildHalfTopic());
+        }
         inner.setBody(msgExt.getBody());
         inner.setFlag(msgExt.getFlag());
         MessageAccessor.setProperties(inner, msgExt.getProperties());
@@ -3405,6 +3413,66 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             LOGGER.error("PopConsumerStore transfer from kvStore to fsStore finish [{}]", request, e);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(e.getMessage());
+        }
+        return response;
+    }
+
+    private synchronized RemotingCommand switchTimerEngine(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        if (!this.brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
+            LOGGER.info("switchTimerEngine error, broker timerWheelEnable is false");
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("broker timerWheelEnable is false");
+            return response;
+        }
+        if (null == request.getExtFields()) {
+            LOGGER.info("switchTimerEngine extFields is null");
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("param error, extFields is null");
+            return response;
+        }
+        String engineType = request.getExtFields().get(TIMER_ENGINE_TYPE);
+        if (StringUtils.isEmpty(engineType) || !MessageConst.TIMER_ENGINE_ROCKSDB_TIMELINE.equals(engineType) && !MessageConst.TIMER_ENGINE_FILE_TIME_WHEEL.equals(engineType)) {
+            response.setCode(ResponseCode.INVALID_PARAMETER);
+            response.setRemark("param error");
+            return response;
+        }
+        try {
+            Properties properties = new Properties();
+            boolean result = false;
+            if (MessageConst.TIMER_ENGINE_ROCKSDB_TIMELINE.equals(engineType)) {
+                if (this.brokerController.getTimerMessageRocksDBStore() == null) {
+                    response.setCode(ResponseCode.INVALID_PARAMETER);
+                    response.setRemark("timerUseRocksDB muse be configured true when broker start");
+                    return response;
+                }
+                result = this.brokerController.getTimerMessageRocksDBStore().restart();
+                if (result) {
+                    properties.put("timerStopEnqueue", Boolean.TRUE.toString());
+                    properties.put("timerUseRocksDB", Boolean.TRUE.toString());
+                    properties.put("timerRocksDBStopScan", Boolean.FALSE.toString());
+                }
+            } else {
+                result = this.brokerController.getTimerMessageStore().restart();
+                if (result) {
+                    properties.put("timerRocksDBStopScan", Boolean.TRUE.toString());
+                    properties.put("timerStopEnqueue", Boolean.FALSE.toString());
+                }
+            }
+            if (result) {
+                this.brokerController.getConfiguration().update(properties);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark("switch timer engine success");
+                LOGGER.info("switchTimerEngine success");
+            } else {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("switch timer engine error");
+                LOGGER.info("switchTimerEngine error");
+            }
+        } catch (Exception e) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("switch timer engine error");
+            LOGGER.error("switchTimerEngine error : {}", e.getMessage());
         }
         return response;
     }

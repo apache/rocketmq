@@ -83,14 +83,13 @@ public class QueryMessageProcessorTest {
         result.setIndexLastUpdatePhyoffset(0);
         result.addMessage(new SelectMappedBufferResult(0, null, 0, null));
 
-        when(messageStore.queryMessage(anyString(),anyString(),anyInt(),anyLong(),anyLong())).thenReturn(result);
+        when(messageStore.queryMessage(anyString(),anyString(),anyInt(),anyLong(),anyLong(),any(),any())).thenReturn(result);
         RemotingCommand request = createQueryMessageRequest("topic", "msgKey", 1, 100, 200,"false");
         request.makeCustomHeaderToNet();
         RemotingCommand response = queryMessageProcessor.processRequest(handlerContext, request);
         Assert.assertEquals(response.getCode(), ResponseCode.QUERY_NOT_FOUND);
 
         result.addMessage(new SelectMappedBufferResult(0, null, 1, null));
-        when(messageStore.queryMessage(anyString(),anyString(),anyInt(),anyLong(),anyLong())).thenReturn(result);
         response = queryMessageProcessor.processRequest(handlerContext, request);
         Assert.assertNull(response);
     }

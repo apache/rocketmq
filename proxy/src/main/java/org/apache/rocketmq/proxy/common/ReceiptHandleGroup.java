@@ -200,6 +200,14 @@ public class ReceiptHandleGroup {
         return this.receiptHandleMap.isEmpty();
     }
 
+    public long getHandleNum() {
+        long handleNum = 0L;
+        for (Map.Entry<String, Map<HandleKey, HandleData>> entry : receiptHandleMap.entrySet()) {
+            handleNum += entry.getValue().size();
+        }
+        return handleNum;
+    }
+
     public MessageReceiptHandle get(String msgID, String handle) {
         Map<HandleKey, HandleData> handleMap = this.receiptHandleMap.get(msgID);
         if (handleMap == null) {
@@ -268,13 +276,18 @@ public class ReceiptHandleGroup {
 
     public void computeIfPresent(String msgID, String handle,
         Function<MessageReceiptHandle, CompletableFuture<MessageReceiptHandle>> function) {
+        long timeout = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
+        computeIfPresent(msgID, handle, function, timeout);
+    }
+
+    public void computeIfPresent(String msgID, String handle,
+        Function<MessageReceiptHandle, CompletableFuture<MessageReceiptHandle>> function, long lockTimeout) {
         Map<HandleKey, HandleData> handleMap = this.receiptHandleMap.get(msgID);
         if (handleMap == null) {
             return;
         }
-        long timeout = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
         handleMap.computeIfPresent(new HandleKey(handle), (handleKey, handleData) -> {
-            Long lockTimeMs = handleData.lock(timeout);
+            Long lockTimeMs = handleData.lock(lockTimeout);
             if (lockTimeMs == null) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "try to compute failed");
             }

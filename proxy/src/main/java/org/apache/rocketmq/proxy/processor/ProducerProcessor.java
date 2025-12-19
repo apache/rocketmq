@@ -102,29 +102,27 @@ public class ProducerProcessor extends AbstractProcessor {
                 messageList,
                 requestHeader,
                 timeoutMillis)
-                .thenApplyAsync(sendResultList -> {
-                    for (SendResult sendResult : sendResultList) {
-                        int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
-                        if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
-                            tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
-                            StringUtils.isNotBlank(sendResult.getTransactionId())) {
-                            fillTransactionData(ctx, producerGroup, finalMessageQueue, sendResult, messageList);
+                .whenCompleteAsync((sendResultList, throwable) -> {
+                    long endTimestamp = System.currentTimeMillis();
+                    if (throwable == null) {
+                        for (SendResult sendResult : sendResultList) {
+                            int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
+                            if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
+                                tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
+                                StringUtils.isNotBlank(sendResult.getTransactionId())) {
+                                fillTransactionData(ctx, producerGroup, finalMessageQueue, sendResult, messageList);
+                            }
                         }
+                        this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp - beginTimestampFirst, false, true);
+                    } else {
+                        this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp - beginTimestampFirst, true, false);
                     }
-                    return sendResultList;
-                }, this.executor)
-                    .whenComplete((result, exception) -> {
-                        long endTimestamp = System.currentTimeMillis();
-                        if (exception != null) {
-                            this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp - beginTimestampFirst, true, false);
-                        } else {
-                            this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(),endTimestamp - beginTimestampFirst, false, true);
-                        }
-                    });
+                }, this.executor);
         } catch (Throwable t) {
             future.completeExceptionally(t);
+            FutureUtils.addExecutor(future, this.executor);
         }
-        return FutureUtils.addExecutor(future, this.executor);
+        return future;
     }
 
     public CompletableFuture<String> recallMessage(ProxyContext ctx, String topic,

@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
@@ -128,6 +129,7 @@ public class MixAll {
     public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
 
     private static final String OS = System.getProperty("os.name").toLowerCase();
+    public static final long MILLS_FOR_HOUR = TimeUnit.HOURS.toMillis(1);
 
     private static final Set<String> PREDEFINE_GROUP_SET = ImmutableSet.of(
         DEFAULT_CONSUMER_GROUP,
@@ -583,5 +585,60 @@ public class MixAll {
             }
         }
         return config;
+    }
+
+    public static long dealTimeToHourStamps(long timeStamp) {
+        if (timeStamp <= 0L) {
+            return timeStamp;
+        }
+        return (timeStamp / MILLS_FOR_HOUR) * MILLS_FOR_HOUR;
+    }
+
+    public static boolean isHourTime(Long timeStamp) {
+        if (null == timeStamp) {
+            return false;
+        }
+        if (timeStamp <= 0L) {
+            return false;
+        }
+        return timeStamp % MILLS_FOR_HOUR == 0;
+    }
+
+    public static List<Long> getHours(long startTimeMillis, long endTimeMillis) {
+        if (startTimeMillis > endTimeMillis || startTimeMillis <= 0L || endTimeMillis <= 0L) {
+            return null;
+        }
+        List<Long> result = new ArrayList<>();
+        long startHour = dealTimeToHourStamps(startTimeMillis);
+        long endHour = dealTimeToHourStamps(endTimeMillis);
+        long current = startHour;
+        while (current <= endHour) {
+            result.add(current);
+            //protect system self 30 * 24
+            if (result.size() >= 720) {
+                return result;
+            }
+            current += MILLS_FOR_HOUR;
+        }
+        return result;
+    }
+
+    public static boolean isByteArrayEqual(byte[] array1, int offset1, int length1, byte[] array2, int offset2, int length2) {
+        if (null == array1 || null == array2) {
+            return false;
+        }
+        if (length1 != length2) {
+            return false;
+        }
+        if (offset1 < 0 || offset1 + length1 > array1.length ||
+            offset2 < 0 || offset2 + length2 > array2.length) {
+            throw new ArrayIndexOutOfBoundsException("Invalid array index");
+        }
+        for (int i = 0; i < length1; i++) {
+            if (array1[offset1 + i] != array2[offset2 + i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -85,6 +85,15 @@ public class RunningFlags {
         return false;
     }
 
+    public boolean isStoreWriteable() {
+        if ((this.flagBits & NOT_WRITEABLE_BIT) == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+
     //for consume queue, just ignore the DISK_FULL_BIT
     public boolean isCQWriteable() {
         if ((this.flagBits & (NOT_WRITEABLE_BIT | WRITE_LOGICS_QUEUE_ERROR_BIT | WRITE_INDEX_FILE_ERROR_BIT | LOGIC_DISK_FULL_BIT)) == 0) {
@@ -94,7 +103,7 @@ public class RunningFlags {
         return false;
     }
 
-    public boolean getAndMakeNotWriteable() {
+    public boolean getAndMakeStoreNotWriteable() {
         boolean result = this.isWriteable();
         if (result) {
             this.flagBits |= NOT_WRITEABLE_BIT;

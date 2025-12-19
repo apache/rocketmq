@@ -51,13 +51,15 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
 
     private LoadingCache<String, Acl> aclCache;
 
+    protected ThreadPoolExecutor cacheRefreshExecutor;
+
     @Override
     public void initialize(AuthConfig authConfig, Supplier<?> metadataService) {
         this.storage = ConfigRocksDBStorage.getStore(authConfig.getAuthConfigPath() + File.separator + "acls", false);
         if (!this.storage.start()) {
             throw new RuntimeException("Failed to load rocksdb for auth_acl, please check whether it is occupied.");
         }
-        ThreadPoolExecutor cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
+        this.cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
             1,
             1,
             1000 * 60,
@@ -171,6 +173,9 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
     public void shutdown() {
         if (this.storage != null) {
             this.storage.shutdown();
+        }
+        if (this.cacheRefreshExecutor != null) {
+            this.cacheRefreshExecutor.shutdown();
         }
     }
 

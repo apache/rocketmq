@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.state.StateEventListener;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -53,7 +54,6 @@ import org.apache.rocketmq.proxy.common.ReceiptHandleGroupKey;
 import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
-import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
@@ -70,6 +70,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
     protected final ScheduledExecutorService scheduledExecutorService =
         ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RenewalScheduledThread_"));
     protected final ThreadPoolExecutor renewalWorkerService;
+    protected final ThreadPoolExecutor returnHandleGroupWorkerService;
 
     public DefaultReceiptHandleManager(MetadataService metadataService, ConsumerManager consumerManager, StateEventListener<RenewEvent> eventListener) {
         this.metadataService = metadataService;
@@ -81,6 +82,13 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             proxyConfig.getRenewMaxThreadPoolNums(),
             1, TimeUnit.MINUTES,
             "RenewalWorkerThread",
+            proxyConfig.getRenewThreadPoolQueueCapacity()
+        );
+        this.returnHandleGroupWorkerService = ThreadPoolMonitor.createAndMonitor(
+            proxyConfig.getReturnHandleGroupThreadPoolNums(),
+            proxyConfig.getReturnHandleGroupThreadPoolNums() * 2,
+            1, TimeUnit.MINUTES,
+            "ReturnHandleGroupWorkerThread",
             proxyConfig.getRenewThreadPoolQueueCapacity()
         );
         consumerManager.appendConsumerIdsChangeListener(new ConsumerIdsChangeListener() {
@@ -172,7 +180,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
 
     protected void renewMessage(ProxyContext context, ReceiptHandleGroupKey key, ReceiptHandleGroup group, String msgID, String handleStr) {
         try {
-            group.computeIfPresent(msgID, handleStr, messageReceiptHandle -> startRenewMessage(context, key, messageReceiptHandle));
+            group.computeIfPresent(msgID, handleStr, messageReceiptHandle -> startRenewMessage(context, key, messageReceiptHandle), 0);
         } catch (Exception e) {
             log.error("error when renew message. msgID:{}, handleStr:{}", msgID, handleStr, e);
         }
@@ -237,22 +245,33 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         if (key == null) {
             return;
         }
-        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         ReceiptHandleGroup handleGroup = receiptHandleGroupMap.remove(key);
-        if (handleGroup == null) {
+        returnHandleGroupWorkerService.submit(() -> returnHandleGroup(key, handleGroup));
+    }
+
+    // There is no longer any waiting for lock, and only the locked handles will be processed immediately,
+    // while the handles that cannot be acquired will be kept waiting for the next scheduling.
+    private void returnHandleGroup(ReceiptHandleGroupKey key, ReceiptHandleGroup handleGroup) {
+        if (handleGroup == null || handleGroup.isEmpty()) {
             return;
         }
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         handleGroup.scan((msgID, handle, v) -> {
             try {
                 handleGroup.computeIfPresent(msgID, handle, messageReceiptHandle -> {
                     CompletableFuture<AckResult> future = new CompletableFuture<>();
                     eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, proxyConfig.getInvisibleTimeMillisWhenClear(), RenewEvent.EventType.CLEAR_GROUP, future));
                     return CompletableFuture.completedFuture(null);
-                });
+                }, 0);
             } catch (Exception e) {
                 log.error("error when clear handle for group. key:{}", key, e);
             }
         });
+        // scheduleRenewTask will trigger cleanup again
+        if (!handleGroup.isEmpty()) {
+            log.warn("The handle cannot be completely cleared, the remaining quantity is {}, key:{}", handleGroup.getHandleNum(), key);
+            receiptHandleGroupMap.putIfAbsent(key, handleGroup);
+        }
     }
 
     protected void clearAllHandle() {

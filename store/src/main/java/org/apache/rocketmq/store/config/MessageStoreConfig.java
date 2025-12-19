@@ -80,6 +80,7 @@ public class MessageStoreConfig {
     private boolean timerEnableCheckMetrics = true;
     private boolean timerInterceptDelayLevel = false;
     private int timerMaxDelaySec = 3600 * 24 * 3;
+    private boolean timerWheelSnapshotFlush = false;
     private boolean timerWheelEnable = true;
 
     /**
@@ -103,6 +104,26 @@ public class MessageStoreConfig {
 
     private int timerMetricSmallThreshold = 1000000;
     private int timerProgressLogIntervalMs = 10 * 1000;
+    private int timerWheelSnapshotIntervalMs = 10 * 1000;
+
+    private int commitLogRecoverMaxNum = 10;
+    private boolean timerRocksDBEnable = false;
+    private boolean timerRocksDBStopScan = false;
+    private long timerRocksDBPrecisionMs = 1000L;
+    private double timerRocksDBRollMaxTps = 8000.0;
+    private double timerRocksDBTimeExpiredMaxTps = 200000.0;
+    private int timerRocksDBRollIntervalHours = 1;
+    private int timerRocksDBRollRangeHours = 2;
+    private boolean timerRecallToTimeWheelEnable = true;
+    private boolean timerRecallToTimelineEnable = true;
+
+    private boolean transRocksDBEnable = false;
+    private boolean transWriteOriginTransHalfEnable = true;
+
+    private boolean indexRocksDBEnable = false;
+    private int maxRocksDBIndexQueryDays = 7;
+    private boolean indexFileWriteEnable = true;
+    private boolean indexFileReadEnable = true;
 
     // default, defaultRocksDB
     @ImportantField
@@ -1750,6 +1771,14 @@ public class MessageStoreConfig {
         return timerWarmEnable;
     }
 
+    public boolean isTimerWheelSnapshotFlush() {
+        return timerWheelSnapshotFlush;
+    }
+
+    public void setTimerWheelSnapshotFlush(boolean timerWheelSnapshotFlush) {
+        this.timerWheelSnapshotFlush = timerWheelSnapshotFlush;
+    }
+
     public boolean isTimerWheelEnable() {
         return timerWheelEnable;
     }
@@ -1793,6 +1822,14 @@ public class MessageStoreConfig {
 
     public int getTimerProgressLogIntervalMs() {
         return timerProgressLogIntervalMs;
+    }
+
+    public int getTimerWheelSnapshotIntervalMs() {
+        return timerWheelSnapshotIntervalMs;
+    }
+
+    public void setTimerWheelSnapshotIntervalMs(int timerWheelSnapshotIntervalMs) {
+        this.timerWheelSnapshotIntervalMs = timerWheelSnapshotIntervalMs;
     }
 
     public void setTimerProgressLogIntervalMs(final int timerProgressLogIntervalMs) {
@@ -2062,6 +2099,134 @@ public class MessageStoreConfig {
 
     public void setEnableRunningFlagsInFlush(boolean enableRunningFlagsInFlush) {
         this.enableRunningFlagsInFlush = enableRunningFlagsInFlush;
+    }
+
+    public boolean isTimerRocksDBEnable() {
+        return timerRocksDBEnable;
+    }
+
+    public void setTimerRocksDBEnable(boolean timerRocksDBEnable) {
+        this.timerRocksDBEnable = timerRocksDBEnable;
+    }
+
+    public double getTimerRocksDBRollMaxTps() {
+        return timerRocksDBRollMaxTps;
+    }
+
+    public void setTimerRocksDBRollMaxTps(double timerRocksDBRollMaxTps) {
+        this.timerRocksDBRollMaxTps = timerRocksDBRollMaxTps;
+    }
+
+    public double getTimerRocksDBTimeExpiredMaxTps() {
+        return timerRocksDBTimeExpiredMaxTps;
+    }
+
+    public void setTimerRocksDBTimeExpiredMaxTps(double timerRocksDBTimeExpiredMaxTps) {
+        this.timerRocksDBTimeExpiredMaxTps = timerRocksDBTimeExpiredMaxTps;
+    }
+
+    public boolean isTransRocksDBEnable() {
+        return transRocksDBEnable;
+    }
+
+    public void setTransRocksDBEnable(boolean transRocksDBEnable) {
+        this.transRocksDBEnable = transRocksDBEnable;
+    }
+
+    public boolean isIndexRocksDBEnable() {
+        return indexRocksDBEnable;
+    }
+
+    public void setIndexRocksDBEnable(boolean indexRocksDBEnable) {
+        this.indexRocksDBEnable = indexRocksDBEnable;
+    }
+
+    public int getMaxRocksDBIndexQueryDays() {
+        return maxRocksDBIndexQueryDays;
+    }
+
+    public void setMaxRocksDBIndexQueryDays(int maxRocksDBIndexQueryDays) {
+        this.maxRocksDBIndexQueryDays = maxRocksDBIndexQueryDays;
+    }
+
+    public boolean isTimerRocksDBStopScan() {
+        return timerRocksDBStopScan;
+    }
+
+    public void setTimerRocksDBStopScan(boolean timerRocksDBStopScan) {
+        this.timerRocksDBStopScan = timerRocksDBStopScan;
+    }
+
+    public long getTimerRocksDBPrecisionMs() {
+        return timerRocksDBPrecisionMs;
+    }
+
+    public void setTimerRocksDBPrecisionMs(long timerRocksDBPrecisionMs) {
+        this.timerRocksDBPrecisionMs = timerRocksDBPrecisionMs;
+    }
+
+    public boolean isIndexFileWriteEnable() {
+        return indexFileWriteEnable;
+    }
+
+    public void setIndexFileWriteEnable(boolean indexFileWriteEnable) {
+        this.indexFileWriteEnable = indexFileWriteEnable;
+    }
+
+    public boolean isIndexFileReadEnable() {
+        return indexFileReadEnable;
+    }
+
+    public void setIndexFileReadEnable(boolean indexFileReadEnable) {
+        this.indexFileReadEnable = indexFileReadEnable;
+    }
+
+    public boolean isTransWriteOriginTransHalfEnable() {
+        return transWriteOriginTransHalfEnable;
+    }
+
+    public void setTransWriteOriginTransHalfEnable(boolean transWriteOriginTransHalfEnable) {
+        this.transWriteOriginTransHalfEnable = transWriteOriginTransHalfEnable;
+    }
+
+    public boolean isTimerRecallToTimeWheelEnable() {
+        return timerRecallToTimeWheelEnable;
+    }
+
+    public void setTimerRecallToTimeWheelEnable(boolean timerRecallToTimeWheelEnable) {
+        this.timerRecallToTimeWheelEnable = timerRecallToTimeWheelEnable;
+    }
+
+    public boolean isTimerRecallToTimelineEnable() {
+        return timerRecallToTimelineEnable;
+    }
+
+    public void setTimerRecallToTimelineEnable(boolean timerRecallToTimelineEnable) {
+        this.timerRecallToTimelineEnable = timerRecallToTimelineEnable;
+    }
+
+    public int getTimerRocksDBRollIntervalHours() {
+        return timerRocksDBRollIntervalHours;
+    }
+
+    public void setTimerRocksDBRollIntervalHours(int timerRocksDBRollIntervalHours) {
+        this.timerRocksDBRollIntervalHours = timerRocksDBRollIntervalHours;
+    }
+
+    public int getTimerRocksDBRollRangeHours() {
+        return timerRocksDBRollRangeHours;
+    }
+
+    public void setTimerRocksDBRollRangeHours(int timerRocksDBRollRangeHours) {
+        this.timerRocksDBRollRangeHours = timerRocksDBRollRangeHours;
+    }
+
+    public int getCommitLogRecoverMaxNum() {
+        return commitLogRecoverMaxNum;
+    }
+
+    public void setCommitLogRecoverMaxNum(int commitLogRecoverMaxNum) {
+        this.commitLogRecoverMaxNum = commitLogRecoverMaxNum;
     }
 
     public int getSharedByteBufferNum() {

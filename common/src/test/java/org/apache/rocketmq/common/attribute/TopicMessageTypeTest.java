@@ -33,6 +33,7 @@ public class TopicMessageTypeTest {
     private Map<String, String> transactionMessageProperty;
     private Map<String, String> delayMessageProperty;
     private Map<String, String> fifoMessageProperty;
+    private Map<String, String> priorityMessageProperty;
 
     @Before
     public void setUp() {
@@ -40,15 +41,18 @@ public class TopicMessageTypeTest {
         transactionMessageProperty = new HashMap<>();
         delayMessageProperty = new HashMap<>();
         fifoMessageProperty = new HashMap<>();
+        priorityMessageProperty = new HashMap<>();
 
         transactionMessageProperty.put(MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
         delayMessageProperty.put(MessageConst.PROPERTY_DELAY_TIME_LEVEL, "1");
         fifoMessageProperty.put(MessageConst.PROPERTY_SHARDING_KEY, "shardingKey");
+        priorityMessageProperty.put(MessageConst.PROPERTY_PRIORITY, "3");
     }
 
     @Test
     public void testTopicMessageTypeSet() {
-        Set<String> expectedSet = Sets.newHashSet("UNSPECIFIED", "NORMAL", "FIFO", "DELAY", "TRANSACTION", "MIXED");
+        Set<String> expectedSet
+            = Sets.newHashSet("UNSPECIFIED", "NORMAL", "FIFO", "DELAY", "TRANSACTION", "PRIORITY", "MIXED");
         Set<String> actualSet = TopicMessageType.topicMessageTypeSet();
         assertEquals(expectedSet, actualSet);
     }
@@ -75,6 +79,12 @@ public class TopicMessageTypeTest {
     public void testParseFromMessageProperty_Fifo() {
         TopicMessageType actual = TopicMessageType.parseFromMessageProperty(fifoMessageProperty);
         assertEquals(TopicMessageType.FIFO, actual);
+    }
+
+    @Test
+    public void testParseFromMessageProperty_Priority() {
+        TopicMessageType actual = TopicMessageType.parseFromMessageProperty(priorityMessageProperty);
+        assertEquals(TopicMessageType.PRIORITY, actual);
     }
 
     @Test
@@ -115,6 +125,13 @@ public class TopicMessageTypeTest {
         properties.clear();
         properties.put(MessageConst.PROPERTY_SHARDING_KEY, "sharding_key");
         Assert.assertEquals(TopicMessageType.FIFO, TopicMessageType.parseFromMessageProperty(properties));
+
+        // PRIORITY
+        properties.clear();
+        properties.put(MessageConst.PROPERTY_PRIORITY, "3");
+        Assert.assertEquals(TopicMessageType.PRIORITY, TopicMessageType.parseFromMessageProperty(properties));
+        properties.put(MessageConst.PROPERTY_DELAY_TIME_LEVEL, "3");
+        Assert.assertEquals(TopicMessageType.DELAY, TopicMessageType.parseFromMessageProperty(properties));
 
         // NORMAL
         properties.clear();

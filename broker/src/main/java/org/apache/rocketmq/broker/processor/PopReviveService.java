@@ -16,32 +16,21 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
 import io.opentelemetry.api.common.Attributes;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
-import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
-
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -59,6 +48,17 @@ import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.BatchAckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
@@ -112,7 +112,6 @@ public class PopReviveService extends ServiceThread {
             msgInner.setTopic(popCheckPoint.getTopic());
         }
         msgInner.setBody(messageExt.getBody());
-        msgInner.setQueueId(0);
         if (messageExt.getTags() != null) {
             msgInner.setTags(messageExt.getTags());
         } else {
@@ -128,8 +127,10 @@ public class PopReviveService extends ServiceThread {
         if (messageExt.getReconsumeTimes() == 0 || msgInner.getProperties().get(MessageConst.PROPERTY_FIRST_POP_TIME) == null) {
             msgInner.getProperties().put(MessageConst.PROPERTY_FIRST_POP_TIME, String.valueOf(popCheckPoint.getPopTime()));
         }
+        msgInner.getProperties().put(MessageConst.PROPERTY_ORIGIN_GROUP, popCheckPoint.getCId());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         addRetryTopicIfNotExist(msgInner.getTopic(), popCheckPoint.getCId());
+        msgInner.setQueueId(getRetryQueueId(msgInner.getTopic(), messageExt));
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
         brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveRetryMessageCount(popCheckPoint, putMessageResult.getPutMessageStatus());
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
@@ -149,30 +150,55 @@ public class PopReviveService extends ServiceThread {
         return true;
     }
 
-    private void initPopRetryOffset(String topic, String consumerGroup) {
-        long offset = this.brokerController.getConsumerOffsetManager().queryOffset(consumerGroup, topic, 0);
-        if (offset < 0) {
-            this.brokerController.getConsumerOffsetManager().commitOffset("initPopRetryOffset", consumerGroup, topic,
-                0, 0);
+    private void initPopRetryOffset(String retryTopic, String consumerGroup, int retryQueueNum) {
+        for (int i = 0; i < retryQueueNum; i++) {
+            long offset = this.brokerController.getConsumerOffsetManager().queryOffset(consumerGroup, retryTopic, i);
+            if (offset < 0) {
+                this.brokerController.getConsumerOffsetManager().commitOffset("initPopRetryOffset", consumerGroup, retryTopic, i, 0);
+            }
         }
     }
 
-    public void addRetryTopicIfNotExist(String topic, String consumerGroup) {
+    public void addRetryTopicIfNotExist(String retryTopic, String consumerGroup) {
         if (brokerController != null) {
-            TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topic);
-            if (topicConfig != null) {
+            TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(retryTopic);
+            if (topicConfig != null && !brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
                 return;
             }
-            topicConfig = new TopicConfig(topic);
-            topicConfig.setReadQueueNums(PopAckConstants.retryQueueNum);
-            topicConfig.setWriteQueueNums(PopAckConstants.retryQueueNum);
+
+            int retryQueueNum = PopAckConstants.retryQueueNum;
+            if (brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
+                String normalTopic = KeyBuilder.parseNormalTopic(retryTopic, consumerGroup);
+                TopicConfig normalConfig = brokerController.getTopicConfigManager().selectTopicConfig(normalTopic); // always exists
+                retryQueueNum = normalConfig.getWriteQueueNums();
+                if (topicConfig != null && topicConfig.getWriteQueueNums() == normalConfig.getWriteQueueNums()) {
+                    return;
+                }
+            }
+
+            // create new one, or update in case of queue expansion
+            topicConfig = new TopicConfig(retryTopic);
+            topicConfig.setReadQueueNums(retryQueueNum);
+            topicConfig.setWriteQueueNums(retryQueueNum);
             topicConfig.setTopicFilterType(TopicFilterType.SINGLE_TAG);
             topicConfig.setPerm(6);
             topicConfig.setTopicSysFlag(0);
             brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
 
-            initPopRetryOffset(topic, consumerGroup);
+            initPopRetryOffset(retryTopic, consumerGroup, retryQueueNum);
         }
+    }
+
+    private int getRetryQueueId(String retryTopic, MessageExt messageExt) {
+        if (!brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
+            return 0;
+        }
+        int oriQueueId = messageExt.getQueueId(); // original qid of normal or retry topic
+        if (oriQueueId > brokerController.getTopicConfigManager().selectTopicConfig(retryTopic).getWriteQueueNums() - 1) {
+            POP_LOGGER.warn("not expected, {}, {}, {}", retryTopic, oriQueueId, messageExt.getMsgId());
+            return 0; // fallback
+        }
+        return oriQueueId;
     }
 
     protected List<MessageExt> getReviveMessage(long offset, int queueId) {

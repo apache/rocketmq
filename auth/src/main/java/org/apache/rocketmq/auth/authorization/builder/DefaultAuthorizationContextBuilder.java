@@ -192,11 +192,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     break;
                 case RequestCode.SEND_MESSAGE:
                     if (NamespaceUtil.isRetryTopic(fields.get(TOPIC))) {
-                        if (StringUtils.isNotBlank(fields.get(GROUP))) {
-                            group = Resource.ofGroup(fields.get(GROUP));
-                        } else {
-                            group = Resource.ofGroup(fields.get(TOPIC));
-                        }
+                        group = Resource.ofGroup(fields.get(TOPIC));
                         result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
                     } else {
                         topic = Resource.ofTopic(fields.get(TOPIC));
@@ -206,11 +202,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                 case RequestCode.SEND_MESSAGE_V2:
                 case RequestCode.SEND_BATCH_MESSAGE:
                     if (NamespaceUtil.isRetryTopic(fields.get(B))) {
-                        if (StringUtils.isNotBlank(fields.get(A))) {
-                            group = Resource.ofGroup(fields.get(A));
-                        } else {
-                            group = Resource.ofGroup(fields.get(B));
-                        }
+                        group = Resource.ofGroup(fields.get(B));
                         result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
                     } else {
                         topic = Resource.ofTopic(fields.get(B));

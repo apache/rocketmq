@@ -16,37 +16,46 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson.parser.DefaultJSONParser;
-import com.alibaba.fastjson.parser.JSONToken;
-import com.alibaba.fastjson.parser.deserializer.ObjectDeserializer;
-import com.alibaba.fastjson.serializer.JSONSerializer;
-import com.alibaba.fastjson.serializer.ObjectSerializer;
-import com.alibaba.fastjson.serializer.SerializeWriter;
+import com.alibaba.fastjson2.JSONReader;
+import com.alibaba.fastjson2.JSONWriter;
+import com.alibaba.fastjson2.reader.ObjectReader;
+import com.alibaba.fastjson2.writer.ObjectWriter;
 
-import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.Base64;
 import java.util.BitSet;
 
-public class BitSetSerializerDeserializer implements ObjectSerializer, ObjectDeserializer {
+public class BitSetSerializerDeserializer implements ObjectReader<BitSet>, ObjectWriter<BitSet> {
 
     @Override
-    public void write(JSONSerializer serializer, Object object, Object fieldName, Type fieldType, int features) throws IOException {
-        SerializeWriter out = serializer.out;
-        out.writeByteArray(((BitSet) object).toByteArray());
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <T> T deserialze(DefaultJSONParser parser, Type type, Object fieldName) {
-        byte[] bytes = parser.parseObject(byte[].class);
-        if (bytes != null) {
-            return (T) BitSet.valueOf(bytes);
+    public void write(JSONWriter writer, Object object, Object fieldName, Type fieldType, long features) {
+        if (object == null) {
+            writer.writeBase64(null);
+        } else {
+            writer.writeBase64(((BitSet) object).toByteArray());
         }
-        return null;
     }
 
     @Override
-    public int getFastMatchToken() {
-        return JSONToken.LITERAL_STRING;
+    public BitSet readObject(JSONReader reader, Type fieldType, Object fieldName, long features) {
+        if (reader.nextIfNull()) {
+            return null;
+        }
+        String base64 = reader.readString();
+        if (base64 == null || base64.isEmpty()) {
+            return null;
+        }
+        byte[] bytes = Base64.getDecoder().decode(base64);
+        return BitSet.valueOf(bytes);
+    }
+
+    @Override
+    public long getFeatures() {
+        return 0L;
+    }
+
+    @Override
+    public Class<BitSet> getObjectClass() {
+        return ObjectReader.super.getObjectClass();
     }
 }

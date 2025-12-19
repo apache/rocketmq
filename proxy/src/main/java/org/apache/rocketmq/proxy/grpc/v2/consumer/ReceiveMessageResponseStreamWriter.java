@@ -54,6 +54,10 @@ public class ReceiveMessageResponseStreamWriter {
     }
 
     public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, PopResult popResult) {
+        writeAndComplete(ctx, request, popResult, null);
+    }
+
+    public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, PopResult popResult, Runnable doAfterWrite) {
         PopStatus status = popResult.getPopStatus();
         List<MessageExt> messageFoundList = popResult.getMsgFoundList();
         try {
@@ -102,6 +106,9 @@ public class ReceiveMessageResponseStreamWriter {
                         .setStatus(ResponseBuilder.getInstance().buildStatus(Code.MESSAGE_NOT_FOUND, "no new message"))
                         .build());
                     break;
+            }
+            if (doAfterWrite != null) {
+                doAfterWrite.run();
             }
         } catch (Throwable t) {
             writeResponseWithErrorIgnore(
