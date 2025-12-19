@@ -45,7 +45,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 
-public interface GrpcMessingActivity extends StartAndShutdown {
+public interface GrpcMessagingActivity extends StartAndShutdown {
 
     CompletableFuture<QueryRouteResponse> queryRoute(ProxyContext ctx, QueryRouteRequest request);
 

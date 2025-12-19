@@ -59,7 +59,7 @@ import org.apache.rocketmq.proxy.grpc.v2.route.RouteActivity;
 import org.apache.rocketmq.proxy.grpc.v2.transaction.EndTransactionActivity;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
-public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown implements GrpcMessingActivity {
+public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown implements GrpcMessagingActivity {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected GrpcClientSettingsManager grpcClientSettingsManager;
@@ -74,7 +74,7 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     protected RouteActivity routeActivity;
     protected ClientActivity clientActivity;
 
-    protected DefaultGrpcMessingActivity(MessagingProcessor messagingProcessor) {
+    protected DefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
         this.init(messagingProcessor);
     }
 

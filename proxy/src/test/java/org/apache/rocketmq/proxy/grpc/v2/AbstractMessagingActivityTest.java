@@ -30,41 +30,41 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertThrows;
 
-public class AbstractMessingActivityTest extends InitConfigTest {
+public class AbstractMessagingActivityTest extends InitConfigTest {
 
-    public static class MockMessingActivity extends AbstractMessingActivity {
+    public static class MockMessagingActivity extends AbstractMessagingActivity {
 
-        public MockMessingActivity(MessagingProcessor messagingProcessor,
-            GrpcClientSettingsManager grpcClientSettingsManager,
-            GrpcChannelManager grpcChannelManager) {
+        public MockMessagingActivity(MessagingProcessor messagingProcessor,
+                                     GrpcClientSettingsManager grpcClientSettingsManager,
+                                     GrpcChannelManager grpcChannelManager) {
             super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         }
     }
 
-    private AbstractMessingActivity messingActivity;
+    private AbstractMessagingActivity messagingActivity;
 
     @Before
     public void before() throws Throwable {
         super.before();
-        this.messingActivity = new MockMessingActivity(null, null, null);
+        this.messagingActivity = new MockMessagingActivity(null, null, null);
     }
 
     @Test
     public void testValidateTopic() {
-        assertThrows(GrpcProxyException.class, () -> messingActivity.validateTopic(Resource.newBuilder().build()));
-        assertThrows(GrpcProxyException.class, () -> messingActivity.validateTopic(Resource.newBuilder().setName(TopicValidator.RMQ_SYS_TRACE_TOPIC).build()));
-        assertThrows(GrpcProxyException.class, () -> messingActivity.validateTopic(Resource.newBuilder().setName("@").build()));
-        assertThrows(GrpcProxyException.class, () -> messingActivity.validateTopic(Resource.newBuilder().setName(createString(128)).build()));
-        messingActivity.validateTopic(Resource.newBuilder().setName(createString(127)).build());
+        assertThrows(GrpcProxyException.class, () -> messagingActivity.validateTopic(Resource.newBuilder().build()));
+        assertThrows(GrpcProxyException.class, () -> messagingActivity.validateTopic(Resource.newBuilder().setName(TopicValidator.RMQ_SYS_TRACE_TOPIC).build()));
+        assertThrows(GrpcProxyException.class, () -> messagingActivity.validateTopic(Resource.newBuilder().setName("@").build()));
+        assertThrows(GrpcProxyException.class, () -> messagingActivity.validateTopic(Resource.newBuilder().setName(createString(128)).build()));
+        messagingActivity.validateTopic(Resource.newBuilder().setName(createString(127)).build());
     }
 
     @Test
     public void testValidateConsumer() {
-        assertThrows(GrpcProxyException.class, () -> messingActivity.validateConsumerGroup(Resource.newBuilder().build()));
-        assertThrows(GrpcProxyException.class, () -> messingActivity.validateConsumerGroup(Resource.newBuilder().setName(MixAll.CID_SYS_RMQ_TRANS).build()));
-        assertThrows(GrpcProxyException.class, () -> messingActivity.validateConsumerGroup(Resource.newBuilder().setName("@").build()));
-        assertThrows(GrpcProxyException.class, () -> messingActivity.validateConsumerGroup(Resource.newBuilder().setName(createString(256)).build()));
-        messingActivity.validateConsumerGroup(Resource.newBuilder().setName(createString(120)).build());
+        assertThrows(GrpcProxyException.class, () -> messagingActivity.validateConsumerGroup(Resource.newBuilder().build()));
+        assertThrows(GrpcProxyException.class, () -> messagingActivity.validateConsumerGroup(Resource.newBuilder().setName(MixAll.CID_SYS_RMQ_TRANS).build()));
+        assertThrows(GrpcProxyException.class, () -> messagingActivity.validateConsumerGroup(Resource.newBuilder().setName("@").build()));
+        assertThrows(GrpcProxyException.class, () -> messagingActivity.validateConsumerGroup(Resource.newBuilder().setName(createString(256)).build()));
+        messagingActivity.validateConsumerGroup(Resource.newBuilder().setName(createString(120)).build());
     }
 
     private static String createString(int len) {
