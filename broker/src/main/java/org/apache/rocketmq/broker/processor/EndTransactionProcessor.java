@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -146,7 +147,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED);
                     RemotingCommand sendResult = sendFinalMessage(msgInner);
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
-                        this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
+                        deletePrepareMessage(result);
                         // successful committed, then total num of half-messages minus 1
                         this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(msgInner.getTopic(), -1);
                         this.brokerController.getBrokerMetricsManager().getCommitMessagesTotal().add(1, this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
@@ -173,7 +174,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 }
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
-                    this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
+                    deletePrepareMessage(result);
                     // roll back, then total num of half-messages minus 1
                     this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(result.getPrepareMessage().getProperty(MessageConst.PROPERTY_REAL_TOPIC), -1);
                     this.brokerController.getBrokerMetricsManager().getRollBackMessagesTotal().add(1, this.brokerController.getBrokerMetricsManager().newAttributesBuilder()
@@ -186,6 +187,26 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         response.setCode(result.getResponseCode());
         response.setRemark(result.getResponseRemark());
         return response;
+    }
+
+    private void deletePrepareMessage(OperationResult result) {
+        if (null == result || null == result.getPrepareMessage()) {
+            LOGGER.error("deletePrepareMessage param error, result is null or prepareMessage is null");
+            return;
+        }
+        MessageExt prepareMessage = result.getPrepareMessage();
+        String halfTopic = prepareMessage.getTopic();
+        if (StringUtils.isEmpty(halfTopic)) {
+            LOGGER.error("deletePrepareMessage halfTopic is empty, halfTopic: {}", halfTopic);
+            return;
+        }
+        if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(halfTopic)) {
+            this.brokerController.getTransactionalMessageService().deletePrepareMessage(prepareMessage);
+        } else if (this.brokerController.getMessageStoreConfig().isTransRocksDBEnable() && TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC.equals(halfTopic)) {
+            this.brokerController.getMessageStore().getTransRocksDBStore().deletePrepareMessage(prepareMessage);
+        } else {
+            LOGGER.warn("deletePrepareMessage error, topic of half message is: {}, transRocksDBEnable: {}", halfTopic, this.brokerController.getMessageStoreConfig().isTransRocksDBEnable());
+        }
     }
 
     /**
@@ -265,10 +286,17 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 : TopicFilterType.SINGLE_TAG;
         long tagsCodeValue = MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
         msgInner.setTagsCode(tagsCodeValue);
-        MessageAccessor.setProperties(msgInner, msgExt.getProperties());
-        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+        String checkTimes = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES);
+        if (StringUtils.isEmpty(checkTimes) && this.brokerController.getMessageStoreConfig().isTransRocksDBEnable() && null != this.brokerController.getMessageStore().getTransRocksDBStore()) {
+            Integer checkTimesRocksDB = this.brokerController.getMessageStore().getTransRocksDBStore().getCheckTimes(msgInner.getTopic(), msgInner.getTransactionId(), msgExt.getCommitLogOffset());
+            if (null != checkTimesRocksDB && checkTimesRocksDB >= 0) {
+                msgExt.putUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, String.valueOf(checkTimesRocksDB));
+            }
+        }
+        MessageAccessor.setProperties(msgInner, MessageDecoder.string2messageProperties(MessageDecoder.messageProperties2String(msgExt.getProperties())));
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC);
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID);
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;
     }
 

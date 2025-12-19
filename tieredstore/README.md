@@ -45,12 +45,12 @@ Tiered storage provides some useful metrics, see [RIP-46](https://github.com/apa
 | Histogram | rocketmq_tiered_store_provider_upload_bytes         | byte         |
 | Histogram | rocketmq_tiered_store_provider_download_bytes       | byte         |
 | Gauge     | rocketmq_tiered_store_dispatch_behind               |              |
-| Gauge     | rocketmq_tiered_store_dispatch_latency              | byte         |
+| Gauge     | rocketmq_tiered_store_dispatch_latency              | milliseconds |
 | Counter   | rocketmq_tiered_store_messages_dispatch_total       |              |
 | Counter   | rocketmq_tiered_store_messages_out_total            |              |
 | Counter   | rocketmq_tiered_store_get_message_fallback_total    |              |
 | Gauge     | rocketmq_tiered_store_read_ahead_cache_count        |              |
-| Gauge     | rocketmq_tiered_store_read_ahead_cache_bytes        | byte         |
+| Gauge     | rocketmq_tiered_store_read_ahead_cache_bytes        | bytes        |
 | Counter   | rocketmq_tiered_store_read_ahead_cache_access_total |              |
 | Counter   | rocketmq_tiered_store_read_ahead_cache_hit_total    |              |
 | Gauge     | rocketmq_storage_message_reserve_time               | milliseconds |

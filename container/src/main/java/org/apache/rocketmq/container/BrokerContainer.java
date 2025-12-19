@@ -22,7 +22,6 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.ConfigContext;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
@@ -156,9 +155,9 @@ public class BrokerContainer implements IBrokerContainer {
             this.updateNamesrvAddr();
             LOG.info("Set user specified name server address: {}", this.brokerContainerConfig.getNamesrvAddr());
             // also auto update namesrv if specify
-            this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
                 @Override
-                public void run0() {
+                public void run() {
                     try {
                         BrokerContainer.this.updateNamesrvAddr();
                     } catch (Throwable e) {
@@ -167,10 +166,10 @@ public class BrokerContainer implements IBrokerContainer {
                 }
             }, 1000 * 10, this.brokerContainerConfig.getUpdateNamesrvAddrInterval(), TimeUnit.MILLISECONDS);
         } else if (this.brokerContainerConfig.isFetchNamesrvAddrByAddressServer()) {
-            this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
                 @Override
-                public void run0() {
+                public void run() {
                     try {
                         BrokerContainer.this.brokerOuterAPI.fetchNameServerAddr();
                     } catch (Throwable e) {
@@ -180,9 +179,9 @@ public class BrokerContainer implements IBrokerContainer {
             }, 1000 * 10, this.brokerContainerConfig.getFetchNamesrvAddrInterval(), TimeUnit.MILLISECONDS);
         }
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 try {
                     BrokerContainer.this.brokerOuterAPI.refreshMetadata();
                 } catch (Exception e) {

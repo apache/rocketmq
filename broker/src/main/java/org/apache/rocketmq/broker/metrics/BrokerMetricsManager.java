@@ -673,8 +673,8 @@ public class BrokerMetricsManager {
         consumerLagMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_LAG_MESSAGES)
             .setDescription("Consumer lag messages")
             .ofLongs()
-            .buildWithCallback(measurement ->
-                consumerLagCalculator.calculateLag(result -> measurement.record(result.lag, buildLagAttributes(result))));
+            .buildWithCallback(measurement -> consumerLagCalculator.calculateLag(result ->
+                measurement.record(result.lag, buildLagAttributes(result))));
 
         consumerLagLatency = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_LAG_LATENCY)
             .setDescription("Consumer lag time")

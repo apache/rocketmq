@@ -16,12 +16,8 @@
  */
 package org.apache.rocketmq.broker.config.v1;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentMap;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
@@ -34,6 +30,11 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.rocksdb.CompressionType;
 import org.rocksdb.WriteBatch;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentMap;
 
 public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
@@ -157,17 +158,21 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     @Override
     public synchronized void persist() {
-        try (WriteBatch writeBatch = new WriteBatch()) {
-            for (Entry<String, ConcurrentMap<Integer, Long>> entry : this.offsetTable.entrySet()) {
-                putWriteBatch(writeBatch, entry.getKey(), entry.getValue());
-                if (writeBatch.getDataSize() >= 4 * 1024) {
-                    this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+        if (rocksDBConfigManager.isLoaded()) {
+            try (WriteBatch writeBatch = new WriteBatch()) {
+                for (Entry<String, ConcurrentMap<Integer, Long>> entry : this.offsetTable.entrySet()) {
+                    putWriteBatch(writeBatch, entry.getKey(), entry.getValue());
+                    if (writeBatch.getDataSize() >= 4 * 1024) {
+                        this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+                    }
                 }
+                this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+                this.rocksDBConfigManager.flushWAL();
+            } catch (Exception e) {
+                log.error("consumer offset persist Failed", e);
             }
-            this.rocksDBConfigManager.batchPutWithWal(writeBatch);
-            this.rocksDBConfigManager.flushWAL();
-        } catch (Exception e) {
-            log.error("consumer offset persist Failed", e);
+        } else {
+            log.warn("RocksDBConsumerOffsetManager has been stopped, persist fail");
         }
     }
 
@@ -180,7 +185,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         byte[] keyBytes = topicGroupName.getBytes(DataConverter.CHARSET_UTF8);
         RocksDBOffsetSerializeWrapper wrapper = new RocksDBOffsetSerializeWrapper();
         wrapper.setOffsetTable(offsetMap);
-        byte[] valueBytes = JSON.toJSONBytes(wrapper, SerializerFeature.BrowserCompatible);
+        byte[] valueBytes = JSON.toJSONBytes(wrapper, JSONWriter.Feature.BrowserCompatible);
         rocksDBConfigManager.writeBatchPutOperation(writeBatch, keyBytes, valueBytes);
     }
 

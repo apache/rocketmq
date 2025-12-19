@@ -141,6 +141,7 @@ public class IntegrationTestBase {
         brokerConfig.setRecallMessageEnable(true);
         storeConfig.setEnableConsumeQueueExt(true);
         brokerConfig.setLoadBalancePollNameServerInterval(500);
+        brokerConfig.setPopConsumerKVServiceInit(true);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
         storeConfig.setMappedFileSizeCommitLog(commitLogSize);

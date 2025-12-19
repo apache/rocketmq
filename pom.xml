@@ -88,7 +88,7 @@
     </issueManagement>
 
     <properties>
-        <revision>5.3.4-SNAPSHOT</revision>
+        <revision>5.3.4</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.root>${basedir}</project.root>
@@ -123,11 +123,11 @@
         <lz4-java.version>1.8.0</lz4-java.version>
         <opentracing.version>0.33.0</opentracing.version>
         <jaeger.version>1.8.1</jaeger.version>
-        <dleger.version>0.3.1.2</dleger.version>
+        <dleger.version>0.3.2</dleger.version>
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
-        <rocketmq-proto.version>2.0.4</rocketmq-proto.version>
+        <rocketmq-proto.version>2.1.1</rocketmq-proto.version>
         <grpc.version>1.53.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
@@ -135,8 +135,8 @@
         <caffeine.version>2.9.3</caffeine.version>
         <spring.version>5.3.27</spring.version>
         <okio-jvm.version>3.4.0</okio-jvm.version>
-        <opentelemetry.version>1.29.0</opentelemetry.version>
-        <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
+        <opentelemetry.version>1.44.1</opentelemetry.version>
+        <opentelemetry-exporter-prometheus.version>1.44.1-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
         <s3.version>2.20.29</s3.version>
         <rocksdb.version>1.0.2</rocksdb.version>
@@ -155,6 +155,7 @@
         <rocketmq-client-java.version>5.0.5</rocketmq-client-java.version>
 
         <!-- Build plugin dependencies -->
+        <flatten-maven-plugin.version>1.7.2</flatten-maven-plugin.version>
         <versions-maven-plugin.version>2.2</versions-maven-plugin.version>
         <dependency-mediator-maven-plugin.version>1.0.2</dependency-mediator-maven-plugin.version>
         <clirr-maven-plugin.version>2.7</clirr-maven-plugin.version>
@@ -204,6 +205,36 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten-maven-plugin.version}</version>
+                <inherited>true</inherited>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                        <configuration>
+                            <updatePomFile>true</updatePomFile>
+                            <flattenMode>oss</flattenMode>
+                            <pomElements>
+                                <distributionManagement>remove</distributionManagement>
+                                <repositories>remove</repositories>
+                            </pomElements>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>flatten-clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>versions-maven-plugin</artifactId>

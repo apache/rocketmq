@@ -20,11 +20,18 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -35,11 +42,6 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ExecutorService;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -85,6 +87,27 @@ public class PopLongPollingServiceTest {
         doNothing().when(popLongPollingService).notifyMessageArrivingWithRetryTopic(defaultTopic, queueId, -1L, null, 0L, null, null);
         popLongPollingService.notifyMessageArrivingWithRetryTopic(defaultTopic, queueId);
         verify(popLongPollingService, times(1)).notifyMessageArrivingWithRetryTopic(defaultTopic, queueId, -1L, null, 0L, null, null);
+    }
+
+    @Test
+    public void testNotifyMessageArrivingFromRetry() {
+        int queueId = -1;
+        String group = "group";
+        String pullRetryTopic = MixAll.getRetryTopic(group);
+        String popRetryTopicV1 = KeyBuilder.buildPopRetryTopic(defaultTopic, group, false);
+        String popRetryTopicV2 = KeyBuilder.buildPopRetryTopic(defaultTopic, group, true);
+
+        Map<String, String> properties = new HashMap<>();
+        properties.putIfAbsent(MessageConst.PROPERTY_ORIGIN_GROUP, group);
+        // pull retry
+        popLongPollingService.notifyMessageArrivingWithRetryTopic(pullRetryTopic, queueId, queueId, -1L, 0L, null, properties);
+        verify(popLongPollingService, times(0)).notifyMessageArriving(defaultTopic, queueId, group, true, -1L, 0L, null, properties, null);
+        // pop retry v1
+        popLongPollingService.notifyMessageArrivingWithRetryTopic(popRetryTopicV1, queueId, queueId, -1L, 0L, null, properties);
+        verify(popLongPollingService, times(1)).notifyMessageArriving(defaultTopic, queueId, group, true, -1L, 0L, null, properties, null);
+        // pop retry v2
+        popLongPollingService.notifyMessageArrivingWithRetryTopic(popRetryTopicV2, queueId, queueId, -1L, 0L, null, properties);
+        verify(popLongPollingService, times(2)).notifyMessageArriving(defaultTopic, queueId, group, true, -1L, 0L, null, properties, null);
     }
 
     @Test

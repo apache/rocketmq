@@ -43,8 +43,11 @@ import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
+import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
+import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
+import org.apache.rocketmq.store.transaction.TransMessageRocksDBStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 import org.apache.rocketmq.store.metrics.StoreMetricsManager;
 import org.rocksdb.RocksDBException;
@@ -207,7 +210,15 @@ public interface MessageStore {
 
     TimerMessageStore getTimerMessageStore();
 
+    TimerMessageRocksDBStore getTimerRocksDBStore();
+
+    TransMessageRocksDBStore getTransRocksDBStore();
+
     void setTimerMessageStore(TimerMessageStore timerMessageStore);
+
+    void setTimerMessageRocksDBStore(TimerMessageRocksDBStore timerMessageRocksDBStore);
+
+    void setTransRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore);
 
     /**
      * Get the offset of the message in the commit log, which is also known as physical offset.
@@ -410,6 +421,8 @@ public interface MessageStore {
     QueryMessageResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
         final long end);
 
+    QueryMessageResult queryMessage(final String topic, final String key, final int maxNum, final long begin, final long end, final String indexType, final String lastKey);
+
     /**
      * Asynchronous query messages by given key.
      * @see #queryMessage(String, String, int, long, long) queryMessage
@@ -422,6 +435,8 @@ public interface MessageStore {
      */
     CompletableFuture<QueryMessageResult> queryMessageAsync(final String topic, final String key, final int maxNum,
         final long begin, final long end);
+
+    CompletableFuture<QueryMessageResult> queryMessageAsync(final String topic, final String key, final int maxNum, final long begin, final long end, final String indexType, final String lastKey);
 
     /**
      * Update HA master address.
@@ -1000,4 +1015,6 @@ public interface MessageStore {
     void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest);
 
     MessageStoreStateMachine getStateMachine();
+
+    MessageRocksDBStorage getMessageRocksDBStorage();
 }

@@ -212,6 +212,12 @@ public class GrpcConverter {
             }
         }
 
+        // priority
+        int priority = messageExt.getPriority();
+        if (priority >= 0) {
+            systemPropertiesBuilder.setPriority(priority);
+        }
+
         // sharding key
         String shardingKey = messageExt.getProperty(MessageConst.PROPERTY_SHARDING_KEY);
         if (shardingKey != null) {

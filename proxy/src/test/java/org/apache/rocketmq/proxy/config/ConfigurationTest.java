@@ -15,34 +15,32 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.common;
+package org.apache.rocketmq.proxy.config;
 
-import java.io.File;
-import org.apache.rocketmq.logging.org.slf4j.MDC;
+import org.apache.rocketmq.auth.config.AuthConfig;
+import org.junit.Before;
+import org.junit.Test;
 
-public abstract class AbstractBrokerRunnable implements Runnable {
-    protected final BrokerIdentity brokerIdentity;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.spy;
 
-    public AbstractBrokerRunnable(BrokerIdentity brokerIdentity) {
-        this.brokerIdentity = brokerIdentity;
+public class ConfigurationTest {
+
+    private Configuration configuration;
+
+    @Before
+    public void init() {
+        configuration = spy(new Configuration());
     }
 
-    private static final String MDC_BROKER_CONTAINER_LOG_DIR = "brokerContainerLogDir";
+    @Test
+    public void testInit() throws Exception {
+        configuration.init();
 
-    /**
-     * real logic for running
-     */
-    public abstract void run0();
+        ProxyConfig loadedProxyConfig = configuration.getProxyConfig();
+        assertNotNull(loadedProxyConfig);
 
-    @Override
-    public void run() {
-        try {
-            if (brokerIdentity.isInBrokerContainer()) {
-                MDC.put(MDC_BROKER_CONTAINER_LOG_DIR, File.separator + brokerIdentity.getCanonicalName());
-            }
-            run0();
-        } finally {
-            MDC.clear();
-        }
+        AuthConfig loadedAuthConfig = configuration.getAuthConfig();
+        assertNotNull(loadedAuthConfig);
     }
 }

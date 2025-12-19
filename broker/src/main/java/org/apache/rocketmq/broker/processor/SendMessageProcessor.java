@@ -281,6 +281,16 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         MessageAccessor.setProperties(msgInner, oriProps);
+        // check properties to ensure exclusive, don't check topic meta config to keep the behavior consistent
+        int msgPriority = msgInner.getPriority();
+        if (msgPriority >= 0) {
+            if (TopicMessageType.PRIORITY.equals(TopicMessageType.parseFromMessageProperty(msgInner.getProperties()))) {
+                queueIdInt = Math.min(msgPriority, topicConfig.getWriteQueueNums() - 1);
+                msgInner.setQueueId(queueIdInt);
+            } else {
+                MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_PRIORITY);
+            }
+        }
 
         CleanupPolicy cleanupPolicy = CleanupPolicyUtils.getDeletePolicy(Optional.of(topicConfig));
         if (Objects.equals(cleanupPolicy, CleanupPolicy.COMPACTION)) {

@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -48,9 +47,9 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
     public DefaultConsumerIdsChangeListener(BrokerController brokerController) {
         this.brokerController = brokerController;
 
-        scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(brokerController.getBrokerConfig()) {
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 try {
                     notifyConsumerChange();
                 } catch (Exception e) {

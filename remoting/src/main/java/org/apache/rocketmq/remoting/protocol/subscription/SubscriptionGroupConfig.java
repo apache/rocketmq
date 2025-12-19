@@ -17,12 +17,16 @@
 
 package org.apache.rocketmq.remoting.protocol.subscription;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.google.common.base.MoreObjects;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.rocketmq.common.MixAll;
+
+import static org.apache.rocketmq.common.SubscriptionGroupAttributes.PRIORITY_FACTOR_ATTRIBUTE;
 
 public class SubscriptionGroupConfig {
 
@@ -171,6 +175,12 @@ public class SubscriptionGroupConfig {
 
     public void setAttributes(Map<String, String> attributes) {
         this.attributes = attributes;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public long getPriorityFactor() {
+        String factorStr = null == attributes ? null : attributes.get(PRIORITY_FACTOR_ATTRIBUTE.getName());
+        return NumberUtils.toLong(factorStr, PRIORITY_FACTOR_ATTRIBUTE.getDefaultValue());
     }
 
     @Override

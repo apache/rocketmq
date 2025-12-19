@@ -38,8 +38,16 @@ public class TransactionalMessageUtil {
         return TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC;
     }
 
+    public static String buildOpTopicForRocksDB() {
+        return TopicValidator.RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC;
+    }
+
     public static String buildHalfTopic() {
         return TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC;
+    }
+
+    public static String buildHalfTopicForRocksDB() {
+        return TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC;
     }
 
     public static String buildConsumerGroup() {

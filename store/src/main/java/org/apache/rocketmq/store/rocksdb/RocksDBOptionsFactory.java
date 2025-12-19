@@ -217,4 +217,149 @@ public class RocksDBOptionsFactory {
                 setUseDirectIoForFlushAndCompaction(false).
                 setUseDirectReads(false);
     }
+
+    public static ColumnFamilyOptions createTimerCFOptions() {
+        BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig()
+            .setFormatVersion(5)
+            .setIndexType(IndexType.kBinarySearch)
+            .setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash)
+            .setDataBlockHashTableUtilRatio(0.75)
+            .setBlockSize(128 * SizeUnit.KB)
+            .setMetadataBlockSize(4 * SizeUnit.KB)
+            .setFilterPolicy(new BloomFilter(16, false))
+            .setCacheIndexAndFilterBlocks(false)
+            .setCacheIndexAndFilterBlocksWithHighPriority(true)
+            .setPinL0FilterAndIndexBlocksInCache(false)
+            .setPinTopLevelIndexAndFilter(true)
+            .setBlockCache(new LRUCache(2048 * SizeUnit.MB, 8, false))
+            .setWholeKeyFiltering(true);
+
+        //noinspection resource
+        return new ColumnFamilyOptions()
+            .setMaxWriteBufferNumber(6)
+            .setWriteBufferSize(256 * SizeUnit.MB)
+            .setMinWriteBufferNumberToMerge(1)
+            .setTableFormatConfig(blockBasedTableConfig)
+            .setMemTableConfig(new SkipListMemTableConfig())
+            .setCompressionType(CompressionType.ZSTD_COMPRESSION)
+            .setBottommostCompressionType(CompressionType.NO_COMPRESSION)
+            .setNumLevels(7)
+            .setCompactionPriority(CompactionPriority.MinOverlappingRatio)
+            .setCompactionStyle(CompactionStyle.LEVEL)
+            .setMaxCompactionBytes(256 * SizeUnit.MB)
+            .setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB)
+            .setHardPendingCompactionBytesLimit(256 * SizeUnit.GB)
+            .setLevel0FileNumCompactionTrigger(2)
+            .setLevel0SlowdownWritesTrigger(8)
+            .setLevel0StopWritesTrigger(10)
+            .setTargetFileSizeBase(256 * SizeUnit.MB)
+            .setTargetFileSizeMultiplier(2)
+            .setMergeOperator(new StringAppendOperator())
+            .setReportBgIoStats(true)
+            .setOptimizeFiltersForHits(true)
+            .setMaxBytesForLevelBase(512 * SizeUnit.MB);
+    }
+
+    public static ColumnFamilyOptions createTransCFOptions() {
+        BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig()
+            .setFormatVersion(5)
+            .setIndexType(IndexType.kBinarySearch)
+            .setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash)
+            .setDataBlockHashTableUtilRatio(0.75)
+            .setBlockSize(128 * SizeUnit.KB)
+            .setMetadataBlockSize(4 * SizeUnit.KB)
+            .setFilterPolicy(new BloomFilter(16, false))
+            .setCacheIndexAndFilterBlocks(false)
+            .setCacheIndexAndFilterBlocksWithHighPriority(true)
+            .setPinL0FilterAndIndexBlocksInCache(false)
+            .setPinTopLevelIndexAndFilter(true)
+            .setBlockCache(new LRUCache(1024 * SizeUnit.MB, 8, false))
+            .setWholeKeyFiltering(true);
+
+        CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal()
+            .setSizeRatio(100)
+            .setMaxSizeAmplificationPercent(25)
+            .setAllowTrivialMove(true)
+            .setMinMergeWidth(2)
+            .setMaxMergeWidth(Integer.MAX_VALUE)
+            .setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize)
+            .setCompressionSizePercent(-1);
+
+        //noinspection resource
+        return new ColumnFamilyOptions()
+            .setMaxWriteBufferNumber(6)
+            .setWriteBufferSize(128 * SizeUnit.MB)
+            .setMinWriteBufferNumberToMerge(1)
+            .setTableFormatConfig(blockBasedTableConfig)
+            .setMemTableConfig(new SkipListMemTableConfig())
+            .setCompressionType(CompressionType.NO_COMPRESSION)
+            .setBottommostCompressionType(CompressionType.NO_COMPRESSION)
+            .setNumLevels(7)
+            .setCompactionPriority(CompactionPriority.MinOverlappingRatio)
+            .setCompactionStyle(CompactionStyle.UNIVERSAL)
+            .setCompactionOptionsUniversal(compactionOption)
+            .setMaxCompactionBytes(100 * SizeUnit.GB)
+            .setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB)
+            .setHardPendingCompactionBytesLimit(256 * SizeUnit.GB)
+            .setLevel0FileNumCompactionTrigger(2)
+            .setLevel0SlowdownWritesTrigger(8)
+            .setLevel0StopWritesTrigger(10)
+            .setTargetFileSizeBase(256 * SizeUnit.MB)
+            .setTargetFileSizeMultiplier(2)
+            .setMergeOperator(new StringAppendOperator())
+            .setReportBgIoStats(true)
+            .setOptimizeFiltersForHits(true);
+    }
+
+    public static ColumnFamilyOptions createIndexCFOptions() {
+        BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig()
+            .setFormatVersion(5)
+            .setIndexType(IndexType.kBinarySearch)
+            .setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash)
+            .setDataBlockHashTableUtilRatio(0.75)
+            .setBlockSize(128 * SizeUnit.KB)
+            .setMetadataBlockSize(4 * SizeUnit.KB)
+            .setFilterPolicy(new BloomFilter(16, false))
+            .setCacheIndexAndFilterBlocks(false)
+            .setCacheIndexAndFilterBlocksWithHighPriority(true)
+            .setPinL0FilterAndIndexBlocksInCache(false)
+            .setPinTopLevelIndexAndFilter(true)
+            .setBlockCache(new LRUCache(1024 * SizeUnit.MB, 8, false))
+            .setWholeKeyFiltering(true);
+
+        CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal()
+            .setSizeRatio(100)
+            .setMaxSizeAmplificationPercent(25)
+            .setAllowTrivialMove(true)
+            .setMinMergeWidth(2)
+            .setMaxMergeWidth(Integer.MAX_VALUE)
+            .setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize)
+            .setCompressionSizePercent(-1);
+
+        //noinspection resource
+        return new ColumnFamilyOptions()
+            .setMaxWriteBufferNumber(6)
+            .setWriteBufferSize(128 * SizeUnit.MB)
+            .setMinWriteBufferNumberToMerge(1)
+            .setTableFormatConfig(blockBasedTableConfig)
+            .setMemTableConfig(new SkipListMemTableConfig())
+            .setCompressionType(CompressionType.NO_COMPRESSION)
+            .setBottommostCompressionType(CompressionType.NO_COMPRESSION)
+            .setNumLevels(7)
+            .setCompactionPriority(CompactionPriority.MinOverlappingRatio)
+            .setCompactionStyle(CompactionStyle.UNIVERSAL)
+            .setCompactionOptionsUniversal(compactionOption)
+            .setMaxCompactionBytes(256 * SizeUnit.MB)
+            .setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB)
+            .setHardPendingCompactionBytesLimit(256 * SizeUnit.GB)
+            .setLevel0FileNumCompactionTrigger(8)
+            .setLevel0SlowdownWritesTrigger(8)
+            .setLevel0StopWritesTrigger(20)
+            .setTargetFileSizeBase(256 * SizeUnit.MB)
+            .setTargetFileSizeMultiplier(2)
+            .setMergeOperator(new StringAppendOperator())
+            .setReportBgIoStats(true)
+            .setOptimizeFiltersForHits(true);
+    }
+
 }

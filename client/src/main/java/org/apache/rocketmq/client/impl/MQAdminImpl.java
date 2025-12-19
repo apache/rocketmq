@@ -279,20 +279,18 @@ public class MQAdminImpl {
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin,
         long end) throws MQClientException,
         InterruptedException {
-        return queryMessage(null, topic, key, maxNum, begin, end, false);
+        return queryMessage(null, topic, key, maxNum, begin, end, false, MessageConst.INDEX_KEY_TYPE, null);
     }
 
     public QueryResult queryMessageByUniqKey(String topic, String uniqKey, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
-
-        return queryMessage(null, topic, uniqKey, maxNum, begin, end, true);
+        return queryMessage(null, topic, uniqKey, maxNum, begin, end, true, MessageConst.INDEX_UNIQUE_TYPE, null);
     }
 
     public QueryResult queryMessageByUniqKey(String clusterName, String topic, String uniqKey, int maxNum, long begin,
         long end)
         throws MQClientException, InterruptedException {
-
-        return queryMessage(clusterName, topic, uniqKey, maxNum, begin, end, true);
+        return queryMessage(clusterName, topic, uniqKey, maxNum, begin, end, true, MessageConst.INDEX_UNIQUE_TYPE, null);
     }
 
     public MessageExt queryMessageByUniqKey(String topic,
@@ -312,7 +310,7 @@ public class MQAdminImpl {
 
     public MessageExt queryMessageByUniqKey(String clusterName, String topic,
         String uniqKey, long begin, long end) throws InterruptedException, MQClientException {
-        QueryResult qr = this.queryMessage(clusterName, topic, uniqKey, 32, begin, end, true);
+        QueryResult qr = this.queryMessage(clusterName, topic, uniqKey, 32, begin, end, true, MessageConst.INDEX_UNIQUE_TYPE, null);
         if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
             return qr.getMessageList().get(0);
         } else {
@@ -320,8 +318,12 @@ public class MQAdminImpl {
         }
     }
 
-    public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end,
-        boolean isUniqKey) throws MQClientException,
+    public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) throws MQClientException,
+        InterruptedException {
+        return queryMessage(clusterName, topic, key, maxNum, begin, end, isUniqKey, null, null);
+    }
+
+    public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end, boolean isUniqKey, String indexType, String lastKey) throws MQClientException,
         InterruptedException {
         boolean isLmq = MixAll.isLmq(topic);
 
@@ -369,6 +371,8 @@ public class MQAdminImpl {
                         requestHeader.setMaxNum(maxNum);
                         requestHeader.setBeginTimestamp(begin);
                         requestHeader.setEndTimestamp(end);
+                        requestHeader.setIndexType(indexType);
+                        requestHeader.setLastKey(lastKey);
 
                         this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader, timeoutMillis * 3,
                             new InvokeCallback() {
@@ -445,7 +449,7 @@ public class MQAdminImpl {
                             } else {
                                 log.warn("queryMessage by uniqKey, find message key not matched, maybe hash duplicate {}", msgExt.toString());
                             }
-                        } else {
+                        }  else if (!StringUtils.isEmpty(indexType) && MessageConst.INDEX_KEY_TYPE.equals(indexType))  {
                             String keys = msgExt.getKeys();
                             String msgTopic = msgExt.getTopic();
                             if (keys != null) {
@@ -464,6 +468,20 @@ public class MQAdminImpl {
                                 } else {
                                     log.warn("queryMessage, find message key not matched, maybe hash duplicate {}", msgExt.toString());
                                 }
+                            }
+                        } else if (!StringUtils.isEmpty(indexType) && MessageConst.INDEX_TAG_TYPE.equals(indexType)) {
+                            String tags = msgExt.getTags();
+                            String msgTopic = msgExt.getTopic();
+                            boolean matched = false;
+                            if (tags != null) {
+                                if (Objects.equals(key, tags) && (isLmq || Objects.equals(topic, msgTopic))) {
+                                    matched = true;
+                                }
+                            }
+                            if (matched) {
+                                messageList.add(msgExt);
+                            } else {
+                                log.warn("queryMessage, find message key not matched, maybe hash duplicate {}", msgExt.toString());
                             }
                         }
                     }

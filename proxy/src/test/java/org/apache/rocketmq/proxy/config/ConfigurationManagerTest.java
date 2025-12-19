@@ -21,6 +21,8 @@ import org.apache.rocketmq.proxy.ProxyMode;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class ConfigurationManagerTest extends InitConfigTest {
 
@@ -44,4 +46,12 @@ public class ConfigurationManagerTest extends InitConfigTest {
         assertThat(ConfigurationManager.getProxyConfig()).isNotNull();
     }
 
+    @Test
+    public void testFormatProxyConfig() {
+        String actual = ConfigurationManager.formatProxyConfig();
+        assertNotNull(actual);
+        ProxyConfig expected = ConfigurationManager.getProxyConfig();
+        assertTrue(actual.contains(expected.getProxyMode()));
+        assertTrue(actual.contains(expected.getProxyName()));
+    }
 } 

@@ -20,10 +20,11 @@
  */
 package org.apache.rocketmq.remoting.protocol.heartbeat;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.annotation.JSONField;
+import org.apache.rocketmq.common.filter.ExpressionType;
+
 import java.util.HashSet;
 import java.util.Set;
-import org.apache.rocketmq.common.filter.ExpressionType;
 
 public class SubscriptionData implements Comparable<SubscriptionData> {
     public final static String SUB_ALL = "*";

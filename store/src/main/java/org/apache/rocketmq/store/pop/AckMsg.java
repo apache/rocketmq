@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.store.pop;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.annotation.JSONField;
 
 public class AckMsg {
 

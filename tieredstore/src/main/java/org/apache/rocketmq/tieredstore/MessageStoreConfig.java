@@ -129,6 +129,7 @@ public class MessageStoreConfig {
     private String objectStoreBucket = "";
     private String objectStoreAccessKey = "";
     private String objectStoreSecretKey = "";
+    private boolean writeWithoutMmap = false;
 
     public static String localHostName() {
         try {
@@ -417,5 +418,13 @@ public class MessageStoreConfig {
 
     public String getObjectStoreEndpoint() {
         return objectStoreEndpoint;
+    }
+
+    public boolean isWriteWithoutMmap() {
+        return writeWithoutMmap;
+    }
+
+    public void setWriteWithoutMmap(boolean writeWithoutMmap) {
+        this.writeWithoutMmap = writeWithoutMmap;
     }
 }
