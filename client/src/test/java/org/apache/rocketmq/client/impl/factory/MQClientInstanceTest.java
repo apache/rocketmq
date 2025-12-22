@@ -348,8 +348,8 @@ public class MQClientInstanceTest {
     public void testFindBrokerAddressInSubscribeWithOneBroker() throws IllegalAccessException {
         brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
         consumerTable.put(group, createMQConsumerInner());
-        ConcurrentMap<String, HashMap<String, Integer>> brokerVersionTable = new ConcurrentHashMap<>();
-        HashMap<String, Integer> addressMap = new HashMap<>();
+        ConcurrentMap<String, ConcurrentHashMap<String, Integer>> brokerVersionTable = new ConcurrentHashMap<>();
+        ConcurrentHashMap<String, Integer> addressMap = new ConcurrentHashMap<>();
         addressMap.put(defaultBrokerAddr, 0);
         brokerVersionTable.put(defaultBroker, addressMap);
         FieldUtils.writeDeclaredField(mqClientInstance, "brokerVersionTable", brokerVersionTable, true);

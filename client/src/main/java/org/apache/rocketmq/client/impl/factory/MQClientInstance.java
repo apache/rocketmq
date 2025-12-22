@@ -1079,7 +1079,9 @@ public class MQClientInstance {
                     this.scheduledExecutorService.shutdown();
                     this.mQClientAPIImpl.shutdown();
                     this.rebalanceService.shutdown();
-                    this.concurrentHeartbeatExecutor.shutdown();
+                    if (concurrentHeartbeatExecutor != null) {
+                        this.concurrentHeartbeatExecutor.shutdown();
+                    }
 
                     MQClientManager.getInstance().removeClientFactory(this.clientId);
                     log.info("the client factory [{}] shutdown OK", this.clientId);
