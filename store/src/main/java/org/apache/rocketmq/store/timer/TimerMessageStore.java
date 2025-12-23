@@ -1741,7 +1741,7 @@ public class TimerMessageStore {
                                         isRound = false;
                                     }
                                     if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0
-                                        && tr.getDeleteList().contains(buildDeleteKey(getRealTopic(msgExt), uniqueKey))) {
+                                        && tr.getDeleteList().contains(buildDeleteKey(getRealTopic(msgExt), uniqueKey, storeConfig.isAppendTopicForTimerDeleteKey()))) {
                                         avoidDeleteLose.remove(uniqueKey);
                                         doRes = true;
                                         tr.idempotentRelease();
@@ -2074,9 +2074,9 @@ public class TimerMessageStore {
         return timerCheckpoint;
     }
 
-    // identify a message by topic + uk, like query operation
-    public static String buildDeleteKey(String realTopic, String uniqueKey) {
-        return realTopic + "+" + uniqueKey;
+    // identify a message by topic or topic + uk(like query operation)
+    public static String buildDeleteKey(String realTopic, String uniqueKey, Boolean appendTopicForTimerDeleteKey) {
+        return appendTopicForTimerDeleteKey ? (realTopic + "+" + uniqueKey) : uniqueKey;
     }
 
     private void recallToTimeline(long delayTime, long offsetPy, int sizePy, MessageExt messageExt) {

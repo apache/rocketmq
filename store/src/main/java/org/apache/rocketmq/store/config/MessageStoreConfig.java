@@ -533,6 +533,8 @@ public class MessageStoreConfig {
 
     private boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover = false;
 
+    private boolean appendTopicForTimerDeleteKey = false;
+
     public boolean isRocksdbCQDoubleWriteEnable() {
         return rocksdbCQDoubleWriteEnable;
     }
@@ -2235,5 +2237,13 @@ public class MessageStoreConfig {
 
     public void setSharedByteBufferNum(int sharedByteBufferNum) {
         this.sharedByteBufferNum = sharedByteBufferNum;
+    }
+
+    public boolean isAppendTopicForTimerDeleteKey() {
+        return appendTopicForTimerDeleteKey;
+    }
+
+    public void setAppendTopicForTimerDeleteKey(boolean appendTopicForTimerDeleteKey) {
+        this.appendTopicForTimerDeleteKey = appendTopicForTimerDeleteKey;
     }
 }
