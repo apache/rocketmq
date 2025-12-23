@@ -1466,7 +1466,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, new HeartbeatRequestHeader());
         request.setLanguage(clientConfig.getLanguage());
         request.setBody(heartbeatData.encode());
-        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr), request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
@@ -1487,7 +1487,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, new HeartbeatRequestHeader());
         request.setLanguage(clientConfig.getLanguage());
         request.setBody(heartbeatData.encode());
-        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        RemotingCommand response = this.remotingClient.invokeSync((MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr)), request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
