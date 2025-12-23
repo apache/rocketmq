@@ -1344,6 +1344,9 @@ public class TimerMessageStore {
                     bf.getInt();//size
                     bf.getLong();//prev pos
                     int magic = bf.getInt(); //magic
+                    if (magic == TimerLog.BLANK_MAGIC_CODE) {
+                        break;
+                    }
                     long enqueueTime = bf.getLong();
                     long delayedTime = bf.getInt() + enqueueTime;
                     long offsetPy = bf.getLong();
