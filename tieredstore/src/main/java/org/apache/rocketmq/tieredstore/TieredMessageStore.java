@@ -314,12 +314,12 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public TimerMessageRocksDBStore getTimerRocksDBStore() {
+    public TimerMessageRocksDBStore getTimerMessageRocksDBStore() {
         return timerMessageRocksDBStore;
     }
 
     @Override
-    public TransMessageRocksDBStore getTransRocksDBStore() {
+    public TransMessageRocksDBStore getTransMessageRocksDBStore() {
         return transMessageRocksDBStore;
     }
 
@@ -329,7 +329,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public void setTransRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
+    public void setTransMessageRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
         this.transMessageRocksDBStore = transMessageRocksDBStore;
     }
 

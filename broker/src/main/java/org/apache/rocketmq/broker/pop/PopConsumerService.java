@@ -65,6 +65,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -533,6 +534,7 @@ public class PopConsumerService extends ServiceThread {
             });
     }
 
+    @SuppressWarnings("StatementWithEmptyBody")
     public void clearCache(String groupId, String topicId, int queueId) {
         while (consumerLockService.tryLock(groupId, topicId)) {
         }
@@ -551,12 +553,26 @@ public class PopConsumerService extends ServiceThread {
         List<PopConsumerRecord> consumerRecords = this.popConsumerStore.scanExpiredRecords(
                 currentTime.get() - TimeUnit.SECONDS.toMillis(3), upperTime, maxCount);
         long scanCostTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+
+        // When reading messages from local storage, the current thread is used
+        // directly for data retrieval. When reading original messages from remote
+        // storage (such as distributed file systems), so concurrency needs to be
+        // controlled via semaphore.
+        Semaphore semaphore = new Semaphore(brokerConfig.getPopReviveConcurrency());
         Queue<PopConsumerRecord> failureList = new LinkedBlockingQueue<>();
         List<CompletableFuture<?>> futureList = new ArrayList<>(consumerRecords.size());
 
         // could merge read operation here
         for (PopConsumerRecord record : consumerRecords) {
-            futureList.add(this.revive(record).thenAccept(result -> {
+            CompletableFuture<Boolean> future;
+            try {
+                semaphore.acquire();
+                future = this.revive(record);
+            } catch (Exception e) {
+                semaphore.release();
+                throw new RuntimeException(e);
+            }
+            futureList.add(future.thenAccept(result -> {
                 if (!result) {
                     if (record.getAttemptTimes() < brokerConfig.getPopReviveMaxAttemptTimes()) {
                         long backoffInterval = 1000L * REWRITE_INTERVALS_IN_SECONDS[
@@ -572,7 +588,7 @@ public class PopConsumerService extends ServiceThread {
                         log.error("PopConsumerService drop record, message may be lost, record={}", record);
                     }
                 }
-            }));
+            }).whenComplete((result, ex) -> semaphore.release()));
         }
 
         CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();

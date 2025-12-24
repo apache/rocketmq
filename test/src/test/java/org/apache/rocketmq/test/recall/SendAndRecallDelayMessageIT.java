@@ -42,7 +42,10 @@ import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class SendAndRecallDelayMessageIT extends BaseConf {
 
     private static String initTopic;
@@ -50,8 +53,23 @@ public class SendAndRecallDelayMessageIT extends BaseConf {
     private static RMQNormalProducer producer;
     private static RMQPopConsumer popConsumer;
 
+    private final boolean appendTopicForTimerDeleteKey;
+
+    public SendAndRecallDelayMessageIT(boolean appendTopicForTimerDeleteKey) {
+        this.appendTopicForTimerDeleteKey = appendTopicForTimerDeleteKey;
+    }
+
+    @Parameterized.Parameters
+    public static List<Object[]> params() {
+        List<Object[]> result = new ArrayList<>();
+        result.add(new Object[] {false});
+        result.add(new Object[] {true});
+        return result;
+    }
+
     @Before
     public void init() {
+        brokerController1.getMessageStoreConfig().setAppendTopicForTimerDeleteKey(appendTopicForTimerDeleteKey);
         initTopic = initTopic();
         consumerGroup = initConsumerGroup();
         producer = getProducer(NAMESRV_ADDR, initTopic);
@@ -126,6 +144,9 @@ public class SendAndRecallDelayMessageIT extends BaseConf {
 
     @Test
     public void testSendAndRecall_ukCollision() throws Exception {
+        if (!appendTopicForTimerDeleteKey) { // skip
+            return;
+        }
         int delaySecond = 5;
         String topic = MQRandomUtils.getRandomTopic();
         String collisionTopic = MQRandomUtils.getRandomTopic();

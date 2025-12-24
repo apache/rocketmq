@@ -58,7 +58,7 @@ public class TransactionalMessageRocksDBService {
 
     public TransactionalMessageRocksDBService(final MessageStore messageStore, final BrokerController brokerController) {
         this.messageStore = messageStore;
-        this.transMessageRocksDBStore = messageStore.getTransRocksDBStore();
+        this.transMessageRocksDBStore = messageStore.getTransMessageRocksDBStore();
         this.messageRocksDBStorage = transMessageRocksDBStore.getMessageRocksDBStorage();
         this.brokerController = brokerController;
     }
