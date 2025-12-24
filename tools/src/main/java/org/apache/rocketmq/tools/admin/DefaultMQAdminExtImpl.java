@@ -523,7 +523,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
                 List<BrokerData> brokerDatas = null;
                 if (topicRouteData == null || CollectionUtils.isEmpty(topicRouteData.getBrokerDatas())) {
-                    brokerDatas = selectBrokerByConsumerGroup(clusterName, consumerGroup);
+                    try {
+                        brokerDatas = selectBrokerByConsumerGroup(clusterName, consumerGroup);
+                    } catch (Exception e) {
+                        logger.warn("Fallback to selectBrokerByConsumerGroup failed for group: {}", consumerGroup, e);
+                    }
                 } else {
                     brokerDatas = topicRouteData.getBrokerDatas();
                 }
@@ -1135,7 +1139,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 try {
                     brokerDatas = examineTopicRouteInfo(retryTopic).getBrokerDatas();
                 } catch (Exception e) {
-                    brokerDatas = selectBrokerByConsumerGroup(clusterName, group);
+                    try {
+                        brokerDatas = selectBrokerByConsumerGroup(clusterName, group);
+                    } catch (Exception e1) {
+                        logger.warn("Fallback to selectBrokerByConsumerGroup failed for group: {}", group, e1);
+                    }
                 }
 
                 if (brokerDatas == null || CollectionUtils.isEmpty(brokerDatas)) {
