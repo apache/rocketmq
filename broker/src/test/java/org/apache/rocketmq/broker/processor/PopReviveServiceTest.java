@@ -266,7 +266,6 @@ public class PopReviveServiceTest {
                 PopCheckPoint ck = buildPopCheckPoint(i, basePopTime + 1, i);
                 MessageExtBrokerInner msg = buildCkMsg(ck);
                 reviveMessageExtList.add(msg);
-                System.out.println("add ck with reviveOffset=" + i + ", reviveTime=" + ck.getReviveTime() + ", deliverTime=" + msg.getDeliverTimeMs());
             }
         }
         doReturn(reviveMessageExtList, new ArrayList<>()).when(popReviveService).getReviveMessage(anyLong(), anyInt());
