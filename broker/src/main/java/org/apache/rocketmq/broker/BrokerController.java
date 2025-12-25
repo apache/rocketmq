@@ -878,7 +878,7 @@ public class BrokerController {
             }
             if (messageStoreConfig.isTransRocksDBEnable()) {
                 this.transMessageRocksDBStore = new TransMessageRocksDBStore(messageStore, brokerStatsManager, new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort()));
-                this.messageStore.setTransRocksDBStore(transMessageRocksDBStore);
+                this.messageStore.setTransMessageRocksDBStore(transMessageRocksDBStore);
             }
         } catch (Exception e) {
             result = false;

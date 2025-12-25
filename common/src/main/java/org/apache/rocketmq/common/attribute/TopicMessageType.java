@@ -28,6 +28,7 @@ public enum TopicMessageType {
     FIFO("FIFO"),
     DELAY("DELAY"),
     TRANSACTION("TRANSACTION"),
+    PRIORITY("PRIORITY"),
     MIXED("MIXED");
 
     private final String value;
@@ -36,7 +37,8 @@ public enum TopicMessageType {
     }
 
     public static Set<String> topicMessageTypeSet() {
-        return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value, MIXED.value);
+        return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value,
+            PRIORITY.value, MIXED.value);
     }
 
     public String getValue() {
@@ -44,9 +46,8 @@ public enum TopicMessageType {
     }
 
     public static TopicMessageType parseFromMessageProperty(Map<String, String> messageProperty) {
-        String isTrans = messageProperty.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-        String isTransValue = "true";
-        if (isTransValue.equals(isTrans)) {
+        // the parse order keeps message types mutually exclusive
+        if (Boolean.parseBoolean(messageProperty.get(MessageConst.PROPERTY_TRANSACTION_PREPARED))) {
             return TopicMessageType.TRANSACTION;
         } else if (messageProperty.get(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
             || messageProperty.get(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null
@@ -55,6 +56,8 @@ public enum TopicMessageType {
             return TopicMessageType.DELAY;
         } else if (messageProperty.get(MessageConst.PROPERTY_SHARDING_KEY) != null) {
             return TopicMessageType.FIFO;
+        } else if (messageProperty.get(MessageConst.PROPERTY_PRIORITY) != null) {
+            return TopicMessageType.PRIORITY;
         }
         return TopicMessageType.NORMAL;
     }

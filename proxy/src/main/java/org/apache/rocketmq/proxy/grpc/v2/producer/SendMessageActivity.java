@@ -45,7 +45,7 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
@@ -56,7 +56,7 @@ import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 
-public class SendMessageActivity extends AbstractMessingActivity {
+public class SendMessageActivity extends AbstractMessagingActivity {
 
     public SendMessageActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
@@ -261,6 +261,12 @@ public class SendMessageActivity extends AbstractMessingActivity {
 
         // set delay level or deliver timestamp
         fillDelayMessageProperty(message, messageWithHeader);
+
+        // set priority
+        if (message.getSystemProperties().hasPriority()) {
+            int priority = message.getSystemProperties().getPriority();
+            messageWithHeader.setPriority(priority);
+        }
 
         // set reconsume times
         int reconsumeTimes = message.getSystemProperties().getDeliveryAttempt();

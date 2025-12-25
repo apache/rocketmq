@@ -210,15 +210,15 @@ public interface MessageStore {
 
     TimerMessageStore getTimerMessageStore();
 
-    TimerMessageRocksDBStore getTimerRocksDBStore();
+    TimerMessageRocksDBStore getTimerMessageRocksDBStore();
 
-    TransMessageRocksDBStore getTransRocksDBStore();
+    TransMessageRocksDBStore getTransMessageRocksDBStore();
 
     void setTimerMessageStore(TimerMessageStore timerMessageStore);
 
     void setTimerMessageRocksDBStore(TimerMessageRocksDBStore timerMessageRocksDBStore);
 
-    void setTransRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore);
+    void setTransMessageRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore);
 
     /**
      * Get the offset of the message in the commit log, which is also known as physical offset.

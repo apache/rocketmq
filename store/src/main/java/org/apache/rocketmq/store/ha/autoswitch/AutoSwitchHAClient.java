@@ -463,8 +463,11 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 LOGGER.error("Failed to truncate slave log to {}", truncateOffset);
                 return false;
             }
-            this.epochCache.truncateSuffixByOffset(truncateOffset);
-            LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
+            final long maxPhyOffset = this.messageStore.getMaxPhyOffset();
+            if (truncateOffset < maxPhyOffset) {
+                this.epochCache.truncateSuffixByOffset(truncateOffset);
+                LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
+            }
             changeCurrentState(HAConnectionState.TRANSFER);
             this.currentReportedOffset = truncateOffset;
         }
