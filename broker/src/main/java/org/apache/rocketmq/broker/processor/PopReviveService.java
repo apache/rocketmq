@@ -66,6 +66,7 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOP
 
 public class PopReviveService extends ServiceThread {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    public static final int MAX_REVIVE_SIZE = 1024 * 10;
     private final int[] ckRewriteIntervalsInSeconds = new int[] { 10, 20, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 1200, 1800, 3600, 7200 };
 
     private int queueId;
@@ -354,6 +355,9 @@ public class PopReviveService extends ServiceThread {
             }
             if (System.currentTimeMillis() - startScanTime > brokerController.getBrokerConfig().getReviveScanTime()) {
                 POP_LOGGER.info("reviveQueueId={}, scan timeout ", queueId);
+                break;
+            }
+            if (map.size() >= MAX_REVIVE_SIZE) {
                 break;
             }
             List<MessageExt> messageExts = getReviveMessage(offset, queueId);
