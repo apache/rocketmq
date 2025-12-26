@@ -86,21 +86,21 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public void cleanOffsetByTopic(String topic) {
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
+
+        this.offsetTable.entrySet().removeIf(entry -> {
+            String topicAtGroup = entry.getKey();
             if (topicAtGroup.contains(topic)) {
                 String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
                 if (arrays.length == 2 && topic.equals(arrays[0])) {
-                    it.remove();
                     removeConsumerOffset(topicAtGroup);
                     pullOffsetTable.remove(topicAtGroup);
                     resetOffsetTable.remove(topicAtGroup);
-                    LOG.warn("Clean topic's offset, {}, {}", topicAtGroup, next.getValue());
+                    LOG.warn("Clean topic's offset, {}, {}", topicAtGroup, entry.getValue());
+                    return true;
                 }
             }
-        }
+            return false;
+        });
     }
 
     public void scanUnsubscribedTopic() {
