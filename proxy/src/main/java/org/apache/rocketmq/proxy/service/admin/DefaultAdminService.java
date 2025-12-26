@@ -21,18 +21,20 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIExt;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.remoting.protocol.route.BrokerData;
-import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.client.impl.mqclient.MQClientAPIExt;
-import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteHelper;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class DefaultAdminService implements AdminService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -88,6 +90,47 @@ public class DefaultAdminService implements AdminService {
             log.error("create topic {} failed.", createTopic, e);
         }
         return false;
+    }
+
+    @Override
+    public boolean createSubscriptionGroupIfNotExist(String clusterName, SubscriptionGroupConfig config,
+        int retryTimes) {
+        try {
+            ClusterInfo clusterInfo = this.getClient().getBrokerClusterInfo(Duration.ofSeconds(3).toMillis());
+            if (clusterInfo == null || clusterInfo.getClusterAddrTable() == null) {
+                log.error("createSubscriptionGroupIfNotExist failed, cluster info is empty");
+                return false;
+            }
+
+            Set<String> brokerNames = clusterInfo.getClusterAddrTable().get(clusterName);
+            if (brokerNames == null || brokerNames.isEmpty()) {
+                log.error("createSubscriptionGroupIfNotExist failed, cluster {} is empty", clusterName);
+                return false;
+            }
+
+            boolean allSuccess = true;
+            for (String brokerName : brokerNames) {
+                BrokerData brokerData = clusterInfo.getBrokerAddrTable().get(brokerName);
+                if (brokerData == null || brokerData.getBrokerAddrs() == null) {
+                    continue;
+                }
+
+                String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+                if (masterAddr != null) {
+                    try {
+                        this.getClient().createSubscriptionGroup(masterAddr, config, Duration.ofSeconds(3).toMillis());
+                        log.info("create subscription group {} on broker {} success", config.getGroupName(), masterAddr);
+                    } catch (Exception e) {
+                        log.error("create subscription group {} on broker {} failed", config.getGroupName(), masterAddr, e);
+                        allSuccess = false;
+                    }
+                }
+            }
+            return allSuccess;
+        } catch (Exception e) {
+            log.error("createSubscriptionGroupIfNotExist failed, clusterName: {}", clusterName, e);
+            return false;
+        }
     }
 
     @Override
