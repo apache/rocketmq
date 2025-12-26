@@ -688,6 +688,13 @@
                 <type>jar</type>
                 <version>${bcpkix-jdk15on.version}</version>
             </dependency>
+            <!-- Compatibility adaptation for third-party dependencies -->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson2.version}</version>
+                <scope>runtime</scope>
+            </dependency>
             <dependency>
                 <groupId>com.alibaba.fastjson2</groupId>
                 <artifactId>fastjson2</artifactId>
