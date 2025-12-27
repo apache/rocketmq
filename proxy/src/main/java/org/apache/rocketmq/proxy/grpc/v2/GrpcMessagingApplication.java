@@ -136,7 +136,10 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     protected void init() {
         GrpcTaskRejectedExecutionHandler rejectedExecutionHandler = new GrpcTaskRejectedExecutionHandler();
-        this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
+
+        //Repeated assignment
+        //this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
+
         this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
         this.producerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
         this.consumerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
