@@ -19,7 +19,6 @@ package org.apache.rocketmq.proxy.service.route;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +36,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -134,6 +134,22 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 }
             }
         }, serviceDetector);
+
+        this.appendStartAndShutdown(new StartAndShutdown() {
+            @Override
+            public void shutdown() throws Exception {
+                if (mqFaultStrategy.isStartDetectorEnable()) {
+                    mqFaultStrategy.shutdown();
+                }
+            }
+
+            @Override
+            public void start() throws Exception {
+                if (mqFaultStrategy.isStartDetectorEnable()) {
+                    mqFaultStrategy.startDetector();
+                }
+            }
+        });
         this.init();
     }
 
@@ -148,20 +164,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     protected void init() {
         this.appendShutdown(this.scheduledExecutorService::shutdown);
         this.appendStartAndShutdown(this.mqClientAPIFactory);
-    }
-
-    @Override
-    public void shutdown() throws Exception {
-        if (this.mqFaultStrategy.isStartDetectorEnable()) {
-            mqFaultStrategy.shutdown();
-        }
-    }
-
-    @Override
-    public void start() throws Exception {
-        if (this.mqFaultStrategy.isStartDetectorEnable()) {
-            this.mqFaultStrategy.startDetector();
-        }
     }
 
     public ClientConfig extractClientConfigFromProxyConfig(ProxyConfig proxyConfig) {

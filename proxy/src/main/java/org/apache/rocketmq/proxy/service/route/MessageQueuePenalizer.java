@@ -23,7 +23,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 @FunctionalInterface
-public interface MessageQueuePenalizer <Q extends MessageQueue> {
+public interface MessageQueuePenalizer<Q extends MessageQueue> {
 
     /**
      * Returns the penalty value for the given MessageQueue; lower is better.

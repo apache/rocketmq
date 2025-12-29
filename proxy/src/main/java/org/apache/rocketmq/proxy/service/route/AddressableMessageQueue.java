@@ -35,6 +35,11 @@ public class AddressableMessageQueue extends MessageQueue {
     }
 
     @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
