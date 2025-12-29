@@ -288,7 +288,7 @@ public class Timeline {
             }
             int separatorIndex = deleteKey.indexOf(DELETE_KEY_SPLIT);
             if (separatorIndex == -1) {
-                throw new IllegalArgumentException("Invalid deleteKey format");
+                return deleteKey;
             }
             return deleteKey.substring(separatorIndex + 1);
         }
