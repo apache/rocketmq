@@ -174,11 +174,10 @@ public class MessageQueueSelector {
 
     public AddressableMessageQueue selectOneByPipeline(boolean onlyBroker) {
         if (CollectionUtils.isNotEmpty(penalizers)) {
-            List<AddressableMessageQueue> messageQueueList = onlyBroker ? brokerActingQueues : queues ;
-            Pair<AddressableMessageQueue, Integer> queueAndPenalty = selectLeastPenalty(messageQueueList, penalizers, onlyBroker ? brokerIndex : queueIndex);
-            AddressableMessageQueue messageQueue = queueAndPenalty.getLeft();
-            if (messageQueue != null) {
-                return messageQueue;
+            Pair<AddressableMessageQueue, Integer> queueAndPenalty = selectLeastPenalty(onlyBroker ? brokerActingQueues : queues,
+                penalizers, onlyBroker ? brokerIndex : queueIndex);
+            if (queueAndPenalty != null && queueAndPenalty.getLeft() != null) {
+                return queueAndPenalty.getLeft();
             }
         }
 

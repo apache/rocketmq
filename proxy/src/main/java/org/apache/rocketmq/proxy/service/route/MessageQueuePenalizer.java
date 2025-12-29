@@ -44,8 +44,22 @@ public interface MessageQueuePenalizer <Q extends MessageQueue> {
     }
 
     /**
-     * Selects the MessageQueue with the smallest total penalty.
-     * Returns null if queues is null/empty.
+     * Selects the queue with the lowest evaluated penalty from the given queue list.
+     *
+     * <p>The method iterates through all queues exactly once, but starts from a rotating index
+     * derived from {@code startIndex} (round-robin) to avoid always scanning from position 0 .</p>
+     *
+     * <p>For each queue, it computes a penalty via {@link #evaluatePenalty} using
+     * the provided {@code penalizers}. The queue with the smallest penalty is selected.</p>
+     *
+     * <p>Short-circuit rule: if any queue has a {@code penalty<= 0}, it is returned immediately,
+     * since no better result than 0 is expected.</p>
+     *
+     * @param queues candidate queues to select from
+     * @param penalizers penalty evaluators applied to each queue
+     * @param startIndex atomic counter used to determine the rotating start position (round-robin)
+     * @param <Q> queue type
+     * @return a {@code Pair} of (selected queue, penalty), or {@code null} if {@code queues} is null/empty
      */
     static <Q extends MessageQueue> Pair<Q, Integer> selectLeastPenalty(List<Q> queues,
         List<MessageQueuePenalizer<Q>> penalizers, AtomicInteger startIndex) {
@@ -74,8 +88,23 @@ public interface MessageQueuePenalizer <Q extends MessageQueue> {
     }
 
     /**
-     * Selects the MessageQueue with the smallest total penalty.
-     * Returns null if queuesWithPriority is null/empty.
+     * Selects a queue with the lowest computed penalty from multiple priority groups.
+     *
+     * <p>The input {@code queuesWithPriority} is a list of queue groups ordered by priority.
+     * For each priority group, this method delegates to {@link #selectLeastPenalty} to pick the best queue
+     * within that group and obtain its penalty.</p>
+     *
+     * <p>Short-circuit rule: if any priority group yields a queue whose {@code penalty <= 0},
+     * that result is returned immediately.</p>
+     *
+     * <p>Otherwise, it returns the queue with the smallest positive penalty among all groups.
+     * If multiple groups produce the same minimum penalty, the first encountered one wins.</p>
+     *
+     * @param queuesWithPriority priority-ordered groups of queues; each inner list represents one priority level
+     * @param penalizers penalty calculators used by {@code selectLeastPenalty} to score queues
+     * @param startIndex round-robin start index forwarded to {@code selectLeastPenalty} to reduce contention/hotspots
+     * @param <Q> queue type
+     * @return a {@code Pair} of (selected queue, penalty), or {@code null} if {@code queuesWithPriority} is null/empty
      */
     static <Q extends MessageQueue> Pair<Q, Integer> selectLeastPenaltyWithPriority(List<List<Q>> queuesWithPriority,
         List<MessageQueuePenalizer<Q>> penalizers, AtomicInteger startIndex) {
