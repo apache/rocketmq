@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -36,7 +37,6 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
-import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -53,12 +53,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public abstract class TopicRouteService extends AbstractStartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    private final MQClientAPIFactory mqClientAPIFactory;
-    private MQFaultStrategy mqFaultStrategy;
-
+    private final MQFaultStrategy mqFaultStrategy;
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ScheduledExecutorService scheduledExecutorService;
     protected final ThreadPoolExecutor cacheRefreshExecutor;
+    protected final List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
@@ -74,7 +73,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             "TopicRouteCacheRefresh",
             config.getTopicRouteServiceThreadPoolQueueCapacity()
         );
-        this.mqClientAPIFactory = mqClientAPIFactory;
 
         this.topicCache = Caffeine.newBuilder().maximumSize(config.getTopicRouteServiceCacheMaxNum())
             .expireAfterAccess(config.getTopicRouteServiceCacheExpiredSeconds(), TimeUnit.SECONDS)
@@ -135,20 +133,17 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             }
         }, serviceDetector);
 
-        this.appendStartAndShutdown(new StartAndShutdown() {
-            @Override
-            public void shutdown() throws Exception {
-                if (mqFaultStrategy.isStartDetectorEnable()) {
-                    mqFaultStrategy.shutdown();
-                }
+        this.penalizers.add(messageQueue -> {
+            if (mqFaultStrategy.getAvailableFilter().filter(messageQueue)) {
+                return 0;
             }
-
-            @Override
-            public void start() throws Exception {
-                if (mqFaultStrategy.isStartDetectorEnable()) {
-                    mqFaultStrategy.startDetector();
-                }
+            return 10;
+        });
+        this.penalizers.add(messageQueue -> {
+            if (mqFaultStrategy.getReachableFilter().filter(messageQueue)) {
+                return 0;
             }
+            return 100;
         });
         this.init();
     }
@@ -162,8 +157,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     }
 
     protected void init() {
+        this.appendStartAndShutdown(this.mqFaultStrategy);
         this.appendShutdown(this.scheduledExecutorService::shutdown);
-        this.appendStartAndShutdown(this.mqClientAPIFactory);
     }
 
     public ClientConfig extractClientConfigFromProxyConfig(ProxyConfig proxyConfig) {
@@ -222,7 +217,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     protected MessageQueueView buildMessageQueueView(String topic, TopicRouteData topicRouteData) {
         if (isTopicRouteValid(topicRouteData)) {
-            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData, TopicRouteService.this.getMqFaultStrategy());
+            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData, this.penalizers);
             log.debug("load topic route from namesrv. topic: {}, queue: {}", topic, tmp);
             return tmp;
         }

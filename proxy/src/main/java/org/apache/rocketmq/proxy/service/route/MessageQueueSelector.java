@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
@@ -51,7 +50,7 @@ public class MessageQueueSelector {
     private final AtomicInteger brokerIndex;
     private final List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
 
-    public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, MQFaultStrategy mqFaultStrategy, boolean read) {
+    public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, boolean read) {
         if (read) {
             this.queues.addAll(buildRead(topicRouteWrapper));
         } else {
@@ -61,18 +60,6 @@ public class MessageQueueSelector {
         Random random = new Random();
         this.queueIndex = new AtomicInteger(random.nextInt());
         this.brokerIndex = new AtomicInteger(random.nextInt());
-        this.addPenalizer(messageQueue -> {
-            if (mqFaultStrategy.getAvailableFilter().filter(messageQueue)) {
-                return 0;
-            }
-            return 10;
-        });
-        this.addPenalizer(messageQueue -> {
-            if (mqFaultStrategy.getReachableFilter().filter(messageQueue)) {
-                return 0;
-            }
-            return 100;
-        });
     }
 
     private static List<AddressableMessageQueue> buildRead(TopicRouteWrapper topicRoute) {
@@ -222,7 +209,9 @@ public class MessageQueueSelector {
     }
 
     public void addPenalizer(MessageQueuePenalizer<AddressableMessageQueue> penalizer) {
-        this.penalizers.add(penalizer);
+        if (penalizer != null) {
+            this.penalizers.add(penalizer);
+        }
     }
 
     @Override
