@@ -23,7 +23,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.ClientConfig;
@@ -32,12 +31,10 @@ import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.client.latency.Resolver;
 import org.apache.rocketmq.client.latency.ServiceDetector;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
-import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.Address;
@@ -55,16 +52,12 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     private final MQFaultStrategy mqFaultStrategy;
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
-    protected final ScheduledExecutorService scheduledExecutorService;
     protected final ThreadPoolExecutor cacheRefreshExecutor;
     protected final List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
 
-        this.scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor(
-            new ThreadFactoryImpl("TopicRouteService_")
-        );
         this.cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
             config.getTopicRouteServiceThreadPoolNums(),
             config.getTopicRouteServiceThreadPoolNums(),
@@ -134,13 +127,13 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         }, serviceDetector);
 
         this.penalizers.add(messageQueue -> {
-            if (mqFaultStrategy.getAvailableFilter().filter(messageQueue)) {
+            if (!mqFaultStrategy.isSendLatencyFaultEnable() || mqFaultStrategy.getAvailableFilter().filter(messageQueue)) {
                 return 0;
             }
             return 10;
         });
         this.penalizers.add(messageQueue -> {
-            if (mqFaultStrategy.getReachableFilter().filter(messageQueue)) {
+            if (!mqFaultStrategy.isSendLatencyFaultEnable() || mqFaultStrategy.getReachableFilter().filter(messageQueue)) {
                 return 0;
             }
             return 100;
@@ -158,7 +151,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     protected void init() {
         this.appendStartAndShutdown(this.mqFaultStrategy);
-        this.appendShutdown(this.scheduledExecutorService::shutdown);
     }
 
     public ClientConfig extractClientConfigFromProxyConfig(ProxyConfig proxyConfig) {
