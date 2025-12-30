@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.service.route;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -126,18 +127,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             }
         }, serviceDetector);
 
-        this.penalizers.add(messageQueue -> {
-            if (!mqFaultStrategy.isSendLatencyFaultEnable() || mqFaultStrategy.getAvailableFilter().filter(messageQueue)) {
-                return 0;
-            }
-            return 10;
-        });
-        this.penalizers.add(messageQueue -> {
-            if (!mqFaultStrategy.isSendLatencyFaultEnable() || mqFaultStrategy.getReachableFilter().filter(messageQueue)) {
-                return 0;
-            }
-            return 100;
-        });
+        this.penalizers.addAll(buildPenalizerByMQFaultStrategy(mqFaultStrategy));
         this.init();
     }
 
@@ -214,5 +204,23 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             return tmp;
         }
         return MessageQueueView.WRAPPED_EMPTY_QUEUE;
+    }
+
+    @VisibleForTesting
+    public static List<MessageQueuePenalizer<AddressableMessageQueue>> buildPenalizerByMQFaultStrategy(MQFaultStrategy mqFaultStrategy) {
+        List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
+        penalizers.add(messageQueue -> {
+            if (!mqFaultStrategy.isSendLatencyFaultEnable() || mqFaultStrategy.getAvailableFilter().filter(messageQueue)) {
+                return 0;
+            }
+            return 10;
+        });
+        penalizers.add(messageQueue -> {
+            if (!mqFaultStrategy.isSendLatencyFaultEnable() || mqFaultStrategy.getReachableFilter().filter(messageQueue)) {
+                return 0;
+            }
+            return 100;
+        });
+        return penalizers;
     }
 }
