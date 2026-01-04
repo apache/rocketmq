@@ -111,6 +111,9 @@ public interface MessageQueuePenalizer<Q extends MessageQueue> {
         if (queuesWithPriority == null || queuesWithPriority.isEmpty()) {
             return null;
         }
+        if (queuesWithPriority.size() == 1) {
+            return selectLeastPenalty(queuesWithPriority.get(0), penalizers, startIndex);
+        }
         Q bestQueue = null;
         int bestPenalty = Integer.MAX_VALUE;
         for (List<Q> queues : queuesWithPriority) {

@@ -36,7 +36,8 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 
-import static org.apache.rocketmq.proxy.service.route.MessageQueuePenalizer.selectLeastPenalty;
+import static org.apache.rocketmq.proxy.service.route.MessageQueuePenalizer.selectLeastPenaltyWithPriority;
+import static org.apache.rocketmq.proxy.service.route.MessageQueuePriorityProvider.buildPriorityGroups;
 
 public class MessageQueueSelector {
     private static final int BROKER_ACTING_QUEUE_ID = -1;
@@ -50,7 +51,16 @@ public class MessageQueueSelector {
     private final AtomicInteger brokerIndex;
     private final List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
 
+    // ordered by priority asc (smaller => higher priority)
+    private final List<List<AddressableMessageQueue>> queuesWithPriority;
+    private final List<List<AddressableMessageQueue>> brokerActingQueuesWithPriority;
+
     public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, boolean read) {
+        this(topicRouteWrapper, read, null);
+    }
+
+    public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, boolean read,
+        MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider) {
         if (read) {
             this.queues.addAll(buildRead(topicRouteWrapper));
         } else {
@@ -60,6 +70,12 @@ public class MessageQueueSelector {
         Random random = new Random();
         this.queueIndex = new AtomicInteger(random.nextInt());
         this.brokerIndex = new AtomicInteger(random.nextInt());
+
+        if (priorityProvider == null) {
+            priorityProvider = new DefaultMessageQueuePriorityProvider();
+        }
+        this.queuesWithPriority = buildPriorityGroups(queues, priorityProvider);
+        this.brokerActingQueuesWithPriority = buildPriorityGroups(brokerActingQueues, priorityProvider);
     }
 
     private static List<AddressableMessageQueue> buildRead(TopicRouteWrapper topicRoute) {
@@ -161,8 +177,12 @@ public class MessageQueueSelector {
 
     public AddressableMessageQueue selectOneByPipeline(boolean onlyBroker) {
         if (CollectionUtils.isNotEmpty(penalizers)) {
-            Pair<AddressableMessageQueue, Integer> queueAndPenalty = selectLeastPenalty(onlyBroker ? brokerActingQueues : queues,
-                penalizers, onlyBroker ? brokerIndex : queueIndex);
+            Pair<AddressableMessageQueue, Integer> queueAndPenalty;
+            if (onlyBroker) {
+                queueAndPenalty = selectLeastPenaltyWithPriority(brokerActingQueuesWithPriority, penalizers, brokerIndex);
+            } else {
+                queueAndPenalty = selectLeastPenaltyWithPriority(queuesWithPriority, penalizers, queueIndex);
+            }
             if (queueAndPenalty != null && queueAndPenalty.getLeft() != null) {
                 return queueAndPenalty.getLeft();
             }
