@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.service.route;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class AddressableMessageQueue extends MessageQueue {
@@ -52,6 +53,9 @@ public class AddressableMessageQueue extends MessageQueue {
 
     @Override
     public String toString() {
-        return super.toString();
+        return MoreObjects.toStringHelper(this)
+            .add("messageQueue", super.toString())
+            .add("brokerAddr", brokerAddr)
+            .toString();
     }
 }
