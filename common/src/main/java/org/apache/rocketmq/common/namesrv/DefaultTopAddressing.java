@@ -107,27 +107,27 @@ public class DefaultTopAddressing implements TopAddressing {
     }
 
     public final String fetchNSAddr(boolean verbose, long timeoutMills) {
-        String url = this.wsAddr;
+        StringBuilder url = new StringBuilder(this.wsAddr);
         try {
             if (null != para && para.size() > 0) {
                 if (!UtilAll.isBlank(this.unitName)) {
-                    url = url + "-" + this.unitName + "?nofix=1&";
+                    url.append("-").append(this.unitName).append("?nofix=1&");
                 }
                 else {
-                    url = url + "?";
+                    url.append("?");
                 }
                 for (Map.Entry<String, String> entry : this.para.entrySet()) {
-                    url += entry.getKey() + "=" + entry.getValue() + "&";
+                    url.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
                 }
-                url = url.substring(0, url.length() - 1);
+                url = new StringBuilder(url.substring(0, url.length() - 1));
             }
             else {
                 if (!UtilAll.isBlank(this.unitName)) {
-                    url = url + "-" + this.unitName + "?nofix=1";
+                    url.append("-").append(this.unitName).append("?nofix=1");
                 }
             }
 
-            HttpTinyClient.HttpResult result = HttpTinyClient.httpGet(url, null, null, "UTF-8", timeoutMills);
+            HttpTinyClient.HttpResult result = HttpTinyClient.httpGet(url.toString(), null, null, "UTF-8", timeoutMills);
             if (200 == result.code) {
                 String responseStr = result.content;
                 if (responseStr != null) {

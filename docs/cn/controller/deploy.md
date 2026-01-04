@@ -26,14 +26,33 @@ notifyBrokerRoleChanged = true
 
 - enableControllerInNamesrv：Nameserver中是否开启controller，默认false。
 - controllerDLegerGroup：DLedger Raft Group的名字，同一个DLedger Raft Group保持一致即可。
-- controllerDLegerPeers：DLedger Group 内各节点的端口信息，同一个 Group 内的各个节点配置必须要保证一致。
+- controllerDLegerPeers：DLedger Group 内各节点的地址信息，同一个 Group 内的各个节点配置必须要保证一致。
 - controllerDLegerSelfId：节点 id，必须属于 controllerDLegerPeers 中的一个；同 Group 内各个节点要唯一。
 - controllerStorePath：controller日志存储位置。controller是有状态的，controller重启或宕机需要依靠日志来恢复数据，该目录非常重要，不可以轻易删除。
 - enableElectUncleanMaster：是否可以从SyncStateSet以外选举Master，若为true，可能会选取数据落后的副本作为Master而丢失消息，默认为false。
 - notifyBrokerRoleChanged：当broker副本组上角色发生变化时是否主动通知，默认为true。
 - scanNotActiveBrokerInterval：扫描 Broker是否存活的时间间隔。
 
-其他一些参数可以参考ControllerConfig代码。
+- 其他一些参数可以参考ControllerConfig代码。
+
+> 5.2.0 Controller 开始支持 jRaft 内核启动，不支持 DLedger 内核到 jRaft 内核原地升级
+
+```
+controllerType = jRaft
+jRaftGroupId = jRaft-Controller
+jRaftServerId = localhost:9880
+jRaftInitConf = localhost:9880,localhost:9881,localhost:9882
+jRaftControllerRPCAddr = localhost:9770,localhost:9771,localhost:9772
+jRaftSnapshotIntervalSecs = 3600
+```
+
+jRaft 版本相关参数
+- controllerType：controllerType=jRaft的时候内核启动使用jRaft，默认为DLedger。
+- jRaftGroupId：jRaft Group的名字，同一个jRaft Group保持一致即可。
+- jRaftServerId：标志自己节点的ServerId，必须出现在 jRaftInitConf 中。
+- jRaftInitConf：jRaft Group 内部通信各节点的地址信息，用逗号分隔，是 jRaft 内部通信来做选举和复制所用的地址。
+- jRaftControllerRPCAddr：Controller 外部通信的各节点的地址信息，用逗号分隔，比如 Controller 与 Broker 通信会使用该地址。
+- jRaftSnapshotIntervalSecs：Raft Snapshot 持久化时间间隔。
 
 参数设置完成后，指定配置文件启动Nameserver即可。
 

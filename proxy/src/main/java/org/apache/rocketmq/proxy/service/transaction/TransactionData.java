@@ -23,15 +23,17 @@ import com.google.common.collect.ComparisonChain;
 
 public class TransactionData implements Comparable<TransactionData> {
     private final String brokerName;
+    private final String topic;
     private final long tranStateTableOffset;
     private final long commitLogOffset;
     private final String transactionId;
     private final long checkTimestamp;
     private final long expireMs;
 
-    public TransactionData(String brokerName, long tranStateTableOffset, long commitLogOffset, String transactionId,
+    public TransactionData(String brokerName, String topic, long tranStateTableOffset, long commitLogOffset, String transactionId,
         long checkTimestamp, long expireMs) {
         this.brokerName = brokerName;
+        this.topic = topic;
         this.tranStateTableOffset = tranStateTableOffset;
         this.commitLogOffset = commitLogOffset;
         this.transactionId = transactionId;
@@ -41,6 +43,10 @@ public class TransactionData implements Comparable<TransactionData> {
 
     public String getBrokerName() {
         return brokerName;
+    }
+
+    public String getTopic() {
+        return topic;
     }
 
     public long getTranStateTableOffset() {

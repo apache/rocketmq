@@ -17,12 +17,16 @@
 
 package org.apache.rocketmq.remoting.protocol.subscription;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.google.common.base.MoreObjects;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.rocketmq.common.MixAll;
+
+import static org.apache.rocketmq.common.SubscriptionGroupAttributes.PRIORITY_FACTOR_ATTRIBUTE;
 
 public class SubscriptionGroupConfig {
 
@@ -173,6 +177,12 @@ public class SubscriptionGroupConfig {
         this.attributes = attributes;
     }
 
+    @JSONField(serialize = false, deserialize = false)
+    public long getPriorityFactor() {
+        String factorStr = null == attributes ? null : attributes.get(PRIORITY_FACTOR_ATTRIBUTE.getName());
+        return NumberUtils.toLong(factorStr, PRIORITY_FACTOR_ATTRIBUTE.getDefaultValue());
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -182,6 +192,7 @@ public class SubscriptionGroupConfig {
         result = prime * result + (consumeEnable ? 1231 : 1237);
         result = prime * result + (consumeFromMinEnable ? 1231 : 1237);
         result = prime * result + (notifyConsumerIdsChangedEnable ? 1231 : 1237);
+        result = prime * result + (consumeMessageOrderly ? 1231 : 1237);
         result = prime * result + ((groupName == null) ? 0 : groupName.hashCode());
         result = prime * result + retryMaxTimes;
         result = prime * result + retryQueueNums;
@@ -189,7 +200,7 @@ public class SubscriptionGroupConfig {
             prime * result + (int) (whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
         result = prime * result + groupSysFlag;
         result = prime * result + consumeTimeoutMinute;
-        result = prime * result + subscriptionDataSet.hashCode();
+        result = prime * result + ((subscriptionDataSet == null) ? 0 : subscriptionDataSet.hashCode());
         result = prime * result + attributes.hashCode();
         return result;
     }
@@ -208,6 +219,7 @@ public class SubscriptionGroupConfig {
             .append(consumeEnable, other.consumeEnable)
             .append(consumeFromMinEnable, other.consumeFromMinEnable)
             .append(consumeBroadcastEnable, other.consumeBroadcastEnable)
+            .append(consumeMessageOrderly, other.consumeMessageOrderly)
             .append(retryQueueNums, other.retryQueueNums)
             .append(retryMaxTimes, other.retryMaxTimes)
             .append(whichBrokerWhenConsumeSlowly, other.whichBrokerWhenConsumeSlowly)

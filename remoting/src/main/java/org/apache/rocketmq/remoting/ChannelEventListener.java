@@ -26,4 +26,6 @@ public interface ChannelEventListener {
     void onChannelException(final String remoteAddr, final Channel channel);
 
     void onChannelIdle(final String remoteAddr, final Channel channel);
+
+    void onChannelActive(final String remoteAddr, final Channel channel);
 }

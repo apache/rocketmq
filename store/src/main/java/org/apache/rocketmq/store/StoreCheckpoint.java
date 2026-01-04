@@ -70,6 +70,7 @@ public class StoreCheckpoint {
     }
 
     public void shutdown() {
+
         this.flush();
 
         // unmap mappedByteBuffer
@@ -77,18 +78,22 @@ public class StoreCheckpoint {
 
         try {
             this.fileChannel.close();
-        } catch (IOException e) {
-            log.error("Failed to properly close the channel", e);
+        } catch (Throwable e) {
+            log.error("Failed to close file channel", e);
         }
     }
 
     public void flush() {
-        this.mappedByteBuffer.putLong(0, this.physicMsgTimestamp);
-        this.mappedByteBuffer.putLong(8, this.logicsMsgTimestamp);
-        this.mappedByteBuffer.putLong(16, this.indexMsgTimestamp);
-        this.mappedByteBuffer.putLong(24, this.masterFlushedOffset);
-        this.mappedByteBuffer.putLong(32, this.confirmPhyOffset);
-        this.mappedByteBuffer.force();
+        try {
+            this.mappedByteBuffer.putLong(0, this.physicMsgTimestamp);
+            this.mappedByteBuffer.putLong(8, this.logicsMsgTimestamp);
+            this.mappedByteBuffer.putLong(16, this.indexMsgTimestamp);
+            this.mappedByteBuffer.putLong(24, this.masterFlushedOffset);
+            this.mappedByteBuffer.putLong(32, this.confirmPhyOffset);
+            this.mappedByteBuffer.force();
+        } catch (Throwable e) {
+            log.error("Failed to flush", e);
+        }
     }
 
     public long getPhysicMsgTimestamp() {

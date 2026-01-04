@@ -10,10 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Set up JDK 8
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
           java-version: "8"
-          distribution: "adopt"
+          distribution: "corretto"
           cache: "maven"
       - name: Generate coverage report
         run: mvn -B test -T 2C --file pom.xml
@@ -22,3 +22,4 @@ jobs:
         with:
           fail_ci_if_error: true
           verbose: true
+          token: cf0cba0a-22f8-4580-89ab-4f1dec3bda6f

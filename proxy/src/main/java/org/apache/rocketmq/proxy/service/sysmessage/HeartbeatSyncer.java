@@ -17,20 +17,15 @@
 
 package org.apache.rocketmq.proxy.service.sysmessage;
 
-import com.alibaba.fastjson.JSON;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import com.alibaba.fastjson2.JSON;
+import io.netty.channel.Channel;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -39,12 +34,19 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.channel.RemoteChannel;
 import org.apache.rocketmq.proxy.service.admin.AdminService;
-import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
 
@@ -73,16 +75,8 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         );
         this.consumerManager.appendConsumerIdsChangeListener(new ConsumerIdsChangeListener() {
             @Override
-            public void handle(ConsumerGroupEvent event, String s, Object... args) {
-                if (event == ConsumerGroupEvent.CLIENT_UNREGISTER) {
-                    if (args == null || args.length < 1) {
-                        return;
-                    }
-                    if (args[0] instanceof ClientChannelInfo) {
-                        ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
-                        remoteChannelMap.remove(clientChannelInfo.getChannel().id().asLongText());
-                    }
-                }
+            public void handle(ConsumerGroupEvent event, String group, Object... args) {
+                processConsumerGroupEvent(event, group, args);
             }
 
             @Override
@@ -96,6 +90,18 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
     public void shutdown() throws Exception {
         this.threadPoolExecutor.shutdown();
         super.shutdown();
+    }
+
+    protected void processConsumerGroupEvent(ConsumerGroupEvent event, String group, Object... args) {
+        if (event == ConsumerGroupEvent.CLIENT_UNREGISTER) {
+            if (args == null || args.length < 1) {
+                return;
+            }
+            if (args[0] instanceof ClientChannelInfo) {
+                ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
+                remoteChannelMap.remove(buildKey(group, clientChannelInfo.getChannel()));
+            }
+        }
     }
 
     public void onConsumerRegister(String consumerGroup, ClientChannelInfo clientChannelInfo,
@@ -189,7 +195,7 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                 }
 
                 RemoteChannel decodedChannel = RemoteChannel.decode(data.getChannelData());
-                RemoteChannel channel = remoteChannelMap.computeIfAbsent(data.getGroup() + "@" + decodedChannel.id().asLongText(), key -> decodedChannel);
+                RemoteChannel channel = remoteChannelMap.computeIfAbsent(buildKey(data.getGroup(), decodedChannel), key -> decodedChannel);
                 channel.setExtendAttribute(decodedChannel.getChannelExtendAttribute());
                 ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
                     channel,
@@ -227,5 +233,9 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         // use local address, remoting port and grpc port to build unique local proxy Id
         return proxyConfig.getLocalServeAddr() + "%" + proxyConfig.getRemotingListenPort() + "%" + proxyConfig.getGrpcServerPort();
+    }
+
+    private static String buildKey(String group, Channel channel) {
+        return group + "@" + channel.id().asLongText();
     }
 }

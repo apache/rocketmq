@@ -18,28 +18,25 @@ package org.apache.rocketmq.tieredstore.exception;
 
 public class TieredStoreException extends RuntimeException {
 
-    private TieredStoreErrorCode errorCode;
-    private long position = -1;
-
+    private final TieredStoreErrorCode errorCode;
     private String requestId;
+    private long position = -1L;
 
     public TieredStoreException(TieredStoreErrorCode errorCode, String errorMessage) {
         super(errorMessage);
         this.errorCode = errorCode;
     }
 
-    public TieredStoreException(TieredStoreErrorCode errorCode, String errorMessage, String requestId) {
-        super(errorMessage);
-        this.errorCode = errorCode;
-        this.requestId = requestId;
-    }
-
     public TieredStoreErrorCode getErrorCode() {
         return errorCode;
     }
 
-    public void setErrorCode(TieredStoreErrorCode errorCode) {
-        this.errorCode = errorCode;
+    public String getRequestId() {
+        return requestId;
+    }
+
+    public void setRequestId(String requestId) {
+        this.requestId = requestId;
     }
 
     public long getPosition() {
@@ -52,13 +49,13 @@ public class TieredStoreException extends RuntimeException {
 
     @Override
     public String toString() {
-        String errStr = super.toString();
+        StringBuilder errorStringBuilder = new StringBuilder(super.toString());
         if (requestId != null) {
-            errStr += " requestId: " + requestId;
+            errorStringBuilder.append(" requestId: ").append(requestId);
         }
-        if (position != -1) {
-            errStr += ", position: " + position;
+        if (position != -1L) {
+            errorStringBuilder.append(", position: ").append(position);
         }
-        return errStr;
+        return errorStringBuilder.toString();
     }
 }

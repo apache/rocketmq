@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.remoting.rpc;
 
+import com.google.common.base.MoreObjects;
+import java.util.Objects;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 
 public abstract class RpcRequestHeader implements CommandCustomHeader {
@@ -28,35 +30,72 @@ public abstract class RpcRequestHeader implements CommandCustomHeader {
     //oneway
     protected Boolean oway;
 
+    @Deprecated
     public String getBname() {
         return bname;
     }
 
-    public void setBname(String bname) {
-        this.bname = bname;
+    @Deprecated
+    public void setBname(String brokerName) {
+        this.bname = brokerName;
     }
 
-    public Boolean getOway() {
-        return oway;
+    public String getBrokerName() {
+        return bname;
     }
 
-    public void setOway(Boolean oway) {
-        this.oway = oway;
+    public void setBrokerName(String brokerName) {
+        this.bname = brokerName;
     }
 
-    public String getNs() {
+    public String getNamespace() {
         return ns;
     }
 
-    public void setNs(String ns) {
-        this.ns = ns;
+    public void setNamespace(String namespace) {
+        this.ns = namespace;
     }
 
-    public Boolean getNsd() {
+    public Boolean getNamespaced() {
         return nsd;
     }
 
-    public void setNsd(Boolean nsd) {
-        this.nsd = nsd;
+    public void setNamespaced(Boolean namespaced) {
+        this.nsd = namespaced;
+    }
+
+    public Boolean getOneway() {
+        return oway;
+    }
+
+    public void setOneway(Boolean oneway) {
+        this.oway = oneway;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        RpcRequestHeader header = (RpcRequestHeader) o;
+        return Objects.equals(ns, header.ns) && Objects.equals(nsd, header.nsd) && Objects.equals(bname, header.bname) && Objects.equals(oway, header.oway);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(ns, nsd, bname, oway);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("namespace", ns)
+            .add("namespaced", nsd)
+            .add("brokerName", bname)
+            .add("oneway", oway)
+            .toString();
     }
 }

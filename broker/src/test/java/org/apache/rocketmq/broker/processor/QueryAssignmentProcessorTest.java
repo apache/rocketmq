@@ -19,8 +19,10 @@ package org.apache.rocketmq.broker.processor;
 import com.google.common.collect.ImmutableSet;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
@@ -124,6 +126,24 @@ public class QueryAssignmentProcessorTest {
         final RemotingCommand request = createSetMessageRequestModeRequest(MixAll.RETRY_GROUP_TOPIC_PREFIX + topic);
         RemotingCommand responseToReturn = queryAssignmentProcessor.processRequest(handlerContext, request);
         assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+    }
+
+    @Test
+    public void testDoLoadBalance() throws Exception {
+        Method method = queryAssignmentProcessor.getClass()
+            .getDeclaredMethod("doLoadBalance", String.class, String.class, String.class, MessageModel.class,
+                String.class, SetMessageRequestModeRequestBody.class, ChannelHandlerContext.class);
+        method.setAccessible(true);
+
+        Set<MessageQueue> mqs1 = (Set<MessageQueue>) method.invoke(
+            queryAssignmentProcessor, MixAll.LMQ_PREFIX + topic, group, "127.0.0.1", MessageModel.CLUSTERING,
+            new AllocateMessageQueueAveragely().getName(), new SetMessageRequestModeRequestBody(), handlerContext);
+        Set<MessageQueue> mqs2 = (Set<MessageQueue>) method.invoke(
+            queryAssignmentProcessor, MixAll.LMQ_PREFIX + topic, group, "127.0.0.2", MessageModel.CLUSTERING,
+            new AllocateMessageQueueAveragely().getName(), new SetMessageRequestModeRequestBody(), handlerContext);
+
+        assertThat(mqs1).hasSize(1);
+        assertThat(mqs2).isEmpty();
     }
 
     @Test

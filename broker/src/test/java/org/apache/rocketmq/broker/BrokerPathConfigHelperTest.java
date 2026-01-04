@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 public class BrokerPathConfigHelperTest {
 
     @Test
-    public void testGetLmqConsumerOffsetPath() {
+    public void testGetPath() {
         String lmqConsumerOffsetPath = BrokerPathConfigHelper.getLmqConsumerOffsetPath("/home/admin/store".replace("/", File.separator));
         assertEquals("/home/admin/store/config/lmqConsumerOffset.json".replace("/", File.separator), lmqConsumerOffsetPath);
 
@@ -38,5 +38,25 @@ public class BrokerPathConfigHelperTest {
         String subscriptionGroupPath = BrokerPathConfigHelper.getSubscriptionGroupPath("/home/admin/store".replace("/", File.separator));
         assertEquals("/home/admin/store/config/subscriptionGroup.json".replace("/", File.separator), subscriptionGroupPath);
 
+        String topicQueueMappingPath = BrokerPathConfigHelper.getTopicQueueMappingPath("/home/admin/store".replace("/", File.separator));
+        assertEquals("/home/admin/store/config/topicQueueMapping.json".replace("/", File.separator), topicQueueMappingPath);
+
+        String consumerOrderInfoPath = BrokerPathConfigHelper.getConsumerOrderInfoPath("/home/admin/store".replace("/", File.separator));
+        assertEquals("/home/admin/store/config/consumerOrderInfo.json".replace("/", File.separator), consumerOrderInfoPath);
+
+        String timercheckPath = BrokerPathConfigHelper.getTimerCheckPath("/home/admin/store".replace("/", File.separator));
+        assertEquals("/home/admin/store/config/timercheck".replace("/", File.separator), timercheckPath);
+
+        String timermetricsPath = BrokerPathConfigHelper.getTimerMetricsPath("/home/admin/store".replace("/", File.separator));
+        assertEquals("/home/admin/store/config/timermetrics".replace("/", File.separator), timermetricsPath);
+
+        String transactionMetricsPath = BrokerPathConfigHelper.getTransactionMetricsPath("/home/admin/store".replace("/", File.separator));
+        assertEquals("/home/admin/store/config/transactionMetrics".replace("/", File.separator), transactionMetricsPath);
+
+        String consumerFilterPath = BrokerPathConfigHelper.getConsumerFilterPath("/home/admin/store".replace("/", File.separator));
+        assertEquals("/home/admin/store/config/consumerFilter.json".replace("/", File.separator), consumerFilterPath);
+
+        String messageRequestModePath = BrokerPathConfigHelper.getMessageRequestModePath("/home/admin/store".replace("/", File.separator));
+        assertEquals("/home/admin/store/config/messageRequestMode.json".replace("/", File.separator), messageRequestModePath);
     }
 }

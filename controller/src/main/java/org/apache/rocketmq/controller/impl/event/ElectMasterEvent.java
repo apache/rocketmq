@@ -60,9 +60,9 @@ public class ElectMasterEvent implements EventMessage {
     @Override
     public String toString() {
         return "ElectMasterEvent{" +
-                "newMasterElected=" + newMasterElected +
-                ", brokerName='" + brokerName + '\'' +
-                ", newMasterBrokerId=" + newMasterBrokerId +
-                '}';
+            "newMasterElected=" + newMasterElected +
+            ", brokerName='" + brokerName + '\'' +
+            ", newMasterBrokerId=" + newMasterBrokerId +
+            '}';
     }
 }

@@ -33,7 +33,8 @@ public class ProducerWithNamespace {
 
     public static void main(String[] args) throws Exception {
 
-        DefaultMQProducer producer = new DefaultMQProducer(NAMESPACE, PRODUCER_GROUP);
+        DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP);
+        producer.setNamespaceV2(NAMESPACE);
 
         producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.start();

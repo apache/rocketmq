@@ -64,10 +64,6 @@ public class GrpcConverter {
         return instance;
     }
 
-    public String wrapResourceWithNamespace(Resource resource) {
-        return NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
-    }
-
     public MessageQueue buildMessageQueue(MessageExt messageExt, String brokerName) {
         Broker broker = Broker.getDefaultInstance();
         if (!StringUtils.isEmpty(brokerName)) {
@@ -214,6 +210,12 @@ public class GrpcConverter {
                 deliverMs = Long.parseLong(deliverMsString);
                 systemPropertiesBuilder.setDeliveryTimestamp(Timestamps.fromMillis(deliverMs));
             }
+        }
+
+        // priority
+        int priority = messageExt.getPriority();
+        if (priority >= 0) {
+            systemPropertiesBuilder.setPriority(priority);
         }
 
         // sharding key

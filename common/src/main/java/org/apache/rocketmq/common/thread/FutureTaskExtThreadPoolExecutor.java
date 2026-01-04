@@ -29,7 +29,8 @@ public class FutureTaskExtThreadPoolExecutor extends ThreadPoolExecutor {
 
     public FutureTaskExtThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime,
         TimeUnit unit,
-        BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory,
+        BlockingQueue<Runnable> workQueue,
+        ThreadFactory threadFactory,
         RejectedExecutionHandler handler) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
     }

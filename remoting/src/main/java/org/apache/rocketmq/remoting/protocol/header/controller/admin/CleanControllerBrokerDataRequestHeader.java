@@ -17,14 +17,21 @@
 
 package org.apache.rocketmq.remoting.protocol.header.controller.admin;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.CLEAN_BROKER_DATA, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class CleanControllerBrokerDataRequestHeader implements CommandCustomHeader {
 
     @CFNullable
+    @RocketMQResource(ResourceType.CLUSTER)
     private String clusterName;
 
     @CFNotNull
@@ -34,6 +41,7 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
     private String brokerControllerIdsToClean;
 
     private boolean isCleanLivingBroker = false;
+    private long invokeTime = System.currentTimeMillis();
 
     public CleanControllerBrokerDataRequestHeader() {
     }
@@ -53,6 +61,14 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
     @Override
     public void checkFields() throws RemotingCommandException {
 
+    }
+
+    public long getInvokeTime() {
+        return invokeTime;
+    }
+
+    public void setInvokeTime(long invokeTime) {
+        this.invokeTime = invokeTime;
     }
 
     public String getClusterName() {

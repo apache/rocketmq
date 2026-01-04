@@ -30,14 +30,21 @@ import com.google.protobuf.util.Durations;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
@@ -61,6 +68,8 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class ReceiveMessageActivityTest extends BaseActivityTest {
 
@@ -92,7 +101,6 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         when(this.messagingProcessor.popMessage(any(), any(), anyString(), anyString(), anyInt(), anyLong(),
             pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), isNull(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
-
 
         ProxyContext context = createContext();
         context.setRemainingMs(1L);
@@ -225,6 +233,87 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testReceiveMessageAddReceiptHandle() {
+        ConfigurationManager.getProxyConfig().setEnableProxyAutoRenew(true);
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        doNothing().when(receiveStreamObserver).onNext(any());
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
+
+        MessageExt messageExt1 = new MessageExt();
+        String msgId1 = "msgId1";
+        String popCk1 = "0 0 60000 0 0 broker 0 0 0";
+        messageExt1.setTopic(TOPIC);
+        messageExt1.setMsgId(msgId1);
+        MessageAccessor.putProperty(messageExt1, MessageConst.PROPERTY_POP_CK, popCk1);
+        messageExt1.setBody("body1".getBytes());
+        MessageExt messageExt2 = new MessageExt();
+        String msgId2 = "msgId2";
+        String popCk2 = "0 0 60000 0 0 broker 0 1 1000";
+        messageExt2.setTopic(TOPIC);
+        messageExt2.setMsgId(msgId2);
+        MessageAccessor.putProperty(messageExt2, MessageConst.PROPERTY_POP_CK, popCk2);
+        messageExt2.setBody("body2".getBytes());
+        PopResult popResult = new PopResult(PopStatus.FOUND, Arrays.asList(messageExt1, messageExt2));
+        when(this.messagingProcessor.popMessage(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyInt(),
+            anyLong(),
+            anyLong(),
+            anyInt(),
+            any(),
+            anyBoolean(),
+            any(),
+            isNull(),
+            anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
+        ArgumentCaptor<String> msgIdCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<ReceiptHandle> receiptHandleCaptor = ArgumentCaptor.forClass(ReceiptHandle.class);
+        when(this.messagingProcessor.changeInvisibleTime(
+            any(),
+            receiptHandleCaptor.capture(),
+            msgIdCaptor.capture(),
+            anyString(),
+            anyString(),
+            anyLong())).thenReturn(CompletableFuture.completedFuture(new AckResult()));
+
+        // normal
+        ProxyContext ctx = createContext();
+        this.grpcChannelManager.createChannel(ctx, ctx.getClientID());
+        ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+            .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+            .setAutoRenew(true)
+            .setFilterExpression(FilterExpression.newBuilder()
+                .setType(FilterType.TAG)
+                .setExpression("*")
+                .build())
+            .build();
+        this.receiveMessageActivity.receiveMessage(ctx, receiveMessageRequest, receiveStreamObserver);
+        verify(this.messagingProcessor, times(0)).changeInvisibleTime(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyString(),
+            anyLong());
+
+        // abnormal
+        this.grpcChannelManager.removeChannel(ctx.getClientID());
+        this.receiveMessageActivity.receiveMessage(ctx, receiveMessageRequest, receiveStreamObserver);
+        verify(this.messagingProcessor, times(2)).changeInvisibleTime(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyString(),
+            anyLong());
+        assertEquals(Arrays.asList(msgId1, msgId2), msgIdCaptor.getAllValues());
+        assertEquals(Arrays.asList(popCk1, popCk2), receiptHandleCaptor.getAllValues().stream().map(ReceiptHandle::encode).collect(Collectors.toList()));
+    }
+
+    @Test
     public void testReceiveMessage() {
         StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
         ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
@@ -274,7 +363,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
-    public void testReceiveMessageQueueSelector() {
+    public void testReceiveMessageQueueSelector() throws Exception {
         TopicRouteData topicRouteData = new TopicRouteData();
         List<QueueData> queueDatas = new ArrayList<>();
         for (int i = 0; i < 2; i++) {
@@ -298,7 +387,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         }
         topicRouteData.setBrokerDatas(brokerDatas);
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, null);
         ReceiveMessageActivity.ReceiveMessageQueueSelector selector = new ReceiveMessageActivity.ReceiveMessageQueueSelector("");
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);

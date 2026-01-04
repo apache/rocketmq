@@ -16,8 +16,9 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.TypeReference;
+import com.google.common.base.Stopwatch;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
@@ -39,11 +40,34 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.resolver.NoopAddressResolverGroup;
+import io.netty.util.AttributeKey;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.TimerTask;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.FutureUtils;
+import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.ChannelEventListener;
+import org.apache.rocketmq.remoting.InvokeCallback;
+import org.apache.rocketmq.remoting.RemotingClient;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.proxy.SocksProxyConfig;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -57,40 +81,30 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.remoting.ChannelEventListener;
-import org.apache.rocketmq.remoting.InvokeCallback;
-import org.apache.rocketmq.remoting.RemotingClient;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.exception.RemotingConnectException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
-import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.proxy.SocksProxyConfig;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static org.apache.rocketmq.remoting.common.RemotingHelper.convertChannelFutureToCompletableFuture;
 
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
 
+    private static final AttributeKey<ChannelWrapper> CHANNEL_WRAPPER_ATTRIBUTE_KEY = AttributeKey.valueOf(
+        "channelWrapper");
+
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private static final long MIN_CLOSE_TIMEOUT_MILLIS = 100;
 
-    private final NettyClientConfig nettyClientConfig;
+    protected final NettyClientConfig nettyClientConfig;
     private final Bootstrap bootstrap = new Bootstrap();
     private final EventLoopGroup eventLoopGroupWorker;
     private final Lock lockChannelTables = new ReentrantLock();
@@ -142,7 +156,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         this.publicExecutor = Executors.newFixedThreadPool(publicThreadNums, new ThreadFactoryImpl("NettyClientPublicExecutor_"));
 
-        this.scanExecutor = new ThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
+        this.scanExecutor = ThreadUtils.newThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("NettyClientScan_thread_"));
 
         if (eventLoopGroup != null) {
@@ -157,10 +171,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 sslContext = TlsHelper.buildSslContext(true);
                 LOGGER.info("SSL enabled for client");
             } catch (IOException e) {
-                LOGGER.error("Failed to create SSLContext", e);
+                LOGGER.error("Failed to create SslContext", e);
             } catch (CertificateException e) {
-                LOGGER.error("Failed to create SSLContext", e);
-                throw new RuntimeException("Failed to create SSLContext", e);
+                LOGGER.error("Failed to create SslContext", e);
+                throw new RuntimeException("Failed to create SslContext", e);
             }
         }
     }
@@ -199,7 +213,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             pipeline.addFirst(defaultEventExecutorGroup, "sslHandler", sslContext.newHandler(ch.alloc()));
                             LOGGER.info("Prepend SSL handler");
                         } else {
-                            LOGGER.warn("Connections are insecure as SSLContext is null!");
+                            LOGGER.warn("Connections are insecure as SslContext is null!");
                         }
                     }
                     ch.pipeline().addLast(
@@ -229,6 +243,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             handler.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
 
+        nettyEventExecutor.start();
+
         TimerTask timerTaskScanResponseTable = new TimerTask() {
             @Override
             public void run(Timeout timeout) {
@@ -243,20 +259,24 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         };
         this.timer.newTimeout(timerTaskScanResponseTable, 1000 * 3, TimeUnit.MILLISECONDS);
 
-        int connectTimeoutMillis = this.nettyClientConfig.getConnectTimeoutMillis();
-        TimerTask timerTaskScanAvailableNameSrv = new TimerTask() {
-            @Override
-            public void run(Timeout timeout) {
-                try {
-                    NettyRemotingClient.this.scanAvailableNameSrv();
-                } catch (Exception e) {
-                    LOGGER.error("scanAvailableNameSrv exception", e);
-                } finally {
-                    timer.newTimeout(this, connectTimeoutMillis, TimeUnit.MILLISECONDS);
+        if (nettyClientConfig.isScanAvailableNameSrv()) {
+            int connectTimeoutMillis = this.nettyClientConfig.getConnectTimeoutMillis();
+            TimerTask timerTaskScanAvailableNameSrv = new TimerTask() {
+                @Override
+                public void run(Timeout timeout) {
+                    try {
+                        NettyRemotingClient.this.scanAvailableNameSrv();
+                    } catch (Exception e) {
+                        LOGGER.error("scanAvailableNameSrv exception", e);
+                    } finally {
+                        timer.newTimeout(this, connectTimeoutMillis, TimeUnit.MILLISECONDS);
+                    }
                 }
-            }
-        };
-        this.timer.newTimeout(timerTaskScanAvailableNameSrv, 0, TimeUnit.MILLISECONDS);
+            };
+            this.timer.newTimeout(timerTaskScanAvailableNameSrv, 0, TimeUnit.MILLISECONDS);
+        }
+        
+        
     }
 
     private Map.Entry<String, SocksProxyConfig> getProxy(String addr) {
@@ -271,6 +291,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         }
         return null;
+    }
+
+    protected ChannelFuture doConnect(String addr) {
+        String[] hostAndPort = getHostAndPort(addr);
+        String host = hostAndPort[0];
+        int port = Integer.parseInt(hostAndPort[1]);
+        return fetchBootstrap(addr).connect(host, port);
     }
 
     private Bootstrap fetchBootstrap(String addr) {
@@ -314,7 +341,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                                 "sslHandler", sslContext.newHandler(ch.alloc()));
                             LOGGER.info("Prepend SSL handler");
                         } else {
-                            LOGGER.warn("Connections are insecure as SSLContext is null!");
+                            LOGGER.warn("Connections are insecure as SslContext is null!");
                         }
                     }
 
@@ -343,9 +370,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return bootstrap;
     }
 
-    // Do not use RemotingUtil, it will directly resolve the domain
-    private String[] getHostAndPort(String address) {
-        return address.split(":");
+    // Do not use RemotingHelper.string2SocketAddress(), it will directly resolve the domain
+    protected String[] getHostAndPort(String address) {
+        int split = address.lastIndexOf(":");
+        return split < 0 ? new String[]{address} : new String[]{address.substring(0, split), address.substring(split + 1)};
     }
 
     @Override
@@ -353,8 +381,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         try {
             this.timer.stop();
 
-            for (String addr : this.channelTables.keySet()) {
-                this.closeChannel(addr, this.channelTables.get(addr).getChannel());
+            for (Map.Entry<String, ChannelWrapper> channel : this.channelTables.entrySet()) {
+                channel.getValue().close();
             }
 
             this.channelTables.clear();
@@ -402,20 +430,24 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     boolean removeItemFromTable = true;
                     final ChannelWrapper prevCW = this.channelTables.get(addrRemote);
 
-                    LOGGER.info("closeChannel: begin close the channel[{}] Found: {}", addrRemote, prevCW != null);
+                    LOGGER.info("closeChannel: begin close the channel[addr={}, id={}] Found: {}", addrRemote, channel.id(), prevCW != null);
 
                     if (null == prevCW) {
-                        LOGGER.info("closeChannel: the channel[{}] has been removed from the channel table before", addrRemote);
+                        LOGGER.info("closeChannel: the channel[addr={}, id={}] has been removed from the channel table before", addrRemote, channel.id());
                         removeItemFromTable = false;
-                    } else if (prevCW.getChannel() != channel) {
-                        LOGGER.info("closeChannel: the channel[{}] has been closed before, and has been created again, nothing to do.",
-                            addrRemote);
+                    } else if (prevCW.isWrapperOf(channel)) {
+                        LOGGER.info("closeChannel: the channel[addr={}, id={}] has been closed before, and has been created again, nothing to do.",
+                            addrRemote, channel.id());
                         removeItemFromTable = false;
                     }
 
                     if (removeItemFromTable) {
-                        this.channelTables.remove(addrRemote);
-                        LOGGER.info("closeChannel: the channel[{}] was removed from channel table", addrRemote);
+                        ChannelWrapper channelWrapper =
+                            RemotingHelper.getAttributeValue(CHANNEL_WRAPPER_ATTRIBUTE_KEY, channel);
+                        if (channelWrapper != null && channelWrapper.tryClose(channel)) {
+                            this.channelTables.remove(addrRemote);
+                        }
+                        LOGGER.info("closeChannel: the channel[addr={}, id={}] was removed from channel table", addrRemote, channel.id());
                     }
 
                     RemotingHelper.closeChannel(channel);
@@ -446,27 +478,29 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     for (Map.Entry<String, ChannelWrapper> entry : channelTables.entrySet()) {
                         String key = entry.getKey();
                         ChannelWrapper prev = entry.getValue();
-                        if (prev.getChannel() != null) {
-                            if (prev.getChannel() == channel) {
-                                prevCW = prev;
-                                addrRemote = key;
-                                break;
-                            }
+                        if (prev.isWrapperOf(channel)) {
+                            prevCW = prev;
+                            addrRemote = key;
+                            break;
                         }
                     }
 
                     if (null == prevCW) {
-                        LOGGER.info("eventCloseChannel: the channel[{}] has been removed from the channel table before", addrRemote);
+                        LOGGER.info("eventCloseChannel: the channel[addr={}, id={}] has been removed from the channel table before", RemotingHelper.parseChannelRemoteAddr(channel), channel.id());
                         removeItemFromTable = false;
                     }
 
                     if (removeItemFromTable) {
-                        this.channelTables.remove(addrRemote);
-                        LOGGER.info("closeChannel: the channel[{}] was removed from channel table", addrRemote);
+                        ChannelWrapper channelWrapper =
+                            RemotingHelper.getAttributeValue(CHANNEL_WRAPPER_ATTRIBUTE_KEY, channel);
+                        if (channelWrapper != null && channelWrapper.tryClose(channel)) {
+                            this.channelTables.remove(addrRemote);
+                        }
+                        LOGGER.info("closeChannel: the channel[addr={}, id={}] was removed from channel table", addrRemote, channel.id());
                         RemotingHelper.closeChannel(channel);
                     }
                 } catch (Exception e) {
-                    LOGGER.error("closeChannel: close the channel exception", e);
+                    LOGGER.error("closeChannel: close the channel[id={}] exception", channel.id(), e);
                 } finally {
                     this.lockChannelTables.unlock();
                 }
@@ -503,13 +537,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 this.namesrvAddrList.set(addrs);
 
                 // should close the channel if choosed addr is not exist.
-                if (this.namesrvAddrChoosed.get() != null && !addrs.contains(this.namesrvAddrChoosed.get())) {
-                    String namesrvAddr = this.namesrvAddrChoosed.get();
+                String chosenNameServerAddr = this.namesrvAddrChoosed.get();
+                if (chosenNameServerAddr != null && !addrs.contains(chosenNameServerAddr)) {
+                    namesrvAddrChoosed.compareAndSet(chosenNameServerAddr, null);
                     for (String addr : this.channelTables.keySet()) {
-                        if (addr.contains(namesrvAddr)) {
+                        if (addr.contains(chosenNameServerAddr)) {
                             ChannelWrapper channelWrapper = this.channelTables.get(addr);
                             if (channelWrapper != null) {
-                                closeChannel(channelWrapper.getChannel());
+                                channelWrapper.close();
                             }
                         }
                     }
@@ -527,18 +562,16 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (channel != null && channel.isActive()) {
             long left = timeoutMillis;
             try {
-                doBeforeRpcHooks(channelRemoteAddr, request);
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 left -= costTime;
                 if (left <= 0) {
                     throw new RemotingTimeoutException("invokeSync call the addr[" + channelRemoteAddr + "] timeout");
                 }
                 RemotingCommand response = this.invokeSyncImpl(channel, request, left);
-                doAfterRpcHooks(channelRemoteAddr, request, response);
-                this.updateChannelLastResponseTime(addr);
+                updateChannelLastResponseTime(addr);
                 return response;
             } catch (RemotingSendRequestException e) {
-                LOGGER.warn("invokeSync: send request exception, so close the channel[{}]", channelRemoteAddr);
+                LOGGER.warn("invokeSync: send request exception, so close the channel[addr={}, id={}]", channelRemoteAddr, channel.id());
                 this.closeChannel(addr, channel);
                 throw e;
             } catch (RemotingTimeoutException e) {
@@ -546,14 +579,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 boolean shouldClose = left > MIN_CLOSE_TIMEOUT_MILLIS || left > timeoutMillis / 4;
                 if (nettyClientConfig.isClientCloseSocketIfTimeout() && shouldClose) {
                     this.closeChannel(addr, channel);
-                    LOGGER.warn("invokeSync: close socket because of timeout, {}ms, {}", timeoutMillis, channelRemoteAddr);
+                    LOGGER.warn("invokeSync: close socket because of timeout, {}ms, channel[addr={}, id={}]", timeoutMillis, channelRemoteAddr, channel.id());
                 }
-                LOGGER.warn("invokeSync: wait response timeout exception, the channel[{}]", channelRemoteAddr);
+                LOGGER.warn("invokeSync: wait response timeout exception, the channel[addr={}, id={}]", channelRemoteAddr, channel.id());
                 throw e;
             }
         } else {
             this.closeChannel(addr, channel);
-            throw new RemotingConnectException(addr);
+            throw new RemotingConnectException(channelRemoteAddr);
         }
     }
 
@@ -577,7 +610,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
             String remoteAddr = RemotingHelper.parseChannelRemoteAddr(responseFuture.getChannel());
             // interrupt only pull message request
-            if (brokerAddrSet.contains(remoteAddr) && (cmd.getCode() == 11 || cmd.getCode() == 361)) {
+            if (brokerAddrSet.contains(remoteAddr) && (cmd.getCode() == RequestCode.PULL_MESSAGE || cmd.getCode() == RequestCode.LITE_PULL_MESSAGE)) {
                 LOGGER.info("interrupt {}", cmd);
                 responseFuture.interrupt();
             }
@@ -599,25 +632,33 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    private Channel getAndCreateChannel(final String addr) throws InterruptedException {
+    private ChannelFuture getAndCreateChannelAsync(final String addr) throws InterruptedException {
         if (null == addr) {
-            return getAndCreateNameserverChannel();
+            return getAndCreateNameserverChannelAsync();
         }
 
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
-            return cw.getChannel();
+            return cw.getChannelFuture();
         }
 
-        return this.createChannel(addr);
+        return this.createChannelAsync(addr);
     }
 
-    private Channel getAndCreateNameserverChannel() throws InterruptedException {
+    private Channel getAndCreateChannel(final String addr) throws InterruptedException {
+        ChannelFuture channelFuture = getAndCreateChannelAsync(addr);
+        if (channelFuture == null) {
+            return null;
+        }
+        return channelFuture.awaitUninterruptibly().channel();
+    }
+
+    private ChannelFuture getAndCreateNameserverChannelAsync() throws InterruptedException {
         String addr = this.namesrvAddrChoosed.get();
         if (addr != null) {
             ChannelWrapper cw = this.channelTables.get(addr);
             if (cw != null && cw.isOK()) {
-                return cw.getChannel();
+                return cw.getChannelFuture();
             }
         }
 
@@ -628,25 +669,19 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 if (addr != null) {
                     ChannelWrapper cw = this.channelTables.get(addr);
                     if (cw != null && cw.isOK()) {
-                        return cw.getChannel();
+                        return cw.getChannelFuture();
                     }
                 }
 
                 if (addrList != null && !addrList.isEmpty()) {
-                    for (int i = 0; i < addrList.size(); i++) {
-                        int index = this.namesrvIndex.incrementAndGet();
-                        index = Math.abs(index);
-                        index = index % addrList.size();
-                        String newAddr = addrList.get(index);
+                    int index = this.namesrvIndex.incrementAndGet();
+                    index = Math.abs(index);
+                    index = index % addrList.size();
+                    String newAddr = addrList.get(index);
 
-                        this.namesrvAddrChoosed.set(newAddr);
-                        LOGGER.info("new name server is chosen. OLD: {} , NEW: {}. namesrvIndex = {}", addr, newAddr, namesrvIndex);
-                        Channel channelNew = this.createChannel(newAddr);
-                        if (channelNew != null) {
-                            return channelNew;
-                        }
-                    }
-                    throw new RemotingConnectException(addrList.toString());
+                    this.namesrvAddrChoosed.set(newAddr);
+                    LOGGER.info("new name server is chosen. OLD: {} , NEW: {}. namesrvIndex = {}", addr, newAddr, namesrvIndex);
+                    return this.createChannelAsync(newAddr);
                 }
             } catch (Exception e) {
                 LOGGER.error("getAndCreateNameserverChannel: create name server channel exception", e);
@@ -660,38 +695,23 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return null;
     }
 
-    private Channel createChannel(final String addr) throws InterruptedException {
+    private ChannelFuture createChannelAsync(final String addr) throws InterruptedException {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
-            return cw.getChannel();
+            return cw.getChannelFuture();
         }
 
         if (this.lockChannelTables.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
             try {
-                boolean createNewConnection;
                 cw = this.channelTables.get(addr);
                 if (cw != null) {
-
-                    if (cw.isOK()) {
-                        return cw.getChannel();
-                    } else if (!cw.getChannelFuture().isDone()) {
-                        createNewConnection = false;
+                    if (cw.isOK() || !cw.getChannelFuture().isDone()) {
+                        return cw.getChannelFuture();
                     } else {
                         this.channelTables.remove(addr);
-                        createNewConnection = true;
                     }
-                } else {
-                    createNewConnection = true;
                 }
-
-                if (createNewConnection) {
-                    String[] hostAndPort = getHostAndPort(addr);
-                    ChannelFuture channelFuture = fetchBootstrap(addr)
-                        .connect(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
-                    LOGGER.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
-                    cw = new ChannelWrapper(channelFuture);
-                    this.channelTables.put(addr, cw);
-                }
+                return createChannel(addr).getChannelFuture();
             } catch (Exception e) {
                 LOGGER.error("createChannel: create channel exception", e);
             } finally {
@@ -701,22 +721,15 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             LOGGER.warn("createChannel: try to lock channel table, but timeout, {}ms", LOCK_TIMEOUT_MILLIS);
         }
 
-        if (cw != null) {
-            ChannelFuture channelFuture = cw.getChannelFuture();
-            if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
-                if (cw.isOK()) {
-                    LOGGER.info("createChannel: connect remote host[{}] success, {}", addr, channelFuture.toString());
-                    return cw.getChannel();
-                } else {
-                    LOGGER.warn("createChannel: connect remote host[" + addr + "] failed, " + channelFuture.toString());
-                }
-            } else {
-                LOGGER.warn("createChannel: connect remote host[{}] timeout {}ms, {}", addr, this.nettyClientConfig.getConnectTimeoutMillis(),
-                    channelFuture.toString());
-            }
-        }
-
         return null;
+    }
+
+    private ChannelWrapper createChannel(String addr) {
+        ChannelFuture channelFuture = doConnect(addr);
+        LOGGER.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
+        ChannelWrapper cw = new ChannelWrapper(addr, channelFuture);
+        this.channelTables.put(addr, cw);
+        return cw;
     }
 
     @Override
@@ -724,45 +737,139 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException {
         long beginStartTime = System.currentTimeMillis();
-        final Channel channel = this.getAndCreateChannel(addr);
-        String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
-        if (channel != null && channel.isActive()) {
-            try {
-                doBeforeRpcHooks(channelRemoteAddr, request);
-                long costTime = System.currentTimeMillis() - beginStartTime;
-                if (timeoutMillis < costTime) {
-                    throw new RemotingTooMuchRequestException("invokeAsync call the addr[" + channelRemoteAddr + "] timeout");
-                }
-                this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, new InvokeCallbackWrapper(invokeCallback, addr));
-            } catch (RemotingSendRequestException e) {
-                LOGGER.warn("invokeAsync: send request exception, so close the channel[{}]", channelRemoteAddr);
-                this.closeChannel(addr, channel);
-                throw e;
-            }
-        } else {
-            this.closeChannel(addr, channel);
-            throw new RemotingConnectException(addr);
+        final ChannelFuture channelFuture = this.getAndCreateChannelAsync(addr);
+        if (channelFuture == null) {
+            invokeCallback.operationFail(new RemotingConnectException(addr));
+            return;
         }
+        channelFuture.addListener(future -> {
+            if (future.isSuccess()) {
+                Channel channel = channelFuture.channel();
+                String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
+                if (channel != null && channel.isActive()) {
+                    long costTime = System.currentTimeMillis() - beginStartTime;
+                    if (timeoutMillis < costTime) {
+                        invokeCallback.operationFail(new RemotingTooMuchRequestException("invokeAsync call the addr[" + channelRemoteAddr + "] timeout"));
+                        return;
+                    }
+                    this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, new InvokeCallbackWrapper(invokeCallback, addr));
+                } else {
+                    this.closeChannel(addr, channel);
+                    invokeCallback.operationFail(new RemotingConnectException(addr));
+                }
+            } else {
+                invokeCallback.operationFail(new RemotingConnectException(addr));
+            }
+        });
     }
 
     @Override
     public void invokeOneway(String addr, RemotingCommand request, long timeoutMillis) throws InterruptedException,
         RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
-        final Channel channel = this.getAndCreateChannel(addr);
-        String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
-        if (channel != null && channel.isActive()) {
-            try {
-                doBeforeRpcHooks(channelRemoteAddr, request);
-                this.invokeOnewayImpl(channel, request, timeoutMillis);
-            } catch (RemotingSendRequestException e) {
-                LOGGER.warn("invokeOneway: send request exception, so close the channel[{}]", channelRemoteAddr);
-                this.closeChannel(addr, channel);
-                throw e;
-            }
-        } else {
-            this.closeChannel(addr, channel);
+        final ChannelFuture channelFuture = this.getAndCreateChannelAsync(addr);
+        if (channelFuture == null) {
             throw new RemotingConnectException(addr);
         }
+        channelFuture.addListener(future -> {
+            if (future.isSuccess()) {
+                Channel channel = channelFuture.channel();
+                String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
+                if (channel != null && channel.isActive()) {
+                    doBeforeRpcHooks(channelRemoteAddr, request);
+                    this.invokeOnewayImpl(channel, request, timeoutMillis);
+                } else {
+                    this.closeChannel(addr, channel);
+                }
+            }
+        });
+    }
+
+    @Override
+    public CompletableFuture<RemotingCommand> invoke(String addr, RemotingCommand request,
+        long timeoutMillis) {
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        try {
+            final ChannelFuture channelFuture = this.getAndCreateChannelAsync(addr);
+            if (channelFuture == null) {
+                future.completeExceptionally(new RemotingConnectException(addr));
+                return future;
+            }
+            channelFuture.addListener(f -> {
+                if (f.isSuccess()) {
+                    Channel channel = channelFuture.channel();
+                    if (channel != null && channel.isActive()) {
+                        invokeImpl(channel, request, timeoutMillis).whenComplete((v, t) -> {
+                            if (t == null) {
+                                updateChannelLastResponseTime(addr);
+                            }
+                        }).thenApply(ResponseFuture::getResponseCommand).whenComplete((v, t) -> {
+                            if (t != null) {
+                                future.completeExceptionally(t);
+                            } else {
+                                future.complete(v);
+                            }
+                        });
+                    } else {
+                        this.closeChannel(addr, channel);
+                        future.completeExceptionally(new RemotingConnectException(addr));
+                    }
+                } else {
+                    future.completeExceptionally(new RemotingConnectException(addr));
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<ResponseFuture> invokeImpl(final Channel channel, final RemotingCommand request,
+        final long timeoutMillis) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
+        doBeforeRpcHooks(channelRemoteAddr, request);
+
+        return super.invokeImpl(channel, request, timeoutMillis).thenCompose(responseFuture -> {
+            RemotingCommand response = responseFuture.getResponseCommand();
+            if (response.getCode() == ResponseCode.GO_AWAY) {
+                if (nettyClientConfig.isEnableReconnectForGoAway()) {
+                    LOGGER.info("Receive go away from channelId={}, channel={}", channel.id(), channel);
+                    ChannelWrapper channelWrapper = RemotingHelper.getAttributeValue(CHANNEL_WRAPPER_ATTRIBUTE_KEY,
+                        channel);
+                    if (channelWrapper != null && channelWrapper.reconnect(channel)) {
+                        LOGGER.info("Receive go away from channelId={}, channel={}, recreate the channelId={}",
+                            channel.id(), channel, channelWrapper.getChannel().id());
+                    }
+                    if (channelWrapper != null && !channelWrapper.isWrapperOf(channel)) {
+                        RemotingCommand retryRequest = RemotingCommand.createRequestCommand(request.getCode(), request.readCustomHeader());
+                        retryRequest.setBody(request.getBody());
+                        retryRequest.setExtFields(request.getExtFields());
+                        CompletableFuture<Void> future = convertChannelFutureToCompletableFuture(channelWrapper.getChannelFuture());
+                        return future.thenCompose(v -> {
+                            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                            stopwatch.stop();
+                            return super.invokeImpl(channelWrapper.getChannel(), retryRequest, timeoutMillis - duration)
+                                .thenCompose(r -> {
+                                    if (r.getResponseCommand().getCode() == ResponseCode.GO_AWAY) {
+                                        return FutureUtils.completeExceptionally(new RemotingSendRequestException(channelRemoteAddr,
+                                            new Throwable("Receive GO_AWAY twice in request from channelId=" + channel.id())));
+                                    }
+                                    return CompletableFuture.completedFuture(r);
+                                });
+                        });
+                    } else {
+                        LOGGER.warn("invokeImpl receive GO_AWAY, channelWrapper is null or channel is the same in wrapper, channelId={}", channel.id());
+                    }
+                }
+                return FutureUtils.completeExceptionally(new RemotingSendRequestException(channelRemoteAddr, new Throwable("Receive GO_AWAY from channelId=" + channel.id())));
+            }
+            return CompletableFuture.completedFuture(responseFuture);
+        }).whenComplete((v, t) -> {
+            if (t == null) {
+                doAfterRpcHooks(channelRemoteAddr, request, v.getResponseCommand());
+            }
+        });
     }
 
     @Override
@@ -834,8 +941,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return;
         }
 
-        for (String addr : this.channelTables.keySet()) {
-            ChannelWrapper channelWrapper = this.channelTables.get(addr);
+        for (Map.Entry<String, ChannelWrapper> entry : this.channelTables.entrySet()) {
+            String addr = entry.getKey();
+            ChannelWrapper channelWrapper = entry.getValue();
             if (channelWrapper == null) {
                 continue;
             }
@@ -884,30 +992,45 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    static class ChannelWrapper {
-        private final ChannelFuture channelFuture;
+    class ChannelWrapper {
+        private final ReentrantReadWriteLock lock;
+        private ChannelFuture channelFuture;
         // only affected by sync or async request, oneway is not included.
+        private ChannelFuture channelToClose;
         private long lastResponseTime;
+        private final String channelAddress;
 
-        public ChannelWrapper(ChannelFuture channelFuture) {
+        public ChannelWrapper(String address, ChannelFuture channelFuture) {
+            this.lock = new ReentrantReadWriteLock();
             this.channelFuture = channelFuture;
             this.lastResponseTime = System.currentTimeMillis();
+            this.channelAddress = address;
+            RemotingHelper.setPropertyToAttr(channelFuture.channel(), CHANNEL_WRAPPER_ATTRIBUTE_KEY, this);
         }
 
         public boolean isOK() {
-            return this.channelFuture.channel() != null && this.channelFuture.channel().isActive();
+            return getChannel() != null && getChannel().isActive();
         }
 
         public boolean isWritable() {
-            return this.channelFuture.channel().isWritable();
+            return getChannel().isWritable();
+        }
+
+        public boolean isWrapperOf(Channel channel) {
+            return this.channelFuture.channel() != null && this.channelFuture.channel() == channel;
         }
 
         private Channel getChannel() {
-            return this.channelFuture.channel();
+            return getChannelFuture().channel();
         }
 
         public ChannelFuture getChannelFuture() {
-            return channelFuture;
+            lock.readLock().lock();
+            try {
+                return this.channelFuture;
+            } finally {
+                lock.readLock().unlock();
+            }
         }
 
         public long getLastResponseTime() {
@@ -916,6 +1039,64 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         public void updateLastResponseTime() {
             this.lastResponseTime = System.currentTimeMillis();
+        }
+
+        public String getChannelAddress() {
+            return channelAddress;
+        }
+
+        public boolean reconnect(Channel channel) {
+            if (!isWrapperOf(channel)) {
+                LOGGER.warn("channelWrapper has reconnect, so do nothing, now channelId={}, input channelId={}",getChannel().id(), channel.id());
+                return false;
+            }
+            if (lock.writeLock().tryLock()) {
+                try {
+                    if (isWrapperOf(channel)) {
+                        channelToClose = channelFuture;
+                        channelFuture = doConnect(channelAddress);
+                        RemotingHelper.setPropertyToAttr(channelFuture.channel(), CHANNEL_WRAPPER_ATTRIBUTE_KEY, this);
+                        return true;
+                    } else {
+                        LOGGER.warn("channelWrapper has reconnect, so do nothing, now channelId={}, input channelId={}",getChannel().id(), channel.id());
+                    }
+                } catch (Throwable t) {
+                    LOGGER.error("ChannelWrapper {} reconnect error", this, t);
+                } finally {
+                    lock.writeLock().unlock();
+                }
+            } else {
+                LOGGER.warn("channelWrapper reconnect try lock fail, now channelId={}", getChannel().id());
+            }
+            return false;
+        }
+
+        public boolean tryClose(Channel channel) {
+            try {
+                lock.readLock().lock();
+                if (channelFuture != null) {
+                    if (channelFuture.channel().equals(channel)) {
+                        return true;
+                    }
+                }
+            } finally {
+                lock.readLock().unlock();
+            }
+            return false;
+        }
+
+        public void close() {
+            try {
+                lock.writeLock().lock();
+                if (channelFuture != null) {
+                    closeChannel(channelFuture.channel());
+                }
+                if (channelToClose != null) {
+                    closeChannel(channelToClose.channel());
+                }
+            } finally {
+                lock.writeLock().unlock();
+            }
         }
     }
 
@@ -931,26 +1112,33 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         @Override
         public void operationComplete(ResponseFuture responseFuture) {
-            if (responseFuture != null && responseFuture.isSendRequestOK() && responseFuture.getResponseCommand() != null) {
-                NettyRemotingClient.this.updateChannelLastResponseTime(addr);
-            }
             this.invokeCallback.operationComplete(responseFuture);
+        }
+
+        @Override
+        public void operationSucceed(RemotingCommand response) {
+            updateChannelLastResponseTime(addr);
+            this.invokeCallback.operationSucceed(response);
+        }
+
+        @Override
+        public void operationFail(final Throwable throwable) {
+            this.invokeCallback.operationFail(throwable);
         }
     }
 
-    class NettyClientHandler extends SimpleChannelInboundHandler<RemotingCommand> {
-
+    public class NettyClientHandler extends SimpleChannelInboundHandler<RemotingCommand> {
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
             processMessageReceived(ctx, msg);
         }
     }
 
-    class NettyConnectManageHandler extends ChannelDuplexHandler {
+    public class NettyConnectManageHandler extends ChannelDuplexHandler {
         @Override
         public void connect(ChannelHandlerContext ctx, SocketAddress remoteAddress, SocketAddress localAddress,
             ChannelPromise promise) throws Exception {
-            final String local = localAddress == null ? "UNKNOWN" : RemotingHelper.parseSocketAddressAddr(localAddress);
+            final String local = localAddress == null ? NetworkUtil.getLocalAddress() : RemotingHelper.parseSocketAddressAddr(localAddress);
             final String remote = remoteAddress == null ? "UNKNOWN" : RemotingHelper.parseSocketAddressAddr(remoteAddress);
             LOGGER.info("NETTY CLIENT PIPELINE: CONNECT  {} => {}", local, remote);
 
@@ -958,6 +1146,17 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
             if (NettyRemotingClient.this.channelEventListener != null) {
                 NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.CONNECT, remote, ctx.channel()));
+            }
+        }
+
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            LOGGER.info("NETTY CLIENT PIPELINE: ACTIVE, {}, channelId={}", remoteAddress, ctx.channel().id());
+            super.channelActive(ctx);
+
+            if (NettyRemotingClient.this.channelEventListener != null) {
+                NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.ACTIVE, remoteAddress, ctx.channel()));
             }
         }
 
@@ -976,7 +1175,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            LOGGER.info("NETTY CLIENT PIPELINE: CLOSE {}", remoteAddress);
+            LOGGER.info("NETTY CLIENT PIPELINE: CLOSE channel[addr={}, id={}]", remoteAddress, ctx.channel().id());
             closeChannel(ctx.channel());
             super.close(ctx, promise);
             NettyRemotingClient.this.failFast(ctx.channel());
@@ -988,7 +1187,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            LOGGER.info("NETTY CLIENT PIPELINE: channelInactive, the channel[{}]", remoteAddress);
+            LOGGER.info("NETTY CLIENT PIPELINE: channelInactive, the channel[addr={}, id={}]", remoteAddress, ctx.channel().id());
             closeChannel(ctx.channel());
             super.channelInactive(ctx);
         }
@@ -999,7 +1198,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 IdleStateEvent event = (IdleStateEvent) evt;
                 if (event.state().equals(IdleState.ALL_IDLE)) {
                     final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-                    LOGGER.warn("NETTY CLIENT PIPELINE: IDLE exception [{}]", remoteAddress);
+                    LOGGER.warn("NETTY CLIENT PIPELINE: IDLE exception channel[addr={}, id={}]", remoteAddress, ctx.channel().id());
                     closeChannel(ctx.channel());
                     if (NettyRemotingClient.this.channelEventListener != null) {
                         NettyRemotingClient.this
@@ -1014,8 +1213,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            LOGGER.warn("NETTY CLIENT PIPELINE: exceptionCaught {}", remoteAddress);
-            LOGGER.warn("NETTY CLIENT PIPELINE: exceptionCaught exception.", cause);
+            LOGGER.warn("NETTY CLIENT PIPELINE: exceptionCaught channel[addr={}, id={}]", remoteAddress, ctx.channel().id(), cause);
             closeChannel(ctx.channel());
             if (NettyRemotingClient.this.channelEventListener != null) {
                 NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.EXCEPTION, remoteAddress, ctx.channel()));

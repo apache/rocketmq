@@ -203,7 +203,7 @@ public class RequestProcessorTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
-        assertThat(response.getRemark()).contains("Can not update config path");
+        assertThat(response.getRemark()).contains("Can not update config in black list.");
 
         //update disallowed values
         properties.clear();
@@ -214,7 +214,18 @@ public class RequestProcessorTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
-        assertThat(response.getRemark()).contains("Can not update config path");
+        assertThat(response.getRemark()).contains("Can not update config in black list");
+
+        //update disallowed values
+        properties.clear();
+        properties.setProperty("configBlackList", "test;path");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        response = defaultRequestProcessor.processRequest(null, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).contains("Can not update config in black list");
     }
 
     @Test
@@ -433,6 +444,42 @@ public class RequestProcessorTest {
         ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
         when(ctx.channel()).thenReturn(null);
         RemotingCommand request = getRemotingCommand(RequestCode.GET_BROKER_CLUSTER_INFO);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testQueryDataVersion()throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.QUERY_DATA_VERSION);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetBrokerMemberBroker() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_BROKER_MEMBER_GROUP);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testBrokerHeartBeat() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.BROKER_HEARTBEAT);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testAddWritePermOfBroker() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.ADD_WRITE_PERM_OF_BROKER);
         RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
         assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }

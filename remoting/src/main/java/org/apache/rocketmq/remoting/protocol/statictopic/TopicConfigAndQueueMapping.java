@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.remoting.protocol.statictopic;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.rocketmq.common.TopicConfig;
@@ -59,5 +60,14 @@ public class TopicConfigAndQueueMapping extends TopicConfig {
                 .appendSuper(super.hashCode())
                 .append(mappingDetail)
                 .toHashCode();
+    }
+
+    @Override
+    public String toString() {
+        String string = super.toString();
+        if (StringUtils.isNotBlank(string)) {
+            string = string.substring(0, string.length() - 1) + ", mappingDetail=" + mappingDetail + "]";
+        }
+        return string;
     }
 }

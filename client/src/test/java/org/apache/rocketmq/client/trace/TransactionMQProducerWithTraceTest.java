@@ -106,15 +106,16 @@ public class TransactionMQProducerWithTraceTest {
                 return LocalTransactionState.COMMIT_MESSAGE;
             }
         };
-        producer = new TransactionMQProducer(null, producerGroupTemp, null, true, null);
+        producer = new TransactionMQProducer(producerGroupTemp, null, true, null);
         producer.setTransactionListener(transactionListener);
 
         producer.setNamesrvAddr("127.0.0.1:9876");
         message = new Message(topic, new byte[] {'a', 'b', 'c'});
-        asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
-        traceProducer = asyncTraceDispatcher.getTraceProducer();
 
         producer.start();
+
+        asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
+        traceProducer = asyncTraceDispatcher.getTraceProducer();
 
         Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);

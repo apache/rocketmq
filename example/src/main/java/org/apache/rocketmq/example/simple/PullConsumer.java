@@ -75,7 +75,7 @@ public class PullConsumer {
 
                                             if (msgs != null && !msgs.isEmpty()) {
                                                 this.doSomething(msgs);
-                                                //update offset to broker
+                                                //update offset to local memory, eventually to broker
                                                 consumer.updateConsumeOffset(messageQueue, pullResult.getNextBeginOffset());
                                                 //print pull tps
                                                 this.incPullTPS(topic, pullResult.getMsgFoundList().size());

@@ -40,8 +40,8 @@ public class RequestBuilder {
         }
         try {
             RpcRequestHeader requestHeader = (RpcRequestHeader) requestHeaderClass.newInstance();
-            requestHeader.setOway(oneway);
-            requestHeader.setBname(destBrokerName);
+            requestHeader.setOneway(oneway);
+            requestHeader.setBrokerName(destBrokerName);
             return requestHeader;
         } catch (Throwable t) {
             throw new RuntimeException(t);
@@ -67,8 +67,8 @@ public class RequestBuilder {
         }
         try {
             TopicQueueRequestHeader requestHeader = (TopicQueueRequestHeader) requestHeaderClass.newInstance();
-            requestHeader.setOway(oneway);
-            requestHeader.setBname(destBrokerName);
+            requestHeader.setOneway(oneway);
+            requestHeader.setBrokerName(destBrokerName);
             requestHeader.setTopic(topic);
             requestHeader.setQueueId(queueId);
             requestHeader.setLo(logic);

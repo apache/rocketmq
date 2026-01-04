@@ -33,7 +33,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
  * such as message store time, filter bit map and etc.
  * <p/>
  * <li>1. This class is used only by {@link ConsumeQueue}</li>
- * <li>2. And is week reliable.</li>
+ * <li>2. And is weakly reliable.</li>
  * <li>3. Be careful, address returned is always less than 0.</li>
  * <li>4. Pls keep this file small.</li>
  */
@@ -82,6 +82,42 @@ public class ConsumeQueueExt {
             + File.separator + queueId;
 
         this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+
+        if (bitMapLength > 0) {
+            this.tempContainer = ByteBuffer.allocate(
+                bitMapLength / Byte.SIZE
+            );
+        }
+    }
+
+    /**
+     * Constructor with writeWithoutMmap support.
+     *
+     * @param topic topic
+     * @param queueId id of queue
+     * @param storePath root dir of files to store.
+     * @param mappedFileSize file size
+     * @param bitMapLength bit map length.
+     * @param writeWithoutMmap whether to use RandomAccessFile instead of MappedByteBuffer
+     */
+    public ConsumeQueueExt(final String topic,
+        final int queueId,
+        final String storePath,
+        final int mappedFileSize,
+        final int bitMapLength,
+        final boolean writeWithoutMmap) {
+
+        this.storePath = storePath;
+        this.mappedFileSize = mappedFileSize;
+
+        this.topic = topic;
+        this.queueId = queueId;
+
+        String queueDir = this.storePath
+            + File.separator + topic
+            + File.separator + queueId;
+
+        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null, writeWithoutMmap);
 
         if (bitMapLength > 0) {
             this.tempContainer = ByteBuffer.allocate(

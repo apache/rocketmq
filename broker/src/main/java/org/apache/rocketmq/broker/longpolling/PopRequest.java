@@ -16,28 +16,35 @@
  */
 package org.apache.rocketmq.broker.longpolling;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
-import io.netty.channel.Channel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.store.MessageFilter;
 
 public class PopRequest {
     private static final AtomicLong COUNTER = new AtomicLong(Long.MIN_VALUE);
 
     private final RemotingCommand remotingCommand;
     private final ChannelHandlerContext ctx;
-    private final long expired;
     private final AtomicBoolean complete = new AtomicBoolean(false);
     private final long op = COUNTER.getAndIncrement();
 
-    public PopRequest(RemotingCommand remotingCommand, ChannelHandlerContext ctx, long expired) {
+    private final long expired;
+    private final SubscriptionData subscriptionData;
+    private final MessageFilter messageFilter;
+
+    public PopRequest(RemotingCommand remotingCommand, ChannelHandlerContext ctx,
+        long expired, SubscriptionData subscriptionData, MessageFilter messageFilter) {
+
         this.ctx = ctx;
         this.remotingCommand = remotingCommand;
         this.expired = expired;
+        this.subscriptionData = subscriptionData;
+        this.messageFilter = messageFilter;
     }
 
     public Channel getChannel() {
@@ -62,6 +69,14 @@ public class PopRequest {
 
     public long getExpired() {
         return expired;
+    }
+
+    public SubscriptionData getSubscriptionData() {
+        return subscriptionData;
+    }
+
+    public MessageFilter getMessageFilter() {
+        return messageFilter;
     }
 
     @Override

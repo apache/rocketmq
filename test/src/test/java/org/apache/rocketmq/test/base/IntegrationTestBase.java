@@ -136,8 +136,12 @@ public class IntegrationTestBase {
         brokerConfig.setNamesrvAddr(nsAddr);
         brokerConfig.setEnablePropertyFilter(true);
         brokerConfig.setEnableCalcFilterBitMap(true);
+        brokerConfig.setAppendAckAsync(true);
+        brokerConfig.setAppendCkAsync(true);
+        brokerConfig.setRecallMessageEnable(true);
         storeConfig.setEnableConsumeQueueExt(true);
         brokerConfig.setLoadBalancePollNameServerInterval(500);
+        brokerConfig.setPopConsumerKVServiceInit(true);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
         storeConfig.setMappedFileSizeCommitLog(commitLogSize);

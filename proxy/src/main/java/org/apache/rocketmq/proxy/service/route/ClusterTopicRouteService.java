@@ -17,11 +17,10 @@
 package org.apache.rocketmq.proxy.service.route;
 
 import java.util.List;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.Address;
-import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 public class ClusterTopicRouteService extends TopicRouteService {
@@ -39,21 +38,7 @@ public class ClusterTopicRouteService extends TopicRouteService {
     public ProxyTopicRouteData getTopicRouteForProxy(ProxyContext ctx, List<Address> requestHostAndPortList,
         String topicName) throws Exception {
         TopicRouteData topicRouteData = getAllMessageQueueView(ctx, topicName).getTopicRouteData();
-
-        ProxyTopicRouteData proxyTopicRouteData = new ProxyTopicRouteData();
-        proxyTopicRouteData.setQueueDatas(topicRouteData.getQueueDatas());
-
-        for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
-            ProxyTopicRouteData.ProxyBrokerData proxyBrokerData = new ProxyTopicRouteData.ProxyBrokerData();
-            proxyBrokerData.setCluster(brokerData.getCluster());
-            proxyBrokerData.setBrokerName(brokerData.getBrokerName());
-            for (Long brokerId : brokerData.getBrokerAddrs().keySet()) {
-                proxyBrokerData.getBrokerAddrs().put(brokerId, requestHostAndPortList);
-            }
-            proxyTopicRouteData.getBrokerDatas().add(proxyBrokerData);
-        }
-
-        return proxyTopicRouteData;
+        return new ProxyTopicRouteData(topicRouteData, requestHostAndPortList);
     }
 
     @Override

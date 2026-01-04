@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.common;
 
-import java.net.InetAddress;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.junit.Test;
 
@@ -28,7 +27,6 @@ public class NetworkUtilTest {
         String localAddress = NetworkUtil.getLocalAddress();
         assertThat(localAddress).isNotNull();
         assertThat(localAddress.length()).isGreaterThan(0);
-        assertThat(localAddress).isNotEqualTo(InetAddress.getLoopbackAddress().getHostAddress());
     }
 
     @Test

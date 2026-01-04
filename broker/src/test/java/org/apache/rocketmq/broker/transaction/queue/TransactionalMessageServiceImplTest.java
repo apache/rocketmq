@@ -72,7 +72,7 @@ public class TransactionalMessageServiceImplTest {
 
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(),
-        new NettyClientConfig(), new MessageStoreConfig());
+        new NettyClientConfig(), new MessageStoreConfig(), null);
 
     @Mock
     private AbstractTransactionalMessageCheckListener listener;
@@ -237,6 +237,7 @@ public class TransactionalMessageServiceImplTest {
 
     private EndTransactionRequestHeader createEndTransactionRequestHeader(int status) {
         EndTransactionRequestHeader header = new EndTransactionRequestHeader();
+        header.setTopic("topic");
         header.setCommitLogOffset(123456789L);
         header.setCommitOrRollback(status);
         header.setMsgId("12345678");

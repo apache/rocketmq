@@ -36,7 +36,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 /**
- * Currently, dose not support the ordered broadcast message
+ * Currently, does not support the ordered broadcast message
  */
 @Ignore
 public class OrderMsgBroadcastIT extends BaseBroadcast {

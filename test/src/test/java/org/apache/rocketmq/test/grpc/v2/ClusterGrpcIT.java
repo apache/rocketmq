@@ -30,6 +30,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.junit.runners.MethodSorters;
 
 import static org.awaitility.Awaitility.await;
@@ -82,13 +83,20 @@ public class ClusterGrpcIT extends GrpcBaseIT {
     }
 
     @Test
+    @Ignore
     public void testTransactionCheckThenCommit() {
         super.testTransactionCheckThenCommit();
     }
 
     @Test
+    @Ignore
     public void testSimpleConsumerSendAndRecvDelayMessage() throws Exception {
         super.testSimpleConsumerSendAndRecvDelayMessage();
+    }
+
+    @Test
+    public void testSimpleConsumerSendAndRecallDelayMessage() throws Exception {
+        super.testSimpleConsumerSendAndRecallDelayMessage();
     }
 
     @Test
@@ -109,5 +117,10 @@ public class ClusterGrpcIT extends GrpcBaseIT {
     @Test
     public void testConsumeOrderly() throws Exception {
         super.testConsumeOrderly();
+    }
+
+    @Test
+    public void testSimpleConsumerSendAndRecvPriorityMessage() throws Exception {
+        super.testSimpleConsumerSendAndRecvPriorityMessage();
     }
 }

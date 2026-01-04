@@ -34,6 +34,14 @@ public class TopicQueueLock {
         }
     }
 
+    public TopicQueueLock(int size) {
+        this.size = size;
+        this.lockList = new ArrayList<>(size);
+        for (int i = 0; i < this.size; i++) {
+            this.lockList.add(new ReentrantLock());
+        }
+    }
+
     public void lock(String topicQueueKey) {
         Lock lock = this.lockList.get((topicQueueKey.hashCode() & 0x7fffffff) % this.size);
         lock.lock();

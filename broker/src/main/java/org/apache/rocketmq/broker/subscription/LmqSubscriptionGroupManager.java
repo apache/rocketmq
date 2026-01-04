@@ -43,4 +43,13 @@ public class LmqSubscriptionGroupManager extends SubscriptionGroupManager {
         }
         super.updateSubscriptionGroupConfig(config);
     }
+
+    @Override
+    public boolean containsSubscriptionGroup(String group) {
+        if (MixAll.isLmq(group)) {
+            return true;
+        } else {
+            return super.containsSubscriptionGroup(group);
+        }
+    }
 }

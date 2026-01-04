@@ -48,4 +48,9 @@ public class BrokerHousekeepingService implements ChannelEventListener {
     public void onChannelIdle(String remoteAddr, Channel channel) {
         this.controllerManager.getHeartbeatManager().onBrokerChannelClose(channel);
     }
+
+    @Override
+    public void onChannelActive(String remoteAddr, Channel channel) {
+
+    }
 }

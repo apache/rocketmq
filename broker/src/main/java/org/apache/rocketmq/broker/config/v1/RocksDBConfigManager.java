@@ -1,0 +1,189 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.rocketmq.broker.config.v1;
+
+import com.alibaba.fastjson2.JSON;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.rocksdb.CompressionType;
+import org.rocksdb.FlushOptions;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.Statistics;
+import org.rocksdb.WriteBatch;
+
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.function.BiConsumer;
+
+public class RocksDBConfigManager {
+    protected static final Logger BROKER_LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+
+    public static final Charset CHARSET = StandardCharsets.UTF_8;
+
+    public ConfigRocksDBStorage configRocksDBStorage = null;
+    private FlushOptions flushOptions = null;
+    private volatile long lastFlushMemTableMicroSecond = 0;
+    private final String filePath;
+    private final long memTableFlushInterval;
+    private final CompressionType compressionType;
+    private DataVersion kvDataVersion = new DataVersion();
+
+    public static final byte[] KV_DATA_VERSION_COLUMN_FAMILY_NAME = "kvDataVersion".getBytes(CHARSET);
+    public static final byte[] KV_DATA_VERSION_KEY = "kvDataVersionKey".getBytes(CHARSET);
+
+    private final String defaultCF;
+    private final String versionCF;
+
+
+    public RocksDBConfigManager(String filePath, long memTableFlushInterval, CompressionType compressionType,
+        String defaultCF, String versionCF) {
+        this.filePath = filePath;
+        this.memTableFlushInterval = memTableFlushInterval;
+        this.compressionType = compressionType;
+        this.defaultCF = defaultCF;
+        this.versionCF = versionCF;
+    }
+
+    public RocksDBConfigManager(String filePath, long memTableFlushInterval, CompressionType compressionType) {
+        this.filePath = filePath;
+        this.memTableFlushInterval = memTableFlushInterval;
+        this.compressionType = compressionType;
+        this.defaultCF = new String(RocksDB.DEFAULT_COLUMN_FAMILY, CHARSET);
+        this.versionCF = new String(KV_DATA_VERSION_COLUMN_FAMILY_NAME, CHARSET);
+    }
+
+    public boolean init(boolean readOnly) {
+        this.configRocksDBStorage = ConfigRocksDBStorage.getStore(filePath, readOnly, compressionType);
+        return this.configRocksDBStorage.start();
+    }
+
+    public boolean isLoaded() {
+        return this.configRocksDBStorage != null && this.configRocksDBStorage.isLoaded();
+    }
+
+    public boolean init() {
+        return this.init(false);
+    }
+
+    public boolean loadDataVersion() {
+        String currDataVersionString = null;
+        try {
+            byte[] dataVersion = this.configRocksDBStorage.get(versionCF, KV_DATA_VERSION_KEY);
+            if (dataVersion != null && dataVersion.length > 0) {
+                currDataVersionString = new String(dataVersion, StandardCharsets.UTF_8);
+            }
+            kvDataVersion = StringUtils.isNotBlank(currDataVersionString) ? JSON.parseObject(currDataVersionString, DataVersion.class) : new DataVersion();
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean loadData(BiConsumer<byte[], byte[]> biConsumer) {
+        try {
+            configRocksDBStorage.iterate(this.defaultCF, biConsumer);
+        } catch (Exception e) {
+            BROKER_LOG.error("RocksDBConfigManager loadData failed", e);
+            return false;
+        }
+
+        this.flushOptions = new FlushOptions();
+        this.flushOptions.setWaitForFlush(false);
+        this.flushOptions.setAllowWriteStall(false);
+        return true;
+    }
+
+    public void start() {
+    }
+
+    public boolean stop() {
+        ConfigRocksDBStorage.shutdown(filePath);
+        if (this.flushOptions != null) {
+            this.flushOptions.close();
+        }
+        return true;
+    }
+
+    public void flushWAL() {
+        try {
+            if (!isLoaded()) {
+                return;
+            }
+            if (this.configRocksDBStorage != null) {
+                this.configRocksDBStorage.flushWAL();
+
+                long now = System.currentTimeMillis();
+                if (now > this.lastFlushMemTableMicroSecond + this.memTableFlushInterval) {
+                    this.configRocksDBStorage.flush(this.flushOptions);
+                    this.lastFlushMemTableMicroSecond = now;
+                }
+            }
+        } catch (Exception e) {
+            BROKER_LOG.error("kv flush WAL Failed.", e);
+        }
+    }
+
+    public void put(final byte[] keyBytes, final byte[] valueBytes) throws Exception {
+        this.configRocksDBStorage.put(defaultCF, keyBytes, keyBytes.length, valueBytes);
+    }
+
+    public void put(String cf, String key, String value) throws Exception {
+        byte[] keyBytes = key.getBytes(CHARSET);
+        this.configRocksDBStorage.put(cf, keyBytes, keyBytes.length, value.getBytes(CHARSET));
+    }
+
+    public void put(String cf, final byte[] keyBytes, final byte[] valueBytes) throws Exception {
+        this.configRocksDBStorage.put(cf, keyBytes, keyBytes.length, valueBytes);
+    }
+
+    public void delete(final byte[] keyBytes) throws Exception {
+        this.configRocksDBStorage.delete(defaultCF, keyBytes);
+    }
+
+    public void updateKvDataVersion() throws Exception {
+        kvDataVersion.nextVersion();
+        this.configRocksDBStorage.put(versionCF, KV_DATA_VERSION_KEY, KV_DATA_VERSION_KEY.length,
+            JSON.toJSONString(kvDataVersion).getBytes(StandardCharsets.UTF_8));
+    }
+
+    public DataVersion getKvDataVersion() {
+        return kvDataVersion;
+    }
+
+    // batch operations
+    public void writeBatchPutOperation(WriteBatch writeBatch, final byte[] key, final byte[] value) throws RocksDBException {
+        configRocksDBStorage.writeBatchPutOperation(defaultCF, writeBatch, key, value);
+    }
+
+    public void batchPutWithWal(final WriteBatch batch) throws Exception {
+        this.configRocksDBStorage.batchPutWithWal(batch);
+    }
+
+    public Statistics getStatistics() {
+        if (this.configRocksDBStorage == null) {
+            return null;
+        }
+
+        return configRocksDBStorage.getStatistics();
+    }
+
+}

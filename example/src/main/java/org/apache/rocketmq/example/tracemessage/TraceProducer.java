@@ -34,7 +34,7 @@ public class TraceProducer {
 
     public static void main(String[] args) throws MQClientException, InterruptedException {
 
-        DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP, true);
+        DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP, true, null);
 
         // Uncomment the following line while debugging, namesrvAddr should be set to your local address
 //        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);

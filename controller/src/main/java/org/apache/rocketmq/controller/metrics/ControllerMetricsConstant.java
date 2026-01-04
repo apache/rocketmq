@@ -62,7 +62,6 @@ public class ControllerMetricsConstant {
 
     public static final String LABEL_ELECTION_RESULT = "election_result";
 
-
     public enum RequestType {
         CONTROLLER_ALTER_SYNC_STATE_SET(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET),
 
@@ -112,6 +111,7 @@ public class ControllerMetricsConstant {
         SUCCESS,
         FAILED,
         TIMEOUT;
+
         public String getLowerCaseName() {
             return this.name().toLowerCase();
         }

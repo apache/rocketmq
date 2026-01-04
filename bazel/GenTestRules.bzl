@@ -34,6 +34,7 @@ def GenTestRules(
         large_tests = [],
         enormous_tests = [],
         resources = [],
+        data = [],
         flaky_tests = [],
         tags = [],
         prefix = "",
@@ -65,13 +66,14 @@ def GenTestRules(
             runtime_deps = deps,
             resources = resources,
             size = test_size,
-            jvm_flags = jvm_flags,
+            jvm_flags = jvm_flags + ["-Dbuild.bazel=true"],
             args = args,
             flaky = flaky,
             tags = tags,
             test_class = java_class,
             visibility = visibility,
             shard_count = shard_count,
+            data = data,
         )
 
 def _get_test_names(test_files):

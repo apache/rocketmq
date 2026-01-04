@@ -34,7 +34,8 @@ public class PullConsumerWithNamespace {
     private static final Map<MessageQueue, Long> OFFSET_TABLE = new HashMap<>();
 
     public static void main(String[] args) throws Exception {
-        DefaultMQPullConsumer pullConsumer = new DefaultMQPullConsumer(NAMESPACE, CONSUMER_GROUP);
+        DefaultMQPullConsumer pullConsumer = new DefaultMQPullConsumer(CONSUMER_GROUP);
+        pullConsumer.setNamespaceV2(NAMESPACE);
         pullConsumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         pullConsumer.start();
 

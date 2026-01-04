@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -44,6 +43,7 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
@@ -99,14 +99,14 @@ public class DLedgerController implements Controller {
 
     private ScheduledFuture scanInactiveMasterFuture;
 
-    private List<BrokerLifecycleListener> brokerLifecycleListeners;
+    private final List<BrokerLifecycleListener> brokerLifecycleListeners;
 
-    // Usr for checking whether the broker is alive
+    // use for checking whether the broker is alive
     private BrokerValidPredicate brokerAlivePredicate;
     // use for elect a master
     private ElectPolicy electPolicy;
 
-    private AtomicBoolean isScheduling = new AtomicBoolean(false);
+    private final AtomicBoolean isScheduling = new AtomicBoolean(false);
 
     public DLedgerController(final ControllerConfig config, final BrokerValidPredicate brokerAlivePredicate) {
         this(config, brokerAlivePredicate, null, null, null, null);
@@ -136,7 +136,7 @@ public class DLedgerController implements Controller {
         this.dLedgerServer = new DLedgerServer(dLedgerConfig, nettyServerConfig, nettyClientConfig, channelEventListener);
         this.dLedgerServer.registerStateMachine(this.statemachine);
         this.dLedgerServer.getDLedgerLeaderElector().addRoleChangeHandler(this.roleHandler);
-        this.scanInactiveMasterService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DLedgerController_scanInactiveService_"));
+        this.scanInactiveMasterService = ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DLedgerController_scanInactiveService_"));
         this.brokerLifecycleListeners = new ArrayList<>();
     }
 
@@ -513,7 +513,7 @@ public class DLedgerController implements Controller {
     class RoleChangeHandler implements DLedgerLeaderElector.RoleChangeHandler {
 
         private final String selfId;
-        private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("DLedgerControllerRoleChangeHandler_"));
+        private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor(new ThreadFactoryImpl("DLedgerControllerRoleChangeHandler_"));
         private volatile MemberState.Role currentRole = MemberState.Role.FOLLOWER;
 
         public RoleChangeHandler(final String selfId) {
@@ -555,8 +555,8 @@ public class DLedgerController implements Controller {
                                     if (DLedgerController.this.scanInactiveMasterFuture == null) {
                                         long scanInactiveMasterInterval = DLedgerController.this.controllerConfig.getScanInactiveMasterInterval();
                                         DLedgerController.this.scanInactiveMasterFuture =
-                                                DLedgerController.this.scanInactiveMasterService.scheduleAtFixedRate(DLedgerController.this::scanInactiveMasterAndTriggerReelect,
-                                                        scanInactiveMasterInterval, scanInactiveMasterInterval, TimeUnit.MILLISECONDS);
+                                            DLedgerController.this.scanInactiveMasterService.scheduleAtFixedRate(DLedgerController.this::scanInactiveMasterAndTriggerReelect,
+                                                scanInactiveMasterInterval, scanInactiveMasterInterval, TimeUnit.MILLISECONDS);
                                     }
                                     break;
                                 }
@@ -569,7 +569,7 @@ public class DLedgerController implements Controller {
                                 break;
                             }
                             tryTimes++;
-                            log.error(String.format("Controller leader append initial log failed, try %d times", tryTimes));
+                            log.error("Controller leader append initial log failed, try {} times", tryTimes);
                             if (tryTimes % 3 == 0) {
                                 log.warn("Controller leader append initial log failed too many times, please wait a while");
                             }

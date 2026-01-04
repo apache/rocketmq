@@ -51,5 +51,6 @@ public interface PullMessageResultHandler {
                            final boolean brokerAllowSuspend,
                            final MessageFilter messageFilter,
                            final RemotingCommand response,
-                           final TopicQueueMappingContext mappingContext);
+                           final TopicQueueMappingContext mappingContext,
+                           final long beginTimeMills);
 }

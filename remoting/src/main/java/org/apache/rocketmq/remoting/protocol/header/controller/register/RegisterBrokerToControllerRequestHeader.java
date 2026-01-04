@@ -17,11 +17,18 @@
 
 package org.apache.rocketmq.remoting.protocol.header.controller.register;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.CONTROLLER_REGISTER_BROKER, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class RegisterBrokerToControllerRequestHeader implements CommandCustomHeader {
 
+    @RocketMQResource(ResourceType.CLUSTER)
     private String clusterName;
 
     private String brokerName;
@@ -29,6 +36,8 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
     private Long brokerId;
 
     private String brokerAddress;
+
+    private long invokeTime;
 
     public RegisterBrokerToControllerRequestHeader() {
     }
@@ -38,11 +47,20 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
         this.brokerName = brokerName;
         this.brokerId = brokerId;
         this.brokerAddress = brokerAddress;
+        this.invokeTime = System.currentTimeMillis();
     }
 
     @Override
     public void checkFields() throws RemotingCommandException {
 
+    }
+
+    public long getInvokeTime() {
+        return invokeTime;
+    }
+
+    public void setInvokeTime(long invokeTime) {
+        this.invokeTime = invokeTime;
     }
 
     public String getClusterName() {

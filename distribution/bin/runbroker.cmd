@@ -23,19 +23,38 @@ set BASE_DIR=%~dp0
 set BASE_DIR=%BASE_DIR:~0,-1%
 for %%d in (%BASE_DIR%) do set BASE_DIR=%%~dpd
 
-set CLASSPATH=.;%BASE_DIR%conf;%BASE_DIR%lib\*;%CLASSPATH%
+set CLASSPATH=.;%BASE_DIR%conf;%BASE_DIR%lib\*;"%CLASSPATH%"
 
 rem ===========================================================================================
 rem  JVM Configuration
 rem ===========================================================================================
-set "JAVA_OPT=%JAVA_OPT% -server -Xms2g -Xmx2g"
-set "JAVA_OPT=%JAVA_OPT% -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0 -XX:SurvivorRatio=8"
-set "JAVA_OPT=%JAVA_OPT% -verbose:gc -Xloggc:%USERPROFILE%\mq_gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
-set "JAVA_OPT=%JAVA_OPT% -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
-set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
-set "JAVA_OPT=%JAVA_OPT% -XX:+AlwaysPreTouch"
-set "JAVA_OPT=%JAVA_OPT% -XX:MaxDirectMemorySize=15g"
-set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages -XX:-UseBiasedLocking"
-set "JAVA_OPT=%JAVA_OPT% %JAVA_OPT_EXT% -cp %CLASSPATH%"
+for /f "tokens=2 delims=" %%v in ('java -version 2^>^&1 ^| findstr /i "version"') do (
+    for /f "tokens=1 delims=." %%m in ("%%v") do set "JAVA_MAJOR_VERSION=%%m"
+)
+
+if "%JAVA_MAJOR_VERSION%"=="" (
+    set "JAVA_MAJOR_VERSION=0"
+)
+if %JAVA_MAJOR_VERSION% lss 17 (
+   set "JAVA_OPT=%JAVA_OPT% -server -Xms2g -Xmx2g"
+   set "JAVA_OPT=%JAVA_OPT% -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0 -XX:SurvivorRatio=8"
+   set "JAVA_OPT=%JAVA_OPT% -verbose:gc -Xloggc:%USERPROFILE%\mq_gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
+   set "JAVA_OPT=%JAVA_OPT% -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
+   set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
+   set "JAVA_OPT=%JAVA_OPT% -XX:+AlwaysPreTouch"
+   set "JAVA_OPT=%JAVA_OPT% -XX:MaxDirectMemorySize=15g"
+   set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages -XX:-UseBiasedLocking"
+   set "JAVA_OPT=%JAVA_OPT% %JAVA_OPT_EXT% -cp %CLASSPATH%"
+) else (
+   set "JAVA_OPT=%JAVA_OPT% -server -Xms2g -Xmx2g"
+   set "JAVA_OPT=%JAVA_OPT% -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0 -XX:SurvivorRatio=8"
+   rem set "JAVA_OPT=%JAVA_OPT% -verbose:gc -Xloggc:%USERPROFILE%\mq_gc.log -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintAdaptiveSizePolicy"
+   rem set "JAVA_OPT=%JAVA_OPT% -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=30m"
+   set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
+   set "JAVA_OPT=%JAVA_OPT% -XX:+AlwaysPreTouch"
+   set "JAVA_OPT=%JAVA_OPT% -XX:MaxDirectMemorySize=15g"
+   set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages -XX:-UseBiasedLocking -XX:+IgnoreUnrecognizedVMOptions"
+   set "JAVA_OPT=%JAVA_OPT% %JAVA_OPT_EXT% -cp "%CLASSPATH%""
+)
 
 "%JAVA%" %JAVA_OPT% %*

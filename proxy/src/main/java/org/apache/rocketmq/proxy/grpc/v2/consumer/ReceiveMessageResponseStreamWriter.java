@@ -54,6 +54,10 @@ public class ReceiveMessageResponseStreamWriter {
     }
 
     public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, PopResult popResult) {
+        writeAndComplete(ctx, request, popResult, null);
+    }
+
+    public void writeAndComplete(ProxyContext ctx, ReceiveMessageRequest request, PopResult popResult, Runnable doAfterWrite) {
         PopStatus status = popResult.getPopStatus();
         List<MessageExt> messageFoundList = popResult.getMsgFoundList();
         try {
@@ -64,9 +68,15 @@ public class ReceiveMessageResponseStreamWriter {
                             .setStatus(ResponseBuilder.getInstance().buildStatus(Code.MESSAGE_NOT_FOUND, "no match message"))
                             .build());
                     } else {
-                        streamObserver.onNext(ReceiveMessageResponse.newBuilder()
-                            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
-                            .build());
+                        try {
+                            streamObserver.onNext(ReceiveMessageResponse.newBuilder()
+                                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
+                                .build());
+                        } catch (Throwable t) {
+                            messageFoundList.forEach(messageExt ->
+                                this.processThrowableWhenWriteMessage(t, ctx, request, messageExt));
+                            throw t;
+                        }
                         Iterator<MessageExt> messageIterator = messageFoundList.iterator();
                         while (messageIterator.hasNext()) {
                             MessageExt curMessageExt = messageIterator.next();
@@ -97,6 +107,9 @@ public class ReceiveMessageResponseStreamWriter {
                         .build());
                     break;
             }
+            if (doAfterWrite != null) {
+                doAfterWrite.run();
+            }
         } catch (Throwable t) {
             writeResponseWithErrorIgnore(
                 ReceiveMessageResponse.newBuilder().setStatus(ResponseBuilder.getInstance().buildStatus(t)).build());
@@ -121,8 +134,8 @@ public class ReceiveMessageResponseStreamWriter {
             ctx,
             ReceiptHandle.decode(handle),
             messageExt.getMsgId(),
-            GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup()),
-            GrpcConverter.getInstance().wrapResourceWithNamespace(request.getMessageQueue().getTopic()),
+            request.getGroup().getName(),
+            request.getMessageQueue().getTopic().getName(),
             NACK_INVISIBLE_TIME
         );
     }

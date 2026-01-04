@@ -22,6 +22,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -47,6 +48,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -93,7 +95,7 @@ public class AckMessageProcessorTest {
     private static final long MAX_OFFSET_IN_QUEUE = 999;
 
     @Before
-    public void init() throws IllegalAccessException, NoSuchFieldException {
+    public void init() throws IllegalAccessException, NoSuchFieldException, ConsumeQueueException {
         clientInfo = new ClientChannelInfo(channel, "127.0.0.1", LanguageCode.JAVA, 0);
         brokerController.setMessageStore(messageStore);
         Field field = BrokerController.class.getDeclaredField("broker2Client");
@@ -101,6 +103,12 @@ public class AckMessageProcessorTest {
         field.set(brokerController, broker2Client);
         EscapeBridge escapeBridge = new EscapeBridge(brokerController);
         Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
+        
+        // Initialize BrokerMetricsManager for tests
+        Field bmmField = BrokerController.class.getDeclaredField("brokerMetricsManager");
+        bmmField.setAccessible(true);
+        bmmField.set(brokerController, new BrokerMetricsManager(brokerController));
+        
         Channel mockChannel = mock(Channel.class);
         when(handlerContext.channel()).thenReturn(mockChannel);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());

@@ -16,11 +16,12 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public abstract class RemotingSerializable {
     private final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
@@ -34,11 +35,25 @@ public abstract class RemotingSerializable {
     }
 
     public static String toJson(final Object obj, boolean prettyFormat) {
-        return JSON.toJSONString(obj, prettyFormat);
+        if (prettyFormat) {
+            return JSON.toJSONString(obj, JSONWriter.Feature.PrettyFormat);
+        }
+        return JSON.toJSONString(obj);
     }
 
     public static <T> T decode(final byte[] data, Class<T> classOfT) {
+        if (data == null) {
+            return null;
+        }
         return fromJson(data, classOfT);
+    }
+
+    public static <T> List<T> decodeList(final byte[] data, Class<T> classOfT) {
+        if (data == null) {
+            return null;
+        }
+        String json = new String(data, CHARSET_UTF8);
+        return JSON.parseArray(json, classOfT);
     }
 
     public static <T> T fromJson(String json, Class<T> classOfT) {
@@ -63,7 +78,7 @@ public abstract class RemotingSerializable {
      * @param features Features to apply
      * @return serialized data.
      */
-    public byte[] encode(SerializerFeature...features) {
+    public byte[] encode(JSONWriter.Feature... features) {
         final String json = JSON.toJSONString(this, features);
         return json.getBytes(CHARSET_UTF8);
     }

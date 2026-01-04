@@ -47,8 +47,7 @@ public interface MQPullConsumer extends MQConsumer {
      *
      * @param mq from which message queue
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
-     * null or * expression,meaning subscribe
-     * all
+     * null or * expression,meaning subscribe all
      * @param offset from where to pull
      * @param maxNums max pulling numbers
      * @return The resulting {@code PullRequest}
@@ -121,7 +120,7 @@ public interface MQPullConsumer extends MQConsumer {
         InterruptedException;
 
     /**
-     * Pulling the messages in a async. way. Support message selection
+     * Pulling the messages in a async way. Support message selection
      */
     void pull(final MessageQueue mq, final MessageSelector selector, final long offset, final int maxNums,
         final PullCallback pullCallback) throws MQClientException, RemotingException,
@@ -149,6 +148,23 @@ public interface MQPullConsumer extends MQConsumer {
     void pullBlockIfNotFound(final MessageQueue mq, final String subExpression, final long offset,
         final int maxNums, final PullCallback pullCallback) throws MQClientException, RemotingException,
         InterruptedException;
+
+    /**
+     * Pulling the messages through callback function,if no message arrival,blocking. Support message selection
+     */
+    void pullBlockIfNotFoundWithMessageSelector(final MessageQueue mq, final MessageSelector selector,
+        final long offset, final int maxNums,
+        final PullCallback pullCallback) throws MQClientException, RemotingException,
+        InterruptedException;
+
+    /**
+     * Pulling the messages,if no message arrival,blocking some time. Support message selection
+     *
+     * @return The resulting {@code PullRequest}
+     */
+    PullResult pullBlockIfNotFoundWithMessageSelector(final MessageQueue mq, final MessageSelector selector,
+        final long offset, final int maxNums) throws MQClientException, RemotingException,
+        MQBrokerException, InterruptedException;
 
     /**
      * Update the offset

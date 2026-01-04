@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.utils.NetworkUtil;
 
 public class BrokerContainerConfig {
 
-    private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
+    private String rocketmqHome = MixAll.ROCKETMQ_HOME_DIR;
 
     @ImportantField
     private String namesrvAddr = System.getProperty(MixAll.NAMESRV_ADDR_PROPERTY, System.getenv(MixAll.NAMESRV_ADDR_ENV));
@@ -43,6 +43,19 @@ public class BrokerContainerConfig {
      * The interval to fetch namesrv addr, default value is 10 second
      */
     private long fetchNamesrvAddrInterval = 10 * 1000;
+
+    /**
+     * The interval to update namesrv addr, default value is 120 second
+     */
+    private long updateNamesrvAddrInterval = 60 * 2 * 1000;
+
+
+    /**
+     * Config in this black list will be not allowed to update by command.
+     * Try to update this config black list by restart process.
+     * Try to update configures in black list by restart process.
+     */
+    private String configBlackList = "configBlackList;brokerConfigPaths";
 
     public String getRocketmqHome() {
         return rocketmqHome;
@@ -94,5 +107,21 @@ public class BrokerContainerConfig {
     
     public void setFetchNamesrvAddrInterval(final long fetchNamesrvAddrInterval) {
         this.fetchNamesrvAddrInterval = fetchNamesrvAddrInterval;
+    }
+
+    public long getUpdateNamesrvAddrInterval() {
+        return updateNamesrvAddrInterval;
+    }
+
+    public void setUpdateNamesrvAddrInterval(long updateNamesrvAddrInterval) {
+        this.updateNamesrvAddrInterval = updateNamesrvAddrInterval;
+    }
+
+    public String getConfigBlackList() {
+        return configBlackList;
+    }
+
+    public void setConfigBlackList(String configBlackList) {
+        this.configBlackList = configBlackList;
     }
 }

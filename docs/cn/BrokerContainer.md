@@ -72,7 +72,7 @@ sh mqbrokercontainer -c broker-container.conf
 ```
 mqbrokercontainer脚本路径为distribution/bin/mqbrokercontainer。
 
-## 运行时增加或较少Broker
+## 运行时增加或减少Broker
 
 当BrokerContainer进程启动后，也可以通过Admin命令来增加或减少Broker。
 

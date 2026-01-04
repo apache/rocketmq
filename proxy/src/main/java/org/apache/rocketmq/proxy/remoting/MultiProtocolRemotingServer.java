@@ -46,7 +46,7 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
     private final NettyServerConfig nettyServerConfig;
 
     private final RemotingProtocolHandler remotingProtocolHandler;
-    private final Http2ProtocolProxyHandler http2ProtocolProxyHandler;
+    protected Http2ProtocolProxyHandler http2ProtocolProxyHandler;
 
     public MultiProtocolRemotingServer(NettyServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
         super(nettyServerConfig, channelEventListener);
@@ -68,9 +68,9 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
         if (tlsMode != TlsMode.DISABLED) {
             try {
                 sslContext = MultiProtocolTlsHelper.buildSslContext();
-                log.info("SSLContext created for server");
+                log.info("SslContext created for multi protocol remoting server");
             } catch (CertificateException | IOException e) {
-                throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "Failed to create SSLContext for server", e);
+                throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "Failed to create SslContext for server", e);
             }
         }
     }

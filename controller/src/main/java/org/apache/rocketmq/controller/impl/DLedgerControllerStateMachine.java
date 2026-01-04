@@ -17,11 +17,11 @@
 package org.apache.rocketmq.controller.impl;
 
 import io.openmessaging.storage.dledger.entry.DLedgerEntry;
+import io.openmessaging.storage.dledger.exception.DLedgerException;
 import io.openmessaging.storage.dledger.snapshot.SnapshotReader;
 import io.openmessaging.storage.dledger.snapshot.SnapshotWriter;
 import io.openmessaging.storage.dledger.statemachine.CommittedEntryIterator;
 import io.openmessaging.storage.dledger.statemachine.StateMachine;
-import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventSerializer;
@@ -46,6 +46,11 @@ public class DLedgerControllerStateMachine implements StateMachine {
     }
 
     @Override
+    public String generateDLedgerId(String dLedgerGroupId, String dLedgerSelfId) {
+        return new StringBuilder(20).append(dLedgerGroupId).append("#").append(dLedgerSelfId).toString();
+    }
+
+    @Override
     public void onApply(CommittedEntryIterator iterator) {
         int applyingSize = 0;
         long firstApplyIndex = -1;
@@ -65,7 +70,8 @@ public class DLedgerControllerStateMachine implements StateMachine {
     }
 
     @Override
-    public void onSnapshotSave(SnapshotWriter writer, CompletableFuture<Boolean> future) {
+    public boolean onSnapshotSave(SnapshotWriter writer) {
+        return true;
     }
 
     @Override
@@ -75,6 +81,12 @@ public class DLedgerControllerStateMachine implements StateMachine {
 
     @Override
     public void onShutdown() {
+        log.info("StateMachine {} onShutdown", this.dLedgerId);
+    }
+
+    @Override
+    public void onError(DLedgerException exception) {
+        log.error("Encountered an error on StateMachine {}, dLedger may stop working since some error occurs, you should figure out the cause and repair or remove this node.", this.dLedgerId, exception);
     }
 
     @Override

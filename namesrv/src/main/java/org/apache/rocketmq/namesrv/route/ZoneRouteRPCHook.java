@@ -56,7 +56,6 @@ public class ZoneRouteRPCHook implements RPCHook {
             return;
         }
         TopicRouteData topicRouteData = RemotingSerializable.decode(response.getBody(), TopicRouteData.class);
-
         response.setBody(filterByZoneName(topicRouteData, zoneName).encode());
     }
 
@@ -64,6 +63,9 @@ public class ZoneRouteRPCHook implements RPCHook {
         List<BrokerData> brokerDataReserved = new ArrayList<>();
         Map<String, BrokerData> brokerDataRemoved = new HashMap<>();
         for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
+            if (brokerData.getBrokerAddrs() == null) {
+                continue;
+            }
             //master down, consume from slave. break nearby route rule.
             if (brokerData.getBrokerAddrs().get(MixAll.MASTER_ID) == null
                 || StringUtils.equalsIgnoreCase(brokerData.getZoneName(), zoneName)) {
@@ -85,9 +87,6 @@ public class ZoneRouteRPCHook implements RPCHook {
         if (topicRouteData.getFilterServerTable() != null && !topicRouteData.getFilterServerTable().isEmpty()) {
             for (Entry<String, BrokerData> entry : brokerDataRemoved.entrySet()) {
                 BrokerData brokerData = entry.getValue();
-                if (brokerData.getBrokerAddrs() == null) {
-                    continue;
-                }
                 brokerData.getBrokerAddrs().values()
                     .forEach(brokerAddr -> topicRouteData.getFilterServerTable().remove(brokerAddr));
             }

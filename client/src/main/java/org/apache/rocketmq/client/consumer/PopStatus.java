@@ -23,7 +23,7 @@ public enum PopStatus {
     FOUND,
     /**
      * No new message can be pull after polling time out
-     * delete after next realease
+     * delete after next release
      */
     NO_NEW_MSG,
     /**

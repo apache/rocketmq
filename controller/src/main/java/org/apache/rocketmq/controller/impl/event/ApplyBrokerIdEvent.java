@@ -29,7 +29,8 @@ public class ApplyBrokerIdEvent implements EventMessage {
 
     private final long newBrokerId;
 
-    public ApplyBrokerIdEvent(String clusterName, String brokerName, String brokerAddress, long newBrokerId, String registerCheckCode) {
+    public ApplyBrokerIdEvent(String clusterName, String brokerName, String brokerAddress, long newBrokerId,
+        String registerCheckCode) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
@@ -65,11 +66,11 @@ public class ApplyBrokerIdEvent implements EventMessage {
     @Override
     public String toString() {
         return "ApplyBrokerIdEvent{" +
-                "clusterName='" + clusterName + '\'' +
-                ", brokerName='" + brokerName + '\'' +
-                ", brokerAddress='" + brokerAddress + '\'' +
-                ", registerCheckCode='" + registerCheckCode + '\'' +
-                ", newBrokerId=" + newBrokerId +
-                '}';
+            "clusterName='" + clusterName + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            ", brokerAddress='" + brokerAddress + '\'' +
+            ", registerCheckCode='" + registerCheckCode + '\'' +
+            ", newBrokerId=" + newBrokerId +
+            '}';
     }
 }

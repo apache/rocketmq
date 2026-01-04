@@ -32,16 +32,16 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
-import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.BatchAckResult;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 
-public class AckMessageActivity extends AbstractMessingActivity {
+public class AckMessageActivity extends AbstractMessagingActivity {
 
     public AckMessageActivity(MessagingProcessor messagingProcessor, GrpcClientSettingsManager grpcClientSettingsManager,
         GrpcChannelManager grpcChannelManager) {
@@ -53,8 +53,8 @@ public class AckMessageActivity extends AbstractMessingActivity {
 
         try {
             validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
-            String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
-            String topic = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic());
+            String group = request.getGroup().getName();
+            String topic = request.getTopic().getName();
             if (ConfigurationManager.getProxyConfig().isEnableBatchAck()) {
                 future = ackMessageInBatch(ctx, group, topic, request);
             } else {
@@ -194,10 +194,12 @@ public class AckMessageActivity extends AbstractMessingActivity {
 
     protected String getHandleString(ProxyContext ctx, String group, AckMessageRequest request, AckMessageEntry ackMessageEntry) {
         String handleString = ackMessageEntry.getReceiptHandle();
-
-        MessageReceiptHandle messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, grpcChannelManager.getChannel(ctx.getClientID()), group, ackMessageEntry.getMessageId(), ackMessageEntry.getReceiptHandle());
-        if (messageReceiptHandle != null) {
-            handleString = messageReceiptHandle.getReceiptHandleStr();
+        GrpcClientChannel channel = grpcChannelManager.getChannel(ctx.getClientID());
+        if (channel != null) {
+            MessageReceiptHandle messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, channel, group, ackMessageEntry.getMessageId(), ackMessageEntry.getReceiptHandle());
+            if (messageReceiptHandle != null) {
+                handleString = messageReceiptHandle.getReceiptHandleStr();
+            }
         }
         return handleString;
     }

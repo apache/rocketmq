@@ -25,6 +25,7 @@ import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.rocksdb.RocksDBException;
 
 public interface HAService {
 
@@ -53,7 +54,7 @@ public interface HAService {
      *
      * @param masterEpoch the new masterEpoch
      */
-    default boolean changeToMaster(int masterEpoch) {
+    default boolean changeToMaster(int masterEpoch) throws RocksDBException {
         return false;
     }
 

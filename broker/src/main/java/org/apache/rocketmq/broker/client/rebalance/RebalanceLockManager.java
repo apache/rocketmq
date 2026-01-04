@@ -98,8 +98,6 @@ public class RebalanceLockManager {
                 log.error("RebalanceLockManager#tryLock: unexpected error, group={}, mq={}, clientId={}", group, mq,
                     clientId, e);
             }
-        } else {
-
         }
 
         return true;

@@ -53,11 +53,11 @@ public class UpdateBrokerAddressEvent implements EventMessage {
     @Override
     public String toString() {
         return "UpdateBrokerAddressEvent{" +
-                "clusterName='" + clusterName + '\'' +
-                ", brokerName='" + brokerName + '\'' +
-                ", brokerAddress='" + brokerAddress + '\'' +
-                ", brokerId=" + brokerId +
-                '}';
+            "clusterName='" + clusterName + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            ", brokerAddress='" + brokerAddress + '\'' +
+            ", brokerId=" + brokerId +
+            '}';
     }
 
     @Override

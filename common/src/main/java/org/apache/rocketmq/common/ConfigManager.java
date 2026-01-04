@@ -16,18 +16,19 @@
  */
 package org.apache.rocketmq.common;
 
-import java.io.IOException;
+import java.io.File;
+import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
-
-import org.apache.rocketmq.common.config.RocksDBConfigManager;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public abstract class ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
-
-    protected RocksDBConfigManager rocksDBConfigManager;
 
     public boolean load() {
         String fileName = null;
@@ -36,6 +37,8 @@ public abstract class ConfigManager {
             String jsonString = MixAll.file2String(fileName);
 
             if (null == jsonString || jsonString.length() == 0) {
+                // delete invalid file
+                Files.deleteIfExists(Paths.get(fileName));
                 return this.loadBak();
             } else {
                 this.decode(jsonString);
@@ -44,6 +47,14 @@ public abstract class ConfigManager {
             }
         } catch (Exception e) {
             log.error("load " + fileName + " failed, and try to load backup file", e);
+            try {
+                if (fileName != null) {
+                    // delete invalid file
+                    Files.deleteIfExists(Paths.get(fileName));
+                }
+            } catch (Throwable t) {
+                log.error("load " + fileName + " failed, and delete invalid file errr", e);
+            }
             return this.loadBak();
         }
     }
@@ -51,8 +62,8 @@ public abstract class ConfigManager {
     private boolean loadBak() {
         String fileName = null;
         try {
-            fileName = this.configFilePath();
-            String jsonString = MixAll.file2String(fileName + ".bak");
+            fileName = this.configFilePath() + ".bak";
+            String jsonString = MixAll.file2String(fileName);
             if (jsonString != null && jsonString.length() > 0) {
                 this.decode(jsonString);
                 log.info("load " + fileName + " OK");
@@ -79,21 +90,44 @@ public abstract class ConfigManager {
     public synchronized void persist() {
         String jsonString = this.encode(true);
         if (jsonString != null) {
-            String fileName = this.configFilePath();
             try {
-                MixAll.string2File(jsonString, fileName);
-            } catch (IOException e) {
-                log.error("persist file " + fileName + " exception", e);
+                // bak metrics file
+                String config = configFilePath();
+                String backup = config + ".bak";
+                File configFile = new File(config);
+                File bakFile = new File(backup);
+
+                if (configFile.exists()) {
+                    // atomic move
+                    Files.move(configFile.toPath(), bakFile.toPath(), StandardCopyOption.ATOMIC_MOVE);
+
+                    // sync the directory, ensure that the bak file is visible
+                    MixAll.fsyncDirectory(Paths.get(bakFile.getParent()));
+                }
+
+                File dir = new File(configFile.getParent());
+                if (!dir.exists()) {
+                    Files.createDirectories(dir.toPath());
+                }
+
+                try (RandomAccessFile randomAccessFile = new RandomAccessFile(config, "rw")) {
+                    randomAccessFile.write(jsonString.getBytes(StandardCharsets.UTF_8));
+                    randomAccessFile.getChannel().force(true);
+                    // sync the directory, ensure that the config file is visible
+                    MixAll.fsyncDirectory(Paths.get(configFile.getParent()));
+                }
+            } catch (Throwable t) {
+                log.error("Failed to persist", t);
             }
         }
     }
 
-    protected void decode0(final byte[] key, final byte[] body) {
-
-    }
-
     public boolean stop() {
         return true;
+    }
+
+    public void shutdown() {
+        stop();
     }
 
     public abstract String configFilePath();

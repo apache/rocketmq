@@ -21,6 +21,10 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -28,10 +32,12 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
+@RocketMQAction(value = RequestCode.SEND_MESSAGE, action = Action.PUB)
 public class SendMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private String producerGroup;
     @CFNotNull
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
     @CFNotNull
     private String defaultTopic;
@@ -50,9 +56,9 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNullable
     private Integer reconsumeTimes;
     @CFNullable
-    private boolean unitMode = false;
+    private Boolean unitMode;
     @CFNullable
-    private boolean batch = false;
+    private Boolean batch;
     private Integer maxReconsumeTimes;
 
     @Override
@@ -136,6 +142,9 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
     }
 
     public Integer getReconsumeTimes() {
+        if (null == reconsumeTimes) {
+            return 0;
+        }
         return reconsumeTimes;
     }
 
@@ -144,10 +153,13 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
     }
 
     public boolean isUnitMode() {
+        if (null == unitMode) {
+            return false;
+        }
         return unitMode;
     }
 
-    public void setUnitMode(boolean isUnitMode) {
+    public void setUnitMode(Boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }
 
@@ -160,10 +172,13 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
     }
 
     public boolean isBatch() {
+        if (null == batch) {
+            return false;
+        }
         return batch;
     }
 
-    public void setBatch(boolean batch) {
+    public void setBatch(Boolean batch) {
         this.batch = batch;
     }
 
@@ -173,14 +188,10 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
         switch (request.getCode()) {
             case RequestCode.SEND_BATCH_MESSAGE:
             case RequestCode.SEND_MESSAGE_V2:
-                requestHeaderV2 =
-                    (SendMessageRequestHeaderV2) request
-                        .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
+                requestHeaderV2 = request.decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
             case RequestCode.SEND_MESSAGE:
                 if (null == requestHeaderV2) {
-                    requestHeader =
-                        (SendMessageRequestHeader) request
-                            .decodeCommandCustomHeader(SendMessageRequestHeader.class);
+                    requestHeader = request.decodeCommandCustomHeader(SendMessageRequestHeader.class);
                 } else {
                     requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
                 }

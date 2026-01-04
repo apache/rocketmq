@@ -17,11 +17,11 @@
 package org.apache.rocketmq.remoting.protocol.body;
 
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicList extends RemotingSerializable {
-    private Set<String> topicList = new CopyOnWriteArraySet<>();
+    private Set<String> topicList = ConcurrentHashMap.newKeySet();
     private String brokerAddr;
 
     public Set<String> getTopicList() {

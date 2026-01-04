@@ -7,6 +7,7 @@ on:
       - master
       - develop
       - bazel
+
 jobs:
   build:
     name: "bazel-compile (${{ matrix.os }})"
@@ -19,4 +20,4 @@ jobs:
       - name: Build
         run: bazel build --config=remote //...
       - name: Run Tests
-        run: bazel test --config=remote --nocache_test_results //...
+        run: bazel test --config=remote //...

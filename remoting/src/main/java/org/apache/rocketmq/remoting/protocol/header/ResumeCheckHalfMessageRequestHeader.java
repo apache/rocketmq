@@ -17,17 +17,34 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.RESUME_CHECK_HALF_MESSAGE, action = Action.UPDATE)
 public class ResumeCheckHalfMessageRequestHeader implements CommandCustomHeader {
+
+    @RocketMQResource(ResourceType.TOPIC)
+    private String topic;
     @CFNullable
     private String msgId;
 
     @Override
     public void checkFields() throws RemotingCommandException {
 
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
     public String getMsgId() {

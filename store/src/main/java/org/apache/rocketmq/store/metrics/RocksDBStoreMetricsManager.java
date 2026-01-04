@@ -1,0 +1,227 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.rocketmq.store.metrics;
+
+import com.google.common.collect.Lists;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.api.metrics.ObservableDoubleGauge;
+import io.opentelemetry.api.metrics.ObservableLongGauge;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
+import java.util.List;
+import java.util.function.Supplier;
+import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.metrics.NopObservableDoubleGauge;
+import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.queue.CombineConsumeQueueStore;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
+import org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore;
+import org.rocksdb.TickerType;
+
+import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.DEFAULT_STORAGE_MEDIUM;
+import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.DEFAULT_STORAGE_TYPE;
+import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_BYTES_ROCKSDB_READ;
+import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_BYTES_ROCKSDB_WRITTEN;
+import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_STORAGE_MEDIUM;
+import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_STORAGE_TYPE;
+
+public class RocksDBStoreMetricsManager {
+    private Supplier<AttributesBuilder> attributesBuilderSupplier;
+    private MessageStoreConfig messageStoreConfig;
+
+    // The cumulative number of bytes read from the database.
+    private ObservableLongGauge bytesRocksdbRead = new NopObservableLongGauge();
+
+    // The cumulative number of bytes written to the database.
+    private ObservableLongGauge bytesRocksdbWritten = new NopObservableLongGauge();
+
+    // The cumulative number of read operations performed.
+    private ObservableLongGauge timesRocksdbRead = new NopObservableLongGauge();
+
+    // The cumulative number of write operations performed.
+    private ObservableLongGauge timesRocksdbWrittenSelf = new NopObservableLongGauge();
+    private ObservableLongGauge timesRocksdbWrittenOther = new NopObservableLongGauge();
+
+    // The cumulative number of compressions that have occurred.
+    private ObservableLongGauge timesRocksdbCompressed = new NopObservableLongGauge();
+
+    // The ratio of the amount of data actually written to the storage medium to the amount of data written by the application.
+    private ObservableDoubleGauge bytesRocksdbAmplificationRead = new NopObservableDoubleGauge();
+
+    // The rate at which cache lookups were served from the cache rather than needing to be fetched from disk.
+    private ObservableDoubleGauge rocksdbCacheHitRate = new NopObservableDoubleGauge();
+
+    private volatile long blockCacheHitTimes = 0;
+    private volatile long blockCacheMissTimes = 0;
+
+    public RocksDBStoreMetricsManager() {
+    }
+
+
+
+    public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
+        return Lists.newArrayList();
+    }
+
+    public void init(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier,
+        ConsumeQueueStoreInterface consumeQueueStore) {
+
+        final RocksDBConsumeQueueStore rocksDBMessageStore;
+        if (consumeQueueStore instanceof RocksDBConsumeQueueStore) {
+            rocksDBMessageStore = (RocksDBConsumeQueueStore) consumeQueueStore;
+        } else if (consumeQueueStore instanceof CombineConsumeQueueStore) {
+            rocksDBMessageStore = ((CombineConsumeQueueStore) consumeQueueStore).getRocksDBConsumeQueueStore();
+        } else {
+            rocksDBMessageStore = null;
+        }
+
+        if (rocksDBMessageStore == null) {
+            return;
+        }
+
+        this.attributesBuilderSupplier = attributesBuilderSupplier;
+        this.bytesRocksdbWritten = meter.gaugeBuilder(GAUGE_BYTES_ROCKSDB_WRITTEN)
+                .setDescription("The cumulative number of bytes written to the database.")
+                .ofLongs()
+                .buildWithCallback(measurement -> {
+                    measurement.record(rocksDBMessageStore
+                            .getStatistics().getTickerCount(TickerType.BYTES_WRITTEN), this.newAttributesBuilder().put("type", "consume_queue").build());
+                });
+        this.bytesRocksdbRead = meter.gaugeBuilder(GAUGE_BYTES_ROCKSDB_READ)
+                .setDescription("The cumulative number of bytes read from the database.")
+                .ofLongs()
+                .buildWithCallback(measurement -> {
+                    measurement.record(rocksDBMessageStore
+                            .getStatistics().getTickerCount(TickerType.BYTES_READ), this.newAttributesBuilder().put("type", "consume_queue").build());
+                });
+        this.timesRocksdbWrittenSelf = meter.gaugeBuilder(DefaultStoreMetricsConstant.GAUGE_TIMES_ROCKSDB_WRITTEN_SELF)
+                .setDescription("The cumulative number of write operations performed by self.")
+                .ofLongs()
+                .buildWithCallback(measurement -> {
+                    measurement.record(rocksDBMessageStore
+                            .getStatistics().getTickerCount(TickerType.WRITE_DONE_BY_SELF), this.newAttributesBuilder().put("type", "consume_queue").build());
+                });
+        this.timesRocksdbWrittenOther = meter.gaugeBuilder(DefaultStoreMetricsConstant.GAUGE_TIMES_ROCKSDB_WRITTEN_OTHER)
+                .setDescription("The cumulative number of write operations performed by other.")
+                .ofLongs()
+                .buildWithCallback(measurement -> {
+                    measurement.record(rocksDBMessageStore
+                            .getStatistics().getTickerCount(TickerType.WRITE_DONE_BY_OTHER), this.newAttributesBuilder().put("type", "consume_queue").build());
+                });
+        this.timesRocksdbRead = meter.gaugeBuilder(DefaultStoreMetricsConstant.GAUGE_TIMES_ROCKSDB_READ)
+                .setDescription("The cumulative number of write operations performed by other.")
+                .ofLongs()
+                .buildWithCallback(measurement -> {
+                    measurement.record(rocksDBMessageStore
+                            .getStatistics().getTickerCount(TickerType.NUMBER_KEYS_READ), this.newAttributesBuilder().put("type", "consume_queue").build());
+                });
+        this.rocksdbCacheHitRate = meter.gaugeBuilder(DefaultStoreMetricsConstant.GAUGE_RATE_ROCKSDB_CACHE_HIT)
+                .setDescription("The rate at which cache lookups were served from the cache rather than needing to be fetched from disk.")
+                .buildWithCallback(measurement -> {
+                    long newHitTimes = rocksDBMessageStore.getStatistics().getTickerCount(TickerType.BLOCK_CACHE_HIT);
+                    long newMissTimes = rocksDBMessageStore.getStatistics().getTickerCount(TickerType.BLOCK_CACHE_MISS);
+                    long totalPeriod = newHitTimes - this.blockCacheHitTimes + newMissTimes - this.blockCacheMissTimes;
+                    double hitRate = totalPeriod == 0 ? 0 : (double)(newHitTimes - this.blockCacheHitTimes) / totalPeriod;
+                    this.blockCacheHitTimes = newHitTimes;
+                    this.blockCacheMissTimes = newMissTimes;
+                    measurement.record(hitRate, this.newAttributesBuilder().put("type", "consume_queue").build());
+                });
+        this.timesRocksdbCompressed = meter.gaugeBuilder(DefaultStoreMetricsConstant.GAUGE_TIMES_ROCKSDB_COMPRESSED)
+                .setDescription("The cumulative number of compressions that have occurred.")
+                .ofLongs()
+                .buildWithCallback(measurement -> {
+                    measurement.record(rocksDBMessageStore
+                            .getStatistics().getTickerCount(TickerType.NUMBER_BLOCK_COMPRESSED), this.newAttributesBuilder().put("type", "consume_queue").build());
+                });
+        this.bytesRocksdbAmplificationRead = meter.gaugeBuilder(DefaultStoreMetricsConstant.GAUGE_BYTES_READ_AMPLIFICATION)
+                .setDescription("The rate at which cache lookups were served from the cache rather than needing to be fetched from disk.")
+                .buildWithCallback(measurement -> {
+                    measurement.record(rocksDBMessageStore
+                            .getStatistics().getTickerCount(TickerType.READ_AMP_TOTAL_READ_BYTES), this.newAttributesBuilder().put("type", "consume_queue").build());
+                });
+    }
+
+    public AttributesBuilder newAttributesBuilder() {
+        if (this.attributesBuilderSupplier == null) {
+            return Attributes.builder();
+        }
+        return this.attributesBuilderSupplier.get()
+            .put(LABEL_STORAGE_TYPE, DEFAULT_STORAGE_TYPE)
+            .put(LABEL_STORAGE_MEDIUM, DEFAULT_STORAGE_MEDIUM);
+    }
+
+    // Getter methods for external access
+    public Supplier<AttributesBuilder> getAttributesBuilderSupplier() {
+        return attributesBuilderSupplier;
+    }
+
+    public MessageStoreConfig getMessageStoreConfig() {
+        return messageStoreConfig;
+    }
+
+    public ObservableLongGauge getBytesRocksdbRead() {
+        return bytesRocksdbRead;
+    }
+
+    public ObservableLongGauge getBytesRocksdbWritten() {
+        return bytesRocksdbWritten;
+    }
+
+    public ObservableLongGauge getTimesRocksdbRead() {
+        return timesRocksdbRead;
+    }
+
+    public ObservableLongGauge getTimesRocksdbWrittenSelf() {
+        return timesRocksdbWrittenSelf;
+    }
+
+    public ObservableLongGauge getTimesRocksdbWrittenOther() {
+        return timesRocksdbWrittenOther;
+    }
+
+    public ObservableLongGauge getTimesRocksdbCompressed() {
+        return timesRocksdbCompressed;
+    }
+
+    public ObservableDoubleGauge getBytesRocksdbAmplificationRead() {
+        return bytesRocksdbAmplificationRead;
+    }
+
+    public ObservableDoubleGauge getRocksdbCacheHitRate() {
+        return rocksdbCacheHitRate;
+    }
+
+    public long getBlockCacheHitTimes() {
+        return blockCacheHitTimes;
+    }
+
+    public long getBlockCacheMissTimes() {
+        return blockCacheMissTimes;
+    }
+
+    // Setter methods for testing
+    public void setAttributesBuilderSupplier(Supplier<AttributesBuilder> attributesBuilderSupplier) {
+        this.attributesBuilderSupplier = attributesBuilderSupplier;
+    }
+
+    public void setMessageStoreConfig(MessageStoreConfig messageStoreConfig) {
+        this.messageStoreConfig = messageStoreConfig;
+    }
+}

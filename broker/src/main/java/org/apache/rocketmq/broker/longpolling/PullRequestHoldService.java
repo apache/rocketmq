@@ -28,6 +28,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.ConsumeQueueExt;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
 public class PullRequestHoldService extends ServiceThread {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -103,8 +104,8 @@ public class PullRequestHoldService extends ServiceThread {
             if (2 == kArray.length) {
                 String topic = kArray[0];
                 int queueId = Integer.parseInt(kArray[1]);
-                final long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                 try {
+                    final long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
                     this.notifyMessageArriving(topic, queueId, offset);
                 } catch (Throwable e) {
                     log.error(
@@ -131,7 +132,12 @@ public class PullRequestHoldService extends ServiceThread {
                 for (PullRequest request : requestList) {
                     long newestOffset = maxOffset;
                     if (newestOffset <= request.getPullFromThisOffset()) {
-                        newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+                        try {
+                            newestOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+                        } catch (ConsumeQueueException e) {
+                            log.error("Failed tp get max offset in queue", e);
+                            continue;
+                        }
                     }
 
                     if (newestOffset > request.getPullFromThisOffset()) {

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -27,6 +28,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -38,13 +40,11 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class BrokerStartup {
 
     public static Logger log;
-    public static final SystemConfigFileHelper CONFIG_FILE_HELPER = new SystemConfigFileHelper();
 
     public static void main(String[] args) {
         start(createBrokerController(args));
@@ -79,16 +79,7 @@ public class BrokerStartup {
         }
     }
 
-    public static BrokerController buildBrokerController(String[] args) throws Exception {
-        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
-
-        final BrokerConfig brokerConfig = new BrokerConfig();
-        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-        final NettyClientConfig nettyClientConfig = new NettyClientConfig();
-        final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
-        nettyServerConfig.setListenPort(10911);
-        messageStoreConfig.setHaListenPort(0);
-
+    public static ConfigContext parseCmdLine(String[] args) throws Exception {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine(
             "mqbroker", args, buildCommandlineOptions(options), new DefaultParser());
@@ -96,14 +87,52 @@ public class BrokerStartup {
             System.exit(-1);
         }
 
-        Properties properties = null;
+        ConfigContext configContext;
+        String filePath = null;
         if (commandLine.hasOption('c')) {
-            String file = commandLine.getOptionValue('c');
-            if (file != null) {
-                CONFIG_FILE_HELPER.setFile(file);
-                BrokerPathConfigHelper.setBrokerConfigPath(file);
-                properties = CONFIG_FILE_HELPER.loadConfig();
-            }
+            filePath = commandLine.getOptionValue('c');
+        }
+
+        configContext = configFileToConfigContext(filePath);
+
+        if (commandLine.hasOption('p') && configContext != null) {
+            Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+            MixAll.printObjectProperties(console, configContext.getBrokerConfig());
+            MixAll.printObjectProperties(console, configContext.getNettyServerConfig());
+            MixAll.printObjectProperties(console, configContext.getNettyClientConfig());
+            MixAll.printObjectProperties(console, configContext.getAuthConfig());
+            System.exit(0);
+        } else if (commandLine.hasOption('m') && configContext != null) {
+            Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+            MixAll.printObjectProperties(console, configContext.getBrokerConfig(), true);
+            MixAll.printObjectProperties(console, configContext.getNettyServerConfig(), true);
+            MixAll.printObjectProperties(console, configContext.getNettyClientConfig(), true);
+            MixAll.printObjectProperties(console, configContext.getAuthConfig(), true);
+            System.exit(0);
+        }
+
+        assert configContext != null;
+        MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), configContext.getBrokerConfig());
+
+        return configContext;
+    }
+
+    public static ConfigContext configFileToConfigContext(String filePath) throws Exception {
+        SystemConfigFileHelper systemConfigFileHelper = new SystemConfigFileHelper();
+        BrokerConfig brokerConfig = new BrokerConfig();
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        AuthConfig authConfig = new AuthConfig();
+
+        nettyServerConfig.setListenPort(10911);
+        messageStoreConfig.setHaListenPort(0);
+
+        Properties properties = new Properties();
+        if (StringUtils.isNotBlank(filePath)) {
+            systemConfigFileHelper.setFile(filePath);
+            BrokerPathConfigHelper.setBrokerConfigPath(filePath);
+            properties = systemConfigFileHelper.loadConfig();
         }
 
         if (properties != null) {
@@ -112,9 +141,30 @@ public class BrokerStartup {
             MixAll.properties2Object(properties, nettyServerConfig);
             MixAll.properties2Object(properties, nettyClientConfig);
             MixAll.properties2Object(properties, messageStoreConfig);
+            MixAll.properties2Object(properties, authConfig);
         }
 
-        MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
+        return new ConfigContext.Builder()
+            .configFilePath(filePath)
+            .properties(properties)
+            .brokerConfig(brokerConfig)
+            .messageStoreConfig(messageStoreConfig)
+            .nettyServerConfig(nettyServerConfig)
+            .nettyClientConfig(nettyClientConfig)
+            .authConfig(authConfig)
+            .build();
+    }
+
+    public static BrokerController buildBrokerController(ConfigContext configContext) {
+        System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
+
+        BrokerConfig brokerConfig = configContext.getBrokerConfig();
+        MessageStoreConfig messageStoreConfig = configContext.getMessageStoreConfig();
+        NettyClientConfig nettyClientConfig = configContext.getNettyClientConfig();
+        NettyServerConfig nettyServerConfig = configContext.getNettyServerConfig();
+        AuthConfig authConfig = configContext.getAuthConfig();
+        Properties properties = configContext.getProperties();
+
         if (null == brokerConfig.getRocketmqHome()) {
             System.out.printf("Please set the %s variable in your environment " +
                 "to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);
@@ -131,14 +181,9 @@ public class BrokerStartup {
                 }
             } catch (Exception e) {
                 System.out.printf("The Name Server Address[%s] illegal, please set it as follows, " +
-                        "\"127.0.0.1:9876;192.168.0.1:9876\"%n", namesrvAddr);
+                    "\"127.0.0.1:9876;192.168.0.1:9876\"%n", namesrvAddr);
                 System.exit(-3);
             }
-        }
-
-        if (BrokerRole.SLAVE == messageStoreConfig.getBrokerRole()) {
-            int ratio = messageStoreConfig.getAccessMessageInMemoryMaxRatio() - 10;
-            messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
         }
 
         // Set broker role according to ha config
@@ -182,33 +227,23 @@ public class BrokerStartup {
             System.setProperty("brokerLogDir", brokerConfig.getBrokerName() + "_" + messageStoreConfig.getdLegerSelfId());
         }
 
-        if (commandLine.hasOption('p')) {
-            Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
-            MixAll.printObjectProperties(console, brokerConfig);
-            MixAll.printObjectProperties(console, nettyServerConfig);
-            MixAll.printObjectProperties(console, nettyClientConfig);
-            MixAll.printObjectProperties(console, messageStoreConfig);
-            System.exit(0);
-        } else if (commandLine.hasOption('m')) {
-            Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
-            MixAll.printObjectProperties(console, brokerConfig, true);
-            MixAll.printObjectProperties(console, nettyServerConfig, true);
-            MixAll.printObjectProperties(console, nettyClientConfig, true);
-            MixAll.printObjectProperties(console, messageStoreConfig, true);
-            System.exit(0);
-        }
-
         log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
         MixAll.printObjectProperties(log, brokerConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
         MixAll.printObjectProperties(log, nettyClientConfig);
         MixAll.printObjectProperties(log, messageStoreConfig);
 
+        authConfig.setConfigName(brokerConfig.getBrokerName());
+        authConfig.setClusterName(brokerConfig.getBrokerClusterName());
+        authConfig.setAuthConfigPath(messageStoreConfig.getStorePathRootDir() + File.separator + "config");
+
         final BrokerController controller = new BrokerController(
-            brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig);
+            brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig, authConfig);
 
         // Remember all configs to prevent discard
         controller.getConfiguration().registerConfig(properties);
+
+        controller.setConfigContext(configContext);
 
         return controller;
     }
@@ -236,7 +271,8 @@ public class BrokerStartup {
 
     public static BrokerController createBrokerController(String[] args) {
         try {
-            BrokerController controller = buildBrokerController(args);
+            ConfigContext configContext = parseCmdLine(args);
+            BrokerController controller = buildBrokerController(configContext);
             boolean initResult = controller.initialize();
             if (!initResult) {
                 controller.shutdown();
@@ -286,10 +322,10 @@ public class BrokerStartup {
         }
 
         public Properties loadConfig() throws Exception {
-            InputStream in = new BufferedInputStream(Files.newInputStream(Paths.get(file)));
             Properties properties = new Properties();
-            properties.load(in);
-            in.close();
+            try (InputStream in = new BufferedInputStream(Files.newInputStream(Paths.get(file)))) {
+                properties.load(in);
+            }
             return properties;
         }
 

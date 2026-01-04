@@ -57,8 +57,8 @@ public class CleanBrokerDataEvent implements EventMessage {
     @Override
     public String toString() {
         return "CleanBrokerDataEvent{" +
-                "brokerName='" + brokerName + '\'' +
-                ", brokerIdSetToClean=" + brokerIdSetToClean +
-                '}';
+            "brokerName='" + brokerName + '\'' +
+            ", brokerIdSetToClean=" + brokerIdSetToClean +
+            '}';
     }
 }

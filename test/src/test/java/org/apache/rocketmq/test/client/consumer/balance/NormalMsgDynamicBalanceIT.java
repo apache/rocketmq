@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.test.client.consumer.balance;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
@@ -94,6 +96,8 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
         MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(), consumer1.getListener(),
             consumer2.getListener(), consumer3.getListener());
         consumer3.shutdown();
+        TestUtils.waitForSeconds(WAIT_TIME);
+
         producer.clearMsg();
         consumer1.clearMsg();
         consumer2.clearMsg();
@@ -111,5 +115,20 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
             VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
                 consumer2.getListener().getAllUndupMsgBody()).size());
         assertThat(balance).isEqualTo(true);
+    }
+
+    @Test
+    public void testMessageQueueListener() throws InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
+        // Register message queue listener
+        consumer1.getConsumer().setMessageQueueListener((topic, mqAll, mqAssigned) -> latch.countDown());
+
+        // Without message queue listener
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
+            "*", new RMQNormalListener());
+
+        Assert.assertTrue(latch.await(30, TimeUnit.SECONDS));
     }
 }

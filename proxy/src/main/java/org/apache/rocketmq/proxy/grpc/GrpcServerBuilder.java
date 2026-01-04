@@ -24,28 +24,35 @@ import io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
-import java.util.List;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.GlobalExceptionInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
+
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 
 public class GrpcServerBuilder {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected NettyServerBuilder serverBuilder;
 
-    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port) {
-        return new GrpcServerBuilder(executor, port);
+    protected long time = 30;
+
+    protected TimeUnit unit = TimeUnit.SECONDS;
+
+    protected TlsCertificateManager tlsCertificateManager;
+
+    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port,
+        TlsCertificateManager tlsCertificateManager) {
+        return new GrpcServerBuilder(executor, port, tlsCertificateManager);
     }
 
-    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port) {
+    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager) {
+        this.tlsCertificateManager = tlsCertificateManager;
         serverBuilder = NettyServerBuilder.forPort(port);
 
         serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());
@@ -69,12 +76,16 @@ public class GrpcServerBuilder {
         }
 
         serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
-                .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
+            .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
 
-        log.info(
-            "grpc server has built. port: {}, tlsKeyPath: {}, tlsCertPath: {}, threadPool: {}, queueCapacity: {}, "
-                + "boosLoop: {}, workerLoop: {}, maxInboundMessageSize: {}",
+        log.info("grpc server has built. port: {}, bossLoopNum: {}, workerLoopNum: {}, maxInboundMessageSize: {}",
             port, bossLoopNum, workerLoopNum, maxInboundMessageSize);
+    }
+
+    public GrpcServerBuilder shutdownTime(long time, TimeUnit unit) {
+        this.time = time;
+        this.unit = unit;
+        return this;
     }
 
     public GrpcServerBuilder addService(BindableService service) {
@@ -92,19 +103,15 @@ public class GrpcServerBuilder {
         return this;
     }
 
-    public GrpcServer build() {
-        return new GrpcServer(this.serverBuilder.build());
+    public GrpcServer build() throws Exception {
+        return new GrpcServer(this.serverBuilder.build(), time, unit, tlsCertificateManager);
     }
 
-    public GrpcServerBuilder configInterceptor(List<AccessValidator> accessValidators) {
-        // grpc interceptors, including acl, logging etc.
-        this.serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
-
+    public GrpcServerBuilder configInterceptor() {
         this.serverBuilder
             .intercept(new GlobalExceptionInterceptor())
             .intercept(new ContextInterceptor())
             .intercept(new HeaderInterceptor());
-
         return this;
     }
 }

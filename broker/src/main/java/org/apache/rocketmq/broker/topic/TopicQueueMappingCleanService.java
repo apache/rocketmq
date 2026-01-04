@@ -137,7 +137,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                     for (String broker: brokers) {
                         GetTopicStatsInfoRequestHeader header = new GetTopicStatsInfoRequestHeader();
                         header.setTopic(topic);
-                        header.setBname(broker);
+                        header.setBrokerName(broker);
                         header.setLo(false);
                         try {
                             RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_TOPIC_STATS_INFO, header, null);
@@ -265,7 +265,7 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                         String broker = entry.getValue();
                         GetTopicConfigRequestHeader header = new GetTopicConfigRequestHeader();
                         header.setTopic(topic);
-                        header.setBname(broker);
+                        header.setBrokerName(broker);
                         header.setLo(true);
                         try {
                             RpcRequest rpcRequest = new RpcRequest(RequestCode.GET_TOPIC_CONFIG, header, null);

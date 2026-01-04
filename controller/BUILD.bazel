@@ -23,7 +23,6 @@ java_library(
     deps = [
         "//common",
         "//remoting",
-        "//client",
         "//srvutil", 
         "@maven//:io_openmessaging_storage_dledger",
         "@maven//:org_apache_commons_commons_lang3",
@@ -32,7 +31,7 @@ java_library(
         "@maven//:commons_codec_commons_codec",
         "@maven//:com_github_luben_zstd_jni",
         "@maven//:org_lz4_lz4_java",
-        "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:io_netty_netty_all",
         "@maven//:com_google_guava_guava",
         "@maven//:org_slf4j_slf4j_api",
@@ -49,7 +48,11 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_sdk_common",
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
         "@maven//:io_opentelemetry_opentelemetry_exporter_logging",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_logging_otlp",
         "@maven//:org_slf4j_jul_to_slf4j",
+        "@maven//:com_alipay_sofa_jraft_core",
+        "@maven//:com_alipay_sofa_hessian",
+        "@maven//:commons_io_commons_io",
     ],
 )
 
@@ -61,14 +64,13 @@ java_library(
         ":controller",
         "//common",
         "//remoting",
-        "//client",
         "//srvutil", 
         "@maven//:io_openmessaging_storage_dledger",
         "//:test_deps",
         "@maven//:org_apache_commons_commons_lang3", 
         "@maven//:io_netty_netty_all",    
         "@maven//:com_google_guava_guava",  
-        "@maven//:com_alibaba_fastjson",         
+        "@maven//:com_alibaba_fastjson2_fastjson2",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

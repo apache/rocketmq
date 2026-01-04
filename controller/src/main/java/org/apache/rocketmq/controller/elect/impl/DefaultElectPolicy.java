@@ -39,7 +39,7 @@ public class DefaultElectPolicy implements ElectPolicy {
     private final Comparator<BrokerLiveInfo> comparator = (o1, o2) -> {
         if (o1.getEpoch() == o2.getEpoch()) {
             return o1.getMaxOffset() == o2.getMaxOffset() ? o1.getElectionPriority() - o2.getElectionPriority() :
-                    (int) (o2.getMaxOffset() - o1.getMaxOffset());
+                (int) (o2.getMaxOffset() - o1.getMaxOffset());
         } else {
             return o2.getEpoch() - o1.getEpoch();
         }
@@ -70,7 +70,8 @@ public class DefaultElectPolicy implements ElectPolicy {
      * @return master elected by our own policy
      */
     @Override
-    public Long elect(String clusterName, String brokerName, Set<Long> syncStateBrokers, Set<Long> allReplicaBrokers, Long oldMaster, Long preferBrokerId) {
+    public Long elect(String clusterName, String brokerName, Set<Long> syncStateBrokers, Set<Long> allReplicaBrokers,
+        Long oldMaster, Long preferBrokerId) {
         Long newMaster = null;
         // try to elect in syncStateBrokers
         if (syncStateBrokers != null) {
@@ -87,8 +88,8 @@ public class DefaultElectPolicy implements ElectPolicy {
         return newMaster;
     }
 
-
-    private Long tryElect(String clusterName, String brokerName, Set<Long> brokers, Long oldMaster, Long preferBrokerId) {
+    private Long tryElect(String clusterName, String brokerName, Set<Long> brokers, Long oldMaster,
+        Long preferBrokerId) {
         if (this.validPredicate != null) {
             brokers = brokers.stream().filter(brokerAddr -> this.validPredicate.check(clusterName, brokerName, brokerAddr)).collect(Collectors.toSet());
         }
@@ -116,7 +117,6 @@ public class DefaultElectPolicy implements ElectPolicy {
         }
         return null;
     }
-
 
 
     public void setBrokerLiveInfoGetter(BrokerLiveInfoGetter brokerLiveInfoGetter) {

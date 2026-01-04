@@ -49,7 +49,7 @@ public class FileRegionEncoderTest {
         random.nextBytes(data);
         write(file, data);
         FileRegion fileRegion = new DefaultFileRegion(file, 0, dataLength);
-        Assert.assertEquals(0, fileRegion.transfered());
+        Assert.assertEquals(0, fileRegion.transferred());
         Assert.assertEquals(dataLength, fileRegion.count());
         Assert.assertTrue(channel.writeOutbound(fileRegion));
         ByteBuf out = (ByteBuf) channel.readOutbound();

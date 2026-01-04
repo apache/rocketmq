@@ -432,7 +432,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     /**
      * Compare the master and slave's epoch file, find consistent point, do truncate.
      */
-    private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws IOException {
+    private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws Exception {
         if (this.epochCache.getEntrySize() == 0) {
             // If epochMap is empty, means the broker is a new replicas
             LOGGER.info("Slave local epochCache is empty, skip truncate log");
@@ -463,8 +463,11 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                 LOGGER.error("Failed to truncate slave log to {}", truncateOffset);
                 return false;
             }
-            this.epochCache.truncateSuffixByOffset(truncateOffset);
-            LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
+            final long maxPhyOffset = this.messageStore.getMaxPhyOffset();
+            if (truncateOffset < maxPhyOffset) {
+                this.epochCache.truncateSuffixByOffset(truncateOffset);
+                LOGGER.info("Truncate slave log to {} success, change to transfer state", truncateOffset);
+            }
             changeCurrentState(HAConnectionState.TRANSFER);
             this.currentReportedOffset = truncateOffset;
         }

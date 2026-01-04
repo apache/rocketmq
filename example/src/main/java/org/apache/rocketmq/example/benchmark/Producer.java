@@ -160,8 +160,8 @@ public class Producer {
             String compressType = commandLine.hasOption("ct") ? commandLine.getOptionValue("ct").trim() : "ZLIB";
             int compressLevel = commandLine.hasOption("cl") ? Integer.parseInt(commandLine.getOptionValue("cl")) : 5;
             int compressOverHowMuch = commandLine.hasOption("ch") ? Integer.parseInt(commandLine.getOptionValue("ch")) : 4096;
-            producer.getDefaultMQProducerImpl().setCompressType(CompressionType.of(compressType));
-            producer.getDefaultMQProducerImpl().setCompressLevel(compressLevel);
+            producer.setCompressType(CompressionType.of(compressType));
+            producer.setCompressLevel(compressLevel);
             producer.setCompressMsgBodyOverHowmuch(compressOverHowMuch);
             System.out.printf("compressType: %s compressLevel: %s%n", compressType, compressLevel);
         } else {

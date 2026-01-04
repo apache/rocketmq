@@ -90,6 +90,14 @@ public class PullMessageService extends ServiceThread {
         }
     }
 
+    public void executeTask(final Runnable r) {
+        if (!isStopped()) {
+            this.scheduledExecutorService.execute(r);
+        } else {
+            logger.warn("PullMessageServiceScheduledThread has shutdown");
+        }
+    }
+
     public ScheduledExecutorService getScheduledExecutorService() {
         return scheduledExecutorService;
     }
@@ -127,7 +135,7 @@ public class PullMessageService extends ServiceThread {
                     this.pullMessage((PullRequest) messageRequest);
                 }
             } catch (InterruptedException ignored) {
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 logger.error("Pull Message Service Run Method exception", e);
             }
         }

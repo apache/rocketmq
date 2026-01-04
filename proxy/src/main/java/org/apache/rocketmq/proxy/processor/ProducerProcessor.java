@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.processor;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
@@ -32,14 +33,15 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageId;
+import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
-import org.apache.rocketmq.proxy.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.processor.validator.DefaultTopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.processor.validator.TopicMessageTypeValidator;
@@ -49,6 +51,7 @@ import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 
 public class ProducerProcessor extends AbstractProcessor {
@@ -66,10 +69,12 @@ public class ProducerProcessor extends AbstractProcessor {
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, QueueSelector queueSelector,
         String producerGroup, int sysFlag, List<Message> messageList, long timeoutMillis) {
         CompletableFuture<List<SendResult>> future = new CompletableFuture<>();
+        long beginTimestampFirst = System.currentTimeMillis();
+        AddressableMessageQueue messageQueue = null;
         try {
             Message message = messageList.get(0);
             String topic = message.getTopic();
-            if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()) {
+            if (isNeedCheckTopicMessageType(message)) {
                 if (topicMessageTypeValidator != null) {
                     // Do not check retry or dlq topic
                     if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
@@ -79,7 +84,7 @@ public class ProducerProcessor extends AbstractProcessor {
                     }
                 }
             }
-            AddressableMessageQueue messageQueue = queueSelector.select(ctx,
+            messageQueue = queueSelector.select(ctx,
                 this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(ctx, topic));
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no writable queue");
@@ -90,23 +95,57 @@ public class ProducerProcessor extends AbstractProcessor {
             }
             SendMessageRequestHeader requestHeader = buildSendMessageRequestHeader(messageList, producerGroup, sysFlag, messageQueue.getQueueId());
 
+            AddressableMessageQueue finalMessageQueue = messageQueue;
             future = this.serviceManager.getMessageService().sendMessage(
                 ctx,
                 messageQueue,
                 messageList,
                 requestHeader,
                 timeoutMillis)
-                .thenApplyAsync(sendResultList -> {
-                    for (SendResult sendResult : sendResultList) {
-                        int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
-                        if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
-                            tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
-                            StringUtils.isNotBlank(sendResult.getTransactionId())) {
-                            fillTransactionData(ctx, producerGroup, messageQueue, sendResult, messageList);
+                .whenCompleteAsync((sendResultList, throwable) -> {
+                    long endTimestamp = System.currentTimeMillis();
+                    if (throwable == null) {
+                        for (SendResult sendResult : sendResultList) {
+                            int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
+                            if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
+                                tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
+                                StringUtils.isNotBlank(sendResult.getTransactionId())) {
+                                fillTransactionData(ctx, producerGroup, finalMessageQueue, sendResult, messageList);
+                            }
                         }
+                        this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp - beginTimestampFirst, false, true);
+                    } else {
+                        this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp - beginTimestampFirst, true, false);
                     }
-                    return sendResultList;
                 }, this.executor);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+            FutureUtils.addExecutor(future, this.executor);
+        }
+        return future;
+    }
+
+    public CompletableFuture<String> recallMessage(ProxyContext ctx, String topic,
+                                                   String recallHandle, long timeoutMillis) {
+        CompletableFuture<String> future = new CompletableFuture<>();
+        try {
+            if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()) {
+                TopicMessageType messageType = serviceManager.getMetadataService().getTopicMessageType(ctx, topic);
+                topicMessageTypeValidator.validate(messageType, TopicMessageType.DELAY);
+            }
+
+            RecallMessageHandle.HandleV1 handleEntity;
+            try {
+                handleEntity = (RecallMessageHandle.HandleV1) RecallMessageHandle.decodeHandle(recallHandle);
+            } catch (DecoderException e) {
+                throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, e.getMessage());
+            }
+            String brokerName = handleEntity.getBrokerName();
+            RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+            requestHeader.setTopic(topic);
+            requestHeader.setRecallHandle(recallHandle);
+            requestHeader.setBrokerName(brokerName);
+            future = serviceManager.getMessageService().recallMessage(ctx, brokerName, requestHeader, timeoutMillis);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -124,6 +163,7 @@ public class ProducerProcessor extends AbstractProcessor {
             this.serviceManager.getTransactionService().addTransactionDataByBrokerName(
                 ctx,
                 messageQueue.getBrokerName(),
+                messageList.get(0).getTopic(),
                 producerGroup,
                 sendResult.getQueueOffset(),
                 id.getOffset(),
@@ -219,4 +259,8 @@ public class ProducerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
+    private boolean isNeedCheckTopicMessageType(Message message) {
+        return ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()
+            && !message.hasProperty(MessageConst.PROPERTY_TRANSFER_FLAG);
+    }
 }

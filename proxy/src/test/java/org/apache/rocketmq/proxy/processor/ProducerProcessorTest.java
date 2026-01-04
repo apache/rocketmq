@@ -21,9 +21,11 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executors;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
@@ -33,20 +35,25 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.NetworkUtil;
+import org.apache.rocketmq.proxy.common.ProxyException;
+import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.transaction.TransactionData;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.assertj.core.util.Lists;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -98,6 +105,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         when(transactionService.addTransactionDataByBrokerName(
             any(),
             brokerNameCaptor.capture(),
+            anyString(),
             anyString(),
             tranStateTableOffsetCaptor.capture(),
             commitLogOffsetCaptor.capture(),
@@ -154,6 +162,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
             any(),
             brokerNameCaptor.capture(),
             anyString(),
+            anyString(),
             tranStateTableOffsetCaptor.capture(),
             commitLogOffsetCaptor.capture(),
             anyString(), any())).thenReturn(mock(TransactionData.class));
@@ -185,7 +194,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         when(this.messageService.sendMessageBack(any(), any(), anyString(), requestHeaderArgumentCaptor.capture(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(mock(RemotingCommand.class)));
 
-        MessageExt messageExt = createMessageExt(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP), "", 16, 3000);
+        MessageExt messageExt = createMessageExt(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP, new BrokerConfig().isEnableRetryTopicV2()), "", 16, 3000);
         RemotingCommand remotingCommand = this.producerProcessor.forwardMessageToDeadLetterQueue(
             createContext(),
             create(messageExt),
@@ -200,6 +209,39 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         assertEquals(messageExt.getTopic(), requestHeader.getOriginTopic());
         assertEquals(messageExt.getMsgId(), requestHeader.getOriginMsgId());
         assertEquals(CONSUMER_GROUP, requestHeader.getGroup());
+    }
+
+    @Test
+    public void testRecallMessage_notDelayMessage() {
+        when(metadataService.getTopicMessageType(any(), any())).thenReturn(TopicMessageType.NORMAL);
+        CompletionException exception = Assert.assertThrows(CompletionException.class, () -> {
+            producerProcessor.recallMessage(createContext(), TOPIC, "handle", 3000).join();
+        });
+        assertTrue(exception.getCause() instanceof ProxyException);
+        ProxyException cause = (ProxyException) exception.getCause();
+        assertEquals(ProxyExceptionCode.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE, cause.getCode());
+    }
+
+    @Test
+    public void testRecallMessage_invalidRecallHandle() {
+        when(metadataService.getTopicMessageType(any(), any())).thenReturn(TopicMessageType.DELAY);
+        CompletionException exception = Assert.assertThrows(CompletionException.class, () -> {
+            producerProcessor.recallMessage(createContext(), TOPIC, "handle", 3000).join();
+        });
+        assertTrue(exception.getCause() instanceof ProxyException);
+        ProxyException cause = (ProxyException) exception.getCause();
+        assertEquals("recall handle is invalid", cause.getMessage());
+    }
+
+    @Test
+    public void testRecallMessage_success() {
+        when(metadataService.getTopicMessageType(any(), any())).thenReturn(TopicMessageType.DELAY);
+        when(this.messageService.recallMessage(any(), any(), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture("msgId"));
+
+        String handle = RecallMessageHandle.HandleV1.buildHandle(TOPIC, "brokerName", "timestampStr", "whateverId");
+        String msgId = producerProcessor.recallMessage(createContext(), TOPIC, handle, 3000).join();
+        assertEquals("msgId", msgId);
     }
 
     private static String createOffsetMsgId(long commitLogOffset) {

@@ -49,6 +49,11 @@ public class ContainerClientHouseKeepingService implements ChannelEventListener 
         onChannelOperation(CallbackCode.IDLE, remoteAddr, channel);
     }
 
+    @Override
+    public void onChannelActive(String remoteAddr, Channel channel) {
+        onChannelOperation(CallbackCode.ACTIVE, remoteAddr, channel);
+    }
+
     private void onChannelOperation(CallbackCode callbackCode, String remoteAddr, Channel channel) {
         Collection<InnerBrokerController> masterBrokers = this.brokerContainer.getMasterBrokers();
         Collection<InnerSalveBrokerController> slaveBrokers = this.brokerContainer.getSlaveBrokers();
@@ -103,6 +108,10 @@ public class ContainerClientHouseKeepingService implements ChannelEventListener 
         /**
          * onChannelIdle
          */
-        IDLE
+        IDLE,
+        /**
+         * onChannelActive
+         */
+        ACTIVE
     }
 }

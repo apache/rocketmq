@@ -37,11 +37,11 @@ public interface ForbiddenType {
      */
     int TOPIC_FORBIDDEN                = 3;
     /**
-     * 4=forbidden by brocasting mode
+     * 4=forbidden by broadcasting mode
      */
     int BROADCASTING_DISABLE_FORBIDDEN = 4;
     /**
-     * 5=forbidden for a substription(group with a topic)
+     * 5=forbidden for a subscription(group with a topic)
      */
     int SUBSCRIPTION_FORBIDDEN         = 5;
 

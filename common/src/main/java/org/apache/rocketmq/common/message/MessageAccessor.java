@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.message;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class MessageAccessor {
@@ -96,4 +97,10 @@ public class MessageAccessor {
         return newMsg;
     }
 
+    public static Map<String, String> deepCopyProperties(Map<String, String> properties) {
+        if (properties == null) {
+            return null;
+        }
+        return new HashMap<>(properties);
+    }
 }

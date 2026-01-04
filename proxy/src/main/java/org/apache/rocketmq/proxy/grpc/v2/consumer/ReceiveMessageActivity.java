@@ -34,10 +34,12 @@ import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
@@ -46,7 +48,7 @@ import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
-public class ReceiveMessageActivity extends AbstractMessingActivity {
+public class ReceiveMessageActivity extends AbstractMessagingActivity {
     private static final String ILLEGAL_POLLING_TIME_INTRODUCED_CLIENT_VERSION = "5.0.3";
 
     public ReceiveMessageActivity(MessagingProcessor messagingProcessor,
@@ -94,8 +96,8 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             }
 
             validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
-            String topic = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getMessageQueue().getTopic());
-            String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
+            String topic = request.getMessageQueue().getTopic().getName();
+            String group = request.getGroup().getName();
 
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
@@ -133,21 +135,32 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                     request.hasAttemptId() ? request.getAttemptId() : null,
                     timeRemaining
                 ).thenAccept(popResult -> {
+                    Runnable doAfterWrite = null;
                     if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
                         if (PopStatus.FOUND.equals(popResult.getPopStatus())) {
-                            List<MessageExt> messageExtList = popResult.getMsgFoundList();
-                            for (MessageExt messageExt : messageExtList) {
-                                String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
-                                if (receiptHandle != null) {
-                                    MessageReceiptHandle messageReceiptHandle =
-                                        new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
-                                            messageExt.getQueueOffset(), messageExt.getReconsumeTimes());
-                                    messagingProcessor.addReceiptHandle(ctx, grpcChannelManager.getChannel(ctx.getClientID()), group, messageExt.getMsgId(), messageReceiptHandle);
-                                }
+                            GrpcClientChannel clientChannel = grpcChannelManager.getChannel(ctx.getClientID());
+                            if (clientChannel == null) {
+                                GrpcProxyException e = new GrpcProxyException(Code.MESSAGE_NOT_FOUND,
+                                    String.format("The client [%s] is disconnected.", ctx.getClientID()));
+                                popResult.getMsgFoundList().forEach(messageExt ->
+                                    writer.processThrowableWhenWriteMessage(e, ctx, request, messageExt));
+                                throw e;
                             }
+                            doAfterWrite = () -> {
+                                List<MessageExt> messageExtList = popResult.getMsgFoundList();
+                                for (MessageExt messageExt : messageExtList) {
+                                    String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
+                                    if (receiptHandle != null) {
+                                        MessageReceiptHandle messageReceiptHandle =
+                                            new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
+                                                messageExt.getQueueOffset(), messageExt.getReconsumeTimes());
+                                        messagingProcessor.addReceiptHandle(ctx, clientChannel, group, messageExt.getMsgId(), messageReceiptHandle);
+                                    }
+                                }
+                            };
                         }
                     }
-                    writer.writeAndComplete(ctx, request, popResult);
+                    writer.writeAndComplete(ctx, request, popResult, doAfterWrite);
                 })
                 .exceptionally(t -> {
                     writer.writeAndComplete(ctx, request, t);

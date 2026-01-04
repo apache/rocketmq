@@ -16,30 +16,25 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
-import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManager;
 import org.apache.rocketmq.controller.impl.event.ControllerResult;
 import org.apache.rocketmq.controller.impl.event.ElectMasterEvent;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
+import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManager;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
@@ -49,6 +44,14 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.Register
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_BROKER_NAME;
 import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_CLUSTER_NAME;
@@ -66,7 +69,6 @@ public class ReplicasInfoManagerTest {
     private DefaultBrokerHeartbeatManager heartbeatManager;
 
     private ControllerConfig config;
-
 
     @Before
     public void init() {
@@ -93,7 +95,7 @@ public class ReplicasInfoManagerTest {
     }
 
     public void registerNewBroker(String clusterName, String brokerName, String brokerAddress,
-                                  Long exceptBrokerId, Long exceptMasterBrokerId) {
+        Long exceptBrokerId, Long exceptMasterBrokerId) {
 
         // Get next brokerId
         final GetNextBrokerIdRequestHeader getNextBrokerIdRequestHeader = new GetNextBrokerIdRequestHeader(clusterName, brokerName);
@@ -131,11 +133,14 @@ public class ReplicasInfoManagerTest {
         assertEquals(exceptMasterBrokerId, registerSuccessResult.getResponse().getMasterBrokerId());
 
     }
-    public void brokerElectMaster(String clusterName, Long brokerId, String brokerName, String brokerAddress, boolean isFirstTryElect, boolean expectToBeElected) {
-        this.brokerElectMaster(clusterName, brokerId, brokerName, brokerAddress, isFirstTryElect,expectToBeElected, (a, b, c) -> true);
+
+    public void brokerElectMaster(String clusterName, Long brokerId, String brokerName, String brokerAddress,
+        boolean isFirstTryElect, boolean expectToBeElected) {
+        this.brokerElectMaster(clusterName, brokerId, brokerName, brokerAddress, isFirstTryElect, expectToBeElected, (a, b, c) -> true);
     }
-    
-    public void brokerElectMaster(String clusterName, Long brokerId, String brokerName, String brokerAddress, boolean isFirstTryElect, boolean expectToBeElected, BrokerValidPredicate validPredicate) {
+
+    public void brokerElectMaster(String clusterName, Long brokerId, String brokerName, String brokerAddress,
+        boolean isFirstTryElect, boolean expectToBeElected, BrokerValidPredicate validPredicate) {
 
         final GetReplicaInfoResponseHeader replicaInfoBefore = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName)).getResponse();
         BrokerReplicasInfo.ReplicasInfo syncStateSetInfo = getReplicasInfo(brokerName);
@@ -174,7 +179,7 @@ public class ReplicasInfoManagerTest {
                 // a new master can be elected successfully
                 assertEquals(ResponseCode.SUCCESS, result.getResponseCode());
                 assertEquals(replicaInfoBefore.getMasterEpoch() + 1, replicaInfoAfter.getMasterEpoch().intValue());
-                
+
                 if (expectToBeElected) {
                     assertEquals(brokerAddress, response.getMasterAddress());
                     assertEquals(brokerId, response.getMasterBrokerId());
@@ -194,7 +199,7 @@ public class ReplicasInfoManagerTest {
         final AlterSyncStateSetRequestHeader alterRequest =
             new AlterSyncStateSetRequestHeader(brokerName, brokerId, masterEpoch);
         final ControllerResult<AlterSyncStateSetResponseHeader> result = this.replicasInfoManager.alterSyncStateSet(alterRequest,
-                new SyncStateSet(newSyncStateSet, syncStateSetEpoch), (cluster, brokerName1, brokerId1) -> true);
+            new SyncStateSet(newSyncStateSet, syncStateSetEpoch), (cluster, brokerName1, brokerId1) -> true);
         apply(result.getEvents());
 
         final ControllerResult<GetReplicaInfoResponseHeader> resp = this.replicasInfoManager.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
@@ -367,7 +372,7 @@ public class ReplicasInfoManagerTest {
         mockMetaData();
         final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger(DEFAULT_BROKER_NAME);
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(request,
-            new DefaultElectPolicy((cluster, brokerName, brokerId)  -> !brokerId.equals(1L), null));
+            new DefaultElectPolicy((cluster, brokerName, brokerId) -> !brokerId.equals(1L), null));
         final ElectMasterResponseHeader response = cResult.getResponse();
         assertEquals(2, response.getMasterEpoch().intValue());
         assertNotEquals(1L, response.getMasterBrokerId().longValue());
@@ -383,20 +388,20 @@ public class ReplicasInfoManagerTest {
         // test admin try to elect a assignedMaster, but it isn't alive
         final ElectMasterRequestHeader assignRequest = ElectMasterRequestHeader.ofAdminTrigger(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L);
         final ControllerResult<ElectMasterResponseHeader> cResult1 = this.replicasInfoManager.electMaster(assignRequest,
-            new DefaultElectPolicy((cluster, brokerName, brokerId)  -> !brokerId.equals(1L), null));
+            new DefaultElectPolicy((cluster, brokerName, brokerId) -> !brokerId.equals(1L), null));
 
         assertEquals(cResult1.getResponseCode(), ResponseCode.CONTROLLER_ELECT_MASTER_FAILED);
 
         // test admin try to elect a assignedMaster but old master still alive, and the old master is equals to assignedMaster
         final ElectMasterRequestHeader assignRequest1 = ElectMasterRequestHeader.ofAdminTrigger(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, response.getMasterBrokerId());
         final ControllerResult<ElectMasterResponseHeader> cResult2 = this.replicasInfoManager.electMaster(assignRequest1,
-            new DefaultElectPolicy((cluster, brokerName, brokerId)  -> true, null));
+            new DefaultElectPolicy((cluster, brokerName, brokerId) -> true, null));
         assertEquals(cResult2.getResponseCode(), ResponseCode.CONTROLLER_MASTER_STILL_EXIST);
 
         // admin successful elect a assignedMaster.
         final ElectMasterRequestHeader assignRequest2 = ElectMasterRequestHeader.ofAdminTrigger(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L);
         final ControllerResult<ElectMasterResponseHeader> cResult3 = this.replicasInfoManager.electMaster(assignRequest2,
-            new DefaultElectPolicy((cluster, brokerName, brokerId)  -> !brokerId.equals(response.getMasterBrokerId()), null));
+            new DefaultElectPolicy((cluster, brokerName, brokerId) -> !brokerId.equals(response.getMasterBrokerId()), null));
         assertEquals(cResult3.getResponseCode(), ResponseCode.SUCCESS);
 
         final ElectMasterResponseHeader response3 = cResult3.getResponse();
@@ -416,7 +421,7 @@ public class ReplicasInfoManagerTest {
         // However, the syncStateSet in statemachine is {DEFAULT_IP[0]}, not more replicas can be elected as master, it will be failed.
         final ElectMasterRequestHeader electRequest = ElectMasterRequestHeader.ofControllerTrigger(DEFAULT_BROKER_NAME);
         final ControllerResult<ElectMasterResponseHeader> cResult = this.replicasInfoManager.electMaster(electRequest,
-            new DefaultElectPolicy((cluster, brokerName, brokerId)  -> !brokerId.equals(1L), null));
+            new DefaultElectPolicy((cluster, brokerName, brokerId) -> !brokerId.equals(1L), null));
         final List<EventMessage> events = cResult.getEvents();
         assertEquals(events.size(), 1);
         final ElectMasterEvent event = (ElectMasterEvent) events.get(0);
@@ -462,5 +467,45 @@ public class ReplicasInfoManagerTest {
         ControllerResult<Void> result7 = this.replicasInfoManager.cleanBrokerData(header7, (cluster, brokerName, brokerId) -> false);
         assertEquals(ResponseCode.SUCCESS, result7.getResponseCode());
 
+    }
+
+    @Test
+    public void testSerialize() {
+        mockMetaData();
+        byte[] data;
+        try {
+            data = this.replicasInfoManager.serialize();
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+        final ReplicasInfoManager newReplicasInfoManager = new ReplicasInfoManager(config);
+        try {
+            newReplicasInfoManager.deserializeFrom(data);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+        Map<String, BrokerReplicaInfo> oldReplicaInfoTable = new TreeMap<>();
+        Map<String, BrokerReplicaInfo> newReplicaInfoTable = new TreeMap<>();
+        Map<String/* brokerName */, SyncStateInfo> oldSyncStateTable = new TreeMap<>();
+        Map<String/* brokerName */, SyncStateInfo> newSyncStateTable = new TreeMap<>();
+        try {
+            Field field = ReplicasInfoManager.class.getDeclaredField("replicaInfoTable");
+            field.setAccessible(true);
+            oldReplicaInfoTable.putAll((Map<String, BrokerReplicaInfo>) field.get(this.replicasInfoManager));
+            newReplicaInfoTable.putAll((Map<String, BrokerReplicaInfo>) field.get(newReplicasInfoManager));
+            field = ReplicasInfoManager.class.getDeclaredField("syncStateSetInfoTable");
+            field.setAccessible(true);
+            oldSyncStateTable.putAll((Map<String, SyncStateInfo>) field.get(this.replicasInfoManager));
+            newSyncStateTable.putAll((Map<String, SyncStateInfo>) field.get(newReplicasInfoManager));
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+        assertArrayEquals(oldReplicaInfoTable.keySet().toArray(), newReplicaInfoTable.keySet().toArray());
+        assertArrayEquals(oldSyncStateTable.keySet().toArray(), newSyncStateTable.keySet().toArray());
+        for (String brokerName : oldReplicaInfoTable.keySet()) {
+            BrokerReplicaInfo oldReplicaInfo = oldReplicaInfoTable.get(brokerName);
+            BrokerReplicaInfo newReplicaInfo = newReplicaInfoTable.get(brokerName);
+            Field[] fields = oldReplicaInfo.getClass().getFields();
+        }
     }
 }

@@ -86,7 +86,7 @@ public class SendMessageActivityTest extends InitConfigTest {
         sendMessageRequestHeader.setDefaultTopicQueueNums(0);
         sendMessageRequestHeader.setQueueId(0);
         sendMessageRequestHeader.setSysFlag(0);
-        sendMessageRequestHeader.setBname(brokerName);
+        sendMessageRequestHeader.setBrokerName(brokerName);
         sendMessageRequestHeader.setProperties(MessageDecoder.messageProperties2String(message.getProperties()));
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, sendMessageRequestHeader);
         remotingCommand.setBody(message.getBody());

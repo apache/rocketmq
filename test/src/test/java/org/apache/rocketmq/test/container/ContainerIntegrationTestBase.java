@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.ConfigContext;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -362,7 +363,7 @@ public class ContainerIntegrationTestBase {
         System.out.printf("start master %s with port %d-%d%n", brokerConfig.getCanonicalName(), brokerConfig.getListenPort(), storeConfig.getHaListenPort());
         BrokerController brokerController = null;
         try {
-            brokerController = brokerContainer.addBroker(brokerConfig, storeConfig);
+            brokerController = brokerContainer.addBroker(buildConfigContext(brokerConfig, storeConfig));
             Assert.assertNotNull(brokerController);
             brokerController.start();
             TMP_FILE_LIST.add(new File(brokerController.getTopicConfigManager().configFilePath()));
@@ -455,7 +456,7 @@ public class ContainerIntegrationTestBase {
         System.out.printf("start slave %s with port %d-%d%n", slaveBrokerConfig.getCanonicalName(), slaveBrokerConfig.getListenPort(), storeConfig.getHaListenPort());
 
         try {
-            BrokerController brokerController = brokerContainer.addBroker(slaveBrokerConfig, storeConfig);
+            BrokerController brokerController = brokerContainer.addBroker(buildConfigContext(slaveBrokerConfig, storeConfig));
             Assert.assertNotNull(brokerContainer);
             brokerController.start();
             TMP_FILE_LIST.add(new File(brokerController.getTopicConfigManager().configFilePath()));
@@ -658,5 +659,12 @@ public class ContainerIntegrationTestBase {
                 .append(brokerId)
                 .toHashCode();
         }
+    }
+
+    public static ConfigContext buildConfigContext(BrokerConfig brokerConfig, MessageStoreConfig messageStoreConfig) {
+        return new ConfigContext.Builder()
+            .brokerConfig(brokerConfig)
+            .messageStoreConfig(messageStoreConfig)
+            .build();
     }
 }

@@ -21,12 +21,16 @@ public class BrokerMetricsConstant {
 
     public static final String GAUGE_PROCESSOR_WATERMARK = "rocketmq_processor_watermark";
     public static final String GAUGE_BROKER_PERMISSION = "rocketmq_broker_permission";
+    public static final String GAUGE_TOPIC_NUM = "rocketmq_topic_number";
+    public static final String GAUGE_CONSUMER_GROUP_NUM = "rocketmq_consumer_group_number";
 
     public static final String COUNTER_MESSAGES_IN_TOTAL = "rocketmq_messages_in_total";
     public static final String COUNTER_MESSAGES_OUT_TOTAL = "rocketmq_messages_out_total";
     public static final String COUNTER_THROUGHPUT_IN_TOTAL = "rocketmq_throughput_in_total";
     public static final String COUNTER_THROUGHPUT_OUT_TOTAL = "rocketmq_throughput_out_total";
     public static final String HISTOGRAM_MESSAGE_SIZE = "rocketmq_message_size";
+    public static final String HISTOGRAM_TOPIC_CREATE_EXECUTE_TIME = "rocketmq_topic_create_execution_time";
+    public static final String HISTOGRAM_CONSUMER_GROUP_CREATE_EXECUTE_TIME = "rocketmq_consumer_group_create_execution_time";
 
     public static final String GAUGE_PRODUCER_CONNECTIONS = "rocketmq_producer_connections";
     public static final String GAUGE_CONSUMER_CONNECTIONS = "rocketmq_consumer_connections";
@@ -38,6 +42,11 @@ public class BrokerMetricsConstant {
     public static final String GAUGE_CONSUMER_READY_MESSAGES = "rocketmq_consumer_ready_messages";
     public static final String COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL = "rocketmq_send_to_dlq_messages_total";
 
+    public static final String COUNTER_COMMIT_MESSAGES_TOTAL = "rocketmq_commit_messages_total";
+    public static final String COUNTER_ROLLBACK_MESSAGES_TOTAL = "rocketmq_rollback_messages_total";
+    public static final String HISTOGRAM_FINISH_MSG_LATENCY = "rocketmq_finish_message_latency";
+    public static final String GAUGE_HALF_MESSAGES = "rocketmq_half_messages";
+
     public static final String LABEL_CLUSTER_NAME = "cluster";
     public static final String LABEL_NODE_TYPE = "node_type";
     public static final String NODE_TYPE_BROKER = "broker";
@@ -47,6 +56,7 @@ public class BrokerMetricsConstant {
     public static final String LABEL_PROCESSOR = "processor";
 
     public static final String LABEL_TOPIC = "topic";
+    public static final String LABEL_INVOCATION_STATUS = "invocation_status";
     public static final String LABEL_IS_RETRY = "is_retry";
     public static final String LABEL_IS_SYSTEM = "is_system";
     public static final String LABEL_CONSUMER_GROUP = "consumer_group";
