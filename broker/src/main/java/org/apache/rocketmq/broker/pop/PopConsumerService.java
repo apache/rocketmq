@@ -519,6 +519,13 @@ public class PopConsumerService extends ServiceThread {
     }
 
     public CompletableFuture<Boolean> revive(PopConsumerRecord record) {
+
+        if (brokerConfig.isPopReviveSkipIfGroupAbsent() &&
+            !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(record.getGroupId())) {
+            log.info("PopConsumerService skip revive message, record={}", record);
+            return CompletableFuture.completedFuture(true);
+        }
+
         return this.getMessageAsync(record)
             .thenCompose(result -> {
                 if (result == null) {
