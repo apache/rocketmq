@@ -55,7 +55,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ThreadPoolExecutor cacheRefreshExecutor;
     protected final List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
-    protected MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider = new DefaultMessageQueuePriorityProvider();
+    protected MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider = null;
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
