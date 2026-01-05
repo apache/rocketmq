@@ -55,6 +55,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ThreadPoolExecutor cacheRefreshExecutor;
     protected final List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
+    protected MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider = new DefaultMessageQueuePriorityProvider();
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
@@ -199,11 +200,19 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     protected MessageQueueView buildMessageQueueView(String topic, TopicRouteData topicRouteData) {
         if (isTopicRouteValid(topicRouteData)) {
-            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData, this.penalizers);
+            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData, this.penalizers, priorityProvider);
             log.debug("load topic route from namesrv. topic: {}, queue: {}", topic, tmp);
             return tmp;
         }
         return MessageQueueView.WRAPPED_EMPTY_QUEUE;
+    }
+
+    public void setPriorityProvider(MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider) {
+        this.priorityProvider = priorityProvider;
+    }
+
+    public void addPenalizer(MessageQueuePenalizer<AddressableMessageQueue> penalizer) {
+        this.penalizers.add(penalizer);
     }
 
     @VisibleForTesting
