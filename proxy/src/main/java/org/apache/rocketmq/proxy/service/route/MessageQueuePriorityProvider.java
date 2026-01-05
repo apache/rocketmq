@@ -17,7 +17,11 @@
 
 package org.apache.rocketmq.proxy.service.route;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
@@ -67,14 +71,14 @@ public interface MessageQueuePriorityProvider<Q extends MessageQueue> {
      */
     static <Q extends MessageQueue> List<List<Q>> buildPriorityGroups(List<Q> queues, MessageQueuePriorityProvider<Q> provider) {
         if (queues == null || queues.isEmpty()) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
 
-        java.util.Map<Integer, List<Q>> buckets = new java.util.TreeMap<>();
+        Map<Integer, List<Q>> buckets = new TreeMap<>();
         for (Q q : queues) {
             int p = provider.priorityOf(q);
-            buckets.computeIfAbsent(p, k -> new java.util.ArrayList<>()).add(q);
+            buckets.computeIfAbsent(p, k -> new ArrayList<>()).add(q);
         }
-        return new java.util.ArrayList<>(buckets.values());
+        return new ArrayList<>(buckets.values());
     }
 }
