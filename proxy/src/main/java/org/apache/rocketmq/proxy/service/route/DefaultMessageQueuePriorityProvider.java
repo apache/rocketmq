@@ -20,6 +20,6 @@ package org.apache.rocketmq.proxy.service.route;
 public class DefaultMessageQueuePriorityProvider implements MessageQueuePriorityProvider<AddressableMessageQueue> {
     @Override
     public int priorityOf(AddressableMessageQueue queue) {
-        return 10;
+        return 0;
     }
 }
