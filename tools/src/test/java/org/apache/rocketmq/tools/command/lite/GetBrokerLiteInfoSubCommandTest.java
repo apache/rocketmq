@@ -24,7 +24,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 public class GetBrokerLiteInfoSubCommandTest {
 

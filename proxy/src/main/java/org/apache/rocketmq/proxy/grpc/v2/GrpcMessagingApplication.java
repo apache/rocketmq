@@ -408,10 +408,10 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             status -> SyncLiteSubscriptionResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            this.addExecutor(this.clientManagerThreadPoolExecutor, // todo which thread pool
+            this.addExecutor(this.clientManagerThreadPoolExecutor,
                 context,
                 request,
-                () -> grpcMessingActivity.syncLiteSubscription(context, request)
+                () -> grpcMessagingActivity.syncLiteSubscription(context, request)
                     .whenComplete((response, throwable) ->
                         writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
                 responseObserver,

@@ -26,11 +26,11 @@ import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
-class ClientProcessorTest {
+@RunWith(MockitoJUnitRunner.class)
+public class ClientProcessorTest {
 
     @Mock
     private MessagingProcessor messagingProcessor;
@@ -55,14 +55,14 @@ class ClientProcessorTest {
 
     private ClientProcessor clientProcessor;
 
-    @BeforeEach
-    void setUp() throws Exception {
-        ConfigurationManager.intConfig();
+    @Before
+    public void setUp() throws Exception {
+        ConfigurationManager.initConfig();
         clientProcessor = new ClientProcessor(messagingProcessor, serviceManager);
     }
 
     @Test
-    void testValidateLiteMode_regularGroupWithLiteMode_throwsException() {
+    public void testValidateLiteMode_regularGroupWithLiteMode_throwsException() {
         String group = "regularGroup";
         when(groupConfig.getLiteBindTopic()).thenReturn("");
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
@@ -75,7 +75,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testValidateLiteMode_liteGroupWithoutLiteMode_throwsException() {
+    public void testValidateLiteMode_liteGroupWithoutLiteMode_throwsException() {
         String group = "liteGroup";
         when(groupConfig.getLiteBindTopic()).thenReturn("topic1");
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
@@ -88,7 +88,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testValidateLiteMode_regularGroupWithoutLiteMode_noException() {
+    public void testValidateLiteMode_regularGroupWithoutLiteMode_noException() {
         String group = "regularGroup";
         when(groupConfig.getLiteBindTopic()).thenReturn("");
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
@@ -99,7 +99,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testValidateLiteMode_liteGroupWithLiteMode_noException() {
+    public void testValidateLiteMode_liteGroupWithLiteMode_noException() {
         String group = "liteGroup";
         when(groupConfig.getLiteBindTopic()).thenReturn("topic1");
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
@@ -110,7 +110,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testValidateLiteSubTopic_emptySubList_noException() {
+    public void testValidateLiteSubTopic_emptySubList_noException() {
         String group = "group";
         Set<SubscriptionData> subList = new HashSet<>();
 
@@ -120,7 +120,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testValidateLiteSubTopic_validSubList_noException() {
+    public void testValidateLiteSubTopic_validSubList_noException() {
         String group = "group";
         String topic = "topic1";
         SubscriptionData subscriptionData = new SubscriptionData();
@@ -137,7 +137,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testValidateLiteBindTopic_matchingTopics_noException() {
+    public void testValidateLiteBindTopic_matchingTopics_noException() {
         String group = "group";
         String bindTopic = "topic1";
 
@@ -150,7 +150,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testValidateLiteBindTopic_mismatchedTopics_throwsException() {
+    public void testValidateLiteBindTopic_mismatchedTopics_throwsException() {
         String group = "group";
         String expectedTopic = "expectedTopic";
         String actualTopic = "actualTopic";
@@ -166,7 +166,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testValidateLiteSubscriptionQuota_withinQuota_noException() {
+    public void testValidateLiteSubscriptionQuota_withinQuota_noException() {
         String group = "group";
         int quota = 10;
         int actual = 5;
@@ -180,7 +180,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testValidateLiteSubscriptionQuota_exceedsQuota_throwsException() {
+    public void testValidateLiteSubscriptionQuota_exceedsQuota_throwsException() {
         String group = "group";
         int quota = 10;
         int actual = 15 + 300 /*quota buffer*/;
@@ -196,7 +196,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testGetGroupOrException_groupExists_returnsConfig() {
+    public void testGetGroupOrException_groupExists_returnsConfig() {
         String group = "group";
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(groupConfig);
 
@@ -205,7 +205,7 @@ class ClientProcessorTest {
     }
 
     @Test
-    void testGetGroupOrException_groupNotExists_throwsException() {
+    public void testGetGroupOrException_groupNotExists_throwsException() {
         String group = "nonExistentGroup";
         when(messagingProcessor.getSubscriptionGroupConfig(ctx, group)).thenReturn(null);
 

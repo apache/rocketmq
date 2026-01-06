@@ -33,7 +33,8 @@ import org.apache.rocketmq.broker.lite.LiteSubscriptionRegistry;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.metrics.LiteConsumerLagCalculator;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
-import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
+import org.apache.rocketmq.broker.offset.MemoryConsumerOrderInfoManager;
+import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -143,7 +144,7 @@ public class LiteManagerProcessorTest {
         when(brokerController.getPopLiteMessageProcessor()).thenReturn(popLiteMessageProcessor);
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
 
-        ConsumerOrderInfoManager consumerOrderInfoManager = new ConsumerOrderInfoManager(brokerController);
+        ConsumerOrderInfoManager consumerOrderInfoManager = new MemoryConsumerOrderInfoManager(brokerController);
         when(popLiteMessageProcessor.getConsumerOrderInfoManager()).thenReturn(consumerOrderInfoManager);
 
         when(messageStore.getQueueStore()).thenReturn(consumeQueueStore);

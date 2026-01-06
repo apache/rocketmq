@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.offset;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.pop.orderly.QueueLevelConsumerManager;
 
 /**
  * Memory-based Consumer Order Information Manager for Lite Topics
@@ -30,7 +31,7 @@ import org.apache.rocketmq.broker.BrokerController;
  * <p>
  * We may make structural adjustments and optimizations to reduce overhead and memory footprint.
  */
-public class MemoryConsumerOrderInfoManager extends ConsumerOrderInfoManager {
+public class MemoryConsumerOrderInfoManager extends QueueLevelConsumerManager {
 
     public MemoryConsumerOrderInfoManager(BrokerController brokerController) {
         super(brokerController);

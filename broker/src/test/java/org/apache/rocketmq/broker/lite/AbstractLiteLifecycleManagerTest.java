@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
-import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
+import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.processor.PopLiteMessageProcessor;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
@@ -86,8 +86,6 @@ public class AbstractLiteLifecycleManagerTest {
     private final TopicConfig topicConfig = new TopicConfig(PARENT_TOPIC, 1, 1);
     private final SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
     private final ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, ConsumerOrderInfoManager.OrderInfo>>
-        orderInfoTable = new ConcurrentHashMap<>();
 
     @Before
     public void setUp() {
@@ -115,7 +113,7 @@ public class AbstractLiteLifecycleManagerTest {
         when(subscriptionGroupManager.getSubscriptionGroupTable()).thenReturn(groupTable);
 
         when(consumerOffsetManager.getOffsetTable()).thenReturn(offsetTable);
-        when(consumerOrderInfoManager.getTable()).thenReturn(orderInfoTable);
+        when(consumerOffsetManager.getPullOffsetTable()).thenReturn(offsetTable);
 
         TestLiteLifecycleManager testObject = new TestLiteLifecycleManager(brokerController, liteSharding);
         lifecycleManager = Mockito.spy(testObject);
@@ -127,7 +125,6 @@ public class AbstractLiteLifecycleManagerTest {
         topicConfig.getAttributes().clear();
         groupConfig.getAttributes().clear();
         offsetTable.clear();
-        orderInfoTable.clear();
     }
 
     @Test
@@ -201,8 +198,6 @@ public class AbstractLiteLifecycleManagerTest {
         String removeKey = EXIST_LMQ_NAME + TOPIC_GROUP_SEPARATOR + GROUP;
         offsetTable.put(otherKey, new ConcurrentHashMap<>());
         offsetTable.put(removeKey, new ConcurrentHashMap<>());
-        orderInfoTable.put(otherKey, new ConcurrentHashMap<>());
-        orderInfoTable.put(removeKey, new ConcurrentHashMap<>());
 
         // sharding to this broker
         when(liteSharding.shardingByLmqName(PARENT_TOPIC, EXIST_LMQ_NAME)).thenReturn(brokerConfig.getBrokerName());
@@ -210,11 +205,10 @@ public class AbstractLiteLifecycleManagerTest {
 
         Assert.assertTrue(offsetTable.containsKey(otherKey));
         Assert.assertFalse(offsetTable.containsKey(removeKey));
-        Assert.assertTrue(orderInfoTable.containsKey(otherKey));
-        Assert.assertFalse(orderInfoTable.containsKey(removeKey));
         verify(consumerOffsetManager).removeConsumerOffset(removeKey);
         verify(messageStore).deleteTopics(Collections.singleton(EXIST_LMQ_NAME));
         verify(liteSubscriptionRegistry).cleanSubscription(EXIST_LMQ_NAME, false);
+        verify(consumerOrderInfoManager, times(1)).remove(EXIST_LMQ_NAME, GROUP);
 
         // not sharding to this broker
         when(liteSharding.shardingByLmqName(PARENT_TOPIC, EXIST_LMQ_NAME)).thenReturn("otherBrokerName");
@@ -222,8 +216,6 @@ public class AbstractLiteLifecycleManagerTest {
 
         Assert.assertTrue(offsetTable.containsKey(otherKey));
         Assert.assertFalse(offsetTable.containsKey(removeKey));
-        Assert.assertTrue(orderInfoTable.containsKey(otherKey));
-        Assert.assertFalse(orderInfoTable.containsKey(removeKey));
         verify(consumerOffsetManager, times(2)).removeConsumerOffset(removeKey);
         verify(messageStore, times(2)).deleteTopics(Collections.singleton(EXIST_LMQ_NAME));
         verify(liteSubscriptionRegistry, times(2)).cleanSubscription(EXIST_LMQ_NAME, false);

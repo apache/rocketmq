@@ -105,7 +105,7 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
         body.setMaxLmqNum(brokerController.getMessageStoreConfig().getMaxLmqConsumeQueueNum());
         body.setCurrentLmqNum(brokerController.getMessageStore().getQueueStore().getLmqNum());
         body.setLiteSubscriptionCount(brokerController.getLiteSubscriptionRegistry().getActiveSubscriptionNum());
-        body.setOrderInfoCount(brokerController.getPopLiteMessageProcessor().getConsumerOrderInfoManager().getTable().size());
+        body.setOrderInfoCount(brokerController.getPopLiteMessageProcessor().getConsumerOrderInfoManager().getOrderInfoCount());
         body.setCqTableSize(brokerController.getMessageStore().getQueueStore().getConsumeQueueTable().size());
         body.setOffsetTableSize(brokerController.getConsumerOffsetManager().getOffsetTable().size());
         body.setEventMapSize(brokerController.getLiteEventDispatcher().getEventMapSize());

@@ -25,9 +25,9 @@ import org.apache.rocketmq.broker.lite.LiteEventDispatcher;
 import org.apache.rocketmq.broker.longpolling.PollingResult;
 import org.apache.rocketmq.broker.longpolling.PopLiteLongPollingService;
 import org.apache.rocketmq.broker.metrics.LiteConsumerLagCalculator;
-import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.offset.MemoryConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
+import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
@@ -341,7 +341,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         StringBuilder orderCountInfo = new StringBuilder();
         if (GetMessageStatus.FOUND.equals(result.getStatus()) && !result.getMessageQueueOffset().isEmpty()) {
             consumerOrderInfoManager.update(attemptId, false, lmqName, group, 0,
-                popTime, invisibleTime, result.getMessageQueueOffset(), orderCountInfo);
+                popTime, invisibleTime, result.getMessageQueueOffset(), orderCountInfo, null);
             recordPopLiteMetrics(result, parentTopic, group);
             orderCountInfo = transformOrderCountInfo(orderCountInfo, result.getMessageCount());
         }

@@ -23,7 +23,7 @@ import com.google.common.cache.CacheBuilder;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
-import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
+import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.entity.ClientGroup;
@@ -498,7 +498,7 @@ public class LiteEventDispatcher extends ServiceThread {
                 LOGGER.info("unregister and reset offset. {}, {}, {}, {}", group, clientId, lmqName, consumerOffset);
                 if (consumerOffset > 0) {
                     consumerOffsetManager.assignResetOffset(lmqName, group, 0, 0);
-                    consumerOrderInfoManager.getTable().remove(lmqName + "@" + group); // may cause race condition.
+                    consumerOrderInfoManager.remove(lmqName, group);
                 }
             }
         }

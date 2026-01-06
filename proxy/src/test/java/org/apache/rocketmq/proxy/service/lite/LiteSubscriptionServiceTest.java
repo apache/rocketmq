@@ -28,11 +28,11 @@ import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@RunWith(MockitoJUnitRunner.class)
 public class LiteSubscriptionServiceTest {
 
     @Mock
@@ -59,7 +59,7 @@ public class LiteSubscriptionServiceTest {
 
     private LiteSubscriptionService liteSubscriptionService;
 
-    @BeforeEach
+    @Before
     public void setUp() {
         liteSubscriptionService = new LiteSubscriptionService(topicRouteService, mqClientAPIFactory);
     }
@@ -144,7 +144,6 @@ public class LiteSubscriptionServiceTest {
         when(mqClientAPIFactory.getClient()).thenReturn(mqClientAPIExt);
 
         when(mqClientAPIExt.syncLiteSubscriptionAsync(anyString(), any(LiteSubscriptionDTO.class), anyLong()))
-            .thenReturn(CompletableFuture.completedFuture(null))
             .thenReturn(CompletableFuture.supplyAsync(() -> {
                 throw new RuntimeException("Broker sync failed");
             }));

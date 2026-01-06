@@ -31,11 +31,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.LiteSubscriptionCtlRequestBody;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,8 +45,8 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
-class LiteSubscriptionCtlProcessorTest {
+@RunWith(MockitoJUnitRunner.class)
+public class LiteSubscriptionCtlProcessorTest {
 
     @Mock
     private BrokerController brokerController;
@@ -67,14 +67,14 @@ class LiteSubscriptionCtlProcessorTest {
     private LiteSubscriptionCtlProcessor processor;
 
     @Test
-    void testProcessRequest_BodyIsNull() throws Exception {
+    public void testProcessRequest_BodyIsNull() throws Exception {
         RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
         RemotingCommand response = processor.processRequest(ctx, request);
         assertEquals(ResponseCode.ILLEGAL_OPERATION, response.getCode());
     }
 
     @Test
-    void testProcessRequest_SubscriptionSetIsEmpty() throws Exception {
+    public void testProcessRequest_SubscriptionSetIsEmpty() throws Exception {
         LiteSubscriptionCtlRequestBody requestBody = new LiteSubscriptionCtlRequestBody();
         requestBody.setSubscriptionSet(Collections.emptySet());
         RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
@@ -84,7 +84,7 @@ class LiteSubscriptionCtlProcessorTest {
     }
 
     @Test
-    void testProcessRequest_ActionIsIncrementalAdd() throws Exception {
+    public void testProcessRequest_ActionIsIncrementalAdd() throws Exception {
         String clientId = "clientId";
         String group = "group";
         String topic = "topic";
@@ -122,7 +122,7 @@ class LiteSubscriptionCtlProcessorTest {
     }
 
     @Test
-    void testProcessRequest_ActionIsAllAdd() throws Exception {
+    public void testProcessRequest_ActionIsAllAdd() throws Exception {
         String clientId = "clientId";
         String group = "group";
         String topic = "topic";
@@ -160,7 +160,7 @@ class LiteSubscriptionCtlProcessorTest {
     }
 
     @Test
-    void testProcessRequest_ActionIsIncrementalRemove() throws Exception {
+    public void testProcessRequest_ActionIsIncrementalRemove() throws Exception {
         String clientId = "clientId";
         String group = "group";
         String topic = "topic";
@@ -190,7 +190,7 @@ class LiteSubscriptionCtlProcessorTest {
     }
 
     @Test
-    void testProcessRequest_ActionIsAllRemove() throws Exception {
+    public void testProcessRequest_ActionIsAllRemove() throws Exception {
         String clientId = "clientId";
 
         LiteSubscriptionDTO dto = new LiteSubscriptionDTO();
@@ -216,7 +216,7 @@ class LiteSubscriptionCtlProcessorTest {
     }
 
     @Test
-    void testProcessRequest_CheckConsumeEnableThrowsException() throws Exception {
+    public void testProcessRequest_CheckConsumeEnableThrowsException() throws Exception {
         String clientId = "clientId";
         String group = "group";
         String topic = "topic";

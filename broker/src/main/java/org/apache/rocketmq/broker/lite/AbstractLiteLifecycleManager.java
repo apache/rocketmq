@@ -183,7 +183,7 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
                 String topicAtGroup = lmqName + TOPIC_GROUP_SEPARATOR + group;
                 brokerController.getConsumerOffsetManager().getOffsetTable().remove(topicAtGroup);
                 brokerController.getConsumerOffsetManager().removeConsumerOffset(topicAtGroup); // no iteration
-                brokerController.getPopLiteMessageProcessor().getConsumerOrderInfoManager().getTable().remove(topicAtGroup);
+                brokerController.getPopLiteMessageProcessor().getConsumerOrderInfoManager().remove(lmqName, group);
             });
             brokerController.getMessageStore().deleteTopics(Sets.newHashSet(lmqName));
             boolean sharding = brokerName.equals(liteSharding.shardingByLmqName(parentTopic, lmqName));

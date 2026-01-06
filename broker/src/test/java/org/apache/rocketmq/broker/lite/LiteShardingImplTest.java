@@ -28,18 +28,18 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
-class LiteShardingImplTest {
+@RunWith(MockitoJUnitRunner.class)
+public class LiteShardingImplTest {
 
     @Mock
     private BrokerController brokerController;
@@ -49,8 +49,8 @@ class LiteShardingImplTest {
 
     private LiteShardingImpl liteSharding;
 
-    @BeforeEach
-    void setUp() {
+    @Before
+    public void setUp() {
         liteSharding = new LiteShardingImpl(brokerController, topicRouteInfoManager);
     }
 
@@ -58,7 +58,7 @@ class LiteShardingImplTest {
      * Test normal case: multiple MessageQueues, verify consistent hash selects correct brokerName
      */
     @Test
-    void testShardingByLmqName_NormalCase() {
+    public void testShardingByLmqName_NormalCase() {
         // Prepare data
         String parentTopic = "TestTopic";
         String liteTopic = "lite_topic";
@@ -93,7 +93,7 @@ class LiteShardingImplTest {
      * Test edge case: empty MessageQueue list should return current broker name
      */
     @Test
-    void testShardingByLmqName_EmptyQueueList() {
+    public void testShardingByLmqName_EmptyQueueList() {
         String parentTopic = "TestTopic";
         String lmqName = "LmqName2";
         String currentBrokerName = "CurrentBroker";
@@ -115,7 +115,7 @@ class LiteShardingImplTest {
      * Test exception case: tryToFindTopicPublishInfo returns null, should return current broker name
      */
     @Test
-    void testShardingByLmqName_NullTopicPublishInfo() {
+    public void testShardingByLmqName_NullTopicPublishInfo() {
         String parentTopic = "TestTopic";
         String lmqName = "LmqName3";
         String currentBrokerName = "CurrentBroker";

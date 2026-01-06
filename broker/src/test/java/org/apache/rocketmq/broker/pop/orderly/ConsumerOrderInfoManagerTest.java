@@ -537,24 +537,24 @@ public class ConsumerOrderInfoManagerTest {
 
     @Test
     public void testGetMaxLockFreeTimestamp() {
-        ConsumerOrderInfoManager.OrderInfo orderInfo = new ConsumerOrderInfoManager.OrderInfo();
+        QueueLevelConsumerManager.OrderInfo orderInfo = new QueueLevelConsumerManager.OrderInfo();
         orderInfo.setOffsetList(new ArrayList<>());
         assertNull(orderInfo.getMaxLockFreeTimestamp());
 
-        ConsumerOrderInfoManager.OrderInfo nullOrderInfo = new ConsumerOrderInfoManager.OrderInfo();
+        QueueLevelConsumerManager.OrderInfo nullOrderInfo = new QueueLevelConsumerManager.OrderInfo();
         nullOrderInfo.setOffsetList(null);
         assertNull(nullOrderInfo.getMaxLockFreeTimestamp());
 
         List<Long> offsetList = Arrays.asList(100L, 1L, 2L);
 
-        ConsumerOrderInfoManager.OrderInfo allAckOrderInfo = new ConsumerOrderInfoManager.OrderInfo();
+        QueueLevelConsumerManager.OrderInfo allAckOrderInfo = new QueueLevelConsumerManager.OrderInfo();
         allAckOrderInfo.setOffsetList(offsetList);
         allAckOrderInfo.setCommitOffsetBit(7);
         allAckOrderInfo.setPopTime(System.currentTimeMillis());
         allAckOrderInfo.setInvisibleTime(30000L);
         assertEquals(System.currentTimeMillis(), allAckOrderInfo.getMaxLockFreeTimestamp(), 1000L);
 
-        ConsumerOrderInfoManager.OrderInfo unackOrderInfo = new ConsumerOrderInfoManager.OrderInfo();
+        QueueLevelConsumerManager.OrderInfo unackOrderInfo = new QueueLevelConsumerManager.OrderInfo();
         unackOrderInfo.setOffsetList(offsetList);
         unackOrderInfo.setCommitOffsetBit(0);
         long popTime = System.currentTimeMillis();
@@ -563,7 +563,7 @@ public class ConsumerOrderInfoManagerTest {
         Long expectedTime = popTime + 30000L;
         assertEquals(expectedTime, unackOrderInfo.getMaxLockFreeTimestamp());
 
-        ConsumerOrderInfoManager.OrderInfo hasVisibleButAckedOrderInfo = new ConsumerOrderInfoManager.OrderInfo();
+        QueueLevelConsumerManager.OrderInfo hasVisibleButAckedOrderInfo = new QueueLevelConsumerManager.OrderInfo();
         hasVisibleButAckedOrderInfo.setOffsetList(offsetList);
         hasVisibleButAckedOrderInfo.setCommitOffsetBit(1);
         hasVisibleButAckedOrderInfo.setPopTime(popTime);
@@ -573,7 +573,7 @@ public class ConsumerOrderInfoManagerTest {
         hasVisibleButAckedOrderInfo.setOffsetNextVisibleTime(offsetNextVisibleTime);
         assertEquals(Long.valueOf(popTime + 30000L), hasVisibleButAckedOrderInfo.getMaxLockFreeTimestamp());
 
-        ConsumerOrderInfoManager.OrderInfo multiUnackOrderInfo = new ConsumerOrderInfoManager.OrderInfo();
+        QueueLevelConsumerManager.OrderInfo multiUnackOrderInfo = new QueueLevelConsumerManager.OrderInfo();
         multiUnackOrderInfo.setOffsetList(offsetList);
         multiUnackOrderInfo.setCommitOffsetBit(0);
         multiUnackOrderInfo.setPopTime(popTime);

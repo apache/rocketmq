@@ -28,8 +28,8 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.entity.ClientGroup;
 import org.apache.rocketmq.common.lite.LiteSubscription;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -47,7 +47,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class LiteSubscriptionRegistryImplTest {
+public class LiteSubscriptionRegistryImplTest {
 
     private LiteSubscriptionRegistryImpl registry;
     private LiteCtlListener mockListener;
@@ -55,7 +55,7 @@ class LiteSubscriptionRegistryImplTest {
     private BrokerConfig mockBrokerConfig;
     private SubscriptionGroupManager mockSubscriptionGroupManager;
 
-    @BeforeEach
+    @Before
     public void setUp() {
         BrokerController mockBrokerController = mock(BrokerController.class);
         mockLifecycleManager = mock(AbstractLiteLifecycleManager.class);

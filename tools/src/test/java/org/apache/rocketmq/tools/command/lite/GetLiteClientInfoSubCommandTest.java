@@ -20,7 +20,7 @@ package org.apache.rocketmq.tools.command.lite;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 public class GetLiteClientInfoSubCommandTest {
 

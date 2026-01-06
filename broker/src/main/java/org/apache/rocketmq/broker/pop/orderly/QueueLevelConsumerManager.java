@@ -180,6 +180,16 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     }
 
     @Override
+    public void remove(String topic, String group) {
+        table.remove(buildKey(topic, group));
+    }
+
+    @Override
+    public int getOrderInfoCount() {
+        return table.size();
+    }
+
+    @Override
     public OrderedConsumptionLevel getOrderedConsumptionLevel() {
         return OrderedConsumptionLevel.QUEUE;
     }
@@ -383,7 +393,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     }
 
     @VisibleForTesting
-    QueueLevelConsumerOrderInfoLockManager getConsumerOrderInfoLockManager() {
+    protected QueueLevelConsumerOrderInfoLockManager getConsumerOrderInfoLockManager() {
         return queueLevelConsumerOrderInfoLockManager;
     }
 

@@ -64,10 +64,10 @@ public class RocksDBConsumerOffsetManagerTest {
         consumerOffsetManager.load();
 
         ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>(512);
-        offsetTable.put(KEY,new ConcurrentHashMap<Integer, Long>() {{
-                put(1,2L);
-                put(2,3L);
-            }});
+        ConcurrentHashMap<Integer, Long> innerMap = new ConcurrentHashMap<>();
+        innerMap.put(1, 2L);
+        innerMap.put(2, 3L);
+        offsetTable.put(KEY, innerMap);
         consumerOffsetManager.setOffsetTable(offsetTable);
     }
 
