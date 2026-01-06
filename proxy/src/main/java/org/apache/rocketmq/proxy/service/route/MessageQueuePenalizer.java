@@ -38,9 +38,11 @@ public interface MessageQueuePenalizer<Q extends MessageQueue> {
         if (penalizers == null || penalizers.isEmpty()) {
             return 0;
         }
-        return penalizers.stream()
-            .mapToInt(p -> p.penaltyOf(messageQueue))
-            .sum();
+        int sum = 0;
+        for (MessageQueuePenalizer<Q> p : penalizers) {
+            sum += p.penaltyOf(messageQueue);
+        }
+        return sum;
     }
 
     /**
