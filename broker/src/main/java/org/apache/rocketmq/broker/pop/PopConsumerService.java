@@ -503,12 +503,12 @@ public class PopConsumerService extends ServiceThread {
 
         // No need to generate new records when the group does not exist,
         // because these retry messages will not be consumed by anyone.
-        if (!brokerConfig.isPopReviveSkipIfGroupAbsent() ||
-            brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)) {
-            this.popConsumerStore.writeRecords(Collections.singletonList(ckRecord));
-        } else {
+        if (brokerConfig.isPopReviveSkipIfGroupAbsent() &&
+            !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)) {
             log.info("PopConsumerService change invisibility skip, time={}, " +
-                    "groupId={}, topicId={}, queueId={}, offset={}", popTime, groupId, topicId, queueId, offset);
+                "groupId={}, topicId={}, queueId={}, offset={}", popTime, groupId, topicId, queueId, offset);
+        } else {
+            this.popConsumerStore.writeRecords(Collections.singletonList(ckRecord));
         }
 
         if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {

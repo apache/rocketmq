@@ -405,6 +405,8 @@ public class PopConsumerServiceTest {
     @Test
     public void reviveBackoffRetryTest() {
         Mockito.when(brokerController.getEscapeBridge()).thenReturn(Mockito.mock(EscapeBridge.class));
+        Mockito.when(brokerController.getSubscriptionGroupManager()
+            .containsSubscriptionGroup(anyString())).thenReturn(true);
         PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
 
         consumerService.getPopConsumerStore().start();
