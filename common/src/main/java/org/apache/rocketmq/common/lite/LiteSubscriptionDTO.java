@@ -25,6 +25,7 @@ public class LiteSubscriptionDTO {
     private String group;
     private String topic;
     private Set<String> liteTopicSet;
+    private OffsetOption offsetOption;
     private long version;
 
     public LiteSubscriptionAction getAction() {
@@ -72,6 +73,14 @@ public class LiteSubscriptionDTO {
         return this;
     }
 
+    public OffsetOption getOffsetOption() {
+        return offsetOption;
+    }
+
+    public void setOffsetOption(OffsetOption offsetOption) {
+        this.offsetOption = offsetOption;
+    }
+
     public long getVersion() {
         return version;
     }
@@ -83,12 +92,12 @@ public class LiteSubscriptionDTO {
 
     @Override
     public String toString() {
-        return "LiteSubscriptionDTO{" +
-            "action=" + action +
+        return "LiteSubscriptionDTO{" + "action=" + action +
             ", clientId='" + clientId + '\'' +
             ", group='" + group + '\'' +
             ", topic='" + topic + '\'' +
             ", liteTopicSet=" + liteTopicSet +
+            ", offsetOption=" + offsetOption +
             ", version=" + version +
             '}';
     }

@@ -492,15 +492,7 @@ public class LiteEventDispatcher extends ServiceThread {
         }
 
         @Override
-        public void onUnregister(String clientId, String group, String lmqName, boolean resetOffset) {
-            if (resetOffset) {
-                long consumerOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
-                LOGGER.info("unregister and reset offset. {}, {}, {}, {}", group, clientId, lmqName, consumerOffset);
-                if (consumerOffset > 0) {
-                    consumerOffsetManager.assignResetOffset(lmqName, group, 0, 0);
-                    consumerOrderInfoManager.remove(lmqName, group);
-                }
-            }
+        public void onUnregister(String clientId, String group, String lmqName) {
         }
 
         /**

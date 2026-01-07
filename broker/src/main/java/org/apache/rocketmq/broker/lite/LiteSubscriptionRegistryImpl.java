@@ -35,6 +35,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.entity.ClientGroup;
 import org.apache.rocketmq.common.lite.LiteSubscription;
 import org.apache.rocketmq.common.lite.LiteUtil;
+import org.apache.rocketmq.common.lite.OffsetOption;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -68,7 +69,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
 
     @Override
     public void addPartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet,
-        boolean exclusive) {
+        OffsetOption offsetOption) {
         long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
         if (getActiveSubscriptionNum() >= maxCount) {
             // No need to check existence, if reach here, it must be new.
@@ -84,9 +85,10 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             }
             thisSub.addLiteTopic(lmqName);
             // First remove the old subscription
-            if (exclusive) {
+            if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
                 excludeClientByLmqName(clientId, group, lmqName);
             }
+            resetOffset(lmqName, group, clientId, offsetOption);
             addTopicGroup(clientGroup, lmqName);
         }
     }
@@ -198,7 +200,11 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         if (topicGroupSet.remove(clientGroup)) {
             activeNum.decrementAndGet();
             for (LiteCtlListener listener : listeners) {
-                listener.onUnregister(clientGroup.clientId, clientGroup.group, lmqName, resetOffset);
+                listener.onUnregister(clientGroup.clientId, clientGroup.group, lmqName);
+            }
+            if (resetOffset) {
+                resetOffset(lmqName, clientGroup.group, clientGroup.clientId,
+                    new OffsetOption(OffsetOption.Type.POLICY, OffsetOption.POLICY_MIN_VALUE));
             }
         }
         if (topicGroupSet.isEmpty()) {
@@ -235,12 +241,12 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
      * Notify the client to remove the liteTopic subscription from its local memory
      */
     private void notifyUnsubscribeLite(String clientId, String group, String lmqName) {
-        String parentTopic = LiteUtil.getParentTopic(lmqName);
+        String topic = LiteUtil.getParentTopic(lmqName);
         String liteTopic = LiteUtil.getLiteTopic(lmqName);
         Channel channel = clientChannels.get(clientId);
         if (channel == null) {
             LOGGER.warn("notifyUnsubscribeLite but channel is null, liteTopic:{}, group:{}, topic:{}, clientId:{},",
-                liteTopic, group, parentTopic, clientId);
+                liteTopic, group, topic, clientId);
             return;
         }
 
@@ -249,7 +255,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         header.setConsumerGroup(group);
         header.setLiteTopic(liteTopic);
         brokerController.getBroker2Client().notifyUnsubscribeLite(channel, header);
-        LOGGER.info("notifyUnsubscribeLite liteTopic:{}, group:{}, topic:{}, clientId:{}", liteTopic, group, parentTopic, clientId);
+        LOGGER.info("notifyUnsubscribeLite liteTopic:{}, group:{}, topic:{}, clientId:{}", liteTopic, group, topic, clientId);
     }
 
     @Override
@@ -268,6 +274,41 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             .filter(entry -> entry.getValue().getGroup().equals(group))
             .map(Map.Entry::getKey)
             .collect(Collectors.toList());
+    }
+
+    protected void resetOffset(String lmqName, String group, String clientId, OffsetOption offsetOption) {
+        if (null == offsetOption) {
+            return;
+        }
+        Long targetOffset = null;
+        long currentOffset = brokerController.getConsumerOffsetManager().queryOffset(group, lmqName, 0);
+        switch (offsetOption.getType()) {
+            case POLICY:
+                if (OffsetOption.POLICY_MIN_VALUE == offsetOption.getValue()) {
+                    targetOffset = 0L;
+                } else if (OffsetOption.POLICY_MAX_VALUE == offsetOption.getValue()) {
+                    targetOffset = liteLifecycleManager.getMaxOffsetInQueue(lmqName);
+                }
+                break;
+            case OFFSET:
+                targetOffset = offsetOption.getValue();
+                break;
+            case TAIL_N:
+                if (currentOffset >= 0) { // only when consumer offset exists
+                    targetOffset = Math.max(0L, currentOffset - offsetOption.getValue());
+                }
+                break;
+            case TIMESTAMP:
+                // timestamp option is disabled silently for now
+                break;
+        }
+
+        LOGGER.info("try to reset lite offset. {}, {}, {}, {}, current:{}, target:{}",
+            group, lmqName, clientId, offsetOption, currentOffset, targetOffset);
+        if (targetOffset != null && currentOffset != targetOffset) {
+            brokerController.getConsumerOffsetManager().assignResetOffset(lmqName, group, 0, targetOffset);
+            brokerController.getPopLiteMessageProcessor().getConsumerOrderInfoManager().remove(lmqName, group);
+        }
     }
 
     private LiteSubscription getOrCreateLiteSubscription(String clientId, String group, String topic) {

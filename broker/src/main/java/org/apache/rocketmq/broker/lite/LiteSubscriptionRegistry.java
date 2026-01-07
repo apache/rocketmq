@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.common.entity.ClientGroup;
 import org.apache.rocketmq.common.lite.LiteSubscription;
+import org.apache.rocketmq.common.lite.OffsetOption;
 
 public interface LiteSubscriptionRegistry {
 
@@ -32,7 +33,7 @@ public interface LiteSubscriptionRegistry {
 
     int getActiveSubscriptionNum();
 
-    void addPartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet, boolean exclusive);
+    void addPartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet, OffsetOption offsetOption);
 
     void removePartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet);
 

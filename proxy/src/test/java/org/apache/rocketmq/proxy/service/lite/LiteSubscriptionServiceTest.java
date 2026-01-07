@@ -143,10 +143,11 @@ public class LiteSubscriptionServiceTest {
 
         when(mqClientAPIFactory.getClient()).thenReturn(mqClientAPIExt);
 
+        CompletableFuture<Void> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(new RuntimeException("Broker sync failed"));
+
         when(mqClientAPIExt.syncLiteSubscriptionAsync(anyString(), any(LiteSubscriptionDTO.class), anyLong()))
-            .thenReturn(CompletableFuture.supplyAsync(() -> {
-                throw new RuntimeException("Broker sync failed");
-            }));
+            .thenReturn(failedFuture);
 
         CompletableFuture<Void> future = liteSubscriptionService.syncLiteSubscription(ctx, liteSubscriptionDTO, timeoutMillis);
 

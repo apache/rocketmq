@@ -54,6 +54,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.lite.LiteSubscriptionAction;
 import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
+import org.apache.rocketmq.common.lite.OffsetOption;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -213,6 +214,13 @@ public class ClientActivity extends AbstractMessagingActivity {
                 .setTopic(topic)
                 .setLiteTopicSet(liteTopicSet)
                 .setVersion(request.getVersion());
+
+            if (LiteSubscriptionAction.PARTIAL_ADD == action) {
+                if (request.hasOffsetOption()) {
+                    liteSubscriptionDTO.setOffsetOption(toOffsetOption(request.getOffsetOption()));
+                }
+            }
+
             return this.messagingProcessor
                 .syncLiteSubscription(ctx, liteSubscriptionDTO, Duration.ofSeconds(2).toMillis())
                 .thenApply(v ->
@@ -226,6 +234,43 @@ public class ClientActivity extends AbstractMessagingActivity {
             future.completeExceptionally(t);
             return future;
         }
+    }
+
+    private static OffsetOption toOffsetOption(apache.rocketmq.v2.OffsetOption gRpcOffsetOption) {
+        OffsetOption offsetOption = new OffsetOption();
+        switch (gRpcOffsetOption.getOffsetTypeCase()) {
+            case POLICY:
+                offsetOption.setType(OffsetOption.Type.POLICY);
+                offsetOption.setValue(toOffsetPolicy(gRpcOffsetOption.getPolicy()));
+                break;
+            case OFFSET:
+                offsetOption.setType(OffsetOption.Type.OFFSET);
+                offsetOption.setValue(gRpcOffsetOption.getOffset());
+                break;
+            case TAIL_N:
+                offsetOption.setType(OffsetOption.Type.TAIL_N);
+                offsetOption.setValue(gRpcOffsetOption.getTailN());
+                break;
+            case TIMESTAMP:
+                offsetOption.setType(OffsetOption.Type.TIMESTAMP);
+                offsetOption.setValue(gRpcOffsetOption.getTimestamp());
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown OffsetOption type: " + gRpcOffsetOption.getOffsetTypeCase());
+        }
+        return offsetOption;
+    }
+
+    private static long toOffsetPolicy(apache.rocketmq.v2.OffsetOption.Policy policy) {
+        switch (policy) {
+            case LAST:
+                return OffsetOption.POLICY_LAST_VALUE;
+            case MIN:
+                return OffsetOption.POLICY_MIN_VALUE;
+            case MAX:
+                return OffsetOption.POLICY_MAX_VALUE;
+        }
+        throw new IllegalArgumentException("Unknown OffsetOption.Policy value: " + policy);
     }
 
     public ContextStreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {

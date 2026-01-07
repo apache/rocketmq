@@ -23,21 +23,28 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.pop.orderly.QueueLevelConsumerManager;
+import org.apache.rocketmq.broker.processor.PopLiteMessageProcessor;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.attribute.LiteSubModel;
 import org.apache.rocketmq.common.entity.ClientGroup;
 import org.apache.rocketmq.common.lite.LiteSubscription;
+import org.apache.rocketmq.common.lite.OffsetOption;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_SUB_MODEL_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
@@ -54,6 +61,7 @@ public class LiteSubscriptionRegistryImplTest {
     private AbstractLiteLifecycleManager mockLifecycleManager;
     private BrokerConfig mockBrokerConfig;
     private SubscriptionGroupManager mockSubscriptionGroupManager;
+    private ConsumerOffsetManager mockConsumerOffsetManager;
 
     @Before
     public void setUp() {
@@ -61,9 +69,16 @@ public class LiteSubscriptionRegistryImplTest {
         mockLifecycleManager = mock(AbstractLiteLifecycleManager.class);
         mockBrokerConfig = mock(BrokerConfig.class);
         mockSubscriptionGroupManager = mock(SubscriptionGroupManager.class);
+        mockConsumerOffsetManager = mock(ConsumerOffsetManager.class);
+        PopLiteMessageProcessor mockPopLiteMessageProcessor = mock(PopLiteMessageProcessor.class);
+        QueueLevelConsumerManager mockConsumerOrderInfoManager = mock(QueueLevelConsumerManager.class);
 
         when(mockBrokerController.getBrokerConfig()).thenReturn(mockBrokerConfig);
         when(mockBrokerController.getSubscriptionGroupManager()).thenReturn(mockSubscriptionGroupManager);
+        when(mockBrokerController.getConsumerOffsetManager()).thenReturn(mockConsumerOffsetManager);
+        when(mockBrokerController.getPopLiteMessageProcessor()).thenReturn(mockPopLiteMessageProcessor);
+        when(mockPopLiteMessageProcessor.getConsumerOrderInfoManager()).thenReturn(mockConsumerOrderInfoManager);
+        when(mockConsumerOrderInfoManager.getTable()).thenReturn(new ConcurrentHashMap<>());
         when(mockBrokerConfig.getMaxLiteSubscriptionCount()).thenReturn(1000L);
         when(mockBrokerConfig.getLiteSubscriptionCheckTimeoutMills()).thenReturn(60000L);
         when(mockBrokerConfig.getLiteSubscriptionCheckInterval()).thenReturn(10000L);
@@ -85,7 +100,7 @@ public class LiteSubscriptionRegistryImplTest {
 
         when(mockLifecycleManager.isSubscriptionActive(anyString(), anyString())).thenReturn(true);
 
-        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, false);
+        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, null);
 
         LiteSubscription subscription = registry.getLiteSubscription(clientId);
         assertNotNull(subscription);
@@ -119,10 +134,11 @@ public class LiteSubscriptionRegistryImplTest {
         // Mock subscription group config for reset offset behavior
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         subscriptionGroupConfig.setGroupName(group);
+        subscriptionGroupConfig.getAttributes().put(LITE_SUB_MODEL_ATTRIBUTE.getName(), LiteSubModel.Exclusive.name());
         when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(subscriptionGroupConfig);
 
         // Add existing client
-        registry.addPartialSubscription(existingClientId, group, topic, liteTopicSet, false);
+        registry.addPartialSubscription(existingClientId, group, topic, liteTopicSet, null);
 
         // Verify that the existing client is correctly registered
         LiteSubscription existingSubscription = registry.getLiteSubscription(existingClientId);
@@ -132,7 +148,7 @@ public class LiteSubscriptionRegistryImplTest {
         // Execute exclusive mode addition
         Set<String> newLiteTopicSet = new HashSet<>();
         newLiteTopicSet.add(liteTopic);
-        registry.addPartialSubscription(newClientId, group, topic, newLiteTopicSet, true);
+        registry.addPartialSubscription(newClientId, group, topic, newLiteTopicSet, null);
 
         // Verify that new client subscription has been added.
         LiteSubscription newSubscription = registry.getLiteSubscription(newClientId);
@@ -148,7 +164,7 @@ public class LiteSubscriptionRegistryImplTest {
 
         verify(mockListener).onRegister(existingClientId, group, liteTopic);
         verify(mockListener).onRegister(newClientId, group, liteTopic);
-        verify(mockListener).onUnregister(existingClientId, group, liteTopic, false);
+        verify(mockListener).onUnregister(existingClientId, group, liteTopic);
     }
 
     @Test
@@ -171,12 +187,12 @@ public class LiteSubscriptionRegistryImplTest {
         when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(subscriptionGroupConfig);
 
         // Add existing client
-        registry.addPartialSubscription(existingClientId, group, topic, existingLiteTopicSet, false);
+        registry.addPartialSubscription(existingClientId, group, topic, existingLiteTopicSet, null);
 
         // Add new client in non-exclusive mode
         Set<String> newLiteTopicSet = new HashSet<>();
         newLiteTopicSet.add(liteTopic);
-        registry.addPartialSubscription(newClientId, group, topic, newLiteTopicSet, false);
+        registry.addPartialSubscription(newClientId, group, topic, newLiteTopicSet, null);
 
         // Verify both client subscriptions exist
         LiteSubscription existingSubscription = registry.getLiteSubscription(existingClientId);
@@ -188,7 +204,7 @@ public class LiteSubscriptionRegistryImplTest {
 
         // Verify listener was only called for registration, not unregistration
         verify(mockListener, times(2)).onRegister(anyString(), eq(group), eq(liteTopic));
-        verify(mockListener, never()).onUnregister(anyString(), anyString(), anyString(), anyBoolean());
+        verify(mockListener, never()).onUnregister(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -198,7 +214,7 @@ public class LiteSubscriptionRegistryImplTest {
         String topic = "topic1";
         Set<String> liteTopicSet = new HashSet<>();
 
-        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, false);
+        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, null);
 
         LiteSubscription subscription = registry.getLiteSubscription(clientId);
         assertNotNull(subscription);
@@ -224,7 +240,7 @@ public class LiteSubscriptionRegistryImplTest {
         when(mockLifecycleManager.isSubscriptionActive(topic, inactiveLiteTopic)).thenReturn(false);
 
         // Should not add inactive subscriptions
-        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, false);
+        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, null);
 
         LiteSubscription subscription = registry.getLiteSubscription(clientId);
         assertNotNull(subscription);
@@ -250,17 +266,19 @@ public class LiteSubscriptionRegistryImplTest {
         // Mock subscription group configs
         SubscriptionGroupConfig subscriptionGroupConfig1 = new SubscriptionGroupConfig();
         subscriptionGroupConfig1.setGroupName(group1);
+        subscriptionGroupConfig1.getAttributes().put(LITE_SUB_MODEL_ATTRIBUTE.getName(), LiteSubModel.Exclusive.name());
         when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group1)).thenReturn(subscriptionGroupConfig1);
 
         SubscriptionGroupConfig subscriptionGroupConfig2 = new SubscriptionGroupConfig();
         subscriptionGroupConfig2.setGroupName(group2);
+        subscriptionGroupConfig2.getAttributes().put(LITE_SUB_MODEL_ATTRIBUTE.getName(), LiteSubModel.Exclusive.name());
         when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group2)).thenReturn(subscriptionGroupConfig2);
 
         // Add first client
-        registry.addPartialSubscription(client1, group1, topic, liteTopicSet, false);
+        registry.addPartialSubscription(client1, group1, topic, liteTopicSet, null);
 
         // Add second client
-        registry.addPartialSubscription(client2, group2, topic, liteTopicSet, false);
+        registry.addPartialSubscription(client2, group2, topic, liteTopicSet, null);
 
         // Verify both clients are registered for the same topic
         Set<ClientGroup> observers = registry.getSubscriber(liteTopic);
@@ -268,7 +286,7 @@ public class LiteSubscriptionRegistryImplTest {
 
         // Add new client in exclusive mode from the same group as client1
         String client3 = "client3";
-        registry.addPartialSubscription(client3, group1, topic, liteTopicSet, true);
+        registry.addPartialSubscription(client3, group1, topic, liteTopicSet, null);
 
         // Verify only client1 was removed (same group), client2 remains (different group)
         observers = registry.getSubscriber(liteTopic);
@@ -289,8 +307,8 @@ public class LiteSubscriptionRegistryImplTest {
         assertTrue(hasClient3, "Client3 (group1) should be registered");
 
         // Verify listener calls
-        verify(mockListener).onUnregister(client1, group1, liteTopic, false); // Same group client1 removed
-        verify(mockListener, never()).onUnregister(client2, group2, liteTopic, false); // Different group client2 retained
+        verify(mockListener).onUnregister(client1, group1, liteTopic); // Same group client1 removed
+        verify(mockListener, never()).onUnregister(client2, group2, liteTopic); // Different group client2 retained
     }
 
     @Test
@@ -307,7 +325,7 @@ public class LiteSubscriptionRegistryImplTest {
         Set<String> liteTopicSet1 = new HashSet<>();
         liteTopicSet1.add("lmq1");
 
-        registry.addPartialSubscription(clientId1, group1, topic1, liteTopicSet1, false);
+        registry.addPartialSubscription(clientId1, group1, topic1, liteTopicSet1, null);
 
         // Try to add second subscription, should throw exception
         String clientId2 = "client2";
@@ -317,7 +335,7 @@ public class LiteSubscriptionRegistryImplTest {
         liteTopicSet2.add("lmq2");
 
         assertThrows(LiteQuotaException.class, () -> {
-            registry.addPartialSubscription(clientId2, group2, topic2, liteTopicSet2, false);
+            registry.addPartialSubscription(clientId2, group2, topic2, liteTopicSet2, null);
         });
     }
 
@@ -337,7 +355,7 @@ public class LiteSubscriptionRegistryImplTest {
         when(mockLifecycleManager.isSubscriptionActive(anyString(), anyString())).thenReturn(true);
 
         // Add subscriptions first
-        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, false);
+        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, null);
 
         // Verify subscriptions were added
         LiteSubscription subscription = registry.getLiteSubscription(clientId);
@@ -354,8 +372,8 @@ public class LiteSubscriptionRegistryImplTest {
         assertFalse(subscription.getLiteTopicSet().contains(liteTopic1));
         assertTrue(subscription.getLiteTopicSet().contains(liteTopic2));
 
-        verify(mockListener).onUnregister(clientId, group, liteTopic1, false);
-        verify(mockListener, never()).onUnregister(clientId, group, liteTopic2, false);
+        verify(mockListener).onUnregister(clientId, group, liteTopic1);
+        verify(mockListener, never()).onUnregister(clientId, group, liteTopic2);
     }
 
     // Test addAll method
@@ -381,7 +399,7 @@ public class LiteSubscriptionRegistryImplTest {
         when(mockLifecycleManager.isSubscriptionActive(anyString(), anyString())).thenReturn(true);
 
         // Add initial subscriptions
-        registry.addPartialSubscription(clientId, group, topic, initialSet, false);
+        registry.addPartialSubscription(clientId, group, topic, initialSet, null);
 
         // Reset mock to ignore previous interactions
         clearInvocations(mockListener);
@@ -396,14 +414,14 @@ public class LiteSubscriptionRegistryImplTest {
         assertTrue(subscription.getLiteTopicSet().contains(liteTopic3));  // Should be added
 
         // Verify that liteTopic1 was unregistered (no longer in new set)
-        verify(mockListener).onUnregister(clientId, group, liteTopic1, false);
+        verify(mockListener).onUnregister(clientId, group, liteTopic1);
 
         // Verify that liteTopic3 was registered (new in the set)
         verify(mockListener).onRegister(clientId, group, liteTopic3);
 
         // Verify that liteTopic2 was neither unregistered nor registered again
         // (it was already registered and remains in the new set)
-        verify(mockListener, never()).onUnregister(clientId, group, liteTopic2, false);
+        verify(mockListener, never()).onUnregister(clientId, group, liteTopic2);
     }
 
     // Test removeAll method
@@ -422,7 +440,7 @@ public class LiteSubscriptionRegistryImplTest {
         when(mockLifecycleManager.isSubscriptionActive(anyString(), anyString())).thenReturn(true);
 
         // Add subscriptions
-        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, false);
+        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, null);
 
         // Verify subscriptions were added
         assertNotNull(registry.getLiteSubscription(clientId));
@@ -466,7 +484,7 @@ public class LiteSubscriptionRegistryImplTest {
         when(mockLifecycleManager.isSubscriptionActive(anyString(), anyString())).thenReturn(true);
 
         // Add subscription
-        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, false);
+        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, null);
         assertEquals(2, registry.getActiveSubscriptionNum());
 
         // Verify subscription was added
@@ -500,7 +518,7 @@ public class LiteSubscriptionRegistryImplTest {
 
         when(mockLifecycleManager.isSubscriptionActive(anyString(), anyString())).thenReturn(true);
 
-        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, false);
+        registry.addPartialSubscription(clientId, group, topic, liteTopicSet, null);
 
         Set<ClientGroup> observers = registry.getSubscriber(liteTopic);
         assertNotNull(observers);
@@ -555,11 +573,11 @@ public class LiteSubscriptionRegistryImplTest {
         assertEquals(0, registry.getActiveSubscriptionNum());
 
         // Add first client
-        registry.addPartialSubscription(clientId1, group, topic, liteTopicSet1, false);
+        registry.addPartialSubscription(clientId1, group, topic, liteTopicSet1, null);
         assertEquals(1, registry.getActiveSubscriptionNum());
 
         // Add second client
-        registry.addPartialSubscription(clientId2, group, topic, liteTopicSet2, false);
+        registry.addPartialSubscription(clientId2, group, topic, liteTopicSet2, null);
         assertEquals(3, registry.getActiveSubscriptionNum()); // 3 references: client1->topic1, client2->topic1, client2->topic2
     }
 
@@ -641,8 +659,8 @@ public class LiteSubscriptionRegistryImplTest {
         assertEquals(0, registry.activeNum.get());
 
         // Verify that the listener was called
-        verify(mockListener, times(1)).onUnregister(eq(clientId), eq(group), eq("lmq1"), eq(false));
-        verify(mockListener, times(1)).onUnregister(eq(clientId), eq(group), eq("lmq2"), eq(false));
+        verify(mockListener, times(1)).onUnregister(eq(clientId), eq(group), eq("lmq1"));
+        verify(mockListener, times(1)).onUnregister(eq(clientId), eq(group), eq("lmq2"));
         verify(mockListener, times(1)).onRemoveAll(eq(clientId), eq(group));
 
         // Verify that topics in liteTopic2Group have been removed
@@ -682,7 +700,7 @@ public class LiteSubscriptionRegistryImplTest {
         assertEquals(0, registry.activeNum.get());
 
         // Verify that the listener was not called
-        verify(mockListener, never()).onUnregister(anyString(), anyString(), anyString(), anyBoolean());
+        verify(mockListener, never()).onUnregister(anyString(), anyString(), anyString());
     }
 
     // Test removeTopicGroup method
@@ -770,5 +788,87 @@ public class LiteSubscriptionRegistryImplTest {
         // null
         result = registry.getAllClientIdByGroup(null);
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testResetOffset_minOffset() {
+        String lmqName = "lmq1";
+        String group = "group1";
+        String clientId = "client1";
+
+        when(mockConsumerOffsetManager.queryOffset(group, lmqName, 0)).thenReturn(100L);
+
+        OffsetOption offsetOption = new OffsetOption(OffsetOption.Type.POLICY, OffsetOption.POLICY_MIN_VALUE);
+        registry.resetOffset(lmqName, group, clientId, offsetOption);
+
+        verify(mockConsumerOffsetManager).assignResetOffset(lmqName, group, 0, 0L);
+    }
+
+    @Test
+    public void testResetOffset_maxOffset() {
+        String lmqName = "lmq1";
+        String group = "group1";
+        String clientId = "client1";
+        long maxOffset = 500L;
+
+        when(mockConsumerOffsetManager.queryOffset(group, lmqName, 0)).thenReturn(100L);
+        when(mockLifecycleManager.getMaxOffsetInQueue(lmqName)).thenReturn(maxOffset);
+
+        OffsetOption offsetOption = new OffsetOption(OffsetOption.Type.POLICY, OffsetOption.POLICY_MAX_VALUE);
+        registry.resetOffset(lmqName, group, clientId, offsetOption);
+
+        verify(mockConsumerOffsetManager).assignResetOffset(lmqName, group, 0, maxOffset);
+    }
+
+    @Test
+    public void testResetOffset_absolute() {
+        String lmqName = "lmq1";
+        String group = "group1";
+        String clientId = "client1";
+        long specifiedOffset = 250L;
+
+        when(mockConsumerOffsetManager.queryOffset(group, lmqName, 0)).thenReturn(100L);
+
+        OffsetOption offsetOption = new OffsetOption(OffsetOption.Type.OFFSET, specifiedOffset);
+        registry.resetOffset(lmqName, group, clientId, offsetOption);
+
+        verify(mockConsumerOffsetManager).assignResetOffset(lmqName, group, 0, specifiedOffset);
+    }
+
+    @Test
+    public void testResetOffset_LastN() {
+        String lmqName = "lmq1";
+        String group1 = "group1";
+        String group2 = "group2";
+        String clientId = "client1";
+        long currentOffset = 100L;
+        long lastN = 20L;
+        long expectedTargetOffset = 80L;
+
+        when(mockConsumerOffsetManager.queryOffset(group1, lmqName, 0)).thenReturn(currentOffset);
+        when(mockConsumerOffsetManager.queryOffset(group2, lmqName, 0)).thenReturn(-1L);
+
+        OffsetOption offsetOption = new OffsetOption(OffsetOption.Type.TAIL_N, lastN);
+
+        registry.resetOffset(lmqName, group1, clientId, offsetOption);
+        registry.resetOffset(lmqName, group2, clientId, offsetOption);
+
+        verify(mockConsumerOffsetManager).assignResetOffset(lmqName, group1, 0, expectedTargetOffset);
+        verify(mockConsumerOffsetManager, never()).assignResetOffset(lmqName, group2, 0, expectedTargetOffset);
+    }
+
+    @Test
+    public void testResetOffset_timestamp_not_supported() {
+        String lmqName = "lmq1";
+        String group = "group1";
+        String clientId = "client1";
+        long timestamp = System.currentTimeMillis();
+
+        when(mockConsumerOffsetManager.queryOffset(group, lmqName, 0)).thenReturn(100L);
+
+        OffsetOption offsetOption = new OffsetOption(OffsetOption.Type.TIMESTAMP, timestamp);
+        registry.resetOffset(lmqName, group, clientId, offsetOption);
+
+        verify(mockConsumerOffsetManager, never()).assignResetOffset(anyString(), anyString(), anyInt(), anyLong());
     }
 }

@@ -21,7 +21,7 @@ public interface LiteCtlListener {
 
     void onRegister(String clientId, String group, String lmqName);
 
-    void onUnregister(String clientId, String group, String lmqName, boolean resetOffset);
+    void onUnregister(String clientId, String group, String lmqName);
 
     void onRemoveAll(String clientId, String group);
 

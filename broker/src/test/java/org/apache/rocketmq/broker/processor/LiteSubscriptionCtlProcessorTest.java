@@ -39,7 +39,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
@@ -118,7 +118,7 @@ public class LiteSubscriptionCtlProcessorTest {
 
         assertEquals(ResponseCode.SUCCESS, response.getCode());
         verify(liteSubscriptionRegistry).updateClientChannel(eq(clientId), eq(channel));
-        verify(liteSubscriptionRegistry).addPartialSubscription(eq(clientId), eq(group), eq(topic), anySet(), anyBoolean());
+        verify(liteSubscriptionRegistry).addPartialSubscription(eq(clientId), eq(group), eq(topic), anySet(), any());
     }
 
     @Test

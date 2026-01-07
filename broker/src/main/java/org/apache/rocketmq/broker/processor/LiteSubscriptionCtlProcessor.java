@@ -86,8 +86,7 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
                     case PARTIAL_ADD:
                         checkConsumeEnable(group);
                         this.liteSubscriptionRegistry.updateClientChannel(clientId, ctx.channel());
-                        boolean isExclusive = LiteMetadataUtil.isSubLiteExclusive(group, brokerController);
-                        this.liteSubscriptionRegistry.addPartialSubscription(clientId, group, topic, lmqNameSet, isExclusive);
+                        this.liteSubscriptionRegistry.addPartialSubscription(clientId, group, topic, lmqNameSet, entry.getOffsetOption());
                         break;
                     case PARTIAL_REMOVE:
                         this.liteSubscriptionRegistry.removePartialSubscription(clientId, group, topic, lmqNameSet);
