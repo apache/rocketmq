@@ -41,25 +41,13 @@ public class MessageStoreExecutorTest {
     }
 
     @Test
-    public void testFileRecyclingExecutorThreadNamePrefix() throws Exception {
+    public void testAllExecutorThreadNamePrefixes() throws Exception {
         assertThreadNamePrefix(executor.fileRecyclingExecutor, "FileRecyclingExecutor_",
             "fileRecyclingExecutor");
-    }
-
-    @Test
-    public void testBufferCommitExecutorThreadNamePrefix() throws Exception {
         assertThreadNamePrefix(executor.bufferCommitExecutor, "BufferCommitExecutor_",
             "bufferCommitExecutor");
-    }
-
-    @Test
-    public void testBufferFetchExecutorThreadNamePrefix() throws Exception {
         assertThreadNamePrefix(executor.bufferFetchExecutor, "BufferFetchExecutor_",
             "bufferFetchExecutor");
-    }
-
-    @Test
-    public void testCommonExecutorThreadNamePrefix() throws Exception {
         assertThreadNamePrefix(executor.commonExecutor, "TieredCommonExecutor_",
             "commonExecutor");
     }
