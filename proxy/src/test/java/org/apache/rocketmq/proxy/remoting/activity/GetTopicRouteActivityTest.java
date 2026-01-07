@@ -75,7 +75,7 @@ public class GetTopicRouteActivityTest {
         getTopicRouteActivity = new GetTopicRouteActivity(requestPipeline, messagingProcessor);
 
         ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
+        ConfigurationManager.initConfig();
 
         Channel channel = new SimpleChannel(null, "0.0.0.0:0", "1.1.1.1:1");
         ctx = new SimpleChannelHandlerContext(channel);

@@ -251,6 +251,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int popReviveMaxReturnSizePerRead = 16 * 1024;
     private int popReviveConcurrency = 32;
     private int popReviveMaxAttemptTimes = 16;
+    private boolean popReviveSkipIfGroupAbsent = true;
     // each message queue will have a corresponding retry queue
     private boolean useSeparateRetryQueue = false;
     private boolean realTimeNotifyConsumerChange = true;
@@ -697,6 +698,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setPopReviveMaxAttemptTimes(int popReviveMaxAttemptTimes) {
         this.popReviveMaxAttemptTimes = popReviveMaxAttemptTimes;
+    }
+
+    public boolean isPopReviveSkipIfGroupAbsent() {
+        return popReviveSkipIfGroupAbsent;
+    }
+
+    public void setPopReviveSkipIfGroupAbsent(boolean popReviveSkipIfGroupAbsent) {
+        this.popReviveSkipIfGroupAbsent = popReviveSkipIfGroupAbsent;
     }
 
     public boolean isTraceOn() {
