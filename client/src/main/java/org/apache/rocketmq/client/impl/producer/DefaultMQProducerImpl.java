@@ -980,7 +980,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         context.setMsgType(MessageType.Trans_Msg_Half);
                     }
 
-                    if (msg.getProperty("__STARTDELIVERTIME") != null || msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null) {
+                    if (msg.getProperty("__STARTDELIVERTIME") != null
+                            || msg.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
+                            || msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null
+                            || msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null
+                            || msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
                         context.setMsgType(MessageType.Delay_Msg);
                     }
                     this.executeSendMessageHookBefore(context);
