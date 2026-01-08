@@ -143,10 +143,10 @@ public class SlaveSynchronizeTest {
         when(brokerOuterAPI.getAllMessageRequestMode(anyString())).thenReturn(createMessageRequestModeWrapper());
         when(brokerOuterAPI.getTimerMetrics(anyString())).thenReturn(createTimerMetricsWrapper());
 
-        TopicConfigManager topicConfigManager = new TopicConfigManager();
+        TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
         TopicConfigManager spiedTopicConfigManager = spy(topicConfigManager);
         doNothing().when(spiedTopicConfigManager).persist();
-        SubscriptionGroupManager groupConfigManager = new SubscriptionGroupManager();
+        SubscriptionGroupManager groupConfigManager = new SubscriptionGroupManager(brokerController);
         SubscriptionGroupManager spiedGroupConfigManager = spy(groupConfigManager);
         doNothing().when(spiedGroupConfigManager).persist();
         when(brokerController.getTopicConfigManager()).thenReturn(spiedTopicConfigManager);
@@ -172,6 +172,70 @@ public class SlaveSynchronizeTest {
         when(brokerOuterAPI.getTimerCheckPoint(anyString())).thenReturn(timerCheckpoint);
         slaveSynchronize.syncTimerCheckPoint();
         Assert.assertEquals(0, timerCheckpoint.getDataVersion().getStateVersion());
+    }
+
+    @Test
+    public void testSyncAllIncludesTopicConfig() throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+        MQBrokerException, InterruptedException, RemotingCommandException, UnsupportedEncodingException {
+        TopicConfig newTopicConfig = new TopicConfig("TestTopic");
+        TopicConfigAndMappingSerializeWrapper topicWrapper = createTopicConfigWrapper(newTopicConfig);
+
+        when(brokerOuterAPI.getAllTopicConfig(anyString())).thenReturn(topicWrapper);
+        when(brokerOuterAPI.getAllConsumerOffset(anyString())).thenReturn(createConsumerOffsetWrapper());
+        when(brokerOuterAPI.getAllDelayOffset(anyString())).thenReturn("");
+        when(brokerOuterAPI.getAllSubscriptionGroupConfig(anyString())).thenReturn(createSubscriptionGroupWrapper());
+        when(brokerOuterAPI.getAllMessageRequestMode(anyString())).thenReturn(createMessageRequestModeWrapper());
+        when(brokerOuterAPI.getTimerMetrics(anyString())).thenReturn(createTimerMetricsWrapper());
+
+        TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
+        TopicConfigManager spiedTopicConfigManager = spy(topicConfigManager);
+        doNothing().when(spiedTopicConfigManager).persist();
+        when(brokerController.getTopicConfigManager()).thenReturn(spiedTopicConfigManager);
+        SubscriptionGroupManager groupConfigManager = new SubscriptionGroupManager(brokerController);
+        SubscriptionGroupManager spiedGroupConfigManager = spy(groupConfigManager);
+        doNothing().when(spiedGroupConfigManager).persist();
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(spiedGroupConfigManager);
+
+        TopicConfigManager topicConfigManager1 = brokerController.getTopicConfigManager();
+        DataVersion dataVersion = topicConfigManager1.getDataVersion();
+        Assert.assertEquals(0, dataVersion.getStateVersion());
+        slaveSynchronize.syncAll();
+
+        Assert.assertEquals(5, brokerController.getTopicConfigManager().getDataVersion().getStateVersion());
+        Assert.assertTrue(brokerController.getTopicConfigManager().getTopicConfigTable().containsKey("TestTopic"));
+    }
+
+    @Test
+    public void testSyncTopicConfigWithTopicDeletion() throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+        MQBrokerException, InterruptedException, RemotingCommandException, UnsupportedEncodingException {
+        TopicConfig localTopic = new TopicConfig("LocalTopic");
+        ConcurrentHashMap<String, TopicConfig> localTable = new ConcurrentHashMap<>();
+        localTable.put("LocalTopic", localTopic);
+
+        TopicConfigManager topicConfigManager = new TopicConfigManager(brokerController);
+        TopicConfigManager spiedTopicConfigManager = spy(topicConfigManager);
+        spiedTopicConfigManager.setTopicConfigTable(localTable);
+        doNothing().when(spiedTopicConfigManager).persist();
+        when(brokerController.getTopicConfigManager()).thenReturn(spiedTopicConfigManager);
+        SubscriptionGroupManager groupConfigManager = new SubscriptionGroupManager(brokerController);
+        SubscriptionGroupManager spiedGroupConfigManager = spy(groupConfigManager);
+        doNothing().when(spiedGroupConfigManager).persist();
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(spiedGroupConfigManager);
+        when(brokerOuterAPI.getAllConsumerOffset(anyString())).thenReturn(createConsumerOffsetWrapper());
+        when(brokerOuterAPI.getAllDelayOffset(anyString())).thenReturn("");
+        when(brokerOuterAPI.getAllSubscriptionGroupConfig(anyString())).thenReturn(createSubscriptionGroupWrapper());
+        when(brokerOuterAPI.getAllMessageRequestMode(anyString())).thenReturn(createMessageRequestModeWrapper());
+        when(brokerOuterAPI.getTimerMetrics(anyString())).thenReturn(createTimerMetricsWrapper());
+
+        TopicConfig newTopicConfig = new TopicConfig("NewTopic");
+        TopicConfigAndMappingSerializeWrapper topicWrapper = createTopicConfigWrapper(newTopicConfig);
+
+        when(brokerOuterAPI.getAllTopicConfig(anyString())).thenReturn(topicWrapper);
+
+        slaveSynchronize.syncAll();
+
+        Assert.assertFalse(brokerController.getTopicConfigManager().getTopicConfigTable().containsKey("LocalTopic"));
+        Assert.assertTrue(brokerController.getTopicConfigManager().getTopicConfigTable().containsKey("NewTopic"));
     }
 
     private TopicConfigAndMappingSerializeWrapper createTopicConfigWrapper(TopicConfig topicConfig) {
