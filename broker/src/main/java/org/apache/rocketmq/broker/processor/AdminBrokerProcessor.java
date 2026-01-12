@@ -2853,7 +2853,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             MessageId messageId = MessageDecoder.decodeMessageId(requestHeader.getMsgId());
             selectMappedBufferResult = this.brokerController.getMessageStore()
                 .selectOneMessageByOffset(messageId.getOffset());
-            MessageExt msg = MessageDecoder.decode(selectMappedBufferResult.getByteBuffer());
+            MessageExt msg = MessageDecoder.decode(selectMappedBufferResult.getByteBuffer(), true, false);
             msg.putUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, String.valueOf(0));
             PutMessageResult putMessageResult = this.brokerController.getMessageStore()
                 .putMessage(toMessageExtBrokerInner(msg));
