@@ -95,6 +95,17 @@ public class ProxyConfig implements ConfigFile {
     private boolean enableGrpcEpoll = false;
     private int grpcThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int grpcThreadPoolQueueCapacity = 100000;
+
+    /**
+     * Maximum number of concurrent gRPC calls allowed per client connection.
+     * <p>
+     * A single client issuing excessively high concurrent requests may skew the validation load balancing
+     * and overload a single proxy instance (hotspot), potentially bringing it down. Limiting
+     * {@code grpcMaxConcurrentCallsPerConnection} helps mitigate this per-connection hotspot risk.
+     * <p>
+     * Note: Setting this limit too low may cause send/consume failures (e.g., backpressure or rejected calls).
+     */
+    private int grpcMaxConcurrentCallsPerConnection = Integer.MAX_VALUE;
     private String brokerConfigPath = ConfigurationManager.getProxyHome() + "/conf/broker.conf";
     /**
      * gRPC max message size
@@ -1580,5 +1591,13 @@ public class ProxyConfig implements ConfigFile {
 
     public void setReturnHandleGroupThreadPoolNums(int returnHandleGroupThreadPoolNums) {
         this.returnHandleGroupThreadPoolNums = returnHandleGroupThreadPoolNums;
+    }
+
+    public int getGrpcMaxConcurrentCallsPerConnection() {
+        return grpcMaxConcurrentCallsPerConnection;
+    }
+
+    public void setGrpcMaxConcurrentCallsPerConnection(int grpcMaxConcurrentCallsPerConnection) {
+        this.grpcMaxConcurrentCallsPerConnection = grpcMaxConcurrentCallsPerConnection;
     }
 }
