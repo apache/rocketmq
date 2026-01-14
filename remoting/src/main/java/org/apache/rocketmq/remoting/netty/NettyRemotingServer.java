@@ -272,9 +272,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
-            .addLast(nettyServerConfig.isServerNettyWorkerGroupEnable() ? defaultEventExecutorGroup : null,
+            .addLast(getDefaultEventExecutorGroup(),
                 HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
-            .addLast(nettyServerConfig.isServerNettyWorkerGroupEnable() ? defaultEventExecutorGroup : null,
+            .addLast(getDefaultEventExecutorGroup(),
                 encoder,
                 new NettyDecoder(),
                 distributionHandler,
@@ -430,7 +430,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     public DefaultEventExecutorGroup getDefaultEventExecutorGroup() {
-        return defaultEventExecutorGroup;
+        return nettyServerConfig.isServerNettyWorkerGroupEnable() ? defaultEventExecutorGroup : null;
     }
 
     public NettyEncoder getEncoder() {
@@ -462,11 +462,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     return;
                 }
                 if (detectionResult.state() == ProtocolDetectionState.DETECTED) {
-                    ctx.pipeline().addAfter(defaultEventExecutorGroup, ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
-                        .addAfter(defaultEventExecutorGroup, HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
-                        .addAfter(defaultEventExecutorGroup, HA_PROXY_HANDLER, TLS_MODE_HANDLER, tlsModeHandler);
+                    ctx.pipeline().addAfter(getDefaultEventExecutorGroup(), ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
+                        .addAfter(getDefaultEventExecutorGroup(), HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
+                        .addAfter(getDefaultEventExecutorGroup(), HA_PROXY_HANDLER, TLS_MODE_HANDLER, tlsModeHandler);
                 } else {
-                    ctx.pipeline().addAfter(defaultEventExecutorGroup, ctx.name(), TLS_MODE_HANDLER, tlsModeHandler);
+                    ctx.pipeline().addAfter(getDefaultEventExecutorGroup(), ctx.name(), TLS_MODE_HANDLER, tlsModeHandler);
                 }
 
                 try {
@@ -509,8 +509,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     case ENFORCING:
                         if (null != sslContext) {
                             ctx.pipeline()
-                                .addAfter(defaultEventExecutorGroup, TLS_MODE_HANDLER, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
-                                .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                                .addAfter(getDefaultEventExecutorGroup(), TLS_MODE_HANDLER, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
+                                .addAfter(getDefaultEventExecutorGroup(), TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
                             log.info("Handlers prepended to channel pipeline to establish SSL connection");
                         } else {
                             ctx.close();
