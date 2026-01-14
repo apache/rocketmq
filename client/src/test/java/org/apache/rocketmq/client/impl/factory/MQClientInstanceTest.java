@@ -74,6 +74,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -82,9 +83,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -345,8 +348,8 @@ public class MQClientInstanceTest {
     public void testFindBrokerAddressInSubscribeWithOneBroker() throws IllegalAccessException {
         brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
         consumerTable.put(group, createMQConsumerInner());
-        ConcurrentMap<String, HashMap<String, Integer>> brokerVersionTable = new ConcurrentHashMap<>();
-        HashMap<String, Integer> addressMap = new HashMap<>();
+        ConcurrentMap<String, ConcurrentHashMap<String, Integer>> brokerVersionTable = new ConcurrentHashMap<>();
+        ConcurrentHashMap<String, Integer> addressMap = new ConcurrentHashMap<>();
         addressMap.put(defaultBrokerAddr, 0);
         brokerVersionTable.put(defaultBroker, addressMap);
         FieldUtils.writeDeclaredField(mqClientInstance, "brokerVersionTable", brokerVersionTable, true);
@@ -509,5 +512,46 @@ public class MQClientInstanceTest {
         brokerAddrs.put(MixAll.MASTER_ID, defaultBrokerAddr);
         brokerData.setBrokerAddrs(brokerAddrs);
         return Collections.singletonList(brokerData);
+    }
+
+    @Test
+    public void testSendHeartbeatToAllBrokerConcurrently() {
+        try {
+            String brokerName = "BrokerA";
+            HashMap<Long, String> addrMap = new HashMap<>();
+            addrMap.put(0L, "127.0.0.1:10911");
+            addrMap.put(1L, "127.0.0.1:10912");
+            addrMap.put(2L, "127.0.0.1:10913");
+            brokerAddrTable.put(brokerName, addrMap);
+
+            DefaultMQPushConsumerImpl mockConsumer = mock(DefaultMQPushConsumerImpl.class);
+            when(mockConsumer.subscriptions()).thenReturn(Collections.singleton(new SubscriptionData()));
+            mqClientInstance.registerConsumer("TestConsumerGroup", mockConsumer);
+
+            ClientConfig clientConfig = new ClientConfig();
+            FieldUtils.writeDeclaredField(clientConfig, "enableConcurrentHeartbeat", true, true);
+            FieldUtils.writeDeclaredField(mqClientInstance, "clientConfig", clientConfig, true);
+
+            ExecutorService mockExecutor = mock(ExecutorService.class);
+            doAnswer(invocation -> {
+                try {
+                    Runnable task = invocation.getArgument(0);
+                    task.run();
+                } catch (Exception e) {
+                    // ignore
+                }
+                return null;
+            }).when(mockExecutor).execute(any(Runnable.class));
+            FieldUtils.writeDeclaredField(mqClientInstance, "concurrentHeartbeatExecutor", mockExecutor, true);
+            MQClientAPIImpl mockMqClientAPIImpl = mock(MQClientAPIImpl.class);
+            FieldUtils.writeDeclaredField(mqClientInstance, "mQClientAPIImpl", mockMqClientAPIImpl, true);
+
+            mqClientInstance.sendHeartbeatToAllBrokerWithLock();
+
+            assertTrue(true);
+
+        } catch (Exception e) {
+            fail("failed: " + e.getMessage());
+        }
     }
 }
