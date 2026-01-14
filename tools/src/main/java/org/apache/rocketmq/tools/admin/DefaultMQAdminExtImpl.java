@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tools.admin;
 
 import com.alibaba.fastjson2.JSON;
+import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
@@ -410,14 +411,20 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     break;
                 }
             } catch (Throwable e) {
-                if (i == routeTopics.size() - 1) {
-                    throw e;
-                }
+                logger.warn("Get topic route info failed for topic: {}", routeTopics.get(i), e);
             }
         }
+
+        List<BrokerData> brokerDatas = null;
+        if (topicRouteData == null || CollectionUtils.isEmpty(topicRouteData.getBrokerDatas())) {
+            brokerDatas = this.selectBrokerByConsumerGroup(clusterName, consumerGroup);
+        } else {
+            brokerDatas = topicRouteData.getBrokerDatas();
+        }
+
         ConsumeStats result = new ConsumeStats();
 
-        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+        for (BrokerData bd : brokerDatas) {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
                 ConsumeStats consumeStats = this.mqClientInstance.getMQClientAPIImpl().getConsumeStats(addr, consumerGroup, topic, timeoutMillis * 3);
@@ -487,6 +494,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public AdminToolResult<ConsumeStats> examineConsumeStatsConcurrent(final String consumerGroup, final String topic) {
+        return examineConsumeStatsConcurrent(null, consumerGroup, topic);
+    }
+
+    public AdminToolResult<ConsumeStats> examineConsumeStatsConcurrent(final String clusterName,
+        final String consumerGroup, final String topic) {
 
         return adminToolExecute(new AdminToolHandler() {
             @Override
@@ -508,14 +520,26 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                         continue;
                     }
                 }
+
+                List<BrokerData> brokerDatas = null;
                 if (topicRouteData == null || CollectionUtils.isEmpty(topicRouteData.getBrokerDatas())) {
+                    try {
+                        brokerDatas = selectBrokerByConsumerGroup(clusterName, consumerGroup);
+                    } catch (Exception e) {
+                        logger.warn("Fallback to selectBrokerByConsumerGroup failed for group: {}", consumerGroup, e);
+                    }
+                } else {
+                    brokerDatas = topicRouteData.getBrokerDatas();
+                }
+
+                if (brokerDatas == null || CollectionUtils.isEmpty(brokerDatas)) {
                     return AdminToolResult.failure(AdminToolsResultCodeEnum.TOPIC_ROUTE_INFO_NOT_EXIST, "topic router info not found");
                 }
 
                 final ConsumeStats result = new ConsumeStats();
-                final CountDownLatch latch = new CountDownLatch(topicRouteData.getBrokerDatas().size());
-                final Map<String, Double> consumerTpsMap = new ConcurrentHashMap<>(topicRouteData.getBrokerDatas().size());
-                for (final BrokerData bd : topicRouteData.getBrokerDatas()) {
+                final CountDownLatch latch = new CountDownLatch(brokerDatas.size());
+                final Map<String, Double> consumerTpsMap = new ConcurrentHashMap<>(brokerDatas.size());
+                for (final BrokerData bd : brokerDatas) {
                     threadPoolExecutor.submit(new Runnable() {
                         @Override
                         public void run() {
@@ -598,10 +622,21 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public ConsumerConnection examineConsumerConnectionInfo(
         String consumerGroup) throws InterruptedException, MQBrokerException,
         RemotingException, MQClientException {
+        return examineConsumerConnectionInfo(null, consumerGroup, timeoutMillis);
+    }
+
+    public ConsumerConnection examineConsumerConnectionInfo(
+        String clusterName, String consumerGroup, Long timeoutMillis) throws InterruptedException, MQBrokerException,
+        RemotingException, MQClientException {
         ConsumerConnection result = new ConsumerConnection();
         String topic = MixAll.getRetryTopic(consumerGroup);
-        List<BrokerData> brokers = this.examineTopicRouteInfo(topic).getBrokerDatas();
-        BrokerData brokerData = brokers.get(random.nextInt(brokers.size()));
+        List<BrokerData> brokerDatas = null;
+        try {
+            brokerDatas = this.examineTopicRouteInfo(topic).getBrokerDatas();
+        } catch (Exception e) {
+            brokerDatas = this.selectBrokerByConsumerGroup(clusterName, consumerGroup);
+        }
+        BrokerData brokerData = brokerDatas == null ? null : brokerDatas.get(random.nextInt(brokerDatas.size()));
         String addr = null;
         if (brokerData != null) {
             addr = brokerData.selectBrokerAddr();
@@ -1091,18 +1126,32 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public AdminToolResult<TopicList> queryTopicsByConsumerConcurrent(final String group) {
+        return queryTopicsByConsumerConcurrent(null, group);
+    }
+
+    public AdminToolResult<TopicList> queryTopicsByConsumerConcurrent(final String clusterName, final String group) {
         return adminToolExecute(new AdminToolHandler() {
             @Override
             public AdminToolResult doExecute() throws Exception {
                 String retryTopic = MixAll.getRetryTopic(group);
                 TopicRouteData topicRouteData = examineTopicRouteInfo(retryTopic);
+                List<BrokerData> brokerDatas = null;
+                try {
+                    brokerDatas = examineTopicRouteInfo(retryTopic).getBrokerDatas();
+                } catch (Exception e) {
+                    try {
+                        brokerDatas = selectBrokerByConsumerGroup(clusterName, group);
+                    } catch (Exception e1) {
+                        logger.warn("Fallback to selectBrokerByConsumerGroup failed for group: {}", group, e1);
+                    }
+                }
 
-                if (topicRouteData == null || CollectionUtils.isEmpty(topicRouteData.getBrokerDatas())) {
+                if (brokerDatas == null || CollectionUtils.isEmpty(brokerDatas)) {
                     return AdminToolResult.failure(AdminToolsResultCodeEnum.TOPIC_ROUTE_INFO_NOT_EXIST, "router info not found.");
                 }
                 final TopicList result = new TopicList();
-                final CountDownLatch latch = new CountDownLatch(topicRouteData.getBrokerDatas().size());
-                for (final BrokerData bd : topicRouteData.getBrokerDatas()) {
+                final CountDownLatch latch = new CountDownLatch(brokerDatas.size());
+                for (final BrokerData bd : brokerDatas) {
                     threadPoolExecutor.submit(new Runnable() {
                         @Override
                         public void run() {
@@ -1301,9 +1350,19 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public ConsumerRunningInfo getConsumerRunningInfo(String consumerGroup, String clientId, boolean jstack,
         boolean metrics) throws RemotingException, MQClientException, InterruptedException {
+        return getConsumerRunningInfo(null, consumerGroup, clientId, jstack, metrics);
+    }
+
+    public ConsumerRunningInfo getConsumerRunningInfo(String clusterName, String consumerGroup, String clientId,
+        boolean jstack,
+        boolean metrics) throws RemotingException, MQClientException, InterruptedException {
         String topic = MixAll.RETRY_GROUP_TOPIC_PREFIX + consumerGroup;
-        TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
-        List<BrokerData> brokerDatas = topicRouteData.getBrokerDatas();
+        List<BrokerData> brokerDatas = null;
+        try {
+            brokerDatas = this.examineTopicRouteInfo(topic).getBrokerDatas();
+        } catch (Exception e) {
+            brokerDatas = this.selectBrokerByConsumerGroup(clusterName, consumerGroup);
+        }
         if (brokerDatas != null) {
             for (BrokerData brokerData : brokerDatas) {
                 String addr = brokerData.selectBrokerAddr();
@@ -1587,10 +1646,20 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     @Override
     public void cloneGroupOffset(String srcGroup, String destGroup, String topic,
         boolean isOffline) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
-        String retryTopic = MixAll.getRetryTopic(srcGroup);
-        TopicRouteData topicRouteData = this.examineTopicRouteInfo(retryTopic);
+        cloneGroupOffset(null, srcGroup, destGroup, topic, isOffline);
+    }
 
-        for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+    public void cloneGroupOffset(String clusterName, String srcGroup, String destGroup, String topic,
+        boolean isOffline) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        String retryTopic = MixAll.getRetryTopic(srcGroup);
+        List<BrokerData> brokerDatas = null;
+        try {
+            brokerDatas = this.examineTopicRouteInfo(topic).getBrokerDatas();
+        } catch (Exception e) {
+            brokerDatas = this.selectBrokerByConsumerGroup(clusterName, srcGroup);
+        }
+
+        for (BrokerData bd : brokerDatas) {
             String addr = bd.selectBrokerAddr();
             if (addr != null) {
                 this.mqClientInstance.getMQClientAPIImpl().cloneGroupOffset(addr, srcGroup, destGroup, topic, isOffline, timeoutMillis);
@@ -1844,7 +1913,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     @Override
     public Map<MessageQueue, Long> resetOffsetByTimestamp(String clusterName, String topic, String group,
-        long timestamp, boolean isForce) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        long timestamp,
+        boolean isForce) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return resetOffsetByTimestamp(clusterName, topic, group, timestamp, isForce, false);
     }
 
@@ -2054,6 +2124,69 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public void exportPopRecords(String brokerAddr, long timeout) throws RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         this.mqClientInstance.getMQClientAPIImpl().exportPopRecord(brokerAddr, timeout);
+    }
+
+    public List<BrokerData> selectBrokerByConsumerGroup(String clusterName,
+        String consumerGroup) throws InterruptedException, MQClientException {
+        ClusterInfo clusterInfo;
+        try {
+            clusterInfo = this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterInfo(timeoutMillis);
+            if (clusterInfo == null || clusterInfo.getClusterAddrTable().isEmpty() || clusterInfo.getBrokerAddrTable().isEmpty()) {
+                throw new MQClientException(ResponseCode.SYSTEM_ERROR, "The broker cluster info is null or empty");
+            }
+        } catch (Exception e) {
+            throw new MQClientException(ResponseCode.SYSTEM_ERROR, "Not found the broker cluster info: " + e.getMessage());
+        }
+
+        Set<String> brokerNames = clusterInfo.getClusterAddrTable().entrySet().stream()
+            .filter(entry -> StringUtils.isBlank(clusterName) || entry.getKey().equals(clusterName))
+            .flatMap(entry -> entry.getValue().stream())
+            .collect(Collectors.toSet());
+
+        Set<BrokerData> brokerDataSet = new HashSet<>();
+        clusterInfo.getBrokerAddrTable().forEach((key, value) -> {
+            if (brokerNames.contains(key)) {
+                brokerDataSet.add(value);
+            }
+        });
+
+        final List<BrokerData> result = new CopyOnWriteArrayList<>();
+
+        final CountDownLatch latch = new CountDownLatch(brokerDataSet.size());
+
+        for (final BrokerData bd : brokerDataSet) {
+            threadPoolExecutor.submit(() -> {
+                String addr = null;
+                try {
+                    addr = bd.selectBrokerAddr();
+                    if (addr != null) {
+                        SubscriptionGroupConfig groupConfig = getMqClientInstance().getMQClientAPIImpl()
+                            .getSubscriptionGroupConfig(addr, consumerGroup, timeoutMillis);
+
+                        if (groupConfig != null) {
+                            result.add(bd);
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warn("Check subscription group failed for broker: {}, group: {}", addr, consumerGroup, e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        try {
+            latch.await(timeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            throw e;
+        }
+
+        if (!result.isEmpty()) {
+            return result;
+        }
+
+        throw new MQClientException(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST,
+            "subscription group not exist: " + consumerGroup);
     }
 
     @Override

@@ -139,6 +139,7 @@ public class DefaultMQAdminExtImplTest {
         when(mqClientInstance.getMQClientAPIImpl()).thenReturn(mqClientAPIImpl);
         when(mqClientInstance.getMQAdminImpl()).thenReturn(mqAdminImpl);
         when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(any(), anyLong())).thenReturn(createTopicRouteData());
+        when(mqClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(createClusterInfo());
     }
 
     @Test
@@ -805,6 +806,13 @@ public class DefaultMQAdminExtImplTest {
         result.getBrokerDatas().add(bd);
         result.getQueueDatas().add(qd);
         return result;
+    }
+
+    public ClusterInfo createClusterInfo() {
+        ClusterInfo clusterInfo = new ClusterInfo();
+        clusterInfo.setClusterAddrTable(new HashMap<>());
+        clusterInfo.setBrokerAddrTable(new HashMap<>());
+        return clusterInfo;
     }
 
     private MessageQueue createMessageQueue() {
