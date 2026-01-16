@@ -385,8 +385,19 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
                 if (sharedByteBuffer != null) {
                     try {
+                        int msgLen = result.getWroteBytes();
+                        int endpos = currentPos + msgLen;
+                        // alignment end position
+                        int extraAppendSize = UNSAFE_PAGE_SIZE - endpos % UNSAFE_PAGE_SIZE;
+                        int actualAppendSize = msgLen + extraAppendSize;
+
                         this.fileChannel.position(currentPos);
-                        byteBuffer.position(0).limit(result.getWroteBytes());
+                        // commitlog can contain dirty data at the end.
+                        if (byteBuffer.capacity() >= actualAppendSize) {
+                            byteBuffer.position(0).limit(actualAppendSize);
+                        } else {
+                            byteBuffer.position(0).limit(msgLen);
+                        }
                         this.fileChannel.write(byteBuffer);
                     } catch (Throwable t) {
                         log.error("Failed to write to mappedFile {}", this.fileName, t);
