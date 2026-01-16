@@ -1,0 +1,83 @@
+name: Upstream Sync (apache/rocketmq develop)
+
+permissions:
+  contents: write
+  issues: write
+
+on:
+  schedule:
+    # 每天 04:00 UTC = 北京 / 新加坡 12:00
+    - cron: "0 4 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    # 只在 fork 仓库中运行
+    if: ${{ github.event.repository.fork }}
+
+    env:
+      UPSTREAM_REPO: apache/rocketmq
+      UPSTREAM_BRANCH: develop
+      TARGET_BRANCH: develop
+
+    steps:
+      - name: Checkout fork repo (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote and fetch
+        run: |
+          git remote add upstream https://github.com/${UPSTREAM_REPO}.git
+          git fetch upstream
+
+      - name: Merge upstream develop into fork develop
+        id: merge
+        run: |
+          git checkout ${TARGET_BRANCH}
+          git merge --no-edit upstream/${UPSTREAM_BRANCH}
+        continue-on-error: true
+
+      - name: Handle merge conflict (create issue + fail workflow)
+        if: steps.merge.outcome == 'failure'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const title = "🚨 Upstream sync failed: merge conflict (apache/rocketmq:develop)";
+            const body = `
+            自动同步 **apache/rocketmq:develop** 失败，发生 merge conflict。
+
+            **Fork 分支**: develop
+
+            处理建议：
+            1. 在 GitHub 页面使用 **Sync fork**
+            2. 或本地执行：
+               \`\`\`
+               git fetch upstream
+               git checkout develop
+               git merge upstream/develop
+               \`\`\`
+
+            Workflow：
+            ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}
+            `;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body
+            });
+            core.setFailed("Merge conflict detected. Issue created.");
+
+      - name: Push merged changes to fork
+        if: steps.merge.outcome == 'success'
+        run: |
+          git push origin ${TARGET_BRANCH}
