@@ -429,14 +429,12 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 return;
             }
             switch (response.getCode()) {
-                case ResponseCode.SUCCESS: {
+                case ResponseCode.SUCCESS:
                     future.complete(null);
-                }
-                case ResponseCode.SYSTEM_ERROR:
-                case ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST:
-                case ResponseCode.TOPIC_NOT_EXIST: {
-                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
-                }
+                    break;
+                default:
+                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr));
+                    break;
             }
         });
         return future;

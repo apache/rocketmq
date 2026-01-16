@@ -325,6 +325,18 @@ public class PopConsumerServiceTest {
     }
 
     @Test
+    public void reviveSkipIfGroupAbsent() {
+        String groupName = "PopGroupAbsent";
+        brokerController.getBrokerConfig().setPopReviveSkipIfGroupAbsent(true);
+        PopConsumerRecord record = Mockito.mock(PopConsumerRecord.class);
+        Mockito.when(record.getGroupId()).thenReturn(groupName);
+        Mockito.when(brokerController.getSubscriptionGroupManager()
+            .containsSubscriptionGroup(groupName)).thenReturn(false);
+        CompletableFuture<Boolean> result = consumerService.revive(record);
+        Assert.assertTrue(result.join());
+    }
+
+    @Test
     public void reviveRetryTest() {
         Mockito.when(brokerController.getTopicConfigManager().selectTopicConfig(topicId)).thenReturn(null);
         Mockito.when(brokerController.getConsumerOffsetManager().queryOffset(groupId, topicId, 0)).thenReturn(-1L);
@@ -393,6 +405,8 @@ public class PopConsumerServiceTest {
     @Test
     public void reviveBackoffRetryTest() {
         Mockito.when(brokerController.getEscapeBridge()).thenReturn(Mockito.mock(EscapeBridge.class));
+        Mockito.when(brokerController.getSubscriptionGroupManager()
+            .containsSubscriptionGroup(anyString())).thenReturn(true);
         PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
 
         consumerService.getPopConsumerStore().start();

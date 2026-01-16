@@ -59,6 +59,7 @@ import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.rocketmq.proxy.service.route.TopicRouteService.buildPenalizerByMQFaultStrategy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
@@ -379,7 +380,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         MQFaultStrategy mqFaultStrategy = mock(MQFaultStrategy.class);
         when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
         when(mqFaultStrategy.isSendLatencyFaultEnable()).thenReturn(false);
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService.getMqFaultStrategy());
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, null);
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
         AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
@@ -415,10 +416,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         mqFaultStrategy.updateFaultItem(BROKER_NAME2, 1000, true, true);
         mqFaultStrategy.updateFaultItem(BROKER_NAME, 1000, true, false);
 
-        TopicRouteService topicRouteService = mock(TopicRouteService.class);
-        when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService.getMqFaultStrategy());
-
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, buildPenalizerByMQFaultStrategy(mqFaultStrategy));
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
         assertEquals(firstSelect.getBrokerName(), BROKER_NAME2);

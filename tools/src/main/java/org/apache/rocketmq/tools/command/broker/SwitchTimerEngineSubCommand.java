@@ -18,11 +18,11 @@ package org.apache.rocketmq.tools.command.broker;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
@@ -44,13 +44,15 @@ public class SwitchTimerEngineSubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
+        OptionGroup optionGroup = new OptionGroup();
         Option opt = new Option("b", "brokerAddr", true, "update which broker");
-        opt.setRequired(false);
-        options.addOption(opt);
+        optionGroup.addOption(opt);
 
         opt = new Option("c", "clusterName", true, "update which cluster");
-        opt.setRequired(false);
-        options.addOption(opt);
+        optionGroup.addOption(opt);
+
+        optionGroup.setRequired(true);
+        options.addOptionGroup(optionGroup);
 
         opt = new Option("e", "engineType", true, "R/F, R for rocksdb timeline engine, F for file time wheel engine");
         opt.setRequired(true);
@@ -69,11 +71,12 @@ public class SwitchTimerEngineSubCommand implements SubCommand {
                 System.out.print("switchTimerEngine engineType must be R or F\n");
                 return;
             }
+            String engineName = MessageConst.TIMER_ENGINE_ROCKSDB_TIMELINE.equals(engineType) ? ROCKSDB_TIMELINE : FILE_TIME_WHEEL;
             if (commandLine.hasOption('b')) {
                 String brokerAddr = commandLine.getOptionValue('b').trim();
                 defaultMQAdminExt.start();
                 defaultMQAdminExt.switchTimerEngine(brokerAddr, engineType);
-                System.out.printf("switchTimerEngine to %s success, %s\n", engineType, brokerAddr);
+                System.out.printf("switchTimerEngine to %s success, %s\n", engineName, brokerAddr);
                 return;
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
@@ -82,7 +85,6 @@ public class SwitchTimerEngineSubCommand implements SubCommand {
                 for (String brokerAddr : masterSet) {
                     try {
                         defaultMQAdminExt.switchTimerEngine(brokerAddr, engineType);
-                        String engineName = MessageConst.TIMER_ENGINE_ROCKSDB_TIMELINE.equals(engineType) ? ROCKSDB_TIMELINE : FILE_TIME_WHEEL;
                         System.out.printf("switchTimerEngine to %s success, %s\n", engineName, brokerAddr);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -90,7 +92,6 @@ public class SwitchTimerEngineSubCommand implements SubCommand {
                 }
                 return;
             }
-            ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {

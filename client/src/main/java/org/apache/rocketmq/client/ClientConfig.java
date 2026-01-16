@@ -101,6 +101,10 @@ public class ClientConfig {
 
     private boolean enableHeartbeatChannelEventListener = true;
 
+    private boolean enableConcurrentHeartbeat = false;
+
+    private int concurrentHeartbeatThreadPoolSize = Runtime.getRuntime().availableProcessors();
+
     /**
      * The switch for message trace
      */
@@ -240,6 +244,8 @@ public class ClientConfig {
         this.namespaceV2 = cc.namespaceV2;
         this.enableTrace = cc.enableTrace;
         this.traceTopic = cc.traceTopic;
+        this.enableConcurrentHeartbeat = cc.enableConcurrentHeartbeat;
+        this.concurrentHeartbeatThreadPoolSize = cc.concurrentHeartbeatThreadPoolSize;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -272,6 +278,8 @@ public class ClientConfig {
         cc.namespaceV2 = namespaceV2;
         cc.enableTrace = enableTrace;
         cc.traceTopic = traceTopic;
+        cc.enableConcurrentHeartbeat = enableConcurrentHeartbeat;
+        cc.concurrentHeartbeatThreadPoolSize = concurrentHeartbeatThreadPoolSize;
         return cc;
     }
 
@@ -525,6 +533,22 @@ public class ClientConfig {
         this.maxPageSizeInGetMetadata = maxPageSizeInGetMetadata;
     }
 
+    public boolean isEnableConcurrentHeartbeat() {
+        return this.enableConcurrentHeartbeat;
+    }
+
+    public void setEnableConcurrentHeartbeat(boolean enableConcurrentHeartbeat) {
+        this.enableConcurrentHeartbeat = enableConcurrentHeartbeat;
+    }
+
+    public int getConcurrentHeartbeatThreadPoolSize() {
+        return concurrentHeartbeatThreadPoolSize;
+    }
+
+    public void setConcurrentHeartbeatThreadPoolSize(int concurrentHeartbeatThreadPoolSize) {
+        this.concurrentHeartbeatThreadPoolSize = concurrentHeartbeatThreadPoolSize;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig{" +
@@ -558,6 +582,8 @@ public class ClientConfig {
             ", enableHeartbeatChannelEventListener=" + enableHeartbeatChannelEventListener +
             ", enableTrace=" + enableTrace +
             ", traceTopic='" + traceTopic + '\'' +
+            ", enableConcurrentHeartbeat=" + enableConcurrentHeartbeat +
+            ", concurrentHeartbeatThreadPoolSize=" + concurrentHeartbeatThreadPoolSize +
             '}';
     }
 }
