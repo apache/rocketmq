@@ -31,6 +31,7 @@ import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.Subscription;
 import apache.rocketmq.v2.SubscriptionEntry;
 import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.SyncLiteSubscriptionRequest;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
 import io.netty.channel.ChannelHandlerContext;
@@ -123,6 +124,13 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                 throw new AuthorizationException("messageQueue is null.");
             }
             result = newSubContexts(metadata, request.getGroup(), request.getMessageQueue().getTopic());
+        }
+        if (message instanceof SyncLiteSubscriptionRequest) {
+            SyncLiteSubscriptionRequest request = (SyncLiteSubscriptionRequest) message;
+            if (request.getLiteTopicSetCount() <= 0) {
+                return null;
+            }
+            result = newSubContexts(metadata, request.getGroup(), request.getTopic());
         }
         if (message instanceof AckMessageRequest) {
             AckMessageRequest request = (AckMessageRequest) message;

@@ -48,6 +48,8 @@ public class ChangeInvisibleTimeRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private Long invisibleTime;
 
+    private String liteTopic;
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -103,6 +105,14 @@ public class ChangeInvisibleTimeRequestHeader extends TopicQueueRequestHeader {
         this.queueId = queueId;
     }
 
+    public String getLiteTopic() {
+        return liteTopic;
+    }
+
+    public void setLiteTopic(String liteTopic) {
+        this.liteTopic = liteTopic;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -112,6 +122,8 @@ public class ChangeInvisibleTimeRequestHeader extends TopicQueueRequestHeader {
             .add("extraInfo", extraInfo)
             .add("offset", offset)
             .add("invisibleTime", invisibleTime)
+            .add("liteTopic", liteTopic)
+            .omitNullValues()
             .toString();
     }
 }

@@ -214,6 +214,12 @@ public class GrpcConverter {
             systemPropertiesBuilder.setMessageGroup(shardingKey);
         }
 
+        // lite topic
+        String liteTopic = messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC);
+        if (liteTopic != null) {
+            systemPropertiesBuilder.setLiteTopic(liteTopic);
+        }
+
         // receipt_handle && invisible_period
         String handle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
         if (handle != null) {
