@@ -792,8 +792,14 @@ public class CommitLog implements Swappable {
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
                 int size = dispatchRequest.getMsgSize();
-
-                if (dispatchRequest.isSuccess()) {
+                if (dispatchRequest.getCommitLogOffset() < mappedFile.getFileFromOffset()
+                    || dispatchRequest.getCommitLogOffset() > mappedFile.getFileFromOffset() + mappedFile.getFileSize()) {
+                    log.warn("found illegal commitlog offset {} in {}, current pos={}, it will be truncated.", 
+                        dispatchRequest.getCommitLogOffset(), mappedFile.getFileName(), processOffset + mappedFileOffset);
+                    log.info("recover physics file end, {} pos={}", mappedFile.getFileName(), byteBuffer.position());
+                    
+                    break;
+                } else if (dispatchRequest.isSuccess()) {
                     // Normal data
                     if (size > 0) {
                         lastValidMsgPhyOffset = processOffset + mappedFileOffset;
