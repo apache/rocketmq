@@ -734,7 +734,7 @@ public class CommitLog implements Swappable {
     /**
      * @throws RocksDBException only in rocksdb mode
      */
-    public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
+    public void recoverAbnormally(long dispatchFromPhyOffset) throws RocksDBException {
         // recover by the minimum time stamp
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
@@ -770,16 +770,16 @@ public class CommitLog implements Swappable {
 
             if (defaultMessageStore.getMessageStoreConfig().isEnableRocksDBStore()
                 && defaultMessageStore.getMessageStoreConfig().isEnableAcceleratedRecovery()) {
-                mappedFileOffset = maxPhyOffsetOfConsumeQueue - mappedFile.getFileFromOffset();
+                mappedFileOffset = dispatchFromPhyOffset - mappedFile.getFileFromOffset();
                 // Protective measures, falling back to non-accelerated mode, which is extremely unlikely to occur
                 if (mappedFileOffset < 0) {
                     mappedFileOffset = 0;
                     lastValidMsgPhyOffset = processOffset;
                     lastConfirmValidMsgPhyOffset = processOffset;
                 } else {
-                    log.info("recover using acceleration, recovery offset is {}", maxPhyOffsetOfConsumeQueue);
-                    lastValidMsgPhyOffset = maxPhyOffsetOfConsumeQueue;
-                    lastConfirmValidMsgPhyOffset = maxPhyOffsetOfConsumeQueue;
+                    log.info("recover using acceleration, recovery offset is {}", dispatchFromPhyOffset);
+                    lastValidMsgPhyOffset = dispatchFromPhyOffset;
+                    lastConfirmValidMsgPhyOffset = dispatchFromPhyOffset;
                     byteBuffer.position((int) mappedFileOffset);
                 }
             } else {

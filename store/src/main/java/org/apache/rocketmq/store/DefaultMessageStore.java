@@ -120,7 +120,10 @@ import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
 import org.apache.rocketmq.store.transaction.TransMessageRocksDBStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 import org.apache.rocketmq.store.metrics.StoreMetricsManager;
+import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+
+import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TRANS_COLUMN_FAMILY;
 
 public class DefaultMessageStore implements MessageStore {
     protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -378,6 +381,21 @@ public class DefaultMessageStore implements MessageStore {
 
         // recover commitlog
         long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset();
+
+        if (messageStoreConfig.isIndexRocksDBEnable()) {
+            Long dispatchFromIndexPhyOffset = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+            if (dispatchFromIndexPhyOffset != null && dispatchFromIndexPhyOffset > 0) {
+                dispatchFromPhyOffset = Math.min(dispatchFromPhyOffset, dispatchFromIndexPhyOffset);
+            }
+        }
+
+        if (messageStoreConfig.isTransRocksDBEnable()) {
+            Long dispatchFromTransPhyOffset = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
+            if (dispatchFromTransPhyOffset != null && dispatchFromTransPhyOffset > 0) {
+                dispatchFromPhyOffset = Math.min(dispatchFromPhyOffset, dispatchFromTransPhyOffset);
+            }
+        }
+
         if (lastExitOK) {
             this.commitLog.recoverNormally(dispatchFromPhyOffset);
         } else {
@@ -1400,7 +1418,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end, String indexType, String lastKey) {
+    public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end, String indexType,
+        String lastKey) {
         QueryMessageResult queryMessageResult = new QueryMessageResult();
         long lastQueryMsgTime = end;
         for (int i = 0; i < 3; i++) {
@@ -1510,10 +1529,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-     * Lazy clean queue offset table.
-     * If offset table is cleaned, and old messages are dispatching after the old consume queue is cleaned,
-     * consume queue will be created with old offset, then later message with new offset table can not be
-     * dispatched to consume queue.
+     * Lazy clean queue offset table. If offset table is cleaned, and old messages are dispatching after the old consume
+     * queue is cleaned, consume queue will be created with old offset, then later message with new offset table can not
+     * be dispatched to consume queue.
      */
     @Override
     public int deleteTopics(final Set<String> deleteTopics) {
@@ -1675,6 +1693,7 @@ public class DefaultMessageStore implements MessageStore {
     public long dispatchBehindBytes() {
         return this.reputMessageService.behind();
     }
+
     @Override
     public long dispatchBehindMilliseconds() {
         return this.reputMessageService.behindMs();
@@ -1816,8 +1835,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-     * The ratio val is estimated by the experiment and experience
-     * so that the result is not high accurate for different business
+     * The ratio val is estimated by the experiment and experience so that the result is not high accurate for different
+     * business
      *
      * @return
      */
