@@ -1024,17 +1024,6 @@ public class DefaultMessageStoreTest {
             mock(org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.class);
         field.set(store, mockStorage);
 
-        // Mock offset return values
-        if (indexEnable && indexOffset != null) {
-            when(mockStorage.getLastOffsetPy(org.rocksdb.RocksDB.DEFAULT_COLUMN_FAMILY))
-                .thenReturn(indexOffset);
-        }
-        if (transEnable && transOffset != null) {
-            when(mockStorage.getLastOffsetPy(
-                org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TRANS_COLUMN_FAMILY))
-                .thenReturn(transOffset);
-        }
-
         // Spy commitLog to verify invocation and capture the dispatchFromPhyOffset value
         java.lang.reflect.Field commitLogField = DefaultMessageStore.class.getDeclaredField("commitLog");
         commitLogField.setAccessible(true);
