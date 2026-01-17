@@ -101,6 +101,7 @@ import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.index.rocksdb.IndexRocksDBStore;
+import org.apache.rocketmq.store.index.rocksdb.IndexRocksDBStoreAdapter;
 import org.apache.rocketmq.store.kv.CommitLogDispatcherCompaction;
 import org.apache.rocketmq.store.kv.CompactionService;
 import org.apache.rocketmq.store.kv.CompactionStore;
@@ -118,12 +119,10 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
 import org.apache.rocketmq.store.transaction.TransMessageRocksDBStore;
+import org.apache.rocketmq.store.transaction.TransMessageRocksDBStoreAdapter;
 import org.apache.rocketmq.store.util.PerfCounter;
 import org.apache.rocketmq.store.metrics.StoreMetricsManager;
-import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-
-import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TRANS_COLUMN_FAMILY;
 
 public class DefaultMessageStore implements MessageStore {
     protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -177,6 +176,11 @@ public class DefaultMessageStore implements MessageStore {
     private TransMessageRocksDBStore transMessageRocksDBStore;
 
     private final LinkedList<CommitLogDispatcher> dispatcherList = new LinkedList<>();
+
+    /**
+     * List of stores that require commitlog dispatch and recovery. Each store registers itself when loading.
+     */
+    private final List<CommitLogDispatchStore> commitLogDispatchStores = new ArrayList<>();
 
     private final RandomAccessFile lockFile;
 
@@ -336,6 +340,8 @@ public class DefaultMessageStore implements MessageStore {
             // load Consume Queue
             result = result && this.consumeQueueStore.load();
             stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_CONSUME_QUEUE_OK, result);
+            // Register consume queue store for commitlog dispatch
+            registerCommitLogDispatchStore(new ConsumeQueueDispatchStoreAdapter(this.consumeQueueStore));
 
             if (messageStoreConfig.isEnableCompaction()) {
                 result = result && this.compactionService.load(lastExitOK);
@@ -346,6 +352,13 @@ public class DefaultMessageStore implements MessageStore {
                 loadCheckPoint();
                 result = this.indexService.load(lastExitOK);
                 stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_INDEX_OK, result);
+                // Register IndexRocksDBStore and TransMessageRocksDBStore for commitlog dispatch
+                if (messageStoreConfig.isIndexRocksDBEnable()) {
+                    registerCommitLogDispatchStore(new IndexRocksDBStoreAdapter(messageStoreConfig, messageRocksDBStorage));
+                }
+                if (messageStoreConfig.isTransRocksDBEnable() && transMessageRocksDBStore != null) {
+                    registerCommitLogDispatchStore(new TransMessageRocksDBStoreAdapter(messageStoreConfig, messageRocksDBStorage));
+                }
                 this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
@@ -380,19 +393,12 @@ public class DefaultMessageStore implements MessageStore {
         this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_CONSUME_QUEUE_OK);
 
         // recover commitlog
+        // Calculate the minimum dispatch offset from all registered stores
         long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset();
-
-        if (messageStoreConfig.isIndexRocksDBEnable()) {
-            Long dispatchFromIndexPhyOffset = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
-            if (dispatchFromIndexPhyOffset != null && dispatchFromIndexPhyOffset > 0) {
-                dispatchFromPhyOffset = Math.min(dispatchFromPhyOffset, dispatchFromIndexPhyOffset);
-            }
-        }
-
-        if (messageStoreConfig.isTransRocksDBEnable()) {
-            Long dispatchFromTransPhyOffset = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
-            if (dispatchFromTransPhyOffset != null && dispatchFromTransPhyOffset > 0) {
-                dispatchFromPhyOffset = Math.min(dispatchFromPhyOffset, dispatchFromTransPhyOffset);
+        for (CommitLogDispatchStore store : commitLogDispatchStores) {
+            Long storeOffset = store.getDispatchFromPhyOffset();
+            if (storeOffset != null && storeOffset > 0) {
+                dispatchFromPhyOffset = Math.min(dispatchFromPhyOffset, storeOffset);
             }
         }
 
@@ -1120,6 +1126,22 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public void setTransMessageRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
         this.transMessageRocksDBStore = transMessageRocksDBStore;
+        // Register TransMessageRocksDBStore for commitlog dispatch if enabled
+        if (transMessageRocksDBStore != null && messageStoreConfig.isTransRocksDBEnable()) {
+            registerCommitLogDispatchStore(new TransMessageRocksDBStoreAdapter(messageStoreConfig, messageRocksDBStorage));
+        }
+    }
+
+    /**
+     * Register a store that requires commitlog dispatch and recovery. Each store should register itself when loading.
+     *
+     * @param store the store to register
+     */
+    public void registerCommitLogDispatchStore(CommitLogDispatchStore store) {
+        if (store != null) {
+            commitLogDispatchStores.add(store);
+            LOGGER.info("Registered CommitLogDispatchStore: {}", store.getClass().getSimpleName());
+        }
     }
 
     @Override
