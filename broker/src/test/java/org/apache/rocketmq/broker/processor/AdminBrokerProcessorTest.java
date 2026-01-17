@@ -41,6 +41,7 @@ import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.lite.LiteLifecycleManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
@@ -57,6 +58,7 @@ import org.apache.rocketmq.common.attribute.AttributeParser;
 import org.apache.rocketmq.common.constant.FIleReadaheadMode;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -114,6 +116,7 @@ import org.apache.rocketmq.remoting.protocol.header.ResetMasterFlushOffsetHeader
 import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
@@ -712,11 +715,53 @@ public class AdminBrokerProcessorTest {
         searchOffsetRequestHeader.setQueueId(0);
         searchOffsetRequestHeader.setTimestamp(System.currentTimeMillis());
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, searchOffsetRequestHeader);
-        request.addExtField("topic", "topic");
-        request.addExtField("queueId", "0");
-        request.addExtField("timestamp", System.currentTimeMillis() + "");
+        request.makeCustomHeaderToNet();
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testSearchOffsetByTimestampWithLiteTopic() throws Exception {
+        // Prepare test data
+        String topic = "testTopic";
+        String liteTopic = "liteTestTopic";
+        long timestamp = System.currentTimeMillis();
+        long mockOffset = 100L;
+        long mockMaxOffset = 500L;
+
+        MessageStore messageStore = mock(MessageStore.class);
+        LiteLifecycleManager liteLifecycleManager = mock(LiteLifecycleManager.class);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+        when(brokerController.getLiteLifecycleManager()).thenReturn(liteLifecycleManager);
+
+        when(liteLifecycleManager.getMaxOffsetInQueue(anyString())).thenReturn(mockMaxOffset);
+        when(messageStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), any(BoundaryType.class)))
+            .thenReturn(mockOffset);
+
+        SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(0);
+        requestHeader.setTimestamp(timestamp);
+        requestHeader.setLiteTopic(liteTopic);
+        requestHeader.setBoundaryType(BoundaryType.LOWER);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
+        request.makeCustomHeaderToNet();
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(response.readCustomHeader()).isInstanceOf(SearchOffsetResponseHeader.class);
+
+        SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.readCustomHeader();
+        assertThat(responseHeader.getOffset()).isEqualTo(mockOffset);
+
+        // Verify that the LMQ conversion logic is correctly invoked
+        // When maxOffset > 0, the offset query operation should be executed
+        String expectedLmqTopic = LiteUtil.toLmqName(topic, liteTopic);
+        verify(liteLifecycleManager).getMaxOffsetInQueue(expectedLmqTopic);
+        verify(messageStore).getOffsetInQueueByTime(eq(expectedLmqTopic), eq(0), anyLong(), any(BoundaryType.class));
+        // Verify that queueId is correctly set to 0 (LMQ characteristic)
+        verify(messageStore).getOffsetInQueueByTime(anyString(), eq(0), anyLong(), any(BoundaryType.class));
     }
 
     @Test

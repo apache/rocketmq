@@ -108,11 +108,11 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             .thenReturn(mock(MessageQueueView.class));
 
         ArgumentCaptor<String> ackMessageIdArgumentCaptor = ArgumentCaptor.forClass(String.class);
-        when(this.messagingProcessor.ackMessage(any(), any(), ackMessageIdArgumentCaptor.capture(), anyString(), anyString(), anyLong()))
+        when(this.messagingProcessor.ackMessage(any(), any(), ackMessageIdArgumentCaptor.capture(), anyString(), anyString(), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(mock(AckResult.class)));
 
         ArgumentCaptor<String> toDLQMessageIdArgumentCaptor = ArgumentCaptor.forClass(String.class);
-        when(this.messagingProcessor.forwardMessageToDeadLetterQueue(any(), any(), toDLQMessageIdArgumentCaptor.capture(), anyString(), anyString(), anyLong()))
+        when(this.messagingProcessor.forwardMessageToDeadLetterQueue(any(), any(), toDLQMessageIdArgumentCaptor.capture(), anyString(), anyString(), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(mock(RemotingCommand.class)));
 
         AddressableMessageQueue messageQueue = mock(AddressableMessageQueue.class);
@@ -167,7 +167,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             .thenReturn(CompletableFuture.completedFuture(innerAckResult));
 
         AckResult ackResult = this.consumerProcessor.ackMessage(createContext(), handle, MessageClientIDSetter.createUniqID(),
-            CONSUMER_GROUP, TOPIC, 3000).get();
+            CONSUMER_GROUP, TOPIC, null, 3000).get();
 
         assertEquals(AckStatus.OK, ackResult.getStatus());
         assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP, new BrokerConfig().isEnableRetryTopicV2()), requestHeaderArgumentCaptor.getValue().getTopic());
@@ -290,7 +290,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             .thenReturn(CompletableFuture.completedFuture(innerAckResult));
 
         AckResult ackResult = this.consumerProcessor.changeInvisibleTime(createContext(), handle, MessageClientIDSetter.createUniqID(),
-            CONSUMER_GROUP, TOPIC, 1000, 3000).get();
+            CONSUMER_GROUP, TOPIC, 1000, null, 3000).get();
 
         assertEquals(AckStatus.OK, ackResult.getStatus());
         assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP, new BrokerConfig().isEnableRetryTopicV2()), requestHeaderArgumentCaptor.getValue().getTopic());

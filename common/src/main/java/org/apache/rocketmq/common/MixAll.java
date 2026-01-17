@@ -574,6 +574,7 @@ public class MixAll {
 
     public static boolean topicAllowsLMQ(String topic) {
         return !topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+            && !topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)
             && !topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)
             && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
     }

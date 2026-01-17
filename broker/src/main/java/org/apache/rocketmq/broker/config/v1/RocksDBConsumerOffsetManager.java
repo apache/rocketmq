@@ -18,10 +18,16 @@ package org.apache.rocketmq.broker.config.v1;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.DataConverter;
@@ -30,11 +36,6 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.rocksdb.CompressionType;
 import org.rocksdb.WriteBatch;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentMap;
 
 public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
@@ -123,7 +124,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
     }
 
     @Override
-    protected void removeConsumerOffset(String topicAtGroup) {
+    public void removeConsumerOffset(String topicAtGroup) {
         try {
             byte[] keyBytes = topicAtGroup.getBytes(DataConverter.CHARSET_UTF8);
             this.rocksDBConfigManager.delete(keyBytes);
@@ -159,6 +160,11 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
     @Override
     public synchronized void persist() {
         if (rocksDBConfigManager.isLoaded()) {
+            if (brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
+                updateDataVersion();
+                this.rocksDBConfigManager.flushWAL();
+                return;
+            }
             try (WriteBatch writeBatch = new WriteBatch()) {
                 for (Entry<String, ConcurrentMap<Integer, Long>> entry : this.offsetTable.entrySet()) {
                     putWriteBatch(writeBatch, entry.getKey(), entry.getValue());
@@ -173,6 +179,35 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             }
         } else {
             log.warn("RocksDBConsumerOffsetManager has been stopped, persist fail");
+        }
+    }
+
+    @Override
+    public void commitOffset(String clientHost, String group, String topic, int queueId, long offset) {
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
+        if (null == map) {
+            map = MixAll.isLmq(topic) ? new ConcurrentHashMap<>(1, 1.0F) : new ConcurrentHashMap<>();
+            map.put(queueId, offset);
+            this.offsetTable.put(key, map);
+        } else {
+            Long storeOffset = map.put(queueId, offset);
+            if (storeOffset != null && offset < storeOffset) {
+                LOG.warn("[NOTIFYME]update consumer offset less than store. clientHost={}, key={}, queueId={}, requestOffset={}, storeOffset={}", clientHost, key, queueId, offset, storeOffset);
+            }
+        }
+        if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
+            updateDataVersion();
+        }
+        if (!brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
+            return;
+        }
+
+        try (WriteBatch writeBatch = new WriteBatch()) {
+            putWriteBatch(writeBatch, key, map);
+            this.rocksDBConfigManager.batchPutWithWal(writeBatch);
+        } catch (Exception e) {
+            log.error("consumer offset persist Failed", e);
         }
     }
 

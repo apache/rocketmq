@@ -38,6 +38,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 public class HookUtils {
@@ -146,6 +147,30 @@ public class HookUtils {
             // Delay Delivery
             if (msg.getDelayTimeLevel() > 0) {
                 transformDelayLevelMessage(brokerController, msg);
+            }
+        }
+        return null;
+    }
+
+    public static PutMessageResult handleLmqQuota(BrokerController brokerController, final MessageExtBrokerInner msg) {
+        if (!brokerController.getMessageStoreConfig().isEnableLmqQuota()
+            || !brokerController.getMessageStoreConfig().isEnableLmq()
+            || !brokerController.getMessageStoreConfig().isEnableMultiDispatch()
+            || !msg.needDispatchLMQ()) {
+            return null;
+        }
+
+        ConsumeQueueStoreInterface cqStore = brokerController.getMessageStore().getQueueStore();
+        String[] queueNames =
+            msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH).split(MixAll.LMQ_DISPATCH_SEPARATOR);
+        for (String queueName : queueNames) {
+            if (!MixAll.isLmq(queueName)) {
+                continue;
+            }
+            if (cqStore.getLmqNum() >= brokerController.getMessageStoreConfig().getMaxLmqConsumeQueueNum()) {
+                if (!cqStore.isLmqExist(queueName)) {
+                    return new PutMessageResult(PutMessageStatus.LMQ_CONSUME_QUEUE_NUM_EXCEEDED, null);
+                }
             }
         }
         return null;

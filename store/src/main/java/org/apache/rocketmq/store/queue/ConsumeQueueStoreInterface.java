@@ -205,4 +205,17 @@ public interface ConsumeQueueStoreInterface {
      */
     long getTotalSize();
 
+    /**
+     * get lmq consume queue count
+     * @return the count of lmq
+     */
+    int getLmqNum();
+
+    /**
+     * Check if the LMQ exists, this is different from getConsumeQueue()
+     * @param lmqTopic
+     * @return exist or not
+     */
+    boolean isLmqExist(String lmqTopic);
+
 }

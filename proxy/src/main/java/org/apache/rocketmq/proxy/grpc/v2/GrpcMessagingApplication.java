@@ -42,6 +42,8 @@ import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.Status;
+import apache.rocketmq.v2.SyncLiteSubscriptionRequest;
+import apache.rocketmq.v2.SyncLiteSubscriptionResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Context;
@@ -390,6 +392,26 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
                 context,
                 request,
                 () -> grpcMessagingActivity.recallMessage(context, request)
+                    .whenComplete((response, throwable) ->
+                        writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
+    }
+
+    @Override
+    public void syncLiteSubscription(SyncLiteSubscriptionRequest request,
+        StreamObserver<SyncLiteSubscriptionResponse> responseObserver) {
+        Function<Status, SyncLiteSubscriptionResponse> statusResponseCreator =
+            status -> SyncLiteSubscriptionResponse.newBuilder().setStatus(status).build();
+        ProxyContext context = createContext();
+        try {
+            this.addExecutor(this.clientManagerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessagingActivity.syncLiteSubscription(context, request)
                     .whenComplete((response, throwable) ->
                         writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
                 responseObserver,

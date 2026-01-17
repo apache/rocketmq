@@ -40,6 +40,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -141,6 +142,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         this.appendStartAndShutdown(this.receiptHandleProcessor);
         this.appendShutdown(this.producerProcessorExecutor::shutdown);
         this.appendShutdown(this.consumerProcessorExecutor::shutdown);
+        this.appendStartAndShutdown(this.receiptHandleProcessor);
     }
 
     @Override
@@ -163,7 +165,15 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public CompletableFuture<RemotingCommand> forwardMessageToDeadLetterQueue(ProxyContext ctx, ReceiptHandle handle,
         String messageId, String groupName, String topicName, long timeoutMillis) {
-        return this.producerProcessor.forwardMessageToDeadLetterQueue(ctx, handle, messageId, groupName, topicName, timeoutMillis);
+        return this.producerProcessor.forwardMessageToDeadLetterQueue(ctx,
+            handle, messageId, groupName, topicName, null, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<RemotingCommand> forwardMessageToDeadLetterQueue(ProxyContext ctx, ReceiptHandle handle,
+        String messageId, String groupName, String topicName, String liteTopic, long timeoutMillis) {
+        return this.producerProcessor.forwardMessageToDeadLetterQueue(ctx,
+            handle, messageId, groupName, topicName, liteTopic, timeoutMillis);
     }
 
     @Override
@@ -195,9 +205,25 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public CompletableFuture<PopResult> popLiteMessage(ProxyContext ctx, QueueSelector queueSelector,
+        String consumerGroup, String topic, int maxMsgNums, long invisibleTime, long pollTime,
+        SubscriptionData subscriptionData, PopMessageResultFilter popMessageResultFilter,
+        String attemptId, long timeoutMillis) {
+        return this.consumerProcessor.popLiteMessage(ctx, queueSelector,
+            consumerGroup, topic, maxMsgNums, invisibleTime, pollTime,
+            subscriptionData, popMessageResultFilter, attemptId, timeoutMillis);
+    }
+
+    @Override
     public CompletableFuture<AckResult> ackMessage(ProxyContext ctx, ReceiptHandle handle, String messageId,
         String consumerGroup, String topic, long timeoutMillis) {
-        return this.consumerProcessor.ackMessage(ctx, handle, messageId, consumerGroup, topic, timeoutMillis);
+        return this.consumerProcessor.ackMessage(ctx, handle, messageId, consumerGroup, topic, null, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<AckResult> ackMessage(ProxyContext ctx, ReceiptHandle handle, String messageId,
+        String consumerGroup, String topic, String liteTopic, long timeoutMillis) {
+        return this.consumerProcessor.ackMessage(ctx, handle, messageId, consumerGroup, topic, liteTopic, timeoutMillis);
     }
 
     @Override
@@ -209,7 +235,15 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle, String messageId,
         String groupName, String topicName, long invisibleTime, long timeoutMillis) {
-        return this.consumerProcessor.changeInvisibleTime(ctx, handle, messageId, groupName, topicName, invisibleTime, timeoutMillis);
+        return this.consumerProcessor.changeInvisibleTime(ctx, handle, messageId, groupName, topicName,
+            invisibleTime, null, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle, String messageId,
+        String groupName, String topicName, long invisibleTime, String liteTopic, long timeoutMillis) {
+        return this.consumerProcessor.changeInvisibleTime(ctx, handle, messageId, groupName, topicName,
+            invisibleTime, liteTopic, timeoutMillis);
     }
 
     @Override
@@ -265,6 +299,12 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     public CompletableFuture<String> recallMessage(ProxyContext ctx, String topic,
                                                    String recallHandle, long timeoutMillis) {
         return this.producerProcessor.recallMessage(ctx, topic, recallHandle, timeoutMillis);
+    }
+
+    @Override
+    public CompletableFuture<Void> syncLiteSubscription(ProxyContext ctx,
+        LiteSubscriptionDTO liteSubscriptionDTO, long timeoutMillis) {
+        return this.clientProcessor.syncLiteSubscription(ctx, liteSubscriptionDTO, timeoutMillis);
     }
 
     @Override
@@ -366,5 +406,9 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     public MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
         String receiptHandle) {
         return receiptHandleProcessor.removeReceiptHandle(ctx, channel, group, msgID, receiptHandle);
+    }
+
+    @Override public int getUnackedMessageCount(ProxyContext ctx, Channel channel, String group) {
+        return receiptHandleProcessor.getUnackedMessageCount(ctx, channel, group);
     }
 }

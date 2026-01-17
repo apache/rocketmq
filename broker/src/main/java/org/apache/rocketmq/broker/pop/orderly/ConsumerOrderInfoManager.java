@@ -69,6 +69,20 @@ public interface ConsumerOrderInfoManager {
     boolean checkBlock(String attemptId, String topic, String group, int queueId, long invisibleTime);
 
     /**
+     * Remove the specified topic and group
+     * Usually called during topic deletion
+     *
+     * @param topic Topic name
+     * @param group Consumer group name
+     */
+    void remove(String topic, String group);
+
+    /**
+     * Get order info count
+     */
+    int getOrderInfoCount();
+
+    /**
      * Commit message and calculate next consumption offset
      * Called when consumer ACKs messages
      *
@@ -137,6 +151,7 @@ public interface ConsumerOrderInfoManager {
      * Get available message result
      * Used to retrieve messages from cache
      */
-    CompletableFuture<GetMessageResult> getAvailableMessageResult(String attemptId, long popTime, long invisibleTime, String groupId,
+    CompletableFuture<GetMessageResult> getAvailableMessageResult(String attemptId, long popTime, long invisibleTime,
+        String groupId,
         String topicId, int queueId, int batchSize, StringBuilder orderCountInfoBuilder);
 }
