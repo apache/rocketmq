@@ -39,6 +39,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
@@ -85,6 +86,8 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
     private static final String B = "b";
     private static final String CONSUMER_GROUP = "consumerGroup";
     private final AuthConfig authConfig;
+    private static final EnumSet<ClientType> CONSUMER_CLIENT_TYPES =
+            EnumSet.of(ClientType.PUSH_CONSUMER, ClientType.SIMPLE_CONSUMER, ClientType.PULL_CONSUMER);
 
     private final RequestHeaderRegistry requestHeaderRegistry;
 
@@ -438,8 +441,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
     }
 
     private boolean isConsumerClientType(ClientType clientType) {
-        return Arrays.asList(ClientType.PUSH_CONSUMER, ClientType.SIMPLE_CONSUMER, ClientType.PULL_CONSUMER)
-            .contains(clientType);
+        return CONSUMER_CLIENT_TYPES.contains(clientType);
     }
 
     private static List<DefaultAuthorizationContext> newPubContext(Metadata metadata, apache.rocketmq.v2.Resource topic) {
