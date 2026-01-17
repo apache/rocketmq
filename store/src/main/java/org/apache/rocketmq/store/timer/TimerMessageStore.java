@@ -1699,9 +1699,6 @@ public class TimerMessageStore {
         public void run() {
             setState(AbstractStateService.START);
             TimerMessageStore.LOGGER.info(this.getServiceName() + " service start");
-            //Mark different rounds
-            boolean isRound = true;
-            Map<String, MessageExt> avoidDeleteLose = new HashMap<>();
             while (!this.isStopped()) {
                 try {
                     setState(AbstractStateService.WAITING);
