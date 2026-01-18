@@ -456,8 +456,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     @Override
     public void shutdown() throws Exception {
         this.grpcMessagingActivity.shutdown();
-
-        this.routeThreadPoolExecutor.shutdown();
         this.routeThreadPoolExecutor.shutdown();
         this.producerThreadPoolExecutor.shutdown();
         this.consumerThreadPoolExecutor.shutdown();
