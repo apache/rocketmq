@@ -792,14 +792,15 @@ public class CommitLog implements Swappable {
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
                 int size = dispatchRequest.getMsgSize();
-                if (dispatchRequest.getCommitLogOffset() < mappedFile.getFileFromOffset()
-                    || dispatchRequest.getCommitLogOffset() > mappedFile.getFileFromOffset() + mappedFile.getFileSize()) {
-                    log.warn("found illegal commitlog offset {} in {}, current pos={}, it will be truncated.", 
-                        dispatchRequest.getCommitLogOffset(), mappedFile.getFileName(), processOffset + mappedFileOffset);
-                    log.info("recover physics file end, {} pos={}", mappedFile.getFileName(), byteBuffer.position());
-                    
-                    break;
-                } else if (dispatchRequest.isSuccess()) {
+                if (dispatchRequest.isSuccess()) {
+                    if (dispatchRequest.getCommitLogOffset() < mappedFile.getFileFromOffset()
+                        || dispatchRequest.getCommitLogOffset() > mappedFile.getFileFromOffset() + mappedFile.getFileSize()) {
+                        log.warn("found illegal commitlog offset {} in {}, current pos={}, it will be truncated.",
+                            dispatchRequest.getCommitLogOffset(), mappedFile.getFileName(), processOffset + mappedFileOffset);
+                        log.info("recover physics file end, {} pos={}", mappedFile.getFileName(), byteBuffer.position());
+
+                        break;
+                    }
                     // Normal data
                     if (size > 0) {
                         lastValidMsgPhyOffset = processOffset + mappedFileOffset;
@@ -931,7 +932,8 @@ public class CommitLog implements Swappable {
         return isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
     }
 
-    private boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp, boolean recoverNormally) throws RocksDBException {
+    private boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
+        boolean recoverNormally) throws RocksDBException {
         boolean result = this.defaultMessageStore.getQueueStore().isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
         if (null != this.defaultMessageStore.getTransMessageRocksDBStore() && defaultMessageStore.getMessageStoreConfig().isTransRocksDBEnable() && !defaultMessageStore.getMessageStoreConfig().isTransWriteOriginTransHalfEnable()) {
             result = result && this.defaultMessageStore.getTransMessageRocksDBStore().isMappedFileMatchedRecover(phyOffset);
@@ -2392,7 +2394,7 @@ public class CommitLog implements Swappable {
                     long costTime = this.systemClock.now() - beginClockTimestamp;
                     log.info("[{}] scanFilesInPageCache-cost {} ms.", costTime > 30 * 1000 ? "NOTIFYME" : "OK", costTime);
                 } catch (Throwable e) {
-                    log.warn("{} service has e: ", this.getServiceName() , e);
+                    log.warn("{} service has e: ", this.getServiceName(), e);
                 }
             }
             log.info("{} service end", this.getServiceName());
