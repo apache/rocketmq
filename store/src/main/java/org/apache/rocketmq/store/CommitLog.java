@@ -738,6 +738,7 @@ public class CommitLog implements Swappable {
         // recover by the minimum time stamp
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
+        boolean checkCommitLogOffsetOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCommitLogOffsetOnRecover();
         int maxRecoverNum = this.defaultMessageStore.getMessageStoreConfig().getCommitLogRecoverMaxNum();
         if (maxRecoverNum <= 0) {
             maxRecoverNum = 10;
@@ -793,13 +794,16 @@ public class CommitLog implements Swappable {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
                 int size = dispatchRequest.getMsgSize();
                 if (dispatchRequest.isSuccess()) {
-                    if (dispatchRequest.getCommitLogOffset() < mappedFile.getFileFromOffset()
-                        || dispatchRequest.getCommitLogOffset() > mappedFile.getFileFromOffset() + mappedFile.getFileSize()) {
-                        log.warn("found illegal commitlog offset {} in {}, current pos={}, it will be truncated.",
-                            dispatchRequest.getCommitLogOffset(), mappedFile.getFileName(), processOffset + mappedFileOffset);
-                        log.info("recover physics file end, {} pos={}", mappedFile.getFileName(), byteBuffer.position());
+                    // Check commitlog offset validity if enabled
+                    if (checkCommitLogOffsetOnRecover) {
+                        if (dispatchRequest.getCommitLogOffset() < mappedFile.getFileFromOffset()
+                            || dispatchRequest.getCommitLogOffset() > mappedFile.getFileFromOffset() + mappedFile.getFileSize()) {
+                            log.warn("found illegal commitlog offset {} in {}, current pos={}, it will be truncated.",
+                                dispatchRequest.getCommitLogOffset(), mappedFile.getFileName(), processOffset + mappedFileOffset);
+                            log.info("recover physics file end, {} pos={}", mappedFile.getFileName(), byteBuffer.position());
 
-                        break;
+                            break;
+                        }
                     }
                     // Normal data
                     if (size > 0) {
