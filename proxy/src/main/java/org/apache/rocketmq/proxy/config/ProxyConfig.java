@@ -118,6 +118,13 @@ public class ProxyConfig implements ConfigFile {
      * max message group size, 0 or negative number means no limit for proxy
      */
     private int maxMessageGroupSize = 64;
+    /**
+     * max lite topic size
+     */
+    private int maxLiteTopicSize = 64;
+    private int maxLiteRenewNumPerChannel = 100;
+    // syncLiteSubscription request rate limit per proxy
+    private int maxSyncLiteSubscriptionRate = 5000;
 
     /**
      * When a message pops, the message is invisible by default
@@ -1532,6 +1539,30 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableMessageBodyEmptyCheck(boolean enableMessageBodyEmptyCheck) {
         this.enableMessageBodyEmptyCheck = enableMessageBodyEmptyCheck;
+    }
+
+    public int getMaxLiteTopicSize() {
+        return maxLiteTopicSize;
+    }
+
+    public void setMaxLiteTopicSize(int maxLiteTopicSize) {
+        this.maxLiteTopicSize = maxLiteTopicSize;
+    }
+
+    public int getMaxLiteRenewNumPerChannel() {
+        return maxLiteRenewNumPerChannel;
+    }
+
+    public void setMaxLiteRenewNumPerChannel(int maxLiteRenewNumPerChannel) {
+        this.maxLiteRenewNumPerChannel = maxLiteRenewNumPerChannel;
+    }
+
+    public int getMaxSyncLiteSubscriptionRate() {
+        return maxSyncLiteSubscriptionRate;
+    }
+
+    public void setMaxSyncLiteSubscriptionRate(int maxSyncLiteSubscriptionRate) {
+        this.maxSyncLiteSubscriptionRate = maxSyncLiteSubscriptionRate;
     }
 
     public int getReturnHandleGroupThreadPoolNums() {

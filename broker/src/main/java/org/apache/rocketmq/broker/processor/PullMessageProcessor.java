@@ -20,6 +20,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -39,6 +40,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.help.FAQUrl;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -531,6 +533,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         final boolean useResetOffsetFeature = brokerController.getBrokerConfig().isUseServerSideResetOffset();
         String topic = requestHeader.getTopic();
+        String liteTopic = requestHeader.getLiteTopic();
         String group = requestHeader.getConsumerGroup();
         int queueId = requestHeader.getQueueId();
         Long resetOffset = brokerController.getConsumerOffsetManager().queryThenEraseResetOffset(topic, group, queueId);
@@ -556,7 +559,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             } else {
                 SubscriptionData finalSubscriptionData = subscriptionData;
                 RemotingCommand finalResponse = response;
-                messageStore.getMessageAsync(group, topic, queueId, requestHeader.getQueueOffset(),
+                String storeTopic = topic;
+                if (StringUtils.isNotBlank(liteTopic)) {
+                    storeTopic = LiteUtil.toLmqName(topic, liteTopic);
+                }
+                messageStore.getMessageAsync(group, storeTopic, queueId, requestHeader.getQueueOffset(),
                         requestHeader.getMaxMsgNums(), messageFilter)
                     .thenApply(result -> {
                         if (null == result) {

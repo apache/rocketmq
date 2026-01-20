@@ -18,25 +18,33 @@
 package org.apache.rocketmq.broker.longpolling;
 
 import java.util.Map;
+
+import org.apache.rocketmq.broker.lite.LiteEventDispatcher;
 import org.apache.rocketmq.broker.processor.NotificationProcessor;
 import org.apache.rocketmq.broker.processor.PopMessageProcessor;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.store.MessageArrivingListener;
 
 public class NotifyMessageArrivingListener implements MessageArrivingListener {
     private final PullRequestHoldService pullRequestHoldService;
     private final PopMessageProcessor popMessageProcessor;
     private final NotificationProcessor notificationProcessor;
+    private final LiteEventDispatcher liteEventDispatcher;
 
-    public NotifyMessageArrivingListener(final PullRequestHoldService pullRequestHoldService, final PopMessageProcessor popMessageProcessor, final NotificationProcessor notificationProcessor) {
+    public NotifyMessageArrivingListener(final PullRequestHoldService pullRequestHoldService, final PopMessageProcessor popMessageProcessor, final NotificationProcessor notificationProcessor, final LiteEventDispatcher liteEventDispatcher) {
         this.pullRequestHoldService = pullRequestHoldService;
         this.popMessageProcessor = popMessageProcessor;
         this.notificationProcessor = notificationProcessor;
+        this.liteEventDispatcher = liteEventDispatcher;
     }
 
     @Override
     public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
                          long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
-
+        if (LiteUtil.isLiteTopicQueue(topic)) {
+            this.liteEventDispatcher.dispatch(null, topic, queueId, logicOffset, msgStoreTime);
+            return;
+        }
         this.pullRequestHoldService.notifyMessageArriving(
             topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties);
         this.popMessageProcessor.notifyMessageArriving(

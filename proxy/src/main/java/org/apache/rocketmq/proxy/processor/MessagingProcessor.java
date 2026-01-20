@@ -31,6 +31,7 @@ import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
+import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
@@ -100,6 +101,27 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
+    default CompletableFuture<RemotingCommand> forwardMessageToDeadLetterQueue(
+        ProxyContext ctx,
+        ReceiptHandle handle,
+        String messageId,
+        String groupName,
+        String topicName,
+        String liteTopic
+    ) {
+        return forwardMessageToDeadLetterQueue(ctx, handle, messageId, groupName, topicName, liteTopic, DEFAULT_TIMEOUT_MILLS);
+    }
+
+    CompletableFuture<RemotingCommand> forwardMessageToDeadLetterQueue(
+        ProxyContext ctx,
+        ReceiptHandle handle,
+        String messageId,
+        String groupName,
+        String topicName,
+        String liteTopic,
+        long timeoutMillis
+    );
+
     default CompletableFuture<Void> endTransaction(
         ProxyContext ctx,
         String topic,
@@ -139,6 +161,20 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
+    CompletableFuture<PopResult> popLiteMessage(
+        ProxyContext ctx,
+        QueueSelector queueSelector,
+        String consumerGroup,
+        String topic,
+        int maxMsgNums,
+        long invisibleTime,
+        long pollTime,
+        SubscriptionData subscriptionData,
+        PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
+        long timeoutMillis
+    );
+
     default CompletableFuture<AckResult> ackMessage(
         ProxyContext ctx,
         ReceiptHandle handle,
@@ -155,6 +191,27 @@ public interface MessagingProcessor extends StartAndShutdown {
         String messageId,
         String consumerGroup,
         String topic,
+        long timeoutMillis
+    );
+
+    default CompletableFuture<AckResult> ackMessage(
+        ProxyContext ctx,
+        ReceiptHandle handle,
+        String messageId,
+        String consumerGroup,
+        String topic,
+        String liteTopic
+    ) {
+        return ackMessage(ctx, handle, messageId, consumerGroup, topic, liteTopic, DEFAULT_TIMEOUT_MILLS);
+    }
+
+    CompletableFuture<AckResult> ackMessage(
+        ProxyContext ctx,
+        ReceiptHandle handle,
+        String messageId,
+        String consumerGroup,
+        String topic,
+        String liteTopic,
         long timeoutMillis
     );
 
@@ -193,6 +250,29 @@ public interface MessagingProcessor extends StartAndShutdown {
         String groupName,
         String topicName,
         long invisibleTime,
+        long timeoutMillis
+    );
+
+    default CompletableFuture<AckResult> changeInvisibleTime(
+        ProxyContext ctx,
+        ReceiptHandle handle,
+        String messageId,
+        String groupName,
+        String topicName,
+        long invisibleTime,
+        String liteTopic
+    ) {
+        return changeInvisibleTime(ctx, handle, messageId, groupName, topicName, invisibleTime, liteTopic, DEFAULT_TIMEOUT_MILLS);
+    }
+
+    CompletableFuture<AckResult> changeInvisibleTime(
+        ProxyContext ctx,
+        ReceiptHandle handle,
+        String messageId,
+        String groupName,
+        String topicName,
+        long invisibleTime,
+        String liteTopic,
         long timeoutMillis
     );
 
@@ -264,6 +344,12 @@ public interface MessagingProcessor extends StartAndShutdown {
         ProxyContext ctx,
         String topic,
         String recallHandle,
+        long timeoutMillis
+    );
+
+    CompletableFuture<Void> syncLiteSubscription(
+        ProxyContext ctx,
+        LiteSubscriptionDTO liteSubscriptionDTO,
         long timeoutMillis
     );
 
@@ -341,4 +427,6 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
         String receiptHandle);
+
+    int getUnackedMessageCount(ProxyContext ctx, Channel channel, String group);
 }

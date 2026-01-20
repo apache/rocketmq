@@ -1528,7 +1528,9 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             if (this.brokerConfig.isAutoDeleteUnusedStats()) {
-                this.brokerStatsManager.onTopicDeleted(topic);
+                if (!MixAll.isLmq(topic)) {
+                    this.brokerStatsManager.onTopicDeleted(topic);
+                }
             }
 
             // destroy consume queue dir

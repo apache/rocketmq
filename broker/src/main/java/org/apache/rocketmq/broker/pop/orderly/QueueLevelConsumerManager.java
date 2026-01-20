@@ -76,7 +76,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         return key.split(TOPIC_GROUP_SEPARATOR);
     }
 
-    private void updateLockFreeTimestamp(String topic, String group, int queueId, OrderInfo orderInfo) {
+    protected void updateLockFreeTimestamp(String topic, String group, int queueId, OrderInfo orderInfo) {
         if (queueLevelConsumerOrderInfoLockManager != null) {
             queueLevelConsumerOrderInfoLockManager.updateLockFreeTimestamp(topic, group, queueId, orderInfo);
         }
@@ -177,6 +177,16 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
             val.remove(queueId);
             return val;
         });
+    }
+
+    @Override
+    public void remove(String topic, String group) {
+        table.remove(buildKey(topic, group));
+    }
+
+    @Override
+    public int getOrderInfoCount() {
+        return table.size();
     }
 
     @Override
@@ -383,7 +393,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     }
 
     @VisibleForTesting
-    QueueLevelConsumerOrderInfoLockManager getConsumerOrderInfoLockManager() {
+    protected QueueLevelConsumerOrderInfoLockManager getConsumerOrderInfoLockManager() {
         return queueLevelConsumerOrderInfoLockManager;
     }
 
@@ -575,6 +585,33 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
                 }
             }
             return currentTime;
+        }
+
+        @JSONField(serialize = false, deserialize = false)
+        public Long getMaxLockFreeTimestamp() {
+            if (offsetList == null || offsetList.isEmpty()) {
+                return null;
+            }
+            int num = offsetList.size();
+            long maxTime = System.currentTimeMillis();
+            for (int i = 0; i < num; i++) {
+                if (isNotAck(i)) {
+                    if (invisibleTime == null || invisibleTime <= 0) {
+                        return null;
+                    }
+                    long nextVisibleTime = popTime + invisibleTime;
+                    if (offsetNextVisibleTime != null) {
+                        Long time = offsetNextVisibleTime.get(this.getQueueOffset(i));
+                        if (time != null) {
+                            nextVisibleTime = time;
+                        }
+                    }
+                    if (maxTime < nextVisibleTime) {
+                        maxTime = nextVisibleTime;
+                    }
+                }
+            }
+            return maxTime;
         }
 
         @JSONField(serialize = false, deserialize = false)
