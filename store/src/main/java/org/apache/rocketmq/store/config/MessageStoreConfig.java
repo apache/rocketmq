@@ -194,6 +194,9 @@ public class MessageStoreConfig {
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
     // This check adds some overhead,so it may be disabled in cases seeking extreme performance.
     private boolean checkCRCOnRecover = true;
+    // Whether check the commitlog offset validity during abnormal recovery.
+    // This helps detect and truncate old file data that may pass CRC checks but contains invalid offsets.
+    private boolean checkCommitLogOffsetOnRecover = false;
     // How many pages are to be flushed when flush CommitLog
     private int flushCommitLogLeastPages = 4;
     // How many pages are to be committed when commit data to file
@@ -794,6 +797,14 @@ public class MessageStoreConfig {
 
     public void setCheckCRCOnRecover(boolean checkCRCOnRecover) {
         this.checkCRCOnRecover = checkCRCOnRecover;
+    }
+
+    public boolean isCheckCommitLogOffsetOnRecover() {
+        return checkCommitLogOffsetOnRecover;
+    }
+
+    public void setCheckCommitLogOffsetOnRecover(boolean checkCommitLogOffsetOnRecover) {
+        this.checkCommitLogOffsetOnRecover = checkCommitLogOffsetOnRecover;
     }
 
     public boolean isForceVerifyPropCRC() {
