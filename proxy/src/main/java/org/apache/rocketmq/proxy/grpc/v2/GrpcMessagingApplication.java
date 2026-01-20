@@ -139,7 +139,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     protected void init() {
         GrpcTaskRejectedExecutionHandler rejectedExecutionHandler = new GrpcTaskRejectedExecutionHandler();
         this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
-        this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
         this.producerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
         this.consumerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
         this.clientManagerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
@@ -456,8 +455,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     @Override
     public void shutdown() throws Exception {
         this.grpcMessagingActivity.shutdown();
-
-        this.routeThreadPoolExecutor.shutdown();
         this.routeThreadPoolExecutor.shutdown();
         this.producerThreadPoolExecutor.shutdown();
         this.consumerThreadPoolExecutor.shutdown();
