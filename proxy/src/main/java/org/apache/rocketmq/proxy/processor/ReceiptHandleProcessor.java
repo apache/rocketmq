@@ -41,7 +41,7 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
             MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
             ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
             messagingProcessor.changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
-                    messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), event.getRenewTime())
+                messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), event.getRenewTime(), messageReceiptHandle.getLiteTopic())
                 .whenComplete((v, t) -> {
                     if (t != null) {
                         event.getFuture().completeExceptionally(t);
@@ -64,6 +64,10 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
 
     public MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, String receiptHandle) {
         return receiptHandleManager.removeReceiptHandle(ctx, channel, group, msgID, receiptHandle);
+    }
+
+    public int getUnackedMessageCount(ProxyContext ctx, Channel channel, String group) {
+        return receiptHandleManager.getUnackedMessageCount(ctx, channel, group);
     }
 
 }

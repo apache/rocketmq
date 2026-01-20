@@ -56,7 +56,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     protected transient BrokerController brokerController;
 
-    private final transient AtomicLong versionChangeCounter = new AtomicLong(0);
+    protected final transient AtomicLong versionChangeCounter = new AtomicLong(0);
 
     public ConsumerOffsetManager() {
     }
@@ -65,7 +65,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         this.brokerController = brokerController;
     }
 
-    protected void removeConsumerOffset(String topicAtGroup) {
+    public void removeConsumerOffset(String topicAtGroup) {
 
     }
 
@@ -205,7 +205,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
-            map = new ConcurrentHashMap<>(32);
+            map = new ConcurrentHashMap<>(2);
             map.put(queueId, offset);
             this.offsetTable.put(key, map);
         } else {
@@ -318,6 +318,10 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public void setOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
         this.offsetTable = offsetTable;
+    }
+
+    public ConcurrentMap<String, ConcurrentMap<Integer, Long>> getPullOffsetTable() {
+        return pullOffsetTable;
     }
 
     public Map<Integer, Long> queryMinOffsetInAllGroup(final String topic, final String filterGroups) {

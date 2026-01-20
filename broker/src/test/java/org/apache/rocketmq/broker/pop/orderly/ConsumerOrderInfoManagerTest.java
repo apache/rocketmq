@@ -18,6 +18,10 @@
 package org.apache.rocketmq.broker.pop.orderly;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -530,4 +534,56 @@ public class ConsumerOrderInfoManagerTest {
         assertTrue(consumerOrderInfoManager.checkBlock(null, TOPIC, GROUP, QUEUE_ID_0, 3000));
         assertFalse(consumerOrderInfoManager.checkBlock(attemptId, TOPIC, GROUP, QUEUE_ID_0, 3000));
     }
+
+    @Test
+    public void testGetMaxLockFreeTimestamp() {
+        QueueLevelConsumerManager.OrderInfo orderInfo = new QueueLevelConsumerManager.OrderInfo();
+        orderInfo.setOffsetList(new ArrayList<>());
+        assertNull(orderInfo.getMaxLockFreeTimestamp());
+
+        QueueLevelConsumerManager.OrderInfo nullOrderInfo = new QueueLevelConsumerManager.OrderInfo();
+        nullOrderInfo.setOffsetList(null);
+        assertNull(nullOrderInfo.getMaxLockFreeTimestamp());
+
+        List<Long> offsetList = Arrays.asList(100L, 1L, 2L);
+
+        QueueLevelConsumerManager.OrderInfo allAckOrderInfo = new QueueLevelConsumerManager.OrderInfo();
+        allAckOrderInfo.setOffsetList(offsetList);
+        allAckOrderInfo.setCommitOffsetBit(7);
+        allAckOrderInfo.setPopTime(System.currentTimeMillis());
+        allAckOrderInfo.setInvisibleTime(30000L);
+        assertEquals(System.currentTimeMillis(), allAckOrderInfo.getMaxLockFreeTimestamp(), 1000L);
+
+        QueueLevelConsumerManager.OrderInfo unackOrderInfo = new QueueLevelConsumerManager.OrderInfo();
+        unackOrderInfo.setOffsetList(offsetList);
+        unackOrderInfo.setCommitOffsetBit(0);
+        long popTime = System.currentTimeMillis();
+        unackOrderInfo.setPopTime(popTime);
+        unackOrderInfo.setInvisibleTime(30000L);
+        Long expectedTime = popTime + 30000L;
+        assertEquals(expectedTime, unackOrderInfo.getMaxLockFreeTimestamp());
+
+        QueueLevelConsumerManager.OrderInfo hasVisibleButAckedOrderInfo = new QueueLevelConsumerManager.OrderInfo();
+        hasVisibleButAckedOrderInfo.setOffsetList(offsetList);
+        hasVisibleButAckedOrderInfo.setCommitOffsetBit(1);
+        hasVisibleButAckedOrderInfo.setPopTime(popTime);
+        hasVisibleButAckedOrderInfo.setInvisibleTime(30000L);
+        Map<Long, Long> offsetNextVisibleTime = new HashMap<>();
+        offsetNextVisibleTime.put(100L, popTime + 60000L);
+        hasVisibleButAckedOrderInfo.setOffsetNextVisibleTime(offsetNextVisibleTime);
+        assertEquals(Long.valueOf(popTime + 30000L), hasVisibleButAckedOrderInfo.getMaxLockFreeTimestamp());
+
+        QueueLevelConsumerManager.OrderInfo multiUnackOrderInfo = new QueueLevelConsumerManager.OrderInfo();
+        multiUnackOrderInfo.setOffsetList(offsetList);
+        multiUnackOrderInfo.setCommitOffsetBit(0);
+        multiUnackOrderInfo.setPopTime(popTime);
+        multiUnackOrderInfo.setInvisibleTime(30000L);
+        Map<Long, Long> multiOffsetNextVisibleTime = new HashMap<>();
+        multiOffsetNextVisibleTime.put(100L, popTime + 20000L);
+        multiOffsetNextVisibleTime.put(101L, popTime + 40000L);
+        multiOffsetNextVisibleTime.put(102L, popTime + 60000L);
+        multiUnackOrderInfo.setOffsetNextVisibleTime(multiOffsetNextVisibleTime);
+        assertEquals(Long.valueOf(popTime + 60000L), multiUnackOrderInfo.getMaxLockFreeTimestamp());
+    }
+
 }
