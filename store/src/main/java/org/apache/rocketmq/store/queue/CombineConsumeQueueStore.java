@@ -178,7 +178,7 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
                 continue;
             }
             Long storeOffset = store.getDispatchFromPhyOffset();
-            if (storeOffset != null && (dispatchFromPhyOffset == null || storeOffset < dispatchFromPhyOffset)) {
+            if (storeOffset != null && dispatchFromPhyOffset != null && storeOffset < dispatchFromPhyOffset) {
                 dispatchFromPhyOffset = storeOffset;
             }
         }
