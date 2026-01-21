@@ -171,14 +171,15 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     }
 
     @Override
-    public long getDispatchFromPhyOffset() {
-        long dispatchFromPhyOffset = assignOffsetStore.getDispatchFromPhyOffset();
+    public Long getDispatchFromPhyOffset() throws RocksDBException {
+        Long dispatchFromPhyOffset = assignOffsetStore.getDispatchFromPhyOffset();
         for (AbstractConsumeQueueStore store : innerConsumeQueueStoreList) {
             if (store == assignOffsetStore) {
                 continue;
             }
-            if (store.getDispatchFromPhyOffset() < dispatchFromPhyOffset) {
-                dispatchFromPhyOffset = store.getDispatchFromPhyOffset();
+            Long storeOffset = store.getDispatchFromPhyOffset();
+            if (storeOffset != null && (dispatchFromPhyOffset == null || storeOffset < dispatchFromPhyOffset)) {
+                dispatchFromPhyOffset = storeOffset;
             }
         }
         return dispatchFromPhyOffset;

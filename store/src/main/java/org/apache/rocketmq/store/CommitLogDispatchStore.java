@@ -33,5 +33,17 @@ public interface CommitLogDispatchStore {
      * @throws RocksDBException if there is an error accessing RocksDB storage
      */
     Long getDispatchFromPhyOffset() throws RocksDBException;
+
+    /**
+     * Used to determine whether to start doDispatch from this commitLog mappedFile.
+     *
+     * @param phyOffset the offset of the first message in this commitlog mappedFile
+     * @param storeTimestamp the timestamp of the first message in this commitlog mappedFile
+     * @param recoverNormally whether this is a normal recovery
+     * @return whether to start recovering from this MappedFile
+     * @throws RocksDBException if there is an error accessing RocksDB storage
+     */
+    boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
+        boolean recoverNormally) throws RocksDBException;
 }
 

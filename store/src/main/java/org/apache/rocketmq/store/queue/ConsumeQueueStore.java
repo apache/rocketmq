@@ -49,6 +49,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.exception.StoreException;
+import org.rocksdb.RocksDBException;
 
 import static java.lang.String.format;
 import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathBatchConsumeQueue;
@@ -102,12 +103,20 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             }
         }
 
-        dispatchFromPhyOffset = this.getMaxPhyOffsetInConsumeQueue();
+        try {
+            dispatchFromPhyOffset = this.getMaxPhyOffsetInConsumeQueue();
+        } catch (RocksDBException e) {
+            dispatchFromPhyOffset = 0L;
+        }
         dispatchFromStoreTimestamp = this.messageStore.getStoreCheckpoint().getMinTimestamp();
     }
 
+    /**
+     * Implementation of CommitLogDispatchStore.getDispatchFromPhyOffset() (inherited from ConsumeQueueStoreInterface).
+     * This delegates to getMaxPhyOffsetInConsumeQueue().
+     */
     @Override
-    public long getDispatchFromPhyOffset() {
+    public Long getDispatchFromPhyOffset() throws RocksDBException {
         return getMaxPhyOffsetInConsumeQueue();
     }
 
@@ -283,7 +292,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public long getMaxPhyOffsetInConsumeQueue() {
+    public long getMaxPhyOffsetInConsumeQueue() throws RocksDBException {
         long maxPhysicOffset = -1L;
         for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueueInterface logic : maps.values()) {
@@ -572,7 +581,12 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public void truncateDirty(long offsetToTruncate) {
-        long maxPhyOffsetOfConsumeQueue = getMaxPhyOffsetInConsumeQueue();
+        long maxPhyOffsetOfConsumeQueue;
+        try {
+            maxPhyOffsetOfConsumeQueue = getMaxPhyOffsetInConsumeQueue();
+        } catch (RocksDBException e) {
+            maxPhyOffsetOfConsumeQueue = 0L;
+        }
         if (maxPhyOffsetOfConsumeQueue >= offsetToTruncate) {
             log.warn("maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, offsetToTruncate);
             for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {

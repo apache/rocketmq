@@ -35,6 +35,7 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.CommitLogDispatchStore;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageStore;
@@ -44,9 +45,10 @@ import org.apache.rocketmq.store.StoreUtil;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.rocksdb.RocksDBException;
 import static org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.TRANS_COLUMN_FAMILY;
 
-public class TransMessageRocksDBStore {
+public class TransMessageRocksDBStore implements CommitLogDispatchStore {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final String REMOVE_TAG = "d";
@@ -260,8 +262,11 @@ public class TransMessageRocksDBStore {
         }
     }
 
-    public boolean isMappedFileMatchedRecover(long phyOffset) {
-        if (!storeConfig.isTransRocksDBEnable()) {
+    public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
+        boolean recoverNormally) throws RocksDBException {
+        // Only check if TransRocksDB is enabled and TransWriteOriginTransHalf is disabled
+        // This matches the original logic in CommitLog.isMappedFileMatchedRecover()
+        if (!storeConfig.isTransRocksDBEnable() || storeConfig.isTransWriteOriginTransHalfEnable()) {
             return true;
         }
         Long lastOffsetPy = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
@@ -340,5 +345,17 @@ public class TransMessageRocksDBStore {
                 logError.error("TransMessageRocksDBStore fetchTransMessageRecord error: {}", e.getMessage());
             }
         }
+    }
+
+    @Override
+    public Long getDispatchFromPhyOffset() throws RocksDBException {
+        if (!storeConfig.isTransRocksDBEnable()) {
+            return null;
+        }
+        Long dispatchFromTransPhyOffset = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
+        if (dispatchFromTransPhyOffset != null && dispatchFromTransPhyOffset > 0) {
+            return dispatchFromTransPhyOffset;
+        }
+        return null;
     }
 }

@@ -191,7 +191,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public long getDispatchFromPhyOffset() {
+    public Long getDispatchFromPhyOffset() throws RocksDBException {
         return dispatchFromPhyOffset;
     }
 

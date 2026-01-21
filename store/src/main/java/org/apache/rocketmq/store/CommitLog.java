@@ -927,11 +927,9 @@ public class CommitLog implements Swappable {
 
     private boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp, boolean recoverNormally) throws RocksDBException {
         boolean result = this.defaultMessageStore.getQueueStore().isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
-        if (null != this.defaultMessageStore.getTransMessageRocksDBStore() && defaultMessageStore.getMessageStoreConfig().isTransRocksDBEnable() && !defaultMessageStore.getMessageStoreConfig().isTransWriteOriginTransHalfEnable()) {
-            result = result && this.defaultMessageStore.getTransMessageRocksDBStore().isMappedFileMatchedRecover(phyOffset);
-        }
-        if (null != this.defaultMessageStore.getIndexRocksDBStore() && defaultMessageStore.getMessageStoreConfig().isIndexRocksDBEnable()) {
-            result = result && this.defaultMessageStore.getIndexRocksDBStore().isMappedFileMatchedRecover(phyOffset);
+        // Check all registered CommitLogDispatchStore instances
+        for (CommitLogDispatchStore store : defaultMessageStore.getCommitLogDispatchStores()) {
+            result = result && store.isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
         }
         return result;
     }

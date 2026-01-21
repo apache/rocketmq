@@ -101,7 +101,6 @@ import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.index.rocksdb.IndexRocksDBStore;
-import org.apache.rocketmq.store.index.rocksdb.IndexRocksDBStoreAdapter;
 import org.apache.rocketmq.store.kv.CommitLogDispatcherCompaction;
 import org.apache.rocketmq.store.kv.CompactionService;
 import org.apache.rocketmq.store.kv.CompactionStore;
@@ -119,7 +118,6 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
 import org.apache.rocketmq.store.transaction.TransMessageRocksDBStore;
-import org.apache.rocketmq.store.transaction.TransMessageRocksDBStoreAdapter;
 import org.apache.rocketmq.store.util.PerfCounter;
 import org.apache.rocketmq.store.metrics.StoreMetricsManager;
 import org.rocksdb.RocksDBException;
@@ -341,7 +339,10 @@ public class DefaultMessageStore implements MessageStore {
             result = result && this.consumeQueueStore.load();
             stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_CONSUME_QUEUE_OK, result);
             // Register consume queue store for commitlog dispatch
-            registerCommitLogDispatchStore(new ConsumeQueueDispatchStoreAdapter(this.consumeQueueStore));
+            // AbstractConsumeQueueStore implements CommitLogDispatchStore, so we can register it directly
+            if (this.consumeQueueStore instanceof CommitLogDispatchStore) {
+                registerCommitLogDispatchStore((CommitLogDispatchStore) this.consumeQueueStore);
+            }
 
             if (messageStoreConfig.isEnableCompaction()) {
                 result = result && this.compactionService.load(lastExitOK);
@@ -354,10 +355,10 @@ public class DefaultMessageStore implements MessageStore {
                 stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_INDEX_OK, result);
                 // Register IndexRocksDBStore and TransMessageRocksDBStore for commitlog dispatch
                 if (messageStoreConfig.isIndexRocksDBEnable()) {
-                    registerCommitLogDispatchStore(new IndexRocksDBStoreAdapter(messageStoreConfig, messageRocksDBStorage));
+                    registerCommitLogDispatchStore(this.indexRocksDBStore);
                 }
                 if (messageStoreConfig.isTransRocksDBEnable() && transMessageRocksDBStore != null) {
-                    registerCommitLogDispatchStore(new TransMessageRocksDBStoreAdapter(messageStoreConfig, messageRocksDBStorage));
+                    registerCommitLogDispatchStore(this.transMessageRocksDBStore);
                 }
                 this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
@@ -394,7 +395,8 @@ public class DefaultMessageStore implements MessageStore {
 
         // recover commitlog
         // Calculate the minimum dispatch offset from all registered stores
-        long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset();
+        Long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset();
+
         for (CommitLogDispatchStore store : commitLogDispatchStores) {
             Long storeOffset = store.getDispatchFromPhyOffset();
             if (storeOffset != null && storeOffset > 0) {
@@ -1128,7 +1130,7 @@ public class DefaultMessageStore implements MessageStore {
         this.transMessageRocksDBStore = transMessageRocksDBStore;
         // Register TransMessageRocksDBStore for commitlog dispatch if enabled
         if (transMessageRocksDBStore != null && messageStoreConfig.isTransRocksDBEnable()) {
-            registerCommitLogDispatchStore(new TransMessageRocksDBStoreAdapter(messageStoreConfig, messageRocksDBStorage));
+            registerCommitLogDispatchStore(this.transMessageRocksDBStore);
         }
     }
 
@@ -1142,6 +1144,15 @@ public class DefaultMessageStore implements MessageStore {
             commitLogDispatchStores.add(store);
             LOGGER.info("Registered CommitLogDispatchStore: {}", store.getClass().getSimpleName());
         }
+    }
+
+    /**
+     * Get all registered CommitLogDispatchStore instances.
+     *
+     * @return list of registered stores
+     */
+    public List<CommitLogDispatchStore> getCommitLogDispatchStores() {
+        return commitLogDispatchStores;
     }
 
     @Override
