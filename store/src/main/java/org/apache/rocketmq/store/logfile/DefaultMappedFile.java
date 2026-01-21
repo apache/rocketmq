@@ -389,6 +389,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
                         int endpos = currentPos + msgLen;
                         // alignment end position
                         int extraAppendSize = UNSAFE_PAGE_SIZE - endpos % UNSAFE_PAGE_SIZE;
+                        if (extraAppendSize == UNSAFE_PAGE_SIZE) {
+                            extraAppendSize = 0;
+                        }
                         int actualAppendSize = msgLen + extraAppendSize;
 
                         this.fileChannel.position(currentPos);
