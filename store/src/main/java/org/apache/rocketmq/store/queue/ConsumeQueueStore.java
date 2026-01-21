@@ -103,11 +103,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             }
         }
 
-        try {
-            dispatchFromPhyOffset = this.getMaxPhyOffsetInConsumeQueue();
-        } catch (RocksDBException e) {
-            dispatchFromPhyOffset = 0L;
-        }
+        dispatchFromPhyOffset = this.getMaxPhyOffsetInConsumeQueue();
         dispatchFromStoreTimestamp = this.messageStore.getStoreCheckpoint().getMinTimestamp();
     }
 
@@ -292,7 +288,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public long getMaxPhyOffsetInConsumeQueue() throws RocksDBException {
+    public long getMaxPhyOffsetInConsumeQueue() {
         long maxPhysicOffset = -1L;
         for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueueInterface logic : maps.values()) {
@@ -582,11 +578,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     @Override
     public void truncateDirty(long offsetToTruncate) {
         long maxPhyOffsetOfConsumeQueue;
-        try {
-            maxPhyOffsetOfConsumeQueue = getMaxPhyOffsetInConsumeQueue();
-        } catch (RocksDBException e) {
-            maxPhyOffsetOfConsumeQueue = 0L;
-        }
+        maxPhyOffsetOfConsumeQueue = getMaxPhyOffsetInConsumeQueue();
         if (maxPhyOffsetOfConsumeQueue >= offsetToTruncate) {
             log.warn("maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, offsetToTruncate);
             for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {

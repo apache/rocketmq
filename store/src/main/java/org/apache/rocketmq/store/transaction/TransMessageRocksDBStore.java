@@ -264,9 +264,7 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
 
     public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
         boolean recoverNormally) throws RocksDBException {
-        // Only check if TransRocksDB is enabled and TransWriteOriginTransHalf is disabled
-        // This matches the original logic in CommitLog.isMappedFileMatchedRecover()
-        if (!storeConfig.isTransRocksDBEnable() || storeConfig.isTransWriteOriginTransHalfEnable()) {
+        if (!storeConfig.isTransRocksDBEnable()) {
             return true;
         }
         Long lastOffsetPy = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
