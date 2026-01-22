@@ -116,6 +116,9 @@ public class MessageStoreConfig {
     private int timerRocksDBRollRangeHours = 2;
     private boolean timerRecallToTimeWheelEnable = true;
     private boolean timerRecallToTimelineEnable = true;
+    private int timerReputServiceCorePoolSize = 6;
+    private int timerReputServiceMaxPoolSize = 6;
+    private int timerReputServiceQueueCapacity = 10000;
 
     private boolean transRocksDBEnable = false;
     private boolean transWriteOriginTransHalfEnable = true;
@@ -2225,6 +2228,30 @@ public class MessageStoreConfig {
 
     public void setTimerRecallToTimelineEnable(boolean timerRecallToTimelineEnable) {
         this.timerRecallToTimelineEnable = timerRecallToTimelineEnable;
+    }
+
+    public void setTimerReputServiceCorePoolSize(int timerReputServiceCorePoolSize) {
+        this.timerReputServiceCorePoolSize = timerReputServiceCorePoolSize;
+    }
+
+    public int getTimerReputServiceCorePoolSize() {
+        return timerReputServiceCorePoolSize;
+    }
+
+    public void setTimerReputServiceMaxPoolSize(int timerReputServiceMaxPoolSize) {
+        this.timerReputServiceMaxPoolSize = timerReputServiceMaxPoolSize;
+    }
+
+    public int getTimerReputServiceMaxPoolSize() {
+        return timerReputServiceMaxPoolSize;
+    }
+
+    public void setTimerReputServiceQueueCapacity(int timerReputServiceQueueCapacity) {
+        this.timerReputServiceQueueCapacity = timerReputServiceQueueCapacity;
+    }
+
+    public int getTimerReputServiceQueueCapacity() {
+        return timerReputServiceQueueCapacity;
     }
 
     public int getTimerRocksDBRollIntervalHours() {
