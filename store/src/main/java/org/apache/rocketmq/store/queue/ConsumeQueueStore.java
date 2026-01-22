@@ -577,8 +577,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public void truncateDirty(long offsetToTruncate) {
-        long maxPhyOffsetOfConsumeQueue;
-        maxPhyOffsetOfConsumeQueue = getMaxPhyOffsetInConsumeQueue();
+        long maxPhyOffsetOfConsumeQueue = getMaxPhyOffsetInConsumeQueue();
         if (maxPhyOffsetOfConsumeQueue >= offsetToTruncate) {
             log.warn("maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, offsetToTruncate);
             for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {

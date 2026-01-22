@@ -265,7 +265,7 @@ public class IndexRocksDBStore implements CommitLogDispatchStore {
             return null;
         }
         Long dispatchFromIndexPhyOffset = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
-        if (dispatchFromIndexPhyOffset != null && dispatchFromIndexPhyOffset >= 0) {
+        if (dispatchFromIndexPhyOffset != null && dispatchFromIndexPhyOffset > 0) {
             return dispatchFromIndexPhyOffset;
         }
         return null;

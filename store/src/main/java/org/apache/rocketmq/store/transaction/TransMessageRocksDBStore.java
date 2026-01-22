@@ -351,7 +351,7 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
             return null;
         }
         Long dispatchFromTransPhyOffset = messageRocksDBStorage.getLastOffsetPy(TRANS_COLUMN_FAMILY);
-        if (dispatchFromTransPhyOffset != null && dispatchFromTransPhyOffset >= 0) {
+        if (dispatchFromTransPhyOffset != null && dispatchFromTransPhyOffset > 0) {
             return dispatchFromTransPhyOffset;
         }
         return null;
