@@ -795,7 +795,7 @@ public class CommitLog implements Swappable {
                 int size = dispatchRequest.getMsgSize();
                 if (dispatchRequest.isSuccess()) {
                     // Check commitlog offset validity if enabled
-                    if (checkCommitLogOffsetOnRecover) {
+                    if (size > 0 && checkCommitLogOffsetOnRecover) {
                         if (dispatchRequest.getCommitLogOffset() < mappedFile.getFileFromOffset()
                             || dispatchRequest.getCommitLogOffset() > mappedFile.getFileFromOffset() + mappedFile.getFileSize()) {
                             log.warn("found illegal commitlog offset {} in {}, current pos={}, it will be truncated.",
