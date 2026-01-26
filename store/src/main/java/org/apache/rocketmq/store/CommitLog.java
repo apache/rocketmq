@@ -623,8 +623,18 @@ public class CommitLog implements Swappable {
                             return new DispatchRequest(-1, false/* success */);
                         }
                     } else {
+                        // Read full message for logging when error occurs
+                        ByteBuffer fullMessageBuffer = byteBuffer.duplicate();
+                        int messageStartPos = fullMessageBuffer.position() - totalSize;
+                        fullMessageBuffer.position(messageStartPos);
+                        fullMessageBuffer.limit(messageStartPos + totalSize);
+                        byte[] fullMessageBytes = new byte[totalSize];
+                        fullMessageBuffer.get(fullMessageBytes, 0, totalSize);
+                        
+                        // Print full message and especially properties
                         log.warn(
-                            "CommitLog#checkAndDispatchMessage: failed to check message CRC, not found CRC in properties");
+                            "CommitLog#checkAndDispatchMessage: failed to check message CRC, not found CRC in properties. topic={}, properties={}, propertiesLength={}, fullMessageHex={}",
+                            topic, propertiesMap != null ? propertiesMap.toString() : "null", propertiesLength, UtilAll.bytes2string(fullMessageBytes));
                         return new DispatchRequest(-1, false/* success */);
                     }
                 }
