@@ -52,6 +52,8 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     long DEFAULT_TIMEOUT_MILLS = Duration.ofSeconds(2).toMillis();
 
+    long INVISIBLE_TIME_MS = Duration.ofSeconds(1).toMillis();
+
     SubscriptionGroupConfig getSubscriptionGroupConfig(
         ProxyContext ctx,
         String consumerGroupName
@@ -243,7 +245,7 @@ public interface MessagingProcessor extends StartAndShutdown {
         return changeInvisibleTime(ctx, handle, messageId, groupName, topicName, invisibleTime, DEFAULT_TIMEOUT_MILLS);
     }
 
-    CompletableFuture<AckResult> changeInvisibleTime(
+    default CompletableFuture<AckResult> changeInvisibleTime(
         ProxyContext ctx,
         ReceiptHandle handle,
         String messageId,
@@ -251,7 +253,9 @@ public interface MessagingProcessor extends StartAndShutdown {
         String topicName,
         long invisibleTime,
         long timeoutMillis
-    );
+    ) {
+        return changeInvisibleTime(ctx, handle, messageId, groupName, topicName, invisibleTime, null, timeoutMillis, false);
+    }
 
     default CompletableFuture<AckResult> changeInvisibleTime(
         ProxyContext ctx,
@@ -262,7 +266,7 @@ public interface MessagingProcessor extends StartAndShutdown {
         long invisibleTime,
         String liteTopic
     ) {
-        return changeInvisibleTime(ctx, handle, messageId, groupName, topicName, invisibleTime, liteTopic, DEFAULT_TIMEOUT_MILLS);
+        return changeInvisibleTime(ctx, handle, messageId, groupName, topicName, invisibleTime, liteTopic, DEFAULT_TIMEOUT_MILLS, false);
     }
 
     CompletableFuture<AckResult> changeInvisibleTime(
@@ -273,7 +277,8 @@ public interface MessagingProcessor extends StartAndShutdown {
         String topicName,
         long invisibleTime,
         String liteTopic,
-        long timeoutMillis
+        long timeoutMillis,
+        boolean suspend
     );
 
     CompletableFuture<PullResult> pullMessage(

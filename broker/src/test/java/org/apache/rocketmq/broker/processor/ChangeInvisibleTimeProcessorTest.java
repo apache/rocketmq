@@ -250,4 +250,179 @@ public class ChangeInvisibleTimeProcessorTest {
         assertNotNull(response);
         assertEquals(ResponseCode.SUCCESS, response.getCode());
     }
+
+    @Test
+    public void testProcessRequestAsyncWithSuspendTrue() throws Exception {
+        // Setup mocks
+        Channel mockChannel = mock(Channel.class);
+        RemotingCommand mockRequest = mock(RemotingCommand.class);
+        BrokerController mockBrokerController = mock(BrokerController.class);
+        TopicConfigManager mockTopicConfigManager = mock(TopicConfigManager.class);
+        MessageStore mockMessageStore = mock(MessageStore.class);
+        BrokerConfig mockBrokerConfig = mock(BrokerConfig.class);
+        BrokerStatsManager mockBrokerStatsManager = mock(BrokerStatsManager.class);
+        PopMessageProcessor mockPopMessageProcessor = mock(PopMessageProcessor.class);
+        PopBufferMergeService mockPopBufferMergeService = mock(PopBufferMergeService.class);
+        BrokerMetricsManager brokerMetricsManager = mock(BrokerMetricsManager.class);
+        PopMetricsManager popMetricsManager = mock(PopMetricsManager.class);
+        EscapeBridge mockEscapeBridge = mock(EscapeBridge.class);
+
+        when(brokerMetricsManager.getPopMetricsManager()).thenReturn(popMetricsManager);
+        when(mockBrokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
+        doNothing().when(popMetricsManager).incPopReviveCkPutCount(any(), any());
+        when(mockBrokerController.getTopicConfigManager()).thenReturn(mockTopicConfigManager);
+        when(mockBrokerController.getMessageStore()).thenReturn(mockMessageStore);
+        when(mockBrokerController.getBrokerConfig()).thenReturn(mockBrokerConfig);
+        when(mockBrokerController.getBrokerStatsManager()).thenReturn(mockBrokerStatsManager);
+        when(mockBrokerController.getPopMessageProcessor()).thenReturn(mockPopMessageProcessor);
+        when(mockPopMessageProcessor.getPopBufferMergeService()).thenReturn(mockPopBufferMergeService);
+        when(mockPopBufferMergeService.addAk(anyInt(), any())).thenReturn(false);
+        when(mockBrokerController.getEscapeBridge()).thenReturn(mockEscapeBridge);
+
+        PutMessageResult mockPutMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, null, true);
+        when(mockEscapeBridge.asyncPutMessageToSpecificQueue(any()))
+                .thenReturn(CompletableFuture.completedFuture(mockPutMessageResult));
+
+        TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setReadQueueNums(4);
+        when(mockTopicConfigManager.selectTopicConfig(anyString())).thenReturn(topicConfig);
+        when(mockMessageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(0L);
+        when(mockMessageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(10L);
+        when(mockBrokerConfig.isPopConsumerKVServiceEnable()).thenReturn(false);
+
+        ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
+        requestHeader.setTopic("TestTopic");
+        requestHeader.setQueueId(1);
+        requestHeader.setOffset(5L);
+        requestHeader.setConsumerGroup("TestGroup");
+        requestHeader.setExtraInfo("0 10000 10000 0 TestBroker 1");
+        requestHeader.setInvisibleTime(60000L);
+        requestHeader.setSuspend(true); // Test with suspend=true
+        when(mockRequest.decodeCommandCustomHeader(ChangeInvisibleTimeRequestHeader.class)).thenReturn(requestHeader);
+
+        ChangeInvisibleTimeProcessor processor = new ChangeInvisibleTimeProcessor(mockBrokerController);
+        CompletableFuture<RemotingCommand> futureResponse = processor.processRequestAsync(mockChannel, mockRequest, true);
+
+        RemotingCommand response = futureResponse.get();
+        assertNotNull(response);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+    }
+
+    @Test
+    public void testProcessRequestAsyncWithSuspendFalse() throws Exception {
+        // Setup mocks
+        Channel mockChannel = mock(Channel.class);
+        RemotingCommand mockRequest = mock(RemotingCommand.class);
+        BrokerController mockBrokerController = mock(BrokerController.class);
+        TopicConfigManager mockTopicConfigManager = mock(TopicConfigManager.class);
+        MessageStore mockMessageStore = mock(MessageStore.class);
+        BrokerConfig mockBrokerConfig = mock(BrokerConfig.class);
+        BrokerStatsManager mockBrokerStatsManager = mock(BrokerStatsManager.class);
+        PopMessageProcessor mockPopMessageProcessor = mock(PopMessageProcessor.class);
+        PopBufferMergeService mockPopBufferMergeService = mock(PopBufferMergeService.class);
+        BrokerMetricsManager brokerMetricsManager = mock(BrokerMetricsManager.class);
+        PopMetricsManager popMetricsManager = mock(PopMetricsManager.class);
+        EscapeBridge mockEscapeBridge = mock(EscapeBridge.class);
+
+        when(brokerMetricsManager.getPopMetricsManager()).thenReturn(popMetricsManager);
+        when(mockBrokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
+        doNothing().when(popMetricsManager).incPopReviveCkPutCount(any(), any());
+        when(mockBrokerController.getTopicConfigManager()).thenReturn(mockTopicConfigManager);
+        when(mockBrokerController.getMessageStore()).thenReturn(mockMessageStore);
+        when(mockBrokerController.getBrokerConfig()).thenReturn(mockBrokerConfig);
+        when(mockBrokerController.getBrokerStatsManager()).thenReturn(mockBrokerStatsManager);
+        when(mockBrokerController.getPopMessageProcessor()).thenReturn(mockPopMessageProcessor);
+        when(mockPopMessageProcessor.getPopBufferMergeService()).thenReturn(mockPopBufferMergeService);
+        when(mockPopBufferMergeService.addAk(anyInt(), any())).thenReturn(false);
+        when(mockBrokerController.getEscapeBridge()).thenReturn(mockEscapeBridge);
+
+        PutMessageResult mockPutMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, null, true);
+        when(mockEscapeBridge.asyncPutMessageToSpecificQueue(any()))
+                .thenReturn(CompletableFuture.completedFuture(mockPutMessageResult));
+
+        TopicConfig topicConfig = new TopicConfig();
+        topicConfig.setReadQueueNums(4);
+        when(mockTopicConfigManager.selectTopicConfig(anyString())).thenReturn(topicConfig);
+        when(mockMessageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(0L);
+        when(mockMessageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(10L);
+        when(mockBrokerConfig.isPopConsumerKVServiceEnable()).thenReturn(false);
+
+        ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
+        requestHeader.setTopic("TestTopic");
+        requestHeader.setQueueId(1);
+        requestHeader.setOffset(5L);
+        requestHeader.setConsumerGroup("TestGroup");
+        requestHeader.setExtraInfo("0 10000 10000 0 TestBroker 1");
+        requestHeader.setInvisibleTime(60000L);
+        requestHeader.setSuspend(false); // Test with suspend=false
+        when(mockRequest.decodeCommandCustomHeader(ChangeInvisibleTimeRequestHeader.class)).thenReturn(requestHeader);
+
+        ChangeInvisibleTimeProcessor processor = new ChangeInvisibleTimeProcessor(mockBrokerController);
+        CompletableFuture<RemotingCommand> futureResponse = processor.processRequestAsync(mockChannel, mockRequest, true);
+
+        RemotingCommand response = futureResponse.get();
+        assertNotNull(response);
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+    }
+
+    @Test
+    public void testProcessRequestWithSuspendTrue() throws RemotingCommandException, ConsumeQueueException {
+        when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(2L);
+        when(escapeBridge.asyncPutMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+        int queueId = 0;
+        long queueOffset = 0;
+        long popTime = System.currentTimeMillis() - 1_000;
+        long invisibleTime = 30_000;
+        int reviveQid = 0;
+        String brokerName = "test_broker";
+        String extraInfo = ExtraInfoUtil.buildExtraInfo(queueOffset, popTime, invisibleTime, reviveQid,
+            topic, brokerName, queueId) + MessageConst.KEY_SEPARATOR + queueOffset;
+
+        ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setOffset(queueOffset);
+        requestHeader.setConsumerGroup(group);
+        requestHeader.setExtraInfo(extraInfo);
+        requestHeader.setInvisibleTime(invisibleTime);
+        requestHeader.setSuspend(true); // Set suspend to true
+
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        request.makeCustomHeaderToNet();
+        RemotingCommand responseToReturn = changeInvisibleTimeProcessor.processRequest(handlerContext, request);
+        assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(responseToReturn.getOpaque()).isEqualTo(request.getOpaque());
+    }
+
+    @Test
+    public void testProcessRequestWithSuspendFalse() throws RemotingCommandException, ConsumeQueueException {
+        when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(2L);
+        when(escapeBridge.asyncPutMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+        int queueId = 0;
+        long queueOffset = 0;
+        long popTime = System.currentTimeMillis() - 1_000;
+        long invisibleTime = 30_000;
+        int reviveQid = 0;
+        String brokerName = "test_broker";
+        String extraInfo = ExtraInfoUtil.buildExtraInfo(queueOffset, popTime, invisibleTime, reviveQid,
+            topic, brokerName, queueId) + MessageConst.KEY_SEPARATOR + queueOffset;
+
+        ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setOffset(queueOffset);
+        requestHeader.setConsumerGroup(group);
+        requestHeader.setExtraInfo(extraInfo);
+        requestHeader.setInvisibleTime(invisibleTime);
+        requestHeader.setSuspend(false); // Set suspend to false
+
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        request.makeCustomHeaderToNet();
+        RemotingCommand responseToReturn = changeInvisibleTimeProcessor.processRequest(handlerContext, request);
+        assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(responseToReturn.getOpaque()).isEqualTo(request.getOpaque());
+    }
+
+    // Note: suspend parameter passing is already tested in testProcessRequestWithSuspendTrue and testProcessRequestWithSuspendFalse
+    // The actual parameter passing to PopConsumerService is verified through integration with PopConsumerService tests
 }

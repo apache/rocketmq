@@ -486,8 +486,9 @@ public class PopConsumerService extends ServiceThread {
     }
 
     // refer ChangeInvisibleTimeProcessor.appendCheckPointThenAckOrigin
-    public void changeInvisibilityDuration(long popTime, long invisibleTime,
-        long changedPopTime, long changedInvisibleTime, String groupId, String topicId, int queueId, long offset) {
+    public void changeInvisibilityDuration(long popTime, long invisibleTime, long changedPopTime,
+                                           long changedInvisibleTime, String groupId, String topicId,
+                                           int queueId, long offset, boolean suspend) {
 
         if (brokerConfig.isPopConsumerKVServiceLog()) {
             log.info("PopConsumerService change, time={}, invisible={}, " +
@@ -496,10 +497,10 @@ public class PopConsumerService extends ServiceThread {
         }
 
         PopConsumerRecord ckRecord = new PopConsumerRecord(
-            changedPopTime, groupId, topicId, queueId, 0, changedInvisibleTime, offset, null);
+            changedPopTime, groupId, topicId, queueId, 0, changedInvisibleTime, offset, null, suspend);
 
         PopConsumerRecord ackRecord = new PopConsumerRecord(
-            popTime, groupId, topicId, queueId, 0, invisibleTime, offset, null);
+            popTime, groupId, topicId, queueId, 0, invisibleTime, offset, null, suspend);
 
         // No need to generate new records when the group does not exist,
         // because these retry messages will not be consumed by anyone.
@@ -689,7 +690,12 @@ public class PopConsumerService extends ServiceThread {
         msgInner.setSysFlag(messageExt.getSysFlag());
         msgInner.setBornHost(brokerController.getStoreHost());
         msgInner.setStoreHost(brokerController.getStoreHost());
-        msgInner.setReconsumeTimes(messageExt.getReconsumeTimes() + 1);
+        if (record.isSuspend()) {
+            msgInner.setReconsumeTimes(messageExt.getReconsumeTimes());
+        } else {
+            msgInner.setReconsumeTimes(messageExt.getReconsumeTimes() + 1);
+        }
+
         msgInner.getProperties().putAll(messageExt.getProperties());
 
         // set first pop time here

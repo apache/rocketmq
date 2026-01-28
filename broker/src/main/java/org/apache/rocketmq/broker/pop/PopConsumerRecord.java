@@ -70,12 +70,20 @@ public class PopConsumerRecord {
     @JSONField(ordinal = 8)
     private String attemptId;
 
+    @JSONField(ordinal = 9)
+    private boolean suspend;
+
     // used for test and fastjson
     public PopConsumerRecord() {
     }
 
     public PopConsumerRecord(long popTime, String groupId, String topicId, int queueId,
         int retryFlag, long invisibleTime, long offset, String attemptId) {
+        this(popTime, groupId, topicId, queueId, retryFlag, invisibleTime, offset, attemptId, false);
+    }
+
+    public PopConsumerRecord(long popTime, String groupId, String topicId, int queueId, int retryFlag,
+                             long invisibleTime, long offset, String attemptId, boolean suspend) {
 
         this.popTime = popTime;
         this.groupId = groupId;
@@ -85,6 +93,7 @@ public class PopConsumerRecord {
         this.invisibleTime = invisibleTime;
         this.offset = offset;
         this.attemptId = attemptId;
+        this.suspend = suspend;
     }
 
     @JSONField(serialize = false)
@@ -194,6 +203,14 @@ public class PopConsumerRecord {
         this.attemptId = attemptId;
     }
 
+    public boolean isSuspend() {
+        return suspend;
+    }
+
+    public void setSuspend(boolean suspend) {
+        this.suspend = suspend;
+    }
+
     @Override
     public String toString() {
         return "PopDeliveryRecord{" +
@@ -206,6 +223,7 @@ public class PopConsumerRecord {
             ", offset=" + offset +
             ", attemptTimes=" + attemptTimes +
             ", attemptId='" + attemptId + '\'' +
+            ", suspend=" + suspend +
             '}';
     }
 }

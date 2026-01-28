@@ -198,6 +198,18 @@ public class ConsumerProcessor extends AbstractProcessor {
                                 liteTopic,
                                 MessagingProcessor.DEFAULT_TIMEOUT_MILLS);
                             break;
+                        case TO_RETURN:
+                            this.messagingProcessor.changeInvisibleTime(
+                                    ctx,
+                                    ReceiptHandle.decode(handleString),
+                                    messageExt.getMsgId(),
+                                    consumerGroup,
+                                    topic,
+                                    MessagingProcessor.INVISIBLE_TIME_MS,
+                                    null,
+                                    MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
+                                    true);
+                            break;
                         case MATCH:
                         default:
                             messageExtList.add(messageExt);
@@ -392,8 +404,8 @@ public class ConsumerProcessor extends AbstractProcessor {
             });
     }
 
-    public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle,
-        String messageId, String groupName, String topicName, long invisibleTime, String liteTopic, long timeoutMillis) {
+    public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle, String messageId,
+        String groupName, String topicName, long invisibleTime, String liteTopic, long timeoutMillis, boolean suspend) {
         CompletableFuture<AckResult> future = new CompletableFuture<>();
         try {
             this.validateReceiptHandle(handle);
@@ -406,6 +418,7 @@ public class ConsumerProcessor extends AbstractProcessor {
             changeInvisibleTimeRequestHeader.setOffset(handle.getOffset());
             changeInvisibleTimeRequestHeader.setInvisibleTime(invisibleTime);
             changeInvisibleTimeRequestHeader.setLiteTopic(liteTopic);
+            changeInvisibleTimeRequestHeader.setSuspend(suspend);
             long commitLogOffset = handle.getCommitLogOffset();
 
             future = this.serviceManager.getMessageService().changeInvisibleTime(
