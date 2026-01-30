@@ -249,7 +249,9 @@ public class MixAll {
         if (!Files.isDirectory(dir)) {
             throw new NotDirectoryException(dir.toString());
         }
-
+        if (isWindows()) {
+            return;
+        }
         try (FileChannel fc = FileChannel.open(dir, StandardOpenOption.READ)) {
             fc.force(true);
         }
