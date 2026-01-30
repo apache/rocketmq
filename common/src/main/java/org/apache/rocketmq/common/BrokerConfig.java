@@ -298,6 +298,12 @@ public class BrokerConfig extends BrokerIdentity {
 
     private long transactionMetricFlushInterval = 10 * 1000;
 
+    private int transactionCheckRocksdbCoreThreads = 2;
+
+    private int transactionCheckRocksdbMaxThreads = 5;
+
+    private int transactionCheckRocksdbQueueCapacity = 2000;
+
     /**
      * transaction batch op message
      */
@@ -2104,6 +2110,30 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setTransactionMetricFlushInterval(long transactionMetricFlushInterval) {
         this.transactionMetricFlushInterval = transactionMetricFlushInterval;
+    }
+
+    public void setTransactionCheckRocksdbCoreThreads(int transactionCheckRocksdbCoreThreads) {
+        this.transactionCheckRocksdbCoreThreads = transactionCheckRocksdbCoreThreads;
+    }
+
+    public int getTransactionCheckRocksdbCoreThreads() {
+        return transactionCheckRocksdbCoreThreads;
+    }
+
+    public int getTransactionCheckRocksdbMaxThreads() {
+        return transactionCheckRocksdbMaxThreads;
+    }
+
+    public void setTransactionCheckRocksdbMaxThreads(int transactionCheckRocksdbMaxThreads) {
+        this.transactionCheckRocksdbMaxThreads = transactionCheckRocksdbMaxThreads;
+    }
+
+    public int getTransactionCheckRocksdbQueueCapacity() {
+        return transactionCheckRocksdbQueueCapacity;
+    }
+
+    public void setTransactionCheckRocksdbQueueCapacity(int transactionCheckRocksdbQueueCapacity) {
+        this.transactionCheckRocksdbQueueCapacity = transactionCheckRocksdbQueueCapacity;
     }
 
     public long getPopInflightMessageThreshold() {
