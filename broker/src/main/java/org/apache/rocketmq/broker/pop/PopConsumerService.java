@@ -402,17 +402,17 @@ public class PopConsumerService extends ServiceThread {
             } else {
                 getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
                     topicId, requestCount, batchSize, filter, PopConsumerRecord.RetryType.NORMAL_TOPIC);
+            }
 
-                if (!fifo && !preferRetry) {
-                    if (brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
-                        getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
-                            retryTopicV1, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V1);
-                    }
+            if (!fifo && !preferRetry) {
+                if (brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
+                    getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
+                        retryTopicV1, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V1);
+                }
 
-                    if (brokerConfig.isEnableRetryTopicV2()) {
-                        getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
-                            retryTopicV2, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V2);
-                    }
+                if (brokerConfig.isEnableRetryTopicV2()) {
+                    getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
+                        retryTopicV2, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V2);
                 }
             }
 
