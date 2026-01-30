@@ -171,6 +171,13 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             log.error("Failed to flush all consume queues", e);
             return false;
         }
+
+        for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : this.consumeQueueTable.entrySet()) {
+            for (Map.Entry<Integer, ConsumeQueueInterface> cqEntry : topicEntry.getValue().entrySet()) {
+                cqEntry.getValue().shutdown();
+            }
+        }
+
         return true;
     }
 
@@ -864,4 +871,5 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             return messageStore.getBrokerConfig().getIdentifier() + CleanConsumeQueueService.class.getSimpleName();
         }
     }
+
 }

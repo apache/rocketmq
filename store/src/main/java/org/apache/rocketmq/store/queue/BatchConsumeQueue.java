@@ -1200,4 +1200,9 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     public void initializeWithOffset(long offset, long minPhyOffset) {
         // not support now
     }
+
+    @Override
+    public boolean shutdown() {
+        return true;
+    }
 }
