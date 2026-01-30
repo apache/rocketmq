@@ -25,7 +25,9 @@ import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
+import com.alibaba.fastjson2.JSON;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -46,16 +48,19 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.pop.PopCheckPoint;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -423,6 +428,79 @@ public class ChangeInvisibleTimeProcessorTest {
         assertThat(responseToReturn.getOpaque()).isEqualTo(request.getOpaque());
     }
 
-    // Note: suspend parameter passing is already tested in testProcessRequestWithSuspendTrue and testProcessRequestWithSuspendFalse
-    // The actual parameter passing to PopConsumerService is verified through integration with PopConsumerService tests
+    @Test
+    public void testAppendCheckPointThenAckOriginWritesSuspendTrueInCheckpoint() throws Exception {
+        when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(2L);
+        ArgumentCaptor<MessageExtBrokerInner> msgCaptor = ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+        when(escapeBridge.asyncPutMessageToSpecificQueue(msgCaptor.capture()))
+            .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+
+        int queueId = 0;
+        long queueOffset = 0;
+        long popTime = System.currentTimeMillis() - 1_000;
+        long invisibleTime = 30_000;
+        int reviveQid = 0;
+        String brokerName = "test_broker";
+        String extraInfo = ExtraInfoUtil.buildExtraInfo(queueOffset, popTime, invisibleTime, reviveQid,
+            topic, brokerName, queueId) + MessageConst.KEY_SEPARATOR + queueOffset;
+
+        ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setOffset(queueOffset);
+        requestHeader.setConsumerGroup(group);
+        requestHeader.setExtraInfo(extraInfo);
+        requestHeader.setInvisibleTime(invisibleTime);
+        requestHeader.setSuspend(true);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        request.makeCustomHeaderToNet();
+        changeInvisibleTimeProcessor.processRequest(handlerContext, request);
+
+        List<MessageExtBrokerInner> allValues = msgCaptor.getAllValues();
+        MessageExtBrokerInner ckMessage = allValues.stream()
+            .filter(m -> PopAckConstants.CK_TAG.equals(m.getTags()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No CK message captured"));
+        PopCheckPoint ck = JSON.parseObject(new String(ckMessage.getBody(), java.nio.charset.StandardCharsets.UTF_8), PopCheckPoint.class);
+        assertThat(ck.isSuspend()).isTrue();
+    }
+
+    @Test
+    public void testAppendCheckPointThenAckOriginWritesSuspendFalseInCheckpoint() throws Exception {
+        when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(2L);
+        ArgumentCaptor<MessageExtBrokerInner> msgCaptor = ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+        when(escapeBridge.asyncPutMessageToSpecificQueue(msgCaptor.capture()))
+            .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
+
+        int queueId = 0;
+        long queueOffset = 0;
+        long popTime = System.currentTimeMillis() - 1_000;
+        long invisibleTime = 30_000;
+        int reviveQid = 0;
+        String brokerName = "test_broker";
+        String extraInfo = ExtraInfoUtil.buildExtraInfo(queueOffset, popTime, invisibleTime, reviveQid,
+            topic, brokerName, queueId) + MessageConst.KEY_SEPARATOR + queueOffset;
+
+        ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setQueueId(queueId);
+        requestHeader.setOffset(queueOffset);
+        requestHeader.setConsumerGroup(group);
+        requestHeader.setExtraInfo(extraInfo);
+        requestHeader.setInvisibleTime(invisibleTime);
+        requestHeader.setSuspend(false);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        request.makeCustomHeaderToNet();
+        changeInvisibleTimeProcessor.processRequest(handlerContext, request);
+
+        List<MessageExtBrokerInner> allValues = msgCaptor.getAllValues();
+        MessageExtBrokerInner ckMessage = allValues.stream()
+            .filter(m -> PopAckConstants.CK_TAG.equals(m.getTags()))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("No CK message captured"));
+        PopCheckPoint ck = JSON.parseObject(new String(ckMessage.getBody(), java.nio.charset.StandardCharsets.UTF_8), PopCheckPoint.class);
+        assertThat(ck.isSuspend()).isFalse();
+    }
 }

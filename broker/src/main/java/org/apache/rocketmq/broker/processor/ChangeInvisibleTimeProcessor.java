@@ -324,6 +324,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         ck.setQueueId(queueId);
         ck.addDiff(0);
         ck.setBrokerName(ExtraInfoUtil.getBrokerName(extraInfo));
+        ck.setSuspend(requestHeader.isSuspend());
 
         msgInner.setBody(JSON.toJSONString(ck).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(reviveQid);
