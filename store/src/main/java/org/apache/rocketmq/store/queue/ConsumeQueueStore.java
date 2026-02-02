@@ -172,12 +172,6 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             return false;
         }
 
-        for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : this.consumeQueueTable.entrySet()) {
-            for (Map.Entry<Integer, ConsumeQueueInterface> cqEntry : topicEntry.getValue().entrySet()) {
-                cqEntry.getValue().shutdown();
-            }
-        }
-
         return true;
     }
 
