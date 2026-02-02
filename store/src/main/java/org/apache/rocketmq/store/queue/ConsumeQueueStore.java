@@ -171,6 +171,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             log.error("Failed to flush all consume queues", e);
             return false;
         }
+
         return true;
     }
 
@@ -864,4 +865,5 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             return messageStore.getBrokerConfig().getIdentifier() + CleanConsumeQueueService.class.getSimpleName();
         }
     }
+
 }

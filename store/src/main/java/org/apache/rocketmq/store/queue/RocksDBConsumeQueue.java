@@ -507,4 +507,9 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
             ERROR_LOG.error("RocksDBConsumeQueue initializeWithOffset Failed. topic={}, queueId={}, offset={}", topic, queueId, offset, e);
         }
     }
+
+    @Override
+    public boolean shutdown() {
+        return true;
+    }
 }
