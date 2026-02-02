@@ -250,7 +250,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
                 ConsumeQueueInterface queue = this.brokerController.getMessageStore().getConsumeQueue(targetTopic, queueId);
                 // If the ConsumeQueue doesn't exist, it's not readable.
                 if (queue == null) {
-                   return false;
+                    return false;
                 }
                 ReferredIterator<CqUnit> iterator = null;
                 try {
