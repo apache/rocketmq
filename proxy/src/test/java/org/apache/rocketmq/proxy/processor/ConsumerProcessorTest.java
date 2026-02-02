@@ -61,9 +61,11 @@ import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -290,7 +292,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             .thenReturn(CompletableFuture.completedFuture(innerAckResult));
 
         AckResult ackResult = this.consumerProcessor.changeInvisibleTime(createContext(), handle, MessageClientIDSetter.createUniqID(),
-            CONSUMER_GROUP, TOPIC, 1000, null, 3000).get();
+            CONSUMER_GROUP, TOPIC, 1000, null, 3000, true).get();
 
         assertEquals(AckStatus.OK, ackResult.getStatus());
         assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP, new BrokerConfig().isEnableRetryTopicV2()), requestHeaderArgumentCaptor.getValue().getTopic());
@@ -356,5 +358,107 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         Set<MessageQueue> result = this.consumerProcessor.lockBatchMQ(ProxyContext.create(), mqSet, CONSUMER_GROUP, CLIENT_ID, 1000)
             .get();
         assertThat(result).isEqualTo(Sets.newHashSet(mq1));
+    }
+
+    @Test
+    public void testPopMessageWithToReturnFilter() throws Throwable {
+        final String tag = "tag";
+        final long invisibleTime = Duration.ofSeconds(15).toMillis();
+        ArgumentCaptor<AddressableMessageQueue> messageQueueArgumentCaptor = ArgumentCaptor.forClass(AddressableMessageQueue.class);
+        ArgumentCaptor<PopMessageRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(PopMessageRequestHeader.class);
+
+        List<MessageExt> messageExtList = new ArrayList<>();
+        messageExtList.add(createMessageExt(TOPIC, tag, 0, invisibleTime));
+        PopResult innerPopResult = new PopResult(PopStatus.FOUND, messageExtList);
+        when(this.messageService.popMessage(any(), messageQueueArgumentCaptor.capture(), requestHeaderArgumentCaptor.capture(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(innerPopResult));
+
+        when(this.topicRouteService.getCurrentMessageQueueView(any(), anyString()))
+            .thenReturn(mock(MessageQueueView.class));
+
+        ArgumentCaptor<String> ackMessageIdArgumentCaptor = ArgumentCaptor.forClass(String.class);
+        when(this.messagingProcessor.ackMessage(any(), any(), ackMessageIdArgumentCaptor.capture(), anyString(), anyString(), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(mock(AckResult.class)));
+
+        ArgumentCaptor<String> changeInvisibleTimeMessageIdArgumentCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Long> changeInvisibleTimeInvisibleTimeArgumentCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Boolean> changeInvisibleTimeSuspendArgumentCaptor = ArgumentCaptor.forClass(Boolean.class);
+        when(this.messagingProcessor.changeInvisibleTime(any(), any(), changeInvisibleTimeMessageIdArgumentCaptor.capture(),
+            anyString(), anyString(), changeInvisibleTimeInvisibleTimeArgumentCaptor.capture(), any(), anyLong(),
+            changeInvisibleTimeSuspendArgumentCaptor.capture()))
+            .thenReturn(CompletableFuture.completedFuture(mock(AckResult.class)));
+
+        AddressableMessageQueue messageQueue = mock(AddressableMessageQueue.class);
+        PopResult popResult = this.consumerProcessor.popMessage(
+            createContext(),
+            (ctx, messageQueueView) -> messageQueue,
+            CONSUMER_GROUP,
+            TOPIC,
+            60,
+            invisibleTime,
+            Duration.ofSeconds(3).toMillis(),
+            ConsumeInitMode.MAX,
+            FilterAPI.build(TOPIC, tag, ExpressionType.TAG),
+            false,
+            (ctx, consumerGroup, subscriptionData, messageExt) -> {
+                // Return TO_RETURN for the message
+                return PopMessageResultFilter.FilterResult.TO_RETURN;
+            },
+            null,
+            Duration.ofSeconds(3).toMillis()
+        ).get();
+
+        // Verify that changeInvisibleTime was called with suspend=true
+        verify(this.messagingProcessor).changeInvisibleTime(any(), any(), eq(messageExtList.get(0).getMsgId()),
+            eq(CONSUMER_GROUP), eq(TOPIC), eq(Duration.ofSeconds(1).toMillis()), eq(null),
+            eq(MessagingProcessor.DEFAULT_TIMEOUT_MILLS), eq(true));
+
+        // Verify that the message was NOT added to the result list
+        assertEquals(PopStatus.FOUND, popResult.getPopStatus());
+        assertEquals(0, popResult.getMsgFoundList().size());
+    }
+
+    @Test
+    public void testChangeInvisibleTimeWithSuspendFalse() throws Throwable {
+        ReceiptHandle handle = create(createMessageExt(MixAll.RETRY_GROUP_TOPIC_PREFIX + TOPIC, "", 0, 3000));
+        assertNotNull(handle);
+
+        ArgumentCaptor<ChangeInvisibleTimeRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(ChangeInvisibleTimeRequestHeader.class);
+        AckResult innerAckResult = new AckResult();
+        innerAckResult.setStatus(AckStatus.OK);
+        when(this.messageService.changeInvisibleTime(any(), any(), anyString(), requestHeaderArgumentCaptor.capture(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(innerAckResult));
+
+        AckResult ackResult = this.consumerProcessor.changeInvisibleTime(createContext(), handle, MessageClientIDSetter.createUniqID(),
+            CONSUMER_GROUP, TOPIC, 1000, null, 3000, false).get();
+
+        assertEquals(AckStatus.OK, ackResult.getStatus());
+        assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP, new BrokerConfig().isEnableRetryTopicV2()), requestHeaderArgumentCaptor.getValue().getTopic());
+        assertEquals(CONSUMER_GROUP, requestHeaderArgumentCaptor.getValue().getConsumerGroup());
+        assertEquals(1000, requestHeaderArgumentCaptor.getValue().getInvisibleTime().longValue());
+        assertEquals(handle.getReceiptHandle(), requestHeaderArgumentCaptor.getValue().getExtraInfo());
+        assertFalse("Suspend should be false", requestHeaderArgumentCaptor.getValue().isSuspend());
+    }
+
+    @Test
+    public void testChangeInvisibleTimeWithSuspendTrue() throws Throwable {
+        ReceiptHandle handle = create(createMessageExt(MixAll.RETRY_GROUP_TOPIC_PREFIX + TOPIC, "", 0, 3000));
+        assertNotNull(handle);
+
+        ArgumentCaptor<ChangeInvisibleTimeRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(ChangeInvisibleTimeRequestHeader.class);
+        AckResult innerAckResult = new AckResult();
+        innerAckResult.setStatus(AckStatus.OK);
+        when(this.messageService.changeInvisibleTime(any(), any(), anyString(), requestHeaderArgumentCaptor.capture(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(innerAckResult));
+
+        AckResult ackResult = this.consumerProcessor.changeInvisibleTime(createContext(), handle, MessageClientIDSetter.createUniqID(),
+            CONSUMER_GROUP, TOPIC, 1000, null, 3000, true).get();
+
+        assertEquals(AckStatus.OK, ackResult.getStatus());
+        assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP, new BrokerConfig().isEnableRetryTopicV2()), requestHeaderArgumentCaptor.getValue().getTopic());
+        assertEquals(CONSUMER_GROUP, requestHeaderArgumentCaptor.getValue().getConsumerGroup());
+        assertEquals(1000, requestHeaderArgumentCaptor.getValue().getInvisibleTime().longValue());
+        assertEquals(handle.getReceiptHandle(), requestHeaderArgumentCaptor.getValue().getExtraInfo());
+        assertTrue("Suspend should be true", requestHeaderArgumentCaptor.getValue().isSuspend());
     }
 }

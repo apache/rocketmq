@@ -153,7 +153,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
                 brokerController.getPopConsumerService().changeInvisibilityDuration(
                     ExtraInfoUtil.getPopTime(extraInfo), ExtraInfoUtil.getInvisibleTime(extraInfo), current,
                     requestHeader.getInvisibleTime(), requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                    requestHeader.getQueueId(), requestHeader.getOffset());
+                    requestHeader.getQueueId(), requestHeader.getOffset(), requestHeader.isSuspend());
                 responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
                 responseHeader.setPopTime(current);
                 responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
@@ -324,6 +324,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         ck.setQueueId(queueId);
         ck.addDiff(0);
         ck.setBrokerName(ExtraInfoUtil.getBrokerName(extraInfo));
+        ck.setSuspend(requestHeader.isSuspend());
 
         msgInner.setBody(JSON.toJSONString(ck).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(reviveQid);
