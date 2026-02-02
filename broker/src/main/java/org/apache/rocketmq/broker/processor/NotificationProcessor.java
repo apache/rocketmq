@@ -21,6 +21,9 @@ import io.netty.channel.ChannelHandlerContext;
 import java.util.Map;
 import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.filter.ConsumerFilterData;
+import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
+import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.longpolling.PollingHeader;
 import org.apache.rocketmq.broker.longpolling.PollingResult;
 import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
@@ -29,6 +32,7 @@ import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -37,8 +41,10 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
@@ -154,7 +160,49 @@ public class NotificationProcessor implements NettyRequestProcessor {
         }
 
         if (!hasMsg) {
-            PollingResult pollingResult = popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader));
+            SubscriptionData subscriptionData = null;
+            ExpressionMessageFilter messageFilter = null;
+            if (requestHeader.getExp() != null && !requestHeader.getExp().isEmpty()) {
+                try {
+                    // origin topic
+                    subscriptionData = FilterAPI.build(
+                        requestHeader.getTopic(), requestHeader.getExp(), requestHeader.getExpType());
+
+                    ConsumerFilterData consumerFilterData = null;
+                    if (!ExpressionType.isTagType(subscriptionData.getExpressionType())) {
+                        consumerFilterData = ConsumerFilterManager.build(
+                            requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getExp(),
+                            requestHeader.getExpType(), System.currentTimeMillis());
+                        if (consumerFilterData == null) {
+                            POP_LOGGER.warn("Parse the consumer's subscription[{}] failed, group: {}",
+                                requestHeader.getExp(), requestHeader.getConsumerGroup());
+                            response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
+                            response.setRemark("parse the consumer's subscription failed");
+                            return response;
+                        }
+                    }
+                    messageFilter = new ExpressionMessageFilter(
+                        subscriptionData, consumerFilterData, brokerController.getConsumerFilterManager());
+                } catch (Exception e) {
+                    POP_LOGGER.warn("Parse the consumer's subscription[{}] error, group: {}", requestHeader.getExp(),
+                        requestHeader.getConsumerGroup());
+                    response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
+                    response.setRemark("parse the consumer's subscription failed");
+                    return response;
+                }
+            } else {
+                try {
+                    // origin topic
+                    subscriptionData = FilterAPI.build(requestHeader.getTopic(), "*", ExpressionType.TAG);
+                } catch (Exception e) {
+                    POP_LOGGER.warn("Build default subscription error, group: {}", requestHeader.getConsumerGroup());
+                }
+            }
+
+            ExpressionMessageFilter finalMessageFilter = messageFilter;
+            SubscriptionData finalSubscriptionData = subscriptionData;
+
+            PollingResult pollingResult = popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader), finalSubscriptionData, finalMessageFilter);
             if (pollingResult == PollingResult.POLLING_SUC) {
                 return null;
             } else if (pollingResult == PollingResult.POLLING_FULL) {
