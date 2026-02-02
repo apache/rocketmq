@@ -44,6 +44,7 @@ public class MessageConst {
     public static final String PROPERTY_EXTEND_UNIQ_INFO = "EXTEND_UNIQ_INFO";
     public static final String PROPERTY_MAX_RECONSUME_TIMES = "MAX_RECONSUME_TIMES";
     public static final String PROPERTY_CONSUME_START_TIMESTAMP = "CONSUME_START_TIME";
+    public static final String PROPERTY_PRIORITY = "_SYS_MSG_PRIORITY_";
     public static final String PROPERTY_INNER_NUM = "INNER_NUM";
     public static final String PROPERTY_INNER_BASE = "INNER_BASE";
     public static final String DUP_INFO = "DUP_INFO";
@@ -63,6 +64,7 @@ public class MessageConst {
     public static final String PROPERTY_POP_CK_OFFSET = "POP_CK_OFFSET";
     public static final String PROPERTY_FIRST_POP_TIME = "1ST_POP_TIME";
     public static final String PROPERTY_SHARDING_KEY = "__SHARDINGKEY";
+    public static final String PROPERTY_LITE_TOPIC = "__LITE_TOPIC";
     public static final String PROPERTY_FORWARD_QUEUE_ID = "PROPERTY_FORWARD_QUEUE_ID";
     public static final String PROPERTY_REDIRECT = "REDIRECT";
     public static final String PROPERTY_INNER_MULTI_DISPATCH = "INNER_MULTI_DISPATCH";
@@ -169,5 +171,7 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_DLQ_ORIGIN_TOPIC);
         STRING_HASH_SET.add(PROPERTY_DLQ_ORIGIN_MESSAGE_ID);
         STRING_HASH_SET.add(PROPERTY_CRC32);
+        STRING_HASH_SET.add(PROPERTY_PRIORITY);
+        STRING_HASH_SET.add(PROPERTY_LITE_TOPIC);
     }
 }

@@ -25,14 +25,14 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcValidator;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
-public abstract class AbstractMessingActivity {
+public abstract class AbstractMessagingActivity {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected final MessagingProcessor messagingProcessor;
     protected final GrpcClientSettingsManager grpcClientSettingsManager;
     protected final GrpcChannelManager grpcChannelManager;
 
-    public AbstractMessingActivity(MessagingProcessor messagingProcessor,
-        GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
+    public AbstractMessagingActivity(MessagingProcessor messagingProcessor,
+                                     GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
         this.messagingProcessor = messagingProcessor;
         this.grpcClientSettingsManager = grpcClientSettingsManager;
         this.grpcChannelManager = grpcChannelManager;
@@ -40,6 +40,10 @@ public abstract class AbstractMessingActivity {
 
     protected void validateTopic(Resource topic) {
         GrpcValidator.getInstance().validateTopic(topic);
+    }
+
+    protected void validateLiteTopic(String liteTopic) {
+        GrpcValidator.getInstance().validateLiteTopic(liteTopic);
     }
 
     protected void validateConsumerGroup(Resource consumerGroup) {

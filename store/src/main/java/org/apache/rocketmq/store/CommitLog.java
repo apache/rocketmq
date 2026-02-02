@@ -111,9 +111,9 @@ public class CommitLog implements Swappable {
 
     public CommitLog(final DefaultMessageStore messageStore) {
         String storePath = messageStore.getMessageStoreConfig().getStorePathCommitLog();
-        RunningFlags runningFlags = messageStore.getMessageStoreConfig().isEnableRunningFlagsInFlush() 
+        RunningFlags runningFlags = messageStore.getMessageStoreConfig().isEnableRunningFlagsInFlush()
             ? messageStore.getRunningFlags() : null;
-        
+
         if (storePath.contains(MixAll.MULTI_PATH_SPLITTER)) {
             this.mappedFileQueue = new MultiPathMappedFileQueue(messageStore.getMessageStoreConfig(),
                 messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog(),
@@ -623,8 +623,18 @@ public class CommitLog implements Swappable {
                             return new DispatchRequest(-1, false/* success */);
                         }
                     } else {
+                        // Read full message for logging when error occurs
+                        ByteBuffer fullMessageBuffer = byteBuffer.duplicate();
+                        int messageStartPos = fullMessageBuffer.position() - totalSize;
+                        fullMessageBuffer.position(messageStartPos);
+                        fullMessageBuffer.limit(messageStartPos + totalSize);
+                        byte[] fullMessageBytes = new byte[totalSize];
+                        fullMessageBuffer.get(fullMessageBytes, 0, totalSize);
+                        
+                        // Print full message and especially properties
                         log.warn(
-                            "CommitLog#checkAndDispatchMessage: failed to check message CRC, not found CRC in properties");
+                            "CommitLog#checkAndDispatchMessage: failed to check message CRC, not found CRC in properties. topic={}, properties={}, propertiesLength={}, fullMessageHex={}",
+                            topic, propertiesMap != null ? propertiesMap.toString() : "null", propertiesLength, UtilAll.bytes2string(fullMessageBytes));
                         return new DispatchRequest(-1, false/* success */);
                     }
                 }
@@ -738,6 +748,7 @@ public class CommitLog implements Swappable {
         // recover by the minimum time stamp
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
         boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
+        boolean checkCommitLogOffsetOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCommitLogOffsetOnRecover();
         int maxRecoverNum = this.defaultMessageStore.getMessageStoreConfig().getCommitLogRecoverMaxNum();
         if (maxRecoverNum <= 0) {
             maxRecoverNum = 10;
@@ -792,8 +803,18 @@ public class CommitLog implements Swappable {
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
                 int size = dispatchRequest.getMsgSize();
-
                 if (dispatchRequest.isSuccess()) {
+                    // Check commitlog offset validity if enabled
+                    if (size > 0 && checkCommitLogOffsetOnRecover) {
+                        if (dispatchRequest.getCommitLogOffset() < mappedFile.getFileFromOffset()
+                            || dispatchRequest.getCommitLogOffset() > mappedFile.getFileFromOffset() + mappedFile.getFileSize()) {
+                            log.warn("found illegal commitlog offset {} in {}, current pos={}, it will be truncated.",
+                                dispatchRequest.getCommitLogOffset(), mappedFile.getFileName(), processOffset + mappedFileOffset);
+                            log.info("recover physics file end, {} pos={}", mappedFile.getFileName(), byteBuffer.position());
+
+                            break;
+                        }
+                    }
                     // Normal data
                     if (size > 0) {
                         lastValidMsgPhyOffset = processOffset + mappedFileOffset;
@@ -925,10 +946,11 @@ public class CommitLog implements Swappable {
         return isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
     }
 
-    private boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp, boolean recoverNormally) throws RocksDBException {
+    private boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
+        boolean recoverNormally) throws RocksDBException {
         boolean result = this.defaultMessageStore.getQueueStore().isMappedFileMatchedRecover(phyOffset, storeTimestamp, recoverNormally);
-        if (null != this.defaultMessageStore.getTransRocksDBStore() && defaultMessageStore.getMessageStoreConfig().isTransRocksDBEnable() && !defaultMessageStore.getMessageStoreConfig().isTransWriteOriginTransHalfEnable()) {
-            result = result && this.defaultMessageStore.getTransRocksDBStore().isMappedFileMatchedRecover(phyOffset);
+        if (null != this.defaultMessageStore.getTransMessageRocksDBStore() && defaultMessageStore.getMessageStoreConfig().isTransRocksDBEnable() && !defaultMessageStore.getMessageStoreConfig().isTransWriteOriginTransHalfEnable()) {
+            result = result && this.defaultMessageStore.getTransMessageRocksDBStore().isMappedFileMatchedRecover(phyOffset);
         }
         if (null != this.defaultMessageStore.getIndexRocksDBStore() && defaultMessageStore.getMessageStoreConfig().isIndexRocksDBEnable()) {
             result = result && this.defaultMessageStore.getIndexRocksDBStore().isMappedFileMatchedRecover(phyOffset);
@@ -2386,7 +2408,7 @@ public class CommitLog implements Swappable {
                     long costTime = this.systemClock.now() - beginClockTimestamp;
                     log.info("[{}] scanFilesInPageCache-cost {} ms.", costTime > 30 * 1000 ? "NOTIFYME" : "OK", costTime);
                 } catch (Throwable e) {
-                    log.warn("{} service has e: ", this.getServiceName() , e);
+                    log.warn("{} service has e: ", this.getServiceName(), e);
                 }
             }
             log.info("{} service end", this.getServiceName());

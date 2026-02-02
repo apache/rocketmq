@@ -234,8 +234,14 @@ public class ProducerProcessor extends AbstractProcessor {
         return requestHeader;
     }
 
-    public CompletableFuture<RemotingCommand> forwardMessageToDeadLetterQueue(ProxyContext ctx, ReceiptHandle handle,
-        String messageId, String groupName, String topicName, long timeoutMillis) {
+    public CompletableFuture<RemotingCommand> forwardMessageToDeadLetterQueue(ProxyContext ctx,
+        ReceiptHandle handle,
+        String messageId,
+        String groupName,
+        String topicName,
+        String liteTopic,
+        long timeoutMillis
+    ) {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
             if (handle.getCommitLogOffset() < 0) {
@@ -259,7 +265,7 @@ public class ProducerProcessor extends AbstractProcessor {
             ).whenCompleteAsync((remotingCommand, t) -> {
                 if (t == null && remotingCommand.getCode() == ResponseCode.SUCCESS) {
                     this.messagingProcessor.ackMessage(ctx, handle, messageId,
-                        groupName, topicName, timeoutMillis);
+                        groupName, topicName, liteTopic, timeoutMillis);
                 }
             }, this.executor);
         } catch (Throwable t) {

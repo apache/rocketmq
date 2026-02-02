@@ -1080,12 +1080,12 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public TimerMessageRocksDBStore getTimerRocksDBStore() {
+    public TimerMessageRocksDBStore getTimerMessageRocksDBStore() {
         return this.timerMessageRocksDBStore;
     }
 
     @Override
-    public TransMessageRocksDBStore getTransRocksDBStore() {
+    public TransMessageRocksDBStore getTransMessageRocksDBStore() {
         return this.transMessageRocksDBStore;
     }
 
@@ -1100,7 +1100,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public void setTransRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
+    public void setTransMessageRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
         this.transMessageRocksDBStore = transMessageRocksDBStore;
     }
 
@@ -1528,7 +1528,9 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             if (this.brokerConfig.isAutoDeleteUnusedStats()) {
-                this.brokerStatsManager.onTopicDeleted(topic);
+                if (!MixAll.isLmq(topic)) {
+                    this.brokerStatsManager.onTopicDeleted(topic);
+                }
             }
 
             // destroy consume queue dir

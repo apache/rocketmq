@@ -314,12 +314,12 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public TimerMessageRocksDBStore getTimerRocksDBStore() {
+    public TimerMessageRocksDBStore getTimerMessageRocksDBStore() {
         return timerMessageRocksDBStore;
     }
 
     @Override
-    public TransMessageRocksDBStore getTransRocksDBStore() {
+    public TransMessageRocksDBStore getTransMessageRocksDBStore() {
         return transMessageRocksDBStore;
     }
 
@@ -329,7 +329,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public void setTransRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
+    public void setTransMessageRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
         this.transMessageRocksDBStore = transMessageRocksDBStore;
     }
 
@@ -362,8 +362,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
-        long consumeQueueOffset) {
+    public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId, long consumeQueueOffset) {
         if (fetchFromCurrentStore(topic, queueId, consumeQueueOffset)) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             return fetcher.getMessageStoreTimeStampAsync(topic, queueId, consumeQueueOffset)
@@ -374,11 +373,6 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                         .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
                         .build();
                     TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
-                    if (time == -1) {
-                        log.debug("GetEarliestMessageTimeAsync failed, try to get message time from next store, topic: {}, queue: {}, queue offset: {}",
-                            topic, queueId, consumeQueueOffset);
-                        return next.getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset);
-                    }
                     return time;
                 });
         }

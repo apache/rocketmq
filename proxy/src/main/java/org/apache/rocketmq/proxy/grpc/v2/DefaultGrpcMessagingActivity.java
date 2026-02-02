@@ -38,6 +38,8 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
+import apache.rocketmq.v2.SyncLiteSubscriptionRequest;
+import apache.rocketmq.v2.SyncLiteSubscriptionResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
@@ -59,7 +61,7 @@ import org.apache.rocketmq.proxy.grpc.v2.route.RouteActivity;
 import org.apache.rocketmq.proxy.grpc.v2.transaction.EndTransactionActivity;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
-public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown implements GrpcMessingActivity {
+public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown implements GrpcMessagingActivity {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected GrpcClientSettingsManager grpcClientSettingsManager;
@@ -74,7 +76,7 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     protected RouteActivity routeActivity;
     protected ClientActivity clientActivity;
 
-    protected DefaultGrpcMessingActivity(MessagingProcessor messagingProcessor) {
+    protected DefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
         this.init(messagingProcessor);
     }
 
@@ -154,6 +156,12 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     public CompletableFuture<RecallMessageResponse> recallMessage(ProxyContext ctx,
         RecallMessageRequest request) {
         return this.recallMessageActivity.recallMessage(ctx, request);
+    }
+
+    @Override
+    public CompletableFuture<SyncLiteSubscriptionResponse> syncLiteSubscription(ProxyContext ctx,
+        SyncLiteSubscriptionRequest request) {
+        return this.clientActivity.syncLiteSubscription(ctx, request);
     }
 
     @Override

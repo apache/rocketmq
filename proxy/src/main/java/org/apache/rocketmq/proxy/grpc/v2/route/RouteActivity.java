@@ -38,12 +38,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
@@ -52,7 +53,7 @@ import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
-public class RouteActivity extends AbstractMessingActivity {
+public class RouteActivity extends AbstractMessagingActivity {
 
     public RouteActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
@@ -108,11 +109,13 @@ public class RouteActivity extends AbstractMessingActivity {
                 addressList,
                 request.getTopic().getName());
 
-            boolean fifo = false;
-            SubscriptionGroupConfig config = this.messagingProcessor.getSubscriptionGroupConfig(ctx,
-                request.getGroup().getName());
-            if (config != null && config.isConsumeMessageOrderly()) {
-                fifo = true;
+            boolean isFifo = false;
+            boolean isLite = false;
+            SubscriptionGroupConfig groupConfig = this.messagingProcessor
+                .getSubscriptionGroupConfig(ctx, request.getGroup().getName());
+            if (groupConfig != null) {
+                isFifo = groupConfig.isConsumeMessageOrderly();
+                isLite = StringUtils.isNotEmpty(groupConfig.getLiteBindTopic());
             }
 
             List<Assignment> assignments = new ArrayList<>();
@@ -123,7 +126,7 @@ public class RouteActivity extends AbstractMessingActivity {
                     if (brokerIdMap != null) {
                         Broker broker = brokerIdMap.get(MixAll.MASTER_ID);
                         Permission permission = this.convertToPermission(queueData.getPerm());
-                        if (fifo) {
+                        if (isFifo && !isLite) {
                             for (int i = 0; i < queueData.getReadQueueNums(); i++) {
                                 MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
                                     .setTopic(request.getTopic())
@@ -302,10 +305,14 @@ public class RouteActivity extends AbstractMessingActivity {
                 return Collections.singletonList(MessageType.NORMAL);
             case FIFO:
                 return Collections.singletonList(MessageType.FIFO);
+            case LITE:
+                return Collections.singletonList(MessageType.LITE);
             case TRANSACTION:
                 return Collections.singletonList(MessageType.TRANSACTION);
             case DELAY:
                 return Collections.singletonList(MessageType.DELAY);
+            case PRIORITY:
+                return Collections.singletonList(MessageType.PRIORITY);
             case MIXED:
                 return Arrays.asList(MessageType.NORMAL, MessageType.FIFO, MessageType.DELAY, MessageType.TRANSACTION);
             default:

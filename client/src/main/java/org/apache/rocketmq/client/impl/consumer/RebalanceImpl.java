@@ -286,21 +286,19 @@ public abstract class RebalanceImpl {
             }
             case CLUSTERING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
-                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
-                if (null == mqSet) {
+                if (null == mqSet || mqSet.isEmpty()) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         this.messageQueueChanged(topic, Collections.<MessageQueue>emptySet(), Collections.<MessageQueue>emptySet());
                         log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
                     }
+                    break;
                 }
 
-                if (null == cidAll) {
+                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
+                if (null == cidAll || cidAll.isEmpty()) {
                     log.warn("doRebalance, {} {}, get consumer id list failed", consumerGroup, topic);
-                }
-
-                if (mqSet != null && cidAll != null) {
-                    List<MessageQueue> mqAll = new ArrayList<>();
-                    mqAll.addAll(mqSet);
+                } else {
+                    List<MessageQueue> mqAll = new ArrayList<>(mqSet);
 
                     Collections.sort(mqAll);
                     Collections.sort(cidAll);

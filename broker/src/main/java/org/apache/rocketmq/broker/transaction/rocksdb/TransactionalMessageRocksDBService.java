@@ -58,7 +58,7 @@ public class TransactionalMessageRocksDBService {
 
     public TransactionalMessageRocksDBService(final MessageStore messageStore, final BrokerController brokerController) {
         this.messageStore = messageStore;
-        this.transMessageRocksDBStore = messageStore.getTransRocksDBStore();
+        this.transMessageRocksDBStore = messageStore.getTransMessageRocksDBStore();
         this.messageRocksDBStorage = transMessageRocksDBStore.getMessageRocksDBStorage();
         this.brokerController = brokerController;
     }
@@ -76,11 +76,11 @@ public class TransactionalMessageRocksDBService {
     private void initService() {
         this.transStatusService = new TransStatusCheckService();
         this.checkTranStatusTaskExecutor = ThreadUtils.newThreadPoolExecutor(
-            2,
-            5,
+            brokerController.getBrokerConfig().getTransactionCheckRocksdbCoreThreads(),
+            brokerController.getBrokerConfig().getTransactionCheckRocksdbMaxThreads(),
             100,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(2000),
+            new ArrayBlockingQueue<>(brokerController.getBrokerConfig().getTransactionCheckRocksdbQueueCapacity()),
             new ThreadFactoryImpl("Transaction-rocksdb-msg-check-thread", brokerController.getBrokerIdentity()),
             new CallerRunsPolicy());
     }

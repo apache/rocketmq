@@ -121,6 +121,7 @@ public class BrokerMetricsManager {
     private final MessageStore messageStore;
     private final BrokerController brokerController;
     private final ConsumerLagCalculator consumerLagCalculator;
+    private final LiteConsumerLagCalculator liteConsumerLagCalculator;
     private final Map<String, String> labelMap = new HashMap<>();
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
@@ -178,6 +179,7 @@ public class BrokerMetricsManager {
         this.consumerLagCalculator = new ConsumerLagCalculator(brokerController);
         this.remotingMetricsManager = new RemotingMetricsManager();
         this.popMetricsManager = new PopMetricsManager();
+        this.liteConsumerLagCalculator = new LiteConsumerLagCalculator(brokerController);
         init();
     }
 
@@ -673,21 +675,27 @@ public class BrokerMetricsManager {
         consumerLagMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_LAG_MESSAGES)
             .setDescription("Consumer lag messages")
             .ofLongs()
-            .buildWithCallback(measurement -> consumerLagCalculator.calculateLag(result ->
-                measurement.record(result.lag, buildLagAttributes(result))));
+            .buildWithCallback(measurement -> {
+                consumerLagCalculator.calculateLag(result ->
+                    measurement.record(result.lag, buildLagAttributes(result))
+                );
+
+                liteConsumerLagCalculator.calculateLiteLagCount(result ->
+                    measurement.record(result.lag, buildLagAttributes(result))
+                );
+            });
 
         consumerLagLatency = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_LAG_LATENCY)
             .setDescription("Consumer lag time")
             .setUnit("milliseconds")
             .ofLongs()
-            .buildWithCallback(measurement -> consumerLagCalculator.calculateLag(result -> {
-                long latency = 0;
-                long curTimeStamp = System.currentTimeMillis();
-                if (result.earliestUnconsumedTimestamp != 0) {
-                    latency = curTimeStamp - result.earliestUnconsumedTimestamp;
-                }
-                measurement.record(latency, buildLagAttributes(result));
-            }));
+            .buildWithCallback(measurement -> {
+                consumerLagCalculator.calculateLag(lagResult ->
+                    measurement.record(lagResult.getLagLatency(), buildLagAttributes(lagResult)));
+
+                liteConsumerLagCalculator.calculateLiteLagLatency(lagResult ->
+                    measurement.record(lagResult.getLagLatency(), buildLagAttributes(lagResult)));
+            });
 
         consumerInflightMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_INFLIGHT_MESSAGES)
             .setDescription("Consumer inflight messages")
@@ -711,8 +719,14 @@ public class BrokerMetricsManager {
         consumerReadyMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_READY_MESSAGES)
             .setDescription("Consumer ready messages")
             .ofLongs()
-            .buildWithCallback(measurement ->
-                consumerLagCalculator.calculateAvailable(result -> measurement.record(result.available, buildLagAttributes(result))));
+            .buildWithCallback(measurement -> {
+                consumerLagCalculator.calculateAvailable(result ->
+                    measurement.record(result.available, buildLagAttributes(result)));
+
+                // for lite, ready == lag
+                liteConsumerLagCalculator.calculateLiteLagCount(result ->
+                    measurement.record(result.lag, buildLagAttributes(result)));
+            });
 
         sendToDlqMessages = brokerMeter.counterBuilder(COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL)
             .setDescription("Consumer send to DLQ messages")
@@ -762,6 +776,10 @@ public class BrokerMetricsManager {
         if (brokerConfig.isEnablePopMetrics()) {
             this.popMetricsManager.initMetrics(brokerMeter, brokerController, this::newAttributesBuilder);
         }
+    }
+
+    public LiteConsumerLagCalculator getLiteConsumerLagCalculator() {
+        return liteConsumerLagCalculator;
     }
 
     public void shutdown() {

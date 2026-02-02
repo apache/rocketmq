@@ -318,7 +318,7 @@ public class TimerMessageStore {
         }
         currQueueOffset = Math.min(currQueueOffset, timerCheckpoint.getMasterTimerQueueOffset());
         if (storeConfig.isTimerRocksDBEnable()) {
-            long commitOffsetInRocksDB = messageStore.getTimerRocksDBStore().getCommitOffsetInRocksDB();
+            long commitOffsetInRocksDB = messageStore.getTimerMessageRocksDBStore().getCommitOffsetInRocksDB();
             LOGGER.info("recover time wheel, currQueueOffset: {}, commitOffsetInRocksDB: {}", currQueueOffset, commitOffsetInRocksDB);
             currQueueOffset = Math.max(currQueueOffset, commitOffsetInRocksDB);
         }
@@ -1344,6 +1344,9 @@ public class TimerMessageStore {
                     bf.getInt();//size
                     bf.getLong();//prev pos
                     int magic = bf.getInt(); //magic
+                    if (magic == TimerLog.BLANK_MAGIC_CODE) {
+                        break;
+                    }
                     long enqueueTime = bf.getLong();
                     long delayedTime = bf.getInt() + enqueueTime;
                     long offsetPy = bf.getLong();
@@ -1696,9 +1699,6 @@ public class TimerMessageStore {
         public void run() {
             setState(AbstractStateService.START);
             TimerMessageStore.LOGGER.info(this.getServiceName() + " service start");
-            //Mark different rounds
-            boolean isRound = true;
-            Map<String, MessageExt> avoidDeleteLose = new HashMap<>();
             while (!this.isStopped()) {
                 try {
                     setState(AbstractStateService.WAITING);
@@ -1715,18 +1715,9 @@ public class TimerMessageStore {
                             MessageExt msgExt = getMessageByCommitOffset(tr.getOffsetPy(), tr.getSizePy());
                             if (null != msgExt) {
                                 if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {
-                                    //Clearing is performed once in each round.
-                                    //The deletion message is received first and the common message is received once
-                                    if (!isRound) {
-                                        isRound = true;
-                                        for (MessageExt messageExt : avoidDeleteLose.values()) {
-                                            addMetric(messageExt, 1);
-                                        }
-                                        avoidDeleteLose.clear();
-                                    }
                                     if (msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null && tr.getDeleteList() != null) {
-
-                                        avoidDeleteLose.put(msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY), msgExt);
+                                        //Execute metric plus one for messages that fail to be deleted
+                                        addMetric(msgExt, 1);
                                         tr.getDeleteList().add(msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
                                     }
                                     tr.idempotentRelease();
@@ -1736,13 +1727,9 @@ public class TimerMessageStore {
                                     if (null == uniqueKey) {
                                         LOGGER.warn("No uniqueKey for msg:{}", msgExt);
                                     }
-                                    //Mark ready for next round
-                                    if (isRound) {
-                                        isRound = false;
-                                    }
-                                    if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0
-                                        && tr.getDeleteList().contains(buildDeleteKey(getRealTopic(msgExt), uniqueKey))) {
-                                        avoidDeleteLose.remove(uniqueKey);
+                                    if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0 && tr.getDeleteList().contains(buildDeleteKey(getRealTopic(msgExt), uniqueKey, storeConfig.isAppendTopicForTimerDeleteKey()))) {
+                                        //Normally, it cancels out with the +1 above
+                                        addMetric(msgExt, -1);
                                         doRes = true;
                                         tr.idempotentRelease();
                                         perfCounterTicks.getCounter("dequeue_delete").flow(1);
@@ -2074,9 +2061,9 @@ public class TimerMessageStore {
         return timerCheckpoint;
     }
 
-    // identify a message by topic + uk, like query operation
-    public static String buildDeleteKey(String realTopic, String uniqueKey) {
-        return realTopic + "+" + uniqueKey;
+    // identify a message by topic or topic + uk(like query operation)
+    public static String buildDeleteKey(String realTopic, String uniqueKey, Boolean appendTopicForTimerDeleteKey) {
+        return appendTopicForTimerDeleteKey ? (realTopic + "+" + uniqueKey) : uniqueKey;
     }
 
     private void recallToTimeline(long delayTime, long offsetPy, int sizePy, MessageExt messageExt) {
@@ -2087,12 +2074,12 @@ public class TimerMessageStore {
             LOGGER.error("recallToTimeline param error, delayTime: {}, offsetPy: {}, sizePy: {}, messageExt: {}", delayTime, offsetPy, sizePy, messageExt);
             return;
         }
-        if (null == messageStore.getTimerRocksDBStore() || null == messageStore.getTimerRocksDBStore().getTimeline()) {
+        if (null == messageStore.getTimerMessageRocksDBStore() || null == messageStore.getTimerMessageRocksDBStore().getTimeline()) {
             LOGGER.error("recallToTimeline error, timerRocksDBStore is null or timeline is null");
             return;
         }
         try {
-            messageStore.getTimerRocksDBStore().getTimeline().putDeleteRecord(delayTime, messageExt.getMsgId(), offsetPy, sizePy, messageExt.getQueueOffset(), messageExt);
+            messageStore.getTimerMessageRocksDBStore().getTimeline().putDeleteRecord(delayTime, messageExt.getMsgId(), offsetPy, sizePy, messageExt.getQueueOffset(), messageExt);
         } catch (Exception e) {
             LOGGER.error("recallToTimeline error: {}", e.getMessage());
         }
@@ -2109,7 +2096,7 @@ public class TimerMessageStore {
                 LOGGER.info("restart TimerMessageStore has been running");
                 return true;
             }
-            long commitOffsetRocksDB = this.messageStore.getTimerRocksDBStore().getCommitOffsetInRocksDB();
+            long commitOffsetRocksDB = this.messageStore.getTimerMessageRocksDBStore().getCommitOffsetInRocksDB();
             long commitOffsetFile = this.messageStore.getTimerMessageStore().getCommitQueueOffset();
             long maxCommitOffset = Math.max(commitOffsetFile, commitOffsetRocksDB);
             currQueueOffset = maxCommitOffset;

@@ -17,10 +17,17 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 public class GrpcValidatorTest {
 
@@ -43,5 +50,63 @@ public class GrpcValidatorTest {
         assertThrows(GrpcProxyException.class, () -> grpcValidator.validateConsumerGroup(""));
         assertThrows(GrpcProxyException.class, () -> grpcValidator.validateConsumerGroup("CID_RMQ_SYS_xxxx"));
         grpcValidator.validateConsumerGroup("consumerGroupName");
+    }
+
+
+    @Test
+    public void testValidateLiteTopic_Null() {
+        assertThrows(GrpcProxyException.class, () -> grpcValidator.validateLiteTopic(null));
+    }
+
+    @Test
+    public void testValidateLiteTopic_Blank() {
+        assertThrows(GrpcProxyException.class, () -> grpcValidator.validateLiteTopic("   "));
+    }
+
+    @Test
+    public void testValidateLiteTopic_TooLong() {
+        try (MockedStatic<ConfigurationManager> mockedConfig = mockStatic(ConfigurationManager.class)) {
+            ProxyConfig proxyConfig = mock(ProxyConfig.class);
+            when(proxyConfig.getMaxLiteTopicSize()).thenReturn(5);
+            mockedConfig.when(ConfigurationManager::getProxyConfig).thenReturn(proxyConfig);
+
+            assertThrows(GrpcProxyException.class, () -> grpcValidator.validateLiteTopic("toolongtopic"));
+        }
+    }
+
+    @Test
+    public void testValidateLiteTopic_IllegalCharacter() {
+        try (MockedStatic<ConfigurationManager> mockedConfig = mockStatic(ConfigurationManager.class)) {
+            ProxyConfig proxyConfig = mock(ProxyConfig.class);
+            when(proxyConfig.getMaxLiteTopicSize()).thenReturn(100);
+            mockedConfig.when(ConfigurationManager::getProxyConfig).thenReturn(proxyConfig);
+
+            assertThrows(GrpcProxyException.class, () -> grpcValidator.validateLiteTopic("invalid@topic"));
+
+            assertThrows(GrpcProxyException.class, () -> grpcValidator.validateLiteTopic("invalid$topic"));
+
+            assertThrows(GrpcProxyException.class, () -> grpcValidator.validateLiteTopic("invalid%topic"));
+
+            assertThrows(GrpcProxyException.class, () -> grpcValidator.validateLiteTopic("invalid\ttopic"));
+
+            assertThrows(GrpcProxyException.class, () -> grpcValidator.validateLiteTopic("invalid\ntopic"));
+
+            assertThrows(GrpcProxyException.class, () -> grpcValidator.validateLiteTopic("invalid\0topic"));
+        }
+    }
+
+    @Test
+    public void testValidateLiteTopic_Valid() {
+        try (MockedStatic<ConfigurationManager> mockedConfig = mockStatic(ConfigurationManager.class)) {
+            ProxyConfig proxyConfig = mock(ProxyConfig.class);
+            when(proxyConfig.getMaxLiteTopicSize()).thenReturn(64);
+            mockedConfig.when(ConfigurationManager::getProxyConfig).thenReturn(proxyConfig);
+
+            grpcValidator.validateLiteTopic("Valid_Topic-123");
+
+            grpcValidator.validateLiteTopic(RandomStringUtils.randomAlphanumeric(64));
+
+            grpcValidator.validateLiteTopic(RandomStringUtils.randomAlphanumeric(63));
+        }
     }
 }
