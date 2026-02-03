@@ -116,9 +116,15 @@ public class JRaftController implements Controller {
         String[] peers = this.controllerConfig.getJraftConfig().getjRaftInitConf().split(",");
         String[] rpcAddrs = this.controllerConfig.getJraftConfig().getjRaftControllerRPCAddr().split(",");
         for (int i = 0; i < peers.length; i++) {
+            String peerStr = peers[i];
+            // Remove /learner suffix if present, as PeerId.parse() cannot handle it
+            int learnerIndex;
+            if ((learnerIndex = peerStr.indexOf("/learner")) > 0) {
+                peerStr = peerStr.substring(0, learnerIndex);
+            }
             PeerId peerId = new PeerId();
-            if (!peerId.parse(peers[i])) {
-                throw new IllegalArgumentException("Fail to parse peerId:" + peers[i]);
+            if (!peerId.parse(peerStr)) {
+                throw new IllegalArgumentException("Fail to parse peerId:" + peerStr);
             }
             this.peerIdToAddr.put(peerId, rpcAddrs[i]);
         }
