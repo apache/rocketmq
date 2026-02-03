@@ -47,7 +47,6 @@ import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
-import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
@@ -244,7 +243,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
         long offset = getPopOffset(targetTopic, requestHeader.getConsumerGroup(), queueId);
         try {
             long restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(targetTopic, queueId) - offset;
-            int maxFilterMessageNum = brokerController.getMessageStoreConfig().getMaxFilterMessageSize() / ConsumeQueue.CQ_STORE_UNIT_SIZE;
+            int maxFilterMessageNum = this.brokerController.getBrokerConfig().getMaxMessageFilterNumForNotification();
             boolean needFilter = restNum < maxFilterMessageNum &&
                 subscriptionData != null &&
                 messageFilter != null &&
@@ -267,6 +266,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
                                 return true;
                             }
                         }
+                        return false;
                     }
                 } finally {
                     if (iterator != null) {

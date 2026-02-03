@@ -256,6 +256,7 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean realTimeNotifyConsumerChange = true;
 
     private boolean useMessageFilterForNotification = true;
+    private int maxMessageFilterNumForNotification = 64;
 
     private boolean litePullMessageEnable = true;
 
@@ -2415,5 +2416,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setUseMessageFilterForNotification(boolean useMessageFilterForNotification) {
         this.useMessageFilterForNotification = useMessageFilterForNotification;
+    }
+
+    public int getMaxMessageFilterNumForNotification() {
+        return maxMessageFilterNumForNotification;
+    }
+
+    public void setMaxMessageFilterNumForNotification(int maxMessageFilterNumForNotification) {
+        this.maxMessageFilterNumForNotification = maxMessageFilterNumForNotification;
     }
 }
