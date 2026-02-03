@@ -20,6 +20,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.Map;
 import java.util.Random;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
@@ -151,7 +152,9 @@ public class NotificationProcessor implements NettyRequestProcessor {
 
         SubscriptionData subscriptionData = null;
         ExpressionMessageFilter messageFilter = null;
-        if (brokerConfig.isUseMessageFilterForNotification() && requestHeader.getExp() != null && !requestHeader.getExp().isEmpty()) {
+        if (brokerConfig.isUseMessageFilterForNotification() &&
+            StringUtils.isNotEmpty(requestHeader.getExpType()) &&
+            StringUtils.isNotEmpty(requestHeader.getExp())) {
             try {
                 // origin topic
                 subscriptionData = FilterAPI.build(
@@ -254,7 +257,9 @@ public class NotificationProcessor implements NettyRequestProcessor {
                 }
                 ReferredIterator<CqUnit> iterator = null;
                 try {
-                    iterator = queue.iterateFrom(offset, maxFilterMessageNum);
+                    // In order to take into account both the file CQ and the Rocksdb CQ,
+                    // the count passed here is 32.
+                    iterator = queue.iterateFrom(offset, 32);
                     if (iterator != null) {
                         while (iterator.hasNext()) {
                             CqUnit cqUnit = iterator.next();
