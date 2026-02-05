@@ -709,7 +709,7 @@ public class ConsumeQueue implements ConsumeQueueInterface {
                     this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
                     this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
-                this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsMsgTimestamp(request.getStoreTimestamp());
                 if (MultiDispatchUtils.checkMultiDispatchQueue(this.messageStore.getMessageStoreConfig(), request)) {
                     multiDispatchLmqQueue(request, maxRetries);
                 }

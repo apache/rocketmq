@@ -536,7 +536,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
                 if (BrokerRole.SLAVE == this.messageStore.getMessageStoreConfig().getBrokerRole()) {
                     this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
-                this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsMsgTimestamp(request.getStoreTimestamp());
                 return;
             } else {
                 // XXX: warn and notify me
