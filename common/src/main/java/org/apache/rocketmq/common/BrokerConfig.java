@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.config.ConfigManagerVersion;
 import org.apache.rocketmq.common.constant.PermName;
@@ -23,8 +24,6 @@ import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.NetworkUtil;
-
-import java.util.concurrent.TimeUnit;
 
 public class BrokerConfig extends BrokerIdentity {
 
@@ -255,6 +254,9 @@ public class BrokerConfig extends BrokerIdentity {
     // each message queue will have a corresponding retry queue
     private boolean useSeparateRetryQueue = false;
     private boolean realTimeNotifyConsumerChange = true;
+
+    private boolean useMessageFilterForNotification = true;
+    private int maxMessageFilterNumForNotification = 64;
 
     private boolean litePullMessageEnable = true;
 
@@ -2406,5 +2408,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setLiteLagLatencyTopK(int liteLagLatencyTopK) {
         this.liteLagLatencyTopK = liteLagLatencyTopK;
+    }
+
+    public boolean isUseMessageFilterForNotification() {
+        return useMessageFilterForNotification;
+    }
+
+    public void setUseMessageFilterForNotification(boolean useMessageFilterForNotification) {
+        this.useMessageFilterForNotification = useMessageFilterForNotification;
+    }
+
+    public int getMaxMessageFilterNumForNotification() {
+        return maxMessageFilterNumForNotification;
+    }
+
+    public void setMaxMessageFilterNumForNotification(int maxMessageFilterNumForNotification) {
+        this.maxMessageFilterNumForNotification = maxMessageFilterNumForNotification;
     }
 }
