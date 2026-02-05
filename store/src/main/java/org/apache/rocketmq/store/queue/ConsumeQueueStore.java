@@ -648,7 +648,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             if (currentTimeMillis >= (this.lastFlushTimestamp + flushConsumeQueueThoroughInterval)) {
                 this.lastFlushTimestamp = currentTimeMillis;
                 flushConsumeQueueLeastPages = 0;
-                logicsMsgTimestamp = messageStore.getStoreCheckpoint().getLogicsMsgTempTimestamp();
+                logicsMsgTimestamp = messageStore.getStoreCheckpoint().getTmpLogicsMsgTimestamp();
             }
 
             boolean flushOK = true;

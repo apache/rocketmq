@@ -33,7 +33,7 @@ public class StoreCheckpoint {
     private final RandomAccessFile randomAccessFile;
     private final FileChannel fileChannel;
     private final MappedByteBuffer mappedByteBuffer;
-    private volatile long logicsMsgTempTimestamp = 0;
+    private volatile long tmpLogicsMsgTimestamp = 0;
     private volatile long physicMsgTimestamp = 0;
     private volatile long logicsMsgTimestamp = 0;
     private volatile long indexMsgTimestamp = 0;
@@ -113,12 +113,12 @@ public class StoreCheckpoint {
         this.logicsMsgTimestamp = logicsMsgTimestamp;
     }
 
-    public long getLogicsMsgTempTimestamp() {
-        return logicsMsgTempTimestamp;
+    public long getTmpLogicsMsgTimestamp() {
+        return tmpLogicsMsgTimestamp;
     }
 
-    public void setLogicsMsgTempTimestamp(long logicsMsgTempTimestamp) {
-        this.logicsMsgTempTimestamp = logicsMsgTempTimestamp;
+    public void setTmpLogicsMsgTimestamp(long tmpLogicsMsgTimestamp) {
+        this.tmpLogicsMsgTimestamp = tmpLogicsMsgTimestamp;
     }
 
     public long getConfirmPhyOffset() {
