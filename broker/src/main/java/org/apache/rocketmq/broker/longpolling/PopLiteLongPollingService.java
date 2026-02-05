@@ -26,7 +26,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.lite.LiteSubscription;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
@@ -126,7 +125,7 @@ public class PopLiteLongPollingService extends ServiceThread {
                 }
 
                 // clean unused
-                if (lastCleanTime == 0 || System.currentTimeMillis() - lastCleanTime > 5 * 60 * 1000) {
+                if (lastCleanTime == 0 || System.currentTimeMillis() - lastCleanTime > 3 * 60 * 1000) {
                     cleanUnusedResource();
                 }
             } catch (Throwable e) {
@@ -247,10 +246,8 @@ public class PopLiteLongPollingService extends ServiceThread {
     private void cleanUnusedResource() {
         try {
             pollingMap.entrySet().removeIf(entry -> {
-                String clientId = entry.getKey(); // see getPollingKey()
-                LiteSubscription subscription = brokerController.getLiteSubscriptionRegistry().getLiteSubscription(clientId);
-                if (null == subscription || CollectionUtils.isEmpty(subscription.getLiteTopicSet())) {
-                    LOGGER.info("clean polling structure of {}", clientId);
+                if (CollectionUtils.isEmpty(entry.getValue())) {
+                    LOGGER.info("clean polling structure of {}", entry.getKey()); // see getPollingKey()
                     return true;
                 }
                 return false;
