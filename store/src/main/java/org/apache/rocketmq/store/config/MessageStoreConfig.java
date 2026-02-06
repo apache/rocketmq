@@ -512,9 +512,8 @@ public class MessageStoreConfig {
     private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
 
     /**
-     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH
-     * and the storeType was defaultRocksDB. This switch is not recommended for normal use cases (include master-slave
-     * or controller mode).
+     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH.
+     * This switch is not recommended for normal use cases (include master-slave or controller mode).
      */
     private boolean enableAcceleratedRecovery = false;
 
