@@ -621,14 +621,14 @@ public class MQClientInstance {
      */
     public boolean sendHeartbeatToBroker(long id, String brokerName, String addr, boolean strictLockMode) {
         if (this.lockHeartbeat.tryLock()) {
-            final HeartbeatData heartbeatDataWithSub = this.prepareHeartbeatData(false);
-            final boolean producerEmpty = heartbeatDataWithSub.getProducerDataSet().isEmpty();
-            final boolean consumerEmpty = heartbeatDataWithSub.getConsumerDataSet().isEmpty();
-            if (producerEmpty && consumerEmpty) {
-                log.warn("sendHeartbeatToBroker sending heartbeat, but no consumer and no producer. [{}]", this.clientId);
-                return false;
-            }
             try {
+                final HeartbeatData heartbeatDataWithSub = this.prepareHeartbeatData(false);
+                final boolean producerEmpty = heartbeatDataWithSub.getProducerDataSet().isEmpty();
+                final boolean consumerEmpty = heartbeatDataWithSub.getConsumerDataSet().isEmpty();
+                if (producerEmpty && consumerEmpty) {
+                    log.warn("sendHeartbeatToBroker sending heartbeat, but no consumer and no producer. [{}]", this.clientId);
+                    return false;
+                }
                 if (clientConfig.isUseHeartbeatV2()) {
                     int currentHeartbeatFingerprint = heartbeatDataWithSub.computeHeartbeatFingerprint();
                     heartbeatDataWithSub.setHeartbeatFingerprint(currentHeartbeatFingerprint);

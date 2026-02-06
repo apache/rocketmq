@@ -170,6 +170,8 @@ public class GrpcConverter {
             systemPropertiesBuilder.setMessageType(MessageType.DELAY);
         } else if (messageExt.getProperty(MessageConst.PROPERTY_SHARDING_KEY) != null) {
             systemPropertiesBuilder.setMessageType(MessageType.FIFO);
+        } else if (messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC) != null) {
+            systemPropertiesBuilder.setMessageType(MessageType.LITE);
         } else {
             systemPropertiesBuilder.setMessageType(MessageType.NORMAL);
         }
@@ -222,6 +224,12 @@ public class GrpcConverter {
         String shardingKey = messageExt.getProperty(MessageConst.PROPERTY_SHARDING_KEY);
         if (shardingKey != null) {
             systemPropertiesBuilder.setMessageGroup(shardingKey);
+        }
+
+        // lite topic
+        String liteTopic = messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC);
+        if (liteTopic != null) {
+            systemPropertiesBuilder.setLiteTopic(liteTopic);
         }
 
         // receipt_handle && invisible_period

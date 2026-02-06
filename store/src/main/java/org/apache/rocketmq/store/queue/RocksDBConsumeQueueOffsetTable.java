@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.apache.rocketmq.common.MixAll;
@@ -130,6 +131,7 @@ public class RocksDBConsumeQueueOffsetTable {
      */
     private final ConcurrentMap<String/* topic-queueId */, PhyAndCQOffset> topicQueueMinOffset;
     private final ConcurrentMap<String/* topic-queueId */, Long> topicQueueMaxCqOffset;
+    private final AtomicInteger lmqCounter = new AtomicInteger(0);
 
     public RocksDBConsumeQueueOffsetTable(RocksDBConsumeQueueTable rocksDBConsumeQueueTable,
         ConsumeQueueRocksDBStorage rocksDBStorage, DefaultMessageStore messageStore) {
@@ -164,13 +166,18 @@ public class RocksDBConsumeQueueOffsetTable {
     }
 
     private void loadMaxConsumeQueueOffsets() {
+        lmqCounter.set(0);
         Function<OffsetEntry, Boolean> predicate = entry -> entry.type == OffsetEntryType.MAXIMUM;
         Consumer<OffsetEntry> fn = entry -> {
             topicQueueMaxCqOffset.putIfAbsent(entry.topic + "-" + entry.queueId, entry.offset);
+            if (MixAll.isLmq(entry.topic)) {
+                lmqCounter.incrementAndGet();
+            }
             log.info("LoadMaxConsumeQueueOffsets Max {}:{} --> {}|{}", entry.topic, entry.queueId, entry.offset, entry.commitLogOffset);
         };
         try {
             forEach(predicate, fn);
+            log.info("lmq count from maxConsumeQueueOffset table. {}", lmqCounter.get());
         } catch (RocksDBException e) {
             log.error("Failed to maximum consume queue offset", e);
         }
@@ -567,6 +574,14 @@ public class RocksDBConsumeQueueOffsetTable {
             ERROR_LOG.error("Max offset of consume-queue[topic={}, queue-id={}] regressed. prev-max={}, current-max={}",
                 topic, queueId, prev, maxOffset);
         }
+        if (prev != null && prev == -1 && MixAll.isLmq(topic)) {
+            lmqCounter.incrementAndGet();
+        }
+        if (null == prev && MixAll.isLmq(topic)) {
+            // this usually happens when broker exits abnormally, do nothing here and wait for the next scan to delete it.
+            ERROR_LOG.error("probably recover a lmq which was already deleted. lmq:{}, maxOffset:{}", topic, maxOffset);
+            lmqCounter.incrementAndGet();
+        }
     }
 
     private PhyAndCQOffset getHeapMinOffset(final String topic, final int queueId) {
@@ -583,7 +598,11 @@ public class RocksDBConsumeQueueOffsetTable {
     }
 
     private Long removeHeapMaxCqOffset(String topicQueueId) {
-        return this.topicQueueMaxCqOffset.remove(topicQueueId);
+        Long prev = this.topicQueueMaxCqOffset.remove(topicQueueId);
+        if (prev != null && topicQueueId.startsWith(MixAll.LMQ_PREFIX)) {
+            lmqCounter.decrementAndGet();
+        }
+        return prev;
     }
 
     public void updateCqOffset(final String topic, final int queueId, final long phyOffset,
@@ -614,6 +633,14 @@ public class RocksDBConsumeQueueOffsetTable {
                     max ? "max" : "min", topic, queueId, phyOffset, cqOffset);
             }
         }
+    }
+
+    public int getLmqNum() {
+        return lmqCounter.get();
+    }
+
+    public boolean isLmqExist(String lmqTopic) {
+        return this.topicQueueMaxCqOffset.containsKey(buildTopicQueueId(lmqTopic, 0));
     }
 
     private boolean correctMaxCqOffset(final String topic, final int queueId, final long maxCQOffset,

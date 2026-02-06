@@ -62,6 +62,7 @@ import org.junit.Test;
 import static org.apache.rocketmq.proxy.service.route.TopicRouteService.buildPenalizerByMQFaultStrategy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -238,6 +239,35 @@ public class SendMessageActivityTest extends BaseActivityTest {
 
         assertEquals(MessageClientIDSetter.getUniqID(messageExt), msgId);
         assertEquals(deliveryTime, Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS)));
+    }
+
+    @Test
+    public void testBuildMessageWithLiteTopic() {
+        String msgId = MessageClientIDSetter.createUniqID();
+        String liteTopic = "build-test-lite-topic";
+        String topic = "build-test-topic";
+
+        org.apache.rocketmq.common.message.Message messageExt = this.sendMessageActivity.buildMessage(
+            ProxyContext.create(),
+            Message.newBuilder()
+                .setTopic(Resource.newBuilder()
+                    .setName(topic)
+                    .build())
+                .setSystemProperties(SystemProperties.newBuilder()
+                    .setMessageId(msgId)
+                    .setQueueId(0)
+                    .setMessageType(MessageType.LITE)
+                    .setLiteTopic(liteTopic)
+                    .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                    .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .build())
+                .setBody(ByteString.copyFromUtf8("test body"))
+                .build(),
+            "test-producer-group"
+        );
+
+        assertEquals(liteTopic, messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC));
+        assertNull(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH));
     }
 
     @Test

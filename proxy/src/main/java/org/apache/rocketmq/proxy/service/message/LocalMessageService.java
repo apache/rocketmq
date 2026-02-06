@@ -67,6 +67,7 @@ import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
@@ -194,6 +195,12 @@ public class LocalMessageService implements MessageService {
             future.completeExceptionally(e);
         }
         return future;
+    }
+
+    @Override
+    public CompletableFuture<PopResult> popLiteMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        PopLiteMessageRequestHeader requestHeader, long timeoutMillis) {
+        throw new NotImplementedException();
     }
 
     @Override

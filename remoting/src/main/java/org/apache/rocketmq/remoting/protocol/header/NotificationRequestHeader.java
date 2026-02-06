@@ -44,6 +44,9 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
     private Boolean order = Boolean.FALSE;
     private String attemptId;
 
+    private String expType;
+    private String exp;
+
     @CFNotNull
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -106,6 +109,22 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
 
     public void setAttemptId(String attemptId) {
         this.attemptId = attemptId;
+    }
+
+    public String getExpType() {
+        return expType;
+    }
+
+    public void setExpType(String expType) {
+        this.expType = expType;
+    }
+
+    public String getExp() {
+        return exp;
+    }
+
+    public void setExp(String exp) {
+        this.exp = exp;
     }
 
     @Override

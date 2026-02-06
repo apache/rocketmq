@@ -21,6 +21,7 @@ import io.netty.channel.Channel;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -33,6 +34,7 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotifyUnsubscribeLiteRequestHeader;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -146,6 +148,11 @@ public class ProxyChannelTest {
                 assertEquals(consumeMessageDirectlyResultRequestHeader, header);
                 assertArrayEquals(consumeMessageDirectlyMessageExt.getBody(), messageExt.getBody());
                 return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            protected CompletableFuture<Void> processNotifyUnsubscribeLite(NotifyUnsubscribeLiteRequestHeader header) {
+                throw new NotImplementedException();
             }
         };
 

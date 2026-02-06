@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.consumer;
 
+import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.ReceiveMessageRequest;
@@ -25,7 +26,9 @@ import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.StreamObserver;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -62,6 +65,8 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
 
         try {
             Settings settings = this.grpcClientSettingsManager.getClientSettings(ctx);
+            final boolean isLite = ClientType.LITE_PUSH_CONSUMER.equals(settings.getClientType());
+
             Subscription subscription = settings.getSubscription();
             boolean fifo = subscription.getFifo();
             int maxAttempts = settings.getBackoffPolicy().getMaxAttempts();
@@ -118,7 +123,41 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                 return;
             }
 
-            this.messagingProcessor.popMessage(
+            CompletableFuture<PopResult> popFuture;
+            if (isLite) {
+
+                GrpcClientChannel clientChannel = grpcChannelManager.getChannel(ctx.getClientID());
+                if (clientChannel == null) {
+                    writer.writeAndComplete(ctx, Code.BAD_REQUEST,
+                        String.format("The client [%s] is disconnected.", ctx.getClientID()));
+                    return;
+                }
+                // check lite consumer max unacked messages
+                int unackedMessageCount = messagingProcessor.getUnackedMessageCount(ctx, clientChannel, group);
+                if (proxyConfig.getMaxLiteRenewNumPerChannel() < unackedMessageCount) {
+                    writer.writeAndComplete(ctx, Code.FORBIDDEN,
+                        String.format("The client [%s] has too many unacked messages. Unacked count: %d",
+                            ctx.getClientID(), unackedMessageCount));
+                    return;
+                }
+
+                popFuture = this.messagingProcessor.popLiteMessage(
+                    ctx,
+                    new ReceiveMessageQueueSelector(
+                        request.getMessageQueue().getBroker().getName()
+                    ),
+                    group,
+                    topic,
+                    request.getBatchSize(),
+                    actualInvisibleTime,
+                    pollingTime,
+                    subscriptionData,
+                    new PopMessageResultFilterImpl(maxAttempts),
+                    request.hasAttemptId() ? request.getAttemptId() : null,
+                    timeRemaining
+                );
+            } else {
+                popFuture = this.messagingProcessor.popMessage(
                     ctx,
                     new ReceiveMessageQueueSelector(
                         request.getMessageQueue().getBroker().getName()
@@ -134,41 +173,52 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                     new PopMessageResultFilterImpl(maxAttempts),
                     request.hasAttemptId() ? request.getAttemptId() : null,
                     timeRemaining
-                ).thenAccept(popResult -> {
-                    Runnable doAfterWrite = null;
-                    if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
-                        if (PopStatus.FOUND.equals(popResult.getPopStatus())) {
-                            GrpcClientChannel clientChannel = grpcChannelManager.getChannel(ctx.getClientID());
-                            if (clientChannel == null) {
-                                GrpcProxyException e = new GrpcProxyException(Code.MESSAGE_NOT_FOUND,
-                                    String.format("The client [%s] is disconnected.", ctx.getClientID()));
-                                popResult.getMsgFoundList().forEach(messageExt ->
-                                    writer.processThrowableWhenWriteMessage(e, ctx, request, messageExt));
-                                throw e;
-                            }
-                            doAfterWrite = () -> {
-                                List<MessageExt> messageExtList = popResult.getMsgFoundList();
-                                for (MessageExt messageExt : messageExtList) {
-                                    String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
-                                    if (receiptHandle != null) {
-                                        MessageReceiptHandle messageReceiptHandle =
-                                            new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
-                                                messageExt.getQueueOffset(), messageExt.getReconsumeTimes());
-                                        messagingProcessor.addReceiptHandle(ctx, clientChannel, group, messageExt.getMsgId(), messageReceiptHandle);
-                                    }
-                                }
-                            };
-                        }
-                    }
-                    writer.writeAndComplete(ctx, request, popResult, doAfterWrite);
-                })
-                .exceptionally(t -> {
-                    writer.writeAndComplete(ctx, request, t);
-                    return null;
-                });
+                );
+            }
+
+            final boolean autoRenew = proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew();
+            popFuture.thenAccept(popResult -> {
+                Runnable doAfterWrite = null;
+                if (autoRenew) {
+                    doAfterWrite = handleAutoRenew(ctx, request, group, topic, popResult, writer);
+                }
+                writer.writeAndComplete(ctx, request, popResult, doAfterWrite);
+            }).exceptionally(t -> {
+                writer.writeAndComplete(ctx, request, t);
+                return null;
+            });
         } catch (Throwable t) {
             writer.writeAndComplete(ctx, request, t);
         }
+    }
+
+    private Runnable handleAutoRenew(ProxyContext ctx, ReceiveMessageRequest request,
+        String group, String topic, PopResult popResult, ReceiveMessageResponseStreamWriter writer
+    ) {
+        if (!PopStatus.FOUND.equals(popResult.getPopStatus())) {
+            return null;
+        }
+
+        GrpcClientChannel clientChannel = grpcChannelManager.getChannel(ctx.getClientID());
+        if (clientChannel == null) {
+            GrpcProxyException e = new GrpcProxyException(Code.MESSAGE_NOT_FOUND,
+                String.format("The client [%s] is disconnected.", ctx.getClientID()));
+            popResult.getMsgFoundList().forEach(messageExt ->
+                writer.processThrowableWhenWriteMessage(e, ctx, request, messageExt));
+            throw e;
+        }
+        return () -> {
+            List<MessageExt> messageExtList = popResult.getMsgFoundList();
+            for (MessageExt messageExt : messageExtList) {
+                String receiptHandle = messageExt.getProperty(MessageConst.PROPERTY_POP_CK);
+                if (receiptHandle != null) {
+                    MessageReceiptHandle messageReceiptHandle =
+                        new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
+                            messageExt.getQueueOffset(), messageExt.getReconsumeTimes());
+                    messagingProcessor.addReceiptHandle(ctx, clientChannel, group, messageExt.getMsgId(), messageReceiptHandle);
+                }
+            }
+        };
     }
 
     protected ReceiveMessageResponseStreamWriter createWriter(ProxyContext ctx,

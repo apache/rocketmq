@@ -33,7 +33,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
@@ -62,6 +65,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
 
     private long dispatchFromPhyOffset;
     private long dispatchFromStoreTimestamp;
+    private final AtomicInteger lmqCounter = new AtomicInteger(0);
 
     public ConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
@@ -172,6 +176,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             log.error("Failed to flush all consume queues", e);
             return false;
         }
+
         return true;
     }
 
@@ -341,6 +346,9 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     public void destroy(ConsumeQueueInterface consumeQueue) {
         FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
         fileQueueLifeCycle.destroy();
+        if (MixAll.isLmq(consumeQueue.getTopic())) {
+            lmqCounter.decrementAndGet();
+        }
     }
 
     public int deleteExpiredFile(ConsumeQueueInterface consumeQueue, long minCommitLogPos) {
@@ -417,6 +425,9 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             logic = oldLogic;
         } else {
             logic = newLogic;
+            if (MixAll.isLmq(topic)) {
+                lmqCounter.incrementAndGet();
+            }
         }
 
         return logic;
@@ -446,8 +457,14 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             map = new ConcurrentHashMap<>();
             map.put(queueId, consumeQueue);
             this.consumeQueueTable.put(topic, map);
+            if (MixAll.isLmq(topic)) {
+                lmqCounter.incrementAndGet();
+            }
         } else {
-            map.put(queueId, consumeQueue);
+            ConsumeQueueInterface prev = map.put(queueId, consumeQueue);
+            if (null == prev && MixAll.isLmq(topic)) {
+                lmqCounter.incrementAndGet();
+            }
         }
     }
 
@@ -608,6 +625,16 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
+    @Override
+    public int getLmqNum() {
+        return lmqCounter.get();
+    }
+
+    @Override
+    public boolean isLmqExist(String lmqTopic) {
+        return getConsumeQueue(lmqTopic, 0) != null;
+    }
+
     public class FlushConsumeQueueService extends ServiceThread {
         private static final int RETRY_TIMES_OVER = 3;
         private long lastFlushTimestamp = 0;
@@ -626,15 +653,17 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             if (currentTimeMillis >= (this.lastFlushTimestamp + flushConsumeQueueThoroughInterval)) {
                 this.lastFlushTimestamp = currentTimeMillis;
                 flushConsumeQueueLeastPages = 0;
-                logicsMsgTimestamp = messageStore.getStoreCheckpoint().getLogicsMsgTimestamp();
+                logicsMsgTimestamp = messageStore.getStoreCheckpoint().getTmpLogicsMsgTimestamp();
             }
 
+            boolean flushOK = true;
             for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : consumeQueueTable.values()) {
                 for (ConsumeQueueInterface cq : maps.values()) {
                     boolean result = false;
                     for (int i = 0; i < retryTimes && !result; i++) {
                         result = flush(cq, flushConsumeQueueLeastPages);
                     }
+                    flushOK &= result;
                 }
             }
 
@@ -642,7 +671,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 messageStore.getCompactionStore().flush(flushConsumeQueueLeastPages);
             }
 
-            if (0 == flushConsumeQueueLeastPages) {
+            if (flushOK && 0 == flushConsumeQueueLeastPages) {
                 if (logicsMsgTimestamp > 0) {
                     messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(logicsMsgTimestamp);
                 }
@@ -843,4 +872,5 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             return messageStore.getBrokerConfig().getIdentifier() + CleanConsumeQueueService.class.getSimpleName();
         }
     }
+
 }
