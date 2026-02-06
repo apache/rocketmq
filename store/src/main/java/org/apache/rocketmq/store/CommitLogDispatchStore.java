@@ -29,10 +29,11 @@ public interface CommitLogDispatchStore {
      * Get the dispatch offset in the store. Messages whose phyOffset larger than this offset need to be dispatched. The
      * dispatch offset is only used during recovery.
      *
+     * @param recoverNormally true if broker exited normally last time (normal recovery), false for abnormal recovery
      * @return the dispatch phyOffset, or null if the store is not enabled or has no valid offset
      * @throws RocksDBException if there is an error accessing RocksDB storage
      */
-    Long getDispatchFromPhyOffset() throws RocksDBException;
+    Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException;
 
     /**
      * Used to determine whether to start doDispatch from this commitLog mappedFile.

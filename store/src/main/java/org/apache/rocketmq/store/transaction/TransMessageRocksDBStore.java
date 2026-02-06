@@ -346,7 +346,7 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
     }
 
     @Override
-    public Long getDispatchFromPhyOffset() throws RocksDBException {
+    public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
         if (!storeConfig.isTransRocksDBEnable()) {
             return null;
         }

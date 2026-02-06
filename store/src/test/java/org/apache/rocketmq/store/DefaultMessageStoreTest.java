@@ -1004,8 +1004,8 @@ public class DefaultMessageStoreTest {
             new MyMessageArrivingListener(),
             new BrokerConfig(), new ConcurrentHashMap<>());
 
-        // Get the actual consumeQueueStore dispatchFromPhyOffset before loading
-        long consumeQueueOffset = store.getQueueStore().getDispatchFromPhyOffset();
+        // Get the actual consumeQueueStore dispatchFromPhyOffset before loading (normal recovery)
+        long consumeQueueOffset = store.getQueueStore().getDispatchFromPhyOffset(true);
 
         // Calculate expected value: min of consumeQueueOffset and RocksDB offsets
         long calculatedExpected = consumeQueueOffset;

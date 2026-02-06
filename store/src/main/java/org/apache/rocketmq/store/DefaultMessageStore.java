@@ -340,8 +340,8 @@ public class DefaultMessageStore implements MessageStore {
             stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_CONSUME_QUEUE_OK, result);
             // Register consume queue store for commitlog dispatch
             // AbstractConsumeQueueStore implements CommitLogDispatchStore, so we can register it directly
-            if (this.consumeQueueStore instanceof CommitLogDispatchStore) {
-                registerCommitLogDispatchStore((CommitLogDispatchStore) this.consumeQueueStore);
+            if (this.consumeQueueStore != null) {
+                registerCommitLogDispatchStore(this.consumeQueueStore);
             }
 
             if (messageStoreConfig.isEnableCompaction()) {
@@ -352,8 +352,9 @@ public class DefaultMessageStore implements MessageStore {
             if (result) {
                 loadCheckPoint();
                 result = this.indexService.load(lastExitOK);
+                registerCommitLogDispatchStore(this.indexService);
                 stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_INDEX_OK, result);
-                // Register IndexRocksDBStore and TransMessageRocksDBStore for commitlog dispatch
+                // Register IndexRocksDBStore and TransMessageRocksDBStore for commit-log dispatch
                 if (messageStoreConfig.isIndexRocksDBEnable()) {
                     registerCommitLogDispatchStore(this.indexRocksDBStore);
                 }
@@ -395,10 +396,10 @@ public class DefaultMessageStore implements MessageStore {
 
         // recover commitlog
         // Calculate the minimum dispatch offset from all registered stores
-        Long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset();
+        Long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset(lastExitOK);
 
         for (CommitLogDispatchStore store : commitLogDispatchStores) {
-            Long storeOffset = store.getDispatchFromPhyOffset();
+            Long storeOffset = store.getDispatchFromPhyOffset(lastExitOK);
             if (storeOffset != null && storeOffset > 0) {
                 dispatchFromPhyOffset = Math.min(dispatchFromPhyOffset, storeOffset);
             }

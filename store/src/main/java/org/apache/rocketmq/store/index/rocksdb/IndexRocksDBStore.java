@@ -260,7 +260,7 @@ public class IndexRocksDBStore implements CommitLogDispatchStore {
     }
 
     @Override
-    public Long getDispatchFromPhyOffset() throws RocksDBException {
+    public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
         if (!storeConfig.isIndexRocksDBEnable()) {
             return null;
         }

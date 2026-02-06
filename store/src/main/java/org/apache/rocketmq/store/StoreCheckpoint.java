@@ -36,6 +36,8 @@ public class StoreCheckpoint {
     private volatile long tmpLogicsMsgTimestamp = 0;
     private volatile long physicMsgTimestamp = 0;
     private volatile long logicsMsgTimestamp = 0;
+    private volatile long tmpLogicsPhysicalOffset = 0;
+    private volatile long logicsPhysicalOffset = 0;
     private volatile long indexMsgTimestamp = 0;
     private volatile long masterFlushedOffset = 0;
     private volatile long confirmPhyOffset = 0;
@@ -56,6 +58,7 @@ public class StoreCheckpoint {
             this.indexMsgTimestamp = this.mappedByteBuffer.getLong(16);
             this.masterFlushedOffset = this.mappedByteBuffer.getLong(24);
             this.confirmPhyOffset = this.mappedByteBuffer.getLong(32);
+            this.logicsPhysicalOffset = this.mappedByteBuffer.getLong(40);
 
             log.info("store checkpoint file physicMsgTimestamp " + this.physicMsgTimestamp + ", "
                 + UtilAll.timeMillisToHumanString(this.physicMsgTimestamp));
@@ -65,6 +68,7 @@ public class StoreCheckpoint {
                 + UtilAll.timeMillisToHumanString(this.indexMsgTimestamp));
             log.info("store checkpoint file masterFlushedOffset " + this.masterFlushedOffset);
             log.info("store checkpoint file confirmPhyOffset " + this.confirmPhyOffset);
+            log.info("store checkpoint file logicsPhysicalOffset " + this.logicsPhysicalOffset);
         } else {
             log.info("store checkpoint file not exists, " + scpPath);
         }
@@ -91,6 +95,7 @@ public class StoreCheckpoint {
             this.mappedByteBuffer.putLong(16, this.indexMsgTimestamp);
             this.mappedByteBuffer.putLong(24, this.masterFlushedOffset);
             this.mappedByteBuffer.putLong(32, this.confirmPhyOffset);
+            this.mappedByteBuffer.putLong(40, this.logicsPhysicalOffset);
             this.mappedByteBuffer.force();
         } catch (Throwable e) {
             log.error("Failed to flush", e);
@@ -119,6 +124,22 @@ public class StoreCheckpoint {
 
     public void setTmpLogicsMsgTimestamp(long tmpLogicsMsgTimestamp) {
         this.tmpLogicsMsgTimestamp = tmpLogicsMsgTimestamp;
+    }
+
+    public long getTmpLogicsPhysicalOffset() {
+        return tmpLogicsPhysicalOffset;
+    }
+
+    public void setTmpLogicsPhysicalOffset(long tmpLogicsPhysicalOffset) {
+        this.tmpLogicsPhysicalOffset = tmpLogicsPhysicalOffset;
+    }
+
+    public long getLogicsPhysicalOffset() {
+        return logicsPhysicalOffset;
+    }
+
+    public void setLogicsPhysicalOffset(long logicsPhysicalOffset) {
+        this.logicsPhysicalOffset = logicsPhysicalOffset;
     }
 
     public long getConfirmPhyOffset() {
