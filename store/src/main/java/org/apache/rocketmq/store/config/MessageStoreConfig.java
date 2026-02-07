@@ -132,6 +132,8 @@ public class MessageStoreConfig {
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
 
+    private boolean iteratorWhenUseRocksdbConsumeQueue = true;
+
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -665,6 +667,14 @@ public class MessageStoreConfig {
 
     public void setStoreType(String storeType) {
         this.storeType = storeType;
+    }
+
+    public boolean isIteratorWhenUseRocksdbConsumeQueue() {
+        return iteratorWhenUseRocksdbConsumeQueue;
+    }
+
+    public void setIteratorWhenUseRocksdbConsumeQueue(boolean iteratorWhenUseRocksdbConsumeQueue) {
+        this.iteratorWhenUseRocksdbConsumeQueue = iteratorWhenUseRocksdbConsumeQueue;
     }
 
     public int getMappedFileSizeConsumeQueue() {

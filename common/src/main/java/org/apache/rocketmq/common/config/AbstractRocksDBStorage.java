@@ -337,12 +337,13 @@ public abstract class AbstractRocksDBStorage {
         final byte[] start, final byte[] end, BiConsumer<byte[], byte[]> callback) throws RocksDBException {
 
         if (ArrayUtils.isEmpty(prefix) && ArrayUtils.isEmpty(start)) {
-            throw new RocksDBException("To determine lower boundary, prefix and start may not be null at the same "
-                + "time.");
+            throw new RocksDBException(
+                "To determine lower boundary, prefix and start may not be null at the same time.");
         }
 
         if (ArrayUtils.isEmpty(prefix) && ArrayUtils.isEmpty(end)) {
-            throw new RocksDBException("To determine upper boundary, prefix and end may not be null at the same time.");
+            throw new RocksDBException(
+                "To determine upper boundary, prefix and end may not be null at the same time.");
         }
 
         if (columnFamilyHandle == null) {

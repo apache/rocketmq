@@ -142,7 +142,6 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         this.appendStartAndShutdown(this.receiptHandleProcessor);
         this.appendShutdown(this.producerProcessorExecutor::shutdown);
         this.appendShutdown(this.consumerProcessorExecutor::shutdown);
-        this.appendStartAndShutdown(this.receiptHandleProcessor);
     }
 
     @Override
