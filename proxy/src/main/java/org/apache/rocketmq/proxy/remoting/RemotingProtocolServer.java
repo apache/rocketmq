@@ -118,6 +118,8 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         System.setProperty(TlsSystemConfig.TLS_SERVER_CERTPATH, config.getTlsCertPath());
         TlsSystemConfig.tlsServerKeyPath = config.getTlsKeyPath();
         System.setProperty(TlsSystemConfig.TLS_SERVER_KEYPATH, config.getTlsKeyPath());
+        TlsSystemConfig.tlsServerKeyPassword = config.getTlsKeyPassword();
+        System.setProperty(TlsSystemConfig.TLS_SERVER_KEYPASSWORD, config.getTlsKeyPassword());
         this.tlsCertificateManager = tlsCertificateManager;
         this.tlsReloadHandler = new RemotingTlsReloadHandler();
 
