@@ -20,9 +20,12 @@ import io.grpc.Attributes;
 import io.grpc.netty.shaded.io.netty.buffer.ByteBuf;
 import io.grpc.netty.shaded.io.netty.buffer.Unpooled;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
-import java.net.URISyntaxException;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.junit.After;
@@ -78,7 +81,7 @@ public class ProxyAndTlsProtocolNegotiatorTest {
         ProxyAndTlsProtocolNegotiator.loadSslContext();
     }
 
-    private void configureTls(String keyFile, String certFile, String password) throws URISyntaxException {
+    private void configureTls(String keyFile, String certFile, String password) throws IOException {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         proxyConfig.setTlsTestModeEnable(false);
         proxyConfig.setTlsKeyPath(getCertsPath(keyFile));
@@ -86,9 +89,13 @@ public class ProxyAndTlsProtocolNegotiatorTest {
         proxyConfig.setTlsKeyPassword(password);
     }
 
-    private static String getCertsPath(String fileName) throws URISyntaxException {
-        return Paths.get(ProxyAndTlsProtocolNegotiatorTest.class
-            .getClassLoader().getResource("certs/" + fileName).toURI())
-            .toAbsolutePath().toString();
+    private static String getCertsPath(String fileName) throws IOException {
+        File tempFile = File.createTempFile(fileName, null);
+        tempFile.deleteOnExit();
+        try (InputStream is = ProxyAndTlsProtocolNegotiatorTest.class
+            .getClassLoader().getResourceAsStream("certs/" + fileName)) {
+            Files.copy(is, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        return tempFile.getAbsolutePath();
     }
 }
