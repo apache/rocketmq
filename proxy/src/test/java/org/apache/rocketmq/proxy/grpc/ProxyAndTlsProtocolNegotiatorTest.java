@@ -71,6 +71,7 @@ public class ProxyAndTlsProtocolNegotiatorTest {
 
     @Test
     public void testLoadSslContextWithEncryptedKey() throws Exception {
+        // "1234" is the password of certs/client.key, inherited from remoting module test resources
         configureTls("client.key", "client.pem", "1234");
         ProxyAndTlsProtocolNegotiator.loadSslContext();
     }
