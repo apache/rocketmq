@@ -651,14 +651,12 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 logicsMsgTimestamp = messageStore.getStoreCheckpoint().getTmpLogicsMsgTimestamp();
             }
 
-            boolean flushOK = true;
             for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : consumeQueueTable.values()) {
                 for (ConsumeQueueInterface cq : maps.values()) {
                     boolean result = false;
                     for (int i = 0; i < retryTimes && !result; i++) {
                         result = flush(cq, flushConsumeQueueLeastPages);
                     }
-                    flushOK &= result;
                 }
             }
 
@@ -666,7 +664,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 messageStore.getCompactionStore().flush(flushConsumeQueueLeastPages);
             }
 
-            if (flushOK && 0 == flushConsumeQueueLeastPages) {
+            if (0 == flushConsumeQueueLeastPages) {
                 if (logicsMsgTimestamp > 0) {
                     messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(logicsMsgTimestamp);
                 }
