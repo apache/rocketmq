@@ -40,8 +40,8 @@ load("@rules_jvm_external//:defs.bzl", "maven_install")
 maven_install(
     artifacts = [
         "junit:junit:4.13.2",
-        "com.alibaba:fastjson:1.2.76",
-        "com.alibaba.fastjson2:fastjson2:2.0.43",
+        "com.alibaba:fastjson:2.0.60",
+        "com.alibaba.fastjson2:fastjson2:2.0.60",
         "org.hamcrest:hamcrest-library:1.3",
         "io.netty:netty-all:4.1.65.Final",
         "org.assertj:assertj-core:3.22.0",
@@ -112,7 +112,6 @@ maven_install(
         "com.alipay.sofa:hessian:3.3.6",
         "io.netty:netty-tcnative-boringssl-static:2.0.48.Final",
         "org.mockito:mockito-junit-jupiter:4.11.0",
-        "com.alibaba.fastjson2:fastjson2:2.0.43",
         "org.junit.jupiter:junit-jupiter-api:5.9.1",
     ],
     fetch_sources = True,

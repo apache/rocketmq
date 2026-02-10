@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.alibaba.fastjson2.JSON;
 import org.apache.rocketmq.remoting.protocol.body.BatchAck;
 import org.junit.Test;
@@ -408,10 +408,10 @@ public class RemotingSerializableCompatTest {
     }
     
     private boolean checkCompatible(final Object original, final Class<?> clazz) {
-        String json = com.alibaba.fastjson.JSON.toJSONString(original);
+        String json = JSON.toJSONString(original);
         Object deserialized;
         try {
-            deserialized = com.alibaba.fastjson2.JSON.parseObject(json, clazz);
+            deserialized = JSON.parseObject(json, clazz);
         } catch (Exception e) {
             System.err.printf("Deserialization failed for %s: %s\n", clazz.getName(), e.getMessage());
             return false;

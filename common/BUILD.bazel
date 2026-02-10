@@ -44,6 +44,9 @@ java_library(
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
         "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
     ],
+    runtime_deps = [
+        "@maven//:com_alibaba_fastjson",
+    ],
 )
 
 java_library(
