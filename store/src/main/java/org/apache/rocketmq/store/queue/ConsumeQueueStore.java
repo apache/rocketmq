@@ -116,7 +116,11 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             return getMaxPhyOffsetInConsumeQueue();
         } else {
             long fromCheckpoint = this.messageStore.getStoreCheckpoint().getLogicsPhysicalOffset();
-            return fromCheckpoint > 0 ? fromCheckpoint : getMaxPhyOffsetInConsumeQueue();
+            long physicMsgTimestamp = this.messageStore.getStoreCheckpoint().getPhysicMsgTimestamp();
+            if (physicMsgTimestamp > 0 && fromCheckpoint <= 0 && messageStoreConfig.isEnableAcceleratedRecovery()) {
+                throw new RuntimeException("Accelerated recovery is enabled but checkpoint's logicsPhysicalOffset is invalid");
+            }
+            return fromCheckpoint;
         }
     }
 
@@ -496,6 +500,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
         this.setTopicQueueTable(cqOffsetTable);
         this.setBatchTopicQueueTable(bcqOffsetTable);
     }
+
     private void compensateForHA(ConcurrentMap<String, Long> cqOffsetTable) {
         SelectMappedBufferResult lastBuffer = null;
         long startReadOffset = messageStore.getCommitLog().getConfirmOffset() == -1 ? 0 : messageStore.getCommitLog().getConfirmOffset();
