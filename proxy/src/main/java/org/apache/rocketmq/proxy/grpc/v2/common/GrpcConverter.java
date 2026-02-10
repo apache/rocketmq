@@ -270,6 +270,8 @@ public class GrpcConverter {
                 return MessageType.FIFO;
             case PRIORITY:
                 return MessageType.PRIORITY;
+            case LITE:
+                return MessageType.LITE;
             case NORMAL:
                 return MessageType.NORMAL;
             case UNSPECIFIED:
