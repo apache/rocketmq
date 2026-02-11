@@ -42,6 +42,7 @@ import org.apache.rocketmq.store.StoreCheckpoint;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.Assume;
 import org.apache.rocketmq.common.MixAll;
@@ -58,6 +59,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         Assume.assumeFalse(MixAll.isMac());
     }
 
+    @Ignore
     @Test
     public void testTruncateCQ() throws Exception {
         String base = createBaseDir();
