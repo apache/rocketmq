@@ -564,18 +564,24 @@ public class ConsumeQueue implements ConsumeQueueInterface {
         SelectMappedBufferResult lastRecord = null;
         try {
             int maxReadablePosition = lastMappedFile.getReadPosition();
-            lastRecord = lastMappedFile.selectMappedBuffer(maxReadablePosition - ConsumeQueue.CQ_STORE_UNIT_SIZE,
-                ConsumeQueue.CQ_STORE_UNIT_SIZE);
-            if (null != lastRecord) {
-                ByteBuffer buffer = lastRecord.getByteBuffer();
-                long commitLogOffset = buffer.getLong();
-                if (commitLogOffset < minCommitLogOffset) {
-                    // Keep the largest known consume offset, even if this consume-queue contains no valid entries at
-                    // all. Let minLogicOffset point to a future slot.
-                    this.minLogicOffset = lastMappedFile.getFileFromOffset() + maxReadablePosition;
-                    log.info("ConsumeQueue[topic={}, queue-id={}] contains no valid entries. Min-offset is assigned as: {}.",
-                        topic, queueId, getMinOffsetInQueue());
-                    return;
+            /*
+                if maxReadablePosition is less than ConsumeQueue.CQ_STORE_UNIT_SIZE,
+                it means the last file is empty and we need skip it otherwise selectMappedBuffer will throw IllegalArgumentException
+             */
+            if (maxReadablePosition >= ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                lastRecord = lastMappedFile.selectMappedBuffer(maxReadablePosition - ConsumeQueue.CQ_STORE_UNIT_SIZE,
+                        ConsumeQueue.CQ_STORE_UNIT_SIZE);
+                if (null != lastRecord) {
+                    ByteBuffer buffer = lastRecord.getByteBuffer();
+                    long commitLogOffset = buffer.getLong();
+                    if (commitLogOffset < minCommitLogOffset) {
+                        // Keep the largest known consume offset, even if this consume-queue contains no valid entries at
+                        // all. Let minLogicOffset point to a future slot.
+                        this.minLogicOffset = lastMappedFile.getFileFromOffset() + maxReadablePosition;
+                        log.info("ConsumeQueue[topic={}, queue-id={}] contains no valid entries. Min-offset is assigned as: {}.",
+                                topic, queueId, getMinOffsetInQueue());
+                        return;
+                    }
                 }
             }
         } finally {
