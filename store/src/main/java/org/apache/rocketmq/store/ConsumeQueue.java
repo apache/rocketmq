@@ -564,8 +564,10 @@ public class ConsumeQueue implements ConsumeQueueInterface {
         SelectMappedBufferResult lastRecord = null;
         try {
             int maxReadablePosition = lastMappedFile.getReadPosition();
-            lastRecord = lastMappedFile.selectMappedBuffer(maxReadablePosition - ConsumeQueue.CQ_STORE_UNIT_SIZE,
-                ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            if (maxReadablePosition >= ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                lastRecord = lastMappedFile.selectMappedBuffer(maxReadablePosition - ConsumeQueue.CQ_STORE_UNIT_SIZE,
+                    ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            }
             if (null != lastRecord) {
                 ByteBuffer buffer = lastRecord.getByteBuffer();
                 long commitLogOffset = buffer.getLong();
