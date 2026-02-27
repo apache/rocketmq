@@ -94,7 +94,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
-                    <forkCount>1</forkCount>
+                    <forkCount>1.5C</forkCount>
                     <reuseForks>false</reuseForks>
                 </configuration>
             </plugin>
