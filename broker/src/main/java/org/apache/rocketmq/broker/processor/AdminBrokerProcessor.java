@@ -3466,13 +3466,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             if (MessageConst.TIMER_ENGINE_ROCKSDB_TIMELINE.equals(engineType)) {
                 if (this.brokerController.getTimerMessageRocksDBStore() == null) {
                     response.setCode(ResponseCode.INVALID_PARAMETER);
-                    response.setRemark("timerUseRocksDB muse be configured true when broker start");
+                    response.setRemark("timerRocksDBEnable must be configured true when broker start");
                     return response;
                 }
                 result = this.brokerController.getTimerMessageRocksDBStore().restart();
                 if (result) {
                     properties.put("timerStopEnqueue", Boolean.TRUE.toString());
-                    properties.put("timerUseRocksDB", Boolean.TRUE.toString());
+                    properties.put("timerRocksDBEnable", Boolean.TRUE.toString());
                     properties.put("timerRocksDBStopScan", Boolean.FALSE.toString());
                 }
             } else {

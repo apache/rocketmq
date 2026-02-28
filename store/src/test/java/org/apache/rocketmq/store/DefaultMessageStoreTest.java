@@ -20,6 +20,12 @@ package org.apache.rocketmq.store;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+
+import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.Sets;
 import java.io.File;
@@ -952,6 +958,96 @@ public class DefaultMessageStoreTest {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         MixAll.properties2Object(properties, messageStoreConfig);
         assertThat(messageStoreConfig.isEnableBatchPush()).isTrue();
+    }
+
+    @Test
+    public void testRecoverWithRocksDBOffsets() throws Exception {
+        // Test that recovery process considers RocksDB offsets when IndexRocksDBEnable or TransRocksDBEnable is enabled
+        UUID uuid = UUID.randomUUID();
+        String storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-recover-test-" + uuid.toString();
+
+        try {
+            // Test case 1: IndexRocksDBEnable enabled with valid offset
+            // index offset: 500L, expected: min(consumeQueueOffset, 500L)
+            testRecoverWithRocksDBOffset(storePathRootDir + "-1", true, false, 500L, null);
+
+            // Test case 2: TransRocksDBEnable enabled with valid offset
+            // trans offset: 600L, expected: min(consumeQueueOffset, 600L)
+            testRecoverWithRocksDBOffset(storePathRootDir + "-2", false, true, null, 600L);
+
+            // Test case 3: Both enabled, take minimum value
+            // index offset: 500L, trans offset: 300L, expected: min(consumeQueueOffset, 500L, 300L)
+            testRecoverWithRocksDBOffset(storePathRootDir + "-3", true, true, 500L, 300L);
+        } finally {
+            // Clean up all test directories
+            for (int i = 1; i <= 3; i++) {
+                UtilAll.deleteFile(new File(storePathRootDir + "-" + i));
+            }
+        }
+    }
+
+    private void testRecoverWithRocksDBOffset(String storePathRootDir, boolean indexEnable,
+        boolean transEnable, Long indexOffset, Long transOffset) throws Exception {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setMappedFileSizeCommitLog(1024 * 1024 * 10);
+        messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 1024 * 10);
+        messageStoreConfig.setMaxHashSlotNum(10000);
+        messageStoreConfig.setMaxIndexNum(100 * 100);
+        messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
+        messageStoreConfig.setHaListenPort(0);
+        messageStoreConfig.setStorePathRootDir(storePathRootDir);
+        messageStoreConfig.setIndexRocksDBEnable(indexEnable);
+        messageStoreConfig.setTransRocksDBEnable(transEnable);
+
+        DefaultMessageStore store = new DefaultMessageStore(messageStoreConfig,
+            new BrokerStatsManager("test", true),
+            new MyMessageArrivingListener(),
+            new BrokerConfig(), new ConcurrentHashMap<>());
+
+        // Get the actual consumeQueueStore dispatchFromPhyOffset before loading (normal recovery)
+        long consumeQueueOffset = store.getQueueStore().getDispatchFromPhyOffset(true);
+
+        // Calculate expected value: min of consumeQueueOffset and RocksDB offsets
+        long calculatedExpected = consumeQueueOffset;
+        if (indexEnable && indexOffset != null && indexOffset > 0) {
+            calculatedExpected = Math.min(calculatedExpected, indexOffset);
+        }
+        if (transEnable && transOffset != null && transOffset > 0) {
+            calculatedExpected = Math.min(calculatedExpected, transOffset);
+        }
+
+        // Mock messageRocksDBStorage
+        java.lang.reflect.Field field = DefaultMessageStore.class.getDeclaredField("messageRocksDBStorage");
+        field.setAccessible(true);
+        org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage mockStorage =
+            mock(org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage.class);
+        field.set(store, mockStorage);
+
+        // Spy commitLog to verify invocation and capture the dispatchFromPhyOffset value
+        java.lang.reflect.Field commitLogField = DefaultMessageStore.class.getDeclaredField("commitLog");
+        commitLogField.setAccessible(true);
+        CommitLog commitLog = (CommitLog) commitLogField.get(store);
+        CommitLog spyCommitLog = spy(commitLog);
+        commitLogField.set(store, spyCommitLog);
+
+        // Use ArgumentCaptor to capture the dispatchFromPhyOffset value
+        ArgumentCaptor<Long> offsetCaptor = ArgumentCaptor.forClass(Long.class);
+
+        // Load store, which will call recover method
+        boolean loadResult = store.load();
+        assertTrue(loadResult);
+
+        // Verify recoverNormally or recoverAbnormally is called and capture the argument
+        // Since it's a new store (no abort file), it should call recoverNormally
+        verify(spyCommitLog, atLeastOnce()).recoverNormally(offsetCaptor.capture());
+
+        // Verify the dispatchFromPhyOffset value is correct (should be the minimum)
+        Long actualDispatchFromPhyOffset = offsetCaptor.getValue();
+        assertThat(actualDispatchFromPhyOffset).isEqualTo(calculatedExpected);
+
+        // Clean up resources
+        store.shutdown();
+        store.destroy();
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {

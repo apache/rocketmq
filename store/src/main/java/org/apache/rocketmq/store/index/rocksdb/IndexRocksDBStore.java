@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.CommitLogDispatchStore;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageStore;
@@ -46,14 +47,16 @@ import org.apache.rocketmq.store.index.QueryOffsetResult;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.rocksdb.MessageRocksDBStorage;
 import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 import static org.apache.rocketmq.common.MixAll.dealTimeToHourStamps;
 
-public class IndexRocksDBStore {
+public class IndexRocksDBStore implements CommitLogDispatchStore {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final int DEFAULT_CAPACITY = 100000;
     private static final int BATCH_SIZE = 1000;
     private static final Set<String> INDEX_TYPE_SET = new HashSet<>();
+
     static {
         INDEX_TYPE_SET.add(MessageConst.INDEX_KEY_TYPE);
         INDEX_TYPE_SET.add(MessageConst.INDEX_TAG_TYPE);
@@ -239,7 +242,8 @@ public class IndexRocksDBStore {
         }
     }
 
-    public boolean isMappedFileMatchedRecover(long phyOffset) {
+    public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
+        boolean recoverNormally) throws RocksDBException {
         if (!storeConfig.isIndexRocksDBEnable()) {
             return true;
         }
@@ -252,7 +256,20 @@ public class IndexRocksDBStore {
         return false;
     }
 
-    public void destroy() {}
+    public void destroy() {
+    }
+
+    @Override
+    public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
+        if (!storeConfig.isIndexRocksDBEnable()) {
+            return null;
+        }
+        Long dispatchFromIndexPhyOffset = messageRocksDBStorage.getLastOffsetPy(RocksDB.DEFAULT_COLUMN_FAMILY);
+        if (dispatchFromIndexPhyOffset != null && dispatchFromIndexPhyOffset > 0) {
+            return dispatchFromIndexPhyOffset;
+        }
+        return null;
+    }
 
     private String getServiceThreadName() {
         String brokerIdentifier = "";

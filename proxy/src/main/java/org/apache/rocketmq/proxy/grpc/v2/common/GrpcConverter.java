@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -160,21 +161,8 @@ public class GrpcConverter {
         }
 
         // message_type
-        String isTrans = messageExt.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-        String isTransValue = "true";
-        if (isTransValue.equals(isTrans)) {
-            systemPropertiesBuilder.setMessageType(MessageType.TRANSACTION);
-        } else if (messageExt.getProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
-            || messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null
-            || messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
-            systemPropertiesBuilder.setMessageType(MessageType.DELAY);
-        } else if (messageExt.getProperty(MessageConst.PROPERTY_SHARDING_KEY) != null) {
-            systemPropertiesBuilder.setMessageType(MessageType.FIFO);
-        } else if (messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC) != null) {
-            systemPropertiesBuilder.setMessageType(MessageType.LITE);
-        } else {
-            systemPropertiesBuilder.setMessageType(MessageType.NORMAL);
-        }
+        TopicMessageType topicMessageType = TopicMessageType.parseFromMessageProperty(messageExt.getProperties());
+        systemPropertiesBuilder.setMessageType(convertToGrpcMessageType(topicMessageType));
 
         // born_timestamp (millis)
         long bornTimestamp = messageExt.getBornTimestamp();
@@ -270,5 +258,25 @@ public class GrpcConverter {
             .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(resourceNameWithNamespace))
             .setName(NamespaceUtil.withoutNamespace(resourceNameWithNamespace))
             .build();
+    }
+
+    protected MessageType convertToGrpcMessageType(TopicMessageType topicMessageType) {
+        switch (topicMessageType) {
+            case TRANSACTION:
+                return MessageType.TRANSACTION;
+            case DELAY:
+                return MessageType.DELAY;
+            case FIFO:
+                return MessageType.FIFO;
+            case PRIORITY:
+                return MessageType.PRIORITY;
+            case LITE:
+                return MessageType.LITE;
+            case NORMAL:
+                return MessageType.NORMAL;
+            case UNSPECIFIED:
+            default:
+                return MessageType.NORMAL;
+        }
     }
 }

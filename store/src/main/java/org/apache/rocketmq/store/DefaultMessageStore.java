@@ -175,6 +175,11 @@ public class DefaultMessageStore implements MessageStore {
 
     private final LinkedList<CommitLogDispatcher> dispatcherList = new LinkedList<>();
 
+    /**
+     * List of stores that require commitlog dispatch and recovery. Each store registers itself when loading.
+     */
+    private final List<CommitLogDispatchStore> commitLogDispatchStores = new ArrayList<>();
+
     private final RandomAccessFile lockFile;
 
     private FileLock lock;
@@ -333,6 +338,11 @@ public class DefaultMessageStore implements MessageStore {
             // load Consume Queue
             result = result && this.consumeQueueStore.load();
             stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_CONSUME_QUEUE_OK, result);
+            // Register consume queue store for commitlog dispatch
+            // AbstractConsumeQueueStore implements CommitLogDispatchStore, so we can register it directly
+            if (this.consumeQueueStore != null) {
+                registerCommitLogDispatchStore(this.consumeQueueStore);
+            }
 
             if (messageStoreConfig.isEnableCompaction()) {
                 result = result && this.compactionService.load(lastExitOK);
@@ -342,7 +352,15 @@ public class DefaultMessageStore implements MessageStore {
             if (result) {
                 loadCheckPoint();
                 result = this.indexService.load(lastExitOK);
+                registerCommitLogDispatchStore(this.indexService);
                 stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.LOAD_INDEX_OK, result);
+                // Register IndexRocksDBStore and TransMessageRocksDBStore for commit-log dispatch
+                if (messageStoreConfig.isIndexRocksDBEnable()) {
+                    registerCommitLogDispatchStore(this.indexRocksDBStore);
+                }
+                if (messageStoreConfig.isTransRocksDBEnable() && transMessageRocksDBStore != null) {
+                    registerCommitLogDispatchStore(this.transMessageRocksDBStore);
+                }
                 this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
@@ -377,7 +395,16 @@ public class DefaultMessageStore implements MessageStore {
         this.stateMachine.transitTo(MessageStoreStateMachine.MessageStoreState.RECOVER_CONSUME_QUEUE_OK);
 
         // recover commitlog
-        long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset();
+        // Calculate the minimum dispatch offset from all registered stores
+        Long dispatchFromPhyOffset = this.consumeQueueStore.getDispatchFromPhyOffset(lastExitOK);
+
+        for (CommitLogDispatchStore store : commitLogDispatchStores) {
+            Long storeOffset = store.getDispatchFromPhyOffset(lastExitOK);
+            if (storeOffset != null && storeOffset > 0) {
+                dispatchFromPhyOffset = Math.min(dispatchFromPhyOffset, storeOffset);
+            }
+        }
+
         if (lastExitOK) {
             this.commitLog.recoverNormally(dispatchFromPhyOffset);
         } else {
@@ -1102,6 +1129,31 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public void setTransMessageRocksDBStore(TransMessageRocksDBStore transMessageRocksDBStore) {
         this.transMessageRocksDBStore = transMessageRocksDBStore;
+        // Register TransMessageRocksDBStore for commitlog dispatch if enabled
+        if (transMessageRocksDBStore != null && messageStoreConfig.isTransRocksDBEnable()) {
+            registerCommitLogDispatchStore(this.transMessageRocksDBStore);
+        }
+    }
+
+    /**
+     * Register a store that requires commitlog dispatch and recovery. Each store should register itself when loading.
+     *
+     * @param store the store to register
+     */
+    public void registerCommitLogDispatchStore(CommitLogDispatchStore store) {
+        if (store != null) {
+            commitLogDispatchStores.add(store);
+            LOGGER.info("Registered CommitLogDispatchStore: {}", store.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Get all registered CommitLogDispatchStore instances.
+     *
+     * @return list of registered stores
+     */
+    public List<CommitLogDispatchStore> getCommitLogDispatchStores() {
+        return commitLogDispatchStores;
     }
 
     @Override
@@ -1400,7 +1452,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end, String indexType, String lastKey) {
+    public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end, String indexType,
+        String lastKey) {
         QueryMessageResult queryMessageResult = new QueryMessageResult();
         long lastQueryMsgTime = end;
         for (int i = 0; i < 3; i++) {
@@ -1510,10 +1563,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-     * Lazy clean queue offset table.
-     * If offset table is cleaned, and old messages are dispatching after the old consume queue is cleaned,
-     * consume queue will be created with old offset, then later message with new offset table can not be
-     * dispatched to consume queue.
+     * Lazy clean queue offset table. If offset table is cleaned, and old messages are dispatching after the old consume
+     * queue is cleaned, consume queue will be created with old offset, then later message with new offset table can not
+     * be dispatched to consume queue.
      */
     @Override
     public int deleteTopics(final Set<String> deleteTopics) {
@@ -1677,6 +1729,7 @@ public class DefaultMessageStore implements MessageStore {
     public long dispatchBehindBytes() {
         return this.reputMessageService.behind();
     }
+
     @Override
     public long dispatchBehindMilliseconds() {
         return this.reputMessageService.behindMs();
@@ -1818,8 +1871,8 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
-     * The ratio val is estimated by the experiment and experience
-     * so that the result is not high accurate for different business
+     * The ratio val is estimated by the experiment and experience so that the result is not high accurate for different
+     * business
      *
      * @return
      */
