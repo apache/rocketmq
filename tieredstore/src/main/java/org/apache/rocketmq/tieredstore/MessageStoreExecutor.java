@@ -75,7 +75,7 @@ public class MessageStoreExecutor {
             Math.max(4, Runtime.getRuntime().availableProcessors()),
             TimeUnit.MINUTES.toMillis(1), TimeUnit.MILLISECONDS,
             this.fileRecyclingThreadPoolQueue,
-            new ThreadFactoryImpl("BufferFetchExecutor_"));
+            new ThreadFactoryImpl("FileRecyclingExecutor_"));
     }
 
     private void shutdownExecutor(ExecutorService executor) {
