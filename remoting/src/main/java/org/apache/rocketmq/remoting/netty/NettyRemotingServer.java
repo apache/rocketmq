@@ -525,6 +525,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             } else if (tlsMode == TlsMode.ENFORCING) {
                 ctx.close();
                 log.warn("Clients intend to establish an insecure connection while this server is running in SSL enforcing mode");
+                throw new UnsupportedOperationException("The NettyRemotingServer in SSL enforcing mode doesn't support plain client");
             }
 
             try {

@@ -31,11 +31,13 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.store.CommitLogDispatchStore;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.rocksdb.RocksDBException;
 
-public class IndexService {
+public class IndexService implements CommitLogDispatchStore {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     /**
      * Maximum times to attempt index file creation.
@@ -454,5 +456,25 @@ public class IndexService {
         } finally {
             this.readWriteLock.writeLock().unlock();
         }
+    }
+
+    @Override
+    public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
+        return -1L;
+    }
+
+    @Override
+    public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
+        boolean recoverNormally) throws RocksDBException {
+        if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable() &&
+            this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
+            if (storeTimestamp > this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp()) {
+                return false;
+            }
+            LOGGER.info("CommitLog isMmapFileMatchedRecover find satisfied MmapFile for index, " +
+                    "MmapFile storeTimestamp={}, MmapFile phyOffset={}, indexMsgTimestamp={}, recoverNormally={}",
+                storeTimestamp, phyOffset, this.defaultMessageStore.getStoreCheckpoint().getIndexMsgTimestamp(), recoverNormally);
+        }
+        return true;
     }
 }
