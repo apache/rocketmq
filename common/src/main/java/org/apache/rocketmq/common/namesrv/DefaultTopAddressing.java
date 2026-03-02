@@ -109,7 +109,7 @@ public class DefaultTopAddressing implements TopAddressing {
     public final String fetchNSAddr(boolean verbose, long timeoutMills) {
         String url = this.wsAddr;
         try {
-            if (null != para && para.size() > 0) {
+            if (null != para && !para.isEmpty()) {
                 if (!UtilAll.isBlank(this.unitName)) {
                     url = url + "-" + this.unitName + "?nofix=1&";
                 }
