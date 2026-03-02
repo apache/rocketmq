@@ -231,7 +231,7 @@ public class TopicQueueMappingManager extends ConfigManager {
         List<LogicQueueMappingItem> mappingItemList = TopicQueueMappingDetail.getMappingInfo(mappingDetail, globalId);
         LogicQueueMappingItem leaderItem = null;
         if (mappingItemList != null
-                && mappingItemList.size() > 0) {
+                && !mappingItemList.isEmpty()) {
             leaderItem = mappingItemList.get(mappingItemList.size() - 1);
         }
         return new TopicQueueMappingContext(topic, globalId, mappingDetail, mappingItemList, leaderItem);
