@@ -109,7 +109,7 @@ public class PopBufferMergeService extends ServiceThread {
 
                 this.waitForRunning(interval);
 
-                if (!this.serving && this.buffer.size() == 0 && getOffsetTotalSize() == 0) {
+                if (!this.serving && this.buffer.isEmpty() && getOffsetTotalSize() == 0) {
                     this.serving = true;
                 }
             } catch (Throwable e) {
@@ -126,7 +126,7 @@ public class PopBufferMergeService extends ServiceThread {
         if (!isShouldRunning()) {
             return;
         }
-        while (this.buffer.size() > 0 || getOffsetTotalSize() > 0) {
+        while (!this.buffer.isEmpty() || getOffsetTotalSize() > 0) {
             scan();
         }
     }
@@ -282,7 +282,7 @@ public class PopBufferMergeService extends ServiceThread {
                                 indexList.add(i);
                             }
                         }
-                        if (indexList.size() > 0) {
+                        if (!indexList.isEmpty()) {
                             if (putBatchAckToStore(pointWrapper, indexList)) {
                                 count += indexList.size();
                                 for (Byte i : indexList) {
