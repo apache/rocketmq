@@ -48,7 +48,7 @@ public class InvocationChannel extends SimpleChannel {
 
     @Override
     public boolean isWritable() {
-        return inFlightRequestMap.size() > 0;
+        return !inFlightRequestMap.isEmpty();
     }
 
     @Override
