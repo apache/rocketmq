@@ -154,7 +154,7 @@ public class StatsItem {
 
     public void samplingInSeconds() {
         synchronized (this.csListMinute) {
-            if (this.csListMinute.size() == 0) {
+            if (this.csListMinute.isEmpty()) {
                 this.csListMinute.add(new CallSnapshot(System.currentTimeMillis() - 10 * 1000, 0, 0));
             }
             this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.times.sum(), this.value
@@ -167,7 +167,7 @@ public class StatsItem {
 
     public void samplingInMinutes() {
         synchronized (this.csListHour) {
-            if (this.csListHour.size() == 0) {
+            if (this.csListHour.isEmpty()) {
                 this.csListHour.add(new CallSnapshot(System.currentTimeMillis() - 10 * 60 * 1000, 0, 0));
             }
             this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.times.sum(), this.value
