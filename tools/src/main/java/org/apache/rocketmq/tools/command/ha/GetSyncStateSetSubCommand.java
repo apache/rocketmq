@@ -114,7 +114,7 @@ public class GetSyncStateSetSubCommand implements SubCommand {
 
     private void printData(String controllerAddress, List<String> brokerNames,
                            DefaultMQAdminExt defaultMQAdminExt) throws Exception {
-        if (brokerNames.size() > 0) {
+        if (!brokerNames.isEmpty()) {
             final BrokerReplicasInfo brokerReplicasInfo = defaultMQAdminExt.getInSyncStateData(controllerAddress, brokerNames);
             final Map<String, BrokerReplicasInfo.ReplicasInfo> replicasInfoTable = brokerReplicasInfo.getReplicasInfoTable();
             for (Map.Entry<String, BrokerReplicasInfo.ReplicasInfo> next : replicasInfoTable.entrySet()) {
