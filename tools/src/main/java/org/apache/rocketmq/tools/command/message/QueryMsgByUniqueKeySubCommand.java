@@ -66,7 +66,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
         QueryResult queryResult = admin.queryMessageByUniqKey(topic, msgId, 32, 0, Long.MAX_VALUE);
         assert queryResult != null;
         List<MessageExt> list = queryResult.getMessageList();
-        if (list == null || list.size() == 0) {
+        if (list == null || list.isEmpty()) {
             return;
         }
         list.sort((o1, o2) -> (int) (o1.getStoreTimestamp() - o2.getStoreTimestamp()));
