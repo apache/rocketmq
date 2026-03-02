@@ -226,7 +226,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
             validateMessageKey(key);
             userPropertySize += key.getBytes(StandardCharsets.UTF_8).length;
         }
-        if (keysList.size() > 0) {
+        if (!keysList.isEmpty()) {
             messageWithHeader.setKeys(keysList);
         }
 
