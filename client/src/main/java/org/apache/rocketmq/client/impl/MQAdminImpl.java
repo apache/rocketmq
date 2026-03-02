@@ -304,7 +304,7 @@ public class MQAdminImpl {
     public MessageExt queryMessageByUniqKey(String clusterName, String topic,
         String uniqKey, long begin, long end) throws InterruptedException, MQClientException {
         QueryResult qr = this.queryMessage(clusterName, topic, uniqKey, 32, begin, end, true);
-        if (qr != null && qr.getMessageList() != null && qr.getMessageList().size() > 0) {
+        if (qr != null && qr.getMessageList() != null && !qr.getMessageList().isEmpty()) {
             return qr.getMessageList().get(0);
         } else {
             return null;
