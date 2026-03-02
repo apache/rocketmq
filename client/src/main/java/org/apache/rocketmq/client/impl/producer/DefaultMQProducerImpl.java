@@ -1744,7 +1744,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private void initTopicRoute() {
         List<String> topics = this.defaultMQProducer.getTopics();
-        if (topics != null && topics.size() > 0) {
+        if (topics != null && !topics.isEmpty()) {
             topics.forEach(topic -> {
                 String newTopic = NamespaceUtil.wrapNamespace(this.defaultMQProducer.getNamespace(), topic);
                 TopicPublishInfo topicPublishInfo = tryToFindTopicPublishInfo(newTopic);
