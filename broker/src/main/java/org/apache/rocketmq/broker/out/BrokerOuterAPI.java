@@ -319,7 +319,7 @@ public class BrokerOuterAPI {
         final DataVersion dataVersion,
         final boolean isInBrokerContainer) {
         List<String> nameServerAddressList = this.remotingClient.getAvailableNameSrvList();
-        if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
+        if (nameServerAddressList != null && !nameServerAddressList.isEmpty()) {
             final QueryDataVersionRequestHeader requestHeader = new QueryDataVersionRequestHeader();
             requestHeader.setBrokerAddr(brokerAddr);
             requestHeader.setBrokerName(brokerName);
@@ -358,7 +358,7 @@ public class BrokerOuterAPI {
         requestHeader.setBrokerAddr(brokerAddr);
         requestHeader.setBrokerName(brokerName);
 
-        if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
+        if (nameServerAddressList != null && !nameServerAddressList.isEmpty()) {
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
                     @Override
@@ -481,7 +481,7 @@ public class BrokerOuterAPI {
 
         final List<RegisterBrokerResult> registerBrokerResultList = new CopyOnWriteArrayList<>();
         List<String> nameServerAddressList = this.remotingClient.getAvailableNameSrvList();
-        if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
+        if (nameServerAddressList != null && !nameServerAddressList.isEmpty()) {
 
             final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
             requestHeader.setBrokerAddr(brokerAddr);
@@ -688,7 +688,7 @@ public class BrokerOuterAPI {
         final boolean isInBrokerContainer) {
         final List<Boolean> changedList = new CopyOnWriteArrayList<>();
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
-        if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
+        if (nameServerAddressList != null && !nameServerAddressList.isEmpty()) {
             final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
             for (final String namesrvAddr : nameServerAddressList) {
                 brokerOuterExecutor.execute(new AbstractBrokerRunnable(new BrokerIdentity(clusterName, brokerName, brokerId, isInBrokerContainer)) {
