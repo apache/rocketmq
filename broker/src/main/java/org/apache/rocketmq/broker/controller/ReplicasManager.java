@@ -745,7 +745,7 @@ public class ReplicasManager {
             synchronized (this) {
                 if (this.syncStateSet != null) {
                     // Check if syncStateSet changed
-                    if (this.syncStateSet.size() == newSyncStateSet.size() && this.syncStateSet.containsAll(newSyncStateSet)) {
+                    if (!this.syncStateSet.isEmpty() == !newSyncStateSet.isEmpty() && this.syncStateSet.containsAll(newSyncStateSet)) {
                         return;
                     }
                 }
