@@ -89,7 +89,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
             TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(topic);
             assert topicRouteData != null;
             List<QueueData> queueDatas = topicRouteData.getQueueDatas();
-            assert queueDatas != null && queueDatas.size() > 0;
+            assert queueDatas != null && !queueDatas.isEmpty();
             QueueData queueData = queueDatas.get(0);
             topicConfig.setTopicName(topic);
             topicConfig.setWriteQueueNums(queueData.getWriteQueueNums());
@@ -110,7 +110,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
                 String brokerName = null;
                 for (BrokerData data : brokerDatas) {
                     HashMap<Long, String> brokerAddrs = data.getBrokerAddrs();
-                    if (brokerAddrs == null || brokerAddrs.size() == 0) {
+                    if (brokerAddrs == null || brokerAddrs.isEmpty()) {
                         continue;
                     }
                     for (Map.Entry<Long, String> entry : brokerAddrs.entrySet()) {
@@ -126,7 +126,7 @@ public class UpdateTopicPermSubCommand implements SubCommand {
 
                 if (brokerName != null) {
                     List<QueueData> queueDataList = topicRouteData.getQueueDatas();
-                    assert queueDataList != null && queueDataList.size() > 0;
+                    assert queueDataList != null && !queueDataList.isEmpty();
                     int oldPerm = 0;
                     for (QueueData data : queueDataList) {
                         if (brokerName.equals(data.getBrokerName())) {
