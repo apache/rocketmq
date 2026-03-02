@@ -736,7 +736,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
      * @param persist
      */
     public synchronized void commit(final Map<MessageQueue, Long> messageQueues, boolean persist) {
-        if (messageQueues == null || messageQueues.size() == 0) {
+        if (messageQueues == null || messageQueues.isEmpty()) {
             log.warn("MessageQueues is empty, Ignore this commit ");
             return;
         }
