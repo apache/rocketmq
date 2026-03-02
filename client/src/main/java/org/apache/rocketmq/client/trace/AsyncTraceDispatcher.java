@@ -194,7 +194,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 }
             }
             synchronized (traceContextQueue) {
-                if (traceContextQueue.size() == 0 && appenderQueue.size() == 0) {
+                if (traceContextQueue.isEmpty() && appenderQueue.size() == 0) {
                     break;
                 }
             }
