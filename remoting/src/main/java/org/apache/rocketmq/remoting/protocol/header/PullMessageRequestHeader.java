@@ -23,18 +23,27 @@ package org.apache.rocketmq.remoting.protocol.header;
 import com.google.common.base.MoreObjects;
 import io.netty.buffer.ByteBuf;
 import java.util.HashMap;
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
+@RocketMQAction(value = RequestCode.PULL_MESSAGE, action = Action.SUB)
 public class PullMessageRequestHeader extends TopicQueueRequestHeader implements FastCodesHeader {
 
     @CFNotNull
+    @RocketMQResource(ResourceType.GROUP)
     private String consumerGroup;
     @CFNotNull
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
+    private String liteTopic;
     @CFNotNull
     private Integer queueId;
     @CFNotNull
@@ -74,6 +83,7 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
     public void encode(ByteBuf out) {
         writeIfNotNull(out, "consumerGroup", consumerGroup);
         writeIfNotNull(out, "topic", topic);
+        writeIfNotNull(out, "liteTopic", liteTopic);
         writeIfNotNull(out, "queueId", queueId);
         writeIfNotNull(out, "queueOffset", queueOffset);
         writeIfNotNull(out, "maxMsgNums", maxMsgNums);
@@ -103,6 +113,11 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
         str = getAndCheckNotNull(fields, "topic");
         if (str != null) {
             this.topic = str;
+        }
+
+        str = fields.get("liteTopic");
+        if (str != null) {
+            this.liteTopic = str;
         }
 
         str = getAndCheckNotNull(fields, "queueId");
@@ -209,6 +224,14 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
         this.topic = topic;
     }
 
+    public String getLiteTopic() {
+        return liteTopic;
+    }
+
+    public void setLiteTopic(String liteTopic) {
+        this.liteTopic = liteTopic;
+    }
+
     @Override
     public Integer getQueueId() {
         return queueId;
@@ -312,6 +335,7 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
         return MoreObjects.toStringHelper(this)
             .add("consumerGroup", consumerGroup)
             .add("topic", topic)
+            .add("liteTopic", liteTopic)
             .add("queueId", queueId)
             .add("queueOffset", queueOffset)
             .add("maxMsgBytes", maxMsgBytes)

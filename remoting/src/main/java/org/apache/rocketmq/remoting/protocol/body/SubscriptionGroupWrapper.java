@@ -26,6 +26,8 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 public class SubscriptionGroupWrapper extends RemotingSerializable {
     private ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
         new ConcurrentHashMap<>(1024);
+    private ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable =
+        new ConcurrentHashMap<>(1024);
     private DataVersion dataVersion = new DataVersion();
 
     public ConcurrentMap<String, SubscriptionGroupConfig> getSubscriptionGroupTable() {
@@ -35,6 +37,14 @@ public class SubscriptionGroupWrapper extends RemotingSerializable {
     public void setSubscriptionGroupTable(
         ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable) {
         this.subscriptionGroupTable = subscriptionGroupTable;
+    }
+
+    public ConcurrentMap<String, ConcurrentMap<String, Integer>> getForbiddenTable() {
+        return forbiddenTable;
+    }
+
+    public void setForbiddenTable(ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable) {
+        this.forbiddenTable = forbiddenTable;
     }
 
     public DataVersion getDataVersion() {

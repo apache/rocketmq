@@ -111,10 +111,11 @@ public class TransactionMQProducerWithTraceTest {
 
         producer.setNamesrvAddr("127.0.0.1:9876");
         message = new Message(topic, new byte[] {'a', 'b', 'c'});
-        asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
-        traceProducer = asyncTraceDispatcher.getTraceProducer();
 
         producer.start();
+
+        asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
+        traceProducer = asyncTraceDispatcher.getTraceProducer();
 
         Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
@@ -165,6 +166,18 @@ public class TransactionMQProducerWithTraceTest {
         assertThat(ctx.isFromTransactionCheck()).isFalse();
         assertThat(new String(ctx.getMessage().getBody())).isEqualTo(new String(message.getBody()));
         assertThat(ctx.getMessage().getTopic()).isEqualTo(topic);
+    }
+
+    @Test(expected = MQClientException.class)
+    public void testSendMessageInTransaction_NoListener_ThrowsException() throws MQClientException {
+        producer.setTransactionListener(null);
+        producer.sendMessageInTransaction(message, null);
+    }
+
+    @Test(expected = MQClientException.class)
+    public void testSendMessageInTransaction_DelayMsg_ThrowsException() throws MQClientException {
+        message.setDelayTimeLevel(3);
+        producer.sendMessageInTransaction(message, null);
     }
 
     @After

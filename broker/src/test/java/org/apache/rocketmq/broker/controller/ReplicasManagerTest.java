@@ -17,12 +17,15 @@
 
 package org.apache.rocketmq.broker.controller;
 
+import com.google.common.collect.Lists;
 import java.io.File;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
@@ -31,11 +34,11 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.RunningFlags;
@@ -52,6 +55,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -189,11 +193,11 @@ public class ReplicasManagerTest {
         syncStateSetA.add(BROKER_ID_2);
         // not equal to localAddress
         Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(BROKER_ID_2, NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH, syncStateSetB))
-                .doesNotThrowAnyException();
+            .doesNotThrowAnyException();
 
         // equal to localAddress
         Assertions.assertThatCode(() -> replicasManager.changeBrokerRole(BROKER_ID_1, OLD_MASTER_ADDRESS, NEW_MASTER_EPOCH, OLD_MASTER_EPOCH, syncStateSetA))
-                .doesNotThrowAnyException();
+            .doesNotThrowAnyException();
     }
 
     @Test
@@ -206,6 +210,28 @@ public class ReplicasManagerTest {
     @Test
     public void changeToSlaveTest() {
         Assertions.assertThatCode(() -> replicasManager.changeToSlave(NEW_MASTER_ADDRESS, NEW_MASTER_EPOCH, BROKER_ID_2))
-                .doesNotThrowAnyException();
+            .doesNotThrowAnyException();
     }
+
+    @Test
+    public void testUpdateControllerAddr() throws Exception {
+        final String controllerAddr = "192.168.1.1";
+        brokerConfig.setFetchControllerAddrByDnsLookup(true);
+        when(brokerOuterAPI.dnsLookupAddressByDomain(anyString())).thenReturn(Lists.newArrayList(controllerAddr));
+        Method method = ReplicasManager.class.getDeclaredMethod("updateControllerAddr");
+        method.setAccessible(true);
+        method.invoke(replicasManager);
+
+        List<String> addresses = replicasManager.getControllerAddresses();
+        Assertions.assertThat(addresses).contains(controllerAddr);
+
+        // Simulating dns resolution exceptions
+        when(brokerOuterAPI.dnsLookupAddressByDomain(anyString())).thenReturn(new ArrayList<>());
+
+        method.invoke(replicasManager);
+        addresses = replicasManager.getControllerAddresses();
+        Assertions.assertThat(addresses).contains(controllerAddr);
+
+    }
+
 }

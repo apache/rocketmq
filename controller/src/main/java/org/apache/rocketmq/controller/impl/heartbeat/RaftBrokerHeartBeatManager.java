@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.controller.impl.heartbeat;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.TypeReference;
 import io.netty.channel.Channel;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -63,7 +63,7 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
 
     // resolve the scene
     // when controller all down and startup again, we wait for some time to avoid electing a new leader,which is not necessary
-    private long firstReceivedHeartbeatTime = -1;
+    private volatile long firstReceivedHeartbeatTime = -1;
 
     public RaftBrokerHeartBeatManager(ControllerConfig controllerConfig) {
         this.scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RaftBrokerHeartbeatManager_scheduledService_"));
@@ -188,7 +188,8 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         }
 
         // if has not received any heartbeat from broker, we do not need to scan
-        if (this.firstReceivedHeartbeatTime + controllerConfig.getJraftConfig().getjRaftScanWaitTimeoutMs() < System.currentTimeMillis()) {
+        if (this.firstReceivedHeartbeatTime == -1 ||
+            this.firstReceivedHeartbeatTime + controllerConfig.getJraftConfig().getjRaftScanWaitTimeoutMs() > System.currentTimeMillis()) {
             log.info("has not received any heartbeat from broker, skip scan not active broker");
             return;
         }
@@ -263,7 +264,7 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
             .forEach(id -> {
                 map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
                 map.get(id.getClusterName()).compute(id.getBrokerName(), (broker, num) ->
-                    num == null ? 0 : num + 1
+                    num == null ? 1 : num + 1
                 );
             });
         return map;

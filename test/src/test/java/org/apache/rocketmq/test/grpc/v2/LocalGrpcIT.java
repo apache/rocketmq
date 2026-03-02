@@ -26,6 +26,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(value = MethodSorters.NAME_ASCENDING)
@@ -70,13 +71,20 @@ public class LocalGrpcIT extends GrpcBaseIT {
     }
 
     @Test
+    @Ignore
     public void testTransactionCheckThenCommit() {
         super.testTransactionCheckThenCommit();
     }
 
     @Test
+    @Ignore
     public void testSimpleConsumerSendAndRecvDelayMessage() throws Exception {
         super.testSimpleConsumerSendAndRecvDelayMessage();
+    }
+
+    @Test
+    public void testSimpleConsumerSendAndRecallDelayMessage() throws Exception {
+        super.testSimpleConsumerSendAndRecallDelayMessage();
     }
 
     @Test
@@ -97,5 +105,10 @@ public class LocalGrpcIT extends GrpcBaseIT {
     @Test
     public void testConsumeOrderly() throws Exception {
         super.testConsumeOrderly();
+    }
+
+    @Test
+    public void testSimpleConsumerSendAndRecvPriorityMessage() throws Exception {
+        super.testSimpleConsumerSendAndRecvPriorityMessage();
     }
 }

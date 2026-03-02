@@ -516,13 +516,15 @@ public class MessageDecoder {
                         }
                     }
 
-                    // uncompress body
+                    // inflate body
                     if (deCompressBody && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
                         Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
                         body = compressor.decompress(body);
+                        sysFlag &= ~MessageSysFlag.COMPRESSED_FLAG;
                     }
 
                     msgExt.setBody(body);
+                    msgExt.setSysFlag(sysFlag);
                 } else {
                     byteBuffer.position(byteBuffer.position() + bodyLen);
                 }
@@ -666,7 +668,6 @@ public class MessageDecoder {
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
         //note properties length must not more than Short.MAX
         short propertiesLength = (short) propertiesBytes.length;
-        int sysFlag = message.getFlag();
         int storeSize = 4 // 1 TOTALSIZE
             + 4 // 2 MAGICCOD
             + 4 // 3 BODYCRC

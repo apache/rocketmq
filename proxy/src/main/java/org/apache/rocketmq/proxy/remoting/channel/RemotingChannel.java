@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.proxy.remoting.channel;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.TypeReference;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.TypeReference;
 import com.google.common.base.MoreObjects;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
@@ -28,14 +28,15 @@ import io.netty.channel.ChannelMetadata;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
-import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
-import org.apache.rocketmq.proxy.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.processor.channel.ChannelExtendAttributeGetter;
 import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
@@ -56,6 +57,7 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotifyUnsubscribeLiteRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 public class RemotingChannel extends ProxyChannel implements RemoteChannelConverter, ChannelExtendAttributeGetter {
@@ -123,6 +125,7 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
         CompletableFuture<Void> writeFuture = new CompletableFuture<>();
         try {
             CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
+            requestHeader.setTopic(messageExt.getTopic());
             requestHeader.setCommitLogOffset(transactionData.getCommitLogOffset());
             requestHeader.setTranStateTableOffset(transactionData.getTranStateTableOffset());
             requestHeader.setTransactionId(transactionData.getTransactionId());
@@ -174,6 +177,11 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
             responseFuture.completeExceptionally(t);
             return FutureUtils.completeExceptionally(t);
         }
+    }
+
+    @Override
+    protected CompletableFuture<Void> processNotifyUnsubscribeLite(NotifyUnsubscribeLiteRequestHeader header) {
+        throw new NotImplementedException();
     }
 
     @Override

@@ -21,9 +21,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.AckCallback;
 import org.apache.rocketmq.client.consumer.AckResult;
+import org.apache.rocketmq.client.consumer.NotifyResult;
 import org.apache.rocketmq.client.consumer.PopCallback;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PullCallback;
@@ -37,7 +39,9 @@ import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.admin.MqClientAdminImpl;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -48,12 +52,15 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.LiteSubscriptionCtlRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
@@ -62,18 +69,23 @@ import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHe
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseBody;
+import org.apache.rocketmq.remoting.protocol.header.GetLiteTopicInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.HeartbeatRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.LiteSubscriptionCtlRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.LockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -95,7 +107,17 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         ClientRemotingProcessor clientRemotingProcessor,
         RPCHook rpcHook
     ) {
-        super(nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig);
+        this(clientConfig, nettyClientConfig, clientRemotingProcessor, rpcHook, null);
+    }
+
+    public MQClientAPIExt(
+        ClientConfig clientConfig,
+        NettyClientConfig nettyClientConfig,
+        ClientRemotingProcessor clientRemotingProcessor,
+        RPCHook rpcHook,
+        ObjectCreator<RemotingClient> remotingClientCreator
+    ) {
+        super(nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig, null, remotingClientCreator);
         this.clientConfig = clientConfig;
         this.mqClientAdmin = new MqClientAdminImpl(getRemotingClient());
     }
@@ -221,6 +243,31 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         CompletableFuture<PopResult> future = new CompletableFuture<>();
         try {
             this.popMessageAsync(brokerName, brokerAddr, requestHeader, timeoutMillis, new PopCallback() {
+                @Override
+                public void onSuccess(PopResult popResult) {
+                    future.complete(popResult);
+                }
+
+                @Override
+                public void onException(Throwable t) {
+                    future.completeExceptionally(t);
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    public CompletableFuture<PopResult> popLiteMessageAsync(
+        String brokerAddr,
+        String brokerName,
+        PopLiteMessageRequestHeader requestHeader,
+        long timeoutMillis
+    ) {
+        CompletableFuture<PopResult> future = new CompletableFuture<>();
+        try {
+            this.popLiteMessageAsync(brokerName, brokerAddr, requestHeader, timeoutMillis, new PopCallback() {
                 @Override
                 public void onSuccess(PopResult popResult) {
                     future.complete(popResult);
@@ -397,6 +444,31 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
+        return future;
+    }
+
+    public CompletableFuture<Void> updateConsumerOffsetAsync(
+        String brokerAddr,
+        UpdateConsumerOffsetRequestHeader header,
+        long timeoutMillis
+    ) {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, header);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        invoke(brokerAddr, request, timeoutMillis).whenComplete((response, t) -> {
+            if (t != null) {
+                log.error("updateConsumerOffsetAsync failed, brokerAddr={}, requestHeader={}", brokerAddr, header, t);
+                future.completeExceptionally(t);
+                return;
+            }
+            switch (response.getCode()) {
+                case ResponseCode.SUCCESS:
+                    future.complete(null);
+                    break;
+                default:
+                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr));
+                    break;
+            }
+        });
         return future;
     }
 
@@ -580,13 +652,22 @@ public class MQClientAPIExt extends MQClientAPIImpl {
 
     public CompletableFuture<Boolean> notification(String brokerAddr, NotificationRequestHeader requestHeader,
         long timeoutMillis) {
+        return notificationWithPollingStats(brokerAddr, requestHeader, timeoutMillis).thenApply(NotifyResult::isHasMsg);
+    }
+
+    public CompletableFuture<NotifyResult> notificationWithPollingStats(String brokerAddr,
+        NotificationRequestHeader requestHeader,
+        long timeoutMillis) {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFICATION, requestHeader);
         return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
-            CompletableFuture<Boolean> future0 = new CompletableFuture<>();
+            CompletableFuture<NotifyResult> future0 = new CompletableFuture<>();
             if (response.getCode() == ResponseCode.SUCCESS) {
                 try {
                     NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.decodeCommandCustomHeader(NotificationResponseHeader.class);
-                    future0.complete(responseHeader.isHasMsg());
+                    NotifyResult notifyResult = new NotifyResult();
+                    notifyResult.setHasMsg(responseHeader.isHasMsg());
+                    notifyResult.setPollingFull(responseHeader.isPollingFull());
+                    future0.complete(notifyResult);
                 } catch (Throwable t) {
                     future0.completeExceptionally(t);
                 }
@@ -595,6 +676,78 @@ public class MQClientAPIExt extends MQClientAPIImpl {
             }
             return future0;
         });
+    }
+
+    public CompletableFuture<String> recallMessageAsync(String brokerAddr,
+        RecallMessageRequestHeader requestHeader, long timeoutMillis) {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RECALL_MESSAGE, requestHeader);
+        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
+            CompletableFuture<String> future = new CompletableFuture<>();
+            if (ResponseCode.SUCCESS == response.getCode()) {
+                try {
+                    RecallMessageResponseHeader responseHeader =
+                        response.decodeCommandCustomHeader(RecallMessageResponseHeader.class);
+                    future.complete(responseHeader.getMsgId());
+                } catch (Throwable t) {
+                    future.completeExceptionally(t);
+                }
+            } else {
+                future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr));
+            }
+            return future;
+        });
+    }
+
+    public CompletableFuture<Void> syncLiteSubscriptionAsync(
+        String brokerAddr,
+        LiteSubscriptionDTO liteSubscriptionDTO,
+        long timeoutMillis
+    ) {
+        LiteSubscriptionCtlRequestBody requestBody = new LiteSubscriptionCtlRequestBody();
+        requestBody.setSubscriptionSet(Collections.singleton(liteSubscriptionDTO));
+        RemotingCommand request = RemotingCommand
+            .createRequestCommand(RequestCode.LITE_SUBSCRIPTION_CTL, new LiteSubscriptionCtlRequestHeader());
+        request.setBody(requestBody.encode());
+
+        return getRemotingClient()
+            .invoke(brokerAddr, request, timeoutMillis)
+            .thenCompose(response -> {
+                if (ResponseCode.SUCCESS == response.getCode()) {
+                    return CompletableFuture.completedFuture(null);
+                } else {
+                    CompletableFuture<Void> future = new CompletableFuture<>();
+                    future.completeExceptionally(
+                        new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr)
+                    );
+                    return future;
+                }
+            });
+    }
+
+    public CompletableFuture<GetLiteTopicInfoResponseBody> getLiteTopicInfoAsync(
+        String addr,
+        String parentTopic,
+        String liteTopic,
+        long timeoutMillis
+    ) {
+        GetLiteTopicInfoRequestHeader requestHeader = new GetLiteTopicInfoRequestHeader();
+        requestHeader.setParentTopic(parentTopic);
+        requestHeader.setLiteTopic(liteTopic);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_LITE_TOPIC_INFO, requestHeader);
+
+        return this.getRemotingClient()
+            .invoke(addr, request, timeoutMillis)
+            .thenApply(response -> {
+                if (ResponseCode.SUCCESS == response.getCode()) {
+                    try {
+                        return GetLiteTopicInfoResponseBody.decode(response.getBody(), GetLiteTopicInfoResponseBody.class);
+                    } catch (Exception e) {
+                        throw new CompletionException(e);
+                    }
+                } else {
+                    throw new CompletionException(new MQBrokerException(response.getCode(), response.getRemark()));
+                }
+            });
     }
 
     public CompletableFuture<RemotingCommand> invoke(String brokerAddr, RemotingCommand request, long timeoutMillis) {

@@ -17,9 +17,11 @@
 package org.apache.rocketmq.tieredstore.index;
 
 import com.google.common.base.Stopwatch;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,15 +37,15 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
-import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
-import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+import org.apache.rocketmq.tieredstore.provider.FileSegment;
+import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.tieredstore.index.IndexFile.IndexStatusEnum.SEALED;
 import static org.apache.rocketmq.tieredstore.index.IndexFile.IndexStatusEnum.UNSEALED;
@@ -57,7 +59,7 @@ import static org.apache.rocketmq.tieredstore.index.IndexStoreService.FILE_DIREC
  */
 public class IndexStoreFile implements IndexFile {
 
-    private static final Logger log = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     /**
      * header format:
@@ -90,20 +92,26 @@ public class IndexStoreFile implements IndexFile {
     private final AtomicInteger hashSlotCount = new AtomicInteger(0);
     private final AtomicInteger indexItemCount = new AtomicInteger(0);
 
+    private final boolean writeWithoutMmap;
     private MappedFile mappedFile;
     private ByteBuffer byteBuffer;
     private MappedFile compactMappedFile;
-    private TieredFileSegment fileSegment;
+    private FileSegment fileSegment;
 
-    public IndexStoreFile(TieredMessageStoreConfig storeConfig, long timestamp) throws IOException {
+    private FileChannel fileChannel;
+
+    public IndexStoreFile(MessageStoreConfig storeConfig, long timestamp) throws IOException {
+        this.writeWithoutMmap = storeConfig.isWriteWithoutMmap();
         this.hashSlotMaxCount = storeConfig.getTieredStoreIndexFileMaxHashSlotNum();
         this.indexItemMaxCount = storeConfig.getTieredStoreIndexFileMaxIndexNum();
         this.fileStatus = new AtomicReference<>(UNSEALED);
         this.fileReadWriteLock = new ReentrantReadWriteLock();
         this.mappedFile = new DefaultMappedFile(
             Paths.get(storeConfig.getStorePathRootDir(), FILE_DIRECTORY_NAME, String.valueOf(timestamp)).toString(),
-            this.getItemPosition(indexItemMaxCount));
+            this.getItemPosition(indexItemMaxCount),
+            this.writeWithoutMmap);
         this.byteBuffer = this.mappedFile.getMappedByteBuffer();
+        this.fileChannel = this.mappedFile.getFileChannel();
 
         this.beginTimestamp.set(timestamp);
         this.endTimestamp.set(byteBuffer.getLong(INDEX_BEGIN_TIME_STAMP));
@@ -112,7 +120,8 @@ public class IndexStoreFile implements IndexFile {
         this.flushNewMetadata(byteBuffer, indexItemMaxCount == this.indexItemCount.get() + 1);
     }
 
-    public IndexStoreFile(TieredMessageStoreConfig storeConfig, TieredFileSegment fileSegment) {
+    public IndexStoreFile(MessageStoreConfig storeConfig, FileSegment fileSegment) {
+        this.writeWithoutMmap = storeConfig.isWriteWithoutMmap();
         this.fileSegment = fileSegment;
         this.fileStatus = new AtomicReference<>(UPLOAD);
         this.fileReadWriteLock = new ReentrantReadWriteLock();
@@ -130,6 +139,7 @@ public class IndexStoreFile implements IndexFile {
         return this.beginTimestamp.get();
     }
 
+    @Override
     public long getEndTimestamp() {
         return this.endTimestamp.get();
     }
@@ -156,12 +166,31 @@ public class IndexStoreFile implements IndexFile {
         return (keyHash < 0) ? -keyHash : keyHash;
     }
 
-    protected void flushNewMetadata(ByteBuffer byteBuffer, boolean end) {
-        byteBuffer.putInt(INDEX_MAGIC_CODE, !end ? BEGIN_MAGIC_CODE : END_MAGIC_CODE);
-        byteBuffer.putLong(INDEX_BEGIN_TIME_STAMP, this.beginTimestamp.get());
-        byteBuffer.putLong(INDEX_END_TIME_STAMP, this.endTimestamp.get());
-        byteBuffer.putInt(INDEX_SLOT_COUNT, this.hashSlotCount.get());
-        byteBuffer.putInt(INDEX_ITEM_INDEX, this.indexItemCount.get());
+    protected void flushNewMetadata(ByteBuffer byteBuffer, boolean end) throws IOException {
+        flushNewMetadata(byteBuffer, end, null);
+    }
+
+    protected void flushNewMetadata(ByteBuffer byteBuffer, boolean end, FileChannel channel) throws IOException {
+        FileChannel targetChannel = channel != null ? channel : fileChannel;
+        if (writeWithoutMmap && targetChannel != null) {
+            // Use FileChannel for writing
+            ByteBuffer writeBuffer = ByteBuffer.allocate(INDEX_HEADER_SIZE);
+            writeBuffer.putInt(!end ? BEGIN_MAGIC_CODE : END_MAGIC_CODE);
+            writeBuffer.putLong(this.beginTimestamp.get());
+            writeBuffer.putLong(this.endTimestamp.get());
+            writeBuffer.putInt(this.hashSlotCount.get());
+            writeBuffer.putInt(this.indexItemCount.get());
+            writeBuffer.flip();
+            targetChannel.position(INDEX_MAGIC_CODE);
+            targetChannel.write(writeBuffer);
+        } else {
+            // Use ByteBuffer for writing
+            byteBuffer.putInt(INDEX_MAGIC_CODE, !end ? BEGIN_MAGIC_CODE : END_MAGIC_CODE);
+            byteBuffer.putLong(INDEX_BEGIN_TIME_STAMP, this.beginTimestamp.get());
+            byteBuffer.putLong(INDEX_END_TIME_STAMP, this.endTimestamp.get());
+            byteBuffer.putInt(INDEX_SLOT_COUNT, this.hashSlotCount.get());
+            byteBuffer.putInt(INDEX_ITEM_INDEX, this.indexItemCount.get());
+        }
     }
 
     protected int getSlotPosition(int slotIndex) {
@@ -174,6 +203,11 @@ public class IndexStoreFile implements IndexFile {
 
     protected int getItemPosition(int itemIndex) {
         return INDEX_HEADER_SIZE + hashSlotMaxCount * HASH_SLOT_SIZE + itemIndex * IndexItem.INDEX_ITEM_SIZE;
+    }
+
+    @Override
+    public void start() {
+
     }
 
     @Override
@@ -209,9 +243,26 @@ public class IndexStoreFile implements IndexFile {
                 IndexItem indexItem = new IndexItem(
                     topicId, queueId, offset, size, hashCode, timeDiff, slotOldValue);
                 int itemIndex = this.indexItemCount.incrementAndGet();
-                this.byteBuffer.position(this.getItemPosition(itemIndex));
-                this.byteBuffer.put(indexItem.getByteBuffer());
-                this.byteBuffer.putInt(slotPosition, itemIndex);
+                int itemPosition = this.getItemPosition(itemIndex);
+
+                if (writeWithoutMmap && fileChannel != null) {
+                    // Use FileChannel for writing
+                    ByteBuffer itemBuffer = indexItem.getByteBuffer();
+                    fileChannel.position(itemPosition);
+                    fileChannel.write(itemBuffer);
+
+                    ByteBuffer slotBuffer = ByteBuffer.allocate(Integer.BYTES);
+                    slotBuffer.putInt(0, itemIndex);
+                    slotBuffer.position(0);
+                    slotBuffer.limit(Integer.BYTES);
+                    fileChannel.position(slotPosition);
+                    fileChannel.write(slotBuffer);
+                } else {
+                    // Use ByteBuffer for writing
+                    this.byteBuffer.position(itemPosition);
+                    this.byteBuffer.put(indexItem.getByteBuffer());
+                    this.byteBuffer.putInt(slotPosition, itemIndex);
+                }
 
                 if (slotOldValue <= INVALID_INDEX) {
                     this.hashSlotCount.incrementAndGet();
@@ -225,7 +276,7 @@ public class IndexStoreFile implements IndexFile {
                     this.getTimestamp(), topic, key, hashCode % this.hashSlotMaxCount, itemIndex, slotOldValue, indexItem);
             }
             return AppendResult.SUCCESS;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("IndexStoreFile put key error, topic: {}, topicId: {}, queueId: {}, keySet: {}, offset: {}, " +
                 "size: {}, timestamp: {}", topic, topicId, queueId, keySet, offset, size, timestamp, e);
         } finally {
@@ -254,60 +305,62 @@ public class IndexStoreFile implements IndexFile {
     protected CompletableFuture<List<IndexItem>> queryAsyncFromUnsealedFile(
         String key, int maxCount, long beginTime, long endTime) {
 
-        return CompletableFuture.supplyAsync(() -> {
-            List<IndexItem> result = new ArrayList<>();
-            try {
-                fileReadWriteLock.readLock().lock();
-                if (!UNSEALED.equals(this.fileStatus.get()) && !SEALED.equals(this.fileStatus.get())) {
-                    return result;
-                }
-
-                if (mappedFile == null || !mappedFile.hold()) {
-                    return result;
-                }
-
-                int hashCode = this.hashCode(key);
-                int slotPosition = this.getSlotPosition(hashCode % this.hashSlotMaxCount);
-                int slotValue = this.getSlotValue(slotPosition);
-
-                int left = MAX_QUERY_COUNT;
-                while (left > 0 &&
-                    slotValue > INVALID_INDEX &&
-                    slotValue <= this.indexItemCount.get()) {
-
-                    byte[] bytes = new byte[IndexItem.INDEX_ITEM_SIZE];
-                    ByteBuffer buffer = this.byteBuffer.duplicate();
-                    buffer.position(this.getItemPosition(slotValue));
-                    buffer.get(bytes);
-                    IndexItem indexItem = new IndexItem(bytes);
-                    if (hashCode == indexItem.getHashCode()) {
-                        result.add(indexItem);
-                        if (result.size() > maxCount) {
-                            break;
-                        }
-                    }
-                    slotValue = indexItem.getItemIndex();
-                    left--;
-                }
-
-                log.debug("IndexStoreFile query from unsealed mapped file, timestamp: {}, result size: {}, " +
-                        "key: {}, hashCode: {}, maxCount: {}, timestamp={}-{}",
-                    getTimestamp(), result.size(), key, hashCode, maxCount, beginTime, endTime);
-            } catch (Exception e) {
-                log.error("IndexStoreFile query from unsealed mapped file error, timestamp: {}, " +
-                    "key: {}, maxCount: {}, timestamp={}-{}", getTimestamp(), key, maxCount, beginTime, endTime, e);
-            } finally {
-                fileReadWriteLock.readLock().unlock();
-                mappedFile.release();
+        List<IndexItem> result = new ArrayList<>();
+        try {
+            fileReadWriteLock.readLock().lock();
+            if (!UNSEALED.equals(this.fileStatus.get()) && !SEALED.equals(this.fileStatus.get())) {
+                return CompletableFuture.completedFuture(result);
             }
-            return result;
-        }, TieredStoreExecutor.fetchDataExecutor);
+
+            if (mappedFile == null || !mappedFile.hold()) {
+                return CompletableFuture.completedFuture(result);
+            }
+
+            int hashCode = this.hashCode(key);
+            int slotPosition = this.getSlotPosition(hashCode % this.hashSlotMaxCount);
+            int slotValue = this.getSlotValue(slotPosition);
+
+            int left = MAX_QUERY_COUNT;
+            while (left > 0 &&
+                slotValue > INVALID_INDEX &&
+                slotValue <= this.indexItemCount.get()) {
+
+                byte[] bytes = new byte[IndexItem.INDEX_ITEM_SIZE];
+                ByteBuffer buffer = this.byteBuffer.duplicate();
+                buffer.position(this.getItemPosition(slotValue));
+                buffer.get(bytes);
+                IndexItem indexItem = new IndexItem(bytes);
+                long storeTimestamp = indexItem.getTimeDiff() * 1000L + beginTimestamp.get();
+                if (hashCode == indexItem.getHashCode() &&
+                    beginTime <= storeTimestamp && storeTimestamp <= endTime) {
+                    result.add(indexItem);
+                    if (result.size() > maxCount) {
+                        break;
+                    }
+                }
+                slotValue = indexItem.getItemIndex();
+                left--;
+            }
+
+            log.debug("IndexStoreFile query from unsealed mapped file, timestamp: {}, result size: {}, " +
+                    "key: {}, hashCode: {}, maxCount: {}, timestamp={}-{}",
+                getTimestamp(), result.size(), key, hashCode, maxCount, beginTime, endTime);
+        } catch (Exception e) {
+            log.error("IndexStoreFile query from unsealed mapped file error, timestamp: {}, " +
+                "key: {}, maxCount: {}, timestamp={}-{}", getTimestamp(), key, maxCount, beginTime, endTime, e);
+        } finally {
+            fileReadWriteLock.readLock().unlock();
+            mappedFile.release();
+        }
+
+        return CompletableFuture.completedFuture(result);
     }
 
     protected CompletableFuture<List<IndexItem>> queryAsyncFromSegmentFile(
         String key, int maxCount, long beginTime, long endTime) {
 
-        if (this.fileSegment == null || !UPLOAD.equals(this.fileStatus.get())) {
+        if (this.fileSegment == null || !UPLOAD.equals(this.fileStatus.get()) ||
+            this.fileSegment.getCommitPosition() <= this.getSlotPosition(0)) {
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
@@ -346,7 +399,7 @@ public class IndexStoreFile implements IndexFile {
                 for (int i = 0; i < size; i++) {
                     itemBuffer.get(bytes);
                     IndexItem indexItem = new IndexItem(bytes);
-                    long storeTimestamp = indexItem.getTimeDiff() + beginTimestamp.get();
+                    long storeTimestamp = indexItem.getTimeDiff() * 1000L + beginTimestamp.get();
                     if (hashCode == indexItem.getHashCode() &&
                         beginTime <= storeTimestamp && storeTimestamp <= endTime &&
                         result.size() < maxCount) {
@@ -384,7 +437,9 @@ public class IndexStoreFile implements IndexFile {
             buffer = compactToNewFile();
             log.debug("IndexStoreFile do compaction, timestamp: {}, file size: {}, cost: {}ms",
                 this.getTimestamp(), buffer.capacity(), stopwatch.elapsed(TimeUnit.MICROSECONDS));
-        } catch (Exception e) {
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        } catch (Throwable e) {
             log.error("IndexStoreFile do compaction, timestamp: {}, cost: {}ms",
                 this.getTimestamp(), stopwatch.elapsed(TimeUnit.MICROSECONDS), e);
             return null;
@@ -415,8 +470,9 @@ public class IndexStoreFile implements IndexFile {
         int writePosition = INDEX_HEADER_SIZE + (hashSlotMaxCount * HASH_SLOT_SIZE);
         int fileMaxLength = writePosition + COMPACT_INDEX_ITEM_SIZE * indexItemCount.get();
 
-        compactMappedFile = new DefaultMappedFile(this.getCompactedFilePath(), fileMaxLength);
+        compactMappedFile = new DefaultMappedFile(this.getCompactedFilePath(), fileMaxLength, writeWithoutMmap);
         MappedByteBuffer newBuffer = compactMappedFile.getMappedByteBuffer();
+        FileChannel compactFileChannel = compactMappedFile.getFileChannel();
 
         for (int i = 0; i < hashSlotMaxCount; i++) {
             int slotPosition = this.getSlotPosition(i);
@@ -429,24 +485,48 @@ public class IndexStoreFile implements IndexFile {
                 buffer.get(payload);
                 int newSlotValue = payloadBuffer.getInt(COMPACT_INDEX_ITEM_SIZE);
                 buffer.limit(COMPACT_INDEX_ITEM_SIZE);
-                newBuffer.position(writePosition);
-                newBuffer.put(payload, 0, COMPACT_INDEX_ITEM_SIZE);
+
+                if (writeWithoutMmap && compactFileChannel != null) {
+                    // Use FileChannel for writing
+                    ByteBuffer writeBuffer = ByteBuffer.wrap(payload, 0, COMPACT_INDEX_ITEM_SIZE);
+                    compactFileChannel.position(writePosition);
+                    compactFileChannel.write(writeBuffer);
+                } else {
+                    // Use ByteBuffer for writing
+                    newBuffer.position(writePosition);
+                    newBuffer.put(payload, 0, COMPACT_INDEX_ITEM_SIZE);
+                }
                 log.trace("IndexStoreFile do compaction, write item, slot: {}, current: {}, next: {}", i, slotValue, newSlotValue);
                 slotValue = newSlotValue;
                 writePosition += COMPACT_INDEX_ITEM_SIZE;
             }
 
             int length = writePosition - writeBeginPosition;
-            newBuffer.putInt(slotPosition, writeBeginPosition);
-            newBuffer.putInt(slotPosition + Integer.BYTES, length);
+            if (writeWithoutMmap && compactFileChannel != null) {
+                // Use FileChannel for writing
+                ByteBuffer slotWriteBuffer = ByteBuffer.allocate(Integer.BYTES * 2);
+                slotWriteBuffer.putInt(0, writeBeginPosition);
+                slotWriteBuffer.putInt(Integer.BYTES, length);
+                slotWriteBuffer.position(0);
+                slotWriteBuffer.limit(Integer.BYTES * 2);
+                compactFileChannel.position(slotPosition);
+                compactFileChannel.write(slotWriteBuffer);
+            } else {
+                // Use ByteBuffer for writing
+                newBuffer.putInt(slotPosition, writeBeginPosition);
+                newBuffer.putInt(slotPosition + Integer.BYTES, length);
+            }
 
             if (length > 0) {
                 log.trace("IndexStoreFile do compaction, write slot, slot: {}, begin: {}, length: {}", i, writeBeginPosition, length);
             }
         }
 
-        this.flushNewMetadata(newBuffer, true);
-        newBuffer.flip();
+        this.flushNewMetadata(newBuffer, true, compactFileChannel);
+
+        // Set position and limit for reading
+        newBuffer.position(0);
+        newBuffer.limit(fileMaxLength);
         return newBuffer;
     }
 
@@ -455,13 +535,18 @@ public class IndexStoreFile implements IndexFile {
         try {
             fileReadWriteLock.writeLock().lock();
             this.fileStatus.set(IndexStatusEnum.SHUTDOWN);
+            if (this.fileSegment != null && this.fileSegment instanceof PosixFileSegment) {
+                this.fileSegment.close();
+            }
             if (this.mappedFile != null) {
                 this.mappedFile.shutdown(TimeUnit.SECONDS.toMillis(10));
+                this.mappedFile.cleanResources();
             }
             if (this.compactMappedFile != null) {
                 this.compactMappedFile.shutdown(TimeUnit.SECONDS.toMillis(10));
+                this.compactMappedFile.cleanResources();
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             log.error("IndexStoreFile shutdown failed, timestamp: {}, status: {}", this.getTimestamp(), fileStatus.get(), e);
         } finally {
             fileReadWriteLock.writeLock().unlock();
@@ -483,7 +568,7 @@ public class IndexStoreFile implements IndexFile {
                     if (this.compactMappedFile != null) {
                         this.compactMappedFile.destroy(TimeUnit.SECONDS.toMillis(10));
                     }
-                    log.info("IndexStoreService destroy local file, timestamp: {}, status: {}", this.getTimestamp(), fileStatus.get());
+                    log.debug("IndexStoreService destroy local file, timestamp: {}, status: {}", this.getTimestamp(), fileStatus.get());
                     break;
                 case UPLOAD:
                     log.warn("[BUG] IndexStoreService destroy remote file, timestamp: {}", this.getTimestamp());

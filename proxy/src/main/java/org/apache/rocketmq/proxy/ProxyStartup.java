@@ -20,27 +20,20 @@ package org.apache.rocketmq.proxy;
 import com.google.common.collect.Lists;
 import io.grpc.protobuf.services.ChannelzService;
 import io.grpc.protobuf.services.ProtoReflectionService;
-import java.util.Date;
-import java.util.List;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.apache.rocketmq.common.utils.ServiceProvider;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.Configuration;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -51,8 +44,14 @@ import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.remoting.RemotingProtocolServer;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
+
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class ProxyStartup {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -78,18 +77,22 @@ public class ProxyStartup {
 
             MessagingProcessor messagingProcessor = createMessagingProcessor();
 
-            List<AccessValidator> accessValidators = loadAccessValidators();
+            // tls cert update
+            TlsCertificateManager tlsCertificateManager = new TlsCertificateManager();
+            PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
+
             // create grpcServer
-            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor, ConfigurationManager.getProxyConfig().getGrpcServerPort())
+            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
+                    ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
                 .addService(createServiceProcessor(messagingProcessor))
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
-                .configInterceptor(accessValidators)
+                .configInterceptor()
                 .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
 
-            RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor, accessValidators);
+            RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor, tlsCertificateManager);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);
 
             // start servers one by one.
@@ -114,21 +117,12 @@ public class ProxyStartup {
         log.info(new Date() + " rocketmq-proxy startup successfully");
     }
 
-    protected static List<AccessValidator> loadAccessValidators() {
-        List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
-        if (accessValidators.isEmpty()) {
-            log.info("ServiceProvider loaded no AccessValidator, using default org.apache.rocketmq.acl.plain.PlainAccessValidator");
-            accessValidators.add(new PlainAccessValidator());
-        }
-        return accessValidators;
-    }
-
     protected static void initConfiguration(CommandLineArgument commandLineArgument) throws Exception {
         if (StringUtils.isNotBlank(commandLineArgument.getProxyConfigPath())) {
             System.setProperty(Configuration.CONFIG_PATH_PROPERTY, commandLineArgument.getProxyConfigPath());
         }
         ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
+        ConfigurationManager.initConfig();
         setConfigFromCommandLineArgument(commandLineArgument);
         log.info("Current configuration: " + ConfigurationManager.formatProxyConfig());
 

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.channel;
 
+import apache.rocketmq.v2.NotifyUnsubscribeLiteCommand;
 import apache.rocketmq.v2.PrintThreadStackTraceCommand;
 import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
 import apache.rocketmq.v2.Settings;
@@ -30,6 +31,7 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -55,6 +57,7 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotifyUnsubscribeLiteRequestHeader;
 
 public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttributeGetter, RemoteChannelConverter {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -207,10 +210,29 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     }
 
     @Override
+    protected CompletableFuture<Void> processNotifyUnsubscribeLite(NotifyUnsubscribeLiteRequestHeader header) {
+        final String group = header.getConsumerGroup();
+        final String liteTopic = header.getLiteTopic();
+        NotifyUnsubscribeLiteCommand unsubscribeLiteCommand = NotifyUnsubscribeLiteCommand.newBuilder()
+            .setLiteTopic(liteTopic)
+            .build();
+
+        TelemetryCommand telemetryCommand = TelemetryCommand.newBuilder()
+            .setNotifyUnsubscribeLiteCommand(unsubscribeLiteCommand)
+            .build();
+
+        this.writeTelemetryCommand(telemetryCommand);
+
+        log.info("notifyUnsubscribeLite liteTopic:{} group:{} clientId:{}", liteTopic, group, clientId);
+
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
     protected CompletableFuture<Void> processGetConsumerRunningInfo(RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header,
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture) {
-        if (!header.isJstackEnable()) {
+        if (Objects.isNull(header) || !header.isJstackEnable()) {
             return CompletableFuture.completedFuture(null);
         }
         this.writeTelemetryCommand(TelemetryCommand.newBuilder()

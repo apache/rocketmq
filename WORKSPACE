@@ -41,6 +41,7 @@ maven_install(
     artifacts = [
         "junit:junit:4.13.2",
         "com.alibaba:fastjson:1.2.76",
+        "com.alibaba.fastjson2:fastjson2:2.0.59",
         "org.hamcrest:hamcrest-library:1.3",
         "io.netty:netty-all:4.1.65.Final",
         "org.assertj:assertj-core:3.22.0",
@@ -53,7 +54,7 @@ maven_install(
         "commons-validator:commons-validator:1.7",
         "org.apache.commons:commons-lang3:3.12.0",
         "org.hamcrest:hamcrest-core:1.3",
-        "io.openmessaging.storage:dledger:0.3.1",
+        "io.openmessaging.storage:dledger:0.3.2",
         "net.java.dev.jna:jna:4.2.2",
         "ch.qos.logback:logback-classic:1.2.10",
         "ch.qos.logback:logback-core:1.2.10",
@@ -63,14 +64,14 @@ maven_install(
         "org.awaitility:awaitility:4.1.0",
         "commons-cli:commons-cli:1.5.0",
         "com.google.guava:guava:31.0.1-jre",
-        "org.yaml:snakeyaml:1.30",
+        "org.yaml:snakeyaml:2.0",
         "commons-codec:commons-codec:1.13",
         "commons-io:commons-io:2.7",
         "com.google.truth:truth:0.30",
         "org.bouncycastle:bcpkix-jdk15on:1.69",
         "com.google.code.gson:gson:2.8.9",
         "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.4.2",
-        "org.apache.rocketmq:rocketmq-proto:2.0.3",
+        "org.apache.rocketmq:rocketmq-proto:2.1.1",
         "com.google.protobuf:protobuf-java:3.20.1",
         "com.google.protobuf:protobuf-java-util:3.20.1",
         "com.conversantmedia:disruptor:1.2.10",
@@ -106,10 +107,13 @@ maven_install(
         "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
         "com.adobe.testing:s3mock-junit4:2.11.0",
         "io.github.aliyunmq:rocketmq-grpc-netty-codec-haproxy:1.0.0",
-        "org.apache.rocketmq:rocketmq-rocksdb:1.0.2",
+        "org.apache.rocketmq:rocketmq-rocksdb:1.0.6",
         "com.alipay.sofa:jraft-core:1.3.14",
         "com.alipay.sofa:hessian:3.3.6",
         "io.netty:netty-tcnative-boringssl-static:2.0.48.Final",
+        "org.mockito:mockito-junit-jupiter:4.11.0",
+        "com.alibaba.fastjson2:fastjson2:2.0.59",
+        "org.junit.jupiter:junit-jupiter-api:5.9.1",
     ],
     fetch_sources = True,
     repositories = [
@@ -130,11 +134,31 @@ load("@io_buildbuddy_buildbuddy_toolchain//:rules.bzl", "buildbuddy")
 buildbuddy(name = "buildbuddy_toolchain")
 
 http_archive(
-    name = "bazel_toolchains",
-    sha256 = "1adf5db506a7e3c465a26988514cfc3971af6d5b3c2218925cd6e71ee443fc3f",
-    strip_prefix = "bazel-toolchains-4.0.0",
+    name = "bazel_skylib",
+    sha256 = "51b5105a760b353773f904d2bbc5e664d0987fbaf22265164de65d43e910d8ac",
     urls = [
-        "https://github.com/bazelbuild/bazel-toolchains/releases/download/4.0.0/bazel-toolchains-4.0.0.tar.gz",
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-toolchains/releases/download/4.0.0/bazel-toolchains-4.0.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.8.1/bazel-skylib-1.8.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.8.1/bazel-skylib-1.8.1.tar.gz",
     ],
+)
+
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+bazel_skylib_workspace()
+
+http_archive(
+    name = "rules_java",
+    urls = [
+        "https://github.com/bazelbuild/rules_java/releases/download/7.12.5/rules_java-7.12.5.tar.gz",
+    ],
+    sha256 = "17b18cb4f92ab7b94aa343ce78531b73960b1bed2ba166e5b02c9fdf0b0ac270",
+)
+load("@rules_java//java:repositories.bzl", "rules_java_dependencies", "rules_java_toolchains")
+rules_java_dependencies()
+rules_java_toolchains()
+
+load("@rules_java//toolchains:local_java_repository.bzl", "local_java_repository")
+local_java_repository(
+  name = "jdk8",
+  version = "8",
+  java_home = "/usr/lib/jvm/java-8-openjdk-amd64",
 )

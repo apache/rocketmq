@@ -41,25 +41,14 @@ import java.util.ArrayList;
 public class SelectorParser implements SelectorParserConstants {
 
     private static final Cache<String, Object> PARSE_CACHE = CacheBuilder.newBuilder().maximumSize(100).build();
-//    private static final String CONVERT_STRING_EXPRESSIONS_PREFIX = "convert_string_expressions:";
 
     public static BooleanExpression parse(String sql) throws MQFilterException {
-//        sql = "("+sql+")";
         Object result = PARSE_CACHE.getIfPresent(sql);
         if (result instanceof MQFilterException) {
             throw (MQFilterException) result;
         } else if (result instanceof BooleanExpression) {
             return (BooleanExpression) result;
         } else {
-
-//            boolean convertStringExpressions = false;
-//            if( sql.startsWith(CONVERT_STRING_EXPRESSIONS_PREFIX)) {
-//                convertStringExpressions = true;
-//                sql = sql.substring(CONVERT_STRING_EXPRESSIONS_PREFIX.length());
-//            }
-//            if( convertStringExpressions ) {
-//                ComparisonExpression.CONVERT_STRING_EXPRESSIONS.set(true);
-//            }
             ComparisonExpression.CONVERT_STRING_EXPRESSIONS.set(true);
             try {
 
@@ -71,9 +60,6 @@ public class SelectorParser implements SelectorParserConstants {
                 throw t;
             } finally {
                 ComparisonExpression.CONVERT_STRING_EXPRESSIONS.remove();
-//                if( convertStringExpressions ) {
-//                    ComparisonExpression.CONVERT_STRING_EXPRESSIONS.remove();
-//                }
             }
         }
     }
@@ -111,12 +97,8 @@ public class SelectorParser implements SelectorParserConstants {
     // Grammar
     // ----------------------------------------------------------------------------
     final public BooleanExpression JmsSelector() throws ParseException {
-        Expression left = null;
-        left = orExpression();
-        {
-            if (true) return asBooleanExpression(left);
-        }
-        throw new Error("Missing return statement in function");
+        Expression left = orExpression();
+        return asBooleanExpression(left);
     }
 
     final public Expression orExpression() throws ParseException {
@@ -136,10 +118,7 @@ public class SelectorParser implements SelectorParserConstants {
             right = andExpression();
             left = LogicExpression.createOR(asBooleanExpression(left), asBooleanExpression(right));
         }
-        {
-            if (true) return left;
-        }
-        throw new Error("Missing return statement in function");
+        return left;
     }
 
     final public Expression andExpression() throws ParseException {
@@ -159,10 +138,7 @@ public class SelectorParser implements SelectorParserConstants {
             right = equalityExpression();
             left = LogicExpression.createAND(asBooleanExpression(left), asBooleanExpression(right));
         }
-        {
-            if (true) return left;
-        }
-        throw new Error("Missing return statement in function");
+        return left;
     }
 
     final public Expression equalityExpression() throws ParseException {
@@ -213,10 +189,7 @@ public class SelectorParser implements SelectorParserConstants {
                     }
             }
         }
-        {
-            if (true) return left;
-        }
-        throw new Error("Missing return statement in function");
+        return left;
     }
 
     final public Expression comparisonExpression() throws ParseException {
@@ -387,10 +360,7 @@ public class SelectorParser implements SelectorParserConstants {
                     }
             }
         }
-        {
-            if (true) return left;
-        }
-        throw new Error("Missing return statement in function");
+        return left;
     }
 
     final public Expression unaryExpr() throws ParseException {
@@ -427,10 +397,7 @@ public class SelectorParser implements SelectorParserConstants {
                     throw new ParseException();
             }
         }
-        {
-            if (true) return left;
-        }
-        throw new Error("Missing return statement in function");
+        return left;
     }
 
     final public Expression primaryExpr() throws ParseException {
@@ -457,10 +424,7 @@ public class SelectorParser implements SelectorParserConstants {
                 jj_consume_token(-1);
                 throw new ParseException();
         }
-        {
-            if (true) return left;
-        }
-        throw new Error("Missing return statement in function");
+        return left;
     }
 
     final public ConstantExpression literal() throws ParseException {
@@ -497,10 +461,7 @@ public class SelectorParser implements SelectorParserConstants {
                 jj_consume_token(-1);
                 throw new ParseException();
         }
-        {
-            if (true) return left;
-        }
-        throw new Error("Missing return statement in function");
+        return left;
     }
 
     final public String stringLitteral() throws ParseException {
@@ -516,10 +477,7 @@ public class SelectorParser implements SelectorParserConstants {
                 i++;
             rc.append(c);
         }
-        {
-            if (true) return rc.toString();
-        }
-        throw new Error("Missing return statement in function");
+        return rc.toString();
     }
 
     final public PropertyExpression variable() throws ParseException {
@@ -527,10 +485,7 @@ public class SelectorParser implements SelectorParserConstants {
         PropertyExpression left = null;
         t = jj_consume_token(ID);
         left = new PropertyExpression(t.image);
-        {
-            if (true) return left;
-        }
-        throw new Error("Missing return statement in function");
+        return left;
     }
 
     private boolean jj_2_1(int xla) {

@@ -25,6 +25,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.rocksdb.RocksDBException;
 
 public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInterface {
@@ -38,28 +39,25 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
     public AbstractConsumeQueueStore(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
         this.messageStoreConfig = messageStore.getMessageStoreConfig();
-        this.consumeQueueTable = new ConcurrentHashMap<>(32);
+        if (messageStoreConfig.isEnableLmq()) {
+            this.consumeQueueTable = new ConcurrentHashMap<>(32_768);
+        } else {
+            this.consumeQueueTable = new ConcurrentHashMap<>(32);
+        }
     }
 
-    @Override
     public void putMessagePositionInfoWrapper(ConsumeQueueInterface consumeQueue, DispatchRequest request) {
         consumeQueue.putMessagePositionInfoWrapper(request);
     }
 
     @Override
-    public Long getMaxOffset(String topic, int queueId) {
+    public Long getMaxOffset(String topic, int queueId) throws ConsumeQueueException {
         return this.queueOffsetOperator.currentQueueOffset(topic + "-" + queueId);
     }
 
-    @Override
     public void setTopicQueueTable(ConcurrentMap<String, Long> topicQueueTable) {
         this.queueOffsetOperator.setTopicQueueTable(topicQueueTable);
         this.queueOffsetOperator.setLmqTopicQueueTable(topicQueueTable);
-    }
-
-    @Override
-    public ConcurrentMap getTopicQueueTable() {
-        return this.queueOffsetOperator.getTopicQueueTable();
     }
 
     @Override
@@ -75,16 +73,15 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
     }
 
     @Override
-    public void increaseLmqOffset(String queueKey, short messageNum) {
-        queueOffsetOperator.increaseLmqOffset(queueKey, messageNum);
+    public void increaseLmqOffset(String topic, int queueId, short delta) throws ConsumeQueueException {
+        queueOffsetOperator.increaseLmqOffset(topic, queueId, delta);
     }
 
     @Override
-    public long getLmqQueueOffset(String queueKey) {
-        return queueOffsetOperator.getLmqOffset(queueKey);
+    public long getLmqQueueOffset(String topic, int queueId) throws ConsumeQueueException {
+        return queueOffsetOperator.getLmqOffset(topic, queueId, (t, q) -> 0L);
     }
 
-    @Override
     public void removeTopicQueueTable(String topic, Integer queueId) {
         this.queueOffsetOperator.remove(topic, queueId);
     }
@@ -94,22 +91,55 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
         return this.consumeQueueTable;
     }
 
-    @Override
-    public ConcurrentMap<Integer, ConsumeQueueInterface> findConsumeQueueMap(String topic) {
-        return this.consumeQueueTable.get(topic);
-    }
-
-    @Override
     public long getStoreTime(CqUnit cqUnit) {
         if (cqUnit != null) {
             try {
                 final long phyOffset = cqUnit.getPos();
                 final int size = cqUnit.getSize();
-                long storeTime = this.messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                return storeTime;
+                return this.messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
             } catch (Exception e) {
+                log.error("Failed to getStoreTime", e);
             }
         }
         return -1;
+    }
+
+    /**
+     * get max physic offset in consumeQueue
+     *
+     * @return the max physic offset in consumeQueue
+     * @throws RocksDBException only in rocksdb mode
+     */
+    public abstract long getMaxPhyOffsetInConsumeQueue() throws RocksDBException;
+
+    /**
+     * destroy the specific consumeQueue
+     *
+     * @param consumeQueue consumeQueue to be destroyed
+     * @throws RocksDBException only in rocksdb mode
+     */
+    protected abstract void destroy(ConsumeQueueInterface consumeQueue) throws RocksDBException;
+
+    @Override
+    public boolean deleteTopic(String topic) {
+        ConcurrentMap<Integer, ConsumeQueueInterface> queueTable = this.consumeQueueTable.get(topic);
+
+        if (queueTable == null || queueTable.isEmpty()) {
+            return false;
+        }
+
+        for (ConsumeQueueInterface cq : queueTable.values()) {
+            try {
+                destroy(cq);
+            } catch (RocksDBException e) {
+                log.error("DeleteTopic: ConsumeQueue cleans error!, topic={}, queueId={}", cq.getTopic(), cq.getQueueId(), e);
+            }
+            log.info("DeleteTopic: ConsumeQueue has been cleaned, topic={}, queueId={}", cq.getTopic(), cq.getQueueId());
+            removeTopicQueueTable(cq.getTopic(), cq.getQueueId());
+        }
+
+        // remove topic from cq table
+        this.consumeQueueTable.remove(topic);
+        return true;
     }
 }

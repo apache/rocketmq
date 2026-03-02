@@ -39,7 +39,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
     //queue nums of topic TRANS_CHECK_MAX_TIME_TOPIC
     protected final static int TCMT_QUEUE_NUMS = 1;
 
-    private static volatile ExecutorService executorService;
+    private volatile ExecutorService executorService;
 
     public AbstractTransactionalMessageCheckListener() {
     }
@@ -50,6 +50,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
 
     public void sendCheckMessage(MessageExt msgExt) throws Exception {
         CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
+        checkTransactionStateRequestHeader.setTopic(msgExt.getTopic());
         checkTransactionStateRequestHeader.setCommitLogOffset(msgExt.getCommitLogOffset());
         checkTransactionStateRequestHeader.setOffsetMsgId(msgExt.getMsgId());
         checkTransactionStateRequestHeader.setMsgId(msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
@@ -89,7 +90,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
         return brokerController;
     }
 
-    public void shutDown() {
+    public void shutdown() {
         if (executorService != null) {
             executorService.shutdown();
         }

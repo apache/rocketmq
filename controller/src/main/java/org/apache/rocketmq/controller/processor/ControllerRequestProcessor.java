@@ -311,6 +311,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         String content = this.controllerManager.getConfiguration().getAllConfigsFormatString();
         if (content != null && content.length() > 0) {
             try {
+                content = MixAll.adjustConfigForPlatform(content);
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
                 log.error("getConfig error, ", e);

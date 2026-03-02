@@ -24,7 +24,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public abstract class ServiceThread implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private static final long JOIN_TIME = 90 * 1000;
 
@@ -41,7 +41,9 @@ public abstract class ServiceThread implements Runnable {
 
     }
 
-    public abstract String getServiceName();
+    public String getServiceName() {
+        return this.getClass().getSimpleName();
+    }
 
     public void start() {
         log.info("Try to start service thread:{} started:{} lastThread:{}", getServiceName(), started.get(), thread);

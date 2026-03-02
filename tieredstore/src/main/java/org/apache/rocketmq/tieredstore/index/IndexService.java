@@ -24,6 +24,8 @@ import org.apache.rocketmq.tieredstore.common.AppendResult;
 
 public interface IndexService {
 
+    void start();
+
     /**
      * Puts a key into the index.
      *
@@ -50,10 +52,20 @@ public interface IndexService {
      */
     CompletableFuture<List<IndexItem>> queryAsync(String topic, String key, int maxCount, long beginTime, long endTime);
 
+    default void forceUpload() {
+    }
+
     /**
      * Shutdown the index service.
      */
     void shutdown();
+
+    /**
+     * Force shutdown the index service.
+     */
+    default void forceShutdown() {
+        shutdown();
+    };
 
     /**
      * Destroys the index service and releases all resources.

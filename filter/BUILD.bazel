@@ -22,13 +22,10 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//common",
-        "//remoting",
-        "//srvutil",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_validator_commons_validator",
         "@maven//:com_github_luben_zstd_jni",
         "@maven//:org_lz4_lz4_java",
-        "@maven//:com_alibaba_fastjson",
         "@maven//:io_netty_netty_all",
         "@maven//:com_google_guava_guava",
     ],

@@ -24,8 +24,8 @@ import java.util.Set;
 import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -38,18 +38,23 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.RollbackStats;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
+import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
+import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteGroupInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetParentTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
-import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.protocol.body.ProducerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
@@ -58,6 +63,8 @@ import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
+import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -90,27 +97,15 @@ public interface MQAdminExt extends MQAdmin {
         final TopicConfig config) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
-    void createAndUpdatePlainAccessConfig(final String addr,
-        final PlainAccessConfig plainAccessConfig) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    void deletePlainAccessConfig(final String addr, final String accessKey) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    void updateGlobalWhiteAddrConfig(final String addr,
-        final String globalWhiteAddrs) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    void updateGlobalWhiteAddrConfig(final String addr, final String globalWhiteAddrs,
-        String aclFileFullPath) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
-        final String addr) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
+    void createAndUpdateTopicConfigList(final String addr,
+        final List<TopicConfig> topicConfigList) throws InterruptedException, RemotingException, MQClientException;
 
     void createAndUpdateSubscriptionGroupConfig(final String addr,
         final SubscriptionGroupConfig config) throws RemotingException,
+        MQBrokerException, InterruptedException, MQClientException;
+
+    void createAndUpdateSubscriptionGroupConfigList(String brokerAddr,
+        List<SubscriptionGroupConfig> configs) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException;
 
     SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr,
@@ -139,7 +134,14 @@ public interface MQAdminExt extends MQAdmin {
         final String consumerGroup) throws RemotingException, MQClientException, InterruptedException,
         MQBrokerException;
 
+    CheckRocksdbCqWriteResult checkRocksdbCqWriteProgress(String brokerAddr, String topic, long checkStoreTime)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
+
     ConsumeStats examineConsumeStats(final String consumerGroup,
+        final String topic) throws RemotingException, MQClientException,
+        InterruptedException, MQBrokerException;
+
+    ConsumeStats examineConsumeStats(final String clusterName, final String consumerGroup,
         final String topic) throws RemotingException, MQClientException,
         InterruptedException, MQBrokerException;
 
@@ -223,6 +225,9 @@ public interface MQAdminExt extends MQAdmin {
     Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp, boolean isForce)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 
+    Map<MessageQueue, Long> resetOffsetByTimestamp(String clusterName, String topic, String group, long timestamp, boolean isForce)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
     void resetOffsetNew(String consumerGroup, String topic, long timestamp) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
@@ -281,9 +286,10 @@ public interface MQAdminExt extends MQAdmin {
 
     ConsumeMessageDirectlyResult consumeMessageDirectly(String consumerGroup,
         String clientId,
+        String topic,
         String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
 
-    ConsumeMessageDirectlyResult consumeMessageDirectly(String consumerGroup,
+    ConsumeMessageDirectlyResult consumeMessageDirectly(String clusterName, String consumerGroup,
         String clientId,
         String topic,
         String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
@@ -314,16 +320,18 @@ public interface MQAdminExt extends MQAdmin {
         final String topic) throws InterruptedException, MQBrokerException, MQClientException, RemotingException;
 
     SubscriptionGroupWrapper getAllSubscriptionGroup(final String brokerAddr,
-        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
-        RemotingConnectException, MQBrokerException;
+        long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
+        MQBrokerException, RemotingCommandException;
 
     SubscriptionGroupWrapper getUserSubscriptionGroup(final String brokerAddr,
-        long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
-        RemotingConnectException, MQBrokerException;
+        long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
+        MQBrokerException, RemotingCommandException;
 
     TopicConfigSerializeWrapper getAllTopicConfig(final String brokerAddr,
         long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
-        RemotingConnectException, MQBrokerException;
+        RemotingConnectException, MQBrokerException, RemotingCommandException;
 
     TopicConfigSerializeWrapper getUserTopicConfig(final String brokerAddr, final boolean specialTopic,
         long timeoutMillis) throws InterruptedException, RemotingException,
@@ -371,8 +379,9 @@ public interface MQAdminExt extends MQAdmin {
         final long index, final int count, final String consumerGroup)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
 
-    boolean resumeCheckHalfMessage(String msgId)
-        throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+    void exportRocksDBConfigToJson(String brokerAddr,
+        List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configType)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
 
     boolean resumeCheckHalfMessage(final String topic,
         final String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
@@ -481,4 +490,57 @@ public interface MQAdminExt extends MQAdmin {
     String setCommitLogReadAheadMode(final String brokerAddr, String mode)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
 
+    void createUser(String brokerAddr, String username, String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void createUser(String brokerAddr, UserInfo userInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void updateUser(String brokerAddr, String username, String password, String userType, String userStatus) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void updateUser(String brokerAddr, UserInfo userInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void deleteUser(String brokerAddr, String username) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    UserInfo getUser(String brokerAddr, String username) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    List<UserInfo> listUser(String brokerAddr, String filter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void createAcl(String brokerAddr, String subject, List<String> resources, List<String> actions, List<String> sourceIps, String decision) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void createAcl(String brokerAddr, AclInfo aclInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void updateAcl(String brokerAddr, String subject, List<String> resources, List<String> actions, List<String> sourceIps, String decision) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void updateAcl(String brokerAddr, AclInfo aclInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void deleteAcl(String brokerAddr, String subject, String resource) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    AclInfo getAcl(String brokerAddr, String subject) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    List<AclInfo> listAcl(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void exportPopRecords(String brokerAddr, long timeout) throws RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void switchTimerEngine(String brokerAddr, String desTimerEngine) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    GetBrokerLiteInfoResponseBody getBrokerLiteInfo(final String brokerAddr)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    GetParentTopicInfoResponseBody getParentTopicInfo(final String brokerAddr, final String topic)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    GetLiteTopicInfoResponseBody getLiteTopicInfo(final String brokerAddr, final String parentTopic,
+        final String liteTopic)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    GetLiteClientInfoResponseBody getLiteClientInfo(final String brokerAddr, final String parentTopic,
+        final String group, final String clientId)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    GetLiteGroupInfoResponseBody getLiteGroupInfo(final String brokerAddr, final String group,
+        final String liteTopic, final int topK)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
+    void triggerLiteDispatch(final String brokerAddr, final String group, final String clientId)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 }

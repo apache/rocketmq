@@ -24,7 +24,7 @@
     </appender>
 
     <property name="CONSOLE_LOG_PATTERN"
-              value="%d{yyyy-MM-dd HH:mm:ss.SSS,GMT+8} ${LOG_LEVEL_PATTERN:-%5p} [%20.20thread] [%20.20logger{39}] %m%n"/>
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS,GMT+8} ${LOG_LEVEL_PATTERN:-%5p} [%20.20thread] %m%n"/>
 
     <root level="info">
         <appender-ref ref="STDOUT"/>

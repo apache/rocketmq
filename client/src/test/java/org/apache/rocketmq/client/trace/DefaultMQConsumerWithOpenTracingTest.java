@@ -135,6 +135,8 @@ public class DefaultMQConsumerWithOpenTracingTest {
             new ConsumeMessageOpenTracingHookImpl(tracer));
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
         pushConsumer.setPullInterval(60 * 1000);
+        // disable trace to let mock trace work
+        pushConsumer.setEnableTrace(false);
 
         OffsetStore offsetStore = Mockito.mock(OffsetStore.class);
         Mockito.when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(0L);

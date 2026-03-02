@@ -92,13 +92,13 @@ public class DefaultMQProducerWithTraceTest {
         normalProducer.setNamesrvAddr("127.0.0.1:9877");
         customTraceTopicproducer.setNamesrvAddr("127.0.0.1:9878");
         message = new Message(topic, new byte[] {'a', 'b', 'c'});
-        asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
-        asyncTraceDispatcher.setTraceTopicName(customerTraceTopic);
-        asyncTraceDispatcher.getHostProducer();
-        asyncTraceDispatcher.getHostConsumer();
-        traceProducer = asyncTraceDispatcher.getTraceProducer();
+        producer.setTraceTopic(customerTraceTopic);
+        producer.setUseTLS(true);
 
         producer.start();
+
+        asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
+        traceProducer = asyncTraceDispatcher.getTraceProducer();
 
         Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
@@ -150,9 +150,6 @@ public class DefaultMQProducerWithTraceTest {
 
     @Test
     public void testProducerWithTraceTLS() {
-        DefaultMQProducer producer = new DefaultMQProducer(producerGroupTemp, true, null);
-        producer.setUseTLS(true);
-        AsyncTraceDispatcher asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
         Assert.assertTrue(asyncTraceDispatcher.getTraceProducer().isUseTLS());
     }
 

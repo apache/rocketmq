@@ -18,6 +18,7 @@
 package org.apache.rocketmq.tieredstore.common;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class SelectBufferResult {
 
@@ -25,12 +26,14 @@ public class SelectBufferResult {
     private final long startOffset;
     private final int size;
     private final long tagCode;
+    private final AtomicLong accessCount;
 
     public SelectBufferResult(ByteBuffer byteBuffer, long startOffset, int size, long tagCode) {
         this.startOffset = startOffset;
         this.byteBuffer = byteBuffer;
         this.size = size;
         this.tagCode = tagCode;
+        this.accessCount = new AtomicLong();
     }
 
     public ByteBuffer getByteBuffer() {
@@ -47,5 +50,9 @@ public class SelectBufferResult {
 
     public long getTagCode() {
         return tagCode;
+    }
+
+    public AtomicLong getAccessCount() {
+        return accessCount;
     }
 }

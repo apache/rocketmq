@@ -17,11 +17,54 @@
 package org.apache.rocketmq.common.attribute;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class AttributeTest {
+
+    private Attribute attribute;
+
+    @Before
+    public void setUp() {
+        attribute = new Attribute("testAttribute", true) {
+            @Override
+            public void verify(String value) {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
+    @Test
+    public void testGetName_ShouldReturnCorrectName() {
+        assertEquals("testAttribute", attribute.getName());
+    }
+
+    @Test
+    public void testSetName_ShouldSetCorrectName() {
+        attribute.setName("newTestAttribute");
+        assertEquals("newTestAttribute", attribute.getName());
+    }
+
+    @Test
+    public void testIsChangeable_ShouldReturnCorrectChangeableStatus() {
+        assertTrue(attribute.isChangeable());
+    }
+
+    @Test
+    public void testSetChangeable_ShouldSetCorrectChangeableStatus() {
+        attribute.setChangeable(false);
+        assertFalse(attribute.isChangeable());
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testVerify_ShouldThrowUnsupportedOperationException() {
+        attribute.verify("testValue");
+    }
 
     @Test
     public void testEnumAttribute() {

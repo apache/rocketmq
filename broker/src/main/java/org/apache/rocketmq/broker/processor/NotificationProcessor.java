@@ -18,9 +18,13 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Random;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.filter.ConsumerFilterData;
+import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
+import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.longpolling.PollingHeader;
 import org.apache.rocketmq.broker.longpolling.PollingResult;
 import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
@@ -29,6 +33,7 @@ import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -37,9 +42,17 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.store.MessageFilter;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.rocksdb.RocksDBException;
 
 public class NotificationProcessor implements NettyRequestProcessor {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
@@ -53,28 +66,41 @@ public class NotificationProcessor implements NettyRequestProcessor {
         this.popLongPollingService = new PopLongPollingService(brokerController, this, true);
     }
 
+    public void shutdown() throws Exception {
+        this.popLongPollingService.shutdown();
+    }
+
     @Override
     public boolean rejectRequest() {
         return false;
     }
 
+    // When a new message is written to CommitLog, this method would be called.
+    // Suspended long polling will receive notification and be wakeup.
+    public void notifyMessageArriving(final String topic, final int queueId, long offset,
+        Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+        this.popLongPollingService.notifyMessageArrivingWithRetryTopic(
+            topic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
+    }
+
     public void notifyMessageArriving(final String topic, final int queueId) {
-        popLongPollingService.notifyMessageArrivingWithRetryTopic(topic, queueId);
+        this.popLongPollingService.notifyMessageArrivingWithRetryTopic(topic, queueId);
     }
 
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        if (Objects.equals(request.getExtFields().get(BORN_TIME), "0")) {
-            request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
-        }
         Channel channel = ctx.channel();
 
         RemotingCommand response = RemotingCommand.createResponseCommand(NotificationResponseHeader.class);
         final NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.readCustomHeader();
         final NotificationRequestHeader requestHeader =
-            (NotificationRequestHeader) request.decodeCommandCustomHeader(NotificationRequestHeader.class);
+            request.decodeCommandCustomHeader(NotificationRequestHeader.class, true);
+        if (requestHeader.getBornTime() == 0) {
+            final long beginTimeMills = this.brokerController.getMessageStore().now();
+            request.addExtField(BORN_TIME, String.valueOf(beginTimeMills));
+            requestHeader.setBornTime(beginTimeMills);
+        }
 
         response.setOpaque(request.getOpaque());
 
@@ -102,7 +128,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
             String errorInfo = String.format("queueId[%d] is illegal, topic:[%s] topicConfig.readQueueNums:[%d] consumer:[%s]",
                 requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), channel.remoteAddress());
             POP_LOGGER.warn(errorInfo);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(errorInfo);
             return response;
         }
@@ -121,38 +147,65 @@ public class NotificationProcessor implements NettyRequestProcessor {
         }
         int randomQ = random.nextInt(100);
         boolean hasMsg = false;
-        boolean needRetry = randomQ % 5 == 0;
         BrokerConfig brokerConfig = brokerController.getBrokerConfig();
-        if (needRetry) {
-            String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2());
-            hasMsg = hasMsgFromTopic(retryTopic, randomQ, requestHeader);
-            if (!hasMsg && brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
-                String retryTopicConfigV1 = KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup());
-                hasMsg = hasMsgFromTopic(retryTopicConfigV1, randomQ, requestHeader);
+
+        SubscriptionData subscriptionData = null;
+        ExpressionMessageFilter messageFilter = null;
+        if (brokerConfig.isUseMessageFilterForNotification() &&
+            StringUtils.isNotEmpty(requestHeader.getExpType()) &&
+            StringUtils.isNotEmpty(requestHeader.getExp())) {
+            try {
+                // origin topic
+                subscriptionData = FilterAPI.build(
+                    requestHeader.getTopic(), requestHeader.getExp(), requestHeader.getExpType());
+
+                ConsumerFilterData consumerFilterData = null;
+                if (!ExpressionType.isTagType(subscriptionData.getExpressionType())) {
+                    consumerFilterData = ConsumerFilterManager.build(
+                        requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getExp(),
+                        requestHeader.getExpType(), System.currentTimeMillis());
+                    if (consumerFilterData == null) {
+                        POP_LOGGER.warn("Parse the consumer's subscription[{}] failed, group: {}",
+                            requestHeader.getExp(), requestHeader.getConsumerGroup());
+                        response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
+                        response.setRemark("parse the consumer's subscription failed");
+                        return response;
+                    }
+                }
+                messageFilter = new ExpressionMessageFilter(
+                    subscriptionData, consumerFilterData, brokerController.getConsumerFilterManager());
+            } catch (Exception e) {
+                POP_LOGGER.warn("Parse the consumer's subscription[{}] error, group: {}", requestHeader.getExp(),
+                    requestHeader.getConsumerGroup());
+                response.setCode(ResponseCode.SUBSCRIPTION_PARSE_FAILED);
+                response.setRemark("parse the consumer's subscription failed");
+                return response;
             }
         }
+
+        if (requestHeader.getQueueId() < 0) {
+            // read all queue
+            hasMsg = hasMsgFromTopic(topicConfig, randomQ, requestHeader, subscriptionData, messageFilter);
+        } else {
+            int queueId = requestHeader.getQueueId();
+            hasMsg = hasMsgFromQueue(topicConfig.getTopicName(), requestHeader, queueId, subscriptionData, messageFilter);
+        }
+        // if it doesn't have message, fetch retry
         if (!hasMsg) {
-            if (requestHeader.getQueueId() < 0) {
-                // read all queue
-                hasMsg = hasMsgFromTopic(topicConfig, randomQ, requestHeader);
-            } else {
-                int queueId = requestHeader.getQueueId();
-                hasMsg = hasMsgFromQueue(topicConfig.getTopicName(), requestHeader, queueId);
-            }
-            // if it doesn't have message, fetch retry again
-            if (!needRetry && !hasMsg) {
-                String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2());
-                hasMsg = hasMsgFromTopic(retryTopic, randomQ, requestHeader);
-                if (!hasMsg && brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
-                    String retryTopicConfigV1 = KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup());
-                    hasMsg = hasMsgFromTopic(retryTopicConfigV1, randomQ, requestHeader);
-                }
+            String retryTopic = KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2());
+            hasMsg = hasMsgFromTopic(retryTopic, randomQ, requestHeader, null, null);
+            if (!hasMsg && brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
+                String retryTopicConfigV1 = KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup());
+                hasMsg = hasMsgFromTopic(retryTopicConfigV1, randomQ, requestHeader, null, null);
             }
         }
 
         if (!hasMsg) {
-            if (popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader)) == PollingResult.POLLING_SUC) {
+            PollingResult pollingResult = popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader), subscriptionData, messageFilter);
+            if (pollingResult == PollingResult.POLLING_SUC) {
                 return null;
+            } else if (pollingResult == PollingResult.POLLING_FULL) {
+                responseHeader.setPollingFull(true);
             }
         }
         response.setCode(ResponseCode.SUCCESS);
@@ -160,18 +213,19 @@ public class NotificationProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private boolean hasMsgFromTopic(String topicName, int randomQ, NotificationRequestHeader requestHeader) {
-        boolean hasMsg;
+    private boolean hasMsgFromTopic(String topicName, int randomQ, NotificationRequestHeader requestHeader, SubscriptionData subscriptionData, MessageFilter messageFilter)
+        throws RemotingCommandException {
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topicName);
-        return hasMsgFromTopic(topicConfig, randomQ, requestHeader);
+        return hasMsgFromTopic(topicConfig, randomQ, requestHeader, subscriptionData, messageFilter);
     }
 
-    private boolean hasMsgFromTopic(TopicConfig topicConfig, int randomQ, NotificationRequestHeader requestHeader) {
+    private boolean hasMsgFromTopic(TopicConfig topicConfig, int randomQ, NotificationRequestHeader requestHeader, SubscriptionData subscriptionData, MessageFilter messageFilter)
+        throws RemotingCommandException {
         boolean hasMsg;
         if (topicConfig != null) {
             for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
                 int queueId = (randomQ + i) % topicConfig.getReadQueueNums();
-                hasMsg = hasMsgFromQueue(topicConfig.getTopicName(), requestHeader, queueId);
+                hasMsg = hasMsgFromQueue(topicConfig.getTopicName(), requestHeader, queueId, subscriptionData, messageFilter);
                 if (hasMsg) {
                     return true;
                 }
@@ -180,15 +234,50 @@ public class NotificationProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private boolean hasMsgFromQueue(String targetTopic, NotificationRequestHeader requestHeader, int queueId) {
+    private boolean hasMsgFromQueue(String targetTopic, NotificationRequestHeader requestHeader, int queueId, SubscriptionData subscriptionData, MessageFilter messageFilter) throws RemotingCommandException {
         if (Boolean.TRUE.equals(requestHeader.getOrder())) {
             if (this.brokerController.getConsumerOrderInfoManager().checkBlock(requestHeader.getAttemptId(), requestHeader.getTopic(), requestHeader.getConsumerGroup(), queueId, 0)) {
                 return false;
             }
         }
         long offset = getPopOffset(targetTopic, requestHeader.getConsumerGroup(), queueId);
-        long restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(targetTopic, queueId) - offset;
-        return restNum > 0;
+        try {
+            long restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(targetTopic, queueId) - offset;
+            int maxFilterMessageNum = this.brokerController.getBrokerConfig().getMaxMessageFilterNumForNotification();
+            boolean needFilter = restNum < maxFilterMessageNum &&
+                subscriptionData != null &&
+                messageFilter != null &&
+                ExpressionType.isTagType(subscriptionData.getExpressionType());
+            if (needFilter) {
+                ConsumeQueueInterface queue = this.brokerController.getMessageStore().getConsumeQueue(targetTopic, queueId);
+                // If the ConsumeQueue doesn't exist, it's not readable.
+                if (queue == null) {
+                    return false;
+                }
+                ReferredIterator<CqUnit> iterator = null;
+                try {
+                    // In order to take into account both the file CQ and the Rocksdb CQ,
+                    // the count passed here is 32.
+                    iterator = queue.iterateFrom(offset, 32);
+                    if (iterator != null) {
+                        while (iterator.hasNext()) {
+                            CqUnit cqUnit = iterator.next();
+                            if (messageFilter.isMatchedByConsumeQueue(cqUnit.getValidTagsCodeAsLong(), cqUnit.getCqExtUnit())) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                } finally {
+                    if (iterator != null) {
+                        iterator.release();
+                    }
+                }
+            }
+            return restNum > 0;
+        } catch (ConsumeQueueException | RocksDBException e) {
+            throw new RemotingCommandException("Failed to get max offset in queue or iterate in queue", e);
+        }
     }
 
     private long getPopOffset(String topic, String cid, int queueId) {
@@ -196,13 +285,16 @@ public class NotificationProcessor implements NettyRequestProcessor {
         if (offset < 0) {
             offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
         }
-        long bufferOffset = this.brokerController.getPopMessageProcessor().getPopBufferMergeService()
-            .getLatestOffset(topic, cid, queueId);
-        if (bufferOffset < 0) {
-            return offset;
+
+        long bufferOffset;
+        if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
+            bufferOffset = this.brokerController.getConsumerOffsetManager().queryPullOffset(cid, topic, queueId);
         } else {
-            return bufferOffset > offset ? bufferOffset : offset;
+            bufferOffset = this.brokerController.getPopMessageProcessor()
+                .getPopBufferMergeService().getLatestOffset(topic, cid, queueId);
         }
+
+        return bufferOffset < 0L ? offset : Math.max(bufferOffset, offset);
     }
 
     public PopLongPollingService getPopLongPollingService() {

@@ -17,6 +17,9 @@
 package org.apache.rocketmq.store;
 
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.MessageConst;
 
 public class DispatchRequest {
     private final String topic;
@@ -226,6 +229,18 @@ public class DispatchRequest {
 
     public void setOffsetId(String offsetId) {
         this.offsetId = offsetId;
+    }
+
+    public boolean containsLMQ() {
+        if (!MixAll.topicAllowsLMQ(topic)) {
+            return false;
+        }
+        if (null == propertiesMap || propertiesMap.isEmpty()) {
+            return false;
+        }
+        String lmqNames = propertiesMap.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+        String lmqOffsets = propertiesMap.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
+        return !StringUtils.isBlank(lmqNames) && !StringUtils.isBlank(lmqOffsets);
     }
 
     @Override

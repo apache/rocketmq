@@ -6,7 +6,7 @@
 
 ### Step1: 启动NameServer
 1. NamerServer的启动类在`org.apache.rocketmq.namesrv.NamesrvStartup`
-2. `Idea-Edit Configurations`中添加运行参数 `ROCKETMQ_HOME=<rocketmq仓库目录>`
+2. `Idea-Edit Configurations`中添加环境变量 `ROCKETMQ_HOME=<rocketmq仓库目录>`
 ![Idea_config_nameserver.png](image/Idea_config_nameserver.png)
 3. 运行NameServer，观察到如下日志输出则启动成功
 ```shell
@@ -26,9 +26,9 @@ deleteWhen = 04
 fileReservedTime = 48
 brokerRole = ASYNC_MASTER
 flushDiskType = ASYNC_FLUSH
-namesrvAddr = 127.0.0.1:9876 # name server地址
+namesrvAddr = 127.0.0.1:9876
 ```
-3. `Idea-Edit Configurations`中添加运行参数 `ROCKETMQ_HOME=<rocketmq仓库目录>` 以及环境变量`-c /Users/xxx/rocketmq/conf/broker.conf`
+3. `Idea-Edit Configurations`中添加运行参数 `-c /Users/xxx/rocketmq/conf/broker.conf` 以及环境变量 `ROCKETMQ_HOME=<rocketmq仓库目录>`
 ![Idea_config_broker.png](image/Idea_config_broker.png)
 4. 运行Broker，观察到如下日志则启动成功
 ```shell
@@ -40,7 +40,7 @@ The broker[broker-a,192.169.1.2:10911] boot success...
 
 ### 补充：本地启动Proxy
 1. RocketMQ5.x支持了Proxy模式，使用`LOCAL`模式可以免去`Step2`，启动类在`org.apache.rocketmq.proxy.ProxyStartup`
-2. `Idea-Edit Configurations`中添加运行参数 `ROCKETMQ_HOME=<rocketmq仓库目录>`
+2. `Idea-Edit Configurations`中添加环境变量 `ROCKETMQ_HOME=<rocketmq仓库目录>`
 3. 在`/conf/`下新建配置文件`rmq-proxy.json`
 ```json
 {

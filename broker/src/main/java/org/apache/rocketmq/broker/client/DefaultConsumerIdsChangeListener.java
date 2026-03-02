@@ -23,8 +23,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -41,12 +42,14 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
 
     private ConcurrentHashMap<String,List<Channel>> consumerChannelMap = new ConcurrentHashMap<>(cacheSize);
 
+    private final ConcurrentHashMap<String, NotifyTaskControl> activeGroupNotifyMap = new ConcurrentHashMap<>();
+
     public DefaultConsumerIdsChangeListener(BrokerController brokerController) {
         this.brokerController = brokerController;
 
-        scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(brokerController.getBrokerConfig()) {
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
-            public void run0() {
+            public void run() {
                 try {
                     notifyConsumerChange();
                 } catch (Exception e) {
@@ -70,8 +73,24 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
                 List<Channel> channels = (List<Channel>) args[0];
                 if (channels != null && brokerController.getBrokerConfig().isNotifyConsumerIdsChangedEnable()) {
                     if (this.brokerController.getBrokerConfig().isRealTimeNotifyConsumerChange()) {
-                        for (Channel chl : channels) {
+                        NotifyTaskControl currentNotifyTaskControl = new NotifyTaskControl(channels);
+                        activeGroupNotifyMap.compute(group, (k, oldVal) -> {
+                            if (null != oldVal) {
+                                oldVal.interrupt();
+                            }
+                            return currentNotifyTaskControl;
+                        });
+
+                        boolean isNormalCompletion = true;
+                        for (Channel chl : currentNotifyTaskControl.getChannels()) {
+                            if (currentNotifyTaskControl.isInterrupted()) {
+                                isNormalCompletion = false;
+                                break;
+                            }
                             this.brokerController.getBroker2Client().notifyConsumerIdsChanged(chl, group);
+                        }
+                        if (isNormalCompletion) {
+                            activeGroupNotifyMap.computeIfPresent(group, (k, val) -> val == currentNotifyTaskControl ? null : val);
                         }
                     } else {
                         consumerChannelMap.put(group, channels);
@@ -124,5 +143,28 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
     @Override
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
+    }
+
+    private static class NotifyTaskControl {
+
+        private final AtomicBoolean interrupted = new AtomicBoolean(false);
+
+        private final List<Channel> channels;
+
+        public NotifyTaskControl(List<Channel> channels) {
+            this.channels = channels;
+        }
+
+        public boolean isInterrupted() {
+            return interrupted.get();
+        }
+
+        public void interrupt() {
+            interrupted.set(true);
+        }
+
+        public List<Channel> getChannels() {
+            return channels;
+        }
     }
 }

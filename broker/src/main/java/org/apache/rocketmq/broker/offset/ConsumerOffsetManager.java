@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.broker.offset;
 
+import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,12 +27,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.google.common.base.Strings;
-
+import java.util.function.Function;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -42,12 +43,12 @@ public class ConsumerOffsetManager extends ConfigManager {
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     public static final String TOPIC_GROUP_SEPARATOR = "@";
 
-    private DataVersion dataVersion = new DataVersion();
+    protected DataVersion dataVersion = new DataVersion();
 
     protected ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<>(512);
 
-    private final ConcurrentMap<String, ConcurrentMap<Integer, Long>> resetOffsetTable =
+    protected final ConcurrentMap<String, ConcurrentMap<Integer, Long>> resetOffsetTable =
         new ConcurrentHashMap<>(512);
 
     private final ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> pullOffsetTable =
@@ -55,7 +56,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     protected transient BrokerController brokerController;
 
-    private final transient AtomicLong versionChangeCounter = new AtomicLong(0);
+    protected final transient AtomicLong versionChangeCounter = new AtomicLong(0);
 
     public ConsumerOffsetManager() {
     }
@@ -64,7 +65,7 @@ public class ConsumerOffsetManager extends ConfigManager {
         this.brokerController = brokerController;
     }
 
-    protected void removeConsumerOffset(String topicAtGroup) {
+    public void removeConsumerOffset(String topicAtGroup) {
 
     }
 
@@ -94,6 +95,8 @@ public class ConsumerOffsetManager extends ConfigManager {
                 if (arrays.length == 2 && topic.equals(arrays[0])) {
                     it.remove();
                     removeConsumerOffset(topicAtGroup);
+                    pullOffsetTable.remove(topicAtGroup);
+                    resetOffsetTable.remove(topicAtGroup);
                     LOG.warn("Clean topic's offset, {}, {}", topicAtGroup, next.getValue());
                 }
             }
@@ -202,7 +205,7 @@ public class ConsumerOffsetManager extends ConfigManager {
     private void commitOffset(final String clientHost, final String key, final int queueId, final long offset) {
         ConcurrentMap<Integer, Long> map = this.offsetTable.get(key);
         if (null == map) {
-            map = new ConcurrentHashMap<>(32);
+            map = new ConcurrentHashMap<>(2);
             map.put(queueId, offset);
             this.offsetTable.put(key, map);
         } else {
@@ -212,8 +215,7 @@ public class ConsumerOffsetManager extends ConfigManager {
             }
         }
         if (versionChangeCounter.incrementAndGet() % brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep() == 0) {
-            long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            dataVersion.nextVersion(stateMachineVersion);
+            updateDataVersion();
         }
     }
 
@@ -280,6 +282,10 @@ public class ConsumerOffsetManager extends ConfigManager {
         return offset;
     }
 
+    public void clearPullOffset(final String group, final String topic) {
+        this.pullOffsetTable.remove(topic + TOPIC_GROUP_SEPARATOR + group);
+    }
+
     @Override
     public String encode() {
         return this.encode(false);
@@ -312,6 +318,10 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public void setOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
         this.offsetTable = offsetTable;
+    }
+
+    public ConcurrentMap<String, ConcurrentMap<Integer, Long>> getPullOffsetTable() {
+        return pullOffsetTable;
     }
 
     public Map<Integer, Long> queryMinOffsetInAllGroup(final String topic, final String filterGroups) {
@@ -369,24 +379,59 @@ public class ConsumerOffsetManager extends ConfigManager {
         return dataVersion;
     }
 
+    public void updateDataVersion() {
+        long stateMachineVersion = brokerController.getMessageStore() != null ?
+            brokerController.getMessageStore().getStateMachineVersion() : 0;
+        dataVersion.nextVersion(stateMachineVersion);
+    }
+
     public void setDataVersion(DataVersion dataVersion) {
         this.dataVersion = dataVersion;
     }
 
+    public boolean loadDataVersion() {
+        String fileName = null;
+        try {
+            fileName = this.configFilePath();
+            String jsonString = MixAll.file2String(fileName);
+            if (jsonString != null) {
+                ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
+                if (obj != null) {
+                    this.dataVersion = obj.dataVersion;
+                }
+                LOG.info("load consumer offset dataVersion success,{},{} ", fileName, jsonString);
+            }
+            return true;
+        } catch (Exception e) {
+            LOG.error("load consumer offset dataVersion failed " + fileName, e);
+            return false;
+        }
+    }
+
     public void removeOffset(final String group) {
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            if (topicAtGroup.contains(group)) {
-                String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-                if (arrays.length == 2 && group.equals(arrays[1])) {
-                    it.remove();
-                    removeConsumerOffset(topicAtGroup);
-                    LOG.warn("clean group offset {}", topicAtGroup);
+        Function<Iterator<Entry<String, ConcurrentMap<Integer, Long>>>, Boolean> deleteFunction = it -> {
+            boolean removed = false;
+            while (it.hasNext()) {
+                Entry<String, ConcurrentMap<Integer, Long>> entry = it.next();
+                String topicAtGroup = entry.getKey();
+                if (topicAtGroup.contains(group)) {
+                    String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+                    if (arrays.length == 2 && group.equals(arrays[1])) {
+                        it.remove();
+                        removeConsumerOffset(topicAtGroup);
+                        removed = true;
+                    }
                 }
             }
-        }
+            return removed;
+        };
+
+        boolean clearOffset = deleteFunction.apply(this.offsetTable.entrySet().iterator());
+        boolean clearReset = deleteFunction.apply(this.resetOffsetTable.entrySet().iterator());
+        boolean clearPull = deleteFunction.apply(this.pullOffsetTable.entrySet().iterator());
+
+        LOG.info("Consumer offset manager clean group offset, groupName={}, " +
+            "offsetTable={}, resetOffsetTable={}, pullOffsetTable={}", group, clearOffset, clearReset, clearPull);
     }
 
     public void assignResetOffset(String topic, String group, int queueId, long offset) {
@@ -397,27 +442,14 @@ public class ConsumerOffsetManager extends ConfigManager {
         }
 
         String key = topic + TOPIC_GROUP_SEPARATOR + group;
-        ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
-        if (null == map) {
-            map = new ConcurrentHashMap<Integer, Long>();
-            ConcurrentMap<Integer, Long> previous = resetOffsetTable.putIfAbsent(key, map);
-            if (null != previous) {
-                map = previous;
-            }
-        }
-
-        map.put(queueId, offset);
-        LOG.debug("Reset offset OK. Topic={}, group={}, queueId={}, resetOffset={}",
-            topic, group, queueId, offset);
+        resetOffsetTable.computeIfAbsent(key, k -> Maps.newConcurrentMap()).put(queueId, offset);
+        LOG.debug("Reset offset OK. Topic={}, group={}, queueId={}, resetOffset={}", topic, group, queueId, offset);
 
         // Two things are important here:
         // 1, currentOffsetMap might be null if there is no previous records;
         // 2, Our overriding here may get overridden by the client instantly in concurrent cases; But it still makes
         // sense in cases like clients are offline.
-        ConcurrentMap<Integer, Long> currentOffsetMap = offsetTable.get(key);
-        if (null != currentOffsetMap) {
-            currentOffsetMap.put(queueId, offset);
-        }
+        offsetTable.computeIfAbsent(key, k -> Maps.newConcurrentMap()).put(queueId, offset);
     }
 
     public boolean hasOffsetReset(String topic, String group, int queueId) {

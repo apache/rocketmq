@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.common.message;
 
+import org.apache.commons.lang3.math.NumberUtils;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
@@ -108,6 +110,13 @@ public class Message implements Serializable {
         return this.properties.get(name);
     }
 
+    public boolean hasProperty(final String name) {
+        if (null == this.properties) {
+            return false;
+        }
+        return this.properties.containsKey(name);
+    }
+
     public String getTopic() {
         return topic;
     }
@@ -145,6 +154,17 @@ public class Message implements Serializable {
 
     public void setDelayTimeLevel(int level) {
         this.putProperty(MessageConst.PROPERTY_DELAY_TIME_LEVEL, String.valueOf(level));
+    }
+
+    public void setPriority(int priority) {
+        if (priority < 0) {
+            throw new IllegalArgumentException("The priority must be greater than or equal to 0");
+        }
+        this.putProperty(MessageConst.PROPERTY_PRIORITY, String.valueOf(priority));
+    }
+
+    public int getPriority() {
+        return NumberUtils.toInt(this.getProperty(MessageConst.PROPERTY_PRIORITY), -1);
     }
 
     public boolean isWaitStoreMsgOK() {

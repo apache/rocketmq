@@ -17,6 +17,16 @@
 
 package org.apache.rocketmq.store;
 
+import java.io.File;
+import java.lang.reflect.Field;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -30,21 +40,11 @@ import org.apache.rocketmq.store.index.IndexFile;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.io.File;
-import java.lang.reflect.Field;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 import static org.apache.rocketmq.common.message.MessageDecoder.CHARSET_UTF8;
 import static org.apache.rocketmq.store.ConsumeQueue.CQ_STORE_UNIT_SIZE;
@@ -59,7 +59,7 @@ import static org.mockito.Mockito.when;
 public class DefaultMessageStoreCleanFilesTest {
     private DefaultMessageStore messageStore;
     private DefaultMessageStore.CleanCommitLogService cleanCommitLogService;
-    private DefaultMessageStore.CleanConsumeQueueService cleanConsumeQueueService;
+    private ConsumeQueueStore.CleanConsumeQueueService cleanConsumeQueueService;
 
     private SocketAddress bornHost;
     private SocketAddress storeHost;
@@ -96,9 +96,6 @@ public class DefaultMessageStoreCleanFilesTest {
         assertEquals(fileCountConsumeQueue, consumeQueue.getMappedFiles().size());
         cleanCommitLogService.isSpaceFull();
         assertEquals(1 << 4, messageStore.getRunningFlags().getFlagBits() & (1 << 4));
-        messageStore.shutdown();
-        messageStore.destroy();
-
     }
 
     @Test
@@ -131,9 +128,6 @@ public class DefaultMessageStoreCleanFilesTest {
         cleanCommitLogService.isSpaceFull();
 
         assertEquals(1 << 4, messageStore.getRunningFlags().getFlagBits() & (1 << 4));
-        messageStore.shutdown();
-        messageStore.destroy();
-
     }
 
     @Test
@@ -350,12 +344,12 @@ public class DefaultMessageStoreCleanFilesTest {
         return cleanCommitLogService;
     }
 
-    private DefaultMessageStore.CleanConsumeQueueService getCleanConsumeQueueService()
+    private ConsumeQueueStore.CleanConsumeQueueService getCleanConsumeQueueService()
             throws Exception {
-        Field serviceField = messageStore.getClass().getDeclaredField("cleanConsumeQueueService");
+        Field serviceField = messageStore.getQueueStore().getClass().getDeclaredField("cleanConsumeQueueService");
         serviceField.setAccessible(true);
-        DefaultMessageStore.CleanConsumeQueueService cleanConsumeQueueService =
-                (DefaultMessageStore.CleanConsumeQueueService) serviceField.get(messageStore);
+        ConsumeQueueStore.CleanConsumeQueueService cleanConsumeQueueService =
+            (ConsumeQueueStore.CleanConsumeQueueService) serviceField.get(messageStore.getQueueStore());
         serviceField.setAccessible(false);
         return cleanConsumeQueueService;
     }
@@ -516,12 +510,15 @@ public class DefaultMessageStoreCleanFilesTest {
 
     @After
     public void destroy() {
+
         messageStore.shutdown();
         messageStore.destroy();
 
-        MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
-        File file = new File(messageStoreConfig.getStorePathRootDir());
-        UtilAll.deleteFile(file);
+        if (messageStore != null) {
+            MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
+            File file = new File(messageStoreConfig.getStorePathRootDir());
+            UtilAll.deleteFile(file);
+        }
     }
 
     private class MessageStoreConfigForTest extends MessageStoreConfig {

@@ -40,6 +40,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -100,8 +101,8 @@ public class BaseConf {
             brokerController2.getBrokerConfig().getListenPort());
 
         brokerController3 = IntegrationTestBase.createAndStartBroker(NAMESRV_ADDR);
-        log.debug("Broker {} started, listening: {}", brokerController2.getBrokerConfig().getBrokerName(),
-            brokerController2.getBrokerConfig().getListenPort());
+        log.debug("Broker {} started, listening: {}", brokerController3.getBrokerConfig().getBrokerName(),
+            brokerController3.getBrokerConfig().getListenPort());
 
         CLUSTER_NAME = brokerController1.getBrokerConfig().getBrokerClusterName();
         BROKER1_NAME = brokerController1.getBrokerConfig().getBrokerName();
@@ -203,13 +204,19 @@ public class BaseConf {
     }
 
     public static String initConsumerGroup() {
-        String group = MQRandomUtils.getRandomConsumerGroup();
-        return initConsumerGroup(group);
+        return initConsumerGroup(MQRandomUtils.getRandomConsumerGroup());
     }
 
     public static String initConsumerGroup(String group) {
-        MQAdminTestUtils.createSub(NAMESRV_ADDR, CLUSTER_NAME, group);
+        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
+        config.setGroupName(group);
+        MQAdminTestUtils.createSub(NAMESRV_ADDR, CLUSTER_NAME, config);
         return group;
+    }
+
+    public static String initConsumerGroup(SubscriptionGroupConfig config) {
+        MQAdminTestUtils.createSub(NAMESRV_ADDR, CLUSTER_NAME, config);
+        return config.getGroupName();
     }
 
     public static DefaultMQAdminExt getAdmin(String nsAddr) {
@@ -287,8 +294,7 @@ public class BaseConf {
             consumer.setDebug();
         }
         mqClients.add(consumer);
-        log.info(String.format("consumer[%s] start,topic[%s],subExpression[%s]", consumerGroup,
-                topic, subExpression));
+        log.info("consumer[{}] start,topic[{}],subExpression[{}]", consumerGroup, topic, subExpression);
         return consumer;
     }
 

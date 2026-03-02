@@ -17,11 +17,12 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
-
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
+import org.rocksdb.CompressionType;
+import org.rocksdb.util.SizeUnit;
 
 public class MessageStoreConfig {
 
@@ -50,7 +51,7 @@ public class MessageStoreConfig {
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
 
-    // CompactinLog file size, default is 100M
+    // CompactionLog file size, default is 100M
     private int compactionMappedFileSize = 100 * 1024 * 1024;
 
     // CompactionLog consumeQueue file size, default is 10M
@@ -79,6 +80,7 @@ public class MessageStoreConfig {
     private boolean timerEnableCheckMetrics = true;
     private boolean timerInterceptDelayLevel = false;
     private int timerMaxDelaySec = 3600 * 24 * 3;
+    private boolean timerWheelSnapshotFlush = false;
     private boolean timerWheelEnable = true;
 
     /**
@@ -97,14 +99,41 @@ public class MessageStoreConfig {
     private boolean timerSkipUnknownError = false;
     private boolean timerWarmEnable = false;
     private boolean timerStopDequeue = false;
+    private boolean timerEnableRetryUntilSuccess = false;
     private int timerCongestNumEachSlot = Integer.MAX_VALUE;
 
     private int timerMetricSmallThreshold = 1000000;
     private int timerProgressLogIntervalMs = 10 * 1000;
+    private int timerWheelSnapshotIntervalMs = 10 * 1000;
+
+    private int commitLogRecoverMaxNum = 10;
+    private boolean timerRocksDBEnable = false;
+    private boolean timerRocksDBStopScan = false;
+    private long timerRocksDBPrecisionMs = 1000L;
+    private double timerRocksDBRollMaxTps = 8000.0;
+    private double timerRocksDBTimeExpiredMaxTps = 200000.0;
+    private int timerRocksDBRollIntervalHours = 1;
+    private int timerRocksDBRollRangeHours = 2;
+    private boolean timerRecallToTimeWheelEnable = true;
+    private boolean timerRecallToTimelineEnable = true;
+    private int timerReputServiceCorePoolSize = 6;
+    private int timerReputServiceMaxPoolSize = 6;
+    private int timerReputServiceQueueCapacity = 10000;
+
+    private boolean transRocksDBEnable = false;
+    private boolean transWriteOriginTransHalfEnable = true;
+
+    private boolean indexRocksDBEnable = false;
+    private int maxRocksDBIndexQueryDays = 7;
+    private boolean indexFileWriteEnable = true;
+    private boolean indexFileReadEnable = true;
 
     // default, defaultRocksDB
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
+
+    private boolean iteratorWhenUseRocksdbConsumeQueue = true;
+
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -170,6 +199,9 @@ public class MessageStoreConfig {
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
     // This check adds some overhead,so it may be disabled in cases seeking extreme performance.
     private boolean checkCRCOnRecover = true;
+    // Whether check the commitlog offset validity during abnormal recovery.
+    // This helps detect and truncate old file data that may pass CRC checks but contains invalid offsets.
+    private boolean checkCommitLogOffsetOnRecover = false;
     // How many pages are to be flushed when flush CommitLog
     private int flushCommitLogLeastPages = 4;
     // How many pages are to be committed when commit data to file
@@ -235,6 +267,16 @@ public class MessageStoreConfig {
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 
+    /**
+     * When true, use RandomAccessFile for writing instead of MappedByteBuffer. This can be useful for certain scenarios
+     * where mmap is not desired.
+     *
+     * The configurations writeWithoutMmap and transientStorePoolEnable are mutually exclusive. When both are set to
+     * true, only writeWithoutMmap will be effective.
+     */
+    @ImportantField
+    private boolean writeWithoutMmap = false;
+
     // DLedger message store config
     private boolean enableDLegerCommitLog = false;
     private String dLegerGroup;
@@ -248,6 +290,7 @@ public class MessageStoreConfig {
     private boolean enableLmq = false;
     private boolean enableMultiDispatch = false;
     private int maxLmqConsumeQueueNum = 20000;
+    private boolean enableLmqQuota = false;
 
     private boolean enableScheduleAsyncDeliver = false;
     private int scheduleAsyncDeliverMaxPendingLimit = 2000;
@@ -271,6 +314,13 @@ public class MessageStoreConfig {
      * Enable this config to resolve this issue. https://github.com/apache/rocketmq/issues/5568
      */
     private boolean autoMessageVersionOnTopicLen = true;
+
+    /**
+     * Whether to use runningFlags when flushing data to disk.
+     * When disabled, runningFlags will be set to null during MappedFileQueue and MappedFile initialization.
+     */
+    @ImportantField
+    private boolean enableRunningFlagsInFlush = false;
 
     /**
      * It cannot be changed after the broker is started.
@@ -413,6 +463,95 @@ public class MessageStoreConfig {
 
     private int topicQueueLockNum = 32;
 
+    /**
+     * If readUnCommitted is true, the dispatch of the consume queue will exceed the confirmOffset, which may cause the client to read uncommitted messages.
+     * For example, reput offset exceeding the flush offset during synchronous disk flushing.
+     */
+    private boolean readUnCommitted = false;
+
+    private boolean putConsumeQueueDataByFileChannel = true;
+
+    private boolean rocksdbCQDoubleWriteEnable = false;
+
+    /**
+     * CombineConsumeQueueStore
+     * combineCQLoadingCQTypes is used to configure the loading types of CQ. load / recover / start order: [default -> defaultRocksDB]
+     * combineCQPreferCQType is used to configure the preferred CQ type when reading. Make sure the CQ type is included in combineCQLoadingCQTypes
+     * combineAssignOffsetCQType is used to configure the CQ type when assign offset. Make sure the CQ type is included in combineCQLoadingCQTypes
+     */
+    private String combineCQLoadingCQTypes = StoreType.DEFAULT.getStoreType() + ";" + StoreType.DEFAULT_ROCKSDB.getStoreType();
+    private String combineCQPreferCQType = StoreType.DEFAULT.getStoreType();
+    private String combineAssignOffsetCQType = StoreType.DEFAULT.getStoreType();
+    private boolean combineCQEnableCheckSelf = false;
+    private int combineCQMaxExtraSearchCommitLogFiles = 3;
+
+    /**
+     * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
+     * The following values are valid:
+     * <ul>
+     *     <li>snappy</li>
+     *     <li>z</li>
+     *     <li>bzip2</li>
+     *     <li>lz4</li>
+     *     <li>lz4hc</li>
+     *     <li>xpress</li>
+     *     <li>zstd</li>
+     * </ul>
+     *
+     * LZ4 is the recommended one.
+     */
+    private String bottomMostCompressionTypeForConsumeQueueStore = CompressionType.ZSTD_COMPRESSION.getLibraryName();
+
+    private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
+
+    /**
+     * Flush RocksDB WAL frequency, aka, flush WAL every N write ops.
+     */
+    private int rocksdbFlushWalFrequency = 1024;
+
+    private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
+
+    /**
+     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH.
+     * This switch is not recommended for normal use cases (include master-slave or controller mode).
+     */
+    private boolean enableAcceleratedRecovery = false;
+
+    // Shared byte buffer manager configuration
+    private int sharedByteBufferNum = 16;
+
+    public String getRocksdbCompressionType() {
+        return rocksdbCompressionType;
+    }
+
+    public void setRocksdbCompressionType(String compressionType) {
+        this.rocksdbCompressionType = compressionType;
+    }
+
+    /**
+     * Spin number in the retreat strategy of spin lock
+     * Default is 1000
+     */
+    private int spinLockCollisionRetreatOptimalDegree = 1000;
+
+    /**
+     * Use AdaptiveBackOffLock
+     **/
+    private boolean useABSLock = false;
+
+    private boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover = false;
+
+    private boolean appendTopicForTimerDeleteKey = false;
+
+    public boolean isRocksdbCQDoubleWriteEnable() {
+        return rocksdbCQDoubleWriteEnable;
+    }
+
+    public void setRocksdbCQDoubleWriteEnable(boolean rocksdbWriteEnable) {
+        this.rocksdbCQDoubleWriteEnable = rocksdbWriteEnable;
+    }
+
+
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
     }
@@ -527,6 +666,14 @@ public class MessageStoreConfig {
 
     public void setStoreType(String storeType) {
         this.storeType = storeType;
+    }
+
+    public boolean isIteratorWhenUseRocksdbConsumeQueue() {
+        return iteratorWhenUseRocksdbConsumeQueue;
+    }
+
+    public void setIteratorWhenUseRocksdbConsumeQueue(boolean iteratorWhenUseRocksdbConsumeQueue) {
+        this.iteratorWhenUseRocksdbConsumeQueue = iteratorWhenUseRocksdbConsumeQueue;
     }
 
     public int getMappedFileSizeConsumeQueue() {
@@ -664,6 +811,14 @@ public class MessageStoreConfig {
         this.checkCRCOnRecover = checkCRCOnRecover;
     }
 
+    public boolean isCheckCommitLogOffsetOnRecover() {
+        return checkCommitLogOffsetOnRecover;
+    }
+
+    public void setCheckCommitLogOffsetOnRecover(boolean checkCommitLogOffsetOnRecover) {
+        this.checkCommitLogOffsetOnRecover = checkCommitLogOffsetOnRecover;
+    }
+
     public boolean isForceVerifyPropCRC() {
         return forceVerifyPropCRC;
     }
@@ -671,7 +826,6 @@ public class MessageStoreConfig {
     public void setForceVerifyPropCRC(boolean forceVerifyPropCRC) {
         this.forceVerifyPropCRC = forceVerifyPropCRC;
     }
-
 
     public String getStorePathCommitLog() {
         if (storePathCommitLog == null) {
@@ -1058,6 +1212,14 @@ public class MessageStoreConfig {
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
         this.transientStorePoolEnable = transientStorePoolEnable;
+    }
+
+    public boolean isWriteWithoutMmap() {
+        return writeWithoutMmap;
+    }
+
+    public void setWriteWithoutMmap(final boolean writeWithoutMmap) {
+        this.writeWithoutMmap = writeWithoutMmap;
     }
 
     public int getTransientStorePoolSize() {
@@ -1516,6 +1678,14 @@ public class MessageStoreConfig {
         this.maxLmqConsumeQueueNum = maxLmqConsumeQueueNum;
     }
 
+    public boolean isEnableLmqQuota() {
+        return enableLmqQuota;
+    }
+
+    public void setEnableLmqQuota(boolean enableLmqQuota) {
+        this.enableLmqQuota = enableLmqQuota;
+    }
+
     public boolean isEnableScheduleAsyncDeliver() {
         return enableScheduleAsyncDeliver;
     }
@@ -1623,8 +1793,24 @@ public class MessageStoreConfig {
         this.timerSkipUnknownError = timerSkipUnknownError;
     }
 
+    public boolean isTimerEnableRetryUntilSuccess() {
+        return timerEnableRetryUntilSuccess;
+    }
+
+    public void setTimerEnableRetryUntilSuccess(boolean timerEnableRetryUntilSuccess) {
+        this.timerEnableRetryUntilSuccess = timerEnableRetryUntilSuccess;
+    }
+
     public boolean isTimerWarmEnable() {
         return timerWarmEnable;
+    }
+
+    public boolean isTimerWheelSnapshotFlush() {
+        return timerWheelSnapshotFlush;
+    }
+
+    public void setTimerWheelSnapshotFlush(boolean timerWheelSnapshotFlush) {
+        this.timerWheelSnapshotFlush = timerWheelSnapshotFlush;
     }
 
     public boolean isTimerWheelEnable() {
@@ -1670,6 +1856,14 @@ public class MessageStoreConfig {
 
     public int getTimerProgressLogIntervalMs() {
         return timerProgressLogIntervalMs;
+    }
+
+    public int getTimerWheelSnapshotIntervalMs() {
+        return timerWheelSnapshotIntervalMs;
+    }
+
+    public void setTimerWheelSnapshotIntervalMs(int timerWheelSnapshotIntervalMs) {
+        this.timerWheelSnapshotIntervalMs = timerWheelSnapshotIntervalMs;
     }
 
     public void setTimerProgressLogIntervalMs(final int timerProgressLogIntervalMs) {
@@ -1818,5 +2012,294 @@ public class MessageStoreConfig {
 
     public void setTopicQueueLockNum(int topicQueueLockNum) {
         this.topicQueueLockNum = topicQueueLockNum;
+    }
+
+    public boolean isReadUnCommitted() {
+        return readUnCommitted;
+    }
+
+    public void setReadUnCommitted(boolean readUnCommitted) {
+        this.readUnCommitted = readUnCommitted;
+    }
+
+    public boolean isPutConsumeQueueDataByFileChannel() {
+        return putConsumeQueueDataByFileChannel;
+    }
+
+    public void setPutConsumeQueueDataByFileChannel(boolean putConsumeQueueDataByFileChannel) {
+        this.putConsumeQueueDataByFileChannel = putConsumeQueueDataByFileChannel;
+    }
+
+    public String getBottomMostCompressionTypeForConsumeQueueStore() {
+        return bottomMostCompressionTypeForConsumeQueueStore;
+    }
+
+    public void setBottomMostCompressionTypeForConsumeQueueStore(String bottomMostCompressionTypeForConsumeQueueStore) {
+        this.bottomMostCompressionTypeForConsumeQueueStore = bottomMostCompressionTypeForConsumeQueueStore;
+    }
+
+    public int getRocksdbFlushWalFrequency() {
+        return rocksdbFlushWalFrequency;
+    }
+
+    public void setRocksdbFlushWalFrequency(int rocksdbFlushWalFrequency) {
+        this.rocksdbFlushWalFrequency = rocksdbFlushWalFrequency;
+    }
+
+    public long getRocksdbWalFileRollingThreshold() {
+        return rocksdbWalFileRollingThreshold;
+    }
+
+    public void setRocksdbWalFileRollingThreshold(long rocksdbWalFileRollingThreshold) {
+        this.rocksdbWalFileRollingThreshold = rocksdbWalFileRollingThreshold;
+    }
+
+    public int getSpinLockCollisionRetreatOptimalDegree() {
+        return spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setSpinLockCollisionRetreatOptimalDegree(int spinLockCollisionRetreatOptimalDegree) {
+        this.spinLockCollisionRetreatOptimalDegree = spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setUseABSLock(boolean useABSLock) {
+        this.useABSLock = useABSLock;
+    }
+
+    public boolean getUseABSLock() {
+        return useABSLock;
+    }
+
+    public String getCombineCQPreferCQType() {
+        return combineCQPreferCQType;
+    }
+
+    public void setCombineCQPreferCQType(String combineCQPreferCQType) {
+        this.combineCQPreferCQType = combineCQPreferCQType;
+    }
+
+    public String getCombineCQLoadingCQTypes() {
+        return combineCQLoadingCQTypes;
+    }
+
+    public void setCombineCQLoadingCQTypes(String combineCQLoadingCQTypes) {
+        this.combineCQLoadingCQTypes = combineCQLoadingCQTypes;
+    }
+
+    public String getCombineAssignOffsetCQType() {
+        return combineAssignOffsetCQType;
+    }
+
+    public void setCombineAssignOffsetCQType(String combineAssignOffsetCQType) {
+        this.combineAssignOffsetCQType = combineAssignOffsetCQType;
+    }
+
+    public boolean isCombineCQEnableCheckSelf() {
+        return combineCQEnableCheckSelf;
+    }
+
+    public void setCombineCQEnableCheckSelf(boolean combineCQEnableCheckSelf) {
+        this.combineCQEnableCheckSelf = combineCQEnableCheckSelf;
+    }
+
+    public int getCombineCQMaxExtraSearchCommitLogFiles() {
+        return combineCQMaxExtraSearchCommitLogFiles;
+    }
+
+    public void setCombineCQMaxExtraSearchCommitLogFiles(int combineCQMaxExtraSearchCommitLogFiles) {
+        this.combineCQMaxExtraSearchCommitLogFiles = combineCQMaxExtraSearchCommitLogFiles;
+    }
+
+    public boolean isEnableLogConsumeQueueRepeatedlyBuildWhenRecover() {
+        return enableLogConsumeQueueRepeatedlyBuildWhenRecover;
+    }
+
+    public void setEnableLogConsumeQueueRepeatedlyBuildWhenRecover(
+        boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover) {
+        this.enableLogConsumeQueueRepeatedlyBuildWhenRecover = enableLogConsumeQueueRepeatedlyBuildWhenRecover;
+    }
+
+    public boolean isEnableAcceleratedRecovery() {
+        return enableAcceleratedRecovery;
+    }
+
+    public void setEnableAcceleratedRecovery(boolean enableAcceleratedRecovery) {
+        this.enableAcceleratedRecovery = enableAcceleratedRecovery;
+    }
+
+    public boolean isEnableRunningFlagsInFlush() {
+        return enableRunningFlagsInFlush;
+    }
+
+    public void setEnableRunningFlagsInFlush(boolean enableRunningFlagsInFlush) {
+        this.enableRunningFlagsInFlush = enableRunningFlagsInFlush;
+    }
+
+    public boolean isTimerRocksDBEnable() {
+        return timerRocksDBEnable;
+    }
+
+    public void setTimerRocksDBEnable(boolean timerRocksDBEnable) {
+        this.timerRocksDBEnable = timerRocksDBEnable;
+    }
+
+    public double getTimerRocksDBRollMaxTps() {
+        return timerRocksDBRollMaxTps;
+    }
+
+    public void setTimerRocksDBRollMaxTps(double timerRocksDBRollMaxTps) {
+        this.timerRocksDBRollMaxTps = timerRocksDBRollMaxTps;
+    }
+
+    public double getTimerRocksDBTimeExpiredMaxTps() {
+        return timerRocksDBTimeExpiredMaxTps;
+    }
+
+    public void setTimerRocksDBTimeExpiredMaxTps(double timerRocksDBTimeExpiredMaxTps) {
+        this.timerRocksDBTimeExpiredMaxTps = timerRocksDBTimeExpiredMaxTps;
+    }
+
+    public boolean isTransRocksDBEnable() {
+        return transRocksDBEnable;
+    }
+
+    public void setTransRocksDBEnable(boolean transRocksDBEnable) {
+        this.transRocksDBEnable = transRocksDBEnable;
+    }
+
+    public boolean isIndexRocksDBEnable() {
+        return indexRocksDBEnable;
+    }
+
+    public void setIndexRocksDBEnable(boolean indexRocksDBEnable) {
+        this.indexRocksDBEnable = indexRocksDBEnable;
+    }
+
+    public int getMaxRocksDBIndexQueryDays() {
+        return maxRocksDBIndexQueryDays;
+    }
+
+    public void setMaxRocksDBIndexQueryDays(int maxRocksDBIndexQueryDays) {
+        this.maxRocksDBIndexQueryDays = maxRocksDBIndexQueryDays;
+    }
+
+    public boolean isTimerRocksDBStopScan() {
+        return timerRocksDBStopScan;
+    }
+
+    public void setTimerRocksDBStopScan(boolean timerRocksDBStopScan) {
+        this.timerRocksDBStopScan = timerRocksDBStopScan;
+    }
+
+    public long getTimerRocksDBPrecisionMs() {
+        return timerRocksDBPrecisionMs;
+    }
+
+    public void setTimerRocksDBPrecisionMs(long timerRocksDBPrecisionMs) {
+        this.timerRocksDBPrecisionMs = timerRocksDBPrecisionMs;
+    }
+
+    public boolean isIndexFileWriteEnable() {
+        return indexFileWriteEnable;
+    }
+
+    public void setIndexFileWriteEnable(boolean indexFileWriteEnable) {
+        this.indexFileWriteEnable = indexFileWriteEnable;
+    }
+
+    public boolean isIndexFileReadEnable() {
+        return indexFileReadEnable;
+    }
+
+    public void setIndexFileReadEnable(boolean indexFileReadEnable) {
+        this.indexFileReadEnable = indexFileReadEnable;
+    }
+
+    public boolean isTransWriteOriginTransHalfEnable() {
+        return transWriteOriginTransHalfEnable;
+    }
+
+    public void setTransWriteOriginTransHalfEnable(boolean transWriteOriginTransHalfEnable) {
+        this.transWriteOriginTransHalfEnable = transWriteOriginTransHalfEnable;
+    }
+
+    public boolean isTimerRecallToTimeWheelEnable() {
+        return timerRecallToTimeWheelEnable;
+    }
+
+    public void setTimerRecallToTimeWheelEnable(boolean timerRecallToTimeWheelEnable) {
+        this.timerRecallToTimeWheelEnable = timerRecallToTimeWheelEnable;
+    }
+
+    public boolean isTimerRecallToTimelineEnable() {
+        return timerRecallToTimelineEnable;
+    }
+
+    public void setTimerRecallToTimelineEnable(boolean timerRecallToTimelineEnable) {
+        this.timerRecallToTimelineEnable = timerRecallToTimelineEnable;
+    }
+
+    public void setTimerReputServiceCorePoolSize(int timerReputServiceCorePoolSize) {
+        this.timerReputServiceCorePoolSize = timerReputServiceCorePoolSize;
+    }
+
+    public int getTimerReputServiceCorePoolSize() {
+        return timerReputServiceCorePoolSize;
+    }
+
+    public void setTimerReputServiceMaxPoolSize(int timerReputServiceMaxPoolSize) {
+        this.timerReputServiceMaxPoolSize = timerReputServiceMaxPoolSize;
+    }
+
+    public int getTimerReputServiceMaxPoolSize() {
+        return timerReputServiceMaxPoolSize;
+    }
+
+    public void setTimerReputServiceQueueCapacity(int timerReputServiceQueueCapacity) {
+        this.timerReputServiceQueueCapacity = timerReputServiceQueueCapacity;
+    }
+
+    public int getTimerReputServiceQueueCapacity() {
+        return timerReputServiceQueueCapacity;
+    }
+
+    public int getTimerRocksDBRollIntervalHours() {
+        return timerRocksDBRollIntervalHours;
+    }
+
+    public void setTimerRocksDBRollIntervalHours(int timerRocksDBRollIntervalHours) {
+        this.timerRocksDBRollIntervalHours = timerRocksDBRollIntervalHours;
+    }
+
+    public int getTimerRocksDBRollRangeHours() {
+        return timerRocksDBRollRangeHours;
+    }
+
+    public void setTimerRocksDBRollRangeHours(int timerRocksDBRollRangeHours) {
+        this.timerRocksDBRollRangeHours = timerRocksDBRollRangeHours;
+    }
+
+    public int getCommitLogRecoverMaxNum() {
+        return commitLogRecoverMaxNum;
+    }
+
+    public void setCommitLogRecoverMaxNum(int commitLogRecoverMaxNum) {
+        this.commitLogRecoverMaxNum = commitLogRecoverMaxNum;
+    }
+
+    public int getSharedByteBufferNum() {
+        return sharedByteBufferNum;
+    }
+
+    public void setSharedByteBufferNum(int sharedByteBufferNum) {
+        this.sharedByteBufferNum = sharedByteBufferNum;
+    }
+
+    public boolean isAppendTopicForTimerDeleteKey() {
+        return appendTopicForTimerDeleteKey;
+    }
+
+    public void setAppendTopicForTimerDeleteKey(boolean appendTopicForTimerDeleteKey) {
+        this.appendTopicForTimerDeleteKey = appendTopicForTimerDeleteKey;
     }
 }

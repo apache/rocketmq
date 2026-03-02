@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.proxy.config;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
 import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import java.io.File;
@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 public class Configuration {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final AtomicReference<ProxyConfig> proxyConfigReference = new AtomicReference<>();
+    private final AtomicReference<AuthConfig> authConfigReference = new AtomicReference<>();
     public static final String CONFIG_PATH_PROPERTY = "com.rocketmq.proxy.configPath";
 
     public void init() throws Exception {
@@ -42,9 +44,14 @@ public class Configuration {
         ProxyConfig proxyConfig = JSON.parseObject(proxyConfigData, ProxyConfig.class);
         proxyConfig.initData();
         setProxyConfig(proxyConfig);
+
+        AuthConfig authConfig = JSON.parseObject(proxyConfigData, AuthConfig.class);
+        setAuthConfig(authConfig);
+        authConfig.setConfigName(proxyConfig.getProxyName());
+        authConfig.setClusterName(proxyConfig.getRocketMQClusterName());
     }
 
-    public static String loadJsonConfig() throws Exception {
+    private String loadJsonConfig() throws Exception {
         String configFileName = ProxyConfig.DEFAULT_CONFIG_FILE_NAME;
         String filePath = System.getProperty(CONFIG_PATH_PROPERTY);
         if (StringUtils.isBlank(filePath)) {
@@ -60,13 +67,15 @@ public class Configuration {
         File file = new File(filePath);
         log.info("The current configuration file path is {}", filePath);
         if (!file.exists()) {
-            log.warn("the config file {} not exist", filePath);
-            throw new RuntimeException(String.format("the config file %s not exist", filePath));
+            String msg = String.format("the config file %s not exist", filePath);
+            log.warn(msg);
+            throw new RuntimeException(msg);
         }
         long fileLength = file.length();
         if (fileLength <= 0) {
-            log.warn("the config file {} length is zero", filePath);
-            throw new RuntimeException(String.format("the config file %s length is zero", filePath));
+            String msg = String.format("the config file %s length is zero", filePath);
+            log.warn(msg);
+            throw new RuntimeException(msg);
         }
 
         return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
@@ -78,5 +87,13 @@ public class Configuration {
 
     public void setProxyConfig(ProxyConfig proxyConfig) {
         proxyConfigReference.set(proxyConfig);
+    }
+
+    public AuthConfig getAuthConfig() {
+        return authConfigReference.get();
+    }
+
+    public void setAuthConfig(AuthConfig authConfig) {
+        authConfigReference.set(authConfig);
     }
 }

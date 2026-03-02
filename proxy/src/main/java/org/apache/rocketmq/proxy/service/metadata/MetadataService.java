@@ -17,6 +17,10 @@
 
 package org.apache.rocketmq.proxy.service.metadata;
 
+import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.auth.authentication.model.Subject;
+import org.apache.rocketmq.auth.authentication.model.User;
+import org.apache.rocketmq.auth.authorization.model.Acl;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
@@ -26,4 +30,8 @@ public interface MetadataService {
     TopicMessageType getTopicMessageType(ProxyContext ctx, String topic);
 
     SubscriptionGroupConfig getSubscriptionGroupConfig(ProxyContext ctx, String group);
+
+    CompletableFuture<User> getUser(ProxyContext ctx, String username);
+
+    CompletableFuture<Acl> getAcl(ProxyContext ctx, Subject subject);
 }

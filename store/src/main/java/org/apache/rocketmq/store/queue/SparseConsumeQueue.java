@@ -262,7 +262,15 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
             this.byteBufferItem.putShort((short)0);
             this.byteBufferItem.putInt(INVALID_POS);
             this.byteBufferItem.putInt(0); // 4 bytes reserved
-            boolean appendRes = mappedFile.appendMessage(this.byteBufferItem.array());
+
+            boolean appendRes;
+
+            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                appendRes = mappedFile.appendMessageUsingFileChannel(this.byteBufferItem.array());
+            } else {
+                appendRes = mappedFile.appendMessage(this.byteBufferItem.array());
+            }
+
             if (!appendRes) {
                 log.error("append end position info into {} failed", mappedFile.getFileName());
             }

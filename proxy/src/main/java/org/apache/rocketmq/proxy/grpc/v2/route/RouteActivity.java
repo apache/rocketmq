@@ -38,12 +38,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
@@ -52,7 +53,7 @@ import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
-public class RouteActivity extends AbstractMessingActivity {
+public class RouteActivity extends AbstractMessagingActivity {
 
     public RouteActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
@@ -63,7 +64,7 @@ public class RouteActivity extends AbstractMessingActivity {
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
         try {
             validateTopic(request.getTopic());
-            List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
+            List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(ctx, request.getEndpoints());
 
             String topicName = request.getTopic().getName();
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
@@ -101,18 +102,20 @@ public class RouteActivity extends AbstractMessingActivity {
 
         try {
             validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
-            List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
+            List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(ctx, request.getEndpoints());
 
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
                 ctx,
                 addressList,
                 request.getTopic().getName());
 
-            boolean fifo = false;
-            SubscriptionGroupConfig config = this.messagingProcessor.getSubscriptionGroupConfig(ctx,
-                request.getGroup().getName());
-            if (config != null && config.isConsumeMessageOrderly()) {
-                fifo = true;
+            boolean isFifo = false;
+            boolean isLite = false;
+            SubscriptionGroupConfig groupConfig = this.messagingProcessor
+                .getSubscriptionGroupConfig(ctx, request.getGroup().getName());
+            if (groupConfig != null) {
+                isFifo = groupConfig.isConsumeMessageOrderly();
+                isLite = StringUtils.isNotEmpty(groupConfig.getLiteBindTopic());
             }
 
             List<Assignment> assignments = new ArrayList<>();
@@ -123,7 +126,7 @@ public class RouteActivity extends AbstractMessingActivity {
                     if (brokerIdMap != null) {
                         Broker broker = brokerIdMap.get(MixAll.MASTER_ID);
                         Permission permission = this.convertToPermission(queueData.getPerm());
-                        if (fifo) {
+                        if (isFifo && !isLite) {
                             for (int i = 0; i < queueData.getReadQueueNums(); i++) {
                                 MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
                                     .setTopic(request.getTopic())
@@ -184,8 +187,7 @@ public class RouteActivity extends AbstractMessingActivity {
         return Permission.NONE;
     }
 
-    protected List<org.apache.rocketmq.proxy.common.Address> convertToAddressList(Endpoints endpoints) {
-
+    protected List<org.apache.rocketmq.proxy.common.Address> convertToAddressList(ProxyContext ctx, Endpoints endpoints) {
         boolean useEndpointPort = ConfigurationManager.getProxyConfig().isUseEndpointPortFromRequest();
 
         List<org.apache.rocketmq.proxy.common.Address> addressList = new ArrayList<>();
@@ -198,9 +200,8 @@ public class RouteActivity extends AbstractMessingActivity {
                 org.apache.rocketmq.proxy.common.Address.AddressScheme.valueOf(endpoints.getScheme().name()),
                 HostAndPort.fromParts(address.getHost(), port)));
         }
-
+        log.debug("gRPC build address. clientId={}, addressList={}", ctx.getClientID(), addressList);
         return addressList;
-
     }
 
     protected Map<String /*brokerName*/, Map<Long /*brokerID*/, Broker>> buildBrokerMap(
@@ -244,6 +245,7 @@ public class RouteActivity extends AbstractMessingActivity {
         int r = 0;
         int w = 0;
         int rw = 0;
+        int n = 0;
         if (PermName.isWriteable(queueData.getPerm()) && PermName.isReadable(queueData.getPerm())) {
             rw = Math.min(queueData.getWriteQueueNums(), queueData.getReadQueueNums());
             r = queueData.getReadQueueNums() - rw;
@@ -252,6 +254,8 @@ public class RouteActivity extends AbstractMessingActivity {
             w = queueData.getWriteQueueNums();
         } else if (PermName.isReadable(queueData.getPerm())) {
             r = queueData.getReadQueueNums();
+        } else if (!PermName.isAccessible(queueData.getPerm())) {
+            n = Math.max(1, Math.max(queueData.getWriteQueueNums(), queueData.getReadQueueNums()));
         }
 
         // r here means readOnly queue nums, w means writeOnly queue nums, while rw means both readable and writable queue nums.
@@ -283,6 +287,15 @@ public class RouteActivity extends AbstractMessingActivity {
             messageQueueList.add(messageQueue);
         }
 
+        for (int i = 0; i < n; i++) {
+            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+                .setId(queueIdIndex++)
+                .setPermission(Permission.NONE)
+                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                .build();
+            messageQueueList.add(messageQueue);
+        }
+
         return messageQueueList;
     }
 
@@ -292,10 +305,14 @@ public class RouteActivity extends AbstractMessingActivity {
                 return Collections.singletonList(MessageType.NORMAL);
             case FIFO:
                 return Collections.singletonList(MessageType.FIFO);
+            case LITE:
+                return Collections.singletonList(MessageType.LITE);
             case TRANSACTION:
                 return Collections.singletonList(MessageType.TRANSACTION);
             case DELAY:
                 return Collections.singletonList(MessageType.DELAY);
+            case PRIORITY:
+                return Collections.singletonList(MessageType.PRIORITY);
             case MIXED:
                 return Arrays.asList(MessageType.NORMAL, MessageType.FIFO, MessageType.DELAY, MessageType.TRANSACTION);
             default:

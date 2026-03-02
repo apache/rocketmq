@@ -21,12 +21,16 @@ public class BrokerMetricsConstant {
 
     public static final String GAUGE_PROCESSOR_WATERMARK = "rocketmq_processor_watermark";
     public static final String GAUGE_BROKER_PERMISSION = "rocketmq_broker_permission";
+    public static final String GAUGE_TOPIC_NUM = "rocketmq_topic_number";
+    public static final String GAUGE_CONSUMER_GROUP_NUM = "rocketmq_consumer_group_number";
 
     public static final String COUNTER_MESSAGES_IN_TOTAL = "rocketmq_messages_in_total";
     public static final String COUNTER_MESSAGES_OUT_TOTAL = "rocketmq_messages_out_total";
     public static final String COUNTER_THROUGHPUT_IN_TOTAL = "rocketmq_throughput_in_total";
     public static final String COUNTER_THROUGHPUT_OUT_TOTAL = "rocketmq_throughput_out_total";
     public static final String HISTOGRAM_MESSAGE_SIZE = "rocketmq_message_size";
+    public static final String HISTOGRAM_TOPIC_CREATE_EXECUTE_TIME = "rocketmq_topic_create_execution_time";
+    public static final String HISTOGRAM_CONSUMER_GROUP_CREATE_EXECUTE_TIME = "rocketmq_consumer_group_create_execution_time";
 
     public static final String GAUGE_PRODUCER_CONNECTIONS = "rocketmq_producer_connections";
     public static final String GAUGE_CONSUMER_CONNECTIONS = "rocketmq_consumer_connections";
@@ -52,6 +56,7 @@ public class BrokerMetricsConstant {
     public static final String LABEL_PROCESSOR = "processor";
 
     public static final String LABEL_TOPIC = "topic";
+    public static final String LABEL_INVOCATION_STATUS = "invocation_status";
     public static final String LABEL_IS_RETRY = "is_retry";
     public static final String LABEL_IS_SYSTEM = "is_system";
     public static final String LABEL_CONSUMER_GROUP = "consumer_group";

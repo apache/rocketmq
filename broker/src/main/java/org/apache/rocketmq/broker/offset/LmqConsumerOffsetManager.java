@@ -17,9 +17,12 @@
 package org.apache.rocketmq.broker.offset;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.base.Strings;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.MixAll;
@@ -109,5 +112,52 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
 
     public void setLmqOffsetTable(ConcurrentHashMap<String, Long> lmqOffsetTable) {
         this.lmqOffsetTable = lmqOffsetTable;
+    }
+
+    @Override
+    public void removeOffset(String group) {
+        if (!MixAll.isLmq(group)) {
+            super.removeOffset(group);
+            return;
+        }
+        Iterator<Map.Entry<String, Long>> it = this.lmqOffsetTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Long> next = it.next();
+            String topicAtGroup = next.getKey();
+            if (topicAtGroup.contains(group)) {
+                String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+                if (arrays.length == 2 && group.equals(arrays[1])) {
+                    it.remove();
+                    removeConsumerOffset(topicAtGroup);
+                    LOG.warn("clean lmq group offset {}", topicAtGroup);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void assignResetOffset(String topic, String group, int queueId, long offset) {
+        if (Strings.isNullOrEmpty(topic) || Strings.isNullOrEmpty(group) || queueId < 0 || offset < 0) {
+            LOG.warn("Illegal arguments when assigning reset offset. Topic={}, group={}, queueId={}, offset={}",
+                    topic, group, queueId, offset);
+            return;
+        }
+        if (!MixAll.isLmq(topic) || !MixAll.isLmq(group)) {
+            super.assignResetOffset(topic, group, queueId, offset);
+            return;
+        }
+
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
+        if (null == map) {
+            map = new ConcurrentHashMap<>();
+            ConcurrentMap<Integer, Long> previous = resetOffsetTable.putIfAbsent(key, map);
+            if (null != previous) {
+                map = previous;
+            }
+        }
+        map.put(queueId, offset);
+
+        lmqOffsetTable.computeIfPresent(key, (k, oldValue) -> offset);
     }
 }

@@ -17,14 +17,22 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
+@RocketMQAction(value = RequestCode.ACK_MESSAGE, action = Action.SUB)
 public class AckMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
+    @RocketMQResource(ResourceType.GROUP)
     private String consumerGroup;
     @CFNotNull
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
     @CFNotNull
     private Integer queueId;
@@ -34,6 +42,7 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private Long offset;
 
+    private String liteTopic;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -79,6 +88,14 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
         this.queueId = queueId;
     }
 
+    public String getLiteTopic() {
+        return liteTopic;
+    }
+
+    public void setLiteTopic(String liteTopic) {
+        this.liteTopic = liteTopic;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -87,6 +104,8 @@ public class AckMessageRequestHeader extends TopicQueueRequestHeader {
             .add("queueId", queueId)
             .add("extraInfo", extraInfo)
             .add("offset", offset)
+            .add("liteTopic", liteTopic)
+            .omitNullValues()
             .toString();
     }
 }

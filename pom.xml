@@ -28,7 +28,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>5.2.1-SNAPSHOT</version>
+    <version>${revision}</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -88,6 +88,7 @@
     </issueManagement>
 
     <properties>
+        <revision>5.4.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.root>${basedir}</project.root>
@@ -100,14 +101,15 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <commons-cli.version>1.5.0</commons-cli.version>
-        <netty.version>4.1.65.Final</netty.version>
+        <netty.version>4.1.130.Final</netty.version>
         <netty.tcnative.version>2.0.53.Final</netty.tcnative.version>
-        <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
+        <bcpkix-jdk18on.version>1.83</bcpkix-jdk18on.version>
         <fastjson.version>1.2.83</fastjson.version>
+        <fastjson2.version>2.0.59</fastjson2.version>
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
-        <commons-lang3.version>3.12.0</commons-lang3.version>
-        <commons-io.version>2.7</commons-io.version>
+        <commons-lang3.version>3.20.0</commons-lang3.version>
+        <commons-io.version>2.14.0</commons-io.version>
         <guava.version>32.0.1-jre</guava.version>
         <gson.version>2.9.0</gson.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
@@ -116,16 +118,16 @@
         <rocketmq-logging.version>1.0.1</rocketmq-logging.version>
         <slf4j-api.version>2.0.3</slf4j-api.version>
         <rocketmq-shaded-slf4j-api-bridge.version>1.0.0</rocketmq-shaded-slf4j-api-bridge.version>
-        <commons-validator.version>1.7</commons-validator.version>
+        <commons-validator.version>1.10.0</commons-validator.version>
         <zstd-jni.version>1.5.2-2</zstd-jni.version>
-        <lz4-java.version>1.8.0</lz4-java.version>
+        <lz4-java.version>1.10.3</lz4-java.version>
         <opentracing.version>0.33.0</opentracing.version>
-        <jaeger.version>1.6.0</jaeger.version>
-        <dleger.version>0.3.1.2</dleger.version>
+        <jaeger.version>1.8.1</jaeger.version>
+        <dleger.version>0.3.2</dleger.version>
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
-        <rocketmq-proto.version>2.0.3</rocketmq-proto.version>
+        <rocketmq-proto.version>2.1.1</rocketmq-proto.version>
         <grpc.version>1.53.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>3.4.1</disruptor.version>
@@ -133,11 +135,11 @@
         <caffeine.version>2.9.3</caffeine.version>
         <spring.version>5.3.27</spring.version>
         <okio-jvm.version>3.4.0</okio-jvm.version>
-        <opentelemetry.version>1.29.0</opentelemetry.version>
-        <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
+        <opentelemetry.version>1.44.1</opentelemetry.version>
+        <opentelemetry-exporter-prometheus.version>1.44.1-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
         <s3.version>2.20.29</s3.version>
-        <rocksdb.version>1.0.2</rocksdb.version>
+        <rocksdb.version>1.0.6</rocksdb.version>
         <jackson-databind.version>2.13.4.2</jackson-databind.version>
         <sofa-jraft.version>1.3.14</sofa-jraft.version>
 
@@ -145,6 +147,7 @@
         <junit.version>4.13.2</junit.version>
         <assertj-core.version>3.22.0</assertj-core.version>
         <mockito-core.version>3.10.0</mockito-core.version>
+        <mockito-junit-jupiter.version>4.11.0</mockito-junit-jupiter.version>
         <powermock-version>2.0.9</powermock-version>
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
@@ -152,6 +155,7 @@
         <rocketmq-client-java.version>5.0.5</rocketmq-client-java.version>
 
         <!-- Build plugin dependencies -->
+        <flatten-maven-plugin.version>1.7.2</flatten-maven-plugin.version>
         <versions-maven-plugin.version>2.2</versions-maven-plugin.version>
         <dependency-mediator-maven-plugin.version>1.0.2</dependency-mediator-maven-plugin.version>
         <clirr-maven-plugin.version>2.7</clirr-maven-plugin.version>
@@ -191,7 +195,7 @@
         <module>test</module>
         <module>distribution</module>
         <module>openmessaging</module>
-        <module>acl</module>
+        <module>auth</module>
         <module>example</module>
         <module>container</module>
         <module>controller</module>
@@ -201,6 +205,36 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten-maven-plugin.version}</version>
+                <inherited>true</inherited>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                        <configuration>
+                            <updatePomFile>true</updatePomFile>
+                            <flattenMode>oss</flattenMode>
+                            <pomElements>
+                                <distributionManagement>remove</distributionManagement>
+                                <repositories>remove</repositories>
+                            </pomElements>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>flatten-clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>versions-maven-plugin</artifactId>
@@ -523,13 +557,28 @@
                 <sonar.host.url>https://builds.apache.org/analysis</sonar.host.url>
             </properties>
         </profile>
+        <profile>
+            <id>skip-unit-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>${maven-surefire-plugin.version}</version>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-acl</artifactId>
+                <artifactId>rocketmq-auth</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -618,16 +667,8 @@
                 <version>${rocketmq-proto.version}</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-protobuf</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-stub</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>io.grpc</groupId>
-                        <artifactId>grpc-netty-shaded</artifactId>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -643,15 +684,20 @@
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
+                <artifactId>bcpkix-jdk18on</artifactId>
                 <scope>runtime</scope>
                 <type>jar</type>
-                <version>${bcpkix-jdk15on.version}</version>
+                <version>${bcpkix-jdk18on.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
                 <version>${fastjson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson2.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.javassist</groupId>
@@ -745,7 +791,7 @@
                 <version>${zstd-jni.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.lz4</groupId>
+                <groupId>at.yawk.lz4</groupId>
                 <artifactId>lz4-java</artifactId>
                 <version>${lz4-java.version}</version>
             </dependency>
@@ -826,6 +872,12 @@
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>${mockito-core.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito-junit-jupiter.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -1063,6 +1115,12 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+
+            <dependency>
+                <groupId>jakarta.annotation</groupId>
+                <artifactId>jakarta.annotation-api</artifactId>
+                <version>1.3.5</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -1083,6 +1141,12 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito-core.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito-junit-jupiter.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

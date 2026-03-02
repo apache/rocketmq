@@ -40,12 +40,11 @@ public class ProxyTopicRouteData {
             ProxyTopicRouteData.ProxyBrokerData proxyBrokerData = new ProxyTopicRouteData.ProxyBrokerData();
             proxyBrokerData.setCluster(brokerData.getCluster());
             proxyBrokerData.setBrokerName(brokerData.getBrokerName());
-            for (Long brokerId : brokerData.getBrokerAddrs().keySet()) {
-                String brokerAddr = brokerData.getBrokerAddrs().get(brokerId);
-                HostAndPort hostAndPort = HostAndPort.fromString(brokerAddr);
+            brokerData.getBrokerAddrs().forEach((brokerId, brokerAddr) -> {
+                HostAndPort brokerHostAndPort = HostAndPort.fromString(brokerAddr);
 
-                proxyBrokerData.getBrokerAddrs().put(brokerId, Lists.newArrayList(new Address(Address.AddressScheme.IPv4, hostAndPort)));
-            }
+                proxyBrokerData.getBrokerAddrs().put(brokerId, Lists.newArrayList(new Address(brokerHostAndPort)));
+            });
             this.brokerDatas.add(proxyBrokerData);
         }
     }
@@ -58,13 +57,12 @@ public class ProxyTopicRouteData {
             ProxyTopicRouteData.ProxyBrokerData proxyBrokerData = new ProxyTopicRouteData.ProxyBrokerData();
             proxyBrokerData.setCluster(brokerData.getCluster());
             proxyBrokerData.setBrokerName(brokerData.getBrokerName());
-            for (Long brokerId : brokerData.getBrokerAddrs().keySet()) {
-                String brokerAddr = brokerData.getBrokerAddrs().get(brokerId);
+            brokerData.getBrokerAddrs().forEach((brokerId, brokerAddr) -> {
                 HostAndPort brokerHostAndPort = HostAndPort.fromString(brokerAddr);
-                HostAndPort hostAndPort = HostAndPort.fromParts(brokerHostAndPort.getHost(), port);
+                HostAndPort proxyHostAndPort = HostAndPort.fromParts(brokerHostAndPort.getHost(), port);
 
-                proxyBrokerData.getBrokerAddrs().put(brokerId, Lists.newArrayList(new Address(Address.AddressScheme.IPv4, hostAndPort)));
-            }
+                proxyBrokerData.getBrokerAddrs().put(brokerId, Lists.newArrayList(new Address(proxyHostAndPort)));
+            });
             this.brokerDatas.add(proxyBrokerData);
         }
     }

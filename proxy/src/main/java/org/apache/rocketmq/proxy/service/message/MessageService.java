@@ -37,9 +37,11 @@ import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHe
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 
@@ -72,6 +74,13 @@ public interface MessageService {
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,
         PopMessageRequestHeader requestHeader,
+        long timeoutMillis
+    );
+
+    CompletableFuture<PopResult> popLiteMessage(
+        ProxyContext ctx,
+        AddressableMessageQueue messageQueue,
+        PopLiteMessageRequestHeader requestHeader,
         long timeoutMillis
     );
 
@@ -120,6 +129,13 @@ public interface MessageService {
         long timeoutMillis
     );
 
+    CompletableFuture<Void> updateConsumerOffsetAsync(
+        ProxyContext ctx,
+        AddressableMessageQueue messageQueue,
+        UpdateConsumerOffsetRequestHeader requestHeader,
+        long timeoutMillis
+    );
+
     CompletableFuture<Set<MessageQueue>> lockBatchMQ(
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,
@@ -145,6 +161,13 @@ public interface MessageService {
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,
         GetMinOffsetRequestHeader requestHeader,
+        long timeoutMillis
+    );
+
+    CompletableFuture<String> recallMessage(
+        ProxyContext ctx,
+        String brokerName,
+        RecallMessageRequestHeader requestHeader,
         long timeoutMillis
     );
 

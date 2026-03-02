@@ -16,10 +16,20 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.CommandCallback;
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -29,18 +39,10 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.BoundaryType;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
@@ -96,6 +98,7 @@ public class RemotingCommand {
     private transient byte[] body;
     private boolean suspended;
     private transient Stopwatch processTimer;
+    private transient List<CommandCallback> callbackList;
 
     protected RemotingCommand() {
     }
@@ -259,32 +262,29 @@ public class RemotingCommand {
         this.customHeader = customHeader;
     }
 
-    public CommandCustomHeader decodeCommandCustomHeader(
-        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
+    public <T extends CommandCustomHeader> T decodeCommandCustomHeader(
+        Class<T> classHeader) throws RemotingCommandException {
         return decodeCommandCustomHeader(classHeader, false);
     }
 
-    public CommandCustomHeader decodeCommandCustomHeader(
-        Class<? extends CommandCustomHeader> classHeader, boolean isCached) throws RemotingCommandException {
+    public <T extends CommandCustomHeader> T decodeCommandCustomHeader(
+        Class<T> classHeader, boolean isCached) throws RemotingCommandException {
         if (isCached && cachedHeader != null) {
-            return cachedHeader;
+            return classHeader.cast(cachedHeader);
         }
         cachedHeader = decodeCommandCustomHeaderDirectly(classHeader, true);
-        return cachedHeader;
+        if (cachedHeader == null) {
+            return null;
+        }
+        return classHeader.cast(cachedHeader);
     }
 
-    public CommandCustomHeader decodeCommandCustomHeaderDirectly(Class<? extends CommandCustomHeader> classHeader,
+    public <T extends CommandCustomHeader> T decodeCommandCustomHeaderDirectly(Class<T> classHeader,
         boolean useFastEncode) throws RemotingCommandException {
-        CommandCustomHeader objectHeader;
+        T objectHeader;
         try {
             objectHeader = classHeader.getDeclaredConstructor().newInstance();
-        } catch (InstantiationException e) {
-            return null;
-        } catch (IllegalAccessException e) {
-            return null;
-        } catch (InvocationTargetException e) {
-            return null;
-        } catch (NoSuchMethodException e) {
+        } catch (Exception e) {
             return null;
         }
 
@@ -641,5 +641,13 @@ public class RemotingCommand {
 
     public void setProcessTimer(Stopwatch processTimer) {
         this.processTimer = processTimer;
+    }
+
+    public List<CommandCallback> getCallbackList() {
+        return callbackList;
+    }
+
+    public void setCallbackList(List<CommandCallback> callbackList) {
+        this.callbackList = callbackList;
     }
 }

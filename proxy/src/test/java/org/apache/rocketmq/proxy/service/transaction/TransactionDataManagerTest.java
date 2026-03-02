@@ -133,6 +133,7 @@ public class TransactionDataManagerTest extends InitConfigTest {
     private static TransactionData createTransactionData(String txId, long checkTimestamp, long checkImmunityTime) {
         return new TransactionData(
             "brokerName",
+            "topicName",
             RANDOM.nextLong(),
             RANDOM.nextLong(),
             txId,

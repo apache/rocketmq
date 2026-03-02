@@ -17,7 +17,17 @@
 
 package org.apache.rocketmq.remoting.protocol.body;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
+import org.apache.rocketmq.common.MQVersion;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,15 +40,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import org.apache.rocketmq.common.MQVersion;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.remoting.protocol.DataVersion;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 
 public class RegisterBrokerBody extends RemotingSerializable {
 
@@ -54,11 +55,10 @@ public class RegisterBrokerBody extends RemotingSerializable {
         }
         long start = System.currentTimeMillis();
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        DeflaterOutputStream outputStream = new DeflaterOutputStream(byteArrayOutputStream, new Deflater(Deflater.BEST_COMPRESSION));
-        DataVersion dataVersion = topicConfigSerializeWrapper.getDataVersion();
-        ConcurrentMap<String, TopicConfig> topicConfigTable = cloneTopicConfigTable(topicConfigSerializeWrapper.getTopicConfigTable());
-        assert topicConfigTable != null;
-        try {
+        try (DeflaterOutputStream outputStream = new DeflaterOutputStream(byteArrayOutputStream, new Deflater(Deflater.BEST_COMPRESSION))) {
+            DataVersion dataVersion = topicConfigSerializeWrapper.getDataVersion();
+            ConcurrentMap<String, TopicConfig> topicConfigTable = cloneTopicConfigTable(topicConfigSerializeWrapper.getTopicConfigTable());
+            assert topicConfigTable != null;
             byte[] buffer = dataVersion.encode();
 
             // write data version
@@ -117,58 +117,56 @@ public class RegisterBrokerBody extends RemotingSerializable {
             return RegisterBrokerBody.decode(data, RegisterBrokerBody.class);
         }
         long start = System.currentTimeMillis();
-        InflaterInputStream inflaterInputStream = new InflaterInputStream(new ByteArrayInputStream(data));
-        int dataVersionLength = readInt(inflaterInputStream);
-        byte[] dataVersionBytes = readBytes(inflaterInputStream, dataVersionLength);
-        DataVersion dataVersion = DataVersion.decode(dataVersionBytes, DataVersion.class);
+        try (InflaterInputStream inflaterInputStream = new InflaterInputStream(new ByteArrayInputStream(data))) {
+            int dataVersionLength = readInt(inflaterInputStream);
+            byte[] dataVersionBytes = readBytes(inflaterInputStream, dataVersionLength);
+            DataVersion dataVersion = DataVersion.decode(dataVersionBytes, DataVersion.class);
 
-        RegisterBrokerBody registerBrokerBody = new RegisterBrokerBody();
-        registerBrokerBody.getTopicConfigSerializeWrapper().setDataVersion(dataVersion);
-        ConcurrentMap<String, TopicConfig> topicConfigTable = registerBrokerBody.getTopicConfigSerializeWrapper().getTopicConfigTable();
+            RegisterBrokerBody registerBrokerBody = new RegisterBrokerBody();
+            registerBrokerBody.getTopicConfigSerializeWrapper().setDataVersion(dataVersion);
+            ConcurrentMap<String, TopicConfig> topicConfigTable = registerBrokerBody.getTopicConfigSerializeWrapper().getTopicConfigTable();
 
-        int topicConfigNumber = readInt(inflaterInputStream);
-        LOGGER.debug("{} topic configs to extract", topicConfigNumber);
+            int topicConfigNumber = readInt(inflaterInputStream);
+            LOGGER.debug("{} topic configs to extract", topicConfigNumber);
 
-        for (int i = 0; i < topicConfigNumber; i++) {
-            int topicConfigJsonLength = readInt(inflaterInputStream);
-
-            byte[] buffer = readBytes(inflaterInputStream, topicConfigJsonLength);
-            TopicConfig topicConfig = new TopicConfig();
-            String topicConfigJson = new String(buffer, MixAll.DEFAULT_CHARSET);
-            topicConfig.decode(topicConfigJson);
-            topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
-        }
-
-        int filterServerListJsonLength = readInt(inflaterInputStream);
-
-        byte[] filterServerListBuffer = readBytes(inflaterInputStream, filterServerListJsonLength);
-        String filterServerListJson = new String(filterServerListBuffer, MixAll.DEFAULT_CHARSET);
-        List<String> filterServerList = new ArrayList<>();
-        try {
-            filterServerList = JSON.parseArray(filterServerListJson, String.class);
-        } catch (Exception e) {
-            LOGGER.error("Decompressing occur Exception {}", filterServerListJson);
-        }
-
-        registerBrokerBody.setFilterServerList(filterServerList);
-
-        if (brokerVersion.ordinal() >= MQVersion.Version.V5_0_0.ordinal()) {
-            int topicQueueMappingNum = readInt(inflaterInputStream);
-            Map<String/* topic */, TopicQueueMappingInfo> topicQueueMappingInfoMap = new ConcurrentHashMap<>();
-            for (int i = 0; i < topicQueueMappingNum; i++) {
-                int mappingJsonLen = readInt(inflaterInputStream);
-                byte[] buffer = readBytes(inflaterInputStream, mappingJsonLen);
-                TopicQueueMappingInfo info = TopicQueueMappingInfo.decode(buffer, TopicQueueMappingInfo.class);
-                topicQueueMappingInfoMap.put(info.getTopic(), info);
+            for (int i = 0; i < topicConfigNumber; i++) {
+                int topicConfigJsonLength = readInt(inflaterInputStream);
+                byte[] buffer = readBytes(inflaterInputStream, topicConfigJsonLength);
+                TopicConfig topicConfig = new TopicConfig();
+                String topicConfigJson = new String(buffer, MixAll.DEFAULT_CHARSET);
+                topicConfig.decode(topicConfigJson);
+                topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
             }
-            registerBrokerBody.getTopicConfigSerializeWrapper().setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
-        }
 
-        long takeTime = System.currentTimeMillis() - start;
-        if (takeTime > MINIMUM_TAKE_TIME_MILLISECOND) {
-            LOGGER.info("Decompressing takes {}ms", takeTime);
+            int filterServerListJsonLength = readInt(inflaterInputStream);
+            byte[] filterServerListBuffer = readBytes(inflaterInputStream, filterServerListJsonLength);
+            String filterServerListJson = new String(filterServerListBuffer, MixAll.DEFAULT_CHARSET);
+            List<String> filterServerList = new ArrayList<>();
+            try {
+                filterServerList = JSON.parseArray(filterServerListJson, String.class);
+            } catch (Exception e) {
+                LOGGER.error("Decompressing occur Exception {}", filterServerListJson, e);
+            }
+            registerBrokerBody.setFilterServerList(filterServerList);
+
+            if (brokerVersion.ordinal() >= MQVersion.Version.V5_0_0.ordinal()) {
+                int topicQueueMappingNum = readInt(inflaterInputStream);
+                Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = new ConcurrentHashMap<>();
+                for (int i = 0; i < topicQueueMappingNum; i++) {
+                    int mappingJsonLen = readInt(inflaterInputStream);
+                    byte[] buffer = readBytes(inflaterInputStream, mappingJsonLen);
+                    TopicQueueMappingInfo info = TopicQueueMappingInfo.decode(buffer, TopicQueueMappingInfo.class);
+                    topicQueueMappingInfoMap.put(info.getTopic(), info);
+                }
+                registerBrokerBody.getTopicConfigSerializeWrapper().setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
+            }
+
+            long takeTime = System.currentTimeMillis() - start;
+            if (takeTime > MINIMUM_TAKE_TIME_MILLISECOND) {
+                LOGGER.info("Decompressing takes {}ms", takeTime);
+            }
+            return registerBrokerBody;
         }
-        return registerBrokerBody;
     }
 
     private static byte[] convertIntToByteArray(int n) {

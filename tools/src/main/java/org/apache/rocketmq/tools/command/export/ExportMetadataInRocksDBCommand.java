@@ -14,9 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.tools.command.export;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -45,7 +48,7 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "export RocksDB kv config (topics/subscriptionGroups)";
+        return "export RocksDB kv config (topics/subscriptionGroups). Recommend to use [mqadmin rocksDBConfigToJson]";
     }
 
     @Override
@@ -76,7 +79,11 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
             return;
         }
 
-        String configType = commandLine.getOptionValue("configType").trim().toLowerCase();
+        String configType = commandLine.getOptionValue("configType").trim();
+        if (!path.endsWith("/")) {
+            path += "/";
+        }
+        path += configType;
 
         boolean jsonEnable = false;
         if (commandLine.hasOption("jsonEnable")) {
@@ -86,7 +93,7 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
 
         ConfigRocksDBStorage kvStore = new ConfigRocksDBStorage(path, true /* readOnly */);
         if (!kvStore.start()) {
-            System.out.print("RocksDB load error, path=" + path + "\n");
+            System.out.printf("RocksDB load error, path=%s\n" , path);
             return;
         }
 
@@ -114,8 +121,8 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
             );
 
             jsonConfig.put(configType.equalsIgnoreCase(TOPICS_JSON_CONFIG) ? "topicConfigTable" : "subscriptionGroupTable",
-                (JSONObject) JSONObject.toJSON(configTable));
-            final String jsonConfigStr = JSONObject.toJSONString(jsonConfig, true);
+                (JSONObject) JSON.toJSON(configTable));
+            final String jsonConfigStr = JSONObject.toJSONString(jsonConfig, JSONWriter.Feature.PrettyFormat);
             System.out.print(jsonConfigStr + "\n");
         } else {
             AtomicLong count = new AtomicLong(0);

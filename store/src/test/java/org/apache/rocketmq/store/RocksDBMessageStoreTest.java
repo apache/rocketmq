@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store;
 
+import com.google.common.collect.Sets;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
@@ -40,9 +41,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.google.common.collect.Sets;
-
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -56,8 +54,11 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
+import org.apache.rocketmq.store.queue.RocksDBConsumeQueue;
+import org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.assertj.core.util.Strings;
 import org.awaitility.Awaitility;
@@ -434,7 +435,7 @@ public class RocksDBMessageStoreTest {
     }
 
     @Test
-    public void testPutMessage_whenMessagePropertyIsTooLong() {
+    public void testPutMessage_whenMessagePropertyIsTooLong() throws ConsumeQueueException {
         if (notExecuted()) {
             return;
         }
@@ -603,7 +604,7 @@ public class RocksDBMessageStoreTest {
     }
 
     @Test
-    public void testMaxOffset() {
+    public void testMaxOffset() throws ConsumeQueueException {
         if (notExecuted()) {
             return;
         }
@@ -1025,8 +1026,8 @@ public class RocksDBMessageStoreTest {
             ConcurrentMap<Integer, ConsumeQueueInterface> cqTable = new ConcurrentHashMap<>();
             String topicName = "topic-" + i;
             for (int j = 0; j < 4; j++) {
-                ConsumeQueue consumeQueue = new ConsumeQueue(topicName, j, messageStoreConfig.getStorePathRootDir(),
-                    messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
+                RocksDBConsumeQueue consumeQueue = new RocksDBConsumeQueue(messageStoreConfig,
+                    (RocksDBConsumeQueueStore) messageStore.getQueueStore(), topicName, i);
                 cqTable.put(j, consumeQueue);
             }
             consumeQueueTable.put(topicName, cqTable);
@@ -1050,8 +1051,8 @@ public class RocksDBMessageStoreTest {
             ConcurrentMap<Integer, ConsumeQueueInterface> cqTable = new ConcurrentHashMap<>();
             String topicName = "topic-" + i;
             for (int j = 0; j < 4; j++) {
-                ConsumeQueue consumeQueue = new ConsumeQueue(topicName, j, messageStoreConfig.getStorePathRootDir(),
-                    messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
+                RocksDBConsumeQueue consumeQueue = new RocksDBConsumeQueue(messageStoreConfig,
+                    (RocksDBConsumeQueueStore) messageStore.getQueueStore(), topicName, i);
                 cqTable.put(j, consumeQueue);
             }
             consumeQueueTable.put(topicName, cqTable);

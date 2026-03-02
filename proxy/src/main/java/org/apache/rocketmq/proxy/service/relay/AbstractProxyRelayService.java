@@ -45,6 +45,7 @@ public abstract class AbstractProxyRelayService implements ProxyRelayService {
         TransactionData transactionData = transactionService.addTransactionDataByBrokerAddr(
             context,
             command.getExtFields().get(ProxyUtils.BROKER_ADDR),
+            messageExt.getTopic(),
             group,
             header.getTranStateTableOffset(),
             header.getCommitLogOffset(),

@@ -26,8 +26,18 @@ public class NotificationResponseHeader implements CommandCustomHeader {
     @CFNotNull
     private boolean hasMsg = false;
 
+    private boolean pollingFull = false;
+
     public boolean isHasMsg() {
         return hasMsg;
+    }
+
+    public boolean isPollingFull() {
+        return pollingFull;
+    }
+
+    public void setPollingFull(boolean pollingFull) {
+        this.pollingFull = pollingFull;
     }
 
     public void setHasMsg(boolean hasMsg) {

@@ -136,7 +136,7 @@ public class NamespaceUtil {
         return index > 0 ? resourceWithoutRetryAndDLQ.substring(0, index) : STRING_BLANK;
     }
 
-    private static String withOutRetryAndDLQ(String originalResource) {
+    public static String withOutRetryAndDLQ(String originalResource) {
         if (StringUtils.isEmpty(originalResource)) {
             return STRING_BLANK;
         }

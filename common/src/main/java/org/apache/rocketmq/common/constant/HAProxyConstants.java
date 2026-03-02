@@ -19,6 +19,7 @@ package org.apache.rocketmq.common.constant;
 
 public class HAProxyConstants {
 
+    public static final String CHANNEL_ID = "channel_id";
     public static final String PROXY_PROTOCOL_PREFIX = "proxy_protocol_";
     public static final String PROXY_PROTOCOL_ADDR = PROXY_PROTOCOL_PREFIX + "addr";
     public static final String PROXY_PROTOCOL_PORT = PROXY_PROTOCOL_PREFIX + "port";

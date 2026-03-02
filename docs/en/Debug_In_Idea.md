@@ -6,7 +6,7 @@
 
 ### Step1: Start NameServer
 1. The startup class for NameServer is located in `org.apache.rocketmq.namesrv.NamesrvStartup`.
-2. Add runtime `ROCKETMQ_HOME=<rocketmq repository directory>` parameters in `Idea-Edit Configurations`.
+2. Add environment variable `ROCKETMQ_HOME=<rocketmq repository directory>` in `Idea-Edit Configurations`.
 ![Idea_config_nameserver.png](../cn/image/Idea_config_nameserver.png)
 3. Run NameServer and if the following log output is observed, it indicates successful startup.
 ```shell
@@ -26,9 +26,9 @@ deleteWhen = 04
 fileReservedTime = 48
 brokerRole = ASYNC_MASTER
 flushDiskType = ASYNC_FLUSH
-namesrvAddr = 127.0.0.1:9876 # name server地址
+namesrvAddr = 127.0.0.1:9876
 ```
-3. Add the runtime parameter `ROCKETMQ_HOME=<rocketmq repository directory>` and the environment variable `-c /Users/xxx/rocketmq/conf/broker.conf` in `Idea-Edit Configurations`.
+3. Add the runtime parameter `-c /Users/xxx/rocketmq/conf/broker.conf` and the environment variable `ROCKETMQ_HOME=<rocketmq repository directory>` in `Idea-Edit Configurations`.
 ![Idea_config_broker.png](../cn/image/Idea_config_broker.png)
 4. Run the Broker and if the following log is observed, it indicates successful startup.
 ```shell
@@ -40,7 +40,7 @@ RocketMQ startup is now complete. You can use the examples provided in `/example
 
 ### Additional: Start the Proxy locally.
 1. RocketMQ 5.x introduced the Proxy mode. Using the `LOCAL` mode eliminates the need for `Step2`. The startup class is located at `org.apache.rocketmq.proxy.ProxyStartup`.
-2. Add the runtime parameter `ROCKETMQ_HOME=<rocketmq repository directory>` in `Idea-Edit Configurations`.
+2. Add the environment variable `ROCKETMQ_HOME=<rocketmq repository directory>` in `Idea-Edit Configurations`.
 3. Create a new configuration file named `rmq-proxy.json` in the `/conf/` directory.
 ```json
 {

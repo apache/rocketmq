@@ -16,16 +16,28 @@
  */
 package org.apache.rocketmq.store.timer;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-import com.google.common.io.Files;
-import java.io.BufferedWriter;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
+import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.RandomAccessFile;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -36,27 +48,17 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.rocketmq.common.ConfigManager;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.remoting.protocol.DataVersion;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TimerMetrics extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private transient final Lock lock = new ReentrantLock();
 
-    private final ConcurrentMap<String, Metric> timingCount =
-            new ConcurrentHashMap<>(1024);
+    private final ConcurrentMap<String, Metric> timingCount = new ConcurrentHashMap<>(1024);
 
-    private final ConcurrentMap<Integer, Metric> timingDistribution =
-            new ConcurrentHashMap<>(1024);
+    private final ConcurrentMap<Integer, Metric> timingDistribution = new ConcurrentHashMap<>(1024);
 
+    @SuppressWarnings("DoubleBraceInitialization")
     public List<Integer> timerDist = new ArrayList<Integer>() {{
             add(5);
             add(60);
@@ -135,28 +137,24 @@ public class TimerMetrics extends ConfigManager {
         return timingCount;
     }
 
-    protected void write0(Writer writer) {
+    protected void write0(Writer writer) throws IOException {
         TimerMetricsSerializeWrapper wrapper = new TimerMetricsSerializeWrapper();
         wrapper.setTimingCount(timingCount);
         wrapper.setDataVersion(dataVersion);
-        JSON.writeJSONString(writer, wrapper, SerializerFeature.BrowserCompatible);
+        writer.write(JSON.toJSONString(wrapper, JSONWriter.Feature.BrowserCompatible));
     }
 
-    @Override
-    public String encode() {
+    @Override public String encode() {
         return encode(false);
     }
 
-    @Override
-    public String configFilePath() {
+    @Override public String configFilePath() {
         return configPath;
     }
 
-    @Override
-    public void decode(String jsonString) {
+    @Override public void decode(String jsonString) {
         if (jsonString != null) {
-            TimerMetricsSerializeWrapper timerMetricsSerializeWrapper =
-                TimerMetricsSerializeWrapper.fromJson(jsonString, TimerMetricsSerializeWrapper.class);
+            TimerMetricsSerializeWrapper timerMetricsSerializeWrapper = TimerMetricsSerializeWrapper.fromJson(jsonString, TimerMetricsSerializeWrapper.class);
             if (timerMetricsSerializeWrapper != null) {
                 this.timingCount.putAll(timerMetricsSerializeWrapper.getTimingCount());
                 this.dataVersion.assignNewOne(timerMetricsSerializeWrapper.getDataVersion());
@@ -164,8 +162,7 @@ public class TimerMetrics extends ConfigManager {
         }
     }
 
-    @Override
-    public String encode(boolean prettyFormat) {
+    @Override public String encode(boolean prettyFormat) {
         TimerMetricsSerializeWrapper metricsSerializeWrapper = new TimerMetricsSerializeWrapper();
         metricsSerializeWrapper.setDataVersion(this.dataVersion);
         metricsSerializeWrapper.setTimingCount(this.timingCount);
@@ -184,7 +181,7 @@ public class TimerMetrics extends ConfigManager {
         while (iterator.hasNext()) {
             Map.Entry<String, Metric> entry = iterator.next();
             final String topic = entry.getKey();
-            if (topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)) {
+            if (topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX) || topic.startsWith(MixAll.LMQ_PREFIX)) {
                 continue;
             }
             if (topics.contains(topic)) {
@@ -196,17 +193,25 @@ public class TimerMetrics extends ConfigManager {
         }
     }
 
+    public boolean removeTimingCount(String topic) {
+        try {
+            timingCount.remove(topic);
+        } catch (Exception e) {
+            log.error("removeTimingCount error", e);
+            return false;
+        }
+        return true;
+    }
+
     public static class TimerMetricsSerializeWrapper extends RemotingSerializable {
-        private ConcurrentMap<String, Metric> timingCount =
-                new ConcurrentHashMap<>(1024);
+        private ConcurrentMap<String, Metric> timingCount = new ConcurrentHashMap<>(1024);
         private DataVersion dataVersion = new DataVersion();
 
         public ConcurrentMap<String, Metric> getTimingCount() {
             return timingCount;
         }
 
-        public void setTimingCount(
-                ConcurrentMap<String, Metric> timingCount) {
+        public void setTimingCount(ConcurrentMap<String, Metric> timingCount) {
             this.timingCount = timingCount;
         }
 
@@ -219,51 +224,38 @@ public class TimerMetrics extends ConfigManager {
         }
     }
 
-    @Override
-    public synchronized void persist() {
-        String config = configFilePath();
-        String temp = config + ".tmp";
-        String backup = config + ".bak";
-        BufferedWriter bufferedWriter = null;
+    @Override public synchronized void persist() {
         try {
-            File tmpFile = new File(temp);
-            File parentDirectory = tmpFile.getParentFile();
-            if (!parentDirectory.exists()) {
-                if (!parentDirectory.mkdirs()) {
-                    log.error("Failed to create directory: {}", parentDirectory.getCanonicalPath());
-                    return;
-                }
-            }
-
-            if (!tmpFile.exists()) {
-                if (!tmpFile.createNewFile()) {
-                    log.error("Failed to create file: {}", tmpFile.getCanonicalPath());
-                    return;
-                }
-            }
-            bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmpFile, false),
-                StandardCharsets.UTF_8));
-            write0(bufferedWriter);
-            bufferedWriter.flush();
-            bufferedWriter.close();
-            log.debug("Finished writing tmp file: {}", temp);
-
+            // bak metrics file
+            String config = configFilePath();
+            String backup = config + ".bak";
             File configFile = new File(config);
+            File bakFile = new File(backup);
+
             if (configFile.exists()) {
-                Files.copy(configFile, new File(backup));
-                configFile.delete();
+                // atomic move
+                Files.move(configFile.toPath(), bakFile.toPath(), StandardCopyOption.ATOMIC_MOVE);
+
+                // sync the directory, ensure that the bak file is visible
+                MixAll.fsyncDirectory(Paths.get(bakFile.getParent()));
             }
 
-            tmpFile.renameTo(configFile);
-        } catch (IOException e) {
-            log.error("Failed to persist {}", temp, e);
-        } finally {
-            if (null != bufferedWriter) {
-                try {
-                    bufferedWriter.close();
-                } catch (IOException ignore) {
-                }
+            File dir = new File(configFile.getParent());
+            if (!dir.exists()) {
+                Files.createDirectories(dir.toPath());
             }
+
+            // persist metrics file
+            StringWriter stringWriter = new StringWriter();
+            write0(stringWriter);
+            try (RandomAccessFile randomAccessFile = new RandomAccessFile(config, "rw")) {
+                randomAccessFile.write(stringWriter.toString().getBytes(StandardCharsets.UTF_8));
+                randomAccessFile.getChannel().force(true);
+                // sync the directory, ensure that the config file is visible
+                MixAll.fsyncDirectory(Paths.get(configFile.getParent()));
+            }
+        } catch (Throwable t) {
+            log.error("Failed to persist", t);
         }
     }
 
@@ -292,8 +284,7 @@ public class TimerMetrics extends ConfigManager {
             this.timeStamp = timeStamp;
         }
 
-        @Override
-        public String toString() {
+        @Override public String toString() {
             return String.format("[%d,%d]", count.get(), timeStamp);
         }
     }

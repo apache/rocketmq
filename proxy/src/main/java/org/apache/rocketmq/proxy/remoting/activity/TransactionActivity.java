@@ -57,6 +57,7 @@ public class TransactionActivity extends AbstractRemotingActivity {
 
         this.messagingProcessor.endTransaction(
             context,
+            requestHeader.getTopic(),
             requestHeader.getTransactionId(),
             requestHeader.getMsgId(),
             requestHeader.getProducerGroup(),

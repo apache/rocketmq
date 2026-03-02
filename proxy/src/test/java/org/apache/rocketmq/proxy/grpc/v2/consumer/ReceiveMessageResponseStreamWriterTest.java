@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
+import java.lang.reflect.Method;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
@@ -48,11 +49,14 @@ import org.mockito.ArgumentCaptor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -75,7 +79,7 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
     public void testWriteMessage() {
         ArgumentCaptor<String> changeInvisibleTimeMsgIdCaptor = ArgumentCaptor.forClass(String.class);
         doReturn(CompletableFuture.completedFuture(mock(AckResult.class))).when(this.messagingProcessor)
-            .changeInvisibleTime(any(), any(), changeInvisibleTimeMsgIdCaptor.capture(), anyString(), anyString(), anyLong());
+            .changeInvisibleTime(any(), any(), changeInvisibleTimeMsgIdCaptor.capture(), anyString(), anyString(), anyLong(), any(), anyLong(), anyBoolean());
 
         ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
         AtomicInteger onNextCallNum = new AtomicInteger(0);
@@ -90,23 +94,24 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
         messageExtList.add(createMessageExt(TOPIC, "tag"));
         messageExtList.add(createMessageExt(TOPIC, "tag"));
         PopResult popResult = new PopResult(PopStatus.FOUND, messageExtList);
+        ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+            .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+            .setFilterExpression(FilterExpression.newBuilder()
+                .setType(FilterType.TAG)
+                .setExpression("*")
+                .build())
+            .build();
         writer.writeAndComplete(
             ProxyContext.create(),
-            ReceiveMessageRequest.newBuilder()
-                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
-                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
-                .setFilterExpression(FilterExpression.newBuilder()
-                    .setType(FilterType.TAG)
-                    .setExpression("*")
-                    .build())
-                .build(),
+            receiveMessageRequest,
             popResult
         );
 
         verify(streamObserver, times(1)).onCompleted();
         verify(streamObserver, times(4)).onNext(any());
         verify(this.messagingProcessor, times(1))
-            .changeInvisibleTime(any(), any(), anyString(), anyString(), anyString(), anyLong());
+            .changeInvisibleTime(any(), any(), anyString(), anyString(), anyString(), anyLong(), any(), anyLong(), eq(true));
 
         assertTrue(responseArgumentCaptor.getAllValues().get(0).hasStatus());
         assertEquals(Code.OK, responseArgumentCaptor.getAllValues().get(0).getStatus().getCode());
@@ -114,6 +119,16 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
         assertEquals(messageExtList.get(0).getMsgId(), responseArgumentCaptor.getAllValues().get(1).getMessage().getSystemProperties().getMessageId());
 
         assertEquals(messageExtList.get(1).getMsgId(), changeInvisibleTimeMsgIdCaptor.getValue());
+
+        // case: fail to write response status at first step
+        doThrow(new RuntimeException()).when(streamObserver).onNext(any());
+        writer.writeAndComplete(
+            ProxyContext.create(),
+            receiveMessageRequest,
+            popResult
+        );
+        verify(this.messagingProcessor, times(3))
+            .changeInvisibleTime(any(), any(), anyString(), anyString(), anyString(), anyLong(), any(), anyLong(), eq(true));
     }
 
     @Test
@@ -139,6 +154,58 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
             .findFirst().get();
         assertEquals(Code.TOO_MANY_REQUESTS, response.getStatus().getCode());
     }
+
+    @Test
+    public void testNackMessageWithSuspendTrue() {
+        ArgumentCaptor<String> changeInvisibleTimeMsgIdCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> changeInvisibleTimeGroupCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> changeInvisibleTimeTopicCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Long> changeInvisibleTimeInvisibleTimeCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Boolean> changeInvisibleTimeSuspendCaptor = ArgumentCaptor.forClass(Boolean.class);
+
+        doReturn(CompletableFuture.completedFuture(mock(AckResult.class))).when(this.messagingProcessor)
+            .changeInvisibleTime(any(), any(), changeInvisibleTimeMsgIdCaptor.capture(),
+                changeInvisibleTimeGroupCaptor.capture(), changeInvisibleTimeTopicCaptor.capture(),
+                changeInvisibleTimeInvisibleTimeCaptor.capture(), any(), anyLong(),
+                changeInvisibleTimeSuspendCaptor.capture());
+
+        MessageExt messageExt = createMessageExt(TOPIC, "tag");
+        ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+            .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+            .build();
+
+        // Simulate nack by calling processThrowableWhenWriteMessage using reflection
+        // This is called when an exception occurs during message processing
+        try {
+            Method method = ReceiveMessageResponseStreamWriter.class.getDeclaredMethod(
+                "processThrowableWhenWriteMessage",
+                Throwable.class, ProxyContext.class, ReceiveMessageRequest.class, MessageExt.class);
+            method.setAccessible(true);
+            method.invoke(writer,
+                new RuntimeException("Test exception"),
+                ProxyContext.create(),
+                receiveMessageRequest,
+                messageExt);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // Verify that changeInvisibleTime was called with suspend=true
+        verify(this.messagingProcessor, times(1))
+            .changeInvisibleTime(any(), any(), eq(messageExt.getMsgId()),
+                eq(CONSUMER_GROUP), eq(TOPIC), eq(ReceiveMessageResponseStreamWriter.NACK_INVISIBLE_TIME),
+                eq(null), eq(org.apache.rocketmq.proxy.processor.MessagingProcessor.DEFAULT_TIMEOUT_MILLS),
+                eq(true));
+
+        assertEquals(messageExt.getMsgId(), changeInvisibleTimeMsgIdCaptor.getValue());
+        assertEquals(CONSUMER_GROUP, changeInvisibleTimeGroupCaptor.getValue());
+        assertEquals(TOPIC, changeInvisibleTimeTopicCaptor.getValue());
+        assertEquals(ReceiveMessageResponseStreamWriter.NACK_INVISIBLE_TIME,
+            changeInvisibleTimeInvisibleTimeCaptor.getValue().longValue());
+        assertTrue("Suspend should be true for nack", changeInvisibleTimeSuspendCaptor.getValue());
+    }
+
 
     private static MessageExt createMessageExt(String topic, String tags) {
         String msgId = MessageClientIDSetter.createUniqID();

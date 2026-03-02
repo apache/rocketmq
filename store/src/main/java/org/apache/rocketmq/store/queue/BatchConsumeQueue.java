@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -70,6 +70,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     public static final int INVALID_POS = -1;
     protected final MappedFileQueue mappedFileQueue;
     protected MessageStore messageStore;
+    protected ConsumeQueueStore consumeQueueStore;
     protected final String topic;
     protected final int queueId;
     protected final ByteBuffer byteBufferItem;
@@ -93,24 +94,43 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
         final String storePath,
         final int mappedFileSize,
         final MessageStore messageStore,
+        final ConsumeQueueStore consumeQueueStore,
         final String subfolder) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.messageStore = messageStore;
+        this.consumeQueueStore = consumeQueueStore;
         this.commitLogSize = messageStore.getCommitLog().getCommitLogSize();
 
         this.topic = topic;
         this.queueId = queueId;
 
+        boolean writeWithoutMmap = false;
+        if (messageStore.getMessageStoreConfig() != null) {
+            writeWithoutMmap = messageStore.getMessageStoreConfig().isWriteWithoutMmap();
+        }
+
         if (StringUtils.isBlank(subfolder)) {
             String queueDir = this.storePath + File.separator + topic + File.separator + queueId;
-            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null,
+                writeWithoutMmap);
         } else {
             String queueDir = this.storePath + File.separator + topic + File.separator + queueId + File.separator + subfolder;
-            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+            this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null,
+                writeWithoutMmap);
         }
 
         this.byteBufferItem = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
+    }
+
+    public BatchConsumeQueue(
+        final String topic,
+        final int queueId,
+        final String storePath,
+        final int mappedFileSize,
+        final MessageStore messageStore,
+        final String subfolder) {
+        this(topic, queueId, storePath, mappedFileSize, messageStore, (ConsumeQueueStore) messageStore.getQueueStore(), subfolder);
     }
 
     public BatchConsumeQueue(
@@ -329,14 +349,14 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     @Override
     public Pair<CqUnit, Long> getCqUnitAndStoreTime(long index) {
         CqUnit cqUnit = get(index);
-        Long messageStoreTime = this.messageStore.getQueueStore().getStoreTime(cqUnit);
+        Long messageStoreTime = this.consumeQueueStore.getStoreTime(cqUnit);
         return new Pair<>(cqUnit, messageStoreTime);
     }
 
     @Override
     public Pair<CqUnit, Long> getEarliestUnitAndStoreTime() {
         CqUnit cqUnit = getEarliestUnit();
-        Long messageStoreTime = this.messageStore.getQueueStore().getStoreTime(cqUnit);
+        Long messageStoreTime = this.consumeQueueStore.getStoreTime(cqUnit);
         return new Pair<>(cqUnit, messageStoreTime);
     }
 
@@ -516,7 +536,8 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
                 if (BrokerRole.SLAVE == this.messageStore.getMessageStoreConfig().getBrokerRole()) {
                     this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
-                this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsPhysicalOffset(request.getCommitLogOffset());
                 return;
             } else {
                 // XXX: warn and notify me
@@ -587,7 +608,12 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(this.mappedFileQueue.getMaxOffset());
         if (mappedFile != null) {
             boolean isNewFile = isNewFile(mappedFile);
-            boolean appendRes = mappedFile.appendMessage(this.byteBufferItem.array());
+            boolean appendRes;
+            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                appendRes = mappedFile.appendMessageUsingFileChannel(this.byteBufferItem.array());
+            } else {
+                appendRes = mappedFile.appendMessage(this.byteBufferItem.array());
+            }
             if (appendRes) {
                 maxMsgPhyOffsetInCommitLog = offset;
                 maxOffsetInQueue = msgBaseOffset + batchSize;
@@ -1169,5 +1195,15 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
         }
         log.debug("Result={}, raw={}, match={}, sample={}", result, raw, match, sample);
         return result;
+    }
+
+    @Override
+    public void initializeWithOffset(long offset, long minPhyOffset) {
+        // not support now
+    }
+
+    @Override
+    public boolean shutdown() {
+        return true;
     }
 }

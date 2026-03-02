@@ -41,6 +41,10 @@ public class GetMessageResultExt extends GetMessageResult {
         return tagCodeList;
     }
 
+    /**
+     * Due to the message fetched from the object storage is sequential,
+     * do message filtering occurs after the data retrieval.
+     */
     public GetMessageResult doFilterMessage(MessageFilter messageFilter) {
         if (GetMessageStatus.FOUND != super.getStatus() || messageFilter == null) {
             return this;

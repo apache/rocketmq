@@ -20,12 +20,19 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.QUERY_MESSAGE, action = {Action.SUB, Action.GET})
 public class QueryMessageRequestHeader extends TopicRequestHeader {
     @CFNotNull
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
     @CFNotNull
     private String key;
@@ -35,6 +42,8 @@ public class QueryMessageRequestHeader extends TopicRequestHeader {
     private Long beginTimestamp;
     @CFNotNull
     private Long endTimestamp;
+    private String indexType;
+    private String lastKey;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -79,5 +88,21 @@ public class QueryMessageRequestHeader extends TopicRequestHeader {
 
     public void setEndTimestamp(Long endTimestamp) {
         this.endTimestamp = endTimestamp;
+    }
+
+    public String getIndexType() {
+        return indexType;
+    }
+
+    public void setIndexType(String indexType) {
+        this.indexType = indexType;
+    }
+
+    public String getLastKey() {
+        return lastKey;
+    }
+
+    public void setLastKey(String lastKey) {
+        this.lastKey = lastKey;
     }
 }

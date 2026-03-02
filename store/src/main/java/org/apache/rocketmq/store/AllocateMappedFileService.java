@@ -45,12 +45,31 @@ public class AllocateMappedFileService extends ServiceThread {
         new PriorityBlockingQueue<>();
     private volatile boolean hasException = false;
     private DefaultMessageStore messageStore;
+    private PreprocessHandler preprocessHandler;
 
     public AllocateMappedFileService(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
     }
 
+    /**
+     * Set preprocess handler for external extension
+     *
+     * @param preprocessHandler the preprocess handler
+     */
+    public void setPreprocessHandler(PreprocessHandler preprocessHandler) {
+        this.preprocessHandler = preprocessHandler;
+    }
+
     public MappedFile putRequestAndReturnMappedFile(String nextFilePath, String nextNextFilePath, int fileSize) {
+        // Execute preprocess logic if handler is set
+        final PreprocessHandler finalPreprocessHandler = this.preprocessHandler;
+        if (finalPreprocessHandler != null) {
+            try {
+                finalPreprocessHandler.preprocess(nextFilePath, nextNextFilePath, fileSize);
+            } catch (Throwable t) {
+                log.warn("Preprocess handler in AllocateMappedFileService execution failed", t);
+            }
+        }
         int canSubmitRequests = 2;
         if (this.messageStore.isTransientStorePoolEnable()) {
             if (this.messageStore.getMessageStoreConfig().isFastFailIfNoBufferInStorePool()
@@ -132,12 +151,13 @@ public class AllocateMappedFileService extends ServiceThread {
         super.shutdown(true);
         for (AllocateRequest req : this.requestTable.values()) {
             if (req.mappedFile != null) {
-                log.info("delete pre allocated maped file, {}", req.mappedFile.getFileName());
+                log.info("delete pre allocated mapped file, {}", req.mappedFile.getFileName());
                 req.mappedFile.destroy(1000);
             }
         }
     }
 
+    @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
 
@@ -171,16 +191,19 @@ public class AllocateMappedFileService extends ServiceThread {
                 long beginTime = System.currentTimeMillis();
 
                 MappedFile mappedFile;
+                boolean writeWithoutMmap = messageStore.getMessageStoreConfig().isWriteWithoutMmap();
+                RunningFlags runningFlags = messageStore.getMessageStoreConfig().isEnableRunningFlagsInFlush() 
+                    ? messageStore.getRunningFlags() : null;
                 if (messageStore.isTransientStorePoolEnable()) {
                     try {
                         mappedFile = ServiceLoader.load(MappedFile.class).iterator().next();
-                        mappedFile.init(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
+                        mappedFile.init(req.getFilePath(), req.getFileSize(), runningFlags, messageStore.getTransientStorePool());
                     } catch (RuntimeException e) {
                         log.warn("Use default implementation.");
-                        mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
+                        mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), runningFlags, messageStore.getTransientStorePool(), writeWithoutMmap);
                     }
                 } else {
-                    mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize());
+                    mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), runningFlags, writeWithoutMmap);
                 }
 
                 long elapsedTime = UtilAll.computeElapsedTimeMilliseconds(beginTime);
@@ -194,7 +217,9 @@ public class AllocateMappedFileService extends ServiceThread {
                 if (mappedFile.getFileSize() >= this.messageStore.getMessageStoreConfig()
                     .getMappedFileSizeCommitLog()
                     &&
-                    this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+                    this.messageStore.getMessageStoreConfig().isWarmMapedFileEnable()
+                    &&
+                    !this.messageStore.getMessageStoreConfig().isWriteWithoutMmap()) {
                     mappedFile.warmMappedFile(this.messageStore.getMessageStoreConfig().getFlushDiskType(),
                         this.messageStore.getMessageStoreConfig().getFlushLeastPagesWhenWarmMapedFile());
                 }
@@ -222,6 +247,21 @@ public class AllocateMappedFileService extends ServiceThread {
                 req.getCountDownLatch().countDown();
         }
         return true;
+    }
+
+    /**
+     * Preprocess handler interface for external extension
+     */
+    @FunctionalInterface
+    public interface PreprocessHandler {
+        /**
+         * Preprocess before allocating mapped file
+         *
+         * @param nextFilePath the next file path
+         * @param nextNextFilePath the next next file path
+         * @param fileSize the file size
+         */
+        void preprocess(String nextFilePath, String nextNextFilePath, int fileSize);
     }
 
     static class AllocateRequest implements Comparable<AllocateRequest> {

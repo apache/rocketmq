@@ -105,10 +105,9 @@ public class ThreadPoolMonitor {
             List<ThreadPoolStatusMonitor> monitors = threadPoolWrapper.getStatusPrinters();
             for (ThreadPoolStatusMonitor monitor : monitors) {
                 double value = monitor.value(threadPoolWrapper.getThreadPoolExecutor());
-                waterMarkLogger.info("\t{}\t{}\t{}", threadPoolWrapper.getName(),
-                    monitor.describe(),
-                    value);
-
+                String nameFormatted = String.format("%-40s", threadPoolWrapper.getName());
+                String descFormatted = String.format("%-12s", monitor.describe());
+                waterMarkLogger.info("{}{}{}", nameFormatted, descFormatted, value);
                 if (enablePrintJstack) {
                     if (monitor.needPrintJstack(threadPoolWrapper.getThreadPoolExecutor(), value) &&
                         System.currentTimeMillis() - jstackTime > jstackPeriodTime) {

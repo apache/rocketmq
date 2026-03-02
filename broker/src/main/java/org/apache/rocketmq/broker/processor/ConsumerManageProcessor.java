@@ -164,6 +164,12 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         Integer queueId = requestHeader.getQueueId();
         Long offset = requestHeader.getCommitOffset();
 
+        if (!this.brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(group)) {
+            response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
+            response.setRemark("Group " + group + " not exist!");
+            return response;
+        }
+
         if (!this.brokerController.getTopicConfigManager().containsTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("Topic " + topic + " not exist!");
@@ -171,13 +177,13 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         }
 
         if (queueId == null) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("QueueId is null, topic is " + topic);
             return response;
         }
 
         if (offset == null) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("Offset is null, topic is " + topic);
             return response;
         }

@@ -52,9 +52,9 @@ public class ProduceAccumulator {
     private final Logger log = LoggerFactory.getLogger(DefaultMQProducer.class);
     private final GuardForSyncSendService guardThreadForSyncSend;
     private final GuardForAsyncSendService guardThreadForAsyncSend;
-    private Map<AggregateKey, MessageAccumulation> syncSendBatchs = new ConcurrentHashMap<AggregateKey, MessageAccumulation>();
-    private Map<AggregateKey, MessageAccumulation> asyncSendBatchs = new ConcurrentHashMap<AggregateKey, MessageAccumulation>();
-    private AtomicLong currentlyHoldSize = new AtomicLong(0);
+    private final Map<AggregateKey, MessageAccumulation> syncSendBatchs = new ConcurrentHashMap<AggregateKey, MessageAccumulation>();
+    private final Map<AggregateKey, MessageAccumulation> asyncSendBatchs = new ConcurrentHashMap<AggregateKey, MessageAccumulation>();
+    private final AtomicLong currentlyHoldSize = new AtomicLong(0);
     private final String instanceName;
 
     public ProduceAccumulator(String instanceName) {
@@ -70,11 +70,13 @@ public class ProduceAccumulator {
             serviceName = String.format("Client_%s_GuardForSyncSend", clientInstanceName);
         }
 
-        @Override public String getServiceName() {
+        @Override
+        public String getServiceName() {
             return serviceName;
         }
 
-        @Override public void run() {
+        @Override
+        public void run() {
             log.info(this.getServiceName() + " service started");
 
             while (!this.isStopped()) {
@@ -115,11 +117,13 @@ public class ProduceAccumulator {
             serviceName = String.format("Client_%s_GuardForAsyncSend", clientInstanceName);
         }
 
-        @Override public String getServiceName() {
+        @Override
+        public String getServiceName() {
             return serviceName;
         }
 
-        @Override public void run() {
+        @Override
+        public void run() {
             log.info(this.getServiceName() + " service started");
 
             while (!this.isStopped()) {
@@ -276,7 +280,10 @@ public class ProduceAccumulator {
     boolean tryAddMessage(Message message) {
         synchronized (currentlyHoldSize) {
             if (currentlyHoldSize.get() < totalHoldSize) {
-                currentlyHoldSize.addAndGet(message.getBody().length);
+                int bodySize = null == message.getBody() ? 0 : message.getBody().length;
+                if (bodySize > 0) {
+                    currentlyHoldSize.addAndGet(bodySize);
+                }
                 return true;
             } else {
                 return false;
@@ -305,7 +312,8 @@ public class ProduceAccumulator {
             this.tag = tag;
         }
 
-        @Override public boolean equals(Object o) {
+        @Override
+        public boolean equals(Object o) {
             if (this == o)
                 return true;
             if (o == null || getClass() != o.getClass())
@@ -314,7 +322,8 @@ public class ProduceAccumulator {
             return waitStoreMsgOK == key.waitStoreMsgOK && topic.equals(key.topic) && Objects.equals(mq, key.mq) && Objects.equals(tag, key.tag);
         }
 
-        @Override public int hashCode() {
+        @Override
+        public int hashCode() {
             return Objects.hash(topic, mq, waitStoreMsgOK, tag);
         }
     }
@@ -324,7 +333,7 @@ public class ProduceAccumulator {
         private LinkedList<Message> messages;
         private LinkedList<SendCallback> sendCallbacks;
         private Set<String> keys;
-        private AtomicBoolean closed;
+        private final AtomicBoolean closed;
         private SendResult[] sendResults;
         private AggregateKey aggregateKey;
         private AtomicInteger messagesSize;
@@ -351,8 +360,7 @@ public class ProduceAccumulator {
             return false;
         }
 
-        public int add(
-            Message msg) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
+        public int add(Message msg) throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
             int ret = -1;
             synchronized (this.closed) {
                 if (this.closed.get()) {
@@ -360,7 +368,10 @@ public class ProduceAccumulator {
                 }
                 ret = this.count++;
                 this.messages.add(msg);
-                messagesSize.addAndGet(msg.getBody().length);
+                int bodySize = null == msg.getBody() ? 0 : msg.getBody().length;
+                if (bodySize > 0) {
+                    messagesSize.addAndGet(bodySize);
+                }
                 String msgKeys = msg.getKeys();
                 if (msgKeys != null) {
                     this.keys.addAll(Arrays.asList(msgKeys.split(MessageConst.KEY_SEPARATOR)));
@@ -388,7 +399,10 @@ public class ProduceAccumulator {
                 this.count++;
                 this.messages.add(msg);
                 this.sendCallbacks.add(sendCallback);
-                messagesSize.getAndAdd(msg.getBody().length);
+                int bodySize = null == msg.getBody() ? 0 : msg.getBody().length;
+                if (bodySize > 0) {
+                    messagesSize.addAndGet(bodySize);
+                }
             }
             if (readyToSend()) {
                 this.send(sendCallback);
@@ -472,7 +486,8 @@ public class ProduceAccumulator {
                 if (defaultMQProducer != null) {
                     final int size = messagesSize.get();
                     defaultMQProducer.sendDirect(messageBatch, aggregateKey.mq, new SendCallback() {
-                        @Override public void onSuccess(SendResult sendResult) {
+                        @Override
+                        public void onSuccess(SendResult sendResult) {
                             try {
                                 splitSendResults(sendResult);
                                 int i = 0;
@@ -490,7 +505,8 @@ public class ProduceAccumulator {
                             }
                         }
 
-                        @Override public void onException(Throwable e) {
+                        @Override
+                        public void onException(Throwable e) {
                             for (SendCallback v : sendCallbacks) {
                                 v.onException(e);
                             }

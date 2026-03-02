@@ -41,6 +41,8 @@ import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
+import apache.rocketmq.v2.RecallMessageRequest;
+import apache.rocketmq.v2.RecallMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
@@ -100,7 +102,7 @@ import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.test.base.BaseConf;
@@ -133,12 +135,12 @@ public class GrpcBaseIT extends BaseConf {
     protected static final int DEFAULT_QUEUE_NUMS = 8;
 
     public void setUp() throws Exception {
-        brokerController1.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
-        brokerController2.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
-        brokerController3.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
+        brokerController1.getBrokerConfig().setTransactionCheckInterval(1 * 1000);
+        brokerController2.getBrokerConfig().setTransactionCheckInterval(1 * 1000);
+        brokerController3.getBrokerConfig().setTransactionCheckInterval(1 * 1000);
 
-        header.put(InterceptorConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
-        header.put(InterceptorConstants.LANGUAGE, "JAVA");
+        header.put(GrpcConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
+        header.put(GrpcConstants.LANGUAGE, "JAVA");
 
         String mockProxyHome = "/mock/rmq/proxy/home";
         URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");
@@ -151,7 +153,7 @@ public class GrpcBaseIT extends BaseConf {
         }
 
         ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
+        ConfigurationManager.initConfig();
         ConfigurationManager.getProxyConfig().setNamesrvAddr(NAMESRV_ADDR);
         // Set LongPollingReserveTimeInMillis to 500ms to reserve more time for IT
         ConfigurationManager.getProxyConfig().setLongPollingReserveTimeInMillis(500);
@@ -255,6 +257,7 @@ public class GrpcBaseIT extends BaseConf {
     public void testTransactionCheckThenCommit() {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.TRANSACTION);
         String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
 
         AtomicReference<TelemetryCommand> telemetryCommandRef = new AtomicReference<>(null);
         StreamObserver<TelemetryCommand> requestStreamObserver = stub.telemetry(new DefaultTelemetryCommandStreamObserver() {
@@ -349,6 +352,7 @@ public class GrpcBaseIT extends BaseConf {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.DELAY);
         String group = MQRandomUtils.getRandomConsumerGroup();
         long delayTime = TimeUnit.SECONDS.toMillis(5);
+        initConsumerGroup(group);
 
         // init consumer offset
         this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
@@ -393,9 +397,74 @@ public class GrpcBaseIT extends BaseConf {
         assertThat(Math.abs(recvTime.get() - sendTime - delayTime) < 2 * 1000).isTrue();
     }
 
+    public void testSimpleConsumerSendAndRecallDelayMessage() throws Exception {
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.DELAY);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
+        long delayTime = TimeUnit.SECONDS.toMillis(5);
+
+        // init consumer offset
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
+        receiveMessage(blockingStub, topic, group, 1);
+
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
+        String messageId = createUniqID();
+        SendMessageResponse sendResponse = blockingStub.sendMessage(SendMessageRequest.newBuilder()
+            .addMessages(Message.newBuilder()
+                .setTopic(Resource.newBuilder()
+                    .setName(topic)
+                    .build())
+                .setSystemProperties(SystemProperties.newBuilder()
+                    .setMessageId(messageId)
+                    .setQueueId(0)
+                    .setMessageType(MessageType.DELAY)
+                    .setBodyEncoding(Encoding.GZIP)
+                    .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                    .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .setDeliveryTimestamp(Timestamps.fromMillis(System.currentTimeMillis() + delayTime))
+                    .build())
+                .setBody(ByteString.copyFromUtf8("hello"))
+                .build())
+            .build());
+        long sendTime = System.currentTimeMillis();
+        assertSendMessage(sendResponse, messageId);
+        String recallHandle = sendResponse.getEntries(0).getRecallHandle();
+        assertThat(recallHandle).isNotEmpty();
+
+        RecallMessageRequest recallRequest = RecallMessageRequest.newBuilder()
+            .setRecallHandle(recallHandle)
+            .setTopic(Resource.newBuilder().setResourceNamespace("").setName(topic).build())
+            .build();
+        RecallMessageResponse recallResponse =
+            blockingStub.withDeadlineAfter(2, TimeUnit.SECONDS).recallMessage(recallRequest);
+        assertThat(recallResponse.getStatus()).isEqualTo(
+            ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()));
+        assertThat(recallResponse.getMessageId()).isEqualTo(messageId);
+
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
+
+        AtomicLong recvTime = new AtomicLong();
+        AtomicReference<Message> recvMessage = new AtomicReference<>();
+        try {
+            await().atMost(java.time.Duration.ofSeconds(10)).until(() -> {
+                List<Message> messageList = getMessageFromReceiveMessageResponse(receiveMessage(blockingStub, topic, group));
+                if (messageList.isEmpty()) {
+                    return false;
+                }
+                recvTime.set(System.currentTimeMillis());
+                recvMessage.set(messageList.get(0));
+                return messageList.get(0).getSystemProperties().getMessageId().equals(messageId);
+            });
+        } catch (Exception e) {
+        }
+        assertThat(recvTime.get()).isEqualTo(0L);
+        assertThat(recvMessage.get()).isNull();
+    }
+
     public void testSimpleConsumerSendAndRecvBigMessage() throws Exception {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME);
         String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
 
         int bodySize = 4 * 1024;
 
@@ -418,6 +487,7 @@ public class GrpcBaseIT extends BaseConf {
     public void testSimpleConsumerSendAndRecv() throws Exception {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME);
         String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
 
         // init consumer offset
         this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
@@ -427,6 +497,7 @@ public class GrpcBaseIT extends BaseConf {
         String messageId = createUniqID();
         SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId));
         assertSendMessage(sendResponse, messageId);
+        assertThat(sendResponse.getEntries(0).getRecallHandle()).isNullOrEmpty();
 
         this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
 
@@ -473,6 +544,7 @@ public class GrpcBaseIT extends BaseConf {
     public void testSimpleConsumerToDLQ() throws Exception {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME);
         String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
         int maxDeliveryAttempts = 2;
 
         SubscriptionGroupConfig groupConfig = brokerController1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
@@ -560,6 +632,57 @@ public class GrpcBaseIT extends BaseConf {
 
         for (int i = 0; i < messageIdList.size(); i++) {
             assertThat(messageRecvList.get(i)).isEqualTo(messageIdList.get(i));
+        }
+    }
+
+    public void testSimpleConsumerSendAndRecvPriorityMessage() throws Exception {
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.PRIORITY);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+        initConsumerGroup(group);
+
+        // init consumer offset
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
+        receiveMessage(blockingStub, topic, group, 1);
+
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
+        for (int i = 0; i < BaseConf.QUEUE_NUMBERS; i++) {
+            String messageId = createUniqID();
+            SendMessageResponse sendResponse = blockingStub.sendMessage(SendMessageRequest.newBuilder()
+                .addMessages(Message.newBuilder()
+                    .setTopic(Resource.newBuilder()
+                        .setName(topic)
+                        .build())
+                    .setSystemProperties(SystemProperties.newBuilder()
+                        .setMessageId(messageId)
+                        .setQueueId(0)
+                        .setMessageType(MessageType.PRIORITY)
+                        .setBodyEncoding(Encoding.GZIP)
+                        .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                        .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                        .setPriority(i)
+                        .build())
+                    .setBody(ByteString.copyFromUtf8("hello"))
+                    .build())
+                .build());
+            assertSendMessage(sendResponse, messageId);
+        }
+
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
+        List<Message> recvList = new ArrayList<>();
+        try {
+            await().atMost(java.time.Duration.ofSeconds(10)).until(() -> {
+                List<Message> messageList = getMessageFromReceiveMessageResponse(receiveMessage(blockingStub, topic, group));
+                if (messageList.isEmpty()) {
+                    return false;
+                }
+                recvList.addAll(messageList);
+                return recvList.size() == BaseConf.QUEUE_NUMBERS;
+            });
+        } catch (Exception e) {
+        }
+        for (int i = 0; i < BaseConf.QUEUE_NUMBERS; i++) {
+            // default priority order: 0 as lowest priority
+            assertThat(recvList.get(i).getSystemProperties().getPriority()).isEqualTo(BaseConf.QUEUE_NUMBERS - i - 1);
         }
     }
 

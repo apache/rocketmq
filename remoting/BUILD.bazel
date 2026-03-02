@@ -22,7 +22,7 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//common",
-        "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_google_guava_guava",
         "@maven//:com_google_code_findbugs_jsr305",
         "@maven//:com_squareup_okio_okio_jvm",
@@ -39,6 +39,7 @@ java_library(
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
         "@maven//:commons_collections_commons_collections",
+        "@maven//:org_reflections_reflections",
     ],
 )
 
@@ -50,7 +51,9 @@ java_library(
         ":remoting",
         "//common",
         "//:test_deps",
+        "@maven//:org_objenesis_objenesis",
         "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_google_code_gson_gson",
         "@maven//:com_google_guava_guava",
         "@maven//:com_google_code_findbugs_jsr305",
@@ -66,6 +69,7 @@ java_library(
         "@maven//:org_apache_tomcat_annotations_api",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_jetbrains_annotations",
+        "@maven//:org_reflections_reflections",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

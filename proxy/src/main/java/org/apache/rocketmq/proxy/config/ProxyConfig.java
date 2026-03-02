@@ -82,6 +82,7 @@ public class ProxyConfig implements ConfigFile {
     private boolean tlsTestModeEnable = true;
     private String tlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
     private String tlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
+    private int tlsCertWatchIntervalMs = 60 * 60 * 1000; // 1 hour
     /**
      * gRPC
      */
@@ -104,6 +105,10 @@ public class ProxyConfig implements ConfigFile {
      */
     private int maxMessageSize = 4 * 1024 * 1024;
     /**
+     * if true, proxy will check message body size and reject msg if it's body is empty
+     */
+    private boolean enableMessageBodyEmptyCheck = true;
+    /**
      * max user property size, 0 or negative number means no limit for proxy
      */
     private int maxUserPropertySize = 16 * 1024;
@@ -113,6 +118,13 @@ public class ProxyConfig implements ConfigFile {
      * max message group size, 0 or negative number means no limit for proxy
      */
     private int maxMessageGroupSize = 64;
+    /**
+     * max lite topic size
+     */
+    private int maxLiteTopicSize = 64;
+    private int maxLiteRenewNumPerChannel = 100;
+    // syncLiteSubscription request rate limit per proxy
+    private int maxSyncLiteSubscriptionRate = 5000;
 
     /**
      * When a message pops, the message is invisible by default
@@ -168,6 +180,12 @@ public class ProxyConfig implements ConfigFile {
     private int subscriptionGroupConfigCacheExpiredSeconds = 300;
     private int subscriptionGroupConfigCacheRefreshSeconds = 20;
     private int subscriptionGroupConfigCacheMaxNum = 20000;
+    private int userCacheExpiredSeconds = 300;
+    private int userCacheRefreshSeconds = 20;
+    private int userCacheMaxNum = 20000;
+    private int aclCacheExpiredSeconds = 300;
+    private int aclCacheRefreshSeconds = 20;
+    private int aclCacheMaxNum = 20000;
     private int metadataThreadPoolNums = 3;
     private int metadataThreadPoolQueueCapacity = 100000;
 
@@ -192,8 +210,7 @@ public class ProxyConfig implements ConfigFile {
     private long renewAheadTimeMillis = TimeUnit.SECONDS.toMillis(10);
     private long renewMaxTimeMillis = TimeUnit.HOURS.toMillis(3);
     private long renewSchedulePeriodMillis = TimeUnit.SECONDS.toMillis(5);
-
-    private boolean enableACL = false;
+    private int returnHandleGroupThreadPoolNums = 2;
 
     private boolean enableAclRpcHookForClusterMode = false;
 
@@ -314,6 +331,14 @@ public class ProxyConfig implements ConfigFile {
         } catch (Exception e) {
             log.error("parse delay level failed. messageDelayLevel:{}", messageDelayLevel, e);
         }
+    }
+
+    public int getTlsCertWatchIntervalMs() {
+        return tlsCertWatchIntervalMs;
+    }
+
+    public void setTlsCertWatchIntervalMs(int tlsCertWatchIntervalMs) {
+        this.tlsCertWatchIntervalMs = tlsCertWatchIntervalMs;
     }
 
     public String getRocketMQClusterName() {
@@ -900,6 +925,54 @@ public class ProxyConfig implements ConfigFile {
         this.subscriptionGroupConfigCacheMaxNum = subscriptionGroupConfigCacheMaxNum;
     }
 
+    public int getUserCacheExpiredSeconds() {
+        return userCacheExpiredSeconds;
+    }
+
+    public void setUserCacheExpiredSeconds(int userCacheExpiredSeconds) {
+        this.userCacheExpiredSeconds = userCacheExpiredSeconds;
+    }
+
+    public int getUserCacheRefreshSeconds() {
+        return userCacheRefreshSeconds;
+    }
+
+    public void setUserCacheRefreshSeconds(int userCacheRefreshSeconds) {
+        this.userCacheRefreshSeconds = userCacheRefreshSeconds;
+    }
+
+    public int getUserCacheMaxNum() {
+        return userCacheMaxNum;
+    }
+
+    public void setUserCacheMaxNum(int userCacheMaxNum) {
+        this.userCacheMaxNum = userCacheMaxNum;
+    }
+
+    public int getAclCacheExpiredSeconds() {
+        return aclCacheExpiredSeconds;
+    }
+
+    public void setAclCacheExpiredSeconds(int aclCacheExpiredSeconds) {
+        this.aclCacheExpiredSeconds = aclCacheExpiredSeconds;
+    }
+
+    public int getAclCacheRefreshSeconds() {
+        return aclCacheRefreshSeconds;
+    }
+
+    public void setAclCacheRefreshSeconds(int aclCacheRefreshSeconds) {
+        this.aclCacheRefreshSeconds = aclCacheRefreshSeconds;
+    }
+
+    public int getAclCacheMaxNum() {
+        return aclCacheMaxNum;
+    }
+
+    public void setAclCacheMaxNum(int aclCacheMaxNum) {
+        this.aclCacheMaxNum = aclCacheMaxNum;
+    }
+
     public int getMetadataThreadPoolNums() {
         return metadataThreadPoolNums;
     }
@@ -986,14 +1059,6 @@ public class ProxyConfig implements ConfigFile {
 
     public void setLongPollingReserveTimeInMillis(long longPollingReserveTimeInMillis) {
         this.longPollingReserveTimeInMillis = longPollingReserveTimeInMillis;
-    }
-
-    public boolean isEnableACL() {
-        return enableACL;
-    }
-
-    public void setEnableACL(boolean enableACL) {
-        this.enableACL = enableACL;
     }
 
     public boolean isEnableAclRpcHookForClusterMode() {
@@ -1166,10 +1231,6 @@ public class ProxyConfig implements ConfigFile {
 
     public void setMetricsExporterType(MetricsExporterType metricsExporterType) {
         this.metricsExporterType = metricsExporterType;
-    }
-
-    public void setMetricsExporterType(int metricsExporterType) {
-        this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
     }
 
     public void setMetricsExporterType(String metricsExporterType) {
@@ -1470,5 +1531,45 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableBatchAck(boolean enableBatchAck) {
         this.enableBatchAck = enableBatchAck;
+    }
+
+    public boolean isEnableMessageBodyEmptyCheck() {
+        return enableMessageBodyEmptyCheck;
+    }
+
+    public void setEnableMessageBodyEmptyCheck(boolean enableMessageBodyEmptyCheck) {
+        this.enableMessageBodyEmptyCheck = enableMessageBodyEmptyCheck;
+    }
+
+    public int getMaxLiteTopicSize() {
+        return maxLiteTopicSize;
+    }
+
+    public void setMaxLiteTopicSize(int maxLiteTopicSize) {
+        this.maxLiteTopicSize = maxLiteTopicSize;
+    }
+
+    public int getMaxLiteRenewNumPerChannel() {
+        return maxLiteRenewNumPerChannel;
+    }
+
+    public void setMaxLiteRenewNumPerChannel(int maxLiteRenewNumPerChannel) {
+        this.maxLiteRenewNumPerChannel = maxLiteRenewNumPerChannel;
+    }
+
+    public int getMaxSyncLiteSubscriptionRate() {
+        return maxSyncLiteSubscriptionRate;
+    }
+
+    public void setMaxSyncLiteSubscriptionRate(int maxSyncLiteSubscriptionRate) {
+        this.maxSyncLiteSubscriptionRate = maxSyncLiteSubscriptionRate;
+    }
+
+    public int getReturnHandleGroupThreadPoolNums() {
+        return returnHandleGroupThreadPoolNums;
+    }
+
+    public void setReturnHandleGroupThreadPoolNums(int returnHandleGroupThreadPoolNums) {
+        this.returnHandleGroupThreadPoolNums = returnHandleGroupThreadPoolNums;
     }
 }

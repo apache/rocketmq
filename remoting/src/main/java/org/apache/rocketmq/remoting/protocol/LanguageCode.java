@@ -35,7 +35,8 @@ public enum LanguageCode {
     GO((byte) 9),
     PHP((byte) 10),
     OMS((byte) 11),
-    RUST((byte) 12);
+    RUST((byte) 12),
+    NODE_JS((byte) 13);
 
     private byte code;
 

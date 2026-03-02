@@ -20,7 +20,6 @@ package org.apache.rocketmq.proxy.remoting.protocol.http2proxy;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.haproxy.HAProxyMessageEncoder;
-import org.apache.rocketmq.remoting.netty.AttributeKeys;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,7 +27,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -51,7 +49,6 @@ public class Http2ProtocolProxyHandlerTest {
 
     @Test
     public void configPipeline() {
-        when(inboundChannel.hasAttr(eq(AttributeKeys.PROXY_PROTOCOL_ADDR))).thenReturn(true);
         when(inboundChannel.pipeline()).thenReturn(inboundPipeline);
         when(inboundPipeline.addLast(any(HAProxyMessageForwarder.class))).thenReturn(inboundPipeline);
         when(outboundChannel.pipeline()).thenReturn(outboundPipeline);

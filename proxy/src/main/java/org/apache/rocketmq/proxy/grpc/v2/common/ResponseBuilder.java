@@ -21,6 +21,8 @@ import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.client.common.ClientErrorCode;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -28,7 +30,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyException;
-import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.service.route.TopicRouteHelper;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -46,6 +48,8 @@ public class ResponseBuilder {
         RESPONSE_CODE_MAPPING.put(ResponseCode.SYSTEM_BUSY, Code.TOO_MANY_REQUESTS);
         RESPONSE_CODE_MAPPING.put(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, Code.NOT_IMPLEMENTED);
         RESPONSE_CODE_MAPPING.put(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST, Code.CONSUMER_GROUP_NOT_FOUND);
+        RESPONSE_CODE_MAPPING.put(ResponseCode.LMQ_QUOTA_EXCEEDED, Code.LITE_TOPIC_QUOTA_EXCEEDED);
+        RESPONSE_CODE_MAPPING.put(ResponseCode.LITE_SUBSCRIPTION_QUOTA_EXCEEDED, Code.LITE_SUBSCRIPTION_QUOTA_EXCEEDED);
         RESPONSE_CODE_MAPPING.put(ClientErrorCode.ACCESS_BROKER_TIMEOUT, Code.PROXY_TIMEOUT);
     }
 
@@ -83,6 +87,9 @@ public class ResponseBuilder {
         }
         if (t instanceof RemotingTimeoutException) {
             return buildStatus(Code.PROXY_TIMEOUT, t.getMessage());
+        }
+        if (t instanceof AuthenticationException || t instanceof AuthorizationException) {
+            return buildStatus(Code.UNAUTHORIZED, t.getMessage());
         }
 
         log.error("internal server error", t);

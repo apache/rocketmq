@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.service.message;
 
+import io.netty.channel.Channel;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -25,12 +26,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
 import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
 import org.apache.rocketmq.broker.processor.PopMessageProcessor;
+import org.apache.rocketmq.broker.processor.RecallMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
@@ -67,8 +70,11 @@ import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -92,6 +98,8 @@ public class LocalMessageServiceTest extends InitConfigTest {
     private ChangeInvisibleTimeProcessor changeInvisibleTimeProcessorMock;
     @Mock
     private AckMessageProcessor ackMessageProcessorMock;
+    @Mock
+    private RecallMessageProcessor recallMessageProcessorMock;
     @Mock
     private BrokerController brokerControllerMock;
 
@@ -121,6 +129,7 @@ public class LocalMessageServiceTest extends InitConfigTest {
         Mockito.when(brokerControllerMock.getChangeInvisibleTimeProcessor()).thenReturn(changeInvisibleTimeProcessorMock);
         Mockito.when(brokerControllerMock.getAckMessageProcessor()).thenReturn(ackMessageProcessorMock);
         Mockito.when(brokerControllerMock.getEndTransactionProcessor()).thenReturn(endTransactionProcessorMock);
+        Mockito.when(brokerControllerMock.getRecallMessageProcessor()).thenReturn(recallMessageProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerConfig()).thenReturn(new BrokerConfig());
         localMessageService = new LocalMessageService(brokerControllerMock, channelManager, null);
         proxyContext = ProxyContext.create().withVal(ContextVariable.REMOTE_ADDRESS, "0.0.0.1")
@@ -370,11 +379,11 @@ public class LocalMessageServiceTest extends InitConfigTest {
         responseHeader.setReviveQid(newReviveQueueId);
         responseHeader.setInvisibleTime(newInvisibleTime);
         responseHeader.setPopTime(newPopTime);
-        Mockito.when(changeInvisibleTimeProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class), Mockito.argThat(argument -> {
+        Mockito.when(changeInvisibleTimeProcessorMock.processRequestAsync(Mockito.any(Channel.class), Mockito.argThat(argument -> {
             boolean first = argument.getCode() == RequestCode.CHANGE_MESSAGE_INVISIBLETIME;
             boolean second = argument.readCustomHeader() instanceof ChangeInvisibleTimeRequestHeader;
             return first && second;
-        }))).thenReturn(remotingCommand);
+        }), Mockito.any(Boolean.class))).thenReturn(CompletableFuture.completedFuture(remotingCommand));
         ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
         CompletableFuture<AckResult> future = localMessageService.changeInvisibleTime(proxyContext, handle, messageId,
             requestHeader, 1000L);
@@ -421,6 +430,31 @@ public class LocalMessageServiceTest extends InitConfigTest {
             requestHeader, 1000L);
         AckResult ackResult = future.get();
         assertThat(ackResult.getStatus()).isEqualTo(AckStatus.OK);
+    }
+
+    @Test
+    public void testRecallMessage_success() throws Exception {
+        RecallMessageResponseHeader responseHeader = new RecallMessageResponseHeader();
+        responseHeader.setMsgId("msgId");
+        RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, responseHeader);
+        Mockito.when(recallMessageProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class),
+            Mockito.any())).thenReturn(response);
+        RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+        String msgId = localMessageService.recallMessage(proxyContext, "brokerName", requestHeader, 1000L).join();
+        assertThat(msgId).isEqualTo("msgId");
+    }
+
+    @Test
+    public void testRecallMessage_fail() throws Exception {
+        RecallMessageResponseHeader responseHeader = new RecallMessageResponseHeader();
+        RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(ResponseCode.SLAVE_NOT_AVAILABLE, responseHeader);
+        Mockito.when(recallMessageProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class),
+            Mockito.any())).thenReturn(response);
+        RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+        CompletionException exception = Assert.assertThrows(CompletionException.class, () -> {
+            localMessageService.recallMessage(proxyContext, "brokerName", requestHeader, 1000L).join();
+        });
+        Assert.assertTrue(exception.getCause() instanceof ProxyException);
     }
 
     private MessageExt buildMessageExt(String topic, int queueId, long queueOffset) {

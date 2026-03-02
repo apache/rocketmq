@@ -16,91 +16,52 @@
  */
 package org.apache.rocketmq.common.config;
 
-import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-
-import org.apache.commons.lang3.StringUtils;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiConsumer;
 import org.apache.rocketmq.common.UtilAll;
-import org.rocksdb.BlockBasedTableConfig;
-import org.rocksdb.BloomFilter;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
-import org.rocksdb.CompactRangeOptions;
-import org.rocksdb.CompactRangeOptions.BottommostLevelCompaction;
-import org.rocksdb.CompactionOptions;
-import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
-import org.rocksdb.DBOptions;
-import org.rocksdb.DataBlockIndexType;
-import org.rocksdb.IndexType;
-import org.rocksdb.InfoLogLevel;
-import org.rocksdb.LRUCache;
-import org.rocksdb.RateLimiter;
-import org.rocksdb.ReadOptions;
+import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
-import org.rocksdb.SkipListMemTableConfig;
-import org.rocksdb.Statistics;
-import org.rocksdb.StatsLevel;
-import org.rocksdb.StringAppendOperator;
-import org.rocksdb.WALRecoveryMode;
 import org.rocksdb.WriteBatch;
-import org.rocksdb.WriteOptions;
-import org.rocksdb.util.SizeUnit;
 
 public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
+    public static final Charset CHARSET = StandardCharsets.UTF_8;
+    public static final ConcurrentMap<String, ConfigRocksDBStorage> STORE_MAP = new ConcurrentHashMap<>();
 
-    public ConfigRocksDBStorage(final String dbPath) {
-        super();
-        this.dbPath = dbPath;
-        this.readOnly = false;
+    private final ConcurrentHashMap<String, ColumnFamilyHandle> columnFamilyNameHandleMap;
+    private ColumnFamilyOptions columnFamilyOptions;
+
+    private ConfigRocksDBStorage(final String dbPath, boolean readOnly, CompressionType compressionType) {
+        super(dbPath);
+        this.readOnly = readOnly;
+        if (compressionType != null) {
+            this.compressionType = compressionType;
+        }
+        this.columnFamilyNameHandleMap = new ConcurrentHashMap<>();
     }
 
     public ConfigRocksDBStorage(final String dbPath, boolean readOnly) {
-        super();
-        this.dbPath = dbPath;
-        this.readOnly = readOnly;
+        this(dbPath, readOnly, null);
     }
 
-    private void initOptions() {
-        this.options = createConfigDBOptions();
-
-        this.writeOptions = new WriteOptions();
-        this.writeOptions.setSync(false);
-        this.writeOptions.setDisableWAL(true);
-        this.writeOptions.setNoSlowdown(true);
-
-        this.ableWalWriteOptions = new WriteOptions();
-        this.ableWalWriteOptions.setSync(false);
-        this.ableWalWriteOptions.setDisableWAL(false);
-        this.ableWalWriteOptions.setNoSlowdown(true);
-
-        this.readOptions = new ReadOptions();
-        this.readOptions.setPrefixSameAsStart(true);
-        this.readOptions.setTotalOrderSeek(false);
-        this.readOptions.setTailing(false);
-
-        this.totalOrderReadOptions = new ReadOptions();
-        this.totalOrderReadOptions.setPrefixSameAsStart(false);
-        this.totalOrderReadOptions.setTotalOrderSeek(false);
-        this.totalOrderReadOptions.setTailing(false);
-
-        this.compactRangeOptions = new CompactRangeOptions();
-        this.compactRangeOptions.setBottommostLevelCompaction(BottommostLevelCompaction.kForce);
-        this.compactRangeOptions.setAllowWriteStall(true);
-        this.compactRangeOptions.setExclusiveManualCompaction(false);
-        this.compactRangeOptions.setChangeLevel(true);
-        this.compactRangeOptions.setTargetLevel(-1);
-        this.compactRangeOptions.setMaxSubcompactions(4);
-
-        this.compactionOptions = new CompactionOptions();
-        this.compactionOptions.setCompression(CompressionType.LZ4_COMPRESSION);
-        this.compactionOptions.setMaxSubcompactions(4);
-        this.compactionOptions.setOutputFileSizeLimit(4 * 1024 * 1024 * 1024L);
+    protected void initOptions() {
+        this.options = ConfigHelper.createConfigDBOptions();
+        this.columnFamilyOptions = ConfigHelper.createConfigColumnFamilyOptions();
+        this.cfOptions.add(columnFamilyOptions);
+        super.initOptions();
     }
 
     @Override
@@ -110,16 +71,20 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
 
             initOptions();
 
-            final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList();
+            List<byte[]> columnFamilyNames = new ArrayList<>(RocksDB.listColumnFamilies(
+                new Options(options, columnFamilyOptions), dbPath));
+            addIfNotExists(columnFamilyNames, RocksDB.DEFAULT_COLUMN_FAMILY);
 
-            ColumnFamilyOptions defaultOptions = createConfigOptions();
-            this.cfOptions.add(defaultOptions);
-            cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, defaultOptions));
+            List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
+            for (byte[] columnFamilyName : columnFamilyNames) {
+                cfDescriptors.add(new ColumnFamilyDescriptor(columnFamilyName, columnFamilyOptions));
+            }
 
-            final List<ColumnFamilyHandle> cfHandles = new ArrayList();
-            open(cfDescriptors, cfHandles);
-
-            this.defaultCFHandle = cfHandles.get(0);
+            this.open(cfDescriptors);
+            for (int i = 0; i < columnFamilyNames.size(); i++) {
+                columnFamilyNameHandleMap.put(new String(columnFamilyNames.get(i), CHARSET), cfHandles.get(i));
+            }
+            this.defaultCFHandle = columnFamilyNameHandleMap.get(new String(RocksDB.DEFAULT_COLUMN_FAMILY, CHARSET));
         } catch (final Exception e) {
             AbstractRocksDBStorage.LOGGER.error("postLoad Failed. {}", this.dbPath, e);
             return false;
@@ -129,109 +94,16 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
 
     @Override
     protected void preShutdown() {
-
-    }
-
-    private ColumnFamilyOptions createConfigOptions() {
-        BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig().
-            setFormatVersion(5).
-            setIndexType(IndexType.kBinarySearch).
-            setDataBlockIndexType(DataBlockIndexType.kDataBlockBinarySearch).
-            setBlockSize(32 * SizeUnit.KB).
-            setFilterPolicy(new BloomFilter(16, false)).
-            // Indicating if we'd put index/filter blocks to the block cache.
-            setCacheIndexAndFilterBlocks(false).
-            setCacheIndexAndFilterBlocksWithHighPriority(true).
-            setPinL0FilterAndIndexBlocksInCache(false).
-            setPinTopLevelIndexAndFilter(true).
-            setBlockCache(new LRUCache(4 * SizeUnit.MB, 8, false)).
-            setWholeKeyFiltering(true);
-
-        ColumnFamilyOptions options = new ColumnFamilyOptions();
-        return options.setMaxWriteBufferNumber(2).
-            // MemTable size, memtable(cache) -> immutable memtable(cache) -> sst(disk)
-            setWriteBufferSize(8 * SizeUnit.MB).
-            setMinWriteBufferNumberToMerge(1).
-            setTableFormatConfig(blockBasedTableConfig).
-            setMemTableConfig(new SkipListMemTableConfig()).
-            setCompressionType(CompressionType.NO_COMPRESSION).
-            setNumLevels(7).
-            setCompactionStyle(CompactionStyle.LEVEL).
-            setLevel0FileNumCompactionTrigger(4).
-            setLevel0SlowdownWritesTrigger(8).
-            setLevel0StopWritesTrigger(12).
-            // The target file size for compaction.
-            setTargetFileSizeBase(64 * SizeUnit.MB).
-            setTargetFileSizeMultiplier(2).
-            // The upper-bound of the total size of L1 files in bytes
-            setMaxBytesForLevelBase(256 * SizeUnit.MB).
-            setMaxBytesForLevelMultiplier(2).
-            setMergeOperator(new StringAppendOperator()).
-            setInplaceUpdateSupport(true);
-    }
-
-    private DBOptions createConfigDBOptions() {
-        //Turn based on https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide
-        // and http://gitlab.alibaba-inc.com/aloha/aloha/blob/branch_2_5_0/jstorm-core/src/main/java/com/alibaba/jstorm/cache/rocksdb/RocksDbOptionsFactory.java
-        DBOptions options = new DBOptions();
-        Statistics statistics = new Statistics();
-        statistics.setStatsLevel(StatsLevel.EXCEPT_DETAILED_TIMERS);
-        return options.
-            setDbLogDir(getDBLogDir()).
-            setInfoLogLevel(InfoLogLevel.INFO_LEVEL).
-            setWalRecoveryMode(WALRecoveryMode.SkipAnyCorruptedRecords).
-            setManualWalFlush(true).
-            setMaxTotalWalSize(500 * SizeUnit.MB).
-            setWalSizeLimitMB(0).
-            setWalTtlSeconds(0).
-            setCreateIfMissing(true).
-            setCreateMissingColumnFamilies(true).
-            setMaxOpenFiles(-1).
-            setMaxLogFileSize(1 * SizeUnit.GB).
-            setKeepLogFileNum(5).
-            setMaxManifestFileSize(1 * SizeUnit.GB).
-            setAllowConcurrentMemtableWrite(false).
-            setStatistics(statistics).
-            setStatsDumpPeriodSec(600).
-            setAtomicFlush(true).
-            setMaxBackgroundJobs(32).
-            setMaxSubcompactions(4).
-            setParanoidChecks(true).
-            setDelayedWriteRate(16 * SizeUnit.MB).
-            setRateLimiter(new RateLimiter(100 * SizeUnit.MB)).
-            setUseDirectIoForFlushAndCompaction(true).
-            setUseDirectReads(true);
-    }
-
-    public static String getDBLogDir() {
-        String rootPath = System.getProperty("user.home");
-        if (StringUtils.isEmpty(rootPath)) {
-            return "";
+        for (final ColumnFamilyHandle columnFamilyHandle : this.columnFamilyNameHandleMap.values()) {
+            if (columnFamilyHandle.isOwningHandle()) {
+                columnFamilyHandle.close();
+            }
         }
-        rootPath = rootPath + File.separator + "logs";
-        UtilAll.ensureDirOK(rootPath);
-        return rootPath + File.separator + "rocketmqlogs" + File.separator;
     }
 
-    public void put(final byte[] keyBytes, final int keyLen, final byte[] valueBytes) throws Exception {
-        put(this.defaultCFHandle, this.ableWalWriteOptions, keyBytes, keyLen, valueBytes, valueBytes.length);
-    }
-
-    public void put(final ByteBuffer keyBB, final ByteBuffer valueBB) throws Exception {
-        put(this.defaultCFHandle, this.ableWalWriteOptions, keyBB, valueBB);
-    }
-
-    public byte[] get(final byte[] keyBytes) throws Exception {
-        return get(this.defaultCFHandle, this.totalOrderReadOptions, keyBytes);
-    }
-
-    public void delete(final byte[] keyBytes) throws Exception {
-        delete(this.defaultCFHandle, this.ableWalWriteOptions, keyBytes);
-    }
-
-    public List<byte[]> multiGet(final List<ColumnFamilyHandle> cfhList, final List<byte[]> keys) throws
-        RocksDBException {
-        return multiGet(this.totalOrderReadOptions, cfhList, keys);
+    // batch operations
+    public void writeBatchPutOperation(String cf, WriteBatch writeBatch, final byte[] key, final byte[] value) throws RocksDBException {
+        writeBatch.put(getOrCreateColumnFamily(cf), key, value);
     }
 
     public void batchPut(final WriteBatch batch) throws RocksDBException {
@@ -242,15 +114,100 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
         batchPut(this.ableWalWriteOptions, batch);
     }
 
+
+    // operations with the specified cf
+    public void put(String cf, final byte[] keyBytes, final int keyLen, final byte[] valueBytes) throws Exception {
+        put(getOrCreateColumnFamily(cf), this.ableWalWriteOptions, keyBytes, keyLen, valueBytes, valueBytes.length);
+    }
+
+    public void put(String cf, final ByteBuffer keyBB, final ByteBuffer valueBB) throws Exception {
+        put(getOrCreateColumnFamily(cf), this.ableWalWriteOptions, keyBB, valueBB);
+    }
+
+    public byte[] get(String cf, final byte[] keyBytes) throws Exception {
+        ColumnFamilyHandle columnFamilyHandle = columnFamilyNameHandleMap.get(cf);
+        if (columnFamilyHandle == null) {
+            return null;
+        }
+        return get(columnFamilyHandle, this.totalOrderReadOptions, keyBytes);
+    }
+
+    public void delete(String cf, final byte[] keyBytes) throws Exception {
+        ColumnFamilyHandle columnFamilyHandle = columnFamilyNameHandleMap.get(cf);
+        if (columnFamilyHandle == null) {
+            return;
+        }
+        delete(columnFamilyHandle, this.ableWalWriteOptions, keyBytes);
+    }
+
+    public void iterate(final String cf, BiConsumer<byte[], byte[]> biConsumer) throws RocksDBException {
+        if (!hold()) {
+            LOGGER.warn("RocksDBKvStore[path={}] has been shut down", dbPath);
+            return;
+        }
+        ColumnFamilyHandle columnFamilyHandle = columnFamilyNameHandleMap.get(cf);
+        if (columnFamilyHandle == null) {
+            return;
+        }
+        try (RocksIterator iterator = this.db.newIterator(columnFamilyHandle)) {
+            for (iterator.seekToFirst(); iterator.isValid(); iterator.next()) {
+                biConsumer.accept(iterator.key(), iterator.value());
+            }
+            iterator.status();
+        }
+    }
+
     public RocksIterator iterator() {
         return this.db.newIterator(this.defaultCFHandle, this.totalOrderReadOptions);
     }
 
-    public void rangeDelete(final byte[] startKey, final byte[] endKey) throws RocksDBException {
-        rangeDelete(this.defaultCFHandle, this.writeOptions, startKey, endKey);
+    public ColumnFamilyHandle getOrCreateColumnFamily(String cf) throws RocksDBException {
+        if (!columnFamilyNameHandleMap.containsKey(cf)) {
+            if (readOnly) {
+                String errInfo = String.format("RocksDBKvStore[path=%s] is open as read-only", dbPath);
+                LOGGER.warn(errInfo);
+                throw new RocksDBException(errInfo);
+            }
+            synchronized (this) {
+                if (!columnFamilyNameHandleMap.containsKey(cf)) {
+                    ColumnFamilyDescriptor columnFamilyDescriptor =
+                        new ColumnFamilyDescriptor(cf.getBytes(CHARSET), columnFamilyOptions);
+                    ColumnFamilyHandle columnFamilyHandle = db.createColumnFamily(columnFamilyDescriptor);
+                    columnFamilyNameHandleMap.putIfAbsent(cf, columnFamilyHandle);
+                    cfHandles.add(columnFamilyHandle);
+                }
+            }
+        }
+        return columnFamilyNameHandleMap.get(cf);
     }
 
-    public RocksIterator iterator(ReadOptions readOptions) {
-        return this.db.newIterator(this.defaultCFHandle, readOptions);
+    public void addIfNotExists(List<byte[]> columnFamilyNames, byte[] byteArray) {
+        if (columnFamilyNames.stream().noneMatch(array -> Arrays.equals(array, byteArray))) {
+            columnFamilyNames.add(byteArray);
+        }
+    }
+
+    public static ConfigRocksDBStorage getStore(String path, boolean readOnly, CompressionType compressionType) {
+        return ConcurrentHashMapUtils.computeIfAbsent(STORE_MAP, path,
+            k -> new ConfigRocksDBStorage(path, readOnly, compressionType));
+    }
+
+    public static ConfigRocksDBStorage getStore(String path, boolean readOnly) {
+        return getStore(path, readOnly, null);
+    }
+
+    public static void shutdown(String path) {
+        ConfigRocksDBStorage kvStore = STORE_MAP.remove(path);
+        if (kvStore != null) {
+            kvStore.shutdown();
+        }
+    }
+
+    public static void destroy(String path) {
+        ConfigRocksDBStorage kvStore = STORE_MAP.remove(path);
+        if (kvStore != null) {
+            kvStore.shutdown();
+            kvStore.destroy();
+        }
     }
 }

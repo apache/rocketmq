@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.trace;
 
 public enum TraceType {
     Pub,
+    Recall,
     SubBefore,
     SubAfter,
     EndTransaction,

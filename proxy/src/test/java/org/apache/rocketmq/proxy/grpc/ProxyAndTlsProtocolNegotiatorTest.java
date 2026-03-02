@@ -34,7 +34,7 @@ public class ProxyAndTlsProtocolNegotiatorTest {
 
     @Before
     public void setUp() throws Exception {
-        ConfigurationManager.intConfig();
+        ConfigurationManager.initConfig();
         ConfigurationManager.getProxyConfig().setTlsTestModeEnable(true);
         negotiator = new ProxyAndTlsProtocolNegotiator();
     }

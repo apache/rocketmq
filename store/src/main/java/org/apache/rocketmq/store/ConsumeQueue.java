@@ -35,13 +35,13 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.CqUnit;
-import org.apache.rocketmq.store.queue.FileQueueLifeCycle;
 import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.queue.QueueOffsetOperator;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 
-public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
+public class ConsumeQueue implements ConsumeQueueInterface {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     /**
@@ -61,6 +61,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     private final MessageStore messageStore;
+    private final ConsumeQueueStore consumeQueueStore;
 
     private final MappedFileQueue mappedFileQueue;
     private final String topic;
@@ -77,15 +78,17 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private volatile long minLogicOffset = 0;
     private ConsumeQueueExt consumeQueueExt = null;
 
-    public ConsumeQueue(
-        final String topic,
-        final int queueId,
-        final String storePath,
-        final int mappedFileSize,
+    public ConsumeQueue(final String topic, final int queueId, final String storePath, final int mappedFileSize,
         final MessageStore messageStore) {
+        this(topic, queueId, storePath, mappedFileSize, messageStore, (ConsumeQueueStore) messageStore.getQueueStore());
+    }
+
+    public ConsumeQueue(final String topic, final int queueId, final String storePath, final int mappedFileSize,
+        final MessageStore messageStore, final ConsumeQueueStore consumeQueueStore) {
         this.storePath = storePath;
         this.mappedFileSize = mappedFileSize;
         this.messageStore = messageStore;
+        this.consumeQueueStore = consumeQueueStore;
 
         this.topic = topic;
         this.queueId = queueId;
@@ -94,7 +97,12 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             + File.separator + topic
             + File.separator + queueId;
 
-        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null);
+        boolean writeWithoutMmap = false;
+        if (messageStore.getMessageStoreConfig() != null) {
+            writeWithoutMmap = messageStore.getMessageStoreConfig().isWriteWithoutMmap();
+        }
+
+        this.mappedFileQueue = new MappedFileQueue(queueDir, mappedFileSize, null, writeWithoutMmap);
 
         this.byteBufferIndex = ByteBuffer.allocate(CQ_STORE_UNIT_SIZE);
 
@@ -104,7 +112,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 queueId,
                 StorePathConfigHelper.getStorePathConsumeQueueExt(messageStore.getMessageStoreConfig().getStorePathRootDir()),
                 messageStore.getMessageStoreConfig().getMappedFileSizeConsumeQueueExt(),
-                messageStore.getMessageStoreConfig().getBitMapLengthConsumeQueueExt()
+                messageStore.getMessageStoreConfig().getBitMapLengthConsumeQueueExt(),
+                writeWithoutMmap
             );
         }
     }
@@ -555,8 +564,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         SelectMappedBufferResult lastRecord = null;
         try {
             int maxReadablePosition = lastMappedFile.getReadPosition();
-            lastRecord = lastMappedFile.selectMappedBuffer(maxReadablePosition - ConsumeQueue.CQ_STORE_UNIT_SIZE,
-                ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            if (maxReadablePosition >= ConsumeQueue.CQ_STORE_UNIT_SIZE) {
+                lastRecord = lastMappedFile.selectMappedBuffer(maxReadablePosition - ConsumeQueue.CQ_STORE_UNIT_SIZE,
+                    ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            }
             if (null != lastRecord) {
                 ByteBuffer buffer = lastRecord.getByteBuffer();
                 long commitLogOffset = buffer.getLong();
@@ -700,7 +711,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
                     this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(request.getStoreTimestamp());
                 }
-                this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsMsgTimestamp(request.getStoreTimestamp());
+                this.messageStore.getStoreCheckpoint().setTmpLogicsPhysicalOffset(request.getCommitLogOffset());
                 if (MultiDispatchUtils.checkMultiDispatchQueue(this.messageStore.getMessageStoreConfig(), request)) {
                     multiDispatchLmqQueue(request, maxRetries);
                 }
@@ -727,8 +739,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         Map<String, String> prop = request.getPropertiesMap();
         String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String multiQueueOffset = prop.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
-        String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
-        String[] queueOffsets = multiQueueOffset.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+        String[] queues = multiDispatchQueue.split(MixAll.LMQ_DISPATCH_SEPARATOR);
+        String[] queueOffsets = multiQueueOffset.split(MixAll.LMQ_DISPATCH_SEPARATOR);
         if (queues.length != queueOffsets.length) {
             log.error("[bug] queues.length!=queueOffsets.length ", request.getTopic());
             return;
@@ -788,7 +800,12 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         final long cqOffset) {
 
         if (offset + size <= this.getMaxPhysicOffset()) {
-            log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", this.getMaxPhysicOffset(), offset);
+            // During the recovery process after broker crashes, this logs will cause the scrolling of valid logs.
+            if (messageStore.getStateMachine().getCurrentState().isAfter(MessageStoreStateMachine.MessageStoreState.RECOVER_COMMITLOG_OK) ||
+                messageStore.getMessageStoreConfig().isEnableLogConsumeQueueRepeatedlyBuildWhenRecover()) {
+                log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}",
+                    this.getMaxPhysicOffset(), offset);
+            }
             return true;
         }
 
@@ -816,7 +833,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
 
                 if (expectLogicOffset < currentLogicOffset) {
-                    log.warn("Build  consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                    log.warn("Build consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
                         expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
                     return true;
                 }
@@ -833,7 +850,13 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 }
             }
             this.setMaxPhysicOffset(offset + size);
-            return mappedFile.appendMessage(this.byteBufferIndex.array());
+            boolean appendResult;
+            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                appendResult = mappedFile.appendMessageUsingFileChannel(this.byteBufferIndex.array());
+            } else {
+                appendResult = mappedFile.appendMessage(this.byteBufferIndex.array());
+            }
+            return appendResult;
         }
         return false;
     }
@@ -846,7 +869,12 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
         int until = (int) (untilWhere % this.mappedFileQueue.getMappedFileSize());
         for (int i = 0; i < until; i += CQ_STORE_UNIT_SIZE) {
-            mappedFile.appendMessage(byteBuffer.array());
+            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                mappedFile.appendMessageUsingFileChannel(byteBuffer.array());
+            } else {
+                mappedFile.appendMessage(byteBuffer.array());
+            }
+
         }
     }
 
@@ -888,14 +916,14 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     @Override
     public Pair<CqUnit, Long> getCqUnitAndStoreTime(long index) {
         CqUnit cqUnit = get(index);
-        Long messageStoreTime = this.messageStore.getQueueStore().getStoreTime(cqUnit);
+        Long messageStoreTime = this.consumeQueueStore.getStoreTime(cqUnit);
         return new Pair<>(cqUnit, messageStoreTime);
     }
 
     @Override
     public Pair<CqUnit, Long> getEarliestUnitAndStoreTime() {
         CqUnit cqUnit = getEarliestUnit();
-        Long messageStoreTime = this.messageStore.getQueueStore().getStoreTime(cqUnit);
+        Long messageStoreTime = this.consumeQueueStore.getStoreTime(cqUnit);
         return new Pair<>(cqUnit, messageStoreTime);
     }
 
@@ -1192,5 +1220,28 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
         log.debug("Result={}, raw={}, match={}, sample={}", result, raw, match, sample);
         return result;
+    }
+
+    @Override
+    public void initializeWithOffset(long offset, long minPhyOffset) {
+        // Because the file version cq requires that files are continuous,
+        // If existing cq not be completely deleted, new cq can not initialize with given offset.
+        destroy();
+
+        // correct min offset
+        // TODO: when min commitLog offset is 0 and restart store, min offset of cq may be set to 0 incorrectly
+        setMinLogicOffset(offset * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+
+        // transientStorePool is null, only need set wrote position here
+        MappedFile mappedFile = mappedFileQueue.getLastMappedFile(offset * ConsumeQueue.CQ_STORE_UNIT_SIZE, true);
+        fillPreBlank(mappedFile, offset * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+
+        flush(0);
+    }
+
+    @Override
+    public boolean shutdown() {
+        this.mappedFileQueue.cleanResourcesAll();
+        return true;
     }
 }

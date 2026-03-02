@@ -21,8 +21,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class SelectBufferResultTest {
+
     @Test
-    public void testSelectBufferResult() {
+    public void selectBufferResultTest() {
         ByteBuffer buffer = ByteBuffer.allocate(10);
         long startOffset = 5L;
         int size = 10;

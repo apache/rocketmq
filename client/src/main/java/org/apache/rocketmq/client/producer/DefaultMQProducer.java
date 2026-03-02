@@ -16,13 +16,6 @@
  */
 package org.apache.rocketmq.client.producer;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -31,11 +24,16 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
+import org.apache.rocketmq.client.lock.ReadWriteCASLock;
+import org.apache.rocketmq.client.trace.hook.DefaultRecallMessageTraceHook;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.EndTransactionTraceHookImpl;
 import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.compression.CompressionType;
+import org.apache.rocketmq.common.compression.Compressor;
+import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -43,11 +41,19 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
 
 /**
  * This class is the entry point for applications intending to send messages. </p>
@@ -72,9 +78,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         ResponseCode.TOPIC_NOT_EXIST,
         ResponseCode.SERVICE_NOT_AVAILABLE,
         ResponseCode.SYSTEM_ERROR,
+        ResponseCode.SYSTEM_BUSY,
         ResponseCode.NO_PERMISSION,
         ResponseCode.NO_BUYER_ID,
-        ResponseCode.NOT_IN_CURRENT_UNIT
+        ResponseCode.NOT_IN_CURRENT_UNIT,
+        ResponseCode.GO_AWAY
     ));
 
     /**
@@ -106,6 +114,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Timeout for sending messages.
      */
     private int sendMsgTimeout = 3000;
+
+    /**
+     * Max timeout for sending messages per request.
+     */
+    private int sendMsgMaxTimeoutPerRequest = -1;
 
     /**
      * Compress message body threshold, namely, message body larger than 4k will be compressed on default.
@@ -157,15 +170,57 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     /**
      * on BackpressureForAsyncMode, limit maximum number of on-going sending async messages
-     * default is 10000
+     * default is 1024
      */
-    private int backPressureForAsyncSendNum = 10000;
+    private int backPressureForAsyncSendNum = 1024;
 
     /**
      * on BackpressureForAsyncMode, limit maximum message size of on-going sending async messages
      * default is 100M
      */
     private int backPressureForAsyncSendSize = 100 * 1024 * 1024;
+
+    /**
+     * Maximum hold time of accumulator.
+     */
+    private int batchMaxDelayMs = -1;
+
+    /**
+     * Maximum accumulation message body size for a single messageAccumulation.
+     */
+    private long batchMaxBytes = -1;
+
+    /**
+     * Maximum message body size for produceAccumulator.
+     */
+    private long totalBatchMaxBytes = -1;
+
+    private RPCHook rpcHook = null;
+
+    /**
+     *  backPressureForAsyncSendNum is guaranteed to be modified at runtime and no new requests are allowed
+     */
+    private final ReadWriteCASLock backPressureForAsyncSendNumLock = new ReadWriteCASLock();
+
+    /**
+     * backPressureForAsyncSendSize is guaranteed to be modified at runtime and no new requests are allowed
+     */
+    private final ReadWriteCASLock backPressureForAsyncSendSizeLock = new ReadWriteCASLock();
+
+    /**
+     * Compress level of compress algorithm.
+     */
+    private int compressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
+
+    /**
+     * Compress type of compress algorithm, default using ZLIB.
+     */
+    private CompressionType compressType = CompressionType.of(System.getProperty(MixAll.MESSAGE_COMPRESS_TYPE, "ZLIB"));
+
+    /**
+     * Compressor of compress algorithm.
+     */
+    private Compressor compressor = CompressorFactory.getCompressor(compressType);
 
     /**
      * Default constructor.
@@ -189,9 +244,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param producerGroup Producer group, see the name-sake field.
      */
     public DefaultMQProducer(final String producerGroup) {
-        this.producerGroup = producerGroup;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, null);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+        this(producerGroup, (RPCHook) null);
     }
 
     /**
@@ -201,9 +254,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param rpcHook       RPC hook to execute per each remoting command execution.
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
-        this.producerGroup = producerGroup;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+        this(producerGroup, rpcHook, null);
     }
 
     /**
@@ -215,8 +266,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook,
         final List<String> topics) {
-        this(producerGroup, rpcHook);
-        this.topics = topics;
+        this(producerGroup, rpcHook, topics, false, null);
     }
 
     /**
@@ -242,21 +292,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,
         final String customizedTraceTopic) {
-        this(producerGroup, rpcHook);
-        //if client open the message trace feature
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
-                dispatcher.setHostProducer(this.defaultMQProducerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQProducerImpl.registerSendMessageHook(
-                    new SendMessageTraceHookImpl(traceDispatcher));
-                this.defaultMQProducerImpl.registerEndTransactionHook(
-                    new EndTransactionTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
+        this(producerGroup, rpcHook, null, enableMsgTrace, customizedTraceTopic);
     }
 
     /**
@@ -272,8 +308,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, final List<String> topics,
         boolean enableMsgTrace, final String customizedTraceTopic) {
-        this(producerGroup, rpcHook, enableMsgTrace, customizedTraceTopic);
+        this.producerGroup = producerGroup;
+        this.rpcHook = rpcHook;
         this.topics = topics;
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
     }
 
     /**
@@ -298,8 +338,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.producerGroup = producerGroup;
+        this.rpcHook = rpcHook;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
 
     /**
@@ -318,27 +358,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         boolean enableMsgTrace, final String customizedTraceTopic) {
         this(namespace, producerGroup, rpcHook);
         //if client open the message trace feature
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
-                dispatcher.setHostProducer(this.defaultMQProducerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQProducerImpl.registerSendMessageHook(
-                    new SendMessageTraceHookImpl(traceDispatcher));
-                this.defaultMQProducerImpl.registerEndTransactionHook(
-                    new EndTransactionTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
-    }
-
-    @Override
-    public void setUseTLS(boolean useTLS) {
-        super.setUseTLS(useTLS);
-        if (traceDispatcher instanceof AsyncTraceDispatcher) {
-            ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
-        }
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
     }
 
     /**
@@ -356,7 +377,26 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         if (this.produceAccumulator != null) {
             this.produceAccumulator.start();
         }
+        if (enableTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, getTraceMsgBatchNum(), traceTopic, rpcHook);
+                dispatcher.setHostProducer(this.defaultMQProducerImpl);
+                dispatcher.setNamespaceV2(this.namespaceV2);
+                traceDispatcher = dispatcher;
+                this.defaultMQProducerImpl.registerSendMessageHook(
+                    new SendMessageTraceHookImpl(traceDispatcher));
+                this.defaultMQProducerImpl.registerEndTransactionHook(
+                    new EndTransactionTraceHookImpl(traceDispatcher));
+                this.defaultMQProducerImpl.getMqClientFactory().getMQClientAPIImpl().getRemotingClient()
+                    .registerRPCHook(new DefaultRecallMessageTraceHook(traceDispatcher));
+            } catch (Throwable e) {
+                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
         if (null != traceDispatcher) {
+            if (traceDispatcher instanceof AsyncTraceDispatcher) {
+                ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(isUseTLS());
+            }
             try {
                 traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {
@@ -823,7 +863,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Same to {@link #request(Message, RequestCallback, long)} with target message selector specified.
      *
-     * @param msg             requst message to send
+     * @param msg             request message to send
      * @param selector        message queue selector, through which we get target message queue to deliver message to.
      * @param arg             argument to work along with message queue selector.
      * @param requestCallback callback to execute on request completion.
@@ -1003,25 +1043,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Query message of the given offset message ID.
-     * <p>
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     *
-     * @param offsetMsgId message id
-     * @return Message specified.
-     * @throws MQBrokerException    if there is any broker error.
-     * @throws MQClientException    if there is any client error.
-     * @throws RemotingException    if there is any network-tier error.
-     * @throws InterruptedException if the sending thread is interrupted.
-     */
-    @Deprecated
-    @Override
-    public MessageExt viewMessage(
-        String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.defaultMQProducerImpl.viewMessage(offsetMsgId);
-    }
-
-    /**
      * Query message by key.
      * <p>
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
@@ -1060,7 +1081,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public MessageExt viewMessage(String topic,
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            return this.viewMessage(msgId);
+            return this.defaultMQProducerImpl.viewMessage(topic, msgId);
         } catch (Exception ignored) {
         }
         return this.defaultMQProducerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);
@@ -1113,6 +1134,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         SendCallback sendCallback,
         long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         this.defaultMQProducerImpl.send(batch(msgs), queueWithNamespace(mq), sendCallback, timeout);
+    }
+
+    @Override
+    public String recallMessage(String topic, String recallHandle)
+        throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        return this.defaultMQProducerImpl.recallMessage(withNamespace(topic), recallHandle);
     }
 
     /**
@@ -1168,10 +1195,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void batchMaxDelayMs(int holdMs) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
+        this.batchMaxDelayMs = holdMs;
+        if (this.produceAccumulator != null) {
+            this.produceAccumulator.batchMaxDelayMs(holdMs);
         }
-        this.produceAccumulator.batchMaxDelayMs(holdMs);
     }
 
     public long getBatchMaxBytes() {
@@ -1182,10 +1209,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void batchMaxBytes(long holdSize) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
+        this.batchMaxBytes = holdSize;
+        if (this.produceAccumulator != null) {
+            this.produceAccumulator.batchMaxBytes(holdSize);
         }
-        this.produceAccumulator.batchMaxBytes(holdSize);
     }
 
     public long getTotalBatchMaxBytes() {
@@ -1196,10 +1223,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void totalBatchMaxBytes(long totalHoldSize) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
+        this.totalBatchMaxBytes = totalHoldSize;
+        if (this.produceAccumulator != null) {
+            this.produceAccumulator.totalBatchMaxBytes(totalHoldSize);
         }
-        this.produceAccumulator.totalBatchMaxBytes(totalHoldSize);
     }
 
     public boolean getAutoBatch() {
@@ -1210,9 +1237,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void setAutoBatch(boolean autoBatch) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
-        }
         this.autoBatch = autoBatch;
     }
 
@@ -1238,6 +1262,14 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     public void setSendMsgTimeout(int sendMsgTimeout) {
         this.sendMsgTimeout = sendMsgTimeout;
+    }
+
+    public int getSendMsgMaxTimeoutPerRequest() {
+        return sendMsgMaxTimeoutPerRequest;
+    }
+
+    public void setSendMsgMaxTimeoutPerRequest(int sendMsgMaxTimeoutPerRequest) {
+        this.sendMsgMaxTimeoutPerRequest = sendMsgMaxTimeoutPerRequest;
     }
 
     public int getCompressMsgBodyOverHowmuch() {
@@ -1345,18 +1377,64 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return backPressureForAsyncSendNum;
     }
 
+    /**
+     * For user modify backPressureForAsyncSendNum at runtime
+     */
     public void setBackPressureForAsyncSendNum(int backPressureForAsyncSendNum) {
+        this.backPressureForAsyncSendNumLock.acquireWriteLock();
+        backPressureForAsyncSendNum = Math.max(backPressureForAsyncSendNum, 10);
+        int acquiredBackPressureForAsyncSendNum = this.backPressureForAsyncSendNum
+                - defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits();
         this.backPressureForAsyncSendNum = backPressureForAsyncSendNum;
-        defaultMQProducerImpl.setSemaphoreAsyncSendNum(backPressureForAsyncSendNum);
+        defaultMQProducerImpl.setSemaphoreAsyncSendNum(backPressureForAsyncSendNum - acquiredBackPressureForAsyncSendNum);
+        this.backPressureForAsyncSendNumLock.releaseWriteLock();
     }
 
     public int getBackPressureForAsyncSendSize() {
         return backPressureForAsyncSendSize;
     }
 
+    /**
+    * For user modify backPressureForAsyncSendSize at runtime
+     */
     public void setBackPressureForAsyncSendSize(int backPressureForAsyncSendSize) {
+        this.backPressureForAsyncSendSizeLock.acquireWriteLock();
+        backPressureForAsyncSendSize = Math.max(backPressureForAsyncSendSize, 1024 * 1024);
+        int acquiredBackPressureForAsyncSendSize = this.backPressureForAsyncSendSize
+                - defaultMQProducerImpl.getSemaphoreAsyncSendSizeAvailablePermits();
         this.backPressureForAsyncSendSize = backPressureForAsyncSendSize;
-        defaultMQProducerImpl.setSemaphoreAsyncSendSize(backPressureForAsyncSendSize);
+        defaultMQProducerImpl.setSemaphoreAsyncSendSize(backPressureForAsyncSendSize - acquiredBackPressureForAsyncSendSize);
+        this.backPressureForAsyncSendSizeLock.releaseWriteLock();
+    }
+
+    /**
+     * Used for system internal adjust backPressureForAsyncSendSize
+     */
+    public void setBackPressureForAsyncSendSizeInsideAdjust(int backPressureForAsyncSendSize) {
+        this.backPressureForAsyncSendSize = backPressureForAsyncSendSize;
+    }
+
+    /**
+     * Used for system internal adjust backPressureForAsyncSendNum
+     */
+    public void setBackPressureForAsyncSendNumInsideAdjust(int backPressureForAsyncSendNum) {
+        this.backPressureForAsyncSendNum = backPressureForAsyncSendNum;
+    }
+
+    public void acquireBackPressureForAsyncSendSizeLock() {
+        this.backPressureForAsyncSendSizeLock.acquireReadLock();
+    }
+
+    public void releaseBackPressureForAsyncSendSizeLock() {
+        this.backPressureForAsyncSendSizeLock.releaseReadLock();
+    }
+
+    public void acquireBackPressureForAsyncSendNumLock() {
+        this.backPressureForAsyncSendNumLock.acquireReadLock();
+    }
+
+    public void releaseBackPressureForAsyncSendNumLock() {
+        this.backPressureForAsyncSendNumLock.releaseReadLock();
     }
 
     public List<String> getTopics() {
@@ -1371,5 +1449,43 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void setStartDetectorEnable(boolean startDetectorEnable) {
         super.setStartDetectorEnable(startDetectorEnable);
         this.defaultMQProducerImpl.getMqFaultStrategy().setStartDetectorEnable(startDetectorEnable);
+    }
+
+    public int getCompressLevel() {
+        return compressLevel;
+    }
+
+    public void setCompressLevel(int compressLevel) {
+        this.compressLevel = compressLevel;
+    }
+
+    public CompressionType getCompressType() {
+        return compressType;
+    }
+
+    public void setCompressType(CompressionType compressType) {
+        this.compressType = compressType;
+        this.compressor = CompressorFactory.getCompressor(compressType);
+    }
+
+    public Compressor getCompressor() {
+        return compressor;
+    }
+
+    public void initProduceAccumulator() {
+        this.produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+
+        if (this.batchMaxDelayMs > -1) {
+            this.produceAccumulator.batchMaxDelayMs(this.batchMaxDelayMs);
+        }
+
+        if (this.batchMaxBytes > -1) {
+            this.produceAccumulator.batchMaxBytes(this.batchMaxBytes);
+        }
+
+        if (this.totalBatchMaxBytes > -1) {
+            this.produceAccumulator.totalBatchMaxBytes(this.totalBatchMaxBytes);
+        }
+
     }
 }

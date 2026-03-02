@@ -20,15 +20,24 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.QUERY_CORRECTION_OFFSET, action = Action.GET)
 public class QueryCorrectionOffsetHeader extends TopicRequestHeader {
+    @RocketMQResource(value = ResourceType.GROUP, splitter = ",")
     private String filterGroups;
     @CFNotNull
+    @RocketMQResource(ResourceType.GROUP)
     private String compareGroup;
     @CFNotNull
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
 
     @Override

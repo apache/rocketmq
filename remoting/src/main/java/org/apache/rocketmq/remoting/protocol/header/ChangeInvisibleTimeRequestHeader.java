@@ -17,14 +17,22 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
+@RocketMQAction(value = RequestCode.CHANGE_MESSAGE_INVISIBLETIME, action = Action.SUB)
 public class ChangeInvisibleTimeRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
+    @RocketMQResource(ResourceType.GROUP)
     private String consumerGroup;
     @CFNotNull
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
     @CFNotNull
     private Integer queueId;
@@ -39,6 +47,10 @@ public class ChangeInvisibleTimeRequestHeader extends TopicQueueRequestHeader {
 
     @CFNotNull
     private Long invisibleTime;
+
+    private String liteTopic;
+
+    private boolean suspend = false;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -95,6 +107,22 @@ public class ChangeInvisibleTimeRequestHeader extends TopicQueueRequestHeader {
         this.queueId = queueId;
     }
 
+    public String getLiteTopic() {
+        return liteTopic;
+    }
+
+    public void setLiteTopic(String liteTopic) {
+        this.liteTopic = liteTopic;
+    }
+
+    public boolean isSuspend() {
+        return suspend;
+    }
+
+    public void setSuspend(boolean suspend) {
+        this.suspend = suspend;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -104,6 +132,9 @@ public class ChangeInvisibleTimeRequestHeader extends TopicQueueRequestHeader {
             .add("extraInfo", extraInfo)
             .add("offset", offset)
             .add("invisibleTime", invisibleTime)
+            .add("liteTopic", liteTopic)
+            .add("suspend", suspend)
+            .omitNullValues()
             .toString();
     }
 }

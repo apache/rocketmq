@@ -112,13 +112,13 @@ According to the above, we can know the AutoSwitchHaService protocol divides log
 
 ![示意图](../image/controller/controller_design_3.png)
 
-`current state(4byte) + Two flags(4byte) + slaveAddressLength(4byte) + slaveAddress(50byte)`
+`current state(4byte) + Two flags(4byte) + slaveBrokerId(8byte)`
 
 - `Current state` represents the current HAConnectionState, which is HANDSHAKE.
 
 - Two flags are two status flags, where `isSyncFromLastFile` indicates whether to start copying from the Master's last file, and `isAsyncLearner` indicates whether the Slave is an asynchronous copy and joins the Master as a Learner.
 
-- `slaveAddressLength` and `slaveAddress` represent the address of the Slave, which will be used later to join the SyncStateSet.
+- `slaveBrokerId` represent the brokerId of the Slave, which will be used later to join the SyncStateSet.
 
 2.AutoSwitchHaConnection (Master) will send a HandShake packet back to the Slave as follows:
 

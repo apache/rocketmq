@@ -16,13 +16,21 @@
  */
 package org.apache.rocketmq.broker.topic;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
+import com.google.common.collect.Maps;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -149,7 +157,10 @@ public class TopicQueueMappingManager extends ConfigManager {
         TopicQueueMappingSerializeWrapper wrapper = new TopicQueueMappingSerializeWrapper();
         wrapper.setTopicQueueMappingInfoMap(topicQueueMappingTable);
         wrapper.setDataVersion(this.dataVersion);
-        return JSON.toJSONString(wrapper, pretty);
+        if (pretty) {
+            return JSON.toJSONString(wrapper, JSONWriter.Feature.PrettyFormat);
+        }
+        return JSON.toJSONString(wrapper);
     }
 
     @Override
@@ -176,6 +187,16 @@ public class TopicQueueMappingManager extends ConfigManager {
 
     public ConcurrentMap<String, TopicQueueMappingDetail> getTopicQueueMappingTable() {
         return topicQueueMappingTable;
+    }
+
+    public ConcurrentMap<String, TopicQueueMappingDetail> subTopicQueueMappingTable(Set<String> topicSet) {
+        if (MapUtils.isEmpty(topicQueueMappingTable) || CollectionUtils.isEmpty(topicSet)) {
+            return Maps.newConcurrentMap();
+        }
+
+        return topicQueueMappingTable.entrySet().stream()
+                .filter(e -> topicSet.contains(e.getKey()))
+                .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public DataVersion getDataVersion() {

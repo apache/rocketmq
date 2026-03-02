@@ -18,3 +18,5 @@ bazel-bin
 bazel-rocketmq
 bazel-testlogs
 .vscode
+MODULE.bazel.lock
+*.flattened-pom.xml

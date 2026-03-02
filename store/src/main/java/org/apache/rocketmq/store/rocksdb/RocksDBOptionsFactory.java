@@ -16,12 +16,13 @@
  */
 package org.apache.rocketmq.store.rocksdb;
 
-import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
+import org.apache.rocketmq.common.config.ConfigHelper;
 import org.apache.rocketmq.store.MessageStore;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompactionOptionsUniversal;
+import org.rocksdb.CompactionPriority;
 import org.rocksdb.CompactionStopStyle;
 import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
@@ -40,7 +41,8 @@ import org.rocksdb.util.SizeUnit;
 
 public class RocksDBOptionsFactory {
 
-    public static ColumnFamilyOptions createCQCFOptions(final MessageStore messageStore) {
+    public static ColumnFamilyOptions createCQCFOptions(final MessageStore messageStore,
+        ConsumeQueueCompactionFilterFactory consumeQueueCompactionFilterFactory) {
         BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig().
                 setFormatVersion(5).
                 setIndexType(IndexType.kBinarySearch).
@@ -65,14 +67,21 @@ public class RocksDBOptionsFactory {
                 setMaxMergeWidth(Integer.MAX_VALUE).
                 setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize).
                 setCompressionSizePercent(-1);
+        String bottomMostCompressionTypeOpt = messageStore.getMessageStoreConfig()
+            .getBottomMostCompressionTypeForConsumeQueueStore();
+        String compressionTypeOpt = messageStore.getMessageStoreConfig()
+            .getRocksdbCompressionType();
+        CompressionType bottomMostCompressionType = CompressionType.getCompressionType(bottomMostCompressionTypeOpt);
+        CompressionType compressionType = CompressionType.getCompressionType(compressionTypeOpt);
         return columnFamilyOptions.setMaxWriteBufferNumber(4).
                 setWriteBufferSize(128 * SizeUnit.MB).
                 setMinWriteBufferNumberToMerge(1).
                 setTableFormatConfig(blockBasedTableConfig).
                 setMemTableConfig(new SkipListMemTableConfig()).
-                setCompressionType(CompressionType.LZ4_COMPRESSION).
-                setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION).
+                setCompressionType(compressionType).
+                setBottommostCompressionType(bottomMostCompressionType).
                 setNumLevels(7).
+                setCompactionPriority(CompactionPriority.MinOverlappingRatio).
                 setCompactionStyle(CompactionStyle.UNIVERSAL).
                 setCompactionOptionsUniversal(compactionOption).
                 setMaxCompactionBytes(100 * SizeUnit.GB).
@@ -84,7 +93,7 @@ public class RocksDBOptionsFactory {
                 setTargetFileSizeBase(256 * SizeUnit.MB).
                 setTargetFileSizeMultiplier(2).
                 setMergeOperator(new StringAppendOperator()).
-                setCompactionFilterFactory(new ConsumeQueueCompactionFilterFactory(messageStore)).
+                setCompactionFilterFactory(consumeQueueCompactionFilterFactory).
                 setReportBgIoStats(true).
                 setOptimizeFiltersForHits(true);
     }
@@ -123,6 +132,57 @@ public class RocksDBOptionsFactory {
                 setInplaceUpdateSupport(true);
     }
 
+    public static ColumnFamilyOptions createPopCFOptions() {
+        BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig()
+            .setFormatVersion(5)
+            .setIndexType(IndexType.kBinarySearch)
+            .setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash)
+            .setDataBlockHashTableUtilRatio(0.75)
+            .setBlockSize(32 * SizeUnit.KB)
+            .setMetadataBlockSize(4 * SizeUnit.KB)
+            .setFilterPolicy(new BloomFilter(16, false))
+            .setCacheIndexAndFilterBlocks(false)
+            .setCacheIndexAndFilterBlocksWithHighPriority(true)
+            .setPinL0FilterAndIndexBlocksInCache(false)
+            .setPinTopLevelIndexAndFilter(true)
+            .setBlockCache(new LRUCache(1024 * SizeUnit.MB, 8, false))
+            .setWholeKeyFiltering(true);
+
+        CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal()
+            .setSizeRatio(100)
+            .setMaxSizeAmplificationPercent(25)
+            .setAllowTrivialMove(true)
+            .setMinMergeWidth(2)
+            .setMaxMergeWidth(Integer.MAX_VALUE)
+            .setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize)
+            .setCompressionSizePercent(-1);
+
+        //noinspection resource
+        return new ColumnFamilyOptions()
+            .setMaxWriteBufferNumber(4)
+            .setWriteBufferSize(128 * SizeUnit.MB)
+            .setMinWriteBufferNumberToMerge(1)
+            .setTableFormatConfig(blockBasedTableConfig)
+            .setMemTableConfig(new SkipListMemTableConfig())
+            .setCompressionType(CompressionType.NO_COMPRESSION)
+            .setBottommostCompressionType(CompressionType.NO_COMPRESSION)
+            .setNumLevels(7)
+            .setCompactionPriority(CompactionPriority.MinOverlappingRatio)
+            .setCompactionStyle(CompactionStyle.UNIVERSAL)
+            .setCompactionOptionsUniversal(compactionOption)
+            .setMaxCompactionBytes(100 * SizeUnit.GB)
+            .setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB)
+            .setHardPendingCompactionBytesLimit(256 * SizeUnit.GB)
+            .setLevel0FileNumCompactionTrigger(2)
+            .setLevel0SlowdownWritesTrigger(8)
+            .setLevel0StopWritesTrigger(10)
+            .setTargetFileSizeBase(256 * SizeUnit.MB)
+            .setTargetFileSizeMultiplier(2)
+            .setMergeOperator(new StringAppendOperator())
+            .setReportBgIoStats(true)
+            .setOptimizeFiltersForHits(true);
+    }
+
     /**
      * Create a rocksdb db options, the user must take care to close it after closing db.
      * @return
@@ -134,22 +194,21 @@ public class RocksDBOptionsFactory {
         Statistics statistics = new Statistics();
         statistics.setStatsLevel(StatsLevel.EXCEPT_DETAILED_TIMERS);
         return options.
-                setDbLogDir(ConfigRocksDBStorage.getDBLogDir()).
+                setDbLogDir(ConfigHelper.getDBLogDir()).
                 setInfoLogLevel(InfoLogLevel.INFO_LEVEL).
                 setWalRecoveryMode(WALRecoveryMode.PointInTimeRecovery).
                 setManualWalFlush(true).
-                setMaxTotalWalSize(0).
-                setWalSizeLimitMB(0).
-                setWalTtlSeconds(0).
                 setCreateIfMissing(true).
+                setBytesPerSync(SizeUnit.MB).
                 setCreateMissingColumnFamilies(true).
                 setMaxOpenFiles(-1).
-                setMaxLogFileSize(1 * SizeUnit.GB).
+                setMaxLogFileSize(SizeUnit.GB).
                 setKeepLogFileNum(5).
-                setMaxManifestFileSize(1 * SizeUnit.GB).
+                setMaxManifestFileSize(SizeUnit.GB).
                 setAllowConcurrentMemtableWrite(false).
                 setStatistics(statistics).
                 setAtomicFlush(true).
+                setCompactionReadaheadSize(4 * SizeUnit.MB).
                 setMaxBackgroundJobs(32).
                 setMaxSubcompactions(8).
                 setParanoidChecks(true).
@@ -158,4 +217,149 @@ public class RocksDBOptionsFactory {
                 setUseDirectIoForFlushAndCompaction(false).
                 setUseDirectReads(false);
     }
+
+    public static ColumnFamilyOptions createTimerCFOptions() {
+        BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig()
+            .setFormatVersion(5)
+            .setIndexType(IndexType.kBinarySearch)
+            .setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash)
+            .setDataBlockHashTableUtilRatio(0.75)
+            .setBlockSize(128 * SizeUnit.KB)
+            .setMetadataBlockSize(4 * SizeUnit.KB)
+            .setFilterPolicy(new BloomFilter(16, false))
+            .setCacheIndexAndFilterBlocks(false)
+            .setCacheIndexAndFilterBlocksWithHighPriority(true)
+            .setPinL0FilterAndIndexBlocksInCache(false)
+            .setPinTopLevelIndexAndFilter(true)
+            .setBlockCache(new LRUCache(2048 * SizeUnit.MB, 8, false))
+            .setWholeKeyFiltering(true);
+
+        //noinspection resource
+        return new ColumnFamilyOptions()
+            .setMaxWriteBufferNumber(6)
+            .setWriteBufferSize(256 * SizeUnit.MB)
+            .setMinWriteBufferNumberToMerge(1)
+            .setTableFormatConfig(blockBasedTableConfig)
+            .setMemTableConfig(new SkipListMemTableConfig())
+            .setCompressionType(CompressionType.ZSTD_COMPRESSION)
+            .setBottommostCompressionType(CompressionType.NO_COMPRESSION)
+            .setNumLevels(7)
+            .setCompactionPriority(CompactionPriority.MinOverlappingRatio)
+            .setCompactionStyle(CompactionStyle.LEVEL)
+            .setMaxCompactionBytes(256 * SizeUnit.MB)
+            .setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB)
+            .setHardPendingCompactionBytesLimit(256 * SizeUnit.GB)
+            .setLevel0FileNumCompactionTrigger(2)
+            .setLevel0SlowdownWritesTrigger(8)
+            .setLevel0StopWritesTrigger(10)
+            .setTargetFileSizeBase(256 * SizeUnit.MB)
+            .setTargetFileSizeMultiplier(2)
+            .setMergeOperator(new StringAppendOperator())
+            .setReportBgIoStats(true)
+            .setOptimizeFiltersForHits(true)
+            .setMaxBytesForLevelBase(512 * SizeUnit.MB);
+    }
+
+    public static ColumnFamilyOptions createTransCFOptions() {
+        BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig()
+            .setFormatVersion(5)
+            .setIndexType(IndexType.kBinarySearch)
+            .setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash)
+            .setDataBlockHashTableUtilRatio(0.75)
+            .setBlockSize(128 * SizeUnit.KB)
+            .setMetadataBlockSize(4 * SizeUnit.KB)
+            .setFilterPolicy(new BloomFilter(16, false))
+            .setCacheIndexAndFilterBlocks(false)
+            .setCacheIndexAndFilterBlocksWithHighPriority(true)
+            .setPinL0FilterAndIndexBlocksInCache(false)
+            .setPinTopLevelIndexAndFilter(true)
+            .setBlockCache(new LRUCache(1024 * SizeUnit.MB, 8, false))
+            .setWholeKeyFiltering(true);
+
+        CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal()
+            .setSizeRatio(100)
+            .setMaxSizeAmplificationPercent(25)
+            .setAllowTrivialMove(true)
+            .setMinMergeWidth(2)
+            .setMaxMergeWidth(Integer.MAX_VALUE)
+            .setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize)
+            .setCompressionSizePercent(-1);
+
+        //noinspection resource
+        return new ColumnFamilyOptions()
+            .setMaxWriteBufferNumber(6)
+            .setWriteBufferSize(128 * SizeUnit.MB)
+            .setMinWriteBufferNumberToMerge(1)
+            .setTableFormatConfig(blockBasedTableConfig)
+            .setMemTableConfig(new SkipListMemTableConfig())
+            .setCompressionType(CompressionType.NO_COMPRESSION)
+            .setBottommostCompressionType(CompressionType.NO_COMPRESSION)
+            .setNumLevels(7)
+            .setCompactionPriority(CompactionPriority.MinOverlappingRatio)
+            .setCompactionStyle(CompactionStyle.UNIVERSAL)
+            .setCompactionOptionsUniversal(compactionOption)
+            .setMaxCompactionBytes(100 * SizeUnit.GB)
+            .setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB)
+            .setHardPendingCompactionBytesLimit(256 * SizeUnit.GB)
+            .setLevel0FileNumCompactionTrigger(2)
+            .setLevel0SlowdownWritesTrigger(8)
+            .setLevel0StopWritesTrigger(10)
+            .setTargetFileSizeBase(256 * SizeUnit.MB)
+            .setTargetFileSizeMultiplier(2)
+            .setMergeOperator(new StringAppendOperator())
+            .setReportBgIoStats(true)
+            .setOptimizeFiltersForHits(true);
+    }
+
+    public static ColumnFamilyOptions createIndexCFOptions() {
+        BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig()
+            .setFormatVersion(5)
+            .setIndexType(IndexType.kBinarySearch)
+            .setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash)
+            .setDataBlockHashTableUtilRatio(0.75)
+            .setBlockSize(128 * SizeUnit.KB)
+            .setMetadataBlockSize(4 * SizeUnit.KB)
+            .setFilterPolicy(new BloomFilter(16, false))
+            .setCacheIndexAndFilterBlocks(false)
+            .setCacheIndexAndFilterBlocksWithHighPriority(true)
+            .setPinL0FilterAndIndexBlocksInCache(false)
+            .setPinTopLevelIndexAndFilter(true)
+            .setBlockCache(new LRUCache(1024 * SizeUnit.MB, 8, false))
+            .setWholeKeyFiltering(true);
+
+        CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal()
+            .setSizeRatio(100)
+            .setMaxSizeAmplificationPercent(25)
+            .setAllowTrivialMove(true)
+            .setMinMergeWidth(2)
+            .setMaxMergeWidth(Integer.MAX_VALUE)
+            .setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize)
+            .setCompressionSizePercent(-1);
+
+        //noinspection resource
+        return new ColumnFamilyOptions()
+            .setMaxWriteBufferNumber(6)
+            .setWriteBufferSize(128 * SizeUnit.MB)
+            .setMinWriteBufferNumberToMerge(1)
+            .setTableFormatConfig(blockBasedTableConfig)
+            .setMemTableConfig(new SkipListMemTableConfig())
+            .setCompressionType(CompressionType.NO_COMPRESSION)
+            .setBottommostCompressionType(CompressionType.NO_COMPRESSION)
+            .setNumLevels(7)
+            .setCompactionPriority(CompactionPriority.MinOverlappingRatio)
+            .setCompactionStyle(CompactionStyle.UNIVERSAL)
+            .setCompactionOptionsUniversal(compactionOption)
+            .setMaxCompactionBytes(256 * SizeUnit.MB)
+            .setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB)
+            .setHardPendingCompactionBytesLimit(256 * SizeUnit.GB)
+            .setLevel0FileNumCompactionTrigger(8)
+            .setLevel0SlowdownWritesTrigger(8)
+            .setLevel0StopWritesTrigger(20)
+            .setTargetFileSizeBase(256 * SizeUnit.MB)
+            .setTargetFileSizeMultiplier(2)
+            .setMergeOperator(new StringAppendOperator())
+            .setReportBgIoStats(true)
+            .setOptimizeFiltersForHits(true);
+    }
+
 }
