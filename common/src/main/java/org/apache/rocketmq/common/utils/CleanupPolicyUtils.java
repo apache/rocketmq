@@ -37,7 +37,7 @@ public class CleanupPolicyUtils {
         String attributeName = TopicAttributes.CLEANUP_POLICY_ATTRIBUTE.getName();
 
         Map<String, String> attributes = topicConfig.get().getAttributes();
-        if (attributes == null || attributes.size() == 0) {
+        if (attributes == null || attributes.isEmpty()) {
             return CleanupPolicy.valueOf(TopicAttributes.CLEANUP_POLICY_ATTRIBUTE.getDefaultValue());
         }
 

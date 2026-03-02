@@ -38,7 +38,7 @@ public class QueueTypeUtils {
         String attributeName = TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName();
 
         Map<String, String> attributes = topicConfig.get().getAttributes();
-        if (attributes == null || attributes.size() == 0) {
+        if (attributes == null || attributes.isEmpty()) {
             return CQType.valueOf(TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getDefaultValue());
         }
 

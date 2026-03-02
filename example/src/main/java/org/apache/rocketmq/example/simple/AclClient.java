@@ -142,7 +142,7 @@ public class AclClient {
     }
 
     private static void printBody(List<MessageExt> msg) {
-        if (msg == null || msg.size() == 0)
+        if (msg == null || msg.isEmpty())
             return;
         for (MessageExt m : msg) {
             if (m != null) {

@@ -76,7 +76,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
             traceContext.setRegionId(regionId);//
             beans.add(traceBean);
         }
-        if (beans.size() > 0) {
+        if (beans!isEmpty()) {
             traceContext.setTraceBeans(beans);
             traceContext.setTimeStamp(System.currentTimeMillis());
             localDispatcher.append(traceContext);

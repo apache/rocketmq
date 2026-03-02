@@ -77,7 +77,7 @@ public abstract class UnaryExpression implements Expression {
 
         // Use a HashSet if there are many elements.
         Collection<Object> t;
-        if (elements.size() == 0) {
+        if (elements.isEmpty()) {
             t = null;
         } else if (elements.size() < 5) {
             t = elements;

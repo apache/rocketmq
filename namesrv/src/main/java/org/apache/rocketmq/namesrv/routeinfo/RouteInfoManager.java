@@ -690,7 +690,7 @@ public class RouteInfoManager {
             return true;
         }
 
-        if (brokerData.getBrokerAddrs().size() == 0) {
+        if (brokerData.getBrokerAddrs().isEmpty()) {
             return true;
         }
 
@@ -756,7 +756,7 @@ public class RouteInfoManager {
                 return topicRouteData;
             }
 
-            if (topicRouteData.getBrokerDatas().size() == 0 || topicRouteData.getQueueDatas().size() == 0) {
+            if (topicRouteData.getBrokerDatas().isEmpty() || topicRouteData.getQueueDatas().isEmpty()) {
                 return topicRouteData;
             }
 
