@@ -736,7 +736,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
      * @param persist
      */
     public synchronized void commit(final Map<MessageQueue, Long> messageQueues, boolean persist) {
-        if (messageQueues == null || messageQueues.size() == 0) {
+        if (messageQueues == null || messageQueues.isEmpty()) {
             log.warn("MessageQueues is empty, Ignore this commit ");
             return;
         }
@@ -768,7 +768,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public synchronized void commit(final Set<MessageQueue> messageQueues, boolean persist) {
-        if (messageQueues == null || messageQueues.size() == 0) {
+        if (messageQueues == null || messageQueues.isEmpty()) {
             return;
         }
 
@@ -1067,7 +1067,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void resetTopic(List<MessageExt> msgList) {
-        if (null == msgList || msgList.size() == 0) {
+        if (null == msgList || msgList.isEmpty()) {
             return;
         }
 
