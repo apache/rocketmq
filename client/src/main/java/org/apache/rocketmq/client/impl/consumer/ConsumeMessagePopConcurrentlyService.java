@@ -365,7 +365,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
         }
 
         public boolean isPopTimeout() {
-            if (msgs.size() == 0 || popTime <= 0 || invisibleTime <= 0) {
+            if (msgs.isEmpty() || popTime <= 0 || invisibleTime <= 0) {
                 return true;
             }
 
