@@ -164,7 +164,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         try {
             String topic = TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC;
             Set<MessageQueue> msgQueues = transactionalMessageBridge.fetchMessageQueues(topic);
-            if (msgQueues == null || msgQueues.size() == 0) {
+            if (msgQueues == null || msgQueues.isEmpty()) {
                 log.warn("The queue of topic is empty :" + topic);
                 return;
             }
@@ -207,7 +207,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         log.debug("Half offset {} has been committed/rolled back", i);
                         Long removedOpOffset = removeMap.remove(i);
                         opMsgMap.get(removedOpOffset).remove(i);
-                        if (opMsgMap.get(removedOpOffset).size() == 0) {
+                        if (opMsgMap.get(removedOpOffset).isEmpty()) {
                             opMsgMap.remove(removedOpOffset);
                             doneOpOffset.add(removedOpOffset);
                         }
@@ -425,7 +425,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 log.error("Found a illegal tag in opMessageExt= {} ", opMessageExt);
             }
 
-            if (set.size() > 0) {
+            if (set!isEmpty()) {
                 opMsgMap.put(opMessageExt.getQueueOffset(), set);
             } else {
                 doneOpOffset.add(opMessageExt.getQueueOffset());
@@ -572,7 +572,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         if (result != null) {
             getResult.setPullResult(result);
             List<MessageExt> messageExts = result.getMsgFoundList();
-            if (messageExts == null || messageExts.size() == 0) {
+            if (messageExts == null || messageExts.isEmpty()) {
                 return getResult;
             }
             getResult.setMsg(messageExts.get(0));
@@ -706,7 +706,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             for (Map.Entry<Integer, MessageQueueOpContext> entry : deleteContext.entrySet()) {
                 MessageQueueOpContext mqContext = entry.getValue();
                 //no msg in contextQueue
-                if (mqContext.getTotalSize().get() <= 0 || mqContext.getContextQueue().size() == 0 ||
+                if (mqContext.getTotalSize().get() <= 0 || mqContext.getContextQueue().isEmpty() ||
                         // wait for the interval
                         mqContext.getTotalSize().get() < maxSize &&
                                 startTime - mqContext.getLastWriteTimestamp() < interval) {
