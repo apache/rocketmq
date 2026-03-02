@@ -1143,7 +1143,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 final List<QueueTimeSpan> spanSet = new CopyOnWriteArrayList<>();
                 TopicRouteData topicRouteData = examineTopicRouteInfo(topic);
 
-                if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || topicRouteData.getBrokerDatas().size() == 0) {
+                if (topicRouteData == null || topicRouteData.getBrokerDatas() == null || !topicRouteData.getBrokerDatas().isEmpty()) {
                     return AdminToolResult.success(spanSet);
                 }
                 final CountDownLatch latch = new CountDownLatch(topicRouteData.getBrokerDatas().size());
