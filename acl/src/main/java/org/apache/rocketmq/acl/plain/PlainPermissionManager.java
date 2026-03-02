@@ -144,7 +144,7 @@ public class PlainPermissionManager {
                         getRemoteAddressStrategy(globalWhiteRemoteAddressesList.get(j)));
                 }
             }
-            if (globalWhiteRemoteAddressStrategyList.size() > 0) {
+            if (!globalWhiteRemoteAddressStrategyList.isEmpty()) {
                 globalWhiteRemoteAddressStrategyMap.put(currentFile, globalWhiteRemoteAddressStrategyList);
                 globalWhiteRemoteAddressStrategy.addAll(globalWhiteRemoteAddressStrategyList);
             }
@@ -163,7 +163,7 @@ public class PlainPermissionManager {
                     }
                 }
             }
-            if (plainAccessResourceMap.size() > 0) {
+            if (!plainAccessResourceMap.isEmpty()) {
                 aclPlainAccessResourceMap.put(currentFile, plainAccessResourceMap);
             }
 
@@ -280,7 +280,7 @@ public class PlainPermissionManager {
         List<PlainAccessData.DataVersion> dataVersions = updateAclConfigMap.getDataVersion();
         DataVersion dataVersion = new DataVersion();
         if (dataVersions != null) {
-            if (dataVersions.size() > 0) {
+            if (!dataVersions.isEmpty()) {
                 dataVersion.setTimestamp(dataVersions.get(0).getTimestamp());
                 dataVersion.setCounter(new AtomicLong(dataVersions.get(0).getCounter()));
             }
@@ -336,7 +336,7 @@ public class PlainPermissionManager {
             if (accountMap == null) {
                 accountMap = new HashMap<>(1);
                 accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
-            } else if (accountMap.size() == 0) {
+            } else if (accountMap.isEmpty()) {
                 accountMap.put(plainAccessConfig.getAccessKey(), buildPlainAccessResource(plainAccessConfig));
             } else {
                 for (Map.Entry<String, PlainAccessResource> entry : accountMap.entrySet()) {
@@ -352,7 +352,7 @@ public class PlainPermissionManager {
         } else {
             String fileName = MixAll.dealFilePath(defaultAclFile);
             //Create acl access config elements on the default acl file
-            if (aclPlainAccessResourceMap.get(defaultAclFile) == null || aclPlainAccessResourceMap.get(defaultAclFile).size() == 0) {
+            if (aclPlainAccessResourceMap.get(defaultAclFile) == null || aclPlainAccessResourceMap.get(defaultAclFile).isEmpty()) {
                 try {
                     File defaultAclFile = new File(fileName);
                     if (!defaultAclFile.exists()) {
