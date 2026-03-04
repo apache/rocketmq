@@ -39,7 +39,7 @@ import org.apache.rocketmq.tools.command.auth.ListAclSubCommand;
 import org.apache.rocketmq.tools.command.auth.ListUserSubCommand;
 import org.apache.rocketmq.tools.command.auth.UpdateAclSubCommand;
 import org.apache.rocketmq.tools.command.auth.UpdateUserSubCommand;
-import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommad;
+import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommand;
 import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
@@ -220,7 +220,7 @@ public class MQAdminStartup {
         initCommand(new PrintMessageSubCommand());
         initCommand(new PrintMessageByQueueCommand());
         initCommand(new SendMsgStatusCommand());
-        initCommand(new BrokerConsumeStatsSubCommad());
+        initCommand(new BrokerConsumeStatsSubCommand());
 
         initCommand(new ProducerConnectionSubCommand());
         initCommand(new ConsumerConnectionSubCommand());
