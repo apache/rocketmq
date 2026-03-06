@@ -435,7 +435,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         this.grpcMessagingActivity.shutdown();
 
         this.routeThreadPoolExecutor.shutdown();
-        this.routeThreadPoolExecutor.shutdown();
         this.producerThreadPoolExecutor.shutdown();
         this.consumerThreadPoolExecutor.shutdown();
         this.clientManagerThreadPoolExecutor.shutdown();
