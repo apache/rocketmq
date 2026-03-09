@@ -111,6 +111,12 @@ public class DefaultMQLitePullConsumerWithTraceTest {
 
     @Before
     public void init() throws Exception {
+        ConcurrentMap<String, MQClientInstance> factoryTable =
+            (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(
+                MQClientManager.getInstance(), "factoryTable", true);
+        factoryTable.forEach((clientId, instance) -> instance.shutdown());
+        factoryTable.clear();
+
         Field field = MQClientInstance.class.getDeclaredField("rebalanceService");
         field.setAccessible(true);
         RebalanceService rebalanceService = (RebalanceService) field.get(mQClientFactory);
