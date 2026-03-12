@@ -30,7 +30,7 @@ public abstract class RemotingSerializable {
         if (obj == null) {
             return null;
         }
-        return JSON.toJSONBytes(obj);
+        return JSON.toJSONBytes(obj, CHARSET_UTF8);
     }
 
     public static String toJson(final Object obj, boolean prettyFormat) {
@@ -59,7 +59,7 @@ public abstract class RemotingSerializable {
     }
 
     public byte[] encode() {
-        return JSON.toJSONBytes(this);
+        return JSON.toJSONBytes(this, CHARSET_UTF8);
     }
 
     /**
@@ -69,7 +69,7 @@ public abstract class RemotingSerializable {
      * @return serialized data.
      */
     public byte[] encode(JSONWriter.Feature... features) {
-        return JSON.toJSONBytes(this, features);
+        return JSON.toJSONBytes(this, CHARSET_UTF8, features);
     }
 
     public String toJson() {
