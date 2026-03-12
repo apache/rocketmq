@@ -303,7 +303,7 @@ public class DefaultMQLitePullConsumerWithTraceTest {
 
     }
 
-    private List<MessageExt> pollUntilFound(DefaultLitePullConsumer litePullConsumer) throws Exception {
+    private List<MessageExt> pollUntilFound(DefaultLitePullConsumer litePullConsumer) {
         litePullConsumer.setPollTimeoutMillis(1000);
         long deadline = System.currentTimeMillis() + 20 * 1000;
         List<MessageExt> result = Collections.emptyList();
