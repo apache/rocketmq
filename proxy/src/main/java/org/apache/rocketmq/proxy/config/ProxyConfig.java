@@ -81,6 +81,7 @@ public class ProxyConfig implements ConfigFile {
      */
     private boolean tlsTestModeEnable = true;
     private String tlsKeyPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.key";
+    private String tlsKeyPassword = "";
     private String tlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
     private int tlsCertWatchIntervalMs = 60 * 60 * 1000; // 1 hour
     /**
@@ -499,6 +500,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setTlsKeyPath(String tlsKeyPath) {
         this.tlsKeyPath = tlsKeyPath;
+    }
+
+    public String getTlsKeyPassword() {
+        return tlsKeyPassword;
+    }
+
+    public void setTlsKeyPassword(String tlsKeyPassword) {
+        this.tlsKeyPassword = tlsKeyPassword;
     }
 
     public String getTlsCertPath() {
