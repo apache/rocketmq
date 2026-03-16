@@ -62,6 +62,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -320,7 +321,7 @@ public class PopConsumerServiceTest {
         consumerService.ackAsync(
             current, 10, groupId, topicId, queueId, 100).join();
         consumerService.changeInvisibilityDuration(current, 10,
-            current + 100, 10, groupId, topicId, queueId, 100);
+            current + 100, 10, groupId, topicId, queueId, 100, false);
         consumerService.shutdown();
     }
 
@@ -467,5 +468,279 @@ public class PopConsumerServiceTest {
         consumerService.getPopConsumerStore().writeRecords(consumerRecordList);
         consumerService.transferToFsStore();
         consumerService.shutdown();
+    }
+
+    @Test
+    public void testChangeInvisibilityDurationWithSuspendTrue() {
+        long current = System.currentTimeMillis();
+        long popTime = current - 1000;
+        long invisibleTime = 10000;
+        long changedPopTime = current;
+        long changedInvisibleTime = 20000;
+        long offset = 100L;
+
+        consumerService.getPopConsumerStore().start();
+        Mockito.when(brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)).thenReturn(true);
+
+        // Test with suspend = true
+        consumerService.changeInvisibilityDuration(popTime, invisibleTime, changedPopTime,
+            changedInvisibleTime, groupId, topicId, queueId, offset, true);
+
+        // Verify that the record was written with suspend = true
+        List<PopConsumerRecord> records = consumerService.getPopConsumerStore()
+            .scanExpiredRecords(0, changedPopTime + changedInvisibleTime + 1000, 10);
+        Assert.assertFalse("Should have at least one record", records.isEmpty());
+        PopConsumerRecord ckRecord = records.stream()
+            .filter(r -> r.getOffset() == offset && r.getPopTime() == changedPopTime)
+            .findFirst()
+            .orElse(null);
+        Assert.assertNotNull("Should find the checkpoint record", ckRecord);
+        Assert.assertTrue("Suspend flag should be true", ckRecord.isSuspend());
+        Assert.assertEquals("GroupId should match", groupId, ckRecord.getGroupId());
+        Assert.assertEquals("TopicId should match", topicId, ckRecord.getTopicId());
+        Assert.assertEquals("QueueId should match", queueId, ckRecord.getQueueId());
+        Assert.assertEquals("Offset should match", offset, ckRecord.getOffset());
+
+        consumerService.shutdown();
+    }
+
+    @Test
+    public void testChangeInvisibilityDurationWithSuspendFalse() {
+        long current = System.currentTimeMillis();
+        long popTime = current - 1000;
+        long invisibleTime = 10000;
+        long changedPopTime = current;
+        long changedInvisibleTime = 20000;
+        long offset = 200L;
+
+        consumerService.getPopConsumerStore().start();
+        Mockito.when(brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)).thenReturn(true);
+
+        // Test with suspend = false
+        consumerService.changeInvisibilityDuration(popTime, invisibleTime, changedPopTime,
+            changedInvisibleTime, groupId, topicId, queueId, offset, false);
+
+        // Verify that the record was written with suspend = false
+        List<PopConsumerRecord> records = consumerService.getPopConsumerStore()
+            .scanExpiredRecords(0, changedPopTime + changedInvisibleTime + 1000, 10);
+        Assert.assertFalse("Should have at least one record", records.isEmpty());
+        PopConsumerRecord ckRecord = records.stream()
+            .filter(r -> r.getOffset() == offset && r.getPopTime() == changedPopTime)
+            .findFirst()
+            .orElse(null);
+        Assert.assertNotNull("Should find the checkpoint record", ckRecord);
+        Assert.assertFalse("Suspend flag should be false", ckRecord.isSuspend());
+        Assert.assertEquals("GroupId should match", groupId, ckRecord.getGroupId());
+        Assert.assertEquals("TopicId should match", topicId, ckRecord.getTopicId());
+        Assert.assertEquals("QueueId should match", queueId, ckRecord.getQueueId());
+        Assert.assertEquals("Offset should match", offset, ckRecord.getOffset());
+
+        consumerService.shutdown();
+    }
+
+    @Test
+    public void testReviveRetryWithSuspendTrue() {
+        Mockito.when(brokerController.getTopicConfigManager().selectTopicConfig(topicId)).thenReturn(null);
+        Mockito.when(brokerController.getConsumerOffsetManager().queryOffset(groupId, topicId, 0)).thenReturn(-1L);
+
+        consumerService.createRetryTopicIfNeeded(groupId, topicId);
+        consumerService.clearCache(groupId, topicId, queueId);
+
+        // Create message with reconsumeTimes = 2
+        MessageExt messageExt = new MessageExt();
+        messageExt.setBody("body".getBytes());
+        messageExt.setBornTimestamp(System.currentTimeMillis());
+        messageExt.setFlag(0);
+        messageExt.setSysFlag(0);
+        messageExt.setReconsumeTimes(2);
+        messageExt.putUserProperty("key", "value");
+
+        // Create record with suspend = true
+        PopConsumerRecord record = new PopConsumerRecord();
+        record.setTopicId(topicId);
+        record.setGroupId(groupId);
+        record.setQueueId(queueId);
+        record.setPopTime(System.currentTimeMillis());
+        record.setInvisibleTime(30000);
+        record.setOffset(100L);
+        record.setSuspend(true);
+
+        Mockito.when(brokerController.getBrokerStatsManager()).thenReturn(Mockito.mock(BrokerStatsManager.class));
+        EscapeBridge escapeBridge = Mockito.mock(EscapeBridge.class);
+        Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
+
+        // Capture the MessageExtBrokerInner to verify reconsumeTimes
+        ArgumentCaptor<MessageExtBrokerInner> messageCaptor =
+            ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+        Mockito.when(escapeBridge.putMessageToSpecificQueue(messageCaptor.capture()))
+            .thenReturn(new PutMessageResult(
+                PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+
+        PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
+        Mockito.doNothing().when(consumerServiceSpy).createRetryTopicIfNeeded(any(), any());
+        Assert.assertTrue("Revive should succeed", consumerServiceSpy.reviveRetry(record, messageExt));
+
+        // Verify that reconsumeTimes was NOT incremented (should remain 2)
+        MessageExtBrokerInner capturedMessage = messageCaptor.getValue();
+        Assert.assertNotNull("Message should be captured", capturedMessage);
+        Assert.assertEquals("ReconsumeTimes should remain 2 when suspend=true", 2, capturedMessage.getReconsumeTimes());
+    }
+
+    @Test
+    public void testReviveRetryWithSuspendFalse() {
+        Mockito.when(brokerController.getTopicConfigManager().selectTopicConfig(topicId)).thenReturn(null);
+        Mockito.when(brokerController.getConsumerOffsetManager().queryOffset(groupId, topicId, 0)).thenReturn(-1L);
+
+        consumerService.createRetryTopicIfNeeded(groupId, topicId);
+        consumerService.clearCache(groupId, topicId, queueId);
+
+        // Create message with reconsumeTimes = 2
+        MessageExt messageExt = new MessageExt();
+        messageExt.setBody("body".getBytes());
+        messageExt.setBornTimestamp(System.currentTimeMillis());
+        messageExt.setFlag(0);
+        messageExt.setSysFlag(0);
+        messageExt.setReconsumeTimes(2);
+        messageExt.putUserProperty("key", "value");
+
+        // Create record with suspend = false
+        PopConsumerRecord record = new PopConsumerRecord();
+        record.setTopicId(topicId);
+        record.setGroupId(groupId);
+        record.setQueueId(queueId);
+        record.setPopTime(System.currentTimeMillis());
+        record.setInvisibleTime(30000);
+        record.setOffset(200L);
+        record.setSuspend(false);
+
+        Mockito.when(brokerController.getBrokerStatsManager()).thenReturn(Mockito.mock(BrokerStatsManager.class));
+        EscapeBridge escapeBridge = Mockito.mock(EscapeBridge.class);
+        Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
+
+        // Capture the MessageExtBrokerInner to verify reconsumeTimes
+        ArgumentCaptor<MessageExtBrokerInner> messageCaptor =
+            ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+        Mockito.when(escapeBridge.putMessageToSpecificQueue(messageCaptor.capture()))
+            .thenReturn(new PutMessageResult(
+                PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+
+        PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
+        Mockito.doNothing().when(consumerServiceSpy).createRetryTopicIfNeeded(any(), any());
+        Assert.assertTrue("Revive should succeed", consumerServiceSpy.reviveRetry(record, messageExt));
+
+        // Verify that reconsumeTimes was incremented (should be 3)
+        MessageExtBrokerInner capturedMessage = messageCaptor.getValue();
+        Assert.assertNotNull("Message should be captured", capturedMessage);
+        Assert.assertEquals("ReconsumeTimes should be incremented to 3 when suspend=false", 3, capturedMessage.getReconsumeTimes());
+    }
+
+    @Test
+    public void testReviveRetryWithSuspendTrueMultipleTimes() {
+        Mockito.when(brokerController.getTopicConfigManager().selectTopicConfig(topicId)).thenReturn(null);
+        Mockito.when(brokerController.getConsumerOffsetManager().queryOffset(groupId, topicId, 0)).thenReturn(-1L);
+
+        consumerService.createRetryTopicIfNeeded(groupId, topicId);
+        consumerService.clearCache(groupId, topicId, queueId);
+
+        // Create message with reconsumeTimes = 0
+        MessageExt messageExt = new MessageExt();
+        messageExt.setBody("body".getBytes());
+        messageExt.setBornTimestamp(System.currentTimeMillis());
+        messageExt.setFlag(0);
+        messageExt.setSysFlag(0);
+        messageExt.setReconsumeTimes(0);
+        messageExt.putUserProperty("key", "value");
+
+        Mockito.when(brokerController.getBrokerStatsManager()).thenReturn(Mockito.mock(BrokerStatsManager.class));
+        EscapeBridge escapeBridge = Mockito.mock(EscapeBridge.class);
+        Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
+
+        PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
+        Mockito.doNothing().when(consumerServiceSpy).createRetryTopicIfNeeded(any(), any());
+
+        // Simulate multiple nacks with suspend = true
+        for (int i = 0; i < 3; i++) {
+            PopConsumerRecord record = new PopConsumerRecord();
+            record.setTopicId(topicId);
+            record.setGroupId(groupId);
+            record.setQueueId(queueId);
+            record.setPopTime(System.currentTimeMillis());
+            record.setInvisibleTime(30000);
+            record.setOffset(300L + i);
+            record.setSuspend(true);
+
+            // Capture the MessageExtBrokerInner to verify reconsumeTimes
+            org.mockito.ArgumentCaptor<MessageExtBrokerInner> messageCaptor =
+                org.mockito.ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+            Mockito.when(escapeBridge.putMessageToSpecificQueue(messageCaptor.capture()))
+                .thenReturn(new PutMessageResult(
+                    PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+
+            Assert.assertTrue("Revive should succeed", consumerServiceSpy.reviveRetry(record, messageExt));
+
+            // Verify that reconsumeTimes remains 0 (not incremented)
+            MessageExtBrokerInner capturedMessage = messageCaptor.getValue();
+            Assert.assertNotNull("Message should be captured", capturedMessage);
+            Assert.assertEquals("ReconsumeTimes should remain 0 after " + (i + 1) + " nacks with suspend=true",
+                0, capturedMessage.getReconsumeTimes());
+
+            // Update messageExt for next iteration (simulate the message being re-consumed)
+            messageExt.setReconsumeTimes(capturedMessage.getReconsumeTimes());
+        }
+    }
+
+    @Test
+    public void testReviveRetryWithSuspendFalseMultipleTimes() {
+        Mockito.when(brokerController.getTopicConfigManager().selectTopicConfig(topicId)).thenReturn(null);
+        Mockito.when(brokerController.getConsumerOffsetManager().queryOffset(groupId, topicId, 0)).thenReturn(-1L);
+
+        consumerService.createRetryTopicIfNeeded(groupId, topicId);
+        consumerService.clearCache(groupId, topicId, queueId);
+
+        // Create message with reconsumeTimes = 0
+        MessageExt messageExt = new MessageExt();
+        messageExt.setBody("body".getBytes());
+        messageExt.setBornTimestamp(System.currentTimeMillis());
+        messageExt.setFlag(0);
+        messageExt.setSysFlag(0);
+        messageExt.setReconsumeTimes(0);
+        messageExt.putUserProperty("key", "value");
+
+        Mockito.when(brokerController.getBrokerStatsManager()).thenReturn(Mockito.mock(BrokerStatsManager.class));
+        EscapeBridge escapeBridge = Mockito.mock(EscapeBridge.class);
+        Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
+
+        PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
+        Mockito.doNothing().when(consumerServiceSpy).createRetryTopicIfNeeded(any(), any());
+
+        // Simulate multiple nacks with suspend = false
+        for (int i = 0; i < 3; i++) {
+            PopConsumerRecord record = new PopConsumerRecord();
+            record.setTopicId(topicId);
+            record.setGroupId(groupId);
+            record.setQueueId(queueId);
+            record.setPopTime(System.currentTimeMillis());
+            record.setInvisibleTime(30000);
+            record.setOffset(400L + i);
+            record.setSuspend(false);
+
+            // Capture the MessageExtBrokerInner to verify reconsumeTimes
+            org.mockito.ArgumentCaptor<MessageExtBrokerInner> messageCaptor =
+                org.mockito.ArgumentCaptor.forClass(MessageExtBrokerInner.class);
+            Mockito.when(escapeBridge.putMessageToSpecificQueue(messageCaptor.capture()))
+                .thenReturn(new PutMessageResult(
+                    PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+
+            Assert.assertTrue("Revive should succeed", consumerServiceSpy.reviveRetry(record, messageExt));
+
+            // Verify that reconsumeTimes is incremented each time
+            MessageExtBrokerInner capturedMessage = messageCaptor.getValue();
+            Assert.assertNotNull("Message should be captured", capturedMessage);
+            Assert.assertEquals("ReconsumeTimes should be " + (i + 1) + " after " + (i + 1) + " nacks with suspend=false",
+                i + 1, capturedMessage.getReconsumeTimes());
+
+            // Update messageExt for next iteration (simulate the message being re-consumed)
+            messageExt.setReconsumeTimes(capturedMessage.getReconsumeTimes());
+        }
     }
 }

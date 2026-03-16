@@ -21,7 +21,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.queue.offset.OffsetEntryType;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
@@ -74,26 +77,7 @@ public class RocksDBConsumeQueueOffsetTableTest {
             topicBuilder.append("topic");
         }
         topicName = topicBuilder.toString();
-        byte[] topicInBytes = topicName.getBytes(StandardCharsets.UTF_8);
-
-        ByteBuffer keyBuffer = ByteBuffer.allocateDirect(RocksDBConsumeQueueOffsetTable.OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicInBytes.length);
-        RocksDBConsumeQueueOffsetTable.buildOffsetKeyByteBuffer(keyBuffer, topicInBytes, 1, true);
-        Assert.assertEquals(0, keyBuffer.position());
-        Assert.assertEquals(RocksDBConsumeQueueOffsetTable.OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicInBytes.length, keyBuffer.limit());
-
-        ByteBuffer valueBuffer = ByteBuffer.allocateDirect(Long.BYTES + Long.BYTES);
-        valueBuffer.putLong(100);
-        valueBuffer.putLong(2);
-        valueBuffer.flip();
-
-        try (WriteBatch writeBatch = new WriteBatch();
-             WriteOptions writeOptions = new WriteOptions()) {
-            writeOptions.setDisableWAL(false);
-            writeOptions.setSync(true);
-            writeBatch.put(keyBuffer, valueBuffer);
-            db.write(writeOptions, writeBatch);
-        }
-
+        writeOffset(topicName, 1, 100, 2, true);
     }
 
     @AfterClass
@@ -127,5 +111,52 @@ public class RocksDBConsumeQueueOffsetTableTest {
             Assert.assertEquals(OffsetEntryType.MAXIMUM, entry.type);
         });
         Assert.assertTrue(called.get());
+    }
+
+    @Test
+    public void testLmqCounter() throws RocksDBException {
+        Assert.assertEquals(0, offsetTable.getLmqNum());
+        offsetTable.load();
+        int initCount = offsetTable.getLmqNum();
+        int lmqCount = 2;
+        int repeatCount = 3;
+        for (int i = 0; i < lmqCount; i++) {
+            String lmqName = MixAll.LMQ_PREFIX + UUID.randomUUID();
+            String normalTopic = UUID.randomUUID().toString();
+            for (int j = 0; j < repeatCount; j++) {
+                writeOffset(lmqName, 0, 100, j, true);
+                writeOffset(lmqName, 0, 100, j, false);
+                writeOffset(normalTopic, 0, 100, j, true);
+                writeOffset(normalTopic, 0, 100, j, false);
+            }
+        }
+
+        Mockito.doReturn(db.newIterator()).when(rocksDBStorage).seekOffsetCF();
+        offsetTable.load();
+        Assert.assertEquals(initCount + lmqCount, offsetTable.getLmqNum());
+    }
+
+    private static void writeOffset(String topic, int queueId, long phyOffset,
+        long cqOffset, boolean max) throws RocksDBException {
+        byte[] topicInBytes = topic.getBytes(StandardCharsets.UTF_8);
+        ByteBuffer keyBuffer = ByteBuffer.allocateDirect(
+            RocksDBConsumeQueueOffsetTable.OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicInBytes.length);
+        RocksDBConsumeQueueOffsetTable.buildOffsetKeyByteBuffer(keyBuffer, topicInBytes, 1, max);
+        Assert.assertEquals(0, keyBuffer.position());
+        Assert.assertEquals(RocksDBConsumeQueueOffsetTable.OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES
+            + topicInBytes.length, keyBuffer.limit());
+
+        ByteBuffer valueBuffer = ByteBuffer.allocateDirect(Long.BYTES + Long.BYTES);
+        valueBuffer.putLong(phyOffset);
+        valueBuffer.putLong(cqOffset);
+        valueBuffer.flip();
+
+        try (WriteBatch writeBatch = new WriteBatch();
+             WriteOptions writeOptions = new WriteOptions()) {
+            writeOptions.setDisableWAL(false);
+            writeOptions.setSync(true);
+            writeBatch.put(keyBuffer, valueBuffer);
+            db.write(writeOptions, writeBatch);
+        }
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.config.ConfigManagerVersion;
 import org.apache.rocketmq.common.constant.PermName;
@@ -23,8 +24,6 @@ import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.NetworkUtil;
-
-import java.util.concurrent.TimeUnit;
 
 public class BrokerConfig extends BrokerIdentity {
 
@@ -256,6 +255,9 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean useSeparateRetryQueue = false;
     private boolean realTimeNotifyConsumerChange = true;
 
+    private boolean useMessageFilterForNotification = true;
+    private int maxMessageFilterNumForNotification = 64;
+
     private boolean litePullMessageEnable = true;
 
     // The period to sync broker member group from namesrv, default value is 1 second
@@ -297,6 +299,12 @@ public class BrokerConfig extends BrokerIdentity {
     private long transactionCheckInterval = 30 * 1000;
 
     private long transactionMetricFlushInterval = 10 * 1000;
+
+    private int transactionCheckRocksdbCoreThreads = 2;
+
+    private int transactionCheckRocksdbMaxThreads = 5;
+
+    private int transactionCheckRocksdbQueueCapacity = 2000;
 
     /**
      * transaction batch op message
@@ -491,6 +499,39 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean enableRegisterProducer = true;
 
     private boolean enableCreateSysGroup = true;
+
+    private boolean enableLiteEventMode = true;
+
+    private long liteEventCheckInterval = 10 * 1000;
+
+    private long liteTtlCheckInterval = 120 * 1000;
+
+    private long minLiteTTl = 15 * 60 * 1000;
+
+    private long liteSubscriptionCheckInterval = TimeUnit.MINUTES.toMillis(2);
+
+    private long liteSubscriptionCheckTimeoutMills = TimeUnit.MINUTES.toMillis(3);
+
+    // make sense for rocksdb store
+    private boolean persistConsumerOffsetIncrementally = false;
+
+    private long maxLiteSubscriptionCount = 100000;
+
+    private boolean enableLitePopLog = false;
+
+    private int maxClientEventCount = 100;
+
+    private long liteEventFullDispatchDelayTime = 10 * 1000;
+
+    // lite metrics
+    // whether to collect storeTime in popLiteProcessor
+    private boolean liteLagLatencyCollectEnable = false;
+
+    private boolean liteLagLatencyMetricsEnable = false;
+
+    private boolean liteLagCountMetricsEnable = false;
+
+    private int liteLagLatencyTopK = 50;
 
     public String getConfigBlackList() {
         return configBlackList;
@@ -2073,6 +2114,30 @@ public class BrokerConfig extends BrokerIdentity {
         this.transactionMetricFlushInterval = transactionMetricFlushInterval;
     }
 
+    public void setTransactionCheckRocksdbCoreThreads(int transactionCheckRocksdbCoreThreads) {
+        this.transactionCheckRocksdbCoreThreads = transactionCheckRocksdbCoreThreads;
+    }
+
+    public int getTransactionCheckRocksdbCoreThreads() {
+        return transactionCheckRocksdbCoreThreads;
+    }
+
+    public int getTransactionCheckRocksdbMaxThreads() {
+        return transactionCheckRocksdbMaxThreads;
+    }
+
+    public void setTransactionCheckRocksdbMaxThreads(int transactionCheckRocksdbMaxThreads) {
+        this.transactionCheckRocksdbMaxThreads = transactionCheckRocksdbMaxThreads;
+    }
+
+    public int getTransactionCheckRocksdbQueueCapacity() {
+        return transactionCheckRocksdbQueueCapacity;
+    }
+
+    public void setTransactionCheckRocksdbQueueCapacity(int transactionCheckRocksdbQueueCapacity) {
+        this.transactionCheckRocksdbQueueCapacity = transactionCheckRocksdbQueueCapacity;
+    }
+
     public long getPopInflightMessageThreshold() {
         return popInflightMessageThreshold;
     }
@@ -2223,5 +2288,141 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setUseSeparateRetryQueue(boolean useSeparateRetryQueue) {
         this.useSeparateRetryQueue = useSeparateRetryQueue;
+    }
+
+    public boolean isEnableLiteEventMode() {
+        return enableLiteEventMode;
+    }
+
+    public void setEnableLiteEventMode(boolean enableLiteEventMode) {
+        this.enableLiteEventMode = enableLiteEventMode;
+    }
+
+    public long getLiteEventCheckInterval() {
+        return liteEventCheckInterval;
+    }
+
+    public void setLiteEventCheckInterval(long liteEventCheckInterval) {
+        this.liteEventCheckInterval = liteEventCheckInterval;
+    }
+
+    public long getLiteTtlCheckInterval() {
+        return liteTtlCheckInterval;
+    }
+
+    public void setLiteTtlCheckInterval(long liteTtlCheckInterval) {
+        this.liteTtlCheckInterval = liteTtlCheckInterval;
+    }
+
+    public long getMinLiteTTl() {
+        return minLiteTTl;
+    }
+
+    public void setMinLiteTTl(long minLiteTTl) {
+        this.minLiteTTl = minLiteTTl;
+    }
+
+    public long getLiteSubscriptionCheckInterval() {
+        return liteSubscriptionCheckInterval;
+    }
+
+    public void setLiteSubscriptionCheckInterval(long liteSubscriptionCheckInterval) {
+        this.liteSubscriptionCheckInterval = liteSubscriptionCheckInterval;
+    }
+
+    public long getLiteSubscriptionCheckTimeoutMills() {
+        return liteSubscriptionCheckTimeoutMills;
+    }
+
+    public void setLiteSubscriptionCheckTimeoutMills(long liteSubscriptionCheckTimeoutMills) {
+        this.liteSubscriptionCheckTimeoutMills = liteSubscriptionCheckTimeoutMills;
+    }
+
+    public boolean isPersistConsumerOffsetIncrementally() {
+        return persistConsumerOffsetIncrementally;
+    }
+
+    public void setPersistConsumerOffsetIncrementally(boolean persistConsumerOffsetIncrementally) {
+        this.persistConsumerOffsetIncrementally = persistConsumerOffsetIncrementally;
+    }
+
+    public long getMaxLiteSubscriptionCount() {
+        return maxLiteSubscriptionCount;
+    }
+
+    public void setMaxLiteSubscriptionCount(long maxLiteSubscriptionCount) {
+        this.maxLiteSubscriptionCount = maxLiteSubscriptionCount;
+    }
+
+    public boolean isEnableLitePopLog() {
+        return enableLitePopLog;
+    }
+
+    public void setEnableLitePopLog(boolean enableLitePopLog) {
+        this.enableLitePopLog = enableLitePopLog;
+    }
+
+    public int getMaxClientEventCount() {
+        return maxClientEventCount;
+    }
+
+    public void setMaxClientEventCount(int maxClientEventCount) {
+        this.maxClientEventCount = maxClientEventCount;
+    }
+
+    public long getLiteEventFullDispatchDelayTime() {
+        return liteEventFullDispatchDelayTime;
+    }
+
+    public void setLiteEventFullDispatchDelayTime(long liteEventFullDispatchDelayTime) {
+        this.liteEventFullDispatchDelayTime = liteEventFullDispatchDelayTime;
+    }
+
+    public boolean isLiteLagLatencyCollectEnable() {
+        return liteLagLatencyCollectEnable;
+    }
+
+    public void setLiteLagLatencyCollectEnable(boolean liteLagLatencyCollectEnable) {
+        this.liteLagLatencyCollectEnable = liteLagLatencyCollectEnable;
+    }
+
+    public boolean isLiteLagLatencyMetricsEnable() {
+        return liteLagLatencyMetricsEnable;
+    }
+
+    public void setLiteLagLatencyMetricsEnable(boolean liteLagLatencyMetricsEnable) {
+        this.liteLagLatencyMetricsEnable = liteLagLatencyMetricsEnable;
+    }
+
+    public boolean isLiteLagCountMetricsEnable() {
+        return liteLagCountMetricsEnable;
+    }
+
+    public void setLiteLagCountMetricsEnable(boolean liteLagCountMetricsEnable) {
+        this.liteLagCountMetricsEnable = liteLagCountMetricsEnable;
+    }
+
+    public int getLiteLagLatencyTopK() {
+        return liteLagLatencyTopK;
+    }
+
+    public void setLiteLagLatencyTopK(int liteLagLatencyTopK) {
+        this.liteLagLatencyTopK = liteLagLatencyTopK;
+    }
+
+    public boolean isUseMessageFilterForNotification() {
+        return useMessageFilterForNotification;
+    }
+
+    public void setUseMessageFilterForNotification(boolean useMessageFilterForNotification) {
+        this.useMessageFilterForNotification = useMessageFilterForNotification;
+    }
+
+    public int getMaxMessageFilterNumForNotification() {
+        return maxMessageFilterNumForNotification;
+    }
+
+    public void setMaxMessageFilterNumForNotification(int maxMessageFilterNumForNotification) {
+        this.maxMessageFilterNumForNotification = maxMessageFilterNumForNotification;
     }
 }

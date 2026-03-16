@@ -249,7 +249,9 @@ public class MixAll {
         if (!Files.isDirectory(dir)) {
             throw new NotDirectoryException(dir.toString());
         }
-
+        if (isWindows()) {
+            return;
+        }
         try (FileChannel fc = FileChannel.open(dir, StandardOpenOption.READ)) {
             fc.force(true);
         }
@@ -574,6 +576,7 @@ public class MixAll {
 
     public static boolean topicAllowsLMQ(String topic) {
         return !topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+            && !topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)
             && !topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)
             && !topic.equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
     }

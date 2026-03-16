@@ -18,10 +18,17 @@
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.MessageQueue;
+import apache.rocketmq.v2.MessageType;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class GrpcConverterTest {
     @Test
@@ -37,5 +44,43 @@ public class GrpcConverterTest {
         assertThat(messageQueue.getTopic().getName()).isEqualTo(topic);
         assertThat(messageQueue.getBroker().getName()).isEqualTo(brokerName);
         assertThat(messageQueue.getId()).isEqualTo(queueId);
+    }
+
+    @Test
+    public void testBuildMessageWithLiteTopic() {
+        final String topic = "test-topic";
+        final String liteTopic = "test-lite-topic";
+        // Build a message with lite topic properties
+        MessageExt messageExt = new MessageExt();
+        messageExt.setTopic(topic);
+        messageExt.setBody("test-body".getBytes(StandardCharsets.UTF_8));
+        messageExt.setQueueId(1);
+        messageExt.setQueueOffset(100L);
+        messageExt.setBornTimestamp(System.currentTimeMillis());
+        messageExt.setStoreTimestamp(System.currentTimeMillis());
+        messageExt.setBornHost(new InetSocketAddress("127.0.0.1", 1234));
+        messageExt.setStoreHost(new InetSocketAddress("127.0.0.1", 5678));
+        messageExt.setReconsumeTimes(0);
+        messageExt.setMsgId("test-msg-id");
+
+        // Set lite topic property
+        MessageAccessor.setLiteTopic(messageExt, liteTopic);
+
+        // Convert message
+        GrpcConverter grpcConverter = GrpcConverter.getInstance();
+        apache.rocketmq.v2.Message grpcMessage = grpcConverter.buildMessage(messageExt);
+
+        // Verify basic properties
+        assertNotNull(grpcMessage);
+        assertEquals(topic, grpcMessage.getTopic().getName());
+        assertEquals("test-body", grpcMessage.getBody().toString(StandardCharsets.UTF_8));
+
+        // Verify lite topic in system properties
+        assertNotNull(grpcMessage.getSystemProperties());
+        assertTrue(grpcMessage.getSystemProperties().hasLiteTopic());
+        assertEquals(liteTopic, grpcMessage.getSystemProperties().getLiteTopic());
+
+        // Verify message type is LITE
+        assertEquals(MessageType.LITE, grpcMessage.getSystemProperties().getMessageType());
     }
 }

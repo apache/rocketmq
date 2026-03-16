@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.broker.config.v1;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class RocksDBOffsetSerializeWrapper extends RemotingSerializable {
-    private ConcurrentMap<Integer, Long> offsetTable = new ConcurrentHashMap(16);
+    private ConcurrentMap<Integer, Long> offsetTable = null;
 
     public ConcurrentMap<Integer, Long> getOffsetTable() {
         return offsetTable;

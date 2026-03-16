@@ -191,7 +191,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public long getDispatchFromPhyOffset() {
+    public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
         return dispatchFromPhyOffset;
     }
 
@@ -576,6 +576,16 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             return getLmqQueueOffset(topic, queueId);
         }
         return super.getMaxOffset(topic, queueId);
+    }
+
+    @Override
+    public int getLmqNum() {
+        return this.rocksDBConsumeQueueOffsetTable.getLmqNum();
+    }
+
+    @Override
+    public boolean isLmqExist(String lmqTopic) {
+        return MixAll.isLmq(lmqTopic) ? this.rocksDBConsumeQueueOffsetTable.isLmqExist(lmqTopic) : false;
     }
 
     public boolean isStopped() {

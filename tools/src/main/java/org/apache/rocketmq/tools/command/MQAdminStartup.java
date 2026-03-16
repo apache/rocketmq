@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.tools.command;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
@@ -78,6 +80,12 @@ import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
 import org.apache.rocketmq.tools.command.export.ExportPopRecordCommand;
 import org.apache.rocketmq.tools.command.ha.GetSyncStateSetSubCommand;
 import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetBrokerLiteInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetLiteClientInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetLiteGroupInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetLiteTopicInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.GetParentTopicInfoSubCommand;
+import org.apache.rocketmq.tools.command.lite.TriggerLiteDispatchSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.DumpCompactionLogCommand;
@@ -115,9 +123,6 @@ import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicListSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MQAdminStartup {
     protected static final List<SubCommand> SUB_COMMANDS = new ArrayList<>();
@@ -300,6 +305,14 @@ public class MQAdminStartup {
         initCommand(new RocksDBConfigToJsonCommand());
         initCommand(new CheckRocksdbCqWriteProgressCommand());
         initCommand(new SwitchTimerEngineSubCommand());
+
+        // lite topic related
+        initCommand(new GetBrokerLiteInfoSubCommand());
+        initCommand(new GetParentTopicInfoSubCommand());
+        initCommand(new GetLiteTopicInfoSubCommand());
+        initCommand(new GetLiteClientInfoSubCommand());
+        initCommand(new GetLiteGroupInfoSubCommand());
+        initCommand(new TriggerLiteDispatchSubCommand());
     }
 
     private static void printHelp() {
