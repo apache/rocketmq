@@ -152,6 +152,7 @@ public class DefaultMetadataStore extends ConfigManager implements MetadataStore
     @Override
     public void deleteTopic(String topic) {
         topicMetadataTable.remove(topic);
+        queueMetadataTable.remove(topic);
         persist();
     }
 
