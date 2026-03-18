@@ -321,18 +321,18 @@ public class IndexRocksDBStore implements CommitLogDispatchStore {
         private void pollIndexRecord() {
             try {
                 IndexRocksDBRecord firstReq = originIndexMsgQueue.poll(100, TimeUnit.MILLISECONDS);
-                if (null != firstReq) {
-                    irs.add(firstReq);
-                    while (true) {
-                        IndexRocksDBRecord tmpReq = originIndexMsgQueue.poll(100, TimeUnit.MILLISECONDS);
-                        if (null == tmpReq) {
-                            break;
-                        }
-                        irs.add(tmpReq);
-                        if (irs.size() >= BATCH_SIZE) {
-                            break;
-                        }
+                if (firstReq == null) {
+                    return;
+                }
+                irs.add(firstReq);
+                originIndexMsgQueue.drainTo(irs, BATCH_SIZE - irs.size());
+                while (irs.size() < BATCH_SIZE) {
+                    IndexRocksDBRecord tmpReq = originIndexMsgQueue.poll(100, TimeUnit.MILLISECONDS);
+                    if (tmpReq == null) {
+                        break;
                     }
+                    irs.add(tmpReq);
+                    originIndexMsgQueue.drainTo(irs, BATCH_SIZE - irs.size());
                 }
             } catch (Exception e) {
                 logError.error("IndexRocksDBStore IndexBuildService error: {}", e.getMessage());
