@@ -55,9 +55,10 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
         this.liteSharding = liteSharding;
     }
 
-    public void init() {
+    public boolean init() {
         this.messageStore = brokerController.getMessageStore();
         assert messageStore != null;
+        return true;
     }
 
     /**

@@ -106,7 +106,19 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         super(messageStore);
         messageStore.setNotifyMessageArriveInBatch(true);
 
-        this.storePath = StorePathConfigHelper.getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir());
+        String root = messageStoreConfig.getStorePathRootDir();
+        File checkFile;
+        if (messageStoreConfig.isUseSeparateStorePathForRocksdbCQ()) {
+            this.storePath = StorePathConfigHelper.getStorePathRocksDBConsumeQueue(root);
+            checkFile = new File(StorePathConfigHelper.getStorePathConsumeQueue(root) + File.separator + "CURRENT");
+        } else {
+            this.storePath = StorePathConfigHelper.getStorePathConsumeQueue(root);
+            checkFile = new File(StorePathConfigHelper.getStorePathRocksDBConsumeQueue(root) + File.separator + "CURRENT");
+        }
+        if (checkFile.isFile()) { // probably used rocksdb in original/separate path
+            throw new IllegalStateException("find RocksDBConsumeQueue in original/separate path, maybe incompatible config.");
+        }
+
         this.rocksDBStorage = new ConsumeQueueRocksDBStorage(messageStore, storePath);
         this.rocksDBConsumeQueueTable = new RocksDBConsumeQueueTable(rocksDBStorage, messageStore);
         this.rocksDBConsumeQueueOffsetTable = new RocksDBConsumeQueueOffsetTable(rocksDBConsumeQueueTable, rocksDBStorage, messageStore);

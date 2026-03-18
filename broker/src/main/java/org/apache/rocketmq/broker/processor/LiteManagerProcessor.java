@@ -54,6 +54,8 @@ import org.apache.rocketmq.remoting.protocol.header.GetLiteTopicInfoRequestHeade
 import org.apache.rocketmq.remoting.protocol.header.GetParentTopicInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.TriggerLiteDispatchRequestHeader;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.store.queue.CombineConsumeQueueStore;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -106,11 +108,17 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
         body.setCurrentLmqNum(brokerController.getMessageStore().getQueueStore().getLmqNum());
         body.setLiteSubscriptionCount(brokerController.getLiteSubscriptionRegistry().getActiveSubscriptionNum());
         body.setOrderInfoCount(brokerController.getPopLiteMessageProcessor().getConsumerOrderInfoManager().getOrderInfoCount());
-        body.setCqTableSize(brokerController.getMessageStore().getQueueStore().getConsumeQueueTable().size());
         body.setOffsetTableSize(brokerController.getConsumerOffsetManager().getOffsetTable().size());
         body.setEventMapSize(brokerController.getLiteEventDispatcher().getEventMapSize());
         body.setTopicMeta(LiteMetadataUtil.getTopicTtlMap(brokerController));
         body.setGroupMeta(LiteMetadataUtil.getSubscriberGroupMap(brokerController));
+
+        ConsumeQueueStoreInterface consumeQueueStore = brokerController.getMessageStore().getQueueStore();
+        if (consumeQueueStore instanceof CombineConsumeQueueStore
+            && brokerController.getMessageStoreConfig().isCombineCQUseRocksdbForLmq()) {
+            consumeQueueStore = ((CombineConsumeQueueStore) consumeQueueStore).getRocksDBConsumeQueueStore(); // not null
+        }
+        body.setCqTableSize(consumeQueueStore.getConsumeQueueTable().size());
 
         response.setBody(body.encode());
         response.setCode(ResponseCode.SUCCESS);

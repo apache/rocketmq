@@ -37,6 +37,20 @@ import java.util.concurrent.ConcurrentMap;
 
 public class LiteTestUtil {
 
+    public static MessageStore buildMessageStore(final BrokerConfig brokerConfig,
+        MessageStoreConfig storeConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable,
+        boolean isRocksDBStore) throws Exception {
+
+        BrokerStatsManager brokerStatsManager = new BrokerStatsManager(brokerConfig);
+        MessageStore messageStore;
+        if (isRocksDBStore) {
+            messageStore = new RocksDBMessageStore(storeConfig, brokerStatsManager, null, brokerConfig, topicConfigTable);
+        } else {
+            messageStore = new DefaultMessageStore(storeConfig, brokerStatsManager, null, brokerConfig, topicConfigTable);
+        }
+        return messageStore;
+    }
+
     public static MessageStore buildMessageStore(String storePathRootDir, final BrokerConfig brokerConfig,
         final ConcurrentMap<String, TopicConfig> topicConfigTable, boolean isRocksDBStore) throws Exception {
         MessageStoreConfig storeConfig = new MessageStoreConfig();
@@ -51,14 +65,7 @@ public class LiteTestUtil {
         storeConfig.setEnableMultiDispatch(true);
         storeConfig.setStorePathRootDir(storePathRootDir);
 
-        BrokerStatsManager brokerStatsManager = new BrokerStatsManager(brokerConfig);
-        MessageStore messageStore;
-        if (isRocksDBStore) {
-            messageStore = new RocksDBMessageStore(storeConfig, brokerStatsManager, null, brokerConfig, topicConfigTable);
-        } else {
-            messageStore = new DefaultMessageStore(storeConfig, brokerStatsManager, null, brokerConfig, topicConfigTable);
-        }
-        return messageStore;
+        return buildMessageStore(brokerConfig, storeConfig, topicConfigTable, isRocksDBStore);
     }
 
     public static MessageExtBrokerInner buildMessage(String parentTopic, String liteTopic) {
