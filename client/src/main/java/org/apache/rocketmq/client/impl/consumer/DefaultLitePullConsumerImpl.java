@@ -954,6 +954,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 long offset = 0L;
                 try {
                     offset = nextPullOffset(messageQueue);
+                    if (offset < 0) {
+                        throw new MQClientException(ResponseCode.SYSTEM_ERROR, "Unexpected offset " + offset);
+                    }
                 } catch (Exception e) {
                     log.error("Failed to get next pull offset", e);
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_ON_EXCEPTION, TimeUnit.MILLISECONDS);
