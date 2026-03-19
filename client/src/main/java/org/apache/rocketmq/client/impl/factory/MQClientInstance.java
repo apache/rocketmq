@@ -96,6 +96,7 @@ import static org.apache.rocketmq.remoting.rpc.ClientMetadata.topicRouteData2End
 
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
+    private final static long RESET_OFFSET_MAX_WAIT = 10;
     private final static Logger log = LoggerFactory.getLogger(MQClientInstance.class);
     private final ClientConfig clientConfig;
     private final String clientId;
@@ -1380,9 +1381,11 @@ public class MQClientInstance {
                 }
             }
 
-            try {
-                TimeUnit.SECONDS.sleep(10);
-            } catch (InterruptedException ignored) {
+            if (!consumer.isConsumeOrderly()) {
+                try {
+                    TimeUnit.SECONDS.sleep(RESET_OFFSET_MAX_WAIT);
+                } catch (InterruptedException ignored) {
+                }
             }
 
             Iterator<MessageQueue> iterator = processQueueTable.keySet().iterator();
@@ -1391,8 +1394,10 @@ public class MQClientInstance {
                 Long offset = offsetTable.get(mq);
                 if (topic.equals(mq.getTopic()) && offset != null) {
                     try {
+                        ProcessQueue pq = processQueueTable.get(mq);
+                        waitResetOffsetReady(consumer, pq);
                         consumer.updateConsumeOffset(mq, offset);
-                        consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, processQueueTable.get(mq));
+                        consumer.getRebalanceImpl().removeUnnecessaryMessageQueue(mq, pq);
                         iterator.remove();
                     } catch (Exception e) {
                         log.warn("reset offset failed. group={}, {}", group, mq, e);
@@ -1402,6 +1407,22 @@ public class MQClientInstance {
         } finally {
             if (consumer != null) {
                 consumer.resume();
+            }
+        }
+    }
+
+    private void waitResetOffsetReady(DefaultMQPushConsumerImpl consumer, ProcessQueue pq) {
+        if (consumer.isConsumeOrderly()) {
+            Lock lock = pq.getConsumeLock().writeLock();
+            boolean locked = false;
+            try {
+                locked = lock.tryLock(RESET_OFFSET_MAX_WAIT, TimeUnit.SECONDS);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            } finally {
+                if (locked) {
+                    lock.unlock();
+                }
             }
         }
     }
