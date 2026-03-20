@@ -1158,7 +1158,7 @@ public class MQClientInstance {
         this.unregisterClient(group, null);
     }
 
-    public boolean registerAdminExt(final String group, final MQAdminExtInner admin) {
+    public synchronized boolean registerAdminExt(final String group, final MQAdminExtInner admin) {
         if (null == group || null == admin) {
             return false;
         }

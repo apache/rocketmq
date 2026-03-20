@@ -74,7 +74,11 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -228,6 +232,45 @@ public class MQClientInstanceTest {
         mqClientInstance.unregisterAdminExt(group);
         flag = mqClientInstance.registerAdminExt(group, mock(MQAdminExtInner.class));
         assertThat(flag).isTrue();
+    }
+
+    @Test
+    public void testRegisterAdminExtConcurrently() throws Exception {
+        final int threadCount = 10;
+        final String testGroup = "ConcurrentAdminGroup";
+        final CountDownLatch startLatch = new CountDownLatch(1);
+        final CountDownLatch endLatch = new CountDownLatch(threadCount);
+        final AtomicInteger successCount = new AtomicInteger(0);
+        final AtomicInteger failCount = new AtomicInteger(0);
+
+        ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            executorService.submit(() -> {
+                try {
+                    startLatch.await();
+                    boolean result = mqClientInstance.registerAdminExt(testGroup, mock(MQAdminExtInner.class));
+                    if (result) {
+                        successCount.incrementAndGet();
+                    } else {
+                        failCount.incrementAndGet();
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    endLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        endLatch.await(10, TimeUnit.SECONDS);
+        executorService.shutdown();
+
+        assertEquals(1, successCount.get());
+        assertEquals(threadCount - 1, failCount.get());
+
+        mqClientInstance.unregisterAdminExt(testGroup);
     }
 
     @Test
