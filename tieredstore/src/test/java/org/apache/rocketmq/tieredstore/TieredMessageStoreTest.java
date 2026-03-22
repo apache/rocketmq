@@ -238,7 +238,21 @@ public class TieredMessageStoreTest {
         Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
         Assert.assertEquals(100L, currentStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
 
-        Mockito.when(flatFile.getConsumeQueueMinOffset()).thenReturn(10L);
+        Assert.assertEquals(flatFile.getConsumeQueueMinOffset(),
+            currentStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
+
+        FlatFileStore mockFlatFileStore = Mockito.mock(FlatFileStore.class);
+        FlatMessageFile mockFlatFile = Mockito.mock(FlatMessageFile.class);
+        Mockito.when(mockFlatFileStore.getFlatFile(any(MessageQueue.class))).thenReturn(mockFlatFile);
+        Mockito.when(mockFlatFile.getConsumeQueueMinOffset()).thenReturn(10L);
+        Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(-1L);
+        try {
+            Field field = currentStore.getClass().getDeclaredField("flatFileStore");
+            field.setAccessible(true);
+            field.set(currentStore, mockFlatFileStore);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            Assert.fail(e.getClass().getCanonicalName() + ": " + e.getMessage());
+        }
         Assert.assertEquals(10L, currentStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
     }
 
