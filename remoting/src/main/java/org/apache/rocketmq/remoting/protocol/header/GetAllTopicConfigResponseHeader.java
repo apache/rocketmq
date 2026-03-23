@@ -24,7 +24,6 @@ import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
@@ -35,7 +34,6 @@ public class GetAllTopicConfigResponseHeader implements CommandCustomHeader {
     public void checkFields() throws RemotingCommandException {
     }
 
-    @CFNotNull
     private Integer totalTopicNum;
 
     public Integer getTotalTopicNum() {

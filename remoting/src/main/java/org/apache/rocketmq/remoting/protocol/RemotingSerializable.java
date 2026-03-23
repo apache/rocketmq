@@ -30,8 +30,7 @@ public abstract class RemotingSerializable {
         if (obj == null) {
             return null;
         }
-        final String json = toJson(obj, false);
-        return json.getBytes(CHARSET_UTF8);
+        return JSON.toJSONBytes(obj, CHARSET_UTF8);
     }
 
     public static String toJson(final Object obj, boolean prettyFormat) {
@@ -45,31 +44,22 @@ public abstract class RemotingSerializable {
         if (data == null) {
             return null;
         }
-        return fromJson(data, classOfT);
+        return JSON.parseObject(data, classOfT);
     }
 
     public static <T> List<T> decodeList(final byte[] data, Class<T> classOfT) {
         if (data == null) {
             return null;
         }
-        String json = new String(data, CHARSET_UTF8);
-        return JSON.parseArray(json, classOfT);
+        return JSON.parseArray(data, 0, data.length, CHARSET_UTF8, classOfT);
     }
 
     public static <T> T fromJson(String json, Class<T> classOfT) {
         return JSON.parseObject(json, classOfT);
     }
 
-    private static <T> T fromJson(byte[] data, Class<T> classOfT) {
-        return JSON.parseObject(data, classOfT);
-    }
-
     public byte[] encode() {
-        final String json = this.toJson();
-        if (json != null) {
-            return json.getBytes(CHARSET_UTF8);
-        }
-        return null;
+        return JSON.toJSONBytes(this, CHARSET_UTF8);
     }
 
     /**
@@ -79,8 +69,7 @@ public abstract class RemotingSerializable {
      * @return serialized data.
      */
     public byte[] encode(JSONWriter.Feature... features) {
-        final String json = JSON.toJSONString(this, features);
-        return json.getBytes(CHARSET_UTF8);
+        return JSON.toJSONBytes(this, CHARSET_UTF8, features);
     }
 
     public String toJson() {

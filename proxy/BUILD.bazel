@@ -75,7 +75,7 @@ java_library(
         "src/test/resources/rmq-proxy-home/conf/broker.conf",
         "src/test/resources/rmq-proxy-home/conf/logback_proxy.xml",
         "src/test/resources/rmq-proxy-home/conf/rmq-proxy.json",
-    ],
+    ] + glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"]),
     visibility = ["//visibility:public"],
     deps = [
 	    "//auth",
