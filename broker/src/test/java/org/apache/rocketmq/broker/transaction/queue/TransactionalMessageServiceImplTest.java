@@ -179,6 +179,73 @@ public class TransactionalMessageServiceImplTest {
         assertThat(isOpen).isTrue();
     }
 
+    @Test
+    public void testCheck_putBackFailedShouldNotInfiniteLoop() {
+        // This test verifies that when putBackHalfMsgQueue fails, the check method should not enter an infinite loop
+        // The check should retry 3 times and then skip the message to continue processing subsequent messages
+        
+        when(bridge.fetchMessageQueues(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC)).thenReturn(createMessageQueueSet(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC));
+        // Create a message that needs to be checked (old enough)
+        when(bridge.getHalfMessage(0, 0, 1)).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 5, "hello", 1));
+        when(bridge.getHalfMessage(0, 1, 1)).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 6, "hello2", 0));
+        when(bridge.getOpMessage(anyInt(), anyLong(), anyInt())).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, 1, "5", 0));
+        when(bridge.getBrokerController()).thenReturn(this.brokerController);
+        when(bridge.renewHalfMessageInner(any(MessageExtBrokerInner.class))).thenReturn(createMessageBrokerInner());
+        // Simulate putBack failure - return PUT_FAILED status
+        when(bridge.putMessageReturnResult(any(MessageExtBrokerInner.class)))
+                .thenReturn(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
+        // Mock fetchConsumeOffset to return valid offset
+        when(bridge.fetchConsumeOffset(any(MessageQueue.class))).thenReturn(0L);
+        
+        long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
+        final int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
+        
+        // This should complete without getting stuck in an infinite loop
+        long startTime = System.currentTimeMillis();
+        queueTransactionMsgService.check(timeOut, checkMax, listener);
+        long elapsedTime = System.currentTimeMillis() - startTime;
+        
+        // The check should complete quickly (within a few seconds), not run for MAX_PROCESS_TIME_LIMIT (60s)
+        assertThat(elapsedTime).isLessThan(5000L);
+        // Verify that putMessageReturnResult was called 3 times (retry limit)
+        verify(bridge, org.mockito.Mockito.times(3)).putMessageReturnResult(any(MessageExtBrokerInner.class));
+    }
+
+    @Test
+    public void testCheck_putBackSucceedsAfterRetry() {
+        // This test verifies that if putBackHalfMsgQueue succeeds after retry, the check continues normally
+        
+        when(bridge.fetchMessageQueues(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC)).thenReturn(createMessageQueueSet(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC));
+        when(bridge.getHalfMessage(0, 0, 1)).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 5, "hello", 1));
+        when(bridge.getHalfMessage(0, 1, 1)).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC, 6, "hello2", 0));
+        when(bridge.getOpMessage(anyInt(), anyLong(), anyInt())).thenReturn(createPullResult(TopicValidator.RMQ_SYS_TRANS_OP_HALF_TOPIC, 1, "5", 0));
+        when(bridge.getBrokerController()).thenReturn(this.brokerController);
+        when(bridge.renewHalfMessageInner(any(MessageExtBrokerInner.class))).thenReturn(createMessageBrokerInner());
+        when(bridge.fetchConsumeOffset(any(MessageQueue.class))).thenReturn(0L);
+        
+        // First call fails, second call succeeds
+        org.mockito.Mockito.when(bridge.putMessageReturnResult(any(MessageExtBrokerInner.class)))
+                .thenReturn(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null))
+                .thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
+        
+        long timeOut = this.brokerController.getBrokerConfig().getTransactionTimeOut();
+        final int checkMax = this.brokerController.getBrokerConfig().getTransactionCheckMax();
+        
+        final AtomicInteger checkMessage = new AtomicInteger(0);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) {
+                checkMessage.addAndGet(1);
+                return checkMessage;
+            }
+        }).when(listener).resolveHalfMsg(any(MessageExt.class));
+        
+        queueTransactionMsgService.check(timeOut, checkMax, listener);
+        
+        // resolveHalfMsg should be called once since putBack succeeded on retry
+        assertThat(checkMessage.get()).isEqualTo(1);
+    }
+
     private PullResult createDiscardPullResult(String topic, long queueOffset, String body, int size) {
         PullResult result = createPullResult(topic, queueOffset, body, size);
         List<MessageExt> msgs = result.getMsgFoundList();
