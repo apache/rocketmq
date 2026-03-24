@@ -236,8 +236,8 @@ public class PopConsumerService extends ServiceThread {
     public CompletableFuture<GetMessageResult> getMessageAsync(String clientHost,
         String groupId, String topicId, int queueId, long offset, int batchSize, MessageFilter filter) {
 
-        log.debug("PopConsumerService getMessageAsync, groupId={}, topicId={}, queueId={}, offset={}, batchSize={}, filter={}",
-            groupId, topicId, offset, queueId, batchSize, filter != null);
+        log.debug("PopConsumerService getMessageAsync, groupId={}, topicId={}, queueId={}, " +
+            "offset={}, batchSize={}, filter={}", groupId, topicId, queueId, offset, batchSize, filter != null);
 
         CompletableFuture<GetMessageResult> getMessageFuture =
             brokerController.getMessageStore().getMessageAsync(groupId, topicId, queueId, offset, batchSize, filter);
@@ -552,7 +552,7 @@ public class PopConsumerService extends ServiceThread {
 
     @SuppressWarnings("StatementWithEmptyBody")
     public void clearCache(String groupId, String topicId, int queueId) {
-        while (consumerLockService.tryLock(groupId, topicId)) {
+        while (!consumerLockService.tryLock(groupId, topicId)) {
         }
         try {
             if (popConsumerCache != null) {
@@ -592,7 +592,7 @@ public class PopConsumerService extends ServiceThread {
                 if (!result) {
                     if (record.getAttemptTimes() < brokerConfig.getPopReviveMaxAttemptTimes()) {
                         long backoffInterval = 1000L * REWRITE_INTERVALS_IN_SECONDS[
-                            Math.min(REWRITE_INTERVALS_IN_SECONDS.length, record.getAttemptTimes())];
+                            Math.min(REWRITE_INTERVALS_IN_SECONDS.length - 1, record.getAttemptTimes())];
                         long nextInvisibleTime = record.getInvisibleTime() + backoffInterval;
                         PopConsumerRecord retryRecord = new PopConsumerRecord(System.currentTimeMillis(),
                             record.getGroupId(), record.getTopicId(), record.getQueueId(),
@@ -760,7 +760,7 @@ public class PopConsumerService extends ServiceThread {
                     ck.setQueueId(record.getQueueId());
                     ck.setBrokerName(brokerConfig.getBrokerName());
                     ck.addDiff(0);
-                    ck.setRePutTimes(ck.getRePutTimes());
+                    ck.setRePutTimes(String.valueOf(record.getAttemptTimes()));
                     int reviveQueueId = (int) record.getOffset() % brokerConfig.getReviveQueueNum();
                     MessageExtBrokerInner ckMsg =
                         brokerController.getPopMessageProcessor().buildCkMsg(ck, reviveQueueId);
