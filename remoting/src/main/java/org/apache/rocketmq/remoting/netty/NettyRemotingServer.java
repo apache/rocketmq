@@ -124,7 +124,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     protected final NettyEncoder encoder = new NettyEncoder();
     protected final NettyConnectManageHandler connectionManageHandler = new NettyConnectManageHandler();
     protected final NettyServerHandler serverHandler = new NettyServerHandler();
-    protected final RemotingCodeDistributionHandler distributionHandler = new RemotingCodeDistributionHandler();
+    protected final RemotingCodeDistributionHandler distributionHandler;
 
     public NettyRemotingServer(final NettyServerConfig nettyServerConfig) {
         this(nettyServerConfig, null);
@@ -136,6 +136,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         this.serverBootstrap = new ServerBootstrap();
         this.nettyServerConfig = nettyServerConfig;
         this.channelEventListener = channelEventListener;
+        this.distributionHandler = new RemotingCodeDistributionHandler(nettyServerConfig);
 
         this.publicExecutor = buildPublicExecutor(nettyServerConfig);
         this.scheduledExecutorService = buildScheduleExecutor();
@@ -425,6 +426,18 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             if (outBoundSnapshotString != null) {
                 TRAFFIC_LOGGER.info("Port: {}, ResponseCode Distribution: {}",
                     nettyServerConfig.getListenPort(), outBoundSnapshotString);
+            }
+
+            String inBoundTrafficSnapshotString = distributionHandler.getInBoundTrafficSnapshotString();
+            if (inBoundTrafficSnapshotString != null) {
+                TRAFFIC_LOGGER.info("Port: {}, RequestCode Traffic(byte): {}",
+                    nettyServerConfig.getListenPort(), inBoundTrafficSnapshotString);
+            }
+
+            String outBoundTrafficSnapshotString = distributionHandler.getOutBoundTrafficSnapshotString();
+            if (outBoundTrafficSnapshotString != null) {
+                TRAFFIC_LOGGER.info("Port: {}, ResponseCode Traffic(byte): {}",
+                    nettyServerConfig.getListenPort(), outBoundTrafficSnapshotString);
             }
         }
     }

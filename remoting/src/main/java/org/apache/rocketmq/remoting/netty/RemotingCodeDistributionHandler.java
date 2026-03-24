@@ -30,29 +30,71 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 @ChannelHandler.Sharable
 public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
 
-    private final ConcurrentMap<Integer, LongAdder> inboundDistribution;
-    private final ConcurrentMap<Integer, LongAdder> outboundDistribution;
+    private final ConcurrentMap<Integer, TrafficStats> inboundStats;
+    private final ConcurrentMap<Integer, TrafficStats> outboundStats;
+    private final NettyServerConfig nettyServerConfig;
 
-    public RemotingCodeDistributionHandler() {
-        inboundDistribution = new ConcurrentHashMap<>();
-        outboundDistribution = new ConcurrentHashMap<>();
+    public RemotingCodeDistributionHandler(NettyServerConfig nettyServerConfig) {
+        this.inboundStats = new ConcurrentHashMap<>();
+        this.outboundStats = new ConcurrentHashMap<>();
+        this.nettyServerConfig = nettyServerConfig;
     }
 
-    private void countInbound(int requestCode) {
-        LongAdder item = inboundDistribution.computeIfAbsent(requestCode, k -> new LongAdder());
-        item.increment();
+    void recordInbound(RemotingCommand cmd) {
+        TrafficStats stats = inboundStats.computeIfAbsent(cmd.getCode(), k -> new TrafficStats());
+        stats.count.increment();
+        stats.trafficSize.add(calcCommandSize(cmd));
     }
 
-    private void countOutbound(int responseCode) {
-        LongAdder item = outboundDistribution.computeIfAbsent(responseCode, k -> new LongAdder());
-        item.increment();
+    void recordOutbound(RemotingCommand cmd) {
+        TrafficStats stats = outboundStats.computeIfAbsent(cmd.getCode(), k -> new TrafficStats());
+        stats.count.increment();
+        stats.trafficSize.add(calcCommandSize(cmd));
+    }
+
+    /**
+     * Protocol fixed overhead in bytes:
+     * <pre>
+     * frameHeader:  totalLen(4) + headerLenMark(4) = 8
+     * fixedHeader:  code(2) + language(1) + version(2) + opaque(4) + flag(4)
+     *            + remarkLenPrefix(4) + extFieldsLenPrefix(4) = 21
+     * </pre>
+     */
+    static final int FIXED_OVERHEAD = 4 + 4 + 2 + 1 + 2 + 4 + 4 + 4 + 4;
+
+    private int calcCommandSize(RemotingCommand cmd) {
+        int size = FIXED_OVERHEAD;
+        byte[] body = cmd.getBody();
+        if (body != null) {
+            size += body.length;
+        }
+        if (nettyServerConfig.isEnableDetailedTrafficSize()) {
+            size += calcHeaderVariableSize(cmd);
+        }
+        return size;
+    }
+
+    private int calcHeaderVariableSize(RemotingCommand cmd) {
+        int size = 0;
+        String remark = cmd.getRemark();
+        if (remark != null) {
+            size += remark.length();
+        }
+        HashMap<String, String> extFields = cmd.getExtFields();
+        if (extFields != null) {
+            for (Map.Entry<String, String> entry : extFields.entrySet()) {
+                if (entry.getKey() != null && entry.getValue() != null) {
+                    size += 2 + entry.getKey().length() + 4 + entry.getValue().length();
+                }
+            }
+        }
+        return size;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof RemotingCommand) {
-            RemotingCommand cmd = (RemotingCommand) msg;
-            countInbound(cmd.getCode());
+            recordInbound((RemotingCommand) msg);
         }
         ctx.fireChannelRead(msg);
     }
@@ -60,16 +102,23 @@ public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         if (msg instanceof RemotingCommand) {
-            RemotingCommand cmd = (RemotingCommand) msg;
-            countOutbound(cmd.getCode());
+            recordOutbound((RemotingCommand) msg);
         }
         ctx.write(msg, promise);
     }
 
-    private Map<Integer, Long> getDistributionSnapshot(Map<Integer, LongAdder> countMap) {
-        Map<Integer, Long> map = new HashMap<>(countMap.size());
-        for (Map.Entry<Integer, LongAdder> entry : countMap.entrySet()) {
-            map.put(entry.getKey(), entry.getValue().sumThenReset());
+    private Map<Integer, Long> getCountSnapshot(ConcurrentMap<Integer, TrafficStats> statsMap) {
+        Map<Integer, Long> map = new HashMap<>(statsMap.size());
+        for (Map.Entry<Integer, TrafficStats> entry : statsMap.entrySet()) {
+            map.put(entry.getKey(), entry.getValue().count.sumThenReset());
+        }
+        return map;
+    }
+
+    private Map<Integer, Long> getTrafficSnapshot(ConcurrentMap<Integer, TrafficStats> statsMap) {
+        Map<Integer, Long> map = new HashMap<>(statsMap.size());
+        for (Map.Entry<Integer, TrafficStats> entry : statsMap.entrySet()) {
+            map.put(entry.getKey(), entry.getValue().trafficSize.sumThenReset());
         }
         return map;
     }
@@ -95,10 +144,23 @@ public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
     }
 
     public String getInBoundSnapshotString() {
-        return this.snapshotToString(this.getDistributionSnapshot(this.inboundDistribution));
+        return this.snapshotToString(this.getCountSnapshot(this.inboundStats));
     }
 
     public String getOutBoundSnapshotString() {
-        return this.snapshotToString(this.getDistributionSnapshot(this.outboundDistribution));
+        return this.snapshotToString(this.getCountSnapshot(this.outboundStats));
+    }
+
+    public String getInBoundTrafficSnapshotString() {
+        return this.snapshotToString(this.getTrafficSnapshot(this.inboundStats));
+    }
+
+    public String getOutBoundTrafficSnapshotString() {
+        return this.snapshotToString(this.getTrafficSnapshot(this.outboundStats));
+    }
+
+    static class TrafficStats {
+        final LongAdder count = new LongAdder();
+        final LongAdder trafficSize = new LongAdder();
     }
 }
