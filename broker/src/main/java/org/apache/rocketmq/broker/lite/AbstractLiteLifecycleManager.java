@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.lite;
 
 import com.google.common.collect.Sets;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
@@ -32,6 +33,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR;
 
@@ -41,6 +44,7 @@ import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROU
  */
 public abstract class AbstractLiteLifecycleManager extends ServiceThread {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
+    private static final int MAX_INVALID_SCAN_COUNT = 5;
 
     protected final BrokerController brokerController;
     protected final String brokerName;
@@ -48,6 +52,7 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
     protected MessageStore messageStore;
     protected Map<String, Integer> ttlMap = Collections.emptyMap();
     protected Map<String, Set<String>> subscriberGroupMap = Collections.emptyMap();
+    protected Map<String, Integer> invalidScanCountMap = new ConcurrentHashMap<>();
 
     public AbstractLiteLifecycleManager(BrokerController brokerController, LiteSharding liteSharding) {
         this.brokerController = brokerController;
@@ -76,6 +81,15 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
      * return lmq name list, not null
      */
     public abstract List<String> collectByParentTopic(String parentTopic);
+
+    /**
+     * Iterator of lite topic, for high frequency iteration
+     * Triple<lmqName, maxOffsetInQueue, lastStoreTimestamp>, lastStoreTimestamp is null for now
+     * return true to continue, false to break.
+     *
+     * @param function consumer func
+     */
+    public abstract void forEachLiteTopic(Function<Triple<String, Long, Long>, Boolean> function);
 
     /**
      * Check if the subscription for the given LMQ is active.
@@ -153,8 +167,16 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
             return false;
         }
         if (maxOffset <= 0) {
-            LOGGER.warn("unexpected condition, max offset <= 0, {}, {}", lmqName, maxOffset);
+            int invalidCount = invalidScanCountMap.getOrDefault(lmqName, 0) + 1;
+            LOGGER.warn("unexpected condition, max offset <= 0, {}, {}, scanCount:{}", lmqName, maxOffset, invalidCount);
+            if (invalidCount > MAX_INVALID_SCAN_COUNT) { // check more times in case of  concurrent issue
+                invalidScanCountMap.remove(lmqName);
+                return true;
+            }
+            invalidScanCountMap.put(lmqName, invalidCount);
             return false;
+        } else {
+            invalidScanCountMap.remove(lmqName);
         }
         long latestStoreTime =
             this.brokerController.getMessageStore().getMessageStoreTimeStamp(lmqName, 0, maxOffset - 1);

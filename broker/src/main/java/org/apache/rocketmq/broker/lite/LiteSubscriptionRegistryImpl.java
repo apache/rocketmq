@@ -18,17 +18,23 @@
 package org.apache.rocketmq.broker.lite;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import io.netty.channel.Channel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -47,8 +53,11 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     protected final ConcurrentMap<String/*clientId*/, Channel> clientChannels = new ConcurrentHashMap<>();
     protected final ConcurrentMap<String/*clientId*/, LiteSubscription> client2Subscription = new ConcurrentHashMap<>();
     protected final ConcurrentMap<String/*lmqName*/, Set<ClientGroup>> liteTopic2Group = new ConcurrentHashMap<>();
+    protected final ConcurrentMap<String/*topic*/, Set<String/*group*/>> wildcardGroupMap = new ConcurrentHashMap<>();
+    private final Cache<String/*group*/, List<ClientGroup>> wildcardClientCache =
+        CacheBuilder.newBuilder().maximumSize(2000).expireAfterWrite(30, TimeUnit.SECONDS).build();
 
-    private final List<LiteCtlListener> listeners = new ArrayList<>();
+    protected final List<LiteCtlListener> listeners = new ArrayList<>();
     private final BrokerController brokerController;
     private final AbstractLiteLifecycleManager liteLifecycleManager;
 
@@ -74,6 +83,9 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         if (getActiveSubscriptionNum() >= maxCount) {
             // No need to check existence, if reach here, it must be new.
             throw new LiteQuotaException("lite subscription quota exceeded " + maxCount);
+        }
+        if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
+            throw new IllegalStateException("subscribe lite operation is not supported for this group");
         }
 
         LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
@@ -106,9 +118,15 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
 
     @Override
     public void addCompleteSubscription(String clientId, String group, String topic, Set<String> lmqNameAll, long version) {
-        Set<String> lmqNameNew = lmqNameAll.stream()
-            .filter(lmqName -> liteLifecycleManager.isSubscriptionActive(topic, lmqName))
-            .collect(Collectors.toSet());
+        Set<String> lmqNameNew;
+        if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
+            lmqNameNew = Collections.singleton(mockLmqNameForWildcardGroup(topic, group));
+            markWildcardGroup(topic, group);
+        } else {
+            lmqNameNew = lmqNameAll.stream()
+                .filter(lmqName -> liteLifecycleManager.isSubscriptionActive(topic, lmqName))
+                .collect(Collectors.toSet());
+        }
 
         LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
         Set<String> lmqNamePrev = thisSub.getLiteTopicSet();
@@ -150,9 +168,54 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         listeners.add(listener);
     }
 
+    /**
+     * Get all subscribers for a specific LMQ, with optional group filtering.
+     * This method returns different types based on the subscription scenario:
+     * 1. When there's only one subscriber, return List<ClientGroup>
+     * 2. When group is specified, return List<ClientGroup> containing subscribers of that group
+     * 3. When group is null and multiple groups exist, return Map<String, List<ClientGroup>>
+     *    mapping each group to its subscribers
+     */
     @Override
-    public Set<ClientGroup> getSubscriber(String lmqName) {
-        return liteTopic2Group.get(lmqName);
+    public SubscriberWrapper getAllSubscriber(String group, String lmqName) {
+        String topic = LiteUtil.getParentTopic(lmqName);
+
+        if (group != null) {
+            if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
+                return getWildcardSubscriber(group, topic);
+            }
+            SubscriberWrapper.ListWrapper wrapper = new SubscriberWrapper.ListWrapper();
+            Set<ClientGroup> subscribers = liteTopic2Group.get(lmqName);
+            if (subscribers != null) {
+                wrapper.getClients().addAll(subscribers.stream()
+                    .filter(clientGroup -> group.equals(clientGroup.group))
+                    .collect(Collectors.toSet()));
+            }
+            return wrapper;
+        } else {
+            SubscriberWrapper.MapWrapper wrapper = new SubscriberWrapper.MapWrapper();
+            Set<ClientGroup> subscribers = liteTopic2Group.get(lmqName);
+            if (subscribers != null) {
+                for (ClientGroup clientGroup : subscribers) {
+                    wrapper.getGroupMap().computeIfAbsent(clientGroup.group, k -> new ArrayList<>()).add(clientGroup);
+                }
+            }
+            Set<String> wildcardGroups = wildcardGroupMap.get(topic);
+            if (wildcardGroups != null) {
+                for (String wildcardGroup : wildcardGroups) {
+                    List<ClientGroup> wildcardClients = getWildcardGroupClients(topic, wildcardGroup);
+                    if (CollectionUtils.isNotEmpty(wildcardClients)) {
+                        wrapper.getGroupMap().putIfAbsent(wildcardGroup, wildcardClients);
+                    }
+                }
+            }
+            return wrapper;
+        }
+    }
+
+    @Override
+    public SubscriberWrapper.ListWrapper getWildcardSubscriber(String group, String topic) {
+        return new SubscriberWrapper.ListWrapper(getWildcardGroupClients(topic, group));
     }
 
     /**
@@ -186,6 +249,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             .computeIfAbsent(lmqName, k -> ConcurrentHashMap.newKeySet());
         if (topicGroupSet.add(clientGroup)) {
             activeNum.incrementAndGet();
+            invalidateWildcardCacheIfNecessary(clientGroup.group);
             for (LiteCtlListener listener : listeners) {
                 listener.onRegister(clientGroup.clientId, clientGroup.group, lmqName);
             }
@@ -199,6 +263,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
         if (topicGroupSet.remove(clientGroup)) {
             activeNum.decrementAndGet();
+            invalidateWildcardCacheIfNecessary(clientGroup.group);
             for (LiteCtlListener listener : listeners) {
                 listener.onUnregister(clientGroup.clientId, clientGroup.group, lmqName);
             }
@@ -209,6 +274,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
         if (topicGroupSet.isEmpty()) {
             liteTopic2Group.remove(lmqName);
+            unmarkWildcardGroupIfNecessary(lmqName);
         }
     }
 
@@ -228,6 +294,10 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             LiteSubscription liteSubscription = client2Subscription.get(clientGroup.clientId);
             if (liteSubscription != null) {
                 liteSubscription.removeLiteTopic(lmqName);
+                // remove client if no more liteTopic
+                if (liteSubscription.getLiteTopicSet().isEmpty()) {
+                    client2Subscription.remove(clientGroup.clientId);
+                }
             }
             notifyUnsubscribeLite(clientGroup.clientId, clientGroup.group, lmqName);
             boolean resetOffset = LiteMetadataUtil.isResetOffsetInExclusiveMode(group, brokerController);
@@ -240,7 +310,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     /**
      * Notify the client to remove the liteTopic subscription from its local memory
      */
-    private void notifyUnsubscribeLite(String clientId, String group, String lmqName) {
+    protected void notifyUnsubscribeLite(String clientId, String group, String lmqName) {
         String topic = LiteUtil.getParentTopic(lmqName);
         String liteTopic = LiteUtil.getLiteTopic(lmqName);
         Channel channel = clientChannels.get(clientId);
@@ -316,6 +386,45 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             k -> new LiteSubscription().setGroup(group).setTopic(topic));
         assert curLiteSubscription != null;
         return curLiteSubscription;
+    }
+
+    private void invalidateWildcardCacheIfNecessary(String group) {
+        if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
+            wildcardClientCache.invalidate(group);
+        }
+    }
+
+    private void markWildcardGroup(String topic, String group) {
+        wildcardGroupMap.computeIfAbsent(topic, k -> ConcurrentHashMap.newKeySet()).add(group);
+    }
+
+    private void unmarkWildcardGroupIfNecessary(String lmqName) {
+        if (!LiteUtil.isLiteTopicQueue(lmqName)) { // must be topic@group
+            String[] topicAtGroup = StringUtils.split(lmqName);
+            if (null == topicAtGroup || topicAtGroup.length != 2) {
+                return;
+            }
+            wildcardGroupMap.computeIfPresent(topicAtGroup[0], (k, v) -> {
+                v.remove(topicAtGroup[1]);
+                return v.isEmpty() ? null : v;
+            });
+        }
+    }
+
+    private String mockLmqNameForWildcardGroup(String topic, String group) {
+        return topic + "@" + group;
+    }
+
+    private List<ClientGroup> getWildcardGroupClients(String topic, String group) {
+        List<ClientGroup> list = null;
+        try {
+            list = wildcardClientCache.get(group, () -> {
+                Set<ClientGroup> clientSet = liteTopic2Group.get(mockLmqNameForWildcardGroup(topic, group));
+                return clientSet != null ? new ArrayList<>(clientSet) : Collections.emptyList();
+            });
+        } catch (ExecutionException ignored) {
+        }
+        return list;
     }
 
     @Override

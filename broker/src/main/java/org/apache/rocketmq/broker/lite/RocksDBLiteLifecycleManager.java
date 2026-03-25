@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.lite;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -36,6 +37,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 public class RocksDBLiteLifecycleManager extends AbstractLiteLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
@@ -108,6 +110,26 @@ public class RocksDBLiteLifecycleManager extends AbstractLiteLifecycleManager {
             maxCqOffsetTable = Collections.unmodifiableMap(innerMaxCqOffsetTable);
         } catch (Exception e) {
             LOGGER.error("LiteLifecycleManager-init error", e);
+        }
+    }
+
+    @Override
+    public void forEachLiteTopic(Function<Triple<String, Long, Long>, Boolean> function) {
+        for (Map.Entry<String, Long> entry : maxCqOffsetTable.entrySet()) {
+            String queueAndQid = entry.getKey();
+            String queueName = queueAndQid.substring(0, queueAndQid.lastIndexOf("-"));
+            if (!LiteUtil.isLiteTopicQueue(queueName)) {
+                continue;
+            }
+            Triple<String, Long, Long> triple = Triple.of(queueName, entry.getValue() + 1, null);
+            try {
+                if (!function.apply(triple)) {
+                    break;
+                }
+            } catch (Throwable e) {
+                LOGGER.error("forEachLiteTopic error. {}", queueName, e);
+                break;
+            }
         }
     }
 }

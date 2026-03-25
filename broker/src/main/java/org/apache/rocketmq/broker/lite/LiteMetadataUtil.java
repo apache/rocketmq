@@ -103,6 +103,15 @@ public class LiteMetadataUtil {
         return groupConfig.getMaxClientEventCount();
     }
 
+    public static boolean isWildcardGroup(String group, BrokerController brokerController) {
+        if (null == group || null == brokerController) {
+            return false;
+        }
+        SubscriptionGroupConfig groupConfig =
+            brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
+        return groupConfig != null && groupConfig.isWildcardLiteGroup();
+    }
+
     public static Map<String, Integer> getTopicTtlMap(BrokerController brokerController) {
         if (null == brokerController) {
             return Collections.emptyMap();

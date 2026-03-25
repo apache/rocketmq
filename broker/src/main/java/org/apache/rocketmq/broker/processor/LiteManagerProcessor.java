@@ -19,6 +19,8 @@ package org.apache.rocketmq.broker.processor;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.netty.channel.ChannelHandlerContext;
+
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -26,10 +28,12 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.lite.AbstractLiteLifecycleManager;
 import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
 import org.apache.rocketmq.broker.lite.LiteSharding;
+import org.apache.rocketmq.broker.lite.SubscriberWrapper;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.entity.ClientGroup;
 import org.apache.rocketmq.common.lite.LiteLagInfo;
 import org.apache.rocketmq.common.lite.LiteSubscription;
 import org.apache.rocketmq.common.lite.LiteUtil;
@@ -58,6 +62,8 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class LiteManagerProcessor implements NettyRequestProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
@@ -190,7 +196,7 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
         GetLiteTopicInfoResponseBody body = new GetLiteTopicInfoResponseBody();
         body.setParentTopic(parentTopic);
         body.setLiteTopic(liteTopic);
-        body.setSubscriber(brokerController.getLiteSubscriptionRegistry().getSubscriber(lmqName));
+        body.setSubscriber(getSubscriber(lmqName));
         body.setTopicOffset(topicOffset);
         body.setShardingToBroker(brokerController.getBrokerConfig().getBrokerName().equals(
             liteSharding.shardingByLmqName(parentTopic, lmqName)));
@@ -366,7 +372,7 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
         }
 
         if (StringUtils.isNotEmpty(clientId)) {
-            brokerController.getLiteEventDispatcher().doFullDispatch(clientId, group);
+            brokerController.getLiteEventDispatcher().doFullDispatchForClient(clientId, group);
         } else {
             brokerController.getLiteEventDispatcher().doFullDispatchByGroup(group);
         }
@@ -374,6 +380,25 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
         return response;
+    }
+
+    @VisibleForTesting
+    public Set<ClientGroup> getSubscriber(String lmqName) {
+        SubscriberWrapper.MapWrapper wrapper =
+            brokerController.getLiteSubscriptionRegistry().getAllSubscriber(null, lmqName).asMapWrapper();
+        if (null == wrapper) {
+            return Collections.emptySet();
+        }
+        return wrapper.getGroupMap().entrySet().stream()
+            .flatMap(entry -> {
+                String group = entry.getKey();
+                if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
+                    return Stream.of(new ClientGroup("*", group));
+                } else {
+                    return entry.getValue().stream();
+                }
+            })
+            .collect(Collectors.toSet());
     }
 
     @Override

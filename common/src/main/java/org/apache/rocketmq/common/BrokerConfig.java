@@ -523,6 +523,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private long liteEventFullDispatchDelayTime = 10 * 1000;
 
+    private long liteEventFullDispatchDelayTimeForWildcardGroup = 10 * 1000;
+
     // lite metrics
     // whether to collect storeTime in popLiteProcessor
     private boolean liteLagLatencyCollectEnable = false;
@@ -2376,6 +2378,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setLiteEventFullDispatchDelayTime(long liteEventFullDispatchDelayTime) {
         this.liteEventFullDispatchDelayTime = liteEventFullDispatchDelayTime;
+    }
+
+    public long getLiteEventFullDispatchDelayTimeForWildcardGroup() {
+        return liteEventFullDispatchDelayTimeForWildcardGroup;
+    }
+
+    public void setLiteEventFullDispatchDelayTimeForWildcardGroup(long liteEventFullDispatchDelayTimeForWildcardGroup) {
+        this.liteEventFullDispatchDelayTimeForWildcardGroup = liteEventFullDispatchDelayTimeForWildcardGroup;
     }
 
     public boolean isLiteLagLatencyCollectEnable() {
