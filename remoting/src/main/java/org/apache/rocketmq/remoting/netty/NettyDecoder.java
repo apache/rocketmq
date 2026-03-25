@@ -32,8 +32,15 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
     private static final int FRAME_MAX_LENGTH =
         Integer.parseInt(System.getProperty("com.rocketmq.remoting.frameMaxLength", "16777216"));
 
+    private final RemotingCodeDistributionHandler distributionHandler;
+
     public NettyDecoder() {
+        this(null);
+    }
+
+    public NettyDecoder(RemotingCodeDistributionHandler distributionHandler) {
         super(FRAME_MAX_LENGTH, 0, 4, 0, 4);
+        this.distributionHandler = distributionHandler;
     }
 
     @Override
@@ -45,7 +52,13 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
             if (null == frame) {
                 return null;
             }
+            // readableBytes() is the frame size after stripping the 4-byte length prefix;
+            // add 4 back to get the actual wire size.
+            int wireSize = frame.readableBytes() + 4;
             RemotingCommand cmd = RemotingCommand.decode(frame);
+            if (distributionHandler != null) {
+                distributionHandler.recordInbound(cmd.getCode(), wireSize);
+            }
             cmd.setProcessTimer(timer);
             return cmd;
         } catch (Exception e) {

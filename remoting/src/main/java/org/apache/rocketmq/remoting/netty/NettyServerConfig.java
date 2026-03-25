@@ -50,7 +50,6 @@ public class NettyServerConfig implements Cloneable {
      * --host=x86_64-linux-gnu \ --build=x86_64-pc-linux-gnu \ --without-gd
      */
     private boolean useEpollNativeSelector = false;
-    private boolean enableDetailedTrafficSize = false;
 
     public String getBindAddress() {
         return bindAddress;
@@ -199,13 +198,5 @@ public class NettyServerConfig implements Cloneable {
 
     public void setShutdownWaitTimeSeconds(int shutdownWaitTimeSeconds) {
         this.shutdownWaitTimeSeconds = shutdownWaitTimeSeconds;
-    }
-
-    public boolean isEnableDetailedTrafficSize() {
-        return enableDetailedTrafficSize;
-    }
-
-    public void setEnableDetailedTrafficSize(boolean enableDetailedTrafficSize) {
-        this.enableDetailedTrafficSize = enableDetailedTrafficSize;
     }
 }
