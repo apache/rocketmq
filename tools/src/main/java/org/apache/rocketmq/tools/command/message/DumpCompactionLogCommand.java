@@ -71,35 +71,40 @@ public class DumpCompactionLogCommand implements SubCommand {
 
             try {
                 long fileSize = Files.size(filePath);
-                FileChannel fileChannel = new RandomAccessFile(fileName, "rw").getChannel();
-                ByteBuffer buf = fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+                if (fileSize == 0) {
+                    return;
+                }
+                try (RandomAccessFile raf = new RandomAccessFile(fileName, "r");
+                     FileChannel fileChannel = raf.getChannel()) {
+                    ByteBuffer buf = fileChannel.map(MapMode.READ_ONLY, 0, fileSize);
 
-                int current = 0;
-                while (current < fileSize) {
-                    buf.position(current);
-                    ByteBuffer bb = buf.slice();
-                    int size = bb.getInt();
-                    if (size > buf.capacity() || size < 0) {
-                        break;
-                    } else {
-                        bb.limit(size);
-                        bb.rewind();
-                    }
-
-                    try {
-                        MessageExt messageExt = MessageDecoder.decode(bb, false, false);
-                        if (messageExt == null) {
+                    int current = 0;
+                    while (current < fileSize) {
+                        buf.position(current);
+                        ByteBuffer bb = buf.slice();
+                        int size = bb.getInt();
+                        if (size > buf.capacity() || size < 0) {
                             break;
                         } else {
-                            current += size;
-                            System.out.printf(messageExt + "\n");
+                            bb.limit(size);
+                            bb.rewind();
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
 
-                UtilAll.cleanBuffer(buf);
+                        try {
+                            MessageExt messageExt = MessageDecoder.decode(bb, false, false);
+                            if (messageExt == null) {
+                                break;
+                            } else {
+                                current += size;
+                                System.out.printf(messageExt + "\n");
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    UtilAll.cleanBuffer(buf);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
