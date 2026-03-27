@@ -1501,7 +1501,8 @@ public class DefaultMessageStore implements MessageStore {
         return queryMessageResult;
     }
 
-    @Override public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
+    @Override
+    public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
         int maxNum, long begin, long end) {
         return CompletableFuture.completedFuture(queryMessage(topic, key, maxNum, begin, end));
     }
