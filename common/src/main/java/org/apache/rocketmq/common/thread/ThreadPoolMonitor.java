@@ -19,13 +19,16 @@ package org.apache.rocketmq.common.thread;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -37,7 +40,7 @@ public class ThreadPoolMonitor {
 
     private static final List<ThreadPoolWrapper> MONITOR_EXECUTOR = new CopyOnWriteArrayList<>();
     private static final ScheduledExecutorService MONITOR_SCHEDULED = ThreadUtils.newSingleThreadScheduledExecutor(
-        new ThreadFactoryBuilder().setNameFormat("ThreadPoolMonitor-%d").build()
+            new ThreadFactoryBuilder().setNameFormat("ThreadPoolMonitor-%d").build()
     );
 
     private static volatile long threadPoolStatusPeriodTime = TimeUnit.SECONDS.toMillis(3);
@@ -55,48 +58,82 @@ public class ThreadPoolMonitor {
     }
 
     public static ThreadPoolExecutor createAndMonitor(int corePoolSize,
-        int maximumPoolSize,
-        long keepAliveTime,
-        TimeUnit unit,
-        String name,
-        int queueCapacity) {
+                                                      int maximumPoolSize,
+                                                      long keepAliveTime,
+                                                      TimeUnit unit,
+                                                      String name,
+                                                      int queueCapacity) {
         return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity, Collections.emptyList());
     }
 
     public static ThreadPoolExecutor createAndMonitor(int corePoolSize,
-        int maximumPoolSize,
-        long keepAliveTime,
-        TimeUnit unit,
-        String name,
-        int queueCapacity,
-        ThreadPoolStatusMonitor... threadPoolStatusMonitors) {
-        return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity,
-            Lists.newArrayList(threadPoolStatusMonitors));
+                                                      int maximumPoolSize,
+                                                      long keepAliveTime,
+                                                      TimeUnit unit,
+                                                      String name,
+                                                      int queueCapacity,
+                                                      RejectedExecutionHandler handler) {
+        return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity, handler, Collections.emptyList());
     }
 
     public static ThreadPoolExecutor createAndMonitor(int corePoolSize,
-        int maximumPoolSize,
-        long keepAliveTime,
-        TimeUnit unit,
-        String name,
-        int queueCapacity,
-        List<ThreadPoolStatusMonitor> threadPoolStatusMonitors) {
+                                                      int maximumPoolSize,
+                                                      long keepAliveTime,
+                                                      TimeUnit unit,
+                                                      String name,
+                                                      int queueCapacity,
+                                                      ThreadPoolStatusMonitor... threadPoolStatusMonitors) {
+        return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity,
+                Lists.newArrayList(threadPoolStatusMonitors));
+    }
+
+    public static ThreadPoolExecutor createAndMonitor(int corePoolSize,
+                                                      int maximumPoolSize,
+                                                      long keepAliveTime,
+                                                      TimeUnit unit,
+                                                      String name,
+                                                      int queueCapacity,
+                                                      RejectedExecutionHandler handler,
+                                                      ThreadPoolStatusMonitor... threadPoolStatusMonitors) {
+        return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity, handler,
+                Lists.newArrayList(threadPoolStatusMonitors));
+    }
+
+    public static ThreadPoolExecutor createAndMonitor(int corePoolSize,
+                                                      int maximumPoolSize,
+                                                      long keepAliveTime,
+                                                      TimeUnit unit,
+                                                      String name,
+                                                      int queueCapacity,
+                                                      List<ThreadPoolStatusMonitor> threadPoolStatusMonitors) {
+        return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity,
+                new ThreadPoolExecutor.DiscardOldestPolicy(), threadPoolStatusMonitors);
+    }
+
+    public static ThreadPoolExecutor createAndMonitor(int corePoolSize,
+                                                      int maximumPoolSize,
+                                                      long keepAliveTime,
+                                                      TimeUnit unit,
+                                                      String name,
+                                                      int queueCapacity,
+                                                      RejectedExecutionHandler handler,
+                                                      List<ThreadPoolStatusMonitor> threadPoolStatusMonitors) {
         ThreadPoolExecutor executor = (ThreadPoolExecutor) ThreadUtils.newThreadPoolExecutor(
-            corePoolSize,
-            maximumPoolSize,
-            keepAliveTime,
-            unit,
-            new LinkedBlockingQueue<>(queueCapacity),
-            new ThreadFactoryBuilder().setNameFormat(name + "-%d").build(),
-            new ThreadPoolExecutor.DiscardOldestPolicy());
+                corePoolSize,
+                maximumPoolSize,
+                keepAliveTime,
+                unit,
+                new LinkedBlockingQueue<>(queueCapacity),
+                new ThreadFactoryBuilder().setNameFormat(name + "-%d").build(),
+                handler);
         List<ThreadPoolStatusMonitor> printers = Lists.newArrayList(new ThreadPoolQueueSizeMonitor(queueCapacity));
         printers.addAll(threadPoolStatusMonitors);
 
         MONITOR_EXECUTOR.add(ThreadPoolWrapper.builder()
-            .name(name)
-            .threadPoolExecutor(executor)
-            .statusPrinters(printers)
-            .build());
+                .name(name)
+                .threadPoolExecutor(executor)
+                .statusPrinters(printers)
+                .build());
         return executor;
     }
 
@@ -110,7 +147,7 @@ public class ThreadPoolMonitor {
                 waterMarkLogger.info("{}{}{}", nameFormatted, descFormatted, value);
                 if (enablePrintJstack) {
                     if (monitor.needPrintJstack(threadPoolWrapper.getThreadPoolExecutor(), value) &&
-                        System.currentTimeMillis() - jstackTime > jstackPeriodTime) {
+                            System.currentTimeMillis() - jstackTime > jstackPeriodTime) {
                         jstackTime = System.currentTimeMillis();
                         jstackLogger.warn("jstack start\n{}", UtilAll.jstack());
                     }
@@ -121,7 +158,7 @@ public class ThreadPoolMonitor {
 
     public static void init() {
         MONITOR_SCHEDULED.scheduleAtFixedRate(ThreadPoolMonitor::logThreadPoolStatus, 20,
-            threadPoolStatusPeriodTime, TimeUnit.MILLISECONDS);
+                threadPoolStatusPeriodTime, TimeUnit.MILLISECONDS);
     }
 
     public static void shutdown() {
