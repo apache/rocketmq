@@ -320,17 +320,7 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
         final long lockTimeoutMs = 100L;
         ConfigurationManager.getProxyConfig().setLockTimeoutMsInHandleGroup(lockTimeoutMs);
 
-        String handle = ReceiptHandle.builder()
-            .startOffset(0L)
-            .retrieveTime(System.currentTimeMillis())
-            .invisibleTime(3000)
-            .reviveQueueId(1)
-            .topicType(ReceiptHandle.NORMAL_TOPIC)
-            .brokerName("brokerName")
-            .queueId(1)
-            .offset(1L)
-            .commitLogOffset(0L)
-            .build().encode();
+        String handle = createHandle();
         receiptHandleGroup.put(msgID, createMessageReceiptHandle(handle, msgID));
 
         // Simulate a slow task via a never-completing future
