@@ -282,7 +282,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         }
 
         msgInner.setTopic(reviveTopic);
-        msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(StandardCharsets.UTF_8));
+        msgInner.setBody(JSON.toJSONBytes(ackMsg, StandardCharsets.UTF_8));
         msgInner.setQueueId(rqId);
         msgInner.setTags(PopAckConstants.ACK_TAG);
         msgInner.setBornTimestamp(System.currentTimeMillis());
@@ -326,7 +326,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         ck.setBrokerName(ExtraInfoUtil.getBrokerName(extraInfo));
         ck.setSuspend(requestHeader.isSuspend());
 
-        msgInner.setBody(JSON.toJSONString(ck).getBytes(StandardCharsets.UTF_8));
+        msgInner.setBody(JSON.toJSONBytes(ck, StandardCharsets.UTF_8));
         msgInner.setQueueId(reviveQid);
         msgInner.setTags(PopAckConstants.CK_TAG);
         msgInner.setBornTimestamp(System.currentTimeMillis());

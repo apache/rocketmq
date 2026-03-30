@@ -96,7 +96,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
         try {
             Message message = new Message(
                 targetTopic,
-                JSON.toJSONString(data).getBytes(StandardCharsets.UTF_8)
+                    JSON.toJSONBytes(data, StandardCharsets.UTF_8)
             );
 
             AddressableMessageQueue messageQueue = this.topicRouteService.getAllMessageQueueView(ProxyContext.createForInner(this.getClass()), targetTopic)

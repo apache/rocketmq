@@ -3195,7 +3195,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS);
                 if (user != null) {
                     UserInfo userInfo = UserConverter.convertUser(user);
-                    response.setBody(JSON.toJSONString(userInfo).getBytes(StandardCharsets.UTF_8));
+                    response.setBody(JSON.toJSONBytes(userInfo, StandardCharsets.UTF_8));
                 }
             })
             .exceptionally(ex -> {
@@ -3218,7 +3218,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS);
                 if (CollectionUtils.isNotEmpty(users)) {
                     List<UserInfo> userInfos = UserConverter.convertUsers(users);
-                    response.setBody(JSON.toJSONString(userInfos).getBytes(StandardCharsets.UTF_8));
+                    response.setBody(JSON.toJSONBytes(userInfos, StandardCharsets.UTF_8));
                 }
             })
             .exceptionally(ex -> {
