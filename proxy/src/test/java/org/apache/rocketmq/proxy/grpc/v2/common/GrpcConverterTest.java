@@ -23,6 +23,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +33,8 @@ import static org.junit.Assert.assertTrue;
 
 public class GrpcConverterTest {
     @Test
-    public void testBuildMessageQueue() {
+    public void testBuildMessageQueue() throws Exception {
+        ConfigurationManager.intConfig();
         String topic = "topic";
         String brokerName = "brokerName";
         int queueId = 1;

@@ -46,7 +46,10 @@ import org.apache.rocketmq.common.utils.BinaryUtil;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+
+import static org.apache.rocketmq.remoting.protocol.NamespaceUtil.STRING_BLANK;
 
 public class GrpcConverter {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -73,11 +76,21 @@ public class GrpcConverter {
                 .setId(0)
                 .build();
         }
+        if (ConfigurationManager.getProxyConfig().isNamespaceEnable()) {
+            return MessageQueue.newBuilder()
+                .setId(messageExt.getQueueId())
+                .setTopic(Resource.newBuilder()
+                    .setName(NamespaceUtil.withoutNamespace(messageExt.getTopic()))
+                    .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(messageExt.getTopic()))
+                    .build())
+                .setBroker(broker)
+                .build();
+        }
         return MessageQueue.newBuilder()
             .setId(messageExt.getQueueId())
             .setTopic(Resource.newBuilder()
-                .setName(NamespaceUtil.withoutNamespace(messageExt.getTopic()))
-                .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(messageExt.getTopic()))
+                .setName(messageExt.getTopic())
+                .setResourceNamespace(STRING_BLANK)
                 .build())
             .setBroker(broker)
             .build();
@@ -254,9 +267,15 @@ public class GrpcConverter {
     }
 
     public Resource buildResource(String resourceNameWithNamespace) {
+        if (ConfigurationManager.getProxyConfig().isNamespaceEnable()) {
+            return Resource.newBuilder()
+                .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(resourceNameWithNamespace))
+                .setName(NamespaceUtil.withoutNamespace(resourceNameWithNamespace))
+                .build();
+        }
         return Resource.newBuilder()
-            .setResourceNamespace(NamespaceUtil.getNamespaceFromResource(resourceNameWithNamespace))
-            .setName(NamespaceUtil.withoutNamespace(resourceNameWithNamespace))
+            .setResourceNamespace(STRING_BLANK)
+            .setName(resourceNameWithNamespace)
             .build();
     }
 
