@@ -289,7 +289,7 @@ public class PopConsumerService extends ServiceThread {
         // If server-side reset offset is enabled, and there is a reset offset,
         // then return false to make sure that the reset offset takes effect.
         if (brokerController.getBrokerConfig().isUseServerSideResetOffset() &&
-            this.brokerController.getConsumerOffsetManager().hasOffsetReset(groupId, topicId, queueId)) {
+            this.brokerController.getConsumerOffsetManager().hasOffsetReset(topicId, groupId, queueId)) {
             return false;
         }
         return brokerController.getConsumerOrderInfoManager().checkBlock(
