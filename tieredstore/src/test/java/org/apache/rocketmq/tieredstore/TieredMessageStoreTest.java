@@ -240,6 +240,12 @@ public class TieredMessageStoreTest {
 
         Mockito.when(flatFile.getConsumeQueueMinOffset()).thenReturn(10L);
         Assert.assertEquals(10L, currentStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
+
+        // When local store returns -1 (no valid offset), tiered store offset should be used
+        long tieredOffset = flatFile.getConsumeQueueMinOffset();
+        Assert.assertTrue("tiered offset should be valid for this test", tieredOffset >= 0);
+        Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(-1L);
+        Assert.assertEquals(tieredOffset, currentStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
     }
 
     @Test
