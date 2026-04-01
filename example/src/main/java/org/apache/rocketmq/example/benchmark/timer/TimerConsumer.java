@@ -56,7 +56,7 @@ public class TimerConsumer {
             System.exit(-1);
         }
 
-        final String namesrvAddr = commandLine.hasOption('n') ? commandLine.getOptionValue('t').trim() : "localhost:9876";
+        final String namesrvAddr = commandLine.hasOption('n') ? commandLine.getOptionValue('n').trim() : "localhost:9876";
         topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
         System.out.printf("namesrvAddr: %s, topic: %s%n", namesrvAddr, topic);
 

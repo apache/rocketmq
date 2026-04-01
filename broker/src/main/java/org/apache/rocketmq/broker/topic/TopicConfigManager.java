@@ -725,7 +725,7 @@ public class TopicConfigManager extends ConfigManager {
         int maxTopicNum) {
         // [topicSeq, topicSeq + maxTopicNum)
         int beginIndex = topicSeq;
-        if (StringUtils.isBlank(dataVersion) || !Objects.equals(DataVersion.fromJson(dataVersion, DataVersion.class), this.dataVersion)) {
+        if (beginIndex != 0 && (StringUtils.isBlank(dataVersion) || !Objects.equals(DataVersion.fromJson(dataVersion, DataVersion.class), getDataVersion()))) {
             beginIndex = 0;
             log.info("get sub topic config table from {} due to {}", beginIndex,
                 StringUtils.isBlank(dataVersion) ? "DataVersion Empty" : "DataVersion Changed");

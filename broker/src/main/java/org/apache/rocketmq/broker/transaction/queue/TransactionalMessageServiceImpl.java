@@ -710,6 +710,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         // wait for the interval
                         mqContext.getTotalSize().get() < maxSize &&
                                 startTime - mqContext.getLastWriteTimestamp() < interval) {
+                    firstTimestamp = Math.min(firstTimestamp, mqContext.getLastWriteTimestamp());
                     continue;
                 }
 

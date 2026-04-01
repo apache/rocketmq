@@ -19,6 +19,23 @@ package org.apache.rocketmq.broker.pop;
 import com.alibaba.fastjson2.JSON;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import java.nio.ByteBuffer;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
@@ -51,24 +68,6 @@ import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class PopConsumerService extends ServiceThread {
 
@@ -236,8 +235,8 @@ public class PopConsumerService extends ServiceThread {
     public CompletableFuture<GetMessageResult> getMessageAsync(String clientHost,
         String groupId, String topicId, int queueId, long offset, int batchSize, MessageFilter filter) {
 
-        log.debug("PopConsumerService getMessageAsync, groupId={}, topicId={}, queueId={}, offset={}, batchSize={}, filter={}",
-            groupId, topicId, offset, queueId, batchSize, filter != null);
+        log.debug("PopConsumerService getMessageAsync, groupId={}, topicId={}, queueId={}, " +
+            "offset={}, batchSize={}, filter={}", groupId, topicId, queueId, offset, batchSize, filter != null);
 
         CompletableFuture<GetMessageResult> getMessageFuture =
             brokerController.getMessageStore().getMessageAsync(groupId, topicId, queueId, offset, batchSize, filter);
@@ -287,6 +286,12 @@ public class PopConsumerService extends ServiceThread {
     }
 
     public boolean isFifoBlocked(PopConsumerContext context, String groupId, String topicId, int queueId) {
+        // If server-side reset offset is enabled, and there is a reset offset,
+        // then return false to make sure that the reset offset takes effect.
+        if (brokerController.getBrokerConfig().isUseServerSideResetOffset() &&
+            this.brokerController.getConsumerOffsetManager().hasOffsetReset(topicId, groupId, queueId)) {
+            return false;
+        }
         return brokerController.getConsumerOrderInfoManager().checkBlock(
             context.getAttemptId(), topicId, groupId, queueId, context.getInvisibleTime());
     }
@@ -552,7 +557,7 @@ public class PopConsumerService extends ServiceThread {
 
     @SuppressWarnings("StatementWithEmptyBody")
     public void clearCache(String groupId, String topicId, int queueId) {
-        while (consumerLockService.tryLock(groupId, topicId)) {
+        while (!consumerLockService.tryLock(groupId, topicId)) {
         }
         try {
             if (popConsumerCache != null) {
@@ -592,7 +597,7 @@ public class PopConsumerService extends ServiceThread {
                 if (!result) {
                     if (record.getAttemptTimes() < brokerConfig.getPopReviveMaxAttemptTimes()) {
                         long backoffInterval = 1000L * REWRITE_INTERVALS_IN_SECONDS[
-                            Math.min(REWRITE_INTERVALS_IN_SECONDS.length, record.getAttemptTimes())];
+                            Math.min(REWRITE_INTERVALS_IN_SECONDS.length - 1, record.getAttemptTimes())];
                         long nextInvisibleTime = record.getInvisibleTime() + backoffInterval;
                         PopConsumerRecord retryRecord = new PopConsumerRecord(System.currentTimeMillis(),
                             record.getGroupId(), record.getTopicId(), record.getQueueId(),
@@ -760,7 +765,7 @@ public class PopConsumerService extends ServiceThread {
                     ck.setQueueId(record.getQueueId());
                     ck.setBrokerName(brokerConfig.getBrokerName());
                     ck.addDiff(0);
-                    ck.setRePutTimes(ck.getRePutTimes());
+                    ck.setRePutTimes(String.valueOf(record.getAttemptTimes()));
                     int reviveQueueId = (int) record.getOffset() % brokerConfig.getReviveQueueNum();
                     MessageExtBrokerInner ckMsg =
                         brokerController.getPopMessageProcessor().buildCkMsg(ck, reviveQueueId);

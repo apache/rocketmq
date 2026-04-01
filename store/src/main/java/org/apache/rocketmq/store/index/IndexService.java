@@ -167,49 +167,14 @@ public class IndexService implements CommitLogDispatchStore {
     }
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end) {
-        long indexLastUpdateTimestamp = 0;
-        long indexLastUpdatePhyoffset = 0;
-        maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
-        List<Long> phyOffsets = new ArrayList<>(maxNum);
-        try {
-            this.readWriteLock.readLock().lock();
-            if (!this.indexFileList.isEmpty()) {
-                for (int i = this.indexFileList.size(); i > 0; i--) {
-                    IndexFile f = this.indexFileList.get(i - 1);
-                    boolean lastFile = i == this.indexFileList.size();
-                    if (lastFile) {
-                        indexLastUpdateTimestamp = f.getEndTimestamp();
-                        indexLastUpdatePhyoffset = f.getEndPhyOffset();
-                    }
-
-                    if (f.isTimeMatched(begin, end)) {
-
-                        f.selectPhyOffset(phyOffsets, buildKey(topic, key), maxNum, begin, end);
-                    }
-
-                    if (f.getBeginTimestamp() < begin) {
-                        break;
-                    }
-
-                    if (phyOffsets.size() >= maxNum) {
-                        break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("queryMsg exception", e);
-        } finally {
-            this.readWriteLock.readLock().unlock();
-        }
-
-        return new QueryOffsetResult(phyOffsets, indexLastUpdateTimestamp, indexLastUpdatePhyoffset);
+        return queryOffset(topic, key, maxNum, begin, end, null);
     }
 
     public QueryOffsetResult queryOffset(String topic, String key, int maxNum, long begin, long end, String indexType) {
-        List<Long> phyOffsets = new ArrayList<>(maxNum);
         long indexLastUpdateTimestamp = 0;
         long indexLastUpdatePhyoffset = 0;
         maxNum = Math.min(maxNum, this.defaultMessageStore.getMessageStoreConfig().getMaxMsgsNumBatch());
+        List<Long> phyOffsets = new ArrayList<>(maxNum);
         try {
             this.readWriteLock.readLock().lock();
             if (!this.indexFileList.isEmpty()) {
@@ -241,7 +206,7 @@ public class IndexService implements CommitLogDispatchStore {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("queryMsg queryOffset exception", e);
+            LOGGER.error("queryOffset exception", e);
         } finally {
             this.readWriteLock.readLock().unlock();
         }
