@@ -123,7 +123,7 @@ public class BrokerMetricsManager {
     private final ConsumerLagCalculator consumerLagCalculator;
     private final LiteConsumerLagCalculator liteConsumerLagCalculator;
     private final Map<String, String> labelMap = new HashMap<>();
-    private OtlpGrpcMetricExporter metricExporter;
+    private MetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
     private MetricExporter loggingMetricExporter;
@@ -358,6 +358,7 @@ public class BrokerMetricsManager {
             }
             OtlpGrpcMetricExporterBuilder metricExporterBuilder = OtlpGrpcMetricExporter.builder()
                 .setEndpoint(endpoint)
+                .setCompression("gzip")
                 .setTimeout(brokerConfig.getMetricGrpcExporterTimeOutInMills(), TimeUnit.MILLISECONDS)
                 .setAggregationTemporalitySelector(type -> {
                     if (brokerConfig.isMetricsInDelta() &&
@@ -382,7 +383,9 @@ public class BrokerMetricsManager {
                 headerMap.forEach(metricExporterBuilder::addHeader);
             }
 
-            metricExporter = metricExporterBuilder.build();
+            OtlpGrpcMetricExporter otlpExporter = metricExporterBuilder.build();
+            metricExporter = new BatchSplittingMetricExporter(otlpExporter,
+                brokerConfig::getMetricsExportBatchMaxDataPoints);
 
             periodicMetricReader = PeriodicMetricReader.builder(metricExporter)
                 .setInterval(brokerConfig.getMetricGrpcExporterIntervalInMills(), TimeUnit.MILLISECONDS)

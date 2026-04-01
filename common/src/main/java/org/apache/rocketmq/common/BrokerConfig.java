@@ -403,6 +403,8 @@ public class BrokerConfig extends BrokerIdentity {
     // Label pairs in CSV. Each label follows pattern of Key:Value. eg: instance_id:xxx,uid:xxx
     private String metricsLabel = "";
 
+    private int metricsExportBatchMaxDataPoints = 1000;
+
     private boolean metricsInDelta = false;
 
     private boolean enableRemotingMetrics = true;
@@ -1863,6 +1865,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setMetricsInDelta(boolean metricsInDelta) {
         this.metricsInDelta = metricsInDelta;
+    }
+
+    public int getMetricsExportBatchMaxDataPoints() {
+        return metricsExportBatchMaxDataPoints;
+    }
+
+    public void setMetricsExportBatchMaxDataPoints(int metricsExportBatchMaxDataPoints) {
+        this.metricsExportBatchMaxDataPoints = metricsExportBatchMaxDataPoints;
     }
 
     public int getMetricsPromExporterPort() {
