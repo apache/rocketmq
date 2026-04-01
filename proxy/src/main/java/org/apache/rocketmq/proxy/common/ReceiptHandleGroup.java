@@ -113,7 +113,6 @@ public class ReceiptHandleGroup {
 
         public Long lock(long timeoutMs) {
             try {
-                long expiredTimeMs = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 3;
                 long currentTimeMs = System.currentTimeMillis();
                 // Try non-blocking acquire first
                 if (this.semaphore.tryAcquire()) {
@@ -121,6 +120,7 @@ public class ReceiptHandleGroup {
                     return currentTimeMs;
                 }
                 // Check if lock is already expired before blocking
+                long expiredTimeMs = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 3;
                 if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
                     synchronized (this) {
                         if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
