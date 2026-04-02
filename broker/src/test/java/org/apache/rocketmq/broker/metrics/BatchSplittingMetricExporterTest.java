@@ -520,6 +520,96 @@ public class BatchSplittingMetricExporterTest {
             .containsExactly(0L, 1L, 2L, 3L, 4L);
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSnapshotCreatesNewMetricData() {
+        // On fast path, delegate should receive
+        // snapshotted MetricData, not the original.
+        BatchSplittingMetricExporter exporter =
+            new BatchSplittingMetricExporter(
+                delegate, () -> 100);
+
+        MetricData original =
+            createRealLongGaugeMetricData("test", 5);
+
+        exporter.export(
+            Collections.singletonList(original));
+
+        ArgumentCaptor<Collection<MetricData>> captor =
+            ArgumentCaptor.forClass(Collection.class);
+        verify(delegate, times(1))
+            .export(captor.capture());
+
+        MetricData exported =
+            captor.getValue().iterator().next();
+        assertThat(exported).isNotSameAs(original);
+        assertThat(exported.getName())
+            .isEqualTo("test");
+        assertThat(exported.getType())
+            .isEqualTo(MetricDataType.LONG_GAUGE);
+        assertThat(exported.getData().getPoints())
+            .hasSize(5);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSnapshotFallsBackToOriginal() {
+        // Mock MetricData has no type set, so snapshot
+        // will fail. Should fall back to original object.
+        BatchSplittingMetricExporter exporter =
+            new BatchSplittingMetricExporter(
+                delegate, () -> 100);
+
+        MetricData mockMd =
+            createMockMetricData("mock", 3);
+
+        exporter.export(
+            Collections.singletonList(mockMd));
+
+        ArgumentCaptor<Collection<MetricData>> captor =
+            ArgumentCaptor.forClass(Collection.class);
+        verify(delegate, times(1))
+            .export(captor.capture());
+
+        MetricData exported =
+            captor.getValue().iterator().next();
+        assertThat(exported).isSameAs(mockMd);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testSnapshotPointsAreIndependentCopy() {
+        // Verify snapshot points collection is a separate
+        // copy from the original, preventing concurrent
+        // modification issues.
+        BatchSplittingMetricExporter exporter =
+            new BatchSplittingMetricExporter(
+                delegate, () -> 100);
+
+        MetricData original =
+            createRealLongGaugeMetricData("test", 5);
+        Collection<? extends PointData> originalPoints =
+            original.getData().getPoints();
+
+        exporter.export(
+            Collections.singletonList(original));
+
+        ArgumentCaptor<Collection<MetricData>> captor =
+            ArgumentCaptor.forClass(Collection.class);
+        verify(delegate, times(1))
+            .export(captor.capture());
+
+        MetricData exported =
+            captor.getValue().iterator().next();
+        Collection<? extends PointData> exportedPoints =
+            exported.getData().getPoints();
+
+        assertThat(exportedPoints)
+            .isNotSameAs(originalPoints);
+        assertThat(exportedPoints)
+            .hasSize(originalPoints.size());
+    }
+
     /**
      * Creates a mock MetricData with the specified
      * number of data points.
