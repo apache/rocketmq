@@ -115,21 +115,26 @@ public final class BatchSplittingMetricExporter
             return delegate.export(metrics);
         }
 
+        // Snapshot to avoid concurrent-modification AIOOBE
+        // in OTel SDK marshaling (see NumberDataPointMarshaler)
+        List<MetricData> snapshotted =
+            snapshotAllMetrics(metrics);
+
         int maxBatchSize =
             maxBatchSizeSupplier.getAsInt();
 
         int totalDataPoints = 0;
-        for (MetricData md : metrics) {
+        for (MetricData md : snapshotted) {
             totalDataPoints +=
                 md.getData().getPoints().size();
         }
 
         if (totalDataPoints <= maxBatchSize) {
-            return delegate.export(metrics);
+            return delegate.export(snapshotted);
         }
 
         List<List<MetricData>> batches =
-            splitIntoBatches(metrics, maxBatchSize);
+            splitIntoBatches(snapshotted, maxBatchSize);
 
         LOGGER.debug(
             "Splitting metrics export: "
@@ -182,6 +187,51 @@ public final class BatchSplittingMetricExporter
         LOGGER.warn(
             "Batch {} failed. Metrics: {}",
             batchIndex, names);
+    }
+
+    /**
+     * Creates defensive snapshots of all MetricData by
+     * copying their data point collections into new
+     * ArrayLists. This prevents
+     * {@link ArrayIndexOutOfBoundsException} in the OTel
+     * SDK marshaling code when callback threads
+     * concurrently modify point collections during export.
+     *
+     * @param metrics the original metrics collection
+     * @return list of snapshotted MetricData
+     */
+    private static List<MetricData> snapshotAllMetrics(
+        final Collection<MetricData> metrics) {
+        List<MetricData> result =
+            new ArrayList<>(metrics.size());
+        for (MetricData md : metrics) {
+            try {
+                result.add(snapshotMetricData(md));
+            } catch (Exception e) {
+                LOGGER.warn(
+                    "Failed to snapshot MetricData:"
+                        + " {}, using original",
+                    md.getName(), e);
+                result.add(md);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Creates a snapshot of a single MetricData by copying
+     * its points into a new ArrayList and reconstructing
+     * the MetricData with immutable internal data.
+     *
+     * @param md the original MetricData
+     * @return a new MetricData with snapshotted points
+     */
+    private static MetricData snapshotMetricData(
+        final MetricData md) {
+        List<PointData> points =
+            new ArrayList<>(md.getData().getPoints());
+        return createMetricDataForType(
+            md, md.getType(), points);
     }
 
     /**
