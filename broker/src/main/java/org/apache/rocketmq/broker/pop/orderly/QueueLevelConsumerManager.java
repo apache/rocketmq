@@ -291,8 +291,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         updateLockFreeTimestamp(topic, group, queueId, orderInfo);
     }
 
-    @VisibleForTesting
-    protected void autoClean() {
+    public void autoClean() {
         if (brokerController == null) {
             return;
         }
