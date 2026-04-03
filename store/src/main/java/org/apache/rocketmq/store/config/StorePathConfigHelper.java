@@ -32,7 +32,7 @@ public class StorePathConfigHelper {
     }
 
     public static String getStorePathRocksDBConsumeQueue(final String rootDir) {
-        return rootDir + File.separator + "consumequeue_r";
+        return rootDir + File.separator + "consumequeue_rocksdb";
     }
 
     public static String getStorePathIndex(final String rootDir) {
