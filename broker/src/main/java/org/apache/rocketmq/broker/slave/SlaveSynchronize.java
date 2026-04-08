@@ -83,7 +83,11 @@ public class SlaveSynchronize {
                 TopicConfigManager topicConfigManager = this.brokerController.getTopicConfigManager();
                 if (!topicConfigManager.getDataVersion().equals(topicWrapper.getDataVersion())) {
 
-                    topicConfigManager.getDataVersion().assignNewOne(topicWrapper.getDataVersion());
+                    this.brokerController.getMessageStore()
+                            .cleanUnusedTopic(topicWrapper.getTopicConfigTable().keySet());
+
+                    this.brokerController.getTopicConfigManager().getDataVersion()
+                            .assignNewOne(topicWrapper.getDataVersion());
 
                     ConcurrentMap<String, TopicConfig> newTopicConfigTable = topicWrapper.getTopicConfigTable();
                     ConcurrentMap<String, TopicConfig> topicConfigTable = topicConfigManager.getTopicConfigTable();
@@ -130,6 +134,7 @@ public class SlaveSynchronize {
             try {
                 ConsumerOffsetSerializeWrapper offsetWrapper =
                         this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
+                this.brokerController.getConsumerOffsetManager().getOffsetTable().clear();
                 this.brokerController.getConsumerOffsetManager().getOffsetTable()
                         .putAll(offsetWrapper.getOffsetTable());
                 this.brokerController.getConsumerOffsetManager().getDataVersion().assignNewOne(offsetWrapper.getDataVersion());
