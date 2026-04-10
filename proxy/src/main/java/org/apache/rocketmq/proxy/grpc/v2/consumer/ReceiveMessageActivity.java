@@ -21,8 +21,10 @@ import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
+import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
+import com.google.protobuf.Duration;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.StreamObserver;
 import java.util.List;
@@ -64,15 +66,43 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
         ReceiveMessageResponseStreamWriter writer = createWriter(ctx, responseObserver);
 
         try {
+            // Get client settings with null check for non-Java clients (PHP, Python, etc.)
             Settings settings = this.grpcClientSettingsManager.getClientSettings(ctx);
+            
+            // Handle case where settings is null (clients without proper Telemetry Session)
+            if (settings == null) {
+                log.warn("Client settings is null for clientId: {}. Using default values.", ctx.getClientID());
+                // Use default values for clients without Telemetry Session
+                settings = Settings.newBuilder()
+                    .setSubscription(Subscription.newBuilder().setFifo(false).build())
+                    .setBackoffPolicy(RetryPolicy.newBuilder()
+                        .setMaxAttempts(3)
+                        .build())
+                    .setRequestTimeout(Duration.newBuilder()
+                        .setSeconds(30)
+                        .build())
+                    .build();
+            }
+            
             final boolean isLite = ClientType.LITE_PUSH_CONSUMER.equals(settings.getClientType());
 
+            // Validate subscription settings - may be null for some non-Java clients
             Subscription subscription = settings.getSubscription();
-            boolean fifo = subscription.getFifo();
-            int maxAttempts = settings.getBackoffPolicy().getMaxAttempts();
+            boolean fifo = subscription != null && subscription.getFifo();
+            
+            // Validate backoff policy - may be null for some non-Java clients
+            int maxAttempts = settings.getBackoffPolicy() != null ? 
+                settings.getBackoffPolicy().getMaxAttempts() : 3;
             ProxyConfig config = ConfigurationManager.getProxyConfig();
-
+            
             Long timeRemaining = ctx.getRemainingMs();
+            
+            // Handle case where timeRemaining is null
+            if (timeRemaining == null) {
+                log.warn("timeRemaining is null for clientId: {}. Using default value.", ctx.getClientID());
+                timeRemaining = (long) config.getGrpcClientConsumerMaxLongPollingTimeoutMillis();
+            }
+            
             long pollingTime;
             if (request.hasLongPollingTimeout()) {
                 pollingTime = Durations.toMillis(request.getLongPollingTimeout());

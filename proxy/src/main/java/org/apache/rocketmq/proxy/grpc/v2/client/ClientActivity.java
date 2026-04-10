@@ -404,6 +404,12 @@ public class ClientActivity extends AbstractMessagingActivity {
         String clientId = ctx.getClientID();
         grpcClientSettingsManager.updateClientSettings(ctx, clientId, request.getSettings());
         Settings settings = grpcClientSettingsManager.getClientSettings(ctx);
+        if (settings == null) {
+            log.warn("Failed to get client settings after update. clientId: {}", clientId);
+            return TelemetryCommand.newBuilder()
+                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.INTERNAL_SERVER_ERROR, "Failed to get client settings"))
+                .build();
+        }
         return TelemetryCommand.newBuilder()
             .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
             .setSettings(settings)
