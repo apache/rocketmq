@@ -529,4 +529,24 @@ public class ClientActivityTest extends BaseActivityTest {
 
         assertTrue(future.isCompletedExceptionally());
     }
+
+    @Test
+    public void testProcessClientSettings_SettingsIsNull() {
+        ProxyContext context = createContext();
+        
+        // Mock getClientSettings to return null after update
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(null);
+        
+        TelemetryCommand request = TelemetryCommand.newBuilder()
+            .setSettings(Settings.newBuilder()
+                .setClientType(ClientType.PRODUCER)
+                .build())
+            .build();
+        
+        TelemetryCommand response = clientActivity.processClientSettings(context, request);
+        
+        // Verify that INTERNAL_SERVER_ERROR is returned when settings is null
+        assertEquals(Code.INTERNAL_SERVER_ERROR, response.getStatus().getCode());
+        assertEquals("Failed to get client settings", response.getStatus().getMessage());
+    }
 }

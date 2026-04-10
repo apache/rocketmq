@@ -24,7 +24,9 @@ import apache.rocketmq.v2.MessageQueue;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.Duration;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.ServerCallStreamObserver;
@@ -408,5 +410,189 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
                 new ReceiveMessageActivity.ReceiveMessageQueueSelector(BROKER_NAME + i);
             assertEquals(BROKER_NAME + i, selectorBrokerName.select(ProxyContext.create(), messageQueueView).getBrokerName());
         }
+    }
+
+    @Test
+    public void testReceiveMessage_SettingsIsNull() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        // Mock getClientSettings to return null
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(null);
+
+        PopResult popResult = new PopResult(PopStatus.NO_NEW_MSG, new ArrayList<>());
+        when(this.messagingProcessor.popMessage(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyInt(),
+            anyLong(),
+            anyLong(),
+            anyInt(),
+            any(),
+            anyBoolean(),
+            any(),
+            isNull(),
+            anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+        
+        // Should use default values and complete successfully
+        assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+    }
+
+    @Test
+    public void testReceiveMessage_SubscriptionIsNull() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        // Mock settings with null subscription
+        Settings settings = Settings.newBuilder()
+            .setBackoffPolicy(RetryPolicy.newBuilder().setMaxAttempts(3).build())
+            .setRequestTimeout(Duration.newBuilder().setSeconds(30).build())
+            .build();
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(settings);
+
+        PopResult popResult = new PopResult(PopStatus.NO_NEW_MSG, new ArrayList<>());
+        when(this.messagingProcessor.popMessage(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyInt(),
+            anyLong(),
+            anyLong(),
+            anyInt(),
+            any(),
+            anyBoolean(),
+            any(),
+            isNull(),
+            anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+        
+        // Should use default fifo=false and complete successfully
+        assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+    }
+
+    @Test
+    public void testReceiveMessage_BackoffPolicyIsNull() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        // Mock settings with null backoff policy
+        Settings settings = Settings.newBuilder()
+            .setSubscription(Subscription.newBuilder().setFifo(false).build())
+            .setRequestTimeout(Duration.newBuilder().setSeconds(30).build())
+            .build();
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(settings);
+
+        PopResult popResult = new PopResult(PopStatus.NO_NEW_MSG, new ArrayList<>());
+        when(this.messagingProcessor.popMessage(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyInt(),
+            anyLong(),
+            anyLong(),
+            anyInt(),
+            any(),
+            anyBoolean(),
+            any(),
+            isNull(),
+            anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+        
+        // Should use default maxAttempts=3 and complete successfully
+        assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
+    }
+
+    @Test
+    public void testReceiveMessage_TimeRemainingIsNull() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor.capture());
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder()
+            .setRequestTimeout(Durations.fromSeconds(3))
+            .build());
+
+        PopResult popResult = new PopResult(PopStatus.NO_NEW_MSG, new ArrayList<>());
+        when(this.messagingProcessor.popMessage(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyInt(),
+            anyLong(),
+            anyLong(),
+            anyInt(),
+            any(),
+            anyBoolean(),
+            any(),
+            isNull(),
+            anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
+
+        ProxyContext context = createContext();
+        context.setRemainingMs(null); // Set timeRemaining to null
+        
+        this.receiveMessageActivity.receiveMessage(
+            context,
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+        
+        // Should use default value from config and complete successfully
+        assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
     }
 }
