@@ -555,16 +555,9 @@ public class PopConsumerService extends ServiceThread {
             });
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     public void clearCache(String groupId, String topicId, int queueId) {
-        while (!consumerLockService.tryLock(groupId, topicId)) {
-        }
-        try {
-            if (popConsumerCache != null) {
-                popConsumerCache.removeRecords(groupId, topicId, queueId);
-            }
-        } finally {
-            consumerLockService.unlock(groupId, topicId);
+        if (popConsumerCache != null) {
+            popConsumerCache.removeRecords(groupId, topicId, queueId);
         }
     }
 
