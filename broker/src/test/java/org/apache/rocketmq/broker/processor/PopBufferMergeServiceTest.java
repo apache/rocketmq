@@ -234,4 +234,51 @@ public class PopBufferMergeServiceTest {
         method.invoke(popBufferMergeService, pointWrapper, msgIndex, count);
         verify(escapeBridge, times(1)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class));
     }
+
+    @Test
+    public void testBatchAckAsyncShouldUpdateToStoreBitsAfterFix() throws Exception {
+        PopCheckPoint point = new PopCheckPoint();
+        point.setStartOffset(100L);
+        point.setCId(defaultGroup);
+        point.setTopic(defaultTopic);
+        point.setQueueId(1);
+        point.setNum((byte) 2);
+        long popTime = System.currentTimeMillis() - 20000;
+        point.setPopTime(popTime);
+        point.setInvisibleTime(30000);
+        point.setBrokerName("testBroker");
+
+        PopBufferMergeService.PopCheckPointWrapper pointWrapper =
+            popBufferMergeService.new PopCheckPointWrapper(0, 0, point, 102);
+        pointWrapper.getBits().set(3);
+        pointWrapper.setCkStored(true);
+        popBufferMergeService.buffer.put(pointWrapper.getMergeKey(), pointWrapper);
+
+        when(brokerConfig.isEnablePopBatchAck()).thenReturn(true);
+        when(brokerConfig.isAppendAckAsync()).thenReturn(true);
+        when(brokerConfig.getPopCkStayBufferTimeOut()).thenReturn(3000);
+
+        java.util.concurrent.CompletableFuture<PutMessageResult> future =
+            new java.util.concurrent.CompletableFuture<>();
+        EscapeBridge escapeBridge = mock(EscapeBridge.class);
+        when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
+        when(escapeBridge.asyncPutMessageToSpecificQueue(any())).thenReturn(future);
+
+        BrokerMetricsManager brokerMetricsManager = mock(BrokerMetricsManager.class);
+        PopMetricsManager popMetricsManager = mock(PopMetricsManager.class);
+        when(brokerMetricsManager.getPopMetricsManager()).thenReturn(popMetricsManager);
+        when(brokerController.getBrokerMetricsManager()).thenReturn(brokerMetricsManager);
+
+        Method scanMethod = PopBufferMergeService.class.getDeclaredMethod("scan");
+        scanMethod.setAccessible(true);
+        scanMethod.invoke(popBufferMergeService);
+
+        PutMessageResult putResult = mock(PutMessageResult.class);
+        when(putResult.getPutMessageStatus()).thenReturn(PutMessageStatus.PUT_OK);
+        future.complete(putResult);
+
+        assertEquals(
+            "After fix, async callback should correctly update toStoreBits to 3 (binary 11)",
+            3, pointWrapper.getToStoreBits().get());
+    }
 }
