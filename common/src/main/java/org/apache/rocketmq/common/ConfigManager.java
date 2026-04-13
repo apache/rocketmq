@@ -111,7 +111,9 @@ public abstract class ConfigManager {
                 }
 
                 try (RandomAccessFile randomAccessFile = new RandomAccessFile(config, "rw")) {
-                    randomAccessFile.write(jsonString.getBytes(StandardCharsets.UTF_8));
+                    byte[] data = jsonString.getBytes(StandardCharsets.UTF_8);
+                    randomAccessFile.write(data);
+                    randomAccessFile.setLength(data.length);
                     randomAccessFile.getChannel().force(true);
                     // sync the directory, ensure that the config file is visible
                     MixAll.fsyncDirectory(Paths.get(configFile.getParent()));

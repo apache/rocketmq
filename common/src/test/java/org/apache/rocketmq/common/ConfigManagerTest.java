@@ -17,7 +17,10 @@ package org.apache.rocketmq.common;/*
 
 import java.io.File;
 import java.io.PrintWriter;
+import java.io.RandomAccessFile;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -26,6 +29,12 @@ import static org.junit.Assert.assertTrue;
 public class ConfigManagerTest {
     private static final String PATH_FILE = System.getProperty("java.io.tmpdir") + File.separator + "org.apache.rocketmq.common.ConfigManagerTest";
     private static final String CONTENT_ENCODE = "Encode content for ConfigManager";
+
+    @After
+    public void cleanup() {
+        new File(PATH_FILE).delete();
+        new File(PATH_FILE + ".bak").delete();
+    }
 
     @Test
     public void testLoad() throws Exception {
@@ -42,7 +51,6 @@ public class ConfigManagerTest {
     public void testLoadBak() throws Exception {
         ConfigManager testConfigManager = buildTestConfigManager();
         File file = createAndWriteFile(testConfigManager.configFilePath() + ".bak");
-        // invoke private method "loadBak()"
         Method declaredMethod = ConfigManager.class.getDeclaredMethod("loadBak");
         declaredMethod.setAccessible(true);
         Boolean loadBakResult = (Boolean) declaredMethod.invoke(testConfigManager);
@@ -60,6 +68,50 @@ public class ConfigManagerTest {
         testConfigManager.persist();
         File file = new File(testConfigManager.configFilePath());
         assertEquals(CONTENT_ENCODE, MixAll.file2String(file));
+    }
+
+    @Test
+    public void testPersistTruncatesStaleData() throws Exception {
+        String configPath = PATH_FILE;
+        File dir = new File(new File(configPath).getParent());
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        String longContent = "THIS_IS_A_VERY_LONG_OLD_CONTENT_THAT_SHOULD_BE_TRUNCATED_AFTER_PERSIST";
+        try (RandomAccessFile raf = new RandomAccessFile(configPath, "rw")) {
+            raf.write(longContent.getBytes(StandardCharsets.UTF_8));
+            raf.getChannel().force(true);
+        }
+        assertEquals(longContent, MixAll.file2String(new File(configPath)));
+
+        ConfigManager testConfigManager = buildTestConfigManager();
+        testConfigManager.persist();
+
+        String afterPersist = MixAll.file2String(new File(configPath));
+        assertEquals(
+            "persist() should truncate stale trailing data from previous writes",
+            CONTENT_ENCODE, afterPersist);
+    }
+
+    @Test
+    public void testLoadCorruptedFileWithValidBackup() throws Exception {
+        ConfigManager testConfigManager = buildTestConfigManager();
+        createAndWriteFile(testConfigManager.configFilePath(), "{corrupted!!!");
+        createAndWriteFile(testConfigManager.configFilePath() + ".bak", CONTENT_ENCODE);
+
+        assertTrue("Should succeed by falling back to valid .bak file",
+            testConfigManager.load());
+    }
+
+    @Test
+    public void testLoadFirstTimeNoFilesExist() throws Exception {
+        ConfigManager testConfigManager = buildTestConfigManager();
+        new File(testConfigManager.configFilePath()).delete();
+        new File(testConfigManager.configFilePath() + ".bak").delete();
+
+        assertTrue("First-time startup with no files should succeed",
+            testConfigManager.load());
     }
 
     private ConfigManager buildTestConfigManager() {
@@ -87,13 +139,18 @@ public class ConfigManagerTest {
     }
 
     private File createAndWriteFile(String fileName) throws Exception {
+        return createAndWriteFile(fileName, "TestForConfigManager");
+    }
+
+    private File createAndWriteFile(String fileName, String content) throws Exception {
         File file = new File(fileName);
         if (file.exists()) {
             file.delete();
         }
+        file.getParentFile().mkdirs();
         file.createNewFile();
         PrintWriter out = new PrintWriter(fileName);
-        out.write("TestForConfigManager");
+        out.write(content);
         out.close();
         return file;
     }
