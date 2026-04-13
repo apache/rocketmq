@@ -138,8 +138,12 @@ public class ReceiptHandleGroup {
         }
 
         private Long tryForceAcquire(long expiredTimeMs) {
+            long lastLock = this.lastLockTimeMs.get();
+            if (lastLock < 0) {
+                return null;
+            }
             long currentTimeMs = System.currentTimeMillis();
-            if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
+            if (currentTimeMs - lastLock > expiredTimeMs) {
                 synchronized (this) {
                     currentTimeMs = System.currentTimeMillis();
                     if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
