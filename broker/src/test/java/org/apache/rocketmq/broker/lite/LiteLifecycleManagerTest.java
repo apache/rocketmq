@@ -198,17 +198,6 @@ public class LiteLifecycleManagerTest {
 
         liteLifecycleManager.cleanByParentTopic(parentTopic);
 
-        // Wait for async deletion to complete
-        await().atMost(5, SECONDS).pollInterval(200, MILLISECONDS).until(() -> {
-            for (int i = 0; i < num; i++) {
-                String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));
-                if (messageStore.getQueueStore().getConsumeQueueTable().containsKey(lmqName)) {
-                    return false;
-                }
-            }
-            return true;
-        });
-
         for (int i = 0; i < num; i++) {
             String lmqName = LiteUtil.toLmqName(parentTopic, liteTopics.get(i));
             Assert.assertFalse(messageStore.getQueueStore().getConsumeQueueTable().containsKey(lmqName));
