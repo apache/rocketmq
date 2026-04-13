@@ -75,9 +75,25 @@ public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
     protected ChangeInvisibleDurationResponse convertToChangeInvisibleDurationResponse(ProxyContext ctx,
         ChangeInvisibleDurationRequest request, AckResult ackResult) {
         if (AckStatus.OK.equals(ackResult.getStatus())) {
+            String newHandleStr = ackResult.getExtraInfo();
+            if (newHandleStr != null) {
+                try {
+                    ReceiptHandle newHandle = ReceiptHandle.decode(newHandleStr);
+                    String group = request.getGroup().getName();
+                    String topic = request.getTopic().getName();
+                    MessageReceiptHandle newMessageReceiptHandle = new MessageReceiptHandle(
+                        group, topic, newHandle.getQueueId(), newHandleStr,
+                        request.getMessageId(), newHandle.getOffset(), 0);
+                    messagingProcessor.addReceiptHandle(ctx,
+                        grpcChannelManager.getChannel(ctx.getClientID()),
+                        group, request.getMessageId(), newMessageReceiptHandle);
+                } catch (Exception e) {
+                    // log but do not fail the response
+                }
+            }
             return ChangeInvisibleDurationResponse.newBuilder()
                 .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
-                .setReceiptHandle(ackResult.getExtraInfo())
+                .setReceiptHandle(newHandleStr)
                 .build();
         }
         return ChangeInvisibleDurationResponse.newBuilder()

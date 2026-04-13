@@ -40,6 +40,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
@@ -179,6 +181,34 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
             GrpcProxyException exception = (GrpcProxyException) executionException.getCause();
             assertEquals(Code.ILLEGAL_INVISIBLE_TIME, exception.getCode());
         }
+    }
+
+    @Test
+    public void testNewHandleIsReRegisteredAfterSuccess() throws Throwable {
+        long newPopTime = System.currentTimeMillis();
+        long newInvisibleTime = 5000;
+        String newHandleStr = buildReceiptHandle(TOPIC, newPopTime, newInvisibleTime);
+        AckResult ackResult = new AckResult();
+        ackResult.setExtraInfo(newHandleStr);
+        ackResult.setStatus(AckStatus.OK);
+        when(this.messagingProcessor.changeInvisibleTime(
+            any(), any(), anyString(), anyString(), anyString(), anyLong(), anyString(), anyLong(), anyBoolean()
+        )).thenReturn(CompletableFuture.completedFuture(ackResult));
+
+        String msgId = "testMsgId";
+        ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(
+            createContext(),
+            ChangeInvisibleDurationRequest.newBuilder()
+                .setInvisibleDuration(Durations.fromMillis(newInvisibleTime))
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageId(msgId)
+                .setReceiptHandle(buildReceiptHandle(TOPIC, System.currentTimeMillis() - 10000, 3000))
+                .build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        verify(messagingProcessor).addReceiptHandle(any(), any(), eq(CONSUMER_GROUP), eq(msgId), any(MessageReceiptHandle.class));
     }
 
     @Test
