@@ -249,6 +249,9 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         // set transaction property
         MessageType messageType = message.getSystemProperties().getMessageType();
         if (messageType.equals(MessageType.TRANSACTION)) {
+            if (message.getSystemProperties().hasDeliveryTimestamp()) {
+                throw new GrpcProxyException(Code.BAD_REQUEST, "transaction message cannot set delivery timestamp");
+            }
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
 
             if (message.getSystemProperties().hasOrphanedTransactionRecoveryDuration()) {
