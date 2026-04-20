@@ -46,6 +46,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 import java.util.function.IntSupplier;
 
 /**
@@ -70,6 +71,16 @@ import java.util.function.IntSupplier;
  * multiple smaller MetricData objects, each preserving the
  * original resource, scope, name, description, unit, and
  * type metadata.
+ *
+ * <p>Sub-batch submissions are bounded by a per-call
+ * semaphore whose permit count comes from
+ * {@code maxConcurrentSupplier}. This caps the number of
+ * batches that can be in-flight to the delegate at once,
+ * preventing the MetricData retention window from being
+ * multiplied by the batch count under OTel SDK 1.31+ where
+ * the OTLP exporter may hold references until the RPC
+ * completes. A value &lt;= 0 or Integer.MAX_VALUE disables
+ * the limit (legacy behavior).
  */
 public final class BatchSplittingMetricExporter
     implements MetricExporter {
@@ -85,16 +96,24 @@ public final class BatchSplittingMetricExporter
     /** Supplies the max data points per batch at runtime. */
     private final IntSupplier maxBatchSizeSupplier;
 
+    /** Supplies the max concurrent in-flight batches. */
+    private final IntSupplier maxConcurrentSupplier;
+
     /**
      * Creates a new BatchSplittingMetricExporter.
      *
      * @param metricExporter the underlying MetricExporter
      * @param batchSizeSupplier supplies the max number
      *     of data points per batch; must return &gt; 0
+     * @param concurrencySupplier supplies the max number
+     *     of sub-batches that can be in-flight to the
+     *     delegate at once; &lt;= 0 or Integer.MAX_VALUE
+     *     means unlimited
      */
     public BatchSplittingMetricExporter(
         final MetricExporter metricExporter,
-        final IntSupplier batchSizeSupplier) {
+        final IntSupplier batchSizeSupplier,
+        final IntSupplier concurrencySupplier) {
         if (metricExporter == null) {
             throw new NullPointerException(
                 "metricExporter must not be null");
@@ -103,8 +122,13 @@ public final class BatchSplittingMetricExporter
             throw new NullPointerException(
                 "batchSizeSupplier must not be null");
         }
+        if (concurrencySupplier == null) {
+            throw new NullPointerException(
+                "concurrencySupplier must not be null");
+        }
         this.delegate = metricExporter;
         this.maxBatchSizeSupplier = batchSizeSupplier;
+        this.maxConcurrentSupplier = concurrencySupplier;
     }
 
     /** {@inheritDoc} */
@@ -136,13 +160,22 @@ public final class BatchSplittingMetricExporter
         List<List<MetricData>> batches =
             splitIntoBatches(snapshotted, maxBatchSize);
 
+        int maxConcurrent =
+            maxConcurrentSupplier.getAsInt();
+        final Semaphore semaphore =
+            (maxConcurrent > 0
+                && maxConcurrent < Integer.MAX_VALUE)
+                ? new Semaphore(maxConcurrent)
+                : null;
+
         LOGGER.debug(
             "Splitting metrics export: "
                 + "totalDataPoints={}, "
                 + "maxBatchSize={}, "
-                + "batchCount={}",
+                + "batchCount={}, "
+                + "maxConcurrent={}",
             totalDataPoints, maxBatchSize,
-            batches.size());
+            batches.size(), maxConcurrent);
 
         List<CompletableResultCode> results =
             new ArrayList<>(batches.size());
@@ -150,9 +183,25 @@ public final class BatchSplittingMetricExporter
             final List<MetricData> batch =
                 batches.get(i);
             final int batchIndex = i;
+            if (semaphore != null) {
+                try {
+                    semaphore.acquire();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    LOGGER.warn(
+                        "Interrupted while waiting "
+                            + "for export slot; "
+                            + "submitted {} of {} batches",
+                        i, batches.size());
+                    break;
+                }
+            }
             CompletableResultCode r =
                 delegate.export(batch);
             r.whenComplete(() -> {
+                if (semaphore != null) {
+                    semaphore.release();
+                }
                 if (!r.isSuccess()) {
                     logFailedBatch(batchIndex, batch);
                 }

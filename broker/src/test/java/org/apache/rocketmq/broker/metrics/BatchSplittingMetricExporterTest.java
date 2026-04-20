@@ -74,7 +74,8 @@ public class BatchSplittingMetricExporterTest {
     public void testConstructorRejectsNullDelegate() {
         assertThatThrownBy(() ->
             new BatchSplittingMetricExporter(
-                null, () -> 100))
+                null, () -> 100,
+                () -> Integer.MAX_VALUE))
             .isInstanceOf(NullPointerException.class);
     }
 
@@ -82,7 +83,16 @@ public class BatchSplittingMetricExporterTest {
     public void testConstructorRejectsNullSupplier() {
         assertThatThrownBy(() ->
             new BatchSplittingMetricExporter(
-                delegate, null))
+                delegate, null,
+                () -> Integer.MAX_VALUE))
+            .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    public void testConstructorRejectsNullConcurrencySupplier() {
+        assertThatThrownBy(() ->
+            new BatchSplittingMetricExporter(
+                delegate, () -> 100, null))
             .isInstanceOf(NullPointerException.class);
     }
 
@@ -90,7 +100,8 @@ public class BatchSplittingMetricExporterTest {
     public void testExportEmptyCollection() {
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
         CompletableResultCode result =
             exporter.export(Collections.emptyList());
 
@@ -103,7 +114,8 @@ public class BatchSplittingMetricExporterTest {
     public void testFastPathWhenBelowThreshold() {
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
 
         List<MetricData> metrics = Arrays.asList(
             createMockMetricData("metric1", 3),
@@ -122,7 +134,8 @@ public class BatchSplittingMetricExporterTest {
     public void testFastPathWhenExactlyAtThreshold() {
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
 
         List<MetricData> metrics = Arrays.asList(
             createMockMetricData("metric1", 5),
@@ -141,7 +154,8 @@ public class BatchSplittingMetricExporterTest {
     public void testSplitWhenAboveThreshold() {
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
 
         MetricData m1 = createMockMetricData("m1", 5);
         MetricData m2 = createMockMetricData("m2", 5);
@@ -173,7 +187,8 @@ public class BatchSplittingMetricExporterTest {
     public void testSplitSingleLargeMetricData() {
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
 
         // A single MetricData with 25 points.
         // maxBatchSize=10, so it should be split
@@ -225,7 +240,8 @@ public class BatchSplittingMetricExporterTest {
         // 20 points / maxBatchSize 10 = exactly 2 batches
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
 
         MetricData largeMetric =
             createRealLongGaugeMetricData(
@@ -261,7 +277,8 @@ public class BatchSplittingMetricExporterTest {
         //   batch4: [sub3, m3] (5+4=9 pts)
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
 
         MetricData m1 =
             createMockMetricData("m1", 3);
@@ -301,7 +318,8 @@ public class BatchSplittingMetricExporterTest {
     public void testSplitMultipleBatches() {
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> 5);
+                delegate, () -> 5,
+                () -> Integer.MAX_VALUE);
 
         MetricData m1 =
             createMockMetricData("m1", 3);
@@ -342,7 +360,8 @@ public class BatchSplittingMetricExporterTest {
     public void testSplitMixedSizeMetricData() {
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> 10);
+                delegate, () -> 10,
+                () -> Integer.MAX_VALUE);
 
         MetricData m1 =
             createMockMetricData("m1", 2);
@@ -382,7 +401,8 @@ public class BatchSplittingMetricExporterTest {
 
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
 
         List<MetricData> metrics =
             Collections.singletonList(
@@ -397,7 +417,8 @@ public class BatchSplittingMetricExporterTest {
     public void testFlushDelegatesToDelegate() {
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
         CompletableResultCode result =
             exporter.flush();
 
@@ -409,7 +430,8 @@ public class BatchSplittingMetricExporterTest {
     public void testShutdownDelegatesToDelegate() {
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
         CompletableResultCode result =
             exporter.shutdown();
 
@@ -425,7 +447,8 @@ public class BatchSplittingMetricExporterTest {
 
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
         AggregationTemporality result =
             exporter.getAggregationTemporality(
                 InstrumentType.COUNTER);
@@ -441,7 +464,8 @@ public class BatchSplittingMetricExporterTest {
     public void testExportNullCollection() {
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> MAX_DATA_POINTS);
+                delegate, () -> MAX_DATA_POINTS,
+                () -> Integer.MAX_VALUE);
         exporter.export(null);
         verify(delegate, times(1)).export(null);
     }
@@ -454,7 +478,8 @@ public class BatchSplittingMetricExporterTest {
         // (8*10 + 1*3)
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> 10);
+                delegate, () -> 10,
+                () -> Integer.MAX_VALUE);
 
         MetricData large =
             createRealLongGaugeMetricData(
@@ -487,7 +512,8 @@ public class BatchSplittingMetricExporterTest {
         // Verify actual point data values are preserved
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> 3);
+                delegate, () -> 3,
+                () -> Integer.MAX_VALUE);
 
         MetricData metric =
             createRealLongGaugeMetricData(
@@ -527,7 +553,8 @@ public class BatchSplittingMetricExporterTest {
         // snapshotted MetricData, not the original.
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> 100);
+                delegate, () -> 100,
+                () -> Integer.MAX_VALUE);
 
         MetricData original =
             createRealLongGaugeMetricData("test", 5);
@@ -558,7 +585,8 @@ public class BatchSplittingMetricExporterTest {
         // will fail. Should fall back to original object.
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> 100);
+                delegate, () -> 100,
+                () -> Integer.MAX_VALUE);
 
         MetricData mockMd =
             createMockMetricData("mock", 3);
@@ -584,7 +612,8 @@ public class BatchSplittingMetricExporterTest {
         // modification issues.
         BatchSplittingMetricExporter exporter =
             new BatchSplittingMetricExporter(
-                delegate, () -> 100);
+                delegate, () -> 100,
+                () -> Integer.MAX_VALUE);
 
         MetricData original =
             createRealLongGaugeMetricData("test", 5);
@@ -608,6 +637,130 @@ public class BatchSplittingMetricExporterTest {
             .isNotSameAs(originalPoints);
         assertThat(exportedPoints)
             .hasSize(originalPoints.size());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testConcurrencyLimitBoundsInFlightBatches()
+        throws Exception {
+        // 5 batches, concurrency = 2: at most 2 in-flight
+        // at any time.
+        final List<CompletableResultCode> pending =
+            Collections.synchronizedList(new ArrayList<>());
+        MetricExporter controlled = mock(MetricExporter.class);
+        when(controlled.export(anyCollection()))
+            .thenAnswer(inv -> {
+                CompletableResultCode r =
+                    new CompletableResultCode();
+                pending.add(r);
+                return r;
+            });
+
+        BatchSplittingMetricExporter exporter =
+            new BatchSplittingMetricExporter(
+                controlled, () -> 3, () -> 2);
+
+        // 5 MetricData × 3 pts = 5 sub-batches.
+        List<MetricData> metrics = Arrays.asList(
+            createMockMetricData("m1", 3),
+            createMockMetricData("m2", 3),
+            createMockMetricData("m3", 3),
+            createMockMetricData("m4", 3),
+            createMockMetricData("m5", 3));
+
+        Thread exportThread = new Thread(
+            () -> exporter.export(metrics));
+        exportThread.start();
+
+        // Wait for the first 2 submissions.
+        long deadline =
+            System.currentTimeMillis() + 2000;
+        while (pending.size() < 2
+            && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertThat(pending).hasSize(2);
+
+        // Hold for a bit; no third batch should be
+        // submitted until we free a permit.
+        Thread.sleep(100);
+        assertThat(pending).hasSize(2);
+
+        // Complete first batch; third should be
+        // submitted soon.
+        pending.get(0).succeed();
+        deadline = System.currentTimeMillis() + 2000;
+        while (pending.size() < 3
+            && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertThat(pending).hasSize(3);
+
+        // Drain the rest.
+        for (int i = 1; i < pending.size(); i++) {
+            pending.get(i).succeed();
+        }
+        deadline = System.currentTimeMillis() + 2000;
+        while (pending.size() < 5
+            && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+            synchronized (pending) {
+                for (CompletableResultCode r : pending) {
+                    if (!r.isDone()) {
+                        r.succeed();
+                    }
+                }
+            }
+        }
+        exportThread.join(2000);
+        assertThat(exportThread.isAlive()).isFalse();
+        assertThat(pending).hasSize(5);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testConcurrencyLimitZeroMeansUnlimited()
+        throws Exception {
+        // With concurrency <= 0, all sub-batches are
+        // submitted without blocking.
+        final List<CompletableResultCode> pending =
+            Collections.synchronizedList(new ArrayList<>());
+        MetricExporter controlled = mock(MetricExporter.class);
+        when(controlled.export(anyCollection()))
+            .thenAnswer(inv -> {
+                CompletableResultCode r =
+                    new CompletableResultCode();
+                pending.add(r);
+                return r;
+            });
+
+        BatchSplittingMetricExporter exporter =
+            new BatchSplittingMetricExporter(
+                controlled, () -> 3, () -> 0);
+
+        List<MetricData> metrics = Arrays.asList(
+            createMockMetricData("m1", 3),
+            createMockMetricData("m2", 3),
+            createMockMetricData("m3", 3),
+            createMockMetricData("m4", 3));
+
+        Thread exportThread = new Thread(
+            () -> exporter.export(metrics));
+        exportThread.start();
+
+        long deadline =
+            System.currentTimeMillis() + 2000;
+        while (pending.size() < 4
+            && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertThat(pending).hasSize(4);
+
+        for (CompletableResultCode r : pending) {
+            r.succeed();
+        }
+        exportThread.join(2000);
+        assertThat(exportThread.isAlive()).isFalse();
     }
 
     /**
