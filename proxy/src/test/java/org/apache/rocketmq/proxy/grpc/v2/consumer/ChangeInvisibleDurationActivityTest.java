@@ -194,6 +194,8 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
         when(this.messagingProcessor.changeInvisibleTime(
             any(), any(), anyString(), anyString(), anyString(), anyLong(), anyString(), anyLong(), anyBoolean()
         )).thenReturn(CompletableFuture.completedFuture(ackResult));
+        when(messagingProcessor.removeReceiptHandle(any(), any(), anyString(), anyString(), anyString()))
+            .thenReturn(new MessageReceiptHandle(CONSUMER_GROUP, TOPIC, 0, newHandleStr, "testMsgId", 0, 0));
 
         String msgId = "testMsgId";
         ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(
@@ -209,6 +211,36 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
 
         assertEquals(Code.OK, response.getStatus().getCode());
         verify(messagingProcessor).addReceiptHandle(any(), any(), eq(CONSUMER_GROUP), eq(msgId), any(MessageReceiptHandle.class));
+    }
+
+    @Test
+    public void testNewHandleIsNotReRegisteredIfAutoRenewIsOff() throws Throwable {
+        long newPopTime = System.currentTimeMillis();
+        long newInvisibleTime = 5000;
+        String newHandleStr = buildReceiptHandle(TOPIC, newPopTime, newInvisibleTime);
+        AckResult ackResult = new AckResult();
+        ackResult.setExtraInfo(newHandleStr);
+        ackResult.setStatus(AckStatus.OK);
+        when(this.messagingProcessor.changeInvisibleTime(
+            any(), any(), anyString(), anyString(), anyString(), anyLong(), anyString(), anyLong(), anyBoolean()
+        )).thenReturn(CompletableFuture.completedFuture(ackResult));
+        when(messagingProcessor.removeReceiptHandle(any(), any(), anyString(), anyString(), anyString()))
+            .thenReturn(null);
+
+        String msgId = "testMsgId";
+        ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(
+            createContext(),
+            ChangeInvisibleDurationRequest.newBuilder()
+                .setInvisibleDuration(Durations.fromMillis(newInvisibleTime))
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageId(msgId)
+                .setReceiptHandle(buildReceiptHandle(TOPIC, System.currentTimeMillis() - 10000, 3000))
+                .build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        verify(messagingProcessor, org.mockito.Mockito.never()).addReceiptHandle(any(), any(), anyString(), anyString(), any(MessageReceiptHandle.class));
     }
 
     @Test

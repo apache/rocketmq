@@ -65,7 +65,7 @@ public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
                 MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
                 request.getSuspend()
             ).thenApply(
-                ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult));
+                ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult, messageReceiptHandle != null));
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -73,10 +73,10 @@ public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
     }
 
     protected ChangeInvisibleDurationResponse convertToChangeInvisibleDurationResponse(ProxyContext ctx,
-        ChangeInvisibleDurationRequest request, AckResult ackResult) {
+        ChangeInvisibleDurationRequest request, AckResult ackResult, boolean isAutoRenew) {
         if (AckStatus.OK.equals(ackResult.getStatus())) {
             String newHandleStr = ackResult.getExtraInfo();
-            if (newHandleStr != null) {
+            if (newHandleStr != null && isAutoRenew) {
                 try {
                     ReceiptHandle newHandle = ReceiptHandle.decode(newHandleStr);
                     String group = request.getGroup().getName();
