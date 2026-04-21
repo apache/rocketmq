@@ -505,6 +505,8 @@ public class MessageStoreConfig {
 
     private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
 
+    private long popRocksdbBlockCacheSize = 256 * SizeUnit.MB;
+
     /**
      * Flush RocksDB WAL frequency, aka, flush WAL every N write ops.
      */
@@ -529,6 +531,14 @@ public class MessageStoreConfig {
 
     public void setRocksdbCompressionType(String compressionType) {
         this.rocksdbCompressionType = compressionType;
+    }
+
+    public long getPopRocksdbBlockCacheSize() {
+        return popRocksdbBlockCacheSize;
+    }
+
+    public void setPopRocksdbBlockCacheSize(long popRocksdbBlockCacheSize) {
+        this.popRocksdbBlockCacheSize = popRocksdbBlockCacheSize;
     }
 
     /**
