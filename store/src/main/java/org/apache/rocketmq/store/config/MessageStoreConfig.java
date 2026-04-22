@@ -507,6 +507,8 @@ public class MessageStoreConfig {
 
     private long popRocksdbBlockCacheSize = 256 * SizeUnit.MB;
 
+    private long popRocksdbWriteBufferSize = 32 * SizeUnit.MB;
+
     /**
      * Flush RocksDB WAL frequency, aka, flush WAL every N write ops.
      */
@@ -539,6 +541,14 @@ public class MessageStoreConfig {
 
     public void setPopRocksdbBlockCacheSize(long popRocksdbBlockCacheSize) {
         this.popRocksdbBlockCacheSize = popRocksdbBlockCacheSize;
+    }
+
+    public long getPopRocksdbWriteBufferSize() {
+        return popRocksdbWriteBufferSize;
+    }
+
+    public void setPopRocksdbWriteBufferSize(long popRocksdbWriteBufferSize) {
+        this.popRocksdbWriteBufferSize = popRocksdbWriteBufferSize;
     }
 
     /**

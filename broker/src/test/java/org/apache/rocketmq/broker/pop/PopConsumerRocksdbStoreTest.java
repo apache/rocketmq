@@ -66,7 +66,8 @@ public class PopConsumerRocksdbStoreTest {
     @Test
     public void rocksdbStoreWriteDeleteTest() {
         String filePath = getRandomStorePath();
-        PopConsumerKVStore consumerStore = new PopConsumerRocksdbStore(filePath, 256 * SizeUnit.MB);
+        PopConsumerKVStore consumerStore = new PopConsumerRocksdbStore(
+            filePath, 256 * SizeUnit.MB, 32 * SizeUnit.MB);
         Assert.assertEquals(filePath, consumerStore.getFilePath());
 
         consumerStore.start();
@@ -128,7 +129,8 @@ public class PopConsumerRocksdbStoreTest {
     @Ignore
     @SuppressWarnings("ConstantValue")
     public void tombstoneDeletionTest() throws IllegalAccessException, NoSuchFieldException {
-        PopConsumerRocksdbStore rocksdbStore = new PopConsumerRocksdbStore(getRandomStorePath(), 256 * SizeUnit.MB);
+        PopConsumerRocksdbStore rocksdbStore = new PopConsumerRocksdbStore(
+            getRandomStorePath(), 256 * SizeUnit.MB, 32 * SizeUnit.MB);
         rocksdbStore.start();
 
         int iterCount = 1000 * 1000;

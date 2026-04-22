@@ -47,10 +47,12 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
     private WriteOptions deleteOptions;
     protected ColumnFamilyHandle columnFamilyHandle;
     private final long blockCacheSize;
+    private final long writeBufferSize;
 
-    public PopConsumerRocksdbStore(String filePath, long blockCacheSize) {
+    public PopConsumerRocksdbStore(String filePath, long blockCacheSize, long writeBufferSize) {
         super(filePath);
         this.blockCacheSize = blockCacheSize;
+        this.writeBufferSize = writeBufferSize;
     }
 
     // https://www.cnblogs.com/renjc/p/rocksdb-class-db.html
@@ -85,8 +87,8 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
             initOptions();
 
             // init column family here
-            ColumnFamilyOptions defaultOptions = RocksDBOptionsFactory.createPopCFOptions(blockCacheSize);
-            ColumnFamilyOptions popStateOptions = RocksDBOptionsFactory.createPopCFOptions(blockCacheSize);
+            ColumnFamilyOptions defaultOptions = RocksDBOptionsFactory.createPopCFOptions(blockCacheSize, writeBufferSize);
+            ColumnFamilyOptions popStateOptions = RocksDBOptionsFactory.createPopCFOptions(blockCacheSize, writeBufferSize);
             this.cfOptions.add(defaultOptions);
             this.cfOptions.add(popStateOptions);
 
