@@ -438,9 +438,6 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
     }
 
     public class PopLiteLockManager extends ServiceThread {
-        private static final long AUTO_CLEAN_INTERVAL = 5 * 60 * 1000;
-        private long lastCleanTime = System.currentTimeMillis();
-
         @Override
         public String getServiceName() {
             if (brokerController.getBrokerConfig().isInBrokerContainer()) {
@@ -455,10 +452,6 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
                 try {
                     waitForRunning(60000);
                     lockService.removeTimeout();
-                    if (System.currentTimeMillis() - lastCleanTime >= AUTO_CLEAN_INTERVAL) {
-                        ((MemoryConsumerOrderInfoManager) consumerOrderInfoManager).autoClean();
-                        lastCleanTime = System.currentTimeMillis();
-                    }
                 } catch (Exception ignored) {
                 }
             }
@@ -475,6 +468,10 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
 
     public ConsumerOrderInfoManager getConsumerOrderInfoManager() {
         return consumerOrderInfoManager;
+    }
+
+    public void cleanConsumerOrderInfo() {
+        ((MemoryConsumerOrderInfoManager) consumerOrderInfoManager).autoClean();
     }
 
     public void startPopLiteLockManager() {

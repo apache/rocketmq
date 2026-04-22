@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.offset.MemoryConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -454,6 +455,36 @@ public class ConsumerOrderInfoManagerTest {
                 break;
             }
         }
+    }
+
+    @Test
+    public void testMemoryConsumerOrderInfoManagerAutoCleanGroupNotExist() {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        BrokerController brokerController = mock(BrokerController.class);
+        TopicConfigManager topicConfigManager = mock(TopicConfigManager.class);
+        SubscriptionGroupManager subscriptionGroupManager = mock(SubscriptionGroupManager.class);
+        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
+        when(topicConfigManager.selectTopicConfig(eq(TOPIC))).thenReturn(new TopicConfig(TOPIC));
+        when(subscriptionGroupManager.containsSubscriptionGroup(GROUP)).thenReturn(false);
+
+        MemoryConsumerOrderInfoManager memoryConsumerOrderInfoManager =
+            new MemoryConsumerOrderInfoManager(brokerController);
+        memoryConsumerOrderInfoManager.update(null, false,
+            TOPIC,
+            GROUP,
+            QUEUE_ID_0,
+            popTime,
+            1,
+            Lists.newArrayList(2L, 3L, 4L),
+            new StringBuilder());
+
+        assertEquals(1, memoryConsumerOrderInfoManager.getTable().size());
+
+        memoryConsumerOrderInfoManager.autoClean();
+
+        assertEquals(0, memoryConsumerOrderInfoManager.getTable().size());
     }
 
     private void assertEncodeAndDecode() {

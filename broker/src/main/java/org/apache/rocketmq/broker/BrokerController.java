@@ -719,6 +719,17 @@ public class BrokerController {
             @Override
             public void run() {
                 try {
+                    BrokerController.this.popLiteMessageProcessor.cleanConsumerOrderInfo();
+                } catch (Throwable e) {
+                    LOG.error("BrokerController: failed to clean pop lite consumer order info", e);
+                }
+            }
+        }, 5, 5, TimeUnit.MINUTES);
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
                     BrokerController.this.protectBroker();
                 } catch (Throwable e) {
                     LOG.error("BrokerController: failed to protectBroker", e);
