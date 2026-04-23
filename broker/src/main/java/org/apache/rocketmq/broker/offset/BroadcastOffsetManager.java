@@ -27,6 +27,8 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
+import static org.apache.rocketmq.common.MixAll.BROADCAST_KEY;
+
 /**
  * manage the offset of broadcast.
  * now, use this to support switch remoting client between proxy and broker
@@ -169,7 +171,7 @@ public class BroadcastOffsetManager extends ServiceThread {
 
             queueMinOffset.forEach((queueId, offset) ->
                 this.brokerController.getConsumerOffsetManager().commitOffset("BroadcastOffset",
-                broadcastGroupId(broadcastOffsetData.group), broadcastOffsetData.topic, queueId, offset));
+                    broadcastGroupId(broadcastOffsetData.group), broadcastOffsetData.topic, queueId, offset));
         }
     }
 
@@ -182,7 +184,7 @@ public class BroadcastOffsetManager extends ServiceThread {
      * @return the groupId used to commit offset
      */
     private static String broadcastGroupId(String group) {
-        return group + TOPIC_GROUP_SEPARATOR + "broadcast";
+        return group + TOPIC_GROUP_SEPARATOR + BROADCAST_KEY;
     }
 
     @Override
