@@ -166,12 +166,21 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                     continue;
                 }
 
+                ReceiptHandleGroup group = entry.getValue();
+
                 if (!proxyConfig.isEnableGrpcChannelReceiptHandleRenew()
                     && key.getChannel() instanceof GrpcClientChannel) {
+                    // When renew is disabled, only clean up expired handles to avoid memory leak
+                    group.scan((msgID, handleStr, v) -> {
+                        ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandleStr());
+                        if (handle.isExpired()) {
+                            group.computeIfPresent(msgID, handleStr,
+                                messageReceiptHandle -> CompletableFuture.completedFuture(null), 0);
+                        }
+                    });
                     continue;
                 }
 
-                ReceiptHandleGroup group = entry.getValue();
                 group.scan((msgID, handleStr, v) -> {
                     long current = System.currentTimeMillis();
                     ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandleStr());
