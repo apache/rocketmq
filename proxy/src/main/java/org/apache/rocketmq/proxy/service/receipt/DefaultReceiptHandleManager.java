@@ -54,6 +54,7 @@ import org.apache.rocketmq.proxy.common.ReceiptHandleGroupKey;
 import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
@@ -162,6 +163,11 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 ReceiptHandleGroupKey key = entry.getKey();
                 if (clientIsOffline(key)) {
                     clearGroup(key);
+                    continue;
+                }
+
+                if (!proxyConfig.isEnableGrpcChannelReceiptHandleRenew()
+                    && key.getChannel() instanceof GrpcClientChannel) {
                     continue;
                 }
 

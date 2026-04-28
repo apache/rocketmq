@@ -27,6 +27,7 @@ import com.google.protobuf.util.Durations;
 import io.grpc.stub.StreamObserver;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
@@ -50,6 +51,7 @@ import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class ReceiveMessageActivity extends AbstractMessagingActivity {
     private static final String ILLEGAL_POLLING_TIME_INTRODUCED_CLIENT_VERSION = "5.0.3";
@@ -107,7 +109,11 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
             if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
-                actualInvisibleTime = proxyConfig.getDefaultInvisibleTimeMills();
+                if (proxyConfig.isEnableGrpcChannelReceiptHandleRenew()) {
+                    actualInvisibleTime = proxyConfig.getDefaultInvisibleTimeMills();
+                } else {
+                    actualInvisibleTime = getConsumeTimeoutInvisibleTime(ctx, group, proxyConfig);
+                }
             } else {
                 validateInvisibleTime(actualInvisibleTime,
                     ConfigurationManager.getProxyConfig().getMinInvisibleTimeMillsForRecv());
@@ -228,6 +234,18 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
             this.messagingProcessor,
             responseObserver
         );
+    }
+
+    private long getConsumeTimeoutInvisibleTime(ProxyContext ctx, String group, ProxyConfig proxyConfig) {
+        try {
+            SubscriptionGroupConfig groupConfig = this.messagingProcessor.getSubscriptionGroupConfig(ctx, group);
+            if (groupConfig != null && groupConfig.getConsumeTimeoutMinute() > 0) {
+                return TimeUnit.MINUTES.toMillis(groupConfig.getConsumeTimeoutMinute());
+            }
+        } catch (Exception e) {
+            // fall through to default
+        }
+        return proxyConfig.getDefaultInvisibleTimeMills();
     }
 
     protected static class ReceiveMessageQueueSelector implements QueueSelector {
