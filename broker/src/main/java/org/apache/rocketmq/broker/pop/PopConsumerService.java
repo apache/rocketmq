@@ -530,11 +530,9 @@ public class PopConsumerService extends ServiceThread {
         // If the new CK has the same key as the old CK (same visibilityTimeout),
         // the write already overwrites the old record in RocksDB, skip delete
         // to avoid removing the newly written record.
-        if (!skipWrite && ckRecord.getVisibilityTimeout() == ackRecord.getVisibilityTimeout()) {
-            return;
+        if (skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout()) {
+            this.popConsumerStore.deleteRecords(Collections.singletonList(ackRecord));
         }
-
-        this.popConsumerStore.deleteRecords(Collections.singletonList(ackRecord));
     }
 
     // Use broker escape bridge to support remote read
