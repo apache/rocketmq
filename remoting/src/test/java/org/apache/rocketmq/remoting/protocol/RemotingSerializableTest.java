@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class RemotingSerializableTest {
     @Test
@@ -121,6 +123,22 @@ public class RemotingSerializableTest {
             Assert.fail("Should not throw");
         }
     }
+    @Test
+    public void testDecodeUnquotedFieldNames() {
+        // 模拟 5.4.x 版本序列化的 consumerOffset 格式（数字 key 无引号）
+        String jsonWithUnquotedKeys = "{\"offsetTable\":{\"TopicTest@gid-test\":{0:123,1:456}}}";
+        Map<String, Map<Integer, Long>> result = RemotingSerializable.fromJson(jsonWithUnquotedKeys, Map.class);
+        assertNotNull(result);
+        Map offsetTable = (Map) result.get("offsetTable");
+        assertNotNull(offsetTable);
+
+        Map topicOffsets = (Map) offsetTable.get("TopicTest@gid-test");
+        assertNotNull(topicOffsets);
+
+        assertEquals(123L, ((Number) topicOffsets.get("0")).longValue());
+        assertEquals(456L, ((Number) topicOffsets.get("1")).longValue());
+    }
+
 }
 
 class Sample {
