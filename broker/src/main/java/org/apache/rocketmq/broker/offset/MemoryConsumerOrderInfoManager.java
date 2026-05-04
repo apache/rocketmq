@@ -20,6 +20,8 @@ package org.apache.rocketmq.broker.offset;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.pop.orderly.QueueLevelConsumerManager;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Memory-based Consumer Order Information Manager for Lite Topics
  * Trade-off considerations::
@@ -44,6 +46,28 @@ public class MemoryConsumerOrderInfoManager extends QueueLevelConsumerManager {
             this.getConsumerOrderInfoLockManager().updateLockFreeTimestamp(
                 topic, group, queueId, orderInfo.getMaxLockFreeTimestamp());
         }
+    }
+
+    public void suspendQueue(String topic, String group, int queueId, long popTime, long visibilityTimeout) {
+        ConcurrentHashMap<Integer, OrderInfo> orderInfoMap = this.getTable().get(buildKey(topic, group));
+        if (null == orderInfoMap) {
+            return;
+        }
+        OrderInfo orderInfo = orderInfoMap.get(queueId);
+        if (null == orderInfo) {
+            return;
+        }
+        if (popTime != orderInfo.getPopTime()) {
+            log.warn("suspendQueue, popTime not match. {}, {}, {}, popTime:{}", topic, group, orderInfo, popTime);
+            return;
+        }
+
+        if (orderInfo.getOffsetConsumedCount() != null) {
+            orderInfo.getOffsetConsumedCount().replaceAll((key, value) -> value > 0 ? value - 1 : value);
+        }
+        orderInfo.setOffsetNextVisibleTime(null);
+        orderInfo.setInvisibleTime(visibilityTimeout - orderInfo.getPopTime());
+        updateLockFreeTimestamp(topic, group, queueId, orderInfo);
     }
 
     @Override

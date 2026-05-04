@@ -109,7 +109,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
                 log.error("load json consumerOffset info failed, startup will exit");
                 return false;
             }
-            this.persist();
+            this.persist0(); // ensure full persistence
             this.getDataVersion().assignNewOne(dataVersion);
             updateDataVersion();
             log.info("update offset from json, dataVersion:{}, offsetTable: {} ", this.getDataVersion(), JSON.toJSONString(this.getOffsetTable()));
@@ -159,12 +159,16 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     @Override
     public synchronized void persist() {
+        if (brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
+            updateDataVersion();
+            this.rocksDBConfigManager.flushWAL();
+            return;
+        }
+        persist0();
+    }
+
+    private void persist0() {
         if (rocksDBConfigManager.isLoaded()) {
-            if (brokerController.getBrokerConfig().isPersistConsumerOffsetIncrementally()) {
-                updateDataVersion();
-                this.rocksDBConfigManager.flushWAL();
-                return;
-            }
             try (WriteBatch writeBatch = new WriteBatch()) {
                 for (Entry<String, ConcurrentMap<Integer, Long>> entry : this.offsetTable.entrySet()) {
                     putWriteBatch(writeBatch, entry.getKey(), entry.getValue());

@@ -484,6 +484,7 @@ public class MessageStoreConfig {
     private String combineAssignOffsetCQType = StoreType.DEFAULT.getStoreType();
     private boolean combineCQEnableCheckSelf = false;
     private int combineCQMaxExtraSearchCommitLogFiles = 3;
+    private boolean combineCQUseRocksdbForLmq = false;
 
     /**
      * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
@@ -504,6 +505,10 @@ public class MessageStoreConfig {
 
     private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
 
+    private long popRocksdbBlockCacheSize = 256 * SizeUnit.MB;
+
+    private long popRocksdbWriteBufferSize = 32 * SizeUnit.MB;
+
     /**
      * Flush RocksDB WAL frequency, aka, flush WAL every N write ops.
      */
@@ -520,12 +525,30 @@ public class MessageStoreConfig {
     // Shared byte buffer manager configuration
     private int sharedByteBufferNum = 16;
 
+    private boolean useSeparateStorePathForRocksdbCQ = false;
+
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
     }
 
     public void setRocksdbCompressionType(String compressionType) {
         this.rocksdbCompressionType = compressionType;
+    }
+
+    public long getPopRocksdbBlockCacheSize() {
+        return popRocksdbBlockCacheSize;
+    }
+
+    public void setPopRocksdbBlockCacheSize(long popRocksdbBlockCacheSize) {
+        this.popRocksdbBlockCacheSize = popRocksdbBlockCacheSize;
+    }
+
+    public long getPopRocksdbWriteBufferSize() {
+        return popRocksdbWriteBufferSize;
+    }
+
+    public void setPopRocksdbWriteBufferSize(long popRocksdbWriteBufferSize) {
+        this.popRocksdbWriteBufferSize = popRocksdbWriteBufferSize;
     }
 
     /**
@@ -2110,6 +2133,14 @@ public class MessageStoreConfig {
         this.combineCQMaxExtraSearchCommitLogFiles = combineCQMaxExtraSearchCommitLogFiles;
     }
 
+    public boolean isCombineCQUseRocksdbForLmq() {
+        return combineCQUseRocksdbForLmq;
+    }
+
+    public void setCombineCQUseRocksdbForLmq(boolean combineCQUseRocksdbForLmq) {
+        this.combineCQUseRocksdbForLmq = combineCQUseRocksdbForLmq;
+    }
+
     public boolean isEnableLogConsumeQueueRepeatedlyBuildWhenRecover() {
         return enableLogConsumeQueueRepeatedlyBuildWhenRecover;
     }
@@ -2301,5 +2332,13 @@ public class MessageStoreConfig {
 
     public void setAppendTopicForTimerDeleteKey(boolean appendTopicForTimerDeleteKey) {
         this.appendTopicForTimerDeleteKey = appendTopicForTimerDeleteKey;
+    }
+
+    public boolean isUseSeparateStorePathForRocksdbCQ() {
+        return useSeparateStorePathForRocksdbCQ;
+    }
+
+    public void setUseSeparateStorePathForRocksdbCQ(boolean useSeparateStorePathForRocksdbCQ) {
+        this.useSeparateStorePathForRocksdbCQ = useSeparateStorePathForRocksdbCQ;
     }
 }

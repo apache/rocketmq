@@ -40,8 +40,10 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
                 .setChannel(event.getKey().getChannel());
             MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
             ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
-            messagingProcessor.changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
-                messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), event.getRenewTime(), messageReceiptHandle.getLiteTopic())
+            messagingProcessor
+                .changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
+                    messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(),
+                    event.getRenewTime(), messageReceiptHandle.getLiteTopic())
                 .whenComplete((v, t) -> {
                     if (t != null) {
                         event.getFuture().completeExceptionally(t);

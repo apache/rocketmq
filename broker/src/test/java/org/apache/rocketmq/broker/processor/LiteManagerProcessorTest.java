@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +31,7 @@ import org.apache.rocketmq.broker.lite.AbstractLiteLifecycleManager;
 import org.apache.rocketmq.broker.lite.LiteEventDispatcher;
 import org.apache.rocketmq.broker.lite.LiteSharding;
 import org.apache.rocketmq.broker.lite.LiteSubscriptionRegistry;
+import org.apache.rocketmq.broker.lite.SubscriberWrapper;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.metrics.LiteConsumerLagCalculator;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
@@ -70,6 +72,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_SUB_WILDCARD_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -346,9 +349,10 @@ public class LiteManagerProcessorTest {
         when(liteLifecycleManager.getMaxOffsetInQueue(lmqName)).thenReturn(maxOffset);
         when(messageStore.getMinOffsetInQueue(lmqName, 0)).thenReturn(minOffset);
         when(messageStore.getMessageStoreTimeStamp(lmqName, 0, maxOffset - 1)).thenReturn(lastUpdateTimestamp);
-        Set<ClientGroup> subscribers = new HashSet<>();
-        subscribers.add(new ClientGroup("clientId1", "group1"));
-        when(liteSubscriptionRegistry.getSubscriber(lmqName)).thenReturn(subscribers);
+
+        SubscriberWrapper.MapWrapper wrapper = new SubscriberWrapper.MapWrapper();
+        wrapper.getGroupMap().put("group", Collections.singletonList(new ClientGroup("clientId", "group")));
+        when(liteSubscriptionRegistry.getAllSubscriber(null, lmqName)).thenReturn(wrapper);
         when(brokerController.getBrokerConfig()).thenReturn(mock(BrokerConfig.class));
         when(brokerController.getBrokerConfig().getBrokerName()).thenReturn("broker1");
         when(liteSharding.shardingByLmqName("parent_topic", lmqName)).thenReturn("broker1");
@@ -361,7 +365,7 @@ public class LiteManagerProcessorTest {
         GetLiteTopicInfoResponseBody body = GetLiteTopicInfoResponseBody.decode(response.getBody(), GetLiteTopicInfoResponseBody.class);
         assertEquals("parent_topic", body.getParentTopic());
         assertEquals("lite_topic", body.getLiteTopic());
-        assertEquals(subscribers, body.getSubscriber());
+        assertEquals("clientId", body.getSubscriber().iterator().next().clientId);
 
         TopicOffset topicOffset = body.getTopicOffset();
         assertEquals(minOffset, topicOffset.getMinOffset());
@@ -722,7 +726,7 @@ public class LiteManagerProcessorTest {
 
         assertNotNull(response);
         assertEquals(ResponseCode.SUCCESS, response.getCode());
-        verify(liteEventDispatcher, times(1)).doFullDispatch(clientId, group);
+        verify(liteEventDispatcher, times(1)).doFullDispatchForClient(clientId, group);
         verify(liteEventDispatcher, never()).doFullDispatchByGroup(group);
 
         // without clientId
@@ -735,7 +739,49 @@ public class LiteManagerProcessorTest {
 
         assertNotNull(response);
         assertEquals(ResponseCode.SUCCESS, response.getCode());
-        verify(liteEventDispatcher, times(1)).doFullDispatch(clientId, group);
+        verify(liteEventDispatcher, times(1)).doFullDispatchForClient(clientId, group);
         verify(liteEventDispatcher, times(1)).doFullDispatchByGroup(group);
+    }
+
+    @Test
+    public void testGetSubscriber_null() {
+        String lmqName = "lmqName";
+        when(liteSubscriptionRegistry.getAllSubscriber(null, lmqName)).thenReturn(new SubscriberWrapper.ListWrapper());
+
+        Set<ClientGroup> result = processor.getSubscriber(lmqName);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testGetSubscriber_without_wildcard() {
+        String lmqName = "lmqName";
+        SubscriberWrapper.MapWrapper wrapper = new SubscriberWrapper.MapWrapper();
+        wrapper.getGroupMap().put("group", Collections.singletonList(new ClientGroup("clientId", "group")));
+        when(liteSubscriptionRegistry.getAllSubscriber(null, lmqName)).thenReturn(wrapper);
+
+        Set<ClientGroup> result = processor.getSubscriber(lmqName);
+        assertEquals(1, result.size());
+        assertEquals("clientId", result.iterator().next().clientId);
+    }
+
+    @Test
+    public void testGetSubscriber_with_wildcard() {
+        String lmqName = "lmqName";
+        SubscriberWrapper.MapWrapper wrapper = new SubscriberWrapper.MapWrapper();
+        wrapper.getGroupMap().put("group", Collections.singletonList(new ClientGroup("clientId", "group")));
+        wrapper.getGroupMap().put("wildcardGroup", Collections.singletonList(new ClientGroup("clientId", "wildcardGroup")));
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.getAttributes().put(LITE_SUB_WILDCARD_ATTRIBUTE.getName(), "xxx");
+
+        when(liteSubscriptionRegistry.getAllSubscriber(null, lmqName)).thenReturn(wrapper);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig("wildcardGroup")).thenReturn(groupConfig);
+
+        Set<ClientGroup> result = processor.getSubscriber(lmqName);
+        assertEquals(2, result.size());
+        result.forEach(clientGroup -> {
+            if (clientGroup.group.equals("wildcardGroup")) {
+                assertEquals("*", clientGroup.clientId);
+            }
+        });
     }
 }

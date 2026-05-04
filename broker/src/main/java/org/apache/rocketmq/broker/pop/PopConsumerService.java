@@ -98,7 +98,9 @@ public class PopConsumerService extends ServiceThread {
         this.lastCleanupLockTime = new AtomicLong(System.currentTimeMillis());
         this.consumerLockService = new PopConsumerLockService(TimeUnit.MINUTES.toMillis(2));
         this.popConsumerStore = new PopConsumerRocksdbStore(Paths.get(
-            brokerController.getMessageStoreConfig().getStorePathRootDir(), ROCKSDB_DIRECTORY).toString());
+            brokerController.getMessageStoreConfig().getStorePathRootDir(), ROCKSDB_DIRECTORY).toString(),
+            brokerController.getMessageStoreConfig().getPopRocksdbBlockCacheSize(),
+            brokerController.getMessageStoreConfig().getPopRocksdbWriteBufferSize());
         this.popConsumerCache = brokerConfig.isEnablePopBufferMerge() ? new PopConsumerCache(
             brokerController, this.popConsumerStore, this.consumerLockService, this::revive) : null;
 
@@ -555,16 +557,9 @@ public class PopConsumerService extends ServiceThread {
             });
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     public void clearCache(String groupId, String topicId, int queueId) {
-        while (!consumerLockService.tryLock(groupId, topicId)) {
-        }
-        try {
-            if (popConsumerCache != null) {
-                popConsumerCache.removeRecords(groupId, topicId, queueId);
-            }
-        } finally {
-            consumerLockService.unlock(groupId, topicId);
+        if (popConsumerCache != null) {
+            popConsumerCache.removeRecords(groupId, topicId, queueId);
         }
     }
 
