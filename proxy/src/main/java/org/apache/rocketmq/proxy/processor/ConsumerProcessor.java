@@ -431,7 +431,7 @@ public class ConsumerProcessor extends AbstractProcessor {
                     if (StringUtils.isNotBlank(ackResult.getExtraInfo())) {
                         AckResult result = new AckResult();
                         result.setStatus(ackResult.getStatus());
-                        result.setPopTime(result.getPopTime());
+                        result.setPopTime(ackResult.getPopTime());
                         result.setExtraInfo(createHandle(ackResult.getExtraInfo(), commitLogOffset));
                         return result;
                     } else {
