@@ -243,6 +243,11 @@ public class BrokerConfig extends BrokerIdentity {
     private int popFromRetryProbabilityForPriority = 0;
     // 0 as the lowest priority if true
     private boolean priorityOrderAsc = true;
+    /**
+     * There are two types of ack mode:
+     *  1. ack by file system service, which is the default mode.
+     *  2. ack by key-value service, when popConsumerKVServiceEnable and popConsumerKVServiceInit are both true.
+     */
     private boolean popConsumerFSServiceInit = true;
     private boolean popConsumerKVServiceLog = false;
     private boolean popConsumerKVServiceInit = false;
@@ -463,7 +468,7 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean usePIDColdCtrStrategy = true;
     private long cgColdReadThreshold = 3 * 1024 * 1024;
     private long globalColdReadThreshold = 100 * 1024 * 1024;
-    
+
     /**
      * The interval to fetch namesrv addr, default value is 10 second
      */
@@ -2104,11 +2109,11 @@ public class BrokerConfig extends BrokerIdentity {
     public void setUseStaticSubscription(boolean useStaticSubscription) {
         this.useStaticSubscription = useStaticSubscription;
     }
-    
+
     public long getFetchNamesrvAddrInterval() {
         return fetchNamesrvAddrInterval;
     }
-    
+
     public void setFetchNamesrvAddrInterval(final long fetchNamesrvAddrInterval) {
         this.fetchNamesrvAddrInterval = fetchNamesrvAddrInterval;
     }
