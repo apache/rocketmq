@@ -135,8 +135,8 @@ public class RemotingSerializableTest {
         Map topicOffsets = (Map) offsetTable.get("TopicTest@gid-test");
         assertNotNull(topicOffsets);
 
-        assertEquals(123L, ((Number) topicOffsets.get("0")).longValue());
-        assertEquals(456L, ((Number) topicOffsets.get("1")).longValue());
+        assertEquals(123L, ((Number) topicOffsets.get(0)).longValue());
+        assertEquals(456L, ((Number) topicOffsets.get(1)).longValue());
     }
 
 }
