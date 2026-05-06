@@ -125,7 +125,7 @@ public class RemotingSerializableTest {
     }
     @Test
     public void testDecodeUnquotedFieldNames() {
-        // 模拟 5.4.x 版本序列化的 consumerOffset 格式（数字 key 无引号）
+        // Simulate consumerOffset format serialized by 5.4.x version (unquoted numeric keys)
         String jsonWithUnquotedKeys = "{\"offsetTable\":{\"TopicTest@gid-test\":{0:123,1:456}}}";
         Map<String, Map<Integer, Long>> result = RemotingSerializable.fromJson(jsonWithUnquotedKeys, Map.class);
         assertNotNull(result);
