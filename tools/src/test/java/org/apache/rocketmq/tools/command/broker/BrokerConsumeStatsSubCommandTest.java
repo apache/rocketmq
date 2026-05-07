@@ -44,9 +44,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BrokerConsumeStatsSubCommadTest {
+public class BrokerConsumeStatsSubCommandTest {
 
-    private static BrokerConsumeStatsSubCommad cmd = new BrokerConsumeStatsSubCommad();
+    private static BrokerConsumeStatsSubCommand cmd = new BrokerConsumeStatsSubCommand();
 
     private static DefaultMQAdminExt defaultMQAdminExt;
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
@@ -83,7 +83,7 @@ public class BrokerConsumeStatsSubCommadTest {
     @Test
     public void testExecute() throws SubCommandException, IllegalAccessException, NoSuchFieldException {
 
-        Field field = BrokerConsumeStatsSubCommad.class.getDeclaredField("defaultMQAdminExt");
+        Field field = BrokerConsumeStatsSubCommand.class.getDeclaredField("defaultMQAdminExt");
         field.setAccessible(true);
         field.set(cmd, defaultMQAdminExt);
 

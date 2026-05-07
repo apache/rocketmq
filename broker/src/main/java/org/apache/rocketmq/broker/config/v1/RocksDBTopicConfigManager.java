@@ -205,6 +205,16 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         }
     }
 
+    @Override
+    public void setDataVersion(DataVersion dataVersion) {
+        try {
+            rocksDBConfigManager.setKvDataVersion(dataVersion);
+        } catch (Exception e) {
+            log.error("set topic config dataVersion error", e);
+            throw new RuntimeException(e);
+        }
+    }
+    
     /**
      * Migrate data from separate RocksDB instances to the unified RocksDB when useSingleRocksDBForAllConfigs is
      * enabled.

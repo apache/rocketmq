@@ -73,12 +73,17 @@ public class SubscriptionGroupAttributes {
         2000
     );
 
-    public static final LongRangeAttribute LITE_SUB_CLIENT_MAX_EVENT_COUNT = new LongRangeAttribute(
+    public static final LongRangeAttribute LITE_SUB_CLIENT_MAX_EVENT_COUNT_ATTRIBUTE = new LongRangeAttribute(
         "lite.sub.client.max.event.cnt",
         true,
         10,
         Long.MAX_VALUE,
         400
+    );
+
+    public static final StringAttribute LITE_SUB_WILDCARD_ATTRIBUTE = new StringAttribute(
+        "lite.sub.wildcard",
+        true
     );
 
     static {
@@ -89,6 +94,7 @@ public class SubscriptionGroupAttributes {
         ALL.put(LITE_SUB_MODEL_ATTRIBUTE.getName(), LITE_SUB_MODEL_ATTRIBUTE);
         ALL.put(LITE_SUB_RESET_OFFSET_EXCLUSIVE_ATTRIBUTE.getName(), LITE_SUB_RESET_OFFSET_EXCLUSIVE_ATTRIBUTE);
         ALL.put(LITE_SUB_RESET_OFFSET_UNSUBSCRIBE_ATTRIBUTE.getName(), LITE_SUB_RESET_OFFSET_UNSUBSCRIBE_ATTRIBUTE);
-        ALL.put(LITE_SUB_CLIENT_MAX_EVENT_COUNT.getName(), LITE_SUB_CLIENT_MAX_EVENT_COUNT);
+        ALL.put(LITE_SUB_CLIENT_MAX_EVENT_COUNT_ATTRIBUTE.getName(), LITE_SUB_CLIENT_MAX_EVENT_COUNT_ATTRIBUTE);
+        ALL.put(LITE_SUB_WILDCARD_ATTRIBUTE.getName(), LITE_SUB_WILDCARD_ATTRIBUTE);
     }
 }

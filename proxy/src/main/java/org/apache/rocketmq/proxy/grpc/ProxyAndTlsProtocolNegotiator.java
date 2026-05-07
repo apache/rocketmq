@@ -123,12 +123,14 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         } else {
             String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
             String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
+            String tlsKeyPassword = ConfigurationManager.getProxyConfig().getTlsKeyPassword();
             try (InputStream serverKeyInputStream = Files.newInputStream(
                 Paths.get(tlsKeyPath));
                  InputStream serverCertificateStream = Files.newInputStream(
                      Paths.get(tlsCertPath))) {
                 sslContext = GrpcSslContexts.forServer(serverCertificateStream,
-                        serverKeyInputStream)
+                        serverKeyInputStream,
+                        StringUtils.isNotBlank(tlsKeyPassword) ? tlsKeyPassword : null)
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .clientAuth(ClientAuth.NONE)
                     .build();

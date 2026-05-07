@@ -925,6 +925,36 @@ public class SendMessageActivityTest extends BaseActivityTest {
             }
         });
 
+        // transaction message cannot be delay message
+        assertThrows(GrpcProxyException.class, () -> {
+            try {
+                this.sendMessageActivity.sendMessage(
+                    createContext(),
+                    SendMessageRequest.newBuilder()
+                        .addMessages(Message.newBuilder()
+                            .setTopic(Resource.newBuilder()
+                                .setName(TOPIC)
+                                .build())
+                            .setSystemProperties(SystemProperties.newBuilder()
+                                .setMessageId("id")
+                                .setDeliveryTimestamp(Timestamps.fromMillis(System.currentTimeMillis() + Duration.ofSeconds(5).toMillis()))
+                                .setQueueId(0)
+                                .setMessageType(MessageType.TRANSACTION)
+                                .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                                .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                                .build())
+                            .setBody(ByteString.copyFrom(new byte[3]))
+                            .build())
+                        .build()
+                ).get();
+            } catch (ExecutionException t) {
+                GrpcProxyException e = (GrpcProxyException) t.getCause();
+                assertEquals(Code.BAD_REQUEST, e.getCode());
+                assertEquals("transaction message cannot set delivery timestamp", e.getMessage());
+                throw e;
+            }
+        });
+
         // transactionRecoverySecond
         assertThrows(GrpcProxyException.class, () -> {
             try {

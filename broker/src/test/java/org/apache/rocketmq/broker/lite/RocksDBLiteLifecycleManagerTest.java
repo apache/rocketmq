@@ -28,8 +28,10 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
 import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
+import org.apache.rocketmq.store.queue.AbstractConsumeQueueStore;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -125,9 +127,11 @@ public class RocksDBLiteLifecycleManagerTest {
 
         when(brokerController.getBrokerConfig()).thenReturn(BROKER_CONFIG);
         when(brokerController.getMessageStore()).thenReturn(pluginMessageStore);
+        when(pluginMessageStore.getQueueStore()).thenReturn(Mockito.mock(AbstractConsumeQueueStore.class));
 
         RocksDBLiteLifecycleManager manager = new RocksDBLiteLifecycleManager(brokerController, liteSharding);
-        manager.init();
+
+        Assert.assertFalse(manager.init());
         Assert.assertThrows(NullPointerException.class, () -> manager.getMaxOffsetInQueue("HW"));
     }
 
@@ -238,5 +242,34 @@ public class RocksDBLiteLifecycleManagerTest {
             Assert.assertEquals(0, (long) messageStore.getQueueStore().getMaxOffset(lmqName, 0));
             Assert.assertEquals(0, liteLifecycleManager.getMaxOffsetInQueue(lmqName));
         }
+    }
+
+    @Test
+    public void testInit_combineConsumeQueueStore() throws Exception {
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setStorePathRootDir(
+            System.getProperty("java.io.tmpdir") + File.separator + "store-rocksDBLifecycleTest-" + UUID.randomUUID());
+        storeConfig.setRocksdbCQDoubleWriteEnable(true);
+        MessageStore messageStore = LiteTestUtil.buildMessageStore(BROKER_CONFIG, storeConfig, TOPIC_CONFIG_TABLE, false);
+        BrokerController brokerController = Mockito.mock(BrokerController.class);
+        LiteSharding liteSharding = Mockito.mock(LiteSharding.class);
+        when(brokerController.getBrokerConfig()).thenReturn(BROKER_CONFIG);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
+
+        // enable
+        storeConfig.setCombineCQUseRocksdbForLmq(true);
+        RocksDBLiteLifecycleManager manager = new RocksDBLiteLifecycleManager(brokerController, liteSharding);
+        Assert.assertTrue(manager.init());
+        Assert.assertEquals(0, manager.getMaxOffsetInQueue(UUID.randomUUID().toString()));
+
+        // disable
+        storeConfig.setCombineCQUseRocksdbForLmq(false);
+        RocksDBLiteLifecycleManager manager2 = new RocksDBLiteLifecycleManager(brokerController, liteSharding);
+        Assert.assertFalse(manager2.init());
+        Assert.assertThrows(NullPointerException.class, () -> manager2.getMaxOffsetInQueue("HW"));
+
+        messageStore.shutdown();
+        messageStore.destroy();
+        UtilAll.deleteFile(new File(storeConfig.getStorePathRootDir()));
     }
 }

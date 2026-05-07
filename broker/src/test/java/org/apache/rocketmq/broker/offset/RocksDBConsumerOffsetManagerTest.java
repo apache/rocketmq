@@ -155,6 +155,58 @@ public class RocksDBConsumerOffsetManagerTest {
     }
 
     @Test
+    public void testLoadAndMerge_persist_periodically() {
+        brokerConfig.setPersistConsumerOffsetIncrementally(false);
+        String group = UUID.randomUUID().toString();
+        String topic = UUID.randomUUID().toString();
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+
+        ConsumerOffsetManager jsonConsumerOffsetManager = new ConsumerOffsetManager(brokerController);
+        jsonConsumerOffsetManager.commitOffset("ClientID", group, topic, 0, 1);
+        jsonConsumerOffsetManager.updateDataVersion();
+        jsonConsumerOffsetManager.persist();
+
+        Assert.assertFalse(consumerOffsetManager.getOffsetTable().containsKey(key));
+
+        consumerOffsetManager.stop();
+        consumerOffsetManager.getOffsetTable().clear();
+        consumerOffsetManager.load(); // merge from json file
+        Assert.assertTrue(consumerOffsetManager.getOffsetTable().containsKey(key));
+
+        UtilAll.deleteFile(new File(jsonConsumerOffsetManager.configFilePath()));
+        consumerOffsetManager.stop();
+        consumerOffsetManager.getOffsetTable().clear();
+        consumerOffsetManager.load();
+        Assert.assertTrue(consumerOffsetManager.getOffsetTable().containsKey(key)); // already persisted in kv
+    }
+
+    @Test
+    public void testLoadAndMerge_persist_incrementally() {
+        brokerConfig.setPersistConsumerOffsetIncrementally(true);
+        String group = UUID.randomUUID().toString();
+        String topic = UUID.randomUUID().toString();
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+
+        ConsumerOffsetManager jsonConsumerOffsetManager = new ConsumerOffsetManager(brokerController);
+        jsonConsumerOffsetManager.commitOffset("ClientID", group, topic, 0, 1);
+        jsonConsumerOffsetManager.updateDataVersion();
+        jsonConsumerOffsetManager.persist();
+
+        Assert.assertFalse(consumerOffsetManager.getOffsetTable().containsKey(key));
+
+        consumerOffsetManager.stop();
+        consumerOffsetManager.getOffsetTable().clear();
+        consumerOffsetManager.load(); // merge from json file
+        Assert.assertTrue(consumerOffsetManager.getOffsetTable().containsKey(key));
+
+        UtilAll.deleteFile(new File(jsonConsumerOffsetManager.configFilePath()));
+        consumerOffsetManager.stop();
+        consumerOffsetManager.getOffsetTable().clear();
+        consumerOffsetManager.load();
+        Assert.assertTrue(consumerOffsetManager.getOffsetTable().containsKey(key)); // already persisted in kv
+    }
+
+    @Test
     public void testRemoveConsumerOffset() {
         String group = UUID.randomUUID().toString();
         String topic = UUID.randomUUID().toString();

@@ -52,6 +52,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.exception.StoreException;
+import org.rocksdb.RocksDBException;
 
 import static java.lang.String.format;
 import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathBatchConsumeQueue;
@@ -61,9 +62,6 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     private final FlushConsumeQueueService flushConsumeQueueService;
     private final CorrectLogicOffsetService correctLogicOffsetService;
     private final CleanConsumeQueueService cleanConsumeQueueService;
-
-    private long dispatchFromPhyOffset;
-    private long dispatchFromStoreTimestamp;
     private final AtomicInteger lmqCounter = new AtomicInteger(0);
 
     public ConsumeQueueStore(DefaultMessageStore messageStore) {
@@ -105,14 +103,25 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 }
             }
         }
-
-        dispatchFromPhyOffset = this.getMaxPhyOffsetInConsumeQueue();
-        dispatchFromStoreTimestamp = this.messageStore.getStoreCheckpoint().getMinTimestamp();
     }
 
+    /**
+     * Implementation of CommitLogDispatchStore.getDispatchFromPhyOffset() (inherited from ConsumeQueueStoreInterface).
+     * When recoverNormally is false, returns checkpoint's logicsPhysicalOffset so commitlog abnormal recovery starts
+     * from it.
+     */
     @Override
-    public long getDispatchFromPhyOffset() {
-        return getMaxPhyOffsetInConsumeQueue();
+    public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
+        if (recoverNormally) {
+            return getMaxPhyOffsetInConsumeQueue();
+        } else {
+            long fromCheckpoint = this.messageStore.getStoreCheckpoint().getLogicsPhysicalOffset();
+            long physicMsgTimestamp = this.messageStore.getStoreCheckpoint().getPhysicMsgTimestamp();
+            if (physicMsgTimestamp > 0 && fromCheckpoint <= 0 && messageStoreConfig.isEnableAcceleratedRecovery()) {
+                throw new RuntimeException("Accelerated recovery is enabled but checkpoint's logicsPhysicalOffset is invalid");
+            }
+            return fromCheckpoint;
+        }
     }
 
     public boolean recoverConcurrently() {
@@ -491,6 +500,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
         this.setTopicQueueTable(cqOffsetTable);
         this.setBatchTopicQueueTable(bcqOffsetTable);
     }
+
     private void compensateForHA(ConcurrentMap<String, Long> cqOffsetTable) {
         SelectMappedBufferResult lastBuffer = null;
         long startReadOffset = messageStore.getCommitLog().getConfirmOffset() == -1 ? 0 : messageStore.getCommitLog().getConfirmOffset();
@@ -612,12 +622,12 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp, boolean recoverNormally) {
-        if (recoverNormally) {
-            return phyOffset <= this.dispatchFromPhyOffset;
-        } else {
-            return storeTimestamp <= this.dispatchFromStoreTimestamp;
+    public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
+        boolean recoverNormally) throws RocksDBException {
+        if (!recoverNormally && this.messageStore.getStoreCheckpoint().getLogicsPhysicalOffset() <= 0) { // for the sake of compatibility
+            return storeTimestamp <= this.messageStore.getStoreCheckpoint().getLogicsMsgTimestamp();
         }
+        return phyOffset <= getDispatchFromPhyOffset(recoverNormally);
     }
 
     @Override
@@ -642,6 +652,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             }
 
             long logicsMsgTimestamp = 0;
+            long logicsPhysicalOffset = 0;
 
             int flushConsumeQueueThoroughInterval = messageStoreConfig.getFlushConsumeQueueThoroughInterval();
             long currentTimeMillis = System.currentTimeMillis();
@@ -649,6 +660,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 this.lastFlushTimestamp = currentTimeMillis;
                 flushConsumeQueueLeastPages = 0;
                 logicsMsgTimestamp = messageStore.getStoreCheckpoint().getTmpLogicsMsgTimestamp();
+                logicsPhysicalOffset = messageStore.getStoreCheckpoint().getTmpLogicsPhysicalOffset();
             }
 
             for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : consumeQueueTable.values()) {
@@ -667,6 +679,9 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             if (0 == flushConsumeQueueLeastPages) {
                 if (logicsMsgTimestamp > 0) {
                     messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(logicsMsgTimestamp);
+                }
+                if (logicsPhysicalOffset > 0) {
+                    messageStore.getStoreCheckpoint().setLogicsPhysicalOffset(logicsPhysicalOffset);
                 }
                 messageStore.getStoreCheckpoint().flush();
             }
