@@ -25,6 +25,10 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 public class ConsumerOffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<>(512);
+
+    private final ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> pullOffsetTable =
+            new ConcurrentHashMap<>(512);
+
     private DataVersion dataVersion;
 
     public ConcurrentMap<String, ConcurrentMap<Integer, Long>> getOffsetTable() {
@@ -33,6 +37,10 @@ public class ConsumerOffsetSerializeWrapper extends RemotingSerializable {
 
     public void setOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
         this.offsetTable = offsetTable;
+    }
+
+    public ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> getPullOffsetTable() {
+        return pullOffsetTable;
     }
 
     public DataVersion getDataVersion() {
