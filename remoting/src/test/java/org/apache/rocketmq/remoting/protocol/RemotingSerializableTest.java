@@ -20,6 +20,8 @@ import com.alibaba.fastjson2.JSONWriter;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.TypeAdapter;
+
+import org.apache.rocketmq.remoting.protocol.body.ConsumerOffsetSerializeWrapper;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -29,6 +31,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -126,13 +129,14 @@ public class RemotingSerializableTest {
     @Test
     public void testDecodeUnquotedFieldNames() {
         // Simulate consumerOffset format serialized by 5.4.x version (unquoted numeric keys)
-        String jsonWithUnquotedKeys = "{\"offsetTable\":{\"TopicTest@gid-test\":{0:123,1:456}}}";
-        Map<String, Map<Integer, Long>> result = RemotingSerializable.fromJson(jsonWithUnquotedKeys, Map.class);
+        String jsonWithUnquotedKeys = "{\"dataVersion\":{\"counter\":736456,\"stateVersion\":0,\"timestamp\":1778062479960},\"groupTopicMap\":{\"gid-test-rocketmq-tx\":[\"%RETRY%gid-test-rocketmq-tx\",\"TopicTest-tx-high\"]},\"offsetTable\":{\"TopicTest@gid-test\":{0:123,1:456}},\"pullOffsetTable\":{\"TopicTest-high@gid-test-rocketmq\":{0:4953634646,1:4953403208}}}";
+
+        ConsumerOffsetSerializeWrapper result = RemotingSerializable.fromJson(jsonWithUnquotedKeys, ConsumerOffsetSerializeWrapper.class);
         assertNotNull(result);
-        Map offsetTable = (Map) result.get("offsetTable");
+        ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable = result.getOffsetTable();
         assertNotNull(offsetTable);
 
-        Map topicOffsets = (Map) offsetTable.get("TopicTest@gid-test");
+        Map topicOffsets = offsetTable.get("TopicTest@gid-test");
         assertNotNull(topicOffsets);
 
         assertEquals(123L, ((Number) topicOffsets.get(0)).longValue());
