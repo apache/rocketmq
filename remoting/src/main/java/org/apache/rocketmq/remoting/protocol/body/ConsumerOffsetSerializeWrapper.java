@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.remoting.protocol.body;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
@@ -25,6 +26,13 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 public class ConsumerOffsetSerializeWrapper extends RemotingSerializable {
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<>(512);
+
+    private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> pullOffsetTable =
+        new ConcurrentHashMap<>(512);
+
+    private ConcurrentMap<String, List<String>> groupTopicMap =
+        new ConcurrentHashMap<>(512);
+
     private DataVersion dataVersion;
 
     public ConcurrentMap<String, ConcurrentMap<Integer, Long>> getOffsetTable() {
@@ -33,6 +41,14 @@ public class ConsumerOffsetSerializeWrapper extends RemotingSerializable {
 
     public void setOffsetTable(ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable) {
         this.offsetTable = offsetTable;
+    }
+
+    public ConcurrentMap<String, ConcurrentMap<Integer, Long>> getPullOffsetTable() {
+        return pullOffsetTable;
+    }
+
+    public ConcurrentMap<String, List<String>> getGroupTopicMap() {
+        return groupTopicMap;
     }
 
     public DataVersion getDataVersion() {
