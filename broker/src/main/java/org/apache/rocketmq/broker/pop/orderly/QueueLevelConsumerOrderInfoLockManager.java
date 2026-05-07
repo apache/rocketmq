@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
@@ -108,6 +109,10 @@ public class QueueLevelConsumerOrderInfoLockManager {
 
     protected void notifyLockIsFree(Key key) {
         try {
+            if (LiteUtil.isLiteTopicQueue(key.topic)) {
+                this.brokerController.getLiteEventDispatcher().dispatch(key.group, key.topic, key.queueId, -1, -1);
+                return;
+            }
             this.brokerController.getPopMessageProcessor().notifyLongPollingRequestIfNeed(key.topic, key.group, key.queueId);
         } catch (Exception e) {
             POP_LOGGER.error("unexpect error when notifyLockIsFree. key:{}", key, e);

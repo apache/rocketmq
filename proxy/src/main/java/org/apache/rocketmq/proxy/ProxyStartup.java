@@ -122,7 +122,7 @@ public class ProxyStartup {
             System.setProperty(Configuration.CONFIG_PATH_PROPERTY, commandLineArgument.getProxyConfigPath());
         }
         ConfigurationManager.initEnv();
-        ConfigurationManager.intConfig();
+        ConfigurationManager.initConfig();
         setConfigFromCommandLineArgument(commandLineArgument);
         log.info("Current configuration: " + ConfigurationManager.formatProxyConfig());
 

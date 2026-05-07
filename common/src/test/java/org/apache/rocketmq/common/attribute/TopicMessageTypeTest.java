@@ -52,7 +52,7 @@ public class TopicMessageTypeTest {
     @Test
     public void testTopicMessageTypeSet() {
         Set<String> expectedSet
-            = Sets.newHashSet("UNSPECIFIED", "NORMAL", "FIFO", "DELAY", "TRANSACTION", "PRIORITY", "MIXED");
+            = Sets.newHashSet("UNSPECIFIED", "NORMAL", "FIFO", "DELAY", "TRANSACTION", "PRIORITY", "LITE", "MIXED");
         Set<String> actualSet = TopicMessageType.topicMessageTypeSet();
         assertEquals(expectedSet, actualSet);
     }

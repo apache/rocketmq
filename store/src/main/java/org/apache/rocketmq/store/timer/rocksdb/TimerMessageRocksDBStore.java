@@ -42,6 +42,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -506,14 +507,16 @@ public class TimerMessageRocksDBStore {
         private final BlockingQueue<List<TimerRocksDBRecord>> queue;
         private final RateLimiter rateLimiter;
         private final boolean writeCheckPoint;
-        ExecutorService executor = new ThreadPoolExecutor(
-            6,
-            6,
-            60,
-            TimeUnit.SECONDS,
-            new LinkedBlockingQueue<>(10000),
-            new ThreadPoolExecutor.CallerRunsPolicy()
-        );
+        private final ExecutorService executor =
+                ThreadUtils.newThreadPoolExecutor(
+                        storeConfig.getTimerReputServiceCorePoolSize(),
+                        storeConfig.getTimerReputServiceMaxPoolSize(),
+                        60L,
+                        TimeUnit.SECONDS,
+                        new LinkedBlockingQueue<>(storeConfig.getTimerReputServiceQueueCapacity()),
+                        ThreadUtils.newGenericThreadFactory("TimerMessageReputService", false),
+                        new ThreadPoolExecutor.CallerRunsPolicy()
+                );
 
         public TimerMessageReputService(BlockingQueue<List<TimerRocksDBRecord>> queue, double maxTps, boolean writeCheckPoint) {
             this.queue = queue;
@@ -613,6 +616,12 @@ public class TimerMessageRocksDBStore {
                 }
                 return null;
             }
+        }
+
+        @Override
+        public void shutdown() {
+            super.shutdown();
+            ThreadUtils.shutdownGracefully(executor, 5, TimeUnit.SECONDS);
         }
     }
 

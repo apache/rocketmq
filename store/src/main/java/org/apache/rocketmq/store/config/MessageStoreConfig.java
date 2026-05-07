@@ -116,6 +116,9 @@ public class MessageStoreConfig {
     private int timerRocksDBRollRangeHours = 2;
     private boolean timerRecallToTimeWheelEnable = true;
     private boolean timerRecallToTimelineEnable = true;
+    private int timerReputServiceCorePoolSize = 6;
+    private int timerReputServiceMaxPoolSize = 6;
+    private int timerReputServiceQueueCapacity = 10000;
 
     private boolean transRocksDBEnable = false;
     private boolean transWriteOriginTransHalfEnable = true;
@@ -128,6 +131,8 @@ public class MessageStoreConfig {
     // default, defaultRocksDB
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
+
+    private boolean iteratorWhenUseRocksdbConsumeQueue = true;
 
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
@@ -194,6 +199,9 @@ public class MessageStoreConfig {
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
     // This check adds some overhead,so it may be disabled in cases seeking extreme performance.
     private boolean checkCRCOnRecover = true;
+    // Whether check the commitlog offset validity during abnormal recovery.
+    // This helps detect and truncate old file data that may pass CRC checks but contains invalid offsets.
+    private boolean checkCommitLogOffsetOnRecover = false;
     // How many pages are to be flushed when flush CommitLog
     private int flushCommitLogLeastPages = 4;
     // How many pages are to be committed when commit data to file
@@ -282,6 +290,7 @@ public class MessageStoreConfig {
     private boolean enableLmq = false;
     private boolean enableMultiDispatch = false;
     private int maxLmqConsumeQueueNum = 20000;
+    private boolean enableLmqQuota = false;
 
     private boolean enableScheduleAsyncDeliver = false;
     private int scheduleAsyncDeliverMaxPendingLimit = 2000;
@@ -475,6 +484,7 @@ public class MessageStoreConfig {
     private String combineAssignOffsetCQType = StoreType.DEFAULT.getStoreType();
     private boolean combineCQEnableCheckSelf = false;
     private int combineCQMaxExtraSearchCommitLogFiles = 3;
+    private boolean combineCQUseRocksdbForLmq = false;
 
     /**
      * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
@@ -495,6 +505,10 @@ public class MessageStoreConfig {
 
     private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
 
+    private long popRocksdbBlockCacheSize = 256 * SizeUnit.MB;
+
+    private long popRocksdbWriteBufferSize = 32 * SizeUnit.MB;
+
     /**
      * Flush RocksDB WAL frequency, aka, flush WAL every N write ops.
      */
@@ -503,14 +517,15 @@ public class MessageStoreConfig {
     private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
 
     /**
-     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH
-     * and the storeType was defaultRocksDB. This switch is not recommended for normal use cases (include master-slave
-     * or controller mode).
+     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH.
+     * This switch is not recommended for normal use cases (include master-slave or controller mode).
      */
     private boolean enableAcceleratedRecovery = false;
 
     // Shared byte buffer manager configuration
     private int sharedByteBufferNum = 16;
+
+    private boolean useSeparateStorePathForRocksdbCQ = false;
 
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
@@ -518,6 +533,22 @@ public class MessageStoreConfig {
 
     public void setRocksdbCompressionType(String compressionType) {
         this.rocksdbCompressionType = compressionType;
+    }
+
+    public long getPopRocksdbBlockCacheSize() {
+        return popRocksdbBlockCacheSize;
+    }
+
+    public void setPopRocksdbBlockCacheSize(long popRocksdbBlockCacheSize) {
+        this.popRocksdbBlockCacheSize = popRocksdbBlockCacheSize;
+    }
+
+    public long getPopRocksdbWriteBufferSize() {
+        return popRocksdbWriteBufferSize;
+    }
+
+    public void setPopRocksdbWriteBufferSize(long popRocksdbWriteBufferSize) {
+        this.popRocksdbWriteBufferSize = popRocksdbWriteBufferSize;
     }
 
     /**
@@ -532,6 +563,8 @@ public class MessageStoreConfig {
     private boolean useABSLock = false;
 
     private boolean enableLogConsumeQueueRepeatedlyBuildWhenRecover = false;
+
+    private boolean appendTopicForTimerDeleteKey = false;
 
     public boolean isRocksdbCQDoubleWriteEnable() {
         return rocksdbCQDoubleWriteEnable;
@@ -656,6 +689,14 @@ public class MessageStoreConfig {
 
     public void setStoreType(String storeType) {
         this.storeType = storeType;
+    }
+
+    public boolean isIteratorWhenUseRocksdbConsumeQueue() {
+        return iteratorWhenUseRocksdbConsumeQueue;
+    }
+
+    public void setIteratorWhenUseRocksdbConsumeQueue(boolean iteratorWhenUseRocksdbConsumeQueue) {
+        this.iteratorWhenUseRocksdbConsumeQueue = iteratorWhenUseRocksdbConsumeQueue;
     }
 
     public int getMappedFileSizeConsumeQueue() {
@@ -791,6 +832,14 @@ public class MessageStoreConfig {
 
     public void setCheckCRCOnRecover(boolean checkCRCOnRecover) {
         this.checkCRCOnRecover = checkCRCOnRecover;
+    }
+
+    public boolean isCheckCommitLogOffsetOnRecover() {
+        return checkCommitLogOffsetOnRecover;
+    }
+
+    public void setCheckCommitLogOffsetOnRecover(boolean checkCommitLogOffsetOnRecover) {
+        this.checkCommitLogOffsetOnRecover = checkCommitLogOffsetOnRecover;
     }
 
     public boolean isForceVerifyPropCRC() {
@@ -1652,6 +1701,14 @@ public class MessageStoreConfig {
         this.maxLmqConsumeQueueNum = maxLmqConsumeQueueNum;
     }
 
+    public boolean isEnableLmqQuota() {
+        return enableLmqQuota;
+    }
+
+    public void setEnableLmqQuota(boolean enableLmqQuota) {
+        this.enableLmqQuota = enableLmqQuota;
+    }
+
     public boolean isEnableScheduleAsyncDeliver() {
         return enableScheduleAsyncDeliver;
     }
@@ -2076,6 +2133,14 @@ public class MessageStoreConfig {
         this.combineCQMaxExtraSearchCommitLogFiles = combineCQMaxExtraSearchCommitLogFiles;
     }
 
+    public boolean isCombineCQUseRocksdbForLmq() {
+        return combineCQUseRocksdbForLmq;
+    }
+
+    public void setCombineCQUseRocksdbForLmq(boolean combineCQUseRocksdbForLmq) {
+        this.combineCQUseRocksdbForLmq = combineCQUseRocksdbForLmq;
+    }
+
     public boolean isEnableLogConsumeQueueRepeatedlyBuildWhenRecover() {
         return enableLogConsumeQueueRepeatedlyBuildWhenRecover;
     }
@@ -2205,6 +2270,30 @@ public class MessageStoreConfig {
         this.timerRecallToTimelineEnable = timerRecallToTimelineEnable;
     }
 
+    public void setTimerReputServiceCorePoolSize(int timerReputServiceCorePoolSize) {
+        this.timerReputServiceCorePoolSize = timerReputServiceCorePoolSize;
+    }
+
+    public int getTimerReputServiceCorePoolSize() {
+        return timerReputServiceCorePoolSize;
+    }
+
+    public void setTimerReputServiceMaxPoolSize(int timerReputServiceMaxPoolSize) {
+        this.timerReputServiceMaxPoolSize = timerReputServiceMaxPoolSize;
+    }
+
+    public int getTimerReputServiceMaxPoolSize() {
+        return timerReputServiceMaxPoolSize;
+    }
+
+    public void setTimerReputServiceQueueCapacity(int timerReputServiceQueueCapacity) {
+        this.timerReputServiceQueueCapacity = timerReputServiceQueueCapacity;
+    }
+
+    public int getTimerReputServiceQueueCapacity() {
+        return timerReputServiceQueueCapacity;
+    }
+
     public int getTimerRocksDBRollIntervalHours() {
         return timerRocksDBRollIntervalHours;
     }
@@ -2235,5 +2324,21 @@ public class MessageStoreConfig {
 
     public void setSharedByteBufferNum(int sharedByteBufferNum) {
         this.sharedByteBufferNum = sharedByteBufferNum;
+    }
+
+    public boolean isAppendTopicForTimerDeleteKey() {
+        return appendTopicForTimerDeleteKey;
+    }
+
+    public void setAppendTopicForTimerDeleteKey(boolean appendTopicForTimerDeleteKey) {
+        this.appendTopicForTimerDeleteKey = appendTopicForTimerDeleteKey;
+    }
+
+    public boolean isUseSeparateStorePathForRocksdbCQ() {
+        return useSeparateStorePathForRocksdbCQ;
+    }
+
+    public void setUseSeparateStorePathForRocksdbCQ(boolean useSeparateStorePathForRocksdbCQ) {
+        this.useSeparateStorePathForRocksdbCQ = useSeparateStorePathForRocksdbCQ;
     }
 }

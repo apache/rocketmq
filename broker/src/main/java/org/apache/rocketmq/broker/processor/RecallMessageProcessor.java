@@ -135,8 +135,8 @@ public class RecallMessageProcessor implements NettyRequestProcessor {
         msgInner.setTags(RECALL_MESSAGE_TAG);
         msgInner.setTagsCode(RECALL_MESSAGE_TAG.hashCode());
         msgInner.setQueueId(0);
-        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_TIMER_DEL_UNIQKEY,
-            TimerMessageStore.buildDeleteKey(handle.getTopic(), handle.getMessageId()));
+        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_TIMER_DEL_UNIQKEY, TimerMessageStore.buildDeleteKey(
+            handle.getTopic(), handle.getMessageId(), brokerController.getMessageStoreConfig().isAppendTopicForTimerDeleteKey()));
         MessageAccessor.putProperty(msgInner,
             MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, handle.getMessageId());
         MessageAccessor.putProperty(msgInner,

@@ -83,8 +83,6 @@ public class SlaveSynchronize {
                 TopicConfigManager topicConfigManager = this.brokerController.getTopicConfigManager();
                 if (!topicConfigManager.getDataVersion().equals(topicWrapper.getDataVersion())) {
 
-                    topicConfigManager.getDataVersion().assignNewOne(topicWrapper.getDataVersion());
-
                     ConcurrentMap<String, TopicConfig> newTopicConfigTable = topicWrapper.getTopicConfigTable();
                     ConcurrentMap<String, TopicConfig> topicConfigTable = topicConfigManager.getTopicConfigTable();
 
@@ -94,13 +92,13 @@ public class SlaveSynchronize {
                         Map.Entry<String, TopicConfig> entry = iterator.next();
                         if (!newTopicConfigTable.containsKey(entry.getKey())) {
                             iterator.remove();
+                            topicConfigManager.deleteTopicConfig(entry.getKey());
                         }
-                        topicConfigManager.deleteTopicConfig(entry.getKey());
                     }
 
                     //update
                     newTopicConfigTable.values().forEach(topicConfigManager::putTopicConfig);
-                    topicConfigManager.updateDataVersion();
+                    topicConfigManager.setDataVersion(topicWrapper.getDataVersion());
                     topicConfigManager.persist();
                 }
                 if (topicWrapper.getTopicQueueMappingDetailMap() != null
@@ -177,7 +175,6 @@ public class SlaveSynchronize {
                 if (!this.brokerController.getSubscriptionGroupManager().getDataVersion()
                         .equals(subscriptionWrapper.getDataVersion())) {
                     SubscriptionGroupManager subscriptionGroupManager = this.brokerController.getSubscriptionGroupManager();
-                    subscriptionGroupManager.getDataVersion().assignNewOne(subscriptionWrapper.getDataVersion());
 
                     ConcurrentMap<String, SubscriptionGroupConfig> curSubscriptionGroupTable =
                             subscriptionGroupManager.getSubscriptionGroupTable();
@@ -189,12 +186,12 @@ public class SlaveSynchronize {
                         Map.Entry<String, SubscriptionGroupConfig> configEntry = iterator.next();
                         if (!newSubscriptionGroupTable.containsKey(configEntry.getKey())) {
                             iterator.remove();
+                            subscriptionGroupManager.deleteSubscriptionGroupConfig(configEntry.getKey());
                         }
-                        subscriptionGroupManager.deleteSubscriptionGroupConfig(configEntry.getKey());
                     }
                     // update
                     newSubscriptionGroupTable.values().forEach(subscriptionGroupManager::putSubscriptionGroupConfig);
-                    subscriptionGroupManager.updateDataVersion();
+                    subscriptionGroupManager.setDataVersion(subscriptionWrapper.getDataVersion());
                     // persist
                     subscriptionGroupManager.persist();
                     LOGGER.info("Update slave Subscription Group from master, {}", masterAddrBak);

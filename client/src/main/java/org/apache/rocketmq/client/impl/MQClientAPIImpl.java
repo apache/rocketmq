@@ -17,6 +17,24 @@
 package org.apache.rocketmq.client.impl;
 
 import com.alibaba.fastjson2.JSON;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
@@ -108,7 +126,12 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.CreateTopicListRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
+import org.apache.rocketmq.remoting.protocol.body.GetBrokerLiteInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteClientInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteGroupInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetLiteTopicInfoResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.GetParentTopicInfoResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.KVTable;
@@ -165,10 +188,14 @@ import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoReques
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerStatusRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetLiteClientInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetLiteGroupInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetLiteTopicInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetParentTopicInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetProducerConnectionListRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetSubscriptionGroupConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
@@ -179,6 +206,8 @@ import org.apache.rocketmq.remoting.protocol.header.HeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListAclsRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListUsersRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.LockBatchMqRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PopLiteMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
@@ -203,6 +232,7 @@ import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.TriggerLiteDispatchRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UnlockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
@@ -236,26 +266,8 @@ import org.apache.rocketmq.remoting.protocol.subscription.GroupForbidden;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.rpchook.DynamicalExtFieldRPCHook;
 import org.apache.rocketmq.remoting.rpchook.StreamTypeRPCHook;
-import static org.apache.rocketmq.common.message.MessageConst.TIMER_ENGINE_TYPE;
-import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.apache.rocketmq.common.message.MessageConst.TIMER_ENGINE_TYPE;
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 
 public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdown {
@@ -320,6 +332,8 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         this.remotingClient.registerRPCHook(rpcHook);
         this.remotingClient.registerRPCHook(new DynamicalExtFieldRPCHook());
         this.remotingClient.registerProcessor(RequestCode.CHECK_TRANSACTION_STATE, this.clientRemotingProcessor, null);
+
+        this.remotingClient.registerProcessor(RequestCode.NOTIFY_UNSUBSCRIBE_LITE, this.clientRemotingProcessor, null);
 
         this.remotingClient.registerProcessor(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, this.clientRemotingProcessor, null);
 
@@ -848,6 +862,34 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         });
     }
 
+    public void popLiteMessageAsync(
+        final String brokerName, final String addr, final PopLiteMessageRequestHeader requestHeader,
+        final long timeoutMillis, final PopCallback popCallback
+    ) throws RemotingException, InterruptedException {
+        final String bindTopic = requestHeader.getTopic();
+        final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.POP_LITE_MESSAGE, requestHeader);
+        this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
+            @Override
+            public void operationComplete(ResponseFuture responseFuture) {
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
+                try {
+                    PopResult popResult = MQClientAPIImpl.this.processPopLiteResponse(brokerName, response, bindTopic, requestHeader);
+                    popCallback.onSuccess(popResult);
+                } catch (Exception e) {
+                    popCallback.onException(e);
+                }
+            }
+
+            @Override
+            public void operationFail(Throwable throwable) {
+                popCallback.onException(throwable);
+            }
+        });
+    }
+
     public void ackMessageAsync(
         final String addr,
         final long timeOut,
@@ -855,6 +897,15 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         final AckMessageRequestHeader requestHeader
     ) throws RemotingException, MQBrokerException, InterruptedException {
         ackMessageAsync(addr, timeOut, ackCallback, requestHeader, null);
+    }
+
+    public void ackLiteMessageAsync(
+        final String addr,
+        final long timeout,
+        final AckCallback ackCallback,
+        final AckMessageRequestHeader requestHeader
+    ) throws RemotingException, MQBrokerException, InterruptedException {
+        ackMessageAsync(addr, timeout, ackCallback, requestHeader, null);
     }
 
     public void batchAckMessageAsync(
@@ -1172,6 +1223,62 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             }
             messageExt.setBrokerName(brokerName);
             messageExt.setTopic(NamespaceUtil.withoutNamespace(topic, this.clientConfig.getNamespace()));
+        }
+        return popResult;
+    }
+
+    private PopResult processPopLiteResponse(final String brokerName, final RemotingCommand response, String topic,
+        CommandCustomHeader requestHeader) throws MQBrokerException, RemotingCommandException {
+        PopStatus popStatus;
+        List<MessageExt> msgFoundList = null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS:
+                popStatus = PopStatus.FOUND;
+                ByteBuffer byteBuffer = ByteBuffer.wrap(response.getBody());
+                msgFoundList = MessageDecoder.decodesBatch(
+                    byteBuffer,
+                    clientConfig.isDecodeReadBody(),
+                    clientConfig.isDecodeDecompressBody(),
+                    true);
+                break;
+            case ResponseCode.POLLING_FULL:
+                popStatus = PopStatus.POLLING_FULL;
+                break;
+            case ResponseCode.POLLING_TIMEOUT:
+                popStatus = PopStatus.POLLING_NOT_FOUND;
+                break;
+            case ResponseCode.PULL_NOT_FOUND:
+                popStatus = PopStatus.POLLING_NOT_FOUND;
+                break;
+            default:
+                throw new MQBrokerException(response.getCode(), response.getRemark());
+        }
+
+        PopResult popResult = new PopResult(popStatus, msgFoundList);
+        PopLiteMessageResponseHeader responseHeader = response.decodeCommandCustomHeader(PopLiteMessageResponseHeader.class);
+        if (popStatus != PopStatus.FOUND) {
+            return popResult;
+        }
+
+        List<Integer> orderCountList = ExtraInfoUtil.parseLiteOrderCountInfo(responseHeader.getOrderCountInfo(), msgFoundList.size());
+        for (int i = 0; i < msgFoundList.size(); i++) {
+            MessageExt messageExt = msgFoundList.get(i);
+            String[] queues = StringUtils.split(
+                messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH), MixAll.LMQ_DISPATCH_SEPARATOR);
+            String[] queueOffsets = StringUtils.split(
+                messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET), MixAll.LMQ_DISPATCH_SEPARATOR);
+
+            if (null == queues || null == queueOffsets || queues.length != 1 || queues.length != queueOffsets.length) {
+                continue;
+            }
+            messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
+                ExtraInfoUtil.buildExtraInfo(0, responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
+                    responseHeader.getReviveQid(), topic, brokerName, 0, Long.parseLong(queueOffsets[0])));
+            messageExt.getProperties().computeIfAbsent(
+                MessageConst.PROPERTY_FIRST_POP_TIME, k -> String.valueOf(responseHeader.getPopTime()));
+            messageExt.setBrokerName(brokerName);
+            messageExt.setReconsumeTimes(orderCountList != null ? orderCountList.get(i) : 0);
+            messageExt.setQueueOffset(Long.parseLong(queueOffsets[0]));
         }
         return popResult;
     }
@@ -3660,6 +3767,86 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             return;
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+
+    public GetBrokerLiteInfoResponseBody getBrokerLiteInfo(String addr, long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException {
+        return invokeBrokerMethod(addr, RequestCode.GET_BROKER_LITE_INFO, null,
+            GetBrokerLiteInfoResponseBody.class, timeoutMillis);
+    }
+
+    public GetParentTopicInfoResponseBody getParentTopicInfo(String addr, String topic, long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException {
+        GetParentTopicInfoRequestHeader requestHeader = new GetParentTopicInfoRequestHeader();
+        requestHeader.setTopic(topic);
+        return invokeBrokerMethod(addr, RequestCode.GET_PARENT_TOPIC_INFO, requestHeader,
+            GetParentTopicInfoResponseBody.class, timeoutMillis);
+    }
+
+    public GetLiteTopicInfoResponseBody getLiteTopicInfo(String addr, String parentTopic, String liteTopic,
+        long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException {
+        GetLiteTopicInfoRequestHeader requestHeader = new GetLiteTopicInfoRequestHeader();
+        requestHeader.setParentTopic(parentTopic);
+        requestHeader.setLiteTopic(liteTopic);
+        return invokeBrokerMethod(addr, RequestCode.GET_LITE_TOPIC_INFO, requestHeader,
+            GetLiteTopicInfoResponseBody.class, timeoutMillis);
+    }
+
+    public GetLiteClientInfoResponseBody getLiteClientInfo(String addr, String parentTopic, String group,
+        String clientId, long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException {
+        GetLiteClientInfoRequestHeader requestHeader = new GetLiteClientInfoRequestHeader();
+        requestHeader.setParentTopic(parentTopic);
+        requestHeader.setGroup(group);
+        requestHeader.setClientId(clientId);
+        return invokeBrokerMethod(addr, RequestCode.GET_LITE_CLIENT_INFO, requestHeader,
+            GetLiteClientInfoResponseBody.class, timeoutMillis);
+    }
+
+    public GetLiteGroupInfoResponseBody getLiteGroupInfo(String addr, String group,
+        String liteTopic, int topK, long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException {
+        GetLiteGroupInfoRequestHeader requestHeader = new GetLiteGroupInfoRequestHeader();
+        requestHeader.setGroup(group);
+        requestHeader.setTopK(topK);
+        requestHeader.setLiteTopic(liteTopic);
+        return invokeBrokerMethod(addr, RequestCode.GET_LITE_GROUP_INFO, requestHeader,
+            GetLiteGroupInfoResponseBody.class, timeoutMillis);
+    }
+
+    public void triggerLiteDispatch(String addr, String group, String clientId, long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException {
+        TriggerLiteDispatchRequestHeader requestHeader = new TriggerLiteDispatchRequestHeader();
+        requestHeader.setGroup(group);
+        requestHeader.setClientId(clientId);
+        invokeBrokerMethod(addr, RequestCode.TRIGGER_LITE_DISPATCH, requestHeader, null, timeoutMillis);
+    }
+
+    private <T extends CommandCustomHeader, R extends RemotingSerializable> R invokeBrokerMethod(
+        final String addr,
+        final int requestCode,
+        final T requestHeader,
+        final Class<R> responseClass,
+        final long timeoutMillis
+    ) throws RemotingException, MQBrokerException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(requestCode, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(
+            MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
+            request,
+            timeoutMillis
+        );
+
+        if (response.getCode() == SUCCESS) {
+            if (response.getBody() != null) {
+                return RemotingSerializable.decode(response.getBody(), responseClass);
+            }
+            return null;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
     }
 
 }

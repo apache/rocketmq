@@ -531,6 +531,37 @@
         <appender-ref ref="RocketmqPopSiftingAppender_inner"/>
     </appender>
 
+    <appender name="RocketmqPopLiteSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <key>brokerContainerLogDir</key>
+            <defaultValue>${file.separator}</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="RocketmqPopLiteAppender"
+                      class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}lite.log</file>
+                <append>true</append>
+                <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                    <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}lite.%i.log
+                    </fileNamePattern>
+                    <minIndex>1</minIndex>
+                    <maxIndex>10</maxIndex>
+                </rollingPolicy>
+                <triggeringPolicy
+                        class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                    <maxFileSize>128MB</maxFileSize>
+                </triggeringPolicy>
+                <encoder>
+                    <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+                    <charset class="java.nio.charset.Charset">UTF-8</charset>
+                </encoder>
+            </appender>
+        </sift>
+    </appender>
+    <appender name="RocketmqPopLiteSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqPopLiteSiftingAppender_inner"/>
+    </appender>
+
     <appender name="RocketmqColdCtrSiftingAppender" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
@@ -694,6 +725,10 @@
 
     <logger name="RocketmqPop" additivity="false" level="INFO">
         <appender-ref ref="RocketmqPopSiftingAppender"/>
+    </logger>
+
+    <logger name="RocketmqPopLite" additivity="false" level="INFO">
+        <appender-ref ref="RocketmqPopLiteSiftingAppender"/>
     </logger>
 
     <logger name="RocketmqColdCtr" additivity="false">

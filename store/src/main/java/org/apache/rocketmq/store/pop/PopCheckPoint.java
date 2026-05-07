@@ -45,6 +45,8 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     String brokerName;
     @JSONField(name = "rp")
     String rePutTimes; // ck rePut times
+    @JSONField(name = "sp")
+    private boolean suspend; // nack without inc reconsume times, false default.
 
     public long getReviveOffset() {
         return reviveOffset;
@@ -148,6 +150,14 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         this.rePutTimes = rePutTimes;
     }
 
+    public boolean isSuspend() {
+        return suspend;
+    }
+
+    public void setSuspend(boolean suspend) {
+        this.suspend = suspend;
+    }
+
     public void addDiff(int diff) {
         if (this.queueOffsetDiff == null) {
             this.queueOffsetDiff = new ArrayList<>(8);
@@ -197,7 +207,7 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     @Override
     public String toString() {
         return "PopCheckPoint [topic=" + topic + ", cid=" + cid + ", queueId=" + queueId + ", startOffset=" + startOffset + ", bitMap=" + bitMap + ", num=" + num + ", reviveTime=" + getReviveTime()
-            + ", reviveOffset=" + reviveOffset + ", diff=" + queueOffsetDiff + ", brokerName=" + brokerName + ", rePutTimes=" + rePutTimes + "]";
+            + ", reviveOffset=" + reviveOffset + ", diff=" + queueOffsetDiff + ", brokerName=" + brokerName + ", rePutTimes=" + rePutTimes + ", suspend=" + suspend + "]";
     }
 
     @Override

@@ -132,7 +132,7 @@ public class RocksDBOptionsFactory {
                 setInplaceUpdateSupport(true);
     }
 
-    public static ColumnFamilyOptions createPopCFOptions() {
+    public static ColumnFamilyOptions createPopCFOptions(long blockCacheSize, long writeBufferSize) {
         BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig()
             .setFormatVersion(5)
             .setIndexType(IndexType.kBinarySearch)
@@ -145,7 +145,7 @@ public class RocksDBOptionsFactory {
             .setCacheIndexAndFilterBlocksWithHighPriority(true)
             .setPinL0FilterAndIndexBlocksInCache(false)
             .setPinTopLevelIndexAndFilter(true)
-            .setBlockCache(new LRUCache(1024 * SizeUnit.MB, 8, false))
+            .setBlockCache(new LRUCache(blockCacheSize, 8, false))
             .setWholeKeyFiltering(true);
 
         CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal()
@@ -160,7 +160,7 @@ public class RocksDBOptionsFactory {
         //noinspection resource
         return new ColumnFamilyOptions()
             .setMaxWriteBufferNumber(4)
-            .setWriteBufferSize(128 * SizeUnit.MB)
+            .setWriteBufferSize(writeBufferSize)
             .setMinWriteBufferNumberToMerge(1)
             .setTableFormatConfig(blockBasedTableConfig)
             .setMemTableConfig(new SkipListMemTableConfig())

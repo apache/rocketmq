@@ -33,7 +33,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
@@ -49,6 +52,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.exception.StoreException;
+import org.rocksdb.RocksDBException;
 
 import static java.lang.String.format;
 import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathBatchConsumeQueue;
@@ -58,9 +62,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     private final FlushConsumeQueueService flushConsumeQueueService;
     private final CorrectLogicOffsetService correctLogicOffsetService;
     private final CleanConsumeQueueService cleanConsumeQueueService;
-
-    private long dispatchFromPhyOffset;
-    private long dispatchFromStoreTimestamp;
+    private final AtomicInteger lmqCounter = new AtomicInteger(0);
 
     public ConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
@@ -101,14 +103,25 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 }
             }
         }
-
-        dispatchFromPhyOffset = this.getMaxPhyOffsetInConsumeQueue();
-        dispatchFromStoreTimestamp = this.messageStore.getStoreCheckpoint().getMinTimestamp();
     }
 
+    /**
+     * Implementation of CommitLogDispatchStore.getDispatchFromPhyOffset() (inherited from ConsumeQueueStoreInterface).
+     * When recoverNormally is false, returns checkpoint's logicsPhysicalOffset so commitlog abnormal recovery starts
+     * from it.
+     */
     @Override
-    public long getDispatchFromPhyOffset() {
-        return getMaxPhyOffsetInConsumeQueue();
+    public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
+        if (recoverNormally) {
+            return getMaxPhyOffsetInConsumeQueue();
+        } else {
+            long fromCheckpoint = this.messageStore.getStoreCheckpoint().getLogicsPhysicalOffset();
+            long physicMsgTimestamp = this.messageStore.getStoreCheckpoint().getPhysicMsgTimestamp();
+            if (physicMsgTimestamp > 0 && fromCheckpoint <= 0 && messageStoreConfig.isEnableAcceleratedRecovery()) {
+                throw new RuntimeException("Accelerated recovery is enabled but checkpoint's logicsPhysicalOffset is invalid");
+            }
+            return fromCheckpoint;
+        }
     }
 
     public boolean recoverConcurrently() {
@@ -167,6 +180,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             log.error("Failed to flush all consume queues", e);
             return false;
         }
+
         return true;
     }
 
@@ -336,6 +350,9 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     public void destroy(ConsumeQueueInterface consumeQueue) {
         FileQueueLifeCycle fileQueueLifeCycle = getLifeCycle(consumeQueue.getTopic(), consumeQueue.getQueueId());
         fileQueueLifeCycle.destroy();
+        if (MixAll.isLmq(consumeQueue.getTopic())) {
+            lmqCounter.decrementAndGet();
+        }
     }
 
     public int deleteExpiredFile(ConsumeQueueInterface consumeQueue, long minCommitLogPos) {
@@ -412,6 +429,9 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             logic = oldLogic;
         } else {
             logic = newLogic;
+            if (MixAll.isLmq(topic)) {
+                lmqCounter.incrementAndGet();
+            }
         }
 
         return logic;
@@ -441,8 +461,14 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             map = new ConcurrentHashMap<>();
             map.put(queueId, consumeQueue);
             this.consumeQueueTable.put(topic, map);
+            if (MixAll.isLmq(topic)) {
+                lmqCounter.incrementAndGet();
+            }
         } else {
-            map.put(queueId, consumeQueue);
+            ConsumeQueueInterface prev = map.put(queueId, consumeQueue);
+            if (null == prev && MixAll.isLmq(topic)) {
+                lmqCounter.incrementAndGet();
+            }
         }
     }
 
@@ -474,6 +500,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
         this.setTopicQueueTable(cqOffsetTable);
         this.setBatchTopicQueueTable(bcqOffsetTable);
     }
+
     private void compensateForHA(ConcurrentMap<String, Long> cqOffsetTable) {
         SelectMappedBufferResult lastBuffer = null;
         long startReadOffset = messageStore.getCommitLog().getConfirmOffset() == -1 ? 0 : messageStore.getCommitLog().getConfirmOffset();
@@ -595,12 +622,22 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp, boolean recoverNormally) {
-        if (recoverNormally) {
-            return phyOffset <= this.dispatchFromPhyOffset;
-        } else {
-            return storeTimestamp <= this.dispatchFromStoreTimestamp;
+    public boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
+        boolean recoverNormally) throws RocksDBException {
+        if (!recoverNormally && this.messageStore.getStoreCheckpoint().getLogicsPhysicalOffset() <= 0) { // for the sake of compatibility
+            return storeTimestamp <= this.messageStore.getStoreCheckpoint().getLogicsMsgTimestamp();
         }
+        return phyOffset <= getDispatchFromPhyOffset(recoverNormally);
+    }
+
+    @Override
+    public int getLmqNum() {
+        return lmqCounter.get();
+    }
+
+    @Override
+    public boolean isLmqExist(String lmqTopic) {
+        return getConsumeQueue(lmqTopic, 0) != null;
     }
 
     public class FlushConsumeQueueService extends ServiceThread {
@@ -615,13 +652,15 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             }
 
             long logicsMsgTimestamp = 0;
+            long logicsPhysicalOffset = 0;
 
             int flushConsumeQueueThoroughInterval = messageStoreConfig.getFlushConsumeQueueThoroughInterval();
             long currentTimeMillis = System.currentTimeMillis();
             if (currentTimeMillis >= (this.lastFlushTimestamp + flushConsumeQueueThoroughInterval)) {
                 this.lastFlushTimestamp = currentTimeMillis;
                 flushConsumeQueueLeastPages = 0;
-                logicsMsgTimestamp = messageStore.getStoreCheckpoint().getLogicsMsgTimestamp();
+                logicsMsgTimestamp = messageStore.getStoreCheckpoint().getTmpLogicsMsgTimestamp();
+                logicsPhysicalOffset = messageStore.getStoreCheckpoint().getTmpLogicsPhysicalOffset();
             }
 
             for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : consumeQueueTable.values()) {
@@ -640,6 +679,9 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             if (0 == flushConsumeQueueLeastPages) {
                 if (logicsMsgTimestamp > 0) {
                     messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(logicsMsgTimestamp);
+                }
+                if (logicsPhysicalOffset > 0) {
+                    messageStore.getStoreCheckpoint().setLogicsPhysicalOffset(logicsPhysicalOffset);
                 }
                 messageStore.getStoreCheckpoint().flush();
             }
@@ -838,4 +880,5 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
             return messageStore.getBrokerConfig().getIdentifier() + CleanConsumeQueueService.class.getSimpleName();
         }
     }
+
 }

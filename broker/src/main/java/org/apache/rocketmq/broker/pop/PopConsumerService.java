@@ -19,6 +19,23 @@ package org.apache.rocketmq.broker.pop;
 import com.alibaba.fastjson2.JSON;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import java.nio.ByteBuffer;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
@@ -52,24 +69,6 @@ import org.apache.rocketmq.store.pop.PopCheckPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-
 public class PopConsumerService extends ServiceThread {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
@@ -99,7 +98,9 @@ public class PopConsumerService extends ServiceThread {
         this.lastCleanupLockTime = new AtomicLong(System.currentTimeMillis());
         this.consumerLockService = new PopConsumerLockService(TimeUnit.MINUTES.toMillis(2));
         this.popConsumerStore = new PopConsumerRocksdbStore(Paths.get(
-            brokerController.getMessageStoreConfig().getStorePathRootDir(), ROCKSDB_DIRECTORY).toString());
+            brokerController.getMessageStoreConfig().getStorePathRootDir(), ROCKSDB_DIRECTORY).toString(),
+            brokerController.getMessageStoreConfig().getPopRocksdbBlockCacheSize(),
+            brokerController.getMessageStoreConfig().getPopRocksdbWriteBufferSize());
         this.popConsumerCache = brokerConfig.isEnablePopBufferMerge() ? new PopConsumerCache(
             brokerController, this.popConsumerStore, this.consumerLockService, this::revive) : null;
 
@@ -236,8 +237,8 @@ public class PopConsumerService extends ServiceThread {
     public CompletableFuture<GetMessageResult> getMessageAsync(String clientHost,
         String groupId, String topicId, int queueId, long offset, int batchSize, MessageFilter filter) {
 
-        log.debug("PopConsumerService getMessageAsync, groupId={}, topicId={}, queueId={}, offset={}, batchSize={}, filter={}",
-            groupId, topicId, offset, queueId, batchSize, filter != null);
+        log.debug("PopConsumerService getMessageAsync, groupId={}, topicId={}, queueId={}, " +
+            "offset={}, batchSize={}, filter={}", groupId, topicId, queueId, offset, batchSize, filter != null);
 
         CompletableFuture<GetMessageResult> getMessageFuture =
             brokerController.getMessageStore().getMessageAsync(groupId, topicId, queueId, offset, batchSize, filter);
@@ -287,6 +288,12 @@ public class PopConsumerService extends ServiceThread {
     }
 
     public boolean isFifoBlocked(PopConsumerContext context, String groupId, String topicId, int queueId) {
+        // If server-side reset offset is enabled, and there is a reset offset,
+        // then return false to make sure that the reset offset takes effect.
+        if (brokerController.getBrokerConfig().isUseServerSideResetOffset() &&
+            this.brokerController.getConsumerOffsetManager().hasOffsetReset(topicId, groupId, queueId)) {
+            return false;
+        }
         return brokerController.getConsumerOrderInfoManager().checkBlock(
             context.getAttemptId(), topicId, groupId, queueId, context.getInvisibleTime());
     }
@@ -486,8 +493,9 @@ public class PopConsumerService extends ServiceThread {
     }
 
     // refer ChangeInvisibleTimeProcessor.appendCheckPointThenAckOrigin
-    public void changeInvisibilityDuration(long popTime, long invisibleTime,
-        long changedPopTime, long changedInvisibleTime, String groupId, String topicId, int queueId, long offset) {
+    public void changeInvisibilityDuration(long popTime, long invisibleTime, long changedPopTime,
+                                           long changedInvisibleTime, String groupId, String topicId,
+                                           int queueId, long offset, boolean suspend) {
 
         if (brokerConfig.isPopConsumerKVServiceLog()) {
             log.info("PopConsumerService change, time={}, invisible={}, " +
@@ -496,12 +504,22 @@ public class PopConsumerService extends ServiceThread {
         }
 
         PopConsumerRecord ckRecord = new PopConsumerRecord(
-            changedPopTime, groupId, topicId, queueId, 0, changedInvisibleTime, offset, null);
+            changedPopTime, groupId, topicId, queueId, 0, changedInvisibleTime, offset, null, suspend);
 
         PopConsumerRecord ackRecord = new PopConsumerRecord(
-            popTime, groupId, topicId, queueId, 0, invisibleTime, offset, null);
+            popTime, groupId, topicId, queueId, 0, invisibleTime, offset, null, suspend);
 
-        this.popConsumerStore.writeRecords(Collections.singletonList(ckRecord));
+        // No need to generate new records when the group does not exist,
+        // because these retry messages will not be consumed by anyone.
+        boolean skipWrite = brokerConfig.isPopReviveSkipIfGroupAbsent() &&
+            !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId);
+
+        if (skipWrite) {
+            log.info("PopConsumerService change invisibility skip, time={}, " +
+                "groupId={}, topicId={}, queueId={}, offset={}", popTime, groupId, topicId, queueId, offset);
+        } else {
+            this.popConsumerStore.writeRecords(Collections.singletonList(ckRecord));
+        }
 
         if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
             if (popConsumerCache.deleteRecords(Collections.singletonList(ackRecord)).isEmpty()) {
@@ -509,7 +527,12 @@ public class PopConsumerService extends ServiceThread {
             }
         }
 
-        this.popConsumerStore.deleteRecords(Collections.singletonList(ackRecord));
+        // If the new CK has the same key as the old CK (same visibilityTimeout),
+        // the write already overwrites the old record in RocksDB, skip delete
+        // to avoid removing the newly written record.
+        if (skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout()) {
+            this.popConsumerStore.deleteRecords(Collections.singletonList(ackRecord));
+        }
     }
 
     // Use broker escape bridge to support remote read
@@ -519,6 +542,13 @@ public class PopConsumerService extends ServiceThread {
     }
 
     public CompletableFuture<Boolean> revive(PopConsumerRecord record) {
+
+        if (brokerConfig.isPopReviveSkipIfGroupAbsent() &&
+            !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(record.getGroupId())) {
+            log.info("PopConsumerService skip revive message, record={}", record);
+            return CompletableFuture.completedFuture(true);
+        }
+
         return this.getMessageAsync(record)
             .thenCompose(result -> {
                 if (result == null) {
@@ -534,16 +564,9 @@ public class PopConsumerService extends ServiceThread {
             });
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     public void clearCache(String groupId, String topicId, int queueId) {
-        while (consumerLockService.tryLock(groupId, topicId)) {
-        }
-        try {
-            if (popConsumerCache != null) {
-                popConsumerCache.removeRecords(groupId, topicId, queueId);
-            }
-        } finally {
-            consumerLockService.unlock(groupId, topicId);
+        if (popConsumerCache != null) {
+            popConsumerCache.removeRecords(groupId, topicId, queueId);
         }
     }
 
@@ -576,7 +599,7 @@ public class PopConsumerService extends ServiceThread {
                 if (!result) {
                     if (record.getAttemptTimes() < brokerConfig.getPopReviveMaxAttemptTimes()) {
                         long backoffInterval = 1000L * REWRITE_INTERVALS_IN_SECONDS[
-                            Math.min(REWRITE_INTERVALS_IN_SECONDS.length, record.getAttemptTimes())];
+                            Math.min(REWRITE_INTERVALS_IN_SECONDS.length - 1, record.getAttemptTimes())];
                         long nextInvisibleTime = record.getInvisibleTime() + backoffInterval;
                         PopConsumerRecord retryRecord = new PopConsumerRecord(System.currentTimeMillis(),
                             record.getGroupId(), record.getTopicId(), record.getQueueId(),
@@ -674,7 +697,12 @@ public class PopConsumerService extends ServiceThread {
         msgInner.setSysFlag(messageExt.getSysFlag());
         msgInner.setBornHost(brokerController.getStoreHost());
         msgInner.setStoreHost(brokerController.getStoreHost());
-        msgInner.setReconsumeTimes(messageExt.getReconsumeTimes() + 1);
+        if (record.isSuspend()) {
+            msgInner.setReconsumeTimes(messageExt.getReconsumeTimes());
+        } else {
+            msgInner.setReconsumeTimes(messageExt.getReconsumeTimes() + 1);
+        }
+
         msgInner.getProperties().putAll(messageExt.getProperties());
 
         // set first pop time here
@@ -739,7 +767,7 @@ public class PopConsumerService extends ServiceThread {
                     ck.setQueueId(record.getQueueId());
                     ck.setBrokerName(brokerConfig.getBrokerName());
                     ck.addDiff(0);
-                    ck.setRePutTimes(ck.getRePutTimes());
+                    ck.setRePutTimes(String.valueOf(record.getAttemptTimes()));
                     int reviveQueueId = (int) record.getOffset() % brokerConfig.getReviveQueueNum();
                     MessageExtBrokerInner ckMsg =
                         brokerController.getPopMessageProcessor().buildCkMsg(ck, reviveQueueId);

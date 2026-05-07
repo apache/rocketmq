@@ -249,6 +249,9 @@ public class SendMessageActivity extends AbstractMessagingActivity {
         // set transaction property
         MessageType messageType = message.getSystemProperties().getMessageType();
         if (messageType.equals(MessageType.TRANSACTION)) {
+            if (message.getSystemProperties().hasDeliveryTimestamp()) {
+                throw new GrpcProxyException(Code.BAD_REQUEST, "transaction message cannot set delivery timestamp");
+            }
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
 
             if (message.getSystemProperties().hasOrphanedTransactionRecoveryDuration()) {
@@ -279,6 +282,13 @@ public class SendMessageActivity extends AbstractMessagingActivity {
             validateMessageGroup(messageGroup);
             MessageAccessor.putProperty(messageWithHeader, MessageConst.PROPERTY_SHARDING_KEY, messageGroup);
         }
+        // set lite topic
+        String liteTopic = message.getSystemProperties().getLiteTopic();
+        if (StringUtils.isNotEmpty(liteTopic)) {
+            validateLiteTopic(liteTopic);
+            MessageAccessor.setLiteTopic(messageWithHeader, liteTopic);
+        }
+
         // set trace context
         String traceContext = message.getSystemProperties().getTraceContext();
         if (!traceContext.isEmpty()) {
@@ -385,6 +395,10 @@ public class SendMessageActivity extends AbstractMessagingActivity {
                 String shardingKey = null;
                 if (request.getMessagesCount() == 1) {
                     shardingKey = message.getSystemProperties().getMessageGroup();
+                    // lite topic
+                    if (StringUtils.isBlank(shardingKey)) {
+                        shardingKey = message.getSystemProperties().getLiteTopic();
+                    }
                 }
                 AddressableMessageQueue targetMessageQueue;
                 if (StringUtils.isNotEmpty(shardingKey)) {

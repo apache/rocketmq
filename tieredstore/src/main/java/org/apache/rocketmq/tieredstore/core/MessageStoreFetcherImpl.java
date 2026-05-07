@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
@@ -52,6 +53,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     private static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     protected static final String CACHE_KEY_FORMAT = "%s@%d@%d";
+    protected static final String FETCHER_GROUP_NAME = MixAll.CID_RMQ_SYS_PREFIX + "FETCHER_TIMESTAMP";
 
     private final String brokerName;
     private final MetadataStore metadataStore;
@@ -59,6 +61,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     private final TieredMessageStore messageStore;
     private final IndexService indexService;
     private final FlatFileStore flatFileStore;
+    private final MessageStoreFilter topicFilter;
     private final long memoryMaxSize;
     private final Cache<String /* topic@queueId@offset */, SelectBufferResult> fetcherCache;
 
@@ -76,6 +79,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
         this.messageStore = messageStore;
         this.indexService = indexService;
         this.metadataStore = flatFileStore.getMetadataStore();
+        this.topicFilter = messageStore.getTopicFilter();
         this.memoryMaxSize =
             (long) (Runtime.getRuntime().maxMemory() * storeConfig.getReadAheadCacheSizeThresholdRate());
         this.fetcherCache = this.initCache(storeConfig);
@@ -389,18 +393,37 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
             return CompletableFuture.completedFuture(-1L);
         }
 
-        return flatFile.getConsumeQueueAsync(queueOffset)
-            .thenComposeAsync(cqItem -> {
-                long commitLogOffset = MessageFormatUtil.getCommitLogOffsetFromItem(cqItem);
-                int size = MessageFormatUtil.getSizeFromItem(cqItem);
-                return flatFile.getCommitLogAsync(commitLogOffset, size);
-            }, messageStore.getStoreExecutor().bufferFetchExecutor)
-            .thenApply(MessageFormatUtil::getStoreTimeStamp)
-            .exceptionally(e -> {
-                log.error("MessageStoreFetcherImpl#getMessageStoreTimeStampAsync: " +
-                    "get or decode message failed, topic={}, queue={}, offset={}", topic, queueId, queueOffset, e);
-                return -1L;
-            });
+        // The Metrics thread frequently retrieves the storage timestamp of the latest message;
+        // as an alternative, return the queue's saved timestamp here.
+        if (queueOffset + 1L == flatFile.getConsumeQueueCommitOffset()) {
+            long timestamp = flatFile.getMaxStoreTimestamp();
+            return CompletableFuture.completedFuture(timestamp == Long.MAX_VALUE ? -1L : timestamp);
+        }
+
+        CompletableFuture<Long> future = new CompletableFuture<>();
+        try {
+            this.getMessageAsync(FETCHER_GROUP_NAME, topic, queueId, queueOffset, 1, null)
+                .whenComplete((result, e) -> {
+                    if (e != null) {
+                        log.error("MessageStoreFetcherImpl#getMessageStoreTimeStampAsync: " +
+                            "Get or decode message failed, topic={}, queue={}, offset={}", topic, queueId, queueOffset, e);
+                        future.completeExceptionally(e);
+                        return;
+                    }
+                    if (result != null && result.getMessageBufferList() != null
+                        && !result.getMessageBufferList().isEmpty()) {
+                        long timestamp = MessageFormatUtil.getStoreTimeStamp(result.getMessageBufferList().get(0));
+                        log.info("MessageStoreFetcherImpl#getMessageStoreTimeStampAsync: " +
+                            "topic={}, queue={}, offset={}, timestamp={}", topic, queueId, queueOffset, timestamp);
+                        future.complete(timestamp);
+                    } else {
+                        future.complete(-1L);
+                    }
+                });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
     }
 
     @Override
@@ -415,6 +438,10 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     @Override
     public CompletableFuture<QueryMessageResult> queryMessageAsync(
         String topic, String key, int maxCount, long begin, long end) {
+
+        if (topicFilter.filterTopic(topic)) {
+            return CompletableFuture.completedFuture(new QueryMessageResult());
+        }
 
         long topicId;
         try {

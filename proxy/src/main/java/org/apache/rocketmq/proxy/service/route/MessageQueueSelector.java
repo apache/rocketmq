@@ -17,7 +17,6 @@
 package org.apache.rocketmq.proxy.service.route;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
 import com.google.common.math.IntMath;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,12 +29,15 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.client.latency.MQFaultStrategy;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
+
+import static org.apache.rocketmq.proxy.service.route.MessageQueuePenalizer.selectLeastPenaltyWithPriority;
+import static org.apache.rocketmq.proxy.service.route.MessageQueuePriorityProvider.buildPriorityGroups;
 
 public class MessageQueueSelector {
     private static final int BROKER_ACTING_QUEUE_ID = -1;
@@ -47,9 +49,18 @@ public class MessageQueueSelector {
     private final Map<String, AddressableMessageQueue> brokerNameQueueMap = new ConcurrentHashMap<>();
     private final AtomicInteger queueIndex;
     private final AtomicInteger brokerIndex;
-    private MQFaultStrategy mqFaultStrategy;
+    private final List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
 
-    public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, MQFaultStrategy mqFaultStrategy, boolean read) {
+    // ordered by priority asc (smaller => higher priority)
+    private final List<List<AddressableMessageQueue>> queuesWithPriority;
+    private final List<List<AddressableMessageQueue>> brokerActingQueuesWithPriority;
+
+    public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, boolean read) {
+        this(topicRouteWrapper, read, null);
+    }
+
+    public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, boolean read,
+        MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider) {
         if (read) {
             this.queues.addAll(buildRead(topicRouteWrapper));
         } else {
@@ -59,7 +70,12 @@ public class MessageQueueSelector {
         Random random = new Random();
         this.queueIndex = new AtomicInteger(random.nextInt());
         this.brokerIndex = new AtomicInteger(random.nextInt());
-        this.mqFaultStrategy = mqFaultStrategy;
+
+        if (priorityProvider == null) {
+            priorityProvider = new DefaultMessageQueuePriorityProvider();
+        }
+        this.queuesWithPriority = buildPriorityGroups(queues, priorityProvider);
+        this.brokerActingQueuesWithPriority = buildPriorityGroups(brokerActingQueues, priorityProvider);
     }
 
     private static List<AddressableMessageQueue> buildRead(TopicRouteWrapper topicRoute) {
@@ -138,7 +154,7 @@ public class MessageQueueSelector {
     private void buildBrokerActingQueues(String topic, List<AddressableMessageQueue> normalQueues) {
         for (AddressableMessageQueue mq : normalQueues) {
             AddressableMessageQueue brokerActingQueue = new AddressableMessageQueue(
-                new MessageQueue(topic, mq.getMessageQueue().getBrokerName(), BROKER_ACTING_QUEUE_ID),
+                new MessageQueue(topic, mq.getBrokerName(), BROKER_ACTING_QUEUE_ID),
                 mq.getBrokerAddr());
 
             if (!brokerActingQueues.contains(brokerActingQueue)) {
@@ -160,83 +176,20 @@ public class MessageQueueSelector {
     }
 
     public AddressableMessageQueue selectOneByPipeline(boolean onlyBroker) {
-        if (mqFaultStrategy != null && mqFaultStrategy.isSendLatencyFaultEnable()) {
-            List<MessageQueue> messageQueueList = null;
-            MessageQueue messageQueue = null;
+        if (CollectionUtils.isNotEmpty(penalizers)) {
+            Pair<AddressableMessageQueue, Integer> queueAndPenalty;
             if (onlyBroker) {
-                messageQueueList = transferAddressableQueues(brokerActingQueues);
+                queueAndPenalty = selectLeastPenaltyWithPriority(brokerActingQueuesWithPriority, penalizers, brokerIndex);
             } else {
-                messageQueueList = transferAddressableQueues(queues);
+                queueAndPenalty = selectLeastPenaltyWithPriority(queuesWithPriority, penalizers, queueIndex);
             }
-            AddressableMessageQueue addressableMessageQueue = null;
-
-            // use both available filter.
-            messageQueue = selectOneMessageQueue(messageQueueList, onlyBroker ? brokerIndex : queueIndex,
-                    mqFaultStrategy.getAvailableFilter(), mqFaultStrategy.getReachableFilter());
-            addressableMessageQueue = transferQueue2Addressable(messageQueue);
-            if (addressableMessageQueue != null) {
-                return addressableMessageQueue;
-            }
-
-            // use available filter.
-            messageQueue = selectOneMessageQueue(messageQueueList, onlyBroker ? brokerIndex : queueIndex,
-                    mqFaultStrategy.getAvailableFilter());
-            addressableMessageQueue = transferQueue2Addressable(messageQueue);
-            if (addressableMessageQueue != null) {
-                return addressableMessageQueue;
-            }
-
-            // no available filter, then use reachable filter.
-            messageQueue = selectOneMessageQueue(messageQueueList, onlyBroker ? brokerIndex : queueIndex,
-                    mqFaultStrategy.getReachableFilter());
-            addressableMessageQueue = transferQueue2Addressable(messageQueue);
-            if (addressableMessageQueue != null) {
-                return addressableMessageQueue;
+            if (queueAndPenalty != null && queueAndPenalty.getLeft() != null) {
+                return queueAndPenalty.getLeft();
             }
         }
 
         // SendLatency is not enabled, or no queue is selected, then select by index.
         return selectOne(onlyBroker);
-    }
-
-    private MessageQueue selectOneMessageQueue(List<MessageQueue> messageQueueList, AtomicInteger sendQueue, TopicPublishInfo.QueueFilter...filter) {
-        if (messageQueueList == null || messageQueueList.isEmpty()) {
-            return null;
-        }
-        if (filter != null && filter.length != 0) {
-            for (int i = 0; i < messageQueueList.size(); i++) {
-                int index = Math.abs(sendQueue.incrementAndGet() % messageQueueList.size());
-                MessageQueue mq = messageQueueList.get(index);
-                boolean filterResult = true;
-                for (TopicPublishInfo.QueueFilter f: filter) {
-                    Preconditions.checkNotNull(f);
-                    filterResult &= f.filter(mq);
-                }
-                if (filterResult) {
-                    return mq;
-                }
-            }
-        }
-        return null;
-    }
-
-    public List<MessageQueue> transferAddressableQueues(List<AddressableMessageQueue> addressableMessageQueueList) {
-        if (addressableMessageQueueList == null) {
-            return null;
-        }
-
-        return addressableMessageQueueList.stream()
-                .map(AddressableMessageQueue::getMessageQueue)
-                .collect(Collectors.toList());
-    }
-
-    private AddressableMessageQueue transferQueue2Addressable(MessageQueue messageQueue) {
-        for (AddressableMessageQueue amq: queues) {
-            if (amq.getMessageQueue().equals(messageQueue)) {
-                return amq;
-            }
-        }
-        return null;
     }
 
     public AddressableMessageQueue selectNextOne(AddressableMessageQueue last) {
@@ -275,12 +228,10 @@ public class MessageQueueSelector {
         return brokerActingQueues;
     }
 
-    public MQFaultStrategy getMQFaultStrategy() {
-        return mqFaultStrategy;
-    }
-
-    public void setMQFaultStrategy(MQFaultStrategy mqFaultStrategy) {
-        this.mqFaultStrategy = mqFaultStrategy;
+    public void addPenalizer(MessageQueuePenalizer<AddressableMessageQueue> penalizer) {
+        if (penalizer != null) {
+            this.penalizers.add(penalizer);
+        }
     }
 
     @Override

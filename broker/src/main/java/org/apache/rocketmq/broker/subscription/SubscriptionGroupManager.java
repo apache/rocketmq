@@ -323,7 +323,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         int maxGroupNum) {
         // [groupSeq, groupSeq + maxGroupNum)
         int beginIndex = groupSeq;
-        if (StringUtils.isBlank(dataVersion) || !Objects.equals(DataVersion.fromJson(dataVersion, DataVersion.class), this.dataVersion)) {
+        if (beginIndex != 0 && (StringUtils.isBlank(dataVersion) || !Objects.equals(DataVersion.fromJson(dataVersion, DataVersion.class), getDataVersion()))) {
             beginIndex = 0;
             log.info("get sub subscription group table from {} due to {}", beginIndex,
                 StringUtils.isBlank(dataVersion) ? "DataVersion Empty" : "DataVersion Changed");

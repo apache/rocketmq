@@ -467,8 +467,8 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     @Override
-    public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
-        dledgerRecoverAbnormally(maxPhyOffsetOfConsumeQueue);
+    public void recoverAbnormally(long dispatchFromPhyOffset) throws RocksDBException {
+        dledgerRecoverAbnormally(dispatchFromPhyOffset);
     }
 
     @Override

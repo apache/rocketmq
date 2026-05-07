@@ -28,6 +28,7 @@ import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.InstrumentType;
@@ -69,6 +70,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -121,8 +123,9 @@ public class BrokerMetricsManager {
     private final MessageStore messageStore;
     private final BrokerController brokerController;
     private final ConsumerLagCalculator consumerLagCalculator;
+    private final LiteConsumerLagCalculator liteConsumerLagCalculator;
     private final Map<String, String> labelMap = new HashMap<>();
-    private OtlpGrpcMetricExporter metricExporter;
+    private MetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
     private MetricExporter loggingMetricExporter;
@@ -178,6 +181,7 @@ public class BrokerMetricsManager {
         this.consumerLagCalculator = new ConsumerLagCalculator(brokerController);
         this.remotingMetricsManager = new RemotingMetricsManager();
         this.popMetricsManager = new PopMetricsManager();
+        this.liteConsumerLagCalculator = new LiteConsumerLagCalculator(brokerController);
         init();
     }
 
@@ -316,6 +320,19 @@ public class BrokerMetricsManager {
         return false;
     }
 
+    private static MemoryMode resolveMemoryMode(String configured) {
+        if (StringUtils.isBlank(configured)) {
+            return MemoryMode.IMMUTABLE_DATA;
+        }
+        try {
+            return MemoryMode.valueOf(configured.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn("Invalid metricsExportOtelMemoryMode '{}', falling back to IMMUTABLE_DATA. Valid values: IMMUTABLE_DATA, REUSABLE_DATA.",
+                configured);
+            return MemoryMode.IMMUTABLE_DATA;
+        }
+    }
+
     private void init() {
         MetricsExporterType metricsExporterType = brokerConfig.getMetricsExporterType();
         if (metricsExporterType == MetricsExporterType.DISABLE) {
@@ -354,8 +371,16 @@ public class BrokerMetricsManager {
             if (!endpoint.startsWith("http")) {
                 endpoint = "https://" + endpoint;
             }
+            // OTel 1.44.0 ~ 1.46.x defaults OtlpGrpcMetricExporter to REUSABLE_DATA,
+            // whose MetricReusableDataMarshaler uses a non-thread-safe ArrayDeque pool.
+            // Combined with BatchSplittingMetricExporter's concurrent sub-batch export
+            // this triggers a pool race that leaks marshalers until OOM (fixed upstream
+            // in 1.47.0 via opentelemetry-java#7041). IMMUTABLE_DATA bypasses that path.
+            MemoryMode memoryMode = resolveMemoryMode(brokerConfig.getMetricsExportOtelMemoryMode());
             OtlpGrpcMetricExporterBuilder metricExporterBuilder = OtlpGrpcMetricExporter.builder()
                 .setEndpoint(endpoint)
+                .setCompression("gzip")
+                .setMemoryMode(memoryMode)
                 .setTimeout(brokerConfig.getMetricGrpcExporterTimeOutInMills(), TimeUnit.MILLISECONDS)
                 .setAggregationTemporalitySelector(type -> {
                     if (brokerConfig.isMetricsInDelta() &&
@@ -380,7 +405,17 @@ public class BrokerMetricsManager {
                 headerMap.forEach(metricExporterBuilder::addHeader);
             }
 
-            metricExporter = metricExporterBuilder.build();
+            OtlpGrpcMetricExporter otlpExporter = metricExporterBuilder.build();
+            if (brokerConfig.isMetricsExportBatchSplitEnabled()) {
+                metricExporter = new BatchSplittingMetricExporter(otlpExporter,
+                    brokerConfig::getMetricsExportBatchMaxDataPoints,
+                    brokerConfig::getMetricsExportBatchMaxConcurrent);
+            } else {
+                // Escape hatch: skip the splitter wrapper entirely and use the raw
+                // OTLP exporter. Gives up the oversized-payload guard but removes
+                // any splitter-side overhead/risk. Re-enable if needed.
+                metricExporter = otlpExporter;
+            }
 
             periodicMetricReader = PeriodicMetricReader.builder(metricExporter)
                 .setInterval(brokerConfig.getMetricGrpcExporterIntervalInMills(), TimeUnit.MILLISECONDS)
@@ -673,21 +708,27 @@ public class BrokerMetricsManager {
         consumerLagMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_LAG_MESSAGES)
             .setDescription("Consumer lag messages")
             .ofLongs()
-            .buildWithCallback(measurement -> consumerLagCalculator.calculateLag(result ->
-                measurement.record(result.lag, buildLagAttributes(result))));
+            .buildWithCallback(measurement -> {
+                consumerLagCalculator.calculateLag(result ->
+                    measurement.record(result.lag, buildLagAttributes(result))
+                );
+
+                liteConsumerLagCalculator.calculateLiteLagCount(result ->
+                    measurement.record(result.lag, buildLagAttributes(result))
+                );
+            });
 
         consumerLagLatency = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_LAG_LATENCY)
             .setDescription("Consumer lag time")
             .setUnit("milliseconds")
             .ofLongs()
-            .buildWithCallback(measurement -> consumerLagCalculator.calculateLag(result -> {
-                long latency = 0;
-                long curTimeStamp = System.currentTimeMillis();
-                if (result.earliestUnconsumedTimestamp != 0) {
-                    latency = curTimeStamp - result.earliestUnconsumedTimestamp;
-                }
-                measurement.record(latency, buildLagAttributes(result));
-            }));
+            .buildWithCallback(measurement -> {
+                consumerLagCalculator.calculateLag(lagResult ->
+                    measurement.record(lagResult.getLagLatency(), buildLagAttributes(lagResult)));
+
+                liteConsumerLagCalculator.calculateLiteLagLatency(lagResult ->
+                    measurement.record(lagResult.getLagLatency(), buildLagAttributes(lagResult)));
+            });
 
         consumerInflightMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_INFLIGHT_MESSAGES)
             .setDescription("Consumer inflight messages")
@@ -711,8 +752,14 @@ public class BrokerMetricsManager {
         consumerReadyMessages = brokerMeter.gaugeBuilder(GAUGE_CONSUMER_READY_MESSAGES)
             .setDescription("Consumer ready messages")
             .ofLongs()
-            .buildWithCallback(measurement ->
-                consumerLagCalculator.calculateAvailable(result -> measurement.record(result.available, buildLagAttributes(result))));
+            .buildWithCallback(measurement -> {
+                consumerLagCalculator.calculateAvailable(result ->
+                    measurement.record(result.available, buildLagAttributes(result)));
+
+                // for lite, ready == lag
+                liteConsumerLagCalculator.calculateLiteLagCount(result ->
+                    measurement.record(result.lag, buildLagAttributes(result)));
+            });
 
         sendToDlqMessages = brokerMeter.counterBuilder(COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL)
             .setDescription("Consumer send to DLQ messages")
@@ -762,6 +809,10 @@ public class BrokerMetricsManager {
         if (brokerConfig.isEnablePopMetrics()) {
             this.popMetricsManager.initMetrics(brokerMeter, brokerController, this::newAttributesBuilder);
         }
+    }
+
+    public LiteConsumerLagCalculator getLiteConsumerLagCalculator() {
+        return liteConsumerLagCalculator;
     }
 
     public void shutdown() {

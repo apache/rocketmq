@@ -42,6 +42,8 @@ import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.Status;
+import apache.rocketmq.v2.SyncLiteSubscriptionRequest;
+import apache.rocketmq.v2.SyncLiteSubscriptionResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Context;
@@ -136,7 +138,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     protected void init() {
         GrpcTaskRejectedExecutionHandler rejectedExecutionHandler = new GrpcTaskRejectedExecutionHandler();
-        this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
         this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
         this.producerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
         this.consumerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
@@ -400,6 +401,26 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     }
 
     @Override
+    public void syncLiteSubscription(SyncLiteSubscriptionRequest request,
+        StreamObserver<SyncLiteSubscriptionResponse> responseObserver) {
+        Function<Status, SyncLiteSubscriptionResponse> statusResponseCreator =
+            status -> SyncLiteSubscriptionResponse.newBuilder().setStatus(status).build();
+        ProxyContext context = createContext();
+        try {
+            this.addExecutor(this.clientManagerThreadPoolExecutor,
+                context,
+                request,
+                () -> grpcMessagingActivity.syncLiteSubscription(context, request)
+                    .whenComplete((response, throwable) ->
+                        writeResponse(context, request, response, responseObserver, throwable, statusResponseCreator)),
+                responseObserver,
+                statusResponseCreator);
+        } catch (Throwable t) {
+            writeResponse(context, request, null, responseObserver, t, statusResponseCreator);
+        }
+    }
+
+    @Override
     public StreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
         Function<Status, TelemetryCommand> statusResponseCreator = status -> TelemetryCommand.newBuilder().setStatus(status).build();
         ContextStreamObserver<TelemetryCommand> responseTelemetryCommand = grpcMessagingActivity.telemetry(responseObserver);
@@ -434,8 +455,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     @Override
     public void shutdown() throws Exception {
         this.grpcMessagingActivity.shutdown();
-
-        this.routeThreadPoolExecutor.shutdown();
         this.routeThreadPoolExecutor.shutdown();
         this.producerThreadPoolExecutor.shutdown();
         this.consumerThreadPoolExecutor.shutdown();

@@ -276,7 +276,10 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             msgIdCaptor.capture(),
             anyString(),
             anyString(),
-            anyLong())).thenReturn(CompletableFuture.completedFuture(new AckResult()));
+            anyLong(),
+            any(),
+            anyLong(),
+            anyBoolean())).thenReturn(CompletableFuture.completedFuture(new AckResult()));
 
         // normal
         ProxyContext ctx = createContext();
@@ -308,7 +311,10 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             anyString(),
             anyString(),
             anyString(),
-            anyLong());
+            anyLong(),
+            any(),
+            anyLong(),
+            anyBoolean());
         assertEquals(Arrays.asList(msgId1, msgId2), msgIdCaptor.getAllValues());
         assertEquals(Arrays.asList(popCk1, popCk2), receiptHandleCaptor.getAllValues().stream().map(ReceiptHandle::encode).collect(Collectors.toList()));
     }

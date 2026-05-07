@@ -106,7 +106,19 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         super(messageStore);
         messageStore.setNotifyMessageArriveInBatch(true);
 
-        this.storePath = StorePathConfigHelper.getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir());
+        String root = messageStoreConfig.getStorePathRootDir();
+        File checkFile;
+        if (messageStoreConfig.isUseSeparateStorePathForRocksdbCQ()) {
+            this.storePath = StorePathConfigHelper.getStorePathRocksDBConsumeQueue(root);
+            checkFile = new File(StorePathConfigHelper.getStorePathConsumeQueue(root) + File.separator + "CURRENT");
+        } else {
+            this.storePath = StorePathConfigHelper.getStorePathConsumeQueue(root);
+            checkFile = new File(StorePathConfigHelper.getStorePathRocksDBConsumeQueue(root) + File.separator + "CURRENT");
+        }
+        if (checkFile.isFile()) { // probably used rocksdb in original/separate path
+            throw new IllegalStateException("find RocksDBConsumeQueue in original/separate path, maybe incompatible config.");
+        }
+
         this.rocksDBStorage = new ConsumeQueueRocksDBStorage(messageStore, storePath);
         this.rocksDBConsumeQueueTable = new RocksDBConsumeQueueTable(rocksDBStorage, messageStore);
         this.rocksDBConsumeQueueOffsetTable = new RocksDBConsumeQueueOffsetTable(rocksDBConsumeQueueTable, rocksDBStorage, messageStore);
@@ -191,7 +203,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public long getDispatchFromPhyOffset() {
+    public Long getDispatchFromPhyOffset(boolean recoverNormally) throws RocksDBException {
         return dispatchFromPhyOffset;
     }
 
@@ -576,6 +588,16 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             return getLmqQueueOffset(topic, queueId);
         }
         return super.getMaxOffset(topic, queueId);
+    }
+
+    @Override
+    public int getLmqNum() {
+        return this.rocksDBConsumeQueueOffsetTable.getLmqNum();
+    }
+
+    @Override
+    public boolean isLmqExist(String lmqTopic) {
+        return MixAll.isLmq(lmqTopic) ? this.rocksDBConsumeQueueOffsetTable.isLmqExist(lmqTopic) : false;
     }
 
     public boolean isStopped() {

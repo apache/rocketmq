@@ -19,6 +19,8 @@ package org.apache.rocketmq.proxy.service.client;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.nio.ByteBuffer;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -33,14 +35,17 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.NotifyUnsubscribeLiteRequestHeader;
 
 public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final ProducerManager producerManager;
+    private final ClusterConsumerManager consumerManager;
 
-    public ProxyClientRemotingProcessor(ProducerManager producerManager) {
+    public ProxyClientRemotingProcessor(ProducerManager producerManager, ClusterConsumerManager consumerManager) {
         super(null);
         this.producerManager = producerManager;
+        this.consumerManager = consumerManager;
     }
 
     @Override
@@ -48,6 +53,8 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
         throws RemotingCommandException {
         if (request.getCode() == RequestCode.CHECK_TRANSACTION_STATE) {
             return this.checkTransactionState(ctx, request);
+        } else if (request.getCode() == RequestCode.NOTIFY_UNSUBSCRIBE_LITE) {
+            return this.notifyUnsubscribeLite(ctx, request);
         }
         return null;
     }
@@ -72,6 +79,34 @@ public class ProxyClientRemotingProcessor extends ClientRemotingProcessor {
                 }
             }
         }
+        return null;
+    }
+
+    /**
+     * one way, return null response
+     */
+    public RemotingCommand notifyUnsubscribeLite(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        NotifyUnsubscribeLiteRequestHeader requestHeader =
+            request.decodeCommandCustomHeader(NotifyUnsubscribeLiteRequestHeader.class);
+        request.writeCustomHeader(requestHeader);
+        final String clientId = requestHeader.getClientId();
+        final String group = requestHeader.getConsumerGroup();
+        if (StringUtils.isBlank(clientId) || StringUtils.isBlank(group)) {
+            log.warn("notifyUnsubscribeLite clientId or group is null. {}", requestHeader);
+            return null;
+        }
+        ClientChannelInfo channelInfo = consumerManager.findChannel(group, clientId);
+        if (channelInfo == null) {
+            log.warn("notifyUnsubscribeLite channelInfo is null. {}", requestHeader);
+            return null;
+        }
+        Channel channel = channelInfo.getChannel();
+        if (channel == null) {
+            log.warn("notifyUnsubscribeLite channel is null. {}", requestHeader);
+            return null;
+        }
+        channel.writeAndFlush(request);
         return null;
     }
 }
