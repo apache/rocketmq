@@ -54,7 +54,6 @@ import org.apache.rocketmq.proxy.common.ReceiptHandleGroupKey;
 import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
-import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
@@ -168,20 +167,19 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
 
                 ReceiptHandleGroup group = entry.getValue();
 
-                if (!proxyConfig.isEnableGrpcChannelReceiptHandleRenew()
-                    && key.getChannel() instanceof GrpcClientChannel) {
-                    // When renew is disabled, only clean up expired handles to avoid memory leak
-                    group.scan((msgID, handleStr, v) -> {
+                group.scan((msgID, handleStr, v) -> {
+                    // Per-handle renewal decision: handles that were created with needRenew=false
+                    // (popped when enableGrpcChannelReceiptHandleRenew was disabled) only need
+                    // expiry cleanup, NOT periodic renewal. This ensures safe transitions when
+                    // the config is dynamically switched.
+                    if (!v.isNeedRenew()) {
                         ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandleStr());
                         if (handle.isExpired()) {
                             group.computeIfPresent(msgID, handleStr,
                                 messageReceiptHandle -> CompletableFuture.completedFuture(null), 0);
                         }
-                    });
-                    continue;
-                }
-
-                group.scan((msgID, handleStr, v) -> {
+                        return;
+                    }
                     long current = System.currentTimeMillis();
                     ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandleStr());
                     if (handle.getNextVisibleTime() - current > proxyConfig.getRenewAheadTimeMillis()) {

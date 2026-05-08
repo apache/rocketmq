@@ -73,6 +73,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class ReceiveMessageActivityTest extends BaseActivityTest {
 
@@ -469,5 +471,132 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
                 new ReceiveMessageActivity.ReceiveMessageQueueSelector(BROKER_NAME + i);
             assertEquals(BROKER_NAME + i, selectorBrokerName.select(ProxyContext.create(), messageQueueView).getBrokerName());
         }
+    }
+
+    @Test
+    public void testReceiveMessageWithRenewDisabledUsesConsumeTimeout() {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        proxyConfig.setEnableProxyAutoRenew(true);
+        proxyConfig.setEnableGrpcChannelReceiptHandleRenew(false);
+
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        doNothing().when(receiveStreamObserver).onNext(any());
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setConsumeTimeoutMinute(20);
+        when(this.messagingProcessor.getSubscriptionGroupConfig(any(), anyString())).thenReturn(groupConfig);
+
+        ArgumentCaptor<Long> invisibleTimeCaptor = ArgumentCaptor.forClass(Long.class);
+        when(this.messagingProcessor.popMessage(
+            any(), any(), anyString(), anyString(), anyInt(),
+            invisibleTimeCaptor.capture(), anyLong(), anyInt(), any(), anyBoolean(), any(), isNull(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+
+        // Should use consumeTimeoutMinute (20min = 1200000ms), not defaultInvisibleTimeMills (60s)
+        assertEquals(20 * 60 * 1000L, invisibleTimeCaptor.getValue().longValue());
+
+        // Restore
+        proxyConfig.setEnableGrpcChannelReceiptHandleRenew(true);
+    }
+
+    @Test
+    public void testReceiveMessageWithRenewDisabledFallbackOnException() {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        proxyConfig.setEnableProxyAutoRenew(true);
+        proxyConfig.setEnableGrpcChannelReceiptHandleRenew(false);
+
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        doNothing().when(receiveStreamObserver).onNext(any());
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
+
+        // Simulate exception when getting subscription group config
+        when(this.messagingProcessor.getSubscriptionGroupConfig(any(), anyString()))
+            .thenThrow(new RuntimeException("broker unavailable"));
+
+        ArgumentCaptor<Long> invisibleTimeCaptor = ArgumentCaptor.forClass(Long.class);
+        when(this.messagingProcessor.popMessage(
+            any(), any(), anyString(), anyString(), anyInt(),
+            invisibleTimeCaptor.capture(), anyLong(), anyInt(), any(), anyBoolean(), any(), isNull(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+
+        // Should fallback to 15min (900000ms), NOT defaultInvisibleTimeMills (60s)
+        assertEquals(15 * 60 * 1000L, invisibleTimeCaptor.getValue().longValue());
+
+        // Restore
+        proxyConfig.setEnableGrpcChannelReceiptHandleRenew(true);
+    }
+
+    @Test
+    public void testReceiveMessageWithRenewDisabledClampsToMaxInvisibleTime() {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        proxyConfig.setEnableProxyAutoRenew(true);
+        proxyConfig.setEnableGrpcChannelReceiptHandleRenew(false);
+        long originalMax = proxyConfig.getMaxInvisibleTimeMills();
+        // Set maxInvisibleTimeMills to 10 min for testing
+        proxyConfig.setMaxInvisibleTimeMills(10 * 60 * 1000L);
+
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        doNothing().when(receiveStreamObserver).onNext(any());
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setConsumeTimeoutMinute(30); // 30min > maxInvisibleTimeMills (10min)
+        when(this.messagingProcessor.getSubscriptionGroupConfig(any(), anyString())).thenReturn(groupConfig);
+
+        ArgumentCaptor<Long> invisibleTimeCaptor = ArgumentCaptor.forClass(Long.class);
+        when(this.messagingProcessor.popMessage(
+            any(), any(), anyString(), anyString(), anyInt(),
+            invisibleTimeCaptor.capture(), anyLong(), anyInt(), any(), anyBoolean(), any(), isNull(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
+
+        this.receiveMessageActivity.receiveMessage(
+            createContext(),
+            ReceiveMessageRequest.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+                .setAutoRenew(true)
+                .setFilterExpression(FilterExpression.newBuilder()
+                    .setType(FilterType.TAG)
+                    .setExpression("*")
+                    .build())
+                .build(),
+            receiveStreamObserver
+        );
+
+        // Should be clamped to maxInvisibleTimeMills (10min = 600000ms)
+        assertEquals(10 * 60 * 1000L, invisibleTimeCaptor.getValue().longValue());
+
+        // Restore
+        proxyConfig.setEnableGrpcChannelReceiptHandleRenew(true);
+        proxyConfig.setMaxInvisibleTimeMills(originalMax);
     }
 }

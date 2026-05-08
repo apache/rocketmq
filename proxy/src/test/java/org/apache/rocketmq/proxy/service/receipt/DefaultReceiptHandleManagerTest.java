@@ -463,4 +463,103 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
         listenerArgumentCaptor.getValue().handle(ConsumerGroupEvent.CLIENT_UNREGISTER, GROUP, new ClientChannelInfo(channel, "", LanguageCode.JAVA, 0));
         assertTrue(receiptHandleManager.receiptHandleGroupMap.isEmpty());
     }
+
+    @Test
+    public void testNoRenewHandleSkipsRenewalAndCleansExpired() {
+        // Create a handle with needRenew=false (simulating enableGrpcChannelReceiptHandleRenew=false at pop time)
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        long invisibleTime = 900000L; // 15min
+        String noRenewReceiptHandle = ReceiptHandle.builder()
+            .startOffset(0L)
+            .retrieveTime(System.currentTimeMillis() - invisibleTime - 1000) // already expired
+            .invisibleTime(invisibleTime)
+            .reviveQueueId(1)
+            .topicType(ReceiptHandle.NORMAL_TOPIC)
+            .brokerName(BROKER_NAME)
+            .queueId(QUEUE_ID)
+            .offset(OFFSET)
+            .commitLogOffset(0L)
+            .build().encode();
+        MessageReceiptHandle noRenewHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, noRenewReceiptHandle,
+            MESSAGE_ID, OFFSET, RECONSUME_TIMES, null, false);
+
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, noRenewHandle);
+        Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+
+        receiptHandleManager.scheduleRenewTask();
+
+        // Should NOT call changeInvisibleTime (no renewal for needRenew=false)
+        Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(0))
+            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong());
+
+        // The expired handle should be cleaned up
+        await().atMost(Duration.ofSeconds(1)).until(() -> {
+            try {
+                ReceiptHandleGroup receiptHandleGroup = receiptHandleManager.receiptHandleGroupMap.values().stream().findFirst().get();
+                return receiptHandleGroup.isEmpty();
+            } catch (Exception e) {
+                return false;
+            }
+        });
+    }
+
+    @Test
+    public void testNoRenewHandleNotExpiredStaysInMemory() {
+        // Create a handle with needRenew=false that is NOT yet expired
+        long invisibleTime = 900000L; // 15min
+        String noRenewReceiptHandle = ReceiptHandle.builder()
+            .startOffset(0L)
+            .retrieveTime(System.currentTimeMillis()) // not expired yet
+            .invisibleTime(invisibleTime)
+            .reviveQueueId(1)
+            .topicType(ReceiptHandle.NORMAL_TOPIC)
+            .brokerName(BROKER_NAME)
+            .queueId(QUEUE_ID)
+            .offset(OFFSET)
+            .commitLogOffset(0L)
+            .build().encode();
+        MessageReceiptHandle noRenewHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, noRenewReceiptHandle,
+            MESSAGE_ID, OFFSET, RECONSUME_TIMES, null, false);
+
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, noRenewHandle);
+        Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+
+        receiptHandleManager.scheduleRenewTask();
+
+        // Should NOT call changeInvisibleTime
+        Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(0))
+            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong());
+
+        // Handle should still be in memory (not expired, kept for nack on disconnect)
+        ReceiptHandleGroup receiptHandleGroup = receiptHandleManager.receiptHandleGroupMap.values().stream().findFirst().get();
+        assertEquals(false, receiptHandleGroup.isEmpty());
+    }
+
+    @Test
+    public void testTransitionNeedRenewTrueHandleStillRenewed() {
+        // Simulate a handle created when enableGrpcChannelReceiptHandleRenew=true (needRenew=true)
+        // Even if config later changes to false, this handle should still be renewed
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+
+        // Create handle with needRenew=true (default)
+        MessageReceiptHandle needRenewHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, receiptHandle,
+            MESSAGE_ID, OFFSET, RECONSUME_TIMES, null, true);
+        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, needRenewHandle);
+
+        Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
+        Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(GROUP))).thenReturn(new SubscriptionGroupConfig());
+
+        // Even though config says no renew now, the handle has needRenew=true
+        // so it should still be renewed
+        receiptHandleManager.scheduleRenewTask();
+
+        Mockito.verify(messagingProcessor, Mockito.timeout(1000).times(1))
+            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
+                Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.anyLong());
+    }
 }

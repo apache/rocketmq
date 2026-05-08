@@ -16,18 +16,9 @@
  */
 package org.apache.rocketmq.proxy.grpc.v2.consumer;
 
-import apache.rocketmq.v2.ClientType;
-import apache.rocketmq.v2.Code;
-import apache.rocketmq.v2.FilterExpression;
-import apache.rocketmq.v2.ReceiveMessageRequest;
-import apache.rocketmq.v2.ReceiveMessageResponse;
-import apache.rocketmq.v2.Settings;
-import apache.rocketmq.v2.Subscription;
+import apache.rocketmq.v2.*;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.StreamObserver;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
@@ -53,8 +44,17 @@ import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 public class ReceiveMessageActivity extends AbstractMessagingActivity {
     private static final String ILLEGAL_POLLING_TIME_INTRODUCED_CLIENT_VERSION = "5.0.3";
+    /**
+     * Default fallback invisibleTime when renewal is disabled and SubscriptionGroupConfig is unavailable.
+     * Uses the same default as SubscriptionGroupConfig.consumeTimeoutMinute (15 minutes).
+     */
+    private static final long DEFAULT_CONSUME_TIMEOUT_INVISIBLE_TIME_MILLIS = TimeUnit.MINUTES.toMillis(15);
 
     public ReceiveMessageActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
@@ -213,6 +213,10 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                 writer.processThrowableWhenWriteMessage(e, ctx, request, messageExt));
             throw e;
         }
+        // Capture the renew mode at pop time. This ensures that when the config switches dynamically,
+        // handles already created continue to be handled correctly (renewed or not) regardless of
+        // the current config state.
+        final boolean needRenew = ConfigurationManager.getProxyConfig().isEnableGrpcChannelReceiptHandleRenew();
         return () -> {
             List<MessageExt> messageExtList = popResult.getMsgFoundList();
             for (MessageExt messageExt : messageExtList) {
@@ -221,7 +225,7 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                     MessageReceiptHandle messageReceiptHandle =
                         new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
                             messageExt.getQueueOffset(), messageExt.getReconsumeTimes(),
-                            messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC));
+                            messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC), needRenew);
                     messagingProcessor.addReceiptHandle(ctx, clientChannel, group, messageExt.getMsgId(), messageReceiptHandle);
                 }
             }
@@ -237,15 +241,32 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
     }
 
     private long getConsumeTimeoutInvisibleTime(ProxyContext ctx, String group, ProxyConfig proxyConfig) {
+        long invisibleTime;
         try {
             SubscriptionGroupConfig groupConfig = this.messagingProcessor.getSubscriptionGroupConfig(ctx, group);
             if (groupConfig != null && groupConfig.getConsumeTimeoutMinute() > 0) {
-                return TimeUnit.MINUTES.toMillis(groupConfig.getConsumeTimeoutMinute());
+                invisibleTime = TimeUnit.MINUTES.toMillis(groupConfig.getConsumeTimeoutMinute());
+            } else {
+                // Use default consumeTimeoutMinute as fallback when config is null or invalid.
+                // This is intentionally NOT defaultInvisibleTimeMills (60s) because without renewal,
+                // 60s is too short and would cause duplicate consumption.
+                invisibleTime = DEFAULT_CONSUME_TIMEOUT_INVISIBLE_TIME_MILLIS;
             }
         } catch (Exception e) {
-            // fall through to default
+            log.warn("Failed to get SubscriptionGroupConfig for group: {}, using default consumeTimeoutMinute (15min) "
+                + "as invisibleTime.", group, e);
+            // Safe fallback: use default consumeTimeoutMinute instead of defaultInvisibleTimeMills (60s).
+            // Since renewal is disabled, the handle must live long enough for the client to process it.
+            invisibleTime = DEFAULT_CONSUME_TIMEOUT_INVISIBLE_TIME_MILLIS;
         }
-        return proxyConfig.getDefaultInvisibleTimeMills();
+        // Clamp to maxInvisibleTimeMills to avoid exceeding broker's allowed range
+        long maxInvisibleTime = proxyConfig.getMaxInvisibleTimeMills();
+        if (maxInvisibleTime > 0 && invisibleTime > maxInvisibleTime) {
+            log.warn("Calculated invisibleTime {}ms for group {} exceeds maxInvisibleTimeMills {}ms, clamping.",
+                invisibleTime, group, maxInvisibleTime);
+            invisibleTime = maxInvisibleTime;
+        }
+        return invisibleTime;
     }
 
     protected static class ReceiveMessageQueueSelector implements QueueSelector {
