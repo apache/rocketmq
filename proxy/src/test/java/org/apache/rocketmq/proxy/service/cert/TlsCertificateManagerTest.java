@@ -18,6 +18,9 @@ package org.apache.rocketmq.proxy.service.cert;
 
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.config.TlsDomainConfig;
+import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
+import org.apache.rocketmq.proxy.service.cert.TlsSniManager;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
 import org.junit.After;
@@ -31,10 +34,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -54,6 +57,7 @@ public class TlsCertificateManagerTest {
     @Rule
     public TemporaryFolder tempDir = new TemporaryFolder();
 
+    private TlsSniManager tlsSniManager;
     private TlsCertificateManager manager;
 
     @Mock
@@ -85,29 +89,22 @@ public class TlsCertificateManagerTest {
         TlsSystemConfig.tlsServerCertPath = certFile.getAbsolutePath();
         TlsSystemConfig.tlsServerKeyPath = keyFile.getAbsolutePath();
 
-        // Create the TlsCertificateManager
-        manager = new TlsCertificateManager();
+        // Create TlsSniManager and TlsCertificateManager
+        tlsSniManager = new TlsSniManager();
+        manager = new TlsCertificateManager(tlsSniManager);
 
-        // Extract the file watch listener using reflection
+        // Extract the file watch listener from the first watch service
         fileWatchListener = extractFileWatchListener(manager);
     }
 
-    @After
-    public void tearDown() throws Exception {
-        // Restore the original config
-        if (configField != null && originalConfig != null) {
-            configField.set(null, originalConfig);
-        }
-    }
-
     private FileWatchService.Listener extractFileWatchListener(TlsCertificateManager manager) throws Exception {
-        Field fileWatchServiceField = TlsCertificateManager.class.getDeclaredField("fileWatchService");
-        fileWatchServiceField.setAccessible(true);
-        FileWatchService fileWatchService = (FileWatchService) fileWatchServiceField.get(manager);
+        Field fileWatchServicesField = TlsCertificateManager.class.getDeclaredField("fileWatchServices");
+        fileWatchServicesField.setAccessible(true);
+        List<FileWatchService> fileWatchServices = (List<FileWatchService>) fileWatchServicesField.get(manager);
 
         Field listenerField = FileWatchService.class.getDeclaredField("listener");
         listenerField.setAccessible(true);
-        return (FileWatchService.Listener) listenerField.get(fileWatchService);
+        return (FileWatchService.Listener) listenerField.get(fileWatchServices.get(0));
     }
 
     @Test
@@ -120,11 +117,14 @@ public class TlsCertificateManagerTest {
     public void testStartAndShutdown() throws Exception {
         TlsCertificateManager managerSpy = spy(manager);
 
-        Field watchServiceField = TlsCertificateManager.class.getDeclaredField("fileWatchService");
-        watchServiceField.setAccessible(true);
-        FileWatchService watchService = (FileWatchService) watchServiceField.get(managerSpy);
+        Field watchServicesField = TlsCertificateManager.class.getDeclaredField("fileWatchServices");
+        watchServicesField.setAccessible(true);
+        List<FileWatchService> watchServices = (List<FileWatchService>) watchServicesField.get(managerSpy);
+
+        // Spy on the first watch service
+        FileWatchService watchService = watchServices.get(0);
         FileWatchService watchServiceSpy = spy(watchService);
-        watchServiceField.set(managerSpy, watchServiceSpy);
+        watchServices.set(0, watchServiceSpy);
 
         managerSpy.start();
         verify(watchServiceSpy).start();
