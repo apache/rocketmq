@@ -45,11 +45,14 @@ import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
 import io.netty.handler.codec.haproxy.HAProxyTLV;
+import io.netty.handler.ssl.SniHandler;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
+import io.netty.util.GlobalEventExecutor;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.TimerTask;
@@ -507,10 +510,19 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                         throw new UnsupportedOperationException("The NettyRemotingServer in SSL disabled mode doesn't support ssl client");
                     case PERMISSIVE:
                     case ENFORCING:
-                        if (null != sslContext) {
-                            ctx.pipeline()
-                                .addAfter(getDefaultEventExecutorGroup(), TLS_MODE_HANDLER, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
-                                .addAfter(getDefaultEventExecutorGroup(), TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                        SslContext defaultCtx = TlsContextProvider.getInstance().getDefaultContext();
+                        if (null != defaultCtx) {
+                            SniContextProvider sniProvider = TlsContextProvider.getInstance().getSniLookup();
+                            if (sniProvider != null) {
+                                ctx.pipeline()
+                                    .addAfter(getDefaultEventExecutorGroup(), TLS_MODE_HANDLER, TLS_HANDLER_NAME,
+                                        new SniHandler(sniProvider, GlobalEventExecutor.INSTANCE))
+                                    .addAfter(getDefaultEventExecutorGroup(), TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                            } else {
+                                ctx.pipeline()
+                                    .addAfter(getDefaultEventExecutorGroup(), TLS_MODE_HANDLER, TLS_HANDLER_NAME, defaultCtx.newHandler(ctx.channel().alloc()))
+                                    .addAfter(getDefaultEventExecutorGroup(), TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                            }
                             log.info("Handlers prepended to channel pipeline to establish SSL connection");
                         } else {
                             ctx.close();

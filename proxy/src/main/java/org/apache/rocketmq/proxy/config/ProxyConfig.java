@@ -84,6 +84,8 @@ public class ProxyConfig implements ConfigFile {
     private String tlsKeyPassword = "";
     private String tlsCertPath = ConfigurationManager.getProxyHome() + "/conf/tls/rocketmq.crt";
     private int tlsCertWatchIntervalMs = 60 * 60 * 1000; // 1 hour
+    private Map<String, TlsDomainConfig> tlsDomainConfigs = new HashMap<>();
+    private boolean tlsWildcardMatchMultiLevel = false;
     /**
      * gRPC
      */
@@ -527,6 +529,22 @@ public class ProxyConfig implements ConfigFile {
 
     public void setTlsCertPath(String tlsCertPath) {
         this.tlsCertPath = tlsCertPath;
+    }
+
+    public Map<String, TlsDomainConfig> getTlsDomainConfigs() {
+        return tlsDomainConfigs;
+    }
+
+    public void setTlsDomainConfigs(Map<String, TlsDomainConfig> tlsDomainConfigs) {
+        this.tlsDomainConfigs = tlsDomainConfigs;
+    }
+
+    public boolean isTlsWildcardMatchMultiLevel() {
+        return tlsWildcardMatchMultiLevel;
+    }
+
+    public void setTlsWildcardMatchMultiLevel(boolean tlsWildcardMatchMultiLevel) {
+        this.tlsWildcardMatchMultiLevel = tlsWildcardMatchMultiLevel;
     }
 
     public int getGrpcBossLoopNum() {

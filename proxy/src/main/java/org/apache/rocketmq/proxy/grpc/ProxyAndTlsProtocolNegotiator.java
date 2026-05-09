@@ -18,7 +18,6 @@ package org.apache.rocketmq.proxy.grpc;
 
 import io.grpc.Attributes;
 import io.grpc.netty.shaded.io.grpc.netty.GrpcHttp2ConnectionHandler;
-import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiationEvent;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiator;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiators;
@@ -35,22 +34,14 @@ import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
-import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
-import io.grpc.netty.shaded.io.netty.handler.ssl.OpenSsl;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslHandler;
-import io.grpc.netty.shaded.io.netty.handler.ssl.SslProvider;
-
-import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SniHandler;
 import io.grpc.netty.shaded.io.netty.util.AsciiString;
 import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
+import io.grpc.netty.shaded.io.netty.util.GlobalEventExecutor;
+import io.grpc.netty.shaded.io.netty.util.concurrent.Promise;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.cert.CertificateException;
 import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -63,6 +54,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.constant.AttributeKeys;
+import org.apache.rocketmq.proxy.service.cert.TlsSniManager;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
@@ -72,18 +64,19 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     private static final String HA_PROXY_DECODER = "HAProxyDecoder";
     private static final String HA_PROXY_HANDLER = "HAProxyHandler";
     private static final String TLS_MODE_HANDLER = "TlsModeHandler";
+    private static final String SNI_HANDLER = "SniHandler";
     /**
      * the length of the ssl record header (in bytes)
      */
     private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
-    private static SslContext sslContext;
+    private static volatile TlsSniManager tlsSniManager;
 
     public ProxyAndTlsProtocolNegotiator() {
         try {
-            loadSslContext();
-            log.info("SslContext created for proxy server");
-        } catch (IOException | CertificateException e) {
+            loadAllSslContexts();
+            log.info("SslContext created for proxy server with SNI support");
+        } catch (Exception e) {
             log.error("SslContext init error", e);
             throw new RuntimeException(e);
         }
@@ -103,39 +96,24 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     public void close() {
     }
 
-    public static void loadSslContext() throws CertificateException, IOException {
-        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        SslProvider provider;
-        if (OpenSsl.isAvailable()) {
-            provider = SslProvider.OPENSSL;
-            log.info("Using OpenSSL provider");
-        } else {
-            provider = SslProvider.JDK;
-            log.info("Using JDK SSL provider");
-        }
-        if (proxyConfig.isTlsTestModeEnable()) {
-            SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
-            sslContext = GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
-                .sslProvider(provider)
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .clientAuth(ClientAuth.NONE)
-                .build();
-        } else {
-            String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
-            String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
-            String tlsKeyPassword = ConfigurationManager.getProxyConfig().getTlsKeyPassword();
-            try (InputStream serverKeyInputStream = Files.newInputStream(
-                Paths.get(tlsKeyPath));
-                 InputStream serverCertificateStream = Files.newInputStream(
-                     Paths.get(tlsCertPath))) {
-                sslContext = GrpcSslContexts.forServer(serverCertificateStream,
-                        serverKeyInputStream,
-                        StringUtils.isNotBlank(tlsKeyPassword) ? tlsKeyPassword : null)
-                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                    .clientAuth(ClientAuth.NONE)
-                    .build();
+    private static TlsSniManager getTlsSniManager() {
+        if (tlsSniManager == null) {
+            synchronized (ProxyAndTlsProtocolNegotiator.class) {
+                if (tlsSniManager == null) {
+                    tlsSniManager = new TlsSniManager();
+                    tlsSniManager.initialize(ConfigurationManager.getProxyConfig());
+                }
             }
         }
+        return tlsSniManager;
+    }
+
+    public static void loadAllSslContexts() {
+        getTlsSniManager();
+    }
+
+    public static TlsSniManager getManager() {
+        return getTlsSniManager();
     }
 
     private class ProxyAndTlsProtocolHandler extends ByteToMessageDecoder {
@@ -199,12 +177,6 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
             ctx.pipeline().remove(this);
         }
 
-        /**
-         * The definition of key refers to the implementation of nginx
-         * <a href="https://nginx.org/en/docs/http/ngx_http_core_module.html#var_proxy_protocol_addr">ngx_http_core_module</a>
-         *
-         * @param msg
-         */
         private void handleWithMessage(HAProxyMessage msg) {
             try {
                 Attributes.Builder builder = InternalProtocolNegotiationEvent.getAttributes(pne).toBuilder();
@@ -254,14 +226,10 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
 
         private ProtocolNegotiationEvent pne = InternalProtocolNegotiationEvent.getDefault();
 
-        private final ChannelHandler ssl;
-        private final ChannelHandler plaintext;
+        private final GrpcHttp2ConnectionHandler grpcHandler;
 
         public TlsModeHandler(GrpcHttp2ConnectionHandler grpcHandler) {
-            this.ssl = InternalProtocolNegotiators.serverTls(sslContext)
-                .newHandler(grpcHandler);
-            this.plaintext = InternalProtocolNegotiators.serverPlaintext()
-                .newHandler(grpcHandler);
+            this.grpcHandler = grpcHandler;
         }
 
         @Override
@@ -269,18 +237,17 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
             try {
                 TlsMode tlsMode = TlsSystemConfig.tlsMode;
                 if (TlsMode.ENFORCING.equals(tlsMode)) {
-                    ctx.pipeline().addAfter(ctx.name(), null, this.ssl);
+                    addSniHandler(ctx);
                 } else if (TlsMode.DISABLED.equals(tlsMode)) {
-                    ctx.pipeline().addAfter(ctx.name(), null, this.plaintext);
+                    addPlaintextHandler(ctx);
                 } else {
-                    // in SslHandler.isEncrypted, it needs at least 5 bytes to judge is encrypted or not
                     if (in.readableBytes() < SSL_RECORD_HEADER_LENGTH) {
                         return;
                     }
                     if (SslHandler.isEncrypted(in)) {
-                        ctx.pipeline().addAfter(ctx.name(), null, this.ssl);
+                        addSniHandler(ctx);
                     } else {
-                        ctx.pipeline().addAfter(ctx.name(), null, this.plaintext);
+                        addPlaintextHandler(ctx);
                     }
                 }
                 ctx.fireUserEventTriggered(pne);
@@ -289,6 +256,25 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                 log.error("process ssl protocol negotiator failed.", e);
                 throw e;
             }
+        }
+
+        private void addSniHandler(ChannelHandlerContext ctx) {
+            TlsSniManager sniManager = getTlsSniManager();
+            SniHandler sniHandler = new SniHandler((hostname, promise) -> {
+                SslContext sslCtx = sniManager.getSslContext(hostname);
+                if (sslCtx != null) {
+                    promise.setSuccess(sslCtx);
+                } else {
+                    promise.setSuccess(sniManager.getDefaultContext());
+                }
+            }, GlobalEventExecutor.INSTANCE);
+            ctx.pipeline().addAfter(ctx.name(), SNI_HANDLER, sniHandler);
+        }
+
+        private void addPlaintextHandler(ChannelHandlerContext ctx) {
+            ChannelHandler plaintext = InternalProtocolNegotiators.serverPlaintext()
+                .newHandler(grpcHandler);
+            ctx.pipeline().addAfter(ctx.name(), null, plaintext);
         }
 
         @Override
