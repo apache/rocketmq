@@ -19,23 +19,25 @@ package org.apache.rocketmq.proxy.remoting;
 
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.remoting.protocol.ProtocolNegotiationHandler;
 import org.apache.rocketmq.proxy.remoting.protocol.http2proxy.Http2ProtocolProxyHandler;
 import org.apache.rocketmq.proxy.remoting.protocol.remoting.RemotingProtocolHandler;
+import org.apache.rocketmq.proxy.service.cert.TlsSniManager;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.TlsContextProvider;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
-
-import java.io.IOException;
-import java.security.cert.CertificateException;
 
 /**
  * support remoting and http2 protocol at one port
@@ -47,6 +49,7 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
 
     private final RemotingProtocolHandler remotingProtocolHandler;
     protected Http2ProtocolProxyHandler http2ProtocolProxyHandler;
+    private TlsSniManager tlsSniManager;
 
     public MultiProtocolRemotingServer(NettyServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
         super(nettyServerConfig, channelEventListener);
@@ -67,12 +70,47 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
 
         if (tlsMode != TlsMode.DISABLED) {
             try {
-                sslContext = MultiProtocolTlsHelper.buildSslContext();
-                log.info("SslContext created for multi protocol remoting server");
-            } catch (CertificateException | IOException e) {
+                ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+                if (proxyConfig.getTlsDomainConfigs() != null && !proxyConfig.getTlsDomainConfigs().isEmpty()) {
+                    // SNI mode: reload all domain contexts
+                    if (tlsSniManager == null) {
+                        tlsSniManager = new TlsSniManager();
+                        tlsSniManager.initialize(proxyConfig);
+                    } else {
+                        tlsSniManager.reloadDefaultContext();
+                        for (String domain : proxyConfig.getTlsDomainConfigs().keySet()) {
+                            tlsSniManager.reloadDomainContext(domain);
+                        }
+                    }
+
+                    TlsContextProvider.getInstance().setSniLookup(
+                        new TlsContextProvider.SniContextLookup() {
+                            @Override
+                            public SslContext lookup(String sniHostname) {
+                                return tlsSniManager.getSslContext(sniHostname);
+                            }
+
+                            @Override
+                            public SslContext getDefaultContext() {
+                                return tlsSniManager.getDefaultContext();
+                            }
+                        }
+                    );
+                    log.info("SNI-enabled SslContext created/reloaded for multi protocol remoting server");
+                } else {
+                    // Single cert mode: backward compatible
+                    sslContext = MultiProtocolTlsHelper.buildSslContext();
+                    TlsContextProvider.getInstance().setSingleContext(sslContext);
+                    log.info("Single SslContext created/reloaded for multi protocol remoting server");
+                }
+            } catch (Exception e) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "Failed to create SslContext for server", e);
             }
         }
+    }
+
+    public TlsSniManager getTlsSniManager() {
+        return tlsSniManager;
     }
 
     @Override
