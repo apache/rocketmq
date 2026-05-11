@@ -188,6 +188,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         if (tlsMode != TlsMode.DISABLED) {
             try {
                 sslContext = TlsHelper.buildSslContext(false);
+                TlsContextProvider.getInstance().setSingleContext(sslContext);
                 log.info("SslContext created for server");
             } catch (CertificateException | IOException e) {
                 log.error("Failed to create SslContext for server", e);
