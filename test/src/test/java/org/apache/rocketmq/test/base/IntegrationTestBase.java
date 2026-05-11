@@ -205,8 +205,7 @@ public class IntegrationTestBase {
             }
             startAndShutdown.appendStartAndShutdown(messagingProcessor);
 
-            TlsSniManager tlsSniManager = new TlsSniManager();
-            tlsSniManager.initialize(ConfigurationManager.getProxyConfig());
+            TlsSniManager tlsSniManager = TlsSniManager.getInstance();
             TlsCertificateManager tlsCertificateManager = new TlsCertificateManager(tlsSniManager);
             startAndShutdown.appendStartAndShutdown(tlsCertificateManager);
 

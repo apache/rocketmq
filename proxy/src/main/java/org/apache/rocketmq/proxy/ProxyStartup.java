@@ -79,8 +79,7 @@ public class ProxyStartup {
             MessagingProcessor messagingProcessor = createMessagingProcessor();
 
             // tls cert update
-            TlsSniManager tlsSniManager = new TlsSniManager();
-            tlsSniManager.initialize(ConfigurationManager.getProxyConfig());
+            TlsSniManager tlsSniManager = TlsSniManager.getInstance();
             TlsCertificateManager tlsCertificateManager = new TlsCertificateManager(tlsSniManager);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
 

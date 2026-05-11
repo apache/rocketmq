@@ -72,16 +72,8 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
             try {
                 ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
                 if (proxyConfig.getTlsDomainConfigs() != null && !proxyConfig.getTlsDomainConfigs().isEmpty()) {
-                    // SNI mode: reload all domain contexts
-                    if (tlsSniManager == null) {
-                        tlsSniManager = new TlsSniManager();
-                        tlsSniManager.initialize(proxyConfig);
-                    } else {
-                        tlsSniManager.reloadDefaultContext();
-                        for (String domain : proxyConfig.getTlsDomainConfigs().keySet()) {
-                            tlsSniManager.reloadDomainContext(domain);
-                        }
-                    }
+                    // SNI mode: use shared TlsSniManager singleton
+                    tlsSniManager = TlsSniManager.getInstance();
 
                     TlsContextProvider.getInstance().setSniLookup(
                         new TlsContextProvider.SniContextLookup() {

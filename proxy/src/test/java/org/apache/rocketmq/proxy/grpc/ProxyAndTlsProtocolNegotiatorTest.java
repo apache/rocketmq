@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.service.cert.TlsSniManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +42,7 @@ public class ProxyAndTlsProtocolNegotiatorTest {
 
     @Before
     public void setUp() throws Exception {
+        TlsSniManager.resetInstance();
         ConfigurationManager.initConfig();
         ConfigurationManager.getProxyConfig().setTlsTestModeEnable(true);
         negotiator = new ProxyAndTlsProtocolNegotiator();

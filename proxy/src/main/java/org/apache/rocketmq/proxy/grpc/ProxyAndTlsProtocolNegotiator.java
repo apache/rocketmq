@@ -35,6 +35,7 @@ import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessageDecoder
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslHandshakeCompletionEvent;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslHandler;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SniHandler;
 import io.grpc.netty.shaded.io.netty.util.AsyncMapping;
@@ -69,8 +70,6 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
      */
     private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
-    private static volatile TlsSniManager tlsSniManager;
-
     public ProxyAndTlsProtocolNegotiator() {
         try {
             loadAllSslContexts();
@@ -96,15 +95,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     }
 
     private static TlsSniManager getTlsSniManager() {
-        if (tlsSniManager == null) {
-            synchronized (ProxyAndTlsProtocolNegotiator.class) {
-                if (tlsSniManager == null) {
-                    tlsSniManager = new TlsSniManager();
-                    tlsSniManager.initialize(ConfigurationManager.getProxyConfig());
-                }
-            }
-        }
-        return tlsSniManager;
+        return TlsSniManager.getInstance();
     }
 
     public static void loadAllSslContexts() {
@@ -277,7 +268,9 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                 }
                 return promise;
             };
-            ctx.pipeline().addAfter(ctx.name(), SNI_HANDLER, new SniHandler(sslContextMapping));
+            ctx.pipeline()
+                .addAfter(ctx.name(), SNI_HANDLER, new SniHandler(sslContextMapping))
+                .addAfter(ctx.name(), null, new GrpcSniHandshakeCompleteHandler());
         }
 
         private void addPlaintextHandler(ChannelHandlerContext ctx) {
@@ -293,6 +286,28 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
             } else {
                 super.userEventTriggered(ctx, evt);
             }
+        }
+    }
+
+    /**
+     * Fires ProtocolNegotiationEvent after SNI-based TLS handshake completes.
+     * This connects the gRPC handler (GrpcHttp2ConnectionHandler) into the pipeline
+     * so that ALPN negotiation and HTTP/2 framing can proceed.
+     */
+    private class GrpcSniHandshakeCompleteHandler extends ChannelInboundHandlerAdapter {
+        @Override
+        public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+            if (evt instanceof SslHandshakeCompletionEvent) {
+                SslHandshakeCompletionEvent event = (SslHandshakeCompletionEvent) evt;
+                if (event.isSuccess()) {
+                    ctx.fireUserEventTriggered(InternalProtocolNegotiationEvent.getDefault());
+                } else {
+                    ctx.fireExceptionCaught(event.cause());
+                }
+            } else {
+                super.userEventTriggered(ctx, evt);
+            }
+            ctx.pipeline().remove(this);
         }
     }
 }

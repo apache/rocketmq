@@ -35,34 +35,64 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Manages multiple SslContext instances for SNI-based certificate selection.
  * Maintains both standard Netty SslContext (for remoting server) and
  * gRPC-shaded SslContext (for gRPC server) from the same certificate configs.
+ *
+ * This class is a singleton — all components should access it via {@link #getInstance()}.
+ * Wildcard domains are matched in deterministic longest-pattern-first order.
  */
 public class TlsSniManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
+    private static volatile TlsSniManager instance;
+
     // Standard Netty SslContext (for remoting server)
     private volatile io.netty.handler.ssl.SslContext defaultStdContext;
-    private volatile Map<String, io.netty.handler.ssl.SslContext> stdDomainContexts = new ConcurrentHashMap<>();
+    private final Map<String, io.netty.handler.ssl.SslContext> stdExactContexts = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<WildcardSslContext<io.netty.handler.ssl.SslContext>> stdWildcardContexts = new CopyOnWriteArrayList<>();
 
     // gRPC-shaded Netty SslContext (for gRPC server)
     private volatile SslContext defaultShadedContext;
-    private volatile Map<String, SslContext> shadedDomainContexts = new ConcurrentHashMap<>();
+    private final Map<String, SslContext> shadedExactContexts = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<WildcardSslContext<SslContext>> shadedWildcardContexts = new CopyOnWriteArrayList<>();
 
     private Map<String, TlsDomainConfig> domainConfigs;
-    private boolean tlsTestModeEnable;
-    private String tlsKeyPassword;
-    private boolean wildcardMatchMultiLevel;
+    private volatile boolean tlsTestModeEnable;
+    private volatile String tlsKeyPassword;
+    private volatile boolean wildcardMatchMultiLevel;
+
+    public static TlsSniManager getInstance() {
+        TlsSniManager local = instance;
+        if (local == null) {
+            synchronized (TlsSniManager.class) {
+                local = instance;
+                if (local == null) {
+                    local = new TlsSniManager();
+                    local.initialize(ConfigurationManager.getProxyConfig());
+                    instance = local;
+                }
+            }
+        }
+        return local;
+    }
+
+    // For testing — reset singleton state
+    public static void resetInstance() {
+        instance = null;
+    }
 
     // --- Standard Netty SslContext accessors ---
 
     public io.netty.handler.ssl.SslContext getStdSslContext(String sniHostname) {
-        return lookupContext(sniHostname, stdDomainContexts, defaultStdContext);
+        return lookupContext(sniHostname, stdExactContexts, stdWildcardContexts, defaultStdContext);
     }
 
     public io.netty.handler.ssl.SslContext getStdDefaultContext() {
@@ -72,7 +102,7 @@ public class TlsSniManager {
     // --- gRPC-shaded SslContext accessors ---
 
     public SslContext getSslContext(String sniHostname) {
-        return lookupContext(sniHostname, shadedDomainContexts, defaultShadedContext);
+        return lookupContext(sniHostname, shadedExactContexts, shadedWildcardContexts, defaultShadedContext);
     }
 
     public SslContext getDefaultContext() {
@@ -85,39 +115,24 @@ public class TlsSniManager {
         return domainConfigs;
     }
 
-    private <T> T lookupContext(String sniHostname, Map<String, T> domainContexts, T defaultCtx) {
+    private <T> T lookupContext(String sniHostname,
+            Map<String, T> exactContexts,
+            List<WildcardSslContext<T>> wildcardContexts,
+            T defaultCtx) {
         if (StringUtils.isBlank(sniHostname)) {
             return defaultCtx;
         }
 
         // Exact match first
-        T ctx = domainContexts.get(sniHostname);
+        T ctx = exactContexts.get(sniHostname);
         if (ctx != null) {
             return ctx;
         }
 
-        // Wildcard match: foo.example.com matches *.example.com
-        for (Map.Entry<String, T> entry : domainContexts.entrySet()) {
-            String domainPattern = entry.getKey();
-            if (domainPattern.startsWith("*.")) {
-                String suffix = domainPattern.substring(1);
-                if (sniHostname.endsWith(suffix) && sniHostname.length() > suffix.length()) {
-                    String remaining = sniHostname.substring(0, sniHostname.length() - suffix.length());
-                    if (wildcardMatchMultiLevel || !remaining.contains(".")) {
-                        return entry.getValue();
-                    }
-                }
-            }
-        }
-
-        // Bare domain matches wildcard: rocketmq.com matches *.rocketmq.com
-        for (Map.Entry<String, T> entry : domainContexts.entrySet()) {
-            String domainPattern = entry.getKey();
-            if (domainPattern.startsWith("*.")) {
-                String bareDomain = domainPattern.substring(2);
-                if (sniHostname.equals(bareDomain)) {
-                    return entry.getValue();
-                }
+        // Wildcard match: patterns are sorted longest-first for deterministic matching
+        for (WildcardSslContext<T> wc : wildcardContexts) {
+            if (wc.matches(sniHostname, wildcardMatchMultiLevel)) {
+                return wc.context;
             }
         }
 
@@ -135,9 +150,8 @@ public class TlsSniManager {
         }
         try {
             io.netty.handler.ssl.SslContext stdCtx = buildStdSslContext(config, tlsTestModeEnable);
-            stdDomainContexts.put(domainPattern, stdCtx);
             SslContext shadedCtx = buildShadedSslContext(config, tlsTestModeEnable);
-            shadedDomainContexts.put(domainPattern, shadedCtx);
+            addDomainContexts(domainPattern, stdCtx, shadedCtx);
             log.info("Reloaded SslContext for domain: {}", domainPattern);
         } catch (Exception e) {
             log.error("Failed to reload SslContext for domain: {}", domainPattern, e);
@@ -179,14 +193,26 @@ public class TlsSniManager {
         }
 
         if (domainConfigs != null && !domainConfigs.isEmpty()) {
-            for (Map.Entry<String, TlsDomainConfig> entry : domainConfigs.entrySet()) {
-                String domainPattern = entry.getKey();
-                TlsDomainConfig domainConfig = entry.getValue();
+            // Sort domain patterns: exact match first (no wildcard), then wildcard patterns longest-first
+            List<String> sortedPatterns = new ArrayList<>(domainConfigs.keySet());
+            sortedPatterns.sort((a, b) -> {
+                boolean aWildcard = a.startsWith("*.");
+                boolean bWildcard = b.startsWith("*.");
+                if (aWildcard != bWildcard) {
+                    return aWildcard ? 1 : -1; // exact first
+                }
+                if (aWildcard) {
+                    return b.length() - a.length(); // longer wildcard first
+                }
+                return 0;
+            });
+
+            for (String domainPattern : sortedPatterns) {
+                TlsDomainConfig domainConfig = domainConfigs.get(domainPattern);
                 try {
                     io.netty.handler.ssl.SslContext stdCtx = buildStdSslContext(domainConfig, tlsTestModeEnable);
-                    stdDomainContexts.put(domainPattern, stdCtx);
                     SslContext shadedCtx = buildShadedSslContext(domainConfig, tlsTestModeEnable);
-                    shadedDomainContexts.put(domainPattern, shadedCtx);
+                    addDomainContexts(domainPattern, stdCtx, shadedCtx);
                     log.info("Initialized SslContext for domain: {}", domainPattern);
                 } catch (Exception e) {
                     log.error("Failed to initialize SslContext for domain: {}", domainPattern, e);
@@ -196,35 +222,42 @@ public class TlsSniManager {
         }
     }
 
-    // --- Standard Netty SslContext builders ---
-
-    private io.netty.handler.ssl.SslContext buildStdDefaultSslContext(ProxyConfig config) throws CertificateException, IOException {
-        io.netty.handler.ssl.SslProvider provider = io.netty.handler.ssl.OpenSsl.isAvailable()
-            ? io.netty.handler.ssl.SslProvider.OPENSSL : io.netty.handler.ssl.SslProvider.JDK;
-        if (config.isTlsTestModeEnable()) {
-            io.netty.handler.ssl.util.SelfSignedCertificate ssc = new io.netty.handler.ssl.util.SelfSignedCertificate();
-            return SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey())
-                .sslProvider(provider)
-                .trustManager(io.netty.handler.ssl.util.InsecureTrustManagerFactory.INSTANCE)
-                .clientAuth(io.netty.handler.ssl.ClientAuth.NONE)
-                .build();
+    private void addDomainContexts(String domainPattern,
+            io.netty.handler.ssl.SslContext stdCtx,
+            SslContext shadedCtx) {
+        if (domainPattern.startsWith("*.")) {
+            stdWildcardContexts.add(new WildcardSslContext<>(domainPattern, stdCtx));
+            shadedWildcardContexts.add(new WildcardSslContext<>(domainPattern, shadedCtx));
         } else {
-            String tlsCertPath = config.getTlsCertPath();
-            String tlsKeyPath = config.getTlsKeyPath();
-            String tlsKeyPassword = config.getTlsKeyPassword();
-            try (InputStream keyIn = Files.newInputStream(Paths.get(tlsKeyPath));
-                 InputStream certIn = Files.newInputStream(Paths.get(tlsCertPath))) {
-                return SslContextBuilder.forServer(certIn, keyIn,
-                        StringUtils.isNotBlank(tlsKeyPassword) ? tlsKeyPassword : null)
-                    .sslProvider(provider)
-                    .trustManager(io.netty.handler.ssl.util.InsecureTrustManagerFactory.INSTANCE)
-                    .clientAuth(io.netty.handler.ssl.ClientAuth.NONE)
-                    .build();
-            }
+            stdExactContexts.put(domainPattern, stdCtx);
+            shadedExactContexts.put(domainPattern, shadedCtx);
         }
     }
 
+    // --- Standard Netty SslContext builders ---
+
+    private io.netty.handler.ssl.SslContext buildStdDefaultSslContext(ProxyConfig config) throws CertificateException, IOException {
+        return buildStdSslContextInternal(
+            config.isTlsTestModeEnable() ? null : config.getTlsCertPath(),
+            config.isTlsTestModeEnable() ? null : config.getTlsKeyPath(),
+            config.isTlsTestModeEnable() ? null : config.getTlsKeyPassword(),
+            config.isTlsTestModeEnable()
+        );
+    }
+
     private io.netty.handler.ssl.SslContext buildStdSslContext(TlsDomainConfig config, boolean testMode) throws CertificateException, IOException {
+        String keyPassword = StringUtils.isNotBlank(config.getKeyPassword()) ? config.getKeyPassword() : this.tlsKeyPassword;
+        return buildStdSslContextInternal(
+            testMode ? null : config.getCertPath(),
+            testMode ? null : config.getKeyPath(),
+            testMode ? null : keyPassword,
+            testMode
+        );
+    }
+
+    private io.netty.handler.ssl.SslContext buildStdSslContextInternal(
+            String certPath, String keyPath, String keyPassword, boolean testMode)
+            throws CertificateException, IOException {
         io.netty.handler.ssl.SslProvider provider = io.netty.handler.ssl.OpenSsl.isAvailable()
             ? io.netty.handler.ssl.SslProvider.OPENSSL : io.netty.handler.ssl.SslProvider.JDK;
         if (testMode) {
@@ -235,13 +268,10 @@ public class TlsSniManager {
                 .clientAuth(io.netty.handler.ssl.ClientAuth.NONE)
                 .build();
         } else {
-            String tlsCertPath = config.getCertPath();
-            String tlsKeyPath = config.getKeyPath();
-            String tlsKeyPassword = StringUtils.isNotBlank(config.getKeyPassword()) ? config.getKeyPassword() : this.tlsKeyPassword;
-            try (InputStream keyIn = Files.newInputStream(Paths.get(tlsKeyPath));
-                 InputStream certIn = Files.newInputStream(Paths.get(tlsCertPath))) {
+            try (InputStream keyIn = Files.newInputStream(Paths.get(keyPath));
+                 InputStream certIn = Files.newInputStream(Paths.get(certPath))) {
                 return SslContextBuilder.forServer(certIn, keyIn,
-                        StringUtils.isNotBlank(tlsKeyPassword) ? tlsKeyPassword : null)
+                        StringUtils.isNotBlank(keyPassword) ? keyPassword : null)
                     .sslProvider(provider)
                     .trustManager(io.netty.handler.ssl.util.InsecureTrustManagerFactory.INSTANCE)
                     .clientAuth(io.netty.handler.ssl.ClientAuth.NONE)
@@ -253,31 +283,27 @@ public class TlsSniManager {
     // --- gRPC-shaded Netty SslContext builders ---
 
     private SslContext buildShadedDefaultSslContext(ProxyConfig config) throws CertificateException, IOException {
-        SslProvider provider = io.grpc.netty.shaded.io.netty.handler.ssl.OpenSsl.isAvailable() ? SslProvider.OPENSSL : SslProvider.JDK;
-        if (config.isTlsTestModeEnable()) {
-            SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
-            return GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
-                .sslProvider(provider)
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .clientAuth(io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth.NONE)
-                .build();
-        } else {
-            String tlsCertPath = config.getTlsCertPath();
-            String tlsKeyPath = config.getTlsKeyPath();
-            String tlsKeyPassword = config.getTlsKeyPassword();
-            try (InputStream serverKeyInputStream = Files.newInputStream(Paths.get(tlsKeyPath));
-                 InputStream serverCertificateStream = Files.newInputStream(Paths.get(tlsCertPath))) {
-                return GrpcSslContexts.forServer(serverCertificateStream,
-                        serverKeyInputStream,
-                        StringUtils.isNotBlank(tlsKeyPassword) ? tlsKeyPassword : null)
-                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                    .clientAuth(io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth.NONE)
-                    .build();
-            }
-        }
+        return buildShadedSslContextInternal(
+            config.isTlsTestModeEnable() ? null : config.getTlsCertPath(),
+            config.isTlsTestModeEnable() ? null : config.getTlsKeyPath(),
+            config.isTlsTestModeEnable() ? null : config.getTlsKeyPassword(),
+            config.isTlsTestModeEnable()
+        );
     }
 
     private SslContext buildShadedSslContext(TlsDomainConfig config, boolean testMode) throws CertificateException, IOException {
+        String keyPassword = StringUtils.isNotBlank(config.getKeyPassword()) ? config.getKeyPassword() : this.tlsKeyPassword;
+        return buildShadedSslContextInternal(
+            testMode ? null : config.getCertPath(),
+            testMode ? null : config.getKeyPath(),
+            testMode ? null : keyPassword,
+            testMode
+        );
+    }
+
+    private SslContext buildShadedSslContextInternal(
+            String certPath, String keyPath, String keyPassword, boolean testMode)
+            throws CertificateException, IOException {
         SslProvider provider = io.grpc.netty.shaded.io.netty.handler.ssl.OpenSsl.isAvailable() ? SslProvider.OPENSSL : SslProvider.JDK;
         if (testMode) {
             SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
@@ -287,18 +313,46 @@ public class TlsSniManager {
                 .clientAuth(io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth.NONE)
                 .build();
         } else {
-            String tlsCertPath = config.getCertPath();
-            String tlsKeyPath = config.getKeyPath();
-            String tlsKeyPassword = StringUtils.isNotBlank(config.getKeyPassword()) ? config.getKeyPassword() : this.tlsKeyPassword;
-            try (InputStream serverKeyInputStream = Files.newInputStream(Paths.get(tlsKeyPath));
-                 InputStream serverCertificateStream = Files.newInputStream(Paths.get(tlsCertPath))) {
+            try (InputStream serverKeyInputStream = Files.newInputStream(Paths.get(keyPath));
+                 InputStream serverCertificateStream = Files.newInputStream(Paths.get(certPath))) {
                 return GrpcSslContexts.forServer(serverCertificateStream,
                         serverKeyInputStream,
-                        StringUtils.isNotBlank(tlsKeyPassword) ? tlsKeyPassword : null)
+                        StringUtils.isNotBlank(keyPassword) ? keyPassword : null)
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .clientAuth(io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth.NONE)
                     .build();
             }
+        }
+    }
+
+    /**
+     * Holds a wildcard domain pattern and its associated SslContext.
+     */
+    private static class WildcardSslContext<T> {
+        final String domainPattern;
+        final T context;
+
+        WildcardSslContext(String domainPattern, T context) {
+            this.domainPattern = domainPattern;
+            this.context = context;
+        }
+
+        /**
+         * Check if a hostname matches this wildcard pattern.
+         * RFC 6125: *.example.com matches foo.example.com but not a.b.example.com
+         * (unless multiLevel matching is enabled).
+         */
+        boolean matches(String hostname, boolean multiLevel) {
+            if (!domainPattern.startsWith("*.")) {
+                return false;
+            }
+            String suffix = domainPattern.substring(1); // ".example.com"
+            if (!hostname.endsWith(suffix) || hostname.length() <= suffix.length()) {
+                return false;
+            }
+            String remaining = hostname.substring(0, hostname.length() - suffix.length());
+            // For single-level wildcard matching, the remaining part must not contain "."
+            return multiLevel || !remaining.contains(".");
         }
     }
 }

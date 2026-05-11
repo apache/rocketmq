@@ -40,8 +40,6 @@ public class TlsSniManagerTest {
     @Rule
     public TemporaryFolder tempDir = new TemporaryFolder();
 
-    private TlsSniManager sniManager;
-
     private File defaultCertFile;
     private File defaultKeyFile;
     private File firstCertFile;
@@ -51,6 +49,7 @@ public class TlsSniManagerTest {
 
     @Before
     public void setUp() throws Exception {
+        TlsSniManager.resetInstance();
         ConfigurationManager.initEnv();
         ConfigurationManager.initConfig();
         ConfigurationManager.getProxyConfig().setTlsTestModeEnable(true);
@@ -73,11 +72,12 @@ public class TlsSniManagerTest {
 
     @After
     public void tearDown() throws Exception {
+        TlsSniManager.resetInstance();
     }
 
     @Test
     public void testInitializeWithTestMode() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         assertNotNull(sniManager.getDefaultContext());
@@ -86,7 +86,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testWildcardMatch_FirstDomain() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         SslContext ctx = sniManager.getSslContext("foo.example.com");
@@ -95,7 +95,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testWildcardMatch_SecondDomain() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         SslContext ctx = sniManager.getSslContext("mq.sample.org");
@@ -104,7 +104,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testExactMatch() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         SslContext ctx = sniManager.getSslContext("example.com");
@@ -113,7 +113,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testNoMatchFallbackToDefault() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         SslContext ctx = sniManager.getSslContext("unknown.other.com");
@@ -123,7 +123,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testNullSniFallbackToDefault() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         SslContext ctx = sniManager.getSslContext(null);
@@ -133,7 +133,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testEmptySniFallbackToDefault() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         SslContext ctx = sniManager.getSslContext("");
@@ -143,7 +143,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testMultiLevelSubdomainNoMatchByDefault() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         // a.b.example.com should NOT match *.example.com by default
@@ -154,7 +154,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testMultiLevelSubdomainMatchWhenEnabled() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfigWithMultiLevel());
 
         // a.b.example.com SHOULD match *.example.com when tlsWildcardMatchMultiLevel is true
@@ -166,7 +166,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testReloadDomainContext() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         SslContext before = sniManager.getSslContext("foo.example.com");
@@ -178,7 +178,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testReloadDefaultContext() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         SslContext before = sniManager.getDefaultContext();
@@ -190,7 +190,7 @@ public class TlsSniManagerTest {
 
     @Test
     public void testDomainConfigsNotEmpty() {
-        sniManager = new TlsSniManager();
+        TlsSniManager sniManager = new TlsSniManager();
         sniManager.initialize(createTestModeProxyConfig());
 
         Map<String, TlsDomainConfig> configs = sniManager.getDomainConfigs();
@@ -198,6 +198,26 @@ public class TlsSniManagerTest {
         assertEquals(2, configs.size());
         assertTrue(configs.containsKey("*.example.com"));
         assertTrue(configs.containsKey("*.sample.org"));
+    }
+
+    @Test
+    public void testSingleton() {
+        TlsSniManager s1 = TlsSniManager.getInstance();
+        TlsSniManager s2 = TlsSniManager.getInstance();
+        assertSame(s1, s2);
+    }
+
+    @Test
+    public void testWildcardMatchOrderDeterministic() {
+        // Longer wildcard should match before shorter wildcard
+        TlsSniManager sniManager = new TlsSniManager();
+        sniManager.initialize(createTestModeProxyConfigWithOverlappingWildcards());
+
+        // foo.sub.example.com should match *.sub.example.com (longer), not *.example.com (shorter)
+        SslContext ctx = sniManager.getSslContext("foo.sub.example.com");
+        assertNotNull(ctx);
+        // Verify it's NOT the default context
+        org.junit.Assert.assertNotSame(sniManager.getDefaultContext(), ctx);
     }
 
     private org.apache.rocketmq.proxy.config.ProxyConfig createTestModeProxyConfig() {
@@ -223,6 +243,26 @@ public class TlsSniManagerTest {
     private org.apache.rocketmq.proxy.config.ProxyConfig createTestModeProxyConfigWithMultiLevel() {
         org.apache.rocketmq.proxy.config.ProxyConfig config = createTestModeProxyConfig();
         config.setTlsWildcardMatchMultiLevel(true);
+        return config;
+    }
+
+    private org.apache.rocketmq.proxy.config.ProxyConfig createTestModeProxyConfigWithOverlappingWildcards() {
+        org.apache.rocketmq.proxy.config.ProxyConfig config = new org.apache.rocketmq.proxy.config.ProxyConfig();
+        config.setTlsTestModeEnable(true);
+
+        Map<String, TlsDomainConfig> domainConfigs = new HashMap<>();
+        TlsDomainConfig broadConfig = new TlsDomainConfig();
+        broadConfig.setCertPath(firstCertFile.getAbsolutePath());
+        broadConfig.setKeyPath(firstKeyFile.getAbsolutePath());
+        domainConfigs.put("*.example.com", broadConfig);
+
+        TlsDomainConfig specificConfig = new TlsDomainConfig();
+        specificConfig.setCertPath(secondCertFile.getAbsolutePath());
+        specificConfig.setKeyPath(secondKeyFile.getAbsolutePath());
+        domainConfigs.put("*.sub.example.com", specificConfig);
+
+        config.setTlsDomainConfigs(domainConfigs);
+
         return config;
     }
 }
