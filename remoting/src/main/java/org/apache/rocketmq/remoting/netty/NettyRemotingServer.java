@@ -527,7 +527,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                                                 promise.setSuccess(selected);
                                                 return promise;
                                             }
-                                        }, 10))
+                                        }))
                                     .addAfter(getDefaultEventExecutorGroup(), TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
                             } else {
                                 ctx.pipeline()

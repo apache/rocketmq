@@ -53,6 +53,7 @@ import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
+import org.apache.rocketmq.proxy.service.cert.TlsSniManager;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -204,7 +205,9 @@ public class IntegrationTestBase {
             }
             startAndShutdown.appendStartAndShutdown(messagingProcessor);
 
-            TlsCertificateManager tlsCertificateManager = new TlsCertificateManager();
+            TlsSniManager tlsSniManager = new TlsSniManager();
+            tlsSniManager.initialize(ConfigurationManager.getProxyConfig());
+            TlsCertificateManager tlsCertificateManager = new TlsCertificateManager(tlsSniManager);
             startAndShutdown.appendStartAndShutdown(tlsCertificateManager);
 
             GrpcMessagingApplication application = GrpcMessagingApplication.create(messagingProcessor);
