@@ -18,12 +18,8 @@ package org.apache.rocketmq.proxy.service.cert;
 
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.config.TlsDomainConfig;
-import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
-import org.apache.rocketmq.proxy.service.cert.TlsSniManager;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,10 +30,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.HashMap;
+import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -250,7 +246,7 @@ public class TlsCertificateManagerTest {
     public void testInnerCertKeyFileWatchListener() throws Exception {
         Class<?> innerClass = null;
         for (Class<?> clazz : TlsCertificateManager.class.getDeclaredClasses()) {
-            if (clazz.getSimpleName().equals("CertKeyFileWatchListener")) {
+            if (clazz.getSimpleName().equals("DefaultCertKeyFileWatchListener")) {
                 innerClass = clazz;
                 break;
             }

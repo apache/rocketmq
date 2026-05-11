@@ -66,20 +66,20 @@ public class ProxyAndTlsProtocolNegotiatorTest {
     @Test
     public void testLoadSslContextWithUnencryptedKey() throws Exception {
         configureTls("server.key", "server.pem", "");
-        ProxyAndTlsProtocolNegotiator.loadSslContext();
+        ProxyAndTlsProtocolNegotiator.loadAllSslContexts();
     }
 
     @Test
     public void testLoadSslContextWithEncryptedKey() throws Exception {
         // "1234" is the password of certs/client.key, inherited from remoting module test resources
         configureTls("client.key", "client.pem", "1234");
-        ProxyAndTlsProtocolNegotiator.loadSslContext();
+        ProxyAndTlsProtocolNegotiator.loadAllSslContexts();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = RuntimeException.class)
     public void testLoadSslContextWithWrongPassword() throws Exception {
         configureTls("client.key", "client.pem", "wrong_password");
-        ProxyAndTlsProtocolNegotiator.loadSslContext();
+        ProxyAndTlsProtocolNegotiator.loadAllSslContexts();
     }
 
     private void configureTls(String keyFile, String certFile, String password) throws IOException {

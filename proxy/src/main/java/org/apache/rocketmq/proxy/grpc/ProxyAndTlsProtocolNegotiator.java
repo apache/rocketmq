@@ -37,10 +37,9 @@ import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslHandler;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SniHandler;
+import io.grpc.netty.shaded.io.netty.util.AsyncMapping;
 import io.grpc.netty.shaded.io.netty.util.AsciiString;
 import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
-import io.grpc.netty.shaded.io.netty.util.GlobalEventExecutor;
-import io.grpc.netty.shaded.io.netty.util.concurrent.Promise;
 
 import java.util.List;
 
@@ -109,7 +108,16 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     }
 
     public static void loadAllSslContexts() {
-        getTlsSniManager();
+        TlsSniManager manager = getTlsSniManager();
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        if (proxyConfig.getTlsDomainConfigs() != null && !proxyConfig.getTlsDomainConfigs().isEmpty()) {
+            manager.reloadDefaultContext();
+            for (String domain : proxyConfig.getTlsDomainConfigs().keySet()) {
+                manager.reloadDomainContext(domain);
+            }
+        } else {
+            manager.reloadDefaultContext();
+        }
     }
 
     public static TlsSniManager getManager() {
@@ -260,15 +268,16 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
 
         private void addSniHandler(ChannelHandlerContext ctx) {
             TlsSniManager sniManager = getTlsSniManager();
-            SniHandler sniHandler = new SniHandler((hostname, promise) -> {
+            AsyncMapping<String, SslContext> sslContextMapping = (hostname, promise) -> {
                 SslContext sslCtx = sniManager.getSslContext(hostname);
                 if (sslCtx != null) {
                     promise.setSuccess(sslCtx);
                 } else {
                     promise.setSuccess(sniManager.getDefaultContext());
                 }
-            }, GlobalEventExecutor.INSTANCE);
-            ctx.pipeline().addAfter(ctx.name(), SNI_HANDLER, sniHandler);
+                return promise;
+            };
+            ctx.pipeline().addAfter(ctx.name(), SNI_HANDLER, new SniHandler(sslContextMapping));
         }
 
         private void addPlaintextHandler(ChannelHandlerContext ctx) {

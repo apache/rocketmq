@@ -25,8 +25,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 
-import java.io.IOException;
-import java.security.cert.CertificateException;
 import java.util.concurrent.TimeUnit;
 
 public class GrpcServer implements StartAndShutdown {

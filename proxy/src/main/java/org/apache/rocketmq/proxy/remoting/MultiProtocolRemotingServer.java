@@ -87,12 +87,12 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
                         new TlsContextProvider.SniContextLookup() {
                             @Override
                             public SslContext lookup(String sniHostname) {
-                                return tlsSniManager.getSslContext(sniHostname);
+                                return tlsSniManager.getStdSslContext(sniHostname);
                             }
 
                             @Override
                             public SslContext getDefaultContext() {
-                                return tlsSniManager.getDefaultContext();
+                                return tlsSniManager.getStdDefaultContext();
                             }
                         }
                     );

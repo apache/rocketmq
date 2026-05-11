@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.service.cert;
 
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.TlsDomainConfig;
 import org.junit.After;
 import org.junit.Before;
@@ -50,6 +51,10 @@ public class TlsSniManagerTest {
 
     @Before
     public void setUp() throws Exception {
+        ConfigurationManager.initEnv();
+        ConfigurationManager.initConfig();
+        ConfigurationManager.getProxyConfig().setTlsTestModeEnable(true);
+
         defaultCertFile = tempDir.newFile("default.crt");
         defaultKeyFile = tempDir.newFile("default.key");
         try (FileWriter w = new FileWriter(defaultCertFile)) { w.write("default cert"); }

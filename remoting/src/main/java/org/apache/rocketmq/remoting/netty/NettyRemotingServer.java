@@ -52,11 +52,12 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
-import io.netty.util.GlobalEventExecutor;
+import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.Promise;
+import io.netty.util.AsyncMapping;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.TimerTask;
-import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.Pair;
@@ -512,11 +513,21 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     case ENFORCING:
                         SslContext defaultCtx = TlsContextProvider.getInstance().getDefaultContext();
                         if (null != defaultCtx) {
-                            SniContextProvider sniProvider = TlsContextProvider.getInstance().getSniLookup();
-                            if (sniProvider != null) {
+                            final TlsContextProvider.SniContextLookup sniLookup = TlsContextProvider.getInstance().getSniLookup();
+                            if (sniLookup != null) {
                                 ctx.pipeline()
                                     .addAfter(getDefaultEventExecutorGroup(), TLS_MODE_HANDLER, TLS_HANDLER_NAME,
-                                        new SniHandler(sniProvider, GlobalEventExecutor.INSTANCE))
+                                        new SniHandler(new AsyncMapping<String, SslContext>() {
+                                            @Override
+                                            public Promise<SslContext> map(String hostname, Promise<SslContext> promise) {
+                                                SslContext selected = sniLookup.lookup(hostname);
+                                                if (selected == null) {
+                                                    selected = sniLookup.getDefaultContext();
+                                                }
+                                                promise.setSuccess(selected);
+                                                return promise;
+                                            }
+                                        }, 10))
                                     .addAfter(getDefaultEventExecutorGroup(), TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
                             } else {
                                 ctx.pipeline()
