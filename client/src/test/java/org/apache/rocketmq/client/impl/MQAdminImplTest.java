@@ -207,10 +207,6 @@ public class MQAdminImplTest {
     @Test
     public void testQueryMessageBySysWheelTimerTopicShouldUseClusterNameAsRouteTopic() throws Exception {
         String realTopic = "realTopic";
-        TopicRouteData routeData = createRouteData();
-
-        when(mQClientFactory.getAnExistTopicRouteData(sysWheelTimerTopic)).thenReturn(null);
-        when(mQClientFactory.getAnExistTopicRouteData(realTopic)).thenReturn(routeData);
 
         doAnswer(invocation -> {
             InvokeCallback callback = invocation.getArgument(3);
