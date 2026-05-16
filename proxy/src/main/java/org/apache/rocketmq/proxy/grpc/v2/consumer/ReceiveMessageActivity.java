@@ -59,6 +59,16 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
+    /**
+     *
+     * @param ctx ctx
+     * @param request
+     *          request.invisible_duration =>
+     *          Required if client type is simple consumer.
+     *          useless for PushConsumer
+     *
+     * @param responseObserver responseObserver
+     */
     public void receiveMessage(ProxyContext ctx, ReceiveMessageRequest request,
         StreamObserver<ReceiveMessageResponse> responseObserver) {
         ReceiveMessageResponseStreamWriter writer = createWriter(ctx, responseObserver);
