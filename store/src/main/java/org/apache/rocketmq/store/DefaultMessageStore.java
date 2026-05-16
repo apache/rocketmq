@@ -900,19 +900,19 @@ public class DefaultMessageStore implements MessageStore {
             minOffset = consumeQueue.getMinOffsetInQueue();
             maxOffset = consumeQueue.getMaxOffsetInQueue();
 
-            if (maxOffset == 0) {
+            if (maxOffset == 0) { // empty queue
                 status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
                 nextBeginOffset = nextOffsetCorrection(offset, 0);
-            } else if (offset < minOffset) {
+            } else if (offset < minOffset) { // offset too small
                 status = GetMessageStatus.OFFSET_TOO_SMALL;
                 nextBeginOffset = nextOffsetCorrection(offset, minOffset);
-            } else if (offset == maxOffset) {
+            } else if (offset == maxOffset) { // offset overflow one
                 status = GetMessageStatus.OFFSET_OVERFLOW_ONE;
                 nextBeginOffset = nextOffsetCorrection(offset, offset);
-            } else if (offset > maxOffset) {
+            } else if (offset > maxOffset) { // offset too big
                 status = GetMessageStatus.OFFSET_OVERFLOW_BADLY;
                 nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
-            } else {
+            } else { // offset is ok
                 final int maxFilterMessageSize = Math.max(this.messageStoreConfig.getMaxFilterMessageSize(), maxMsgNums * consumeQueue.getUnitSize());
                 final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
 
@@ -925,6 +925,14 @@ public class DefaultMessageStore implements MessageStore {
                 long maxPhyOffsetPulling = 0;
                 int cqFileNum = 0;
 
+                /*
+                 * bufferTotalSize is the total message size
+                 * bufferTotalSize less than 0 means
+                 * the while loop will break after getting more than one messages
+                 *
+                 * travelCqFileNumWhenGetMessage limits the max file nums to travel when get message
+                 * default is 1
+                 */
                 while (getResult.getBufferTotalSize() <= 0
                     && nextBeginOffset < maxOffset
                     && cqFileNum++ < this.messageStoreConfig.getTravelCqFileNumWhenGetMessage()) {
