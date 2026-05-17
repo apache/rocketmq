@@ -74,6 +74,7 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
         ReceiveMessageResponseStreamWriter writer = createWriter(ctx, responseObserver);
 
         try {
+            // Settings were registered when client connected
             Settings settings = this.grpcClientSettingsManager.getClientSettings(ctx);
             final boolean isLite = ClientType.LITE_PUSH_CONSUMER.equals(settings.getClientType());
 
