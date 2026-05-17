@@ -382,6 +382,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         ExpressionMessageFilter finalMessageFilter = messageFilter;
         SubscriptionData finalSubscriptionData = subscriptionData;
 
+        // There are two type of ack mode:
+        // 1. ack by KV service
+        // 2. ack by file merge service
         if (brokerConfig.isPopConsumerKVServiceEnable()) {
 
             CompletableFuture<PopConsumerContext> popAsyncFuture = brokerController.getPopConsumerService().popAsync(
@@ -492,8 +495,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 return response;
             }).thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager()));
             return null;
-        }
+        } // end of ack by kv service
 
+        // start of ack by file merge service
         int randomQ = random.nextInt(100);
         int reviveQid;
         if (requestHeader.isOrder()) {
