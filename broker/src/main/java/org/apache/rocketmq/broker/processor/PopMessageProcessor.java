@@ -586,6 +586,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 POP_LOGGER.error("PopProcessor execute callback error", t);
             }
 
+            // long polling used in version 4.*, useless in 5.*
             if (!getMessageResult.getMessageBufferList().isEmpty()) {
                 finalResponse.setCode(ResponseCode.SUCCESS);
                 getMessageResult.setStatus(GetMessageStatus.FOUND);
@@ -612,6 +613,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 }
                 getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
             }
+
             responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
             responseHeader.setPopTime(popTime);
             responseHeader.setReviveQid(reviveQid);
@@ -622,6 +624,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 responseHeader.setOrderCountInfo(orderCountInfo.toString());
             }
             finalResponse.setRemark(getMessageResult.getStatus().name());
+
+            // transfer msg by heap or zero copy,
+            // zero copy used in 4.*, useless in 5.*
             switch (finalResponse.getCode()) {
                 case ResponseCode.SUCCESS:
                     if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
