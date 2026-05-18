@@ -990,6 +990,25 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             brokerController.getPopInflightMessageCounter().getGroupPopInFlightMessageNum(topic, group, queueId) > brokerController.getBrokerConfig().getPopInflightMessageThreshold();
     }
 
+    /**
+     * get consume offset for pop mode
+     * called by:
+     *  - this.popMsgFromQueue()
+     * functionality:
+     *  - return resetOffset if exists
+     *  - get offset if exists
+     *  - init offset if not exists
+     *  - get offset from popBufferMergeService
+     *
+     * @param topic topic
+     * @param group group
+     * @param queueId queueId
+     * @param initMode initMode ConsumeInitMode.MAX for pop mode
+     * @param init flag of whether commit offset the first time pop message
+     * @param lockKey lockKey
+     * @param checkResetOffset flag of whether resetPopOffset
+     * @return offset
+     */
     private long getPopOffset(String topic, String group, int queueId, int initMode, boolean init, String lockKey,
         boolean checkResetOffset) throws ConsumeQueueException {
 
