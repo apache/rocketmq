@@ -732,6 +732,45 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             messageFilter, startOffsetInfo, msgOffsetInfo, orderCountInfo, randomQ, getMessageFuture);
     }
 
+    /**
+     * Pop messages from a specific queue of a topic.
+     *
+     * <p>This method is called as a step in a {@link CompletableFuture} chain
+     * (see {@link #popMsgFromTopic}). The {@code restNum} argument is the
+     * number of messages still needed — when it drops to {@code 0} or below,
+     * subsequent calls in the chain may short-circuit early.
+     *
+     * <p>The method has several <b>early-termination</b> paths (all return
+     * immediately with the current {@code restNum}):
+     * <ul>
+     *   <li>Queue lock cannot be acquired — skips this queue</li>
+     *   <li>Too many in-flight (un-acked) messages for this
+     *       {@code topic@group@queueId}</li>
+     *   <li>Order queue is blocked by a previous un-acked message</li>
+     *   <li>Already accumulated {@code >= maxMsgNums} messages</li>
+     * </ul>
+     *
+     * <p>Otherwise, it asynchronously fetches messages from the store, handles
+     * offset correction, updates order-consume tracking / checkpoint data, and
+     * merges the results into {@code getMessageResult}.
+     *
+     * @param topic            topic name
+     * @param attemptId        attempt id for idempotent consumption
+     * @param isRetry          whether this is a retry topic
+     * @param getMessageResult accumulator for messages popped so far
+     * @param requestHeader    pop request parameters
+     * @param queueId          target queue id
+     * @param restNum          number of messages still needed before the batch
+     *                         size is satisfied
+     * @param reviveQid        revive queue id for checkpoint
+     * @param channel          netty channel of the requesting client
+     * @param popTime          pop invocation timestamp
+     * @param messageFilter    expression filter applied to each message
+     * @param startOffsetInfo  buffer for offset tracing info
+     * @param msgOffsetInfo    buffer for per-message offset tracing info
+     * @param orderCountInfo   buffer for order-consume count info
+     * @return a future completing with the remaining number of messages needed
+     */
     private CompletableFuture<Long> popMsgFromQueue(String topic, String attemptId, boolean isRetry,
         GetMessageResult getMessageResult,
         PopMessageRequestHeader requestHeader, int queueId, long restNum, int reviveQid,
