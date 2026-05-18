@@ -320,7 +320,7 @@ public class MQAdminImpl {
 
     public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end, boolean isUniqKey) throws MQClientException,
         InterruptedException {
-        return queryMessage(clusterName, topic, key, maxNum, begin, end, isUniqKey, null, null);
+        return queryMessage(clusterName, topic, key, maxNum, begin, end, isUniqKey, isUniqKey ? MessageConst.INDEX_UNIQUE_TYPE : MessageConst.INDEX_KEY_TYPE, null);
     }
 
     public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end, boolean isUniqKey, String indexType, String lastKey) throws MQClientException,
