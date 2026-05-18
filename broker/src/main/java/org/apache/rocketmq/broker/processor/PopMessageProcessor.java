@@ -1032,6 +1032,14 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
     }
 
+    /**
+     * get offset from consume queue
+     * If consume from min offset:
+     *      - return min offset.
+     * If consume from max offset:
+     *      - get max offset
+     *      - commit max offset if init is true.
+     */
     public long getInitOffset(String topic, String group, int queueId, int initMode, boolean init)
         throws ConsumeQueueException {
         long offset;
