@@ -1014,9 +1014,13 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
         long offset = this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, queueId);
         if (offset < 0) {
+            //the first time consume, init offset by initMode
             offset = this.getInitOffset(topic, group, queueId, initMode, init);
         }
 
+        // before lock checkResetOffset is false
+        // after lock checkResetOffset is true
+        // This is an admin related feature
         if (checkResetOffset) {
             Long resetOffset = resetPopOffset(topic, group, queueId);
             if (resetOffset != null) {
