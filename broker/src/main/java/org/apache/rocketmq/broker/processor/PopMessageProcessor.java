@@ -575,6 +575,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             }
         }
 
+        // async result handle
         final RemotingCommand finalResponse = response;
         getMessageFuture.thenApply(restNum -> {
             try {
@@ -673,6 +674,37 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return null;
     }
 
+    /**
+     * Pop messages from every read queue of the given topic.
+     *
+     * <p>Queues are visited sequentially (respecting {@code priorityOrderAsc}).
+     * For each queue a {@link #popMsgFromQueue} call is chained via
+     * {@code CompletableFuture#thenCompose}. The chained future carries the
+     * <em>remaining</em> number of messages still needed ({@code restNum}).
+     *
+     * <p>Early termination can occur inside {@link #popMsgFromQueue} when:
+     * <ul>
+     *   <li>the queue lock cannot be acquired</li>
+     *   <li>too many in-flight (un-acked) messages exist</li>
+     *   <li>an order queue is blocked</li>
+     *   <li>the accumulated message count already reaches {@code maxMsgNums}</li>
+     * </ul>
+     *
+     * @param topicConfig   topic configuration; {@code null} skips all queues
+     * @param isRetry       whether the topic is a retry topic
+     * @param getMessageResult accumulator for the messages popped so far
+     * @param requestHeader pop request parameters
+     * @param reviveQid     revive queue id
+     * @param channel       netty channel of the requesting client
+     * @param popTime       pop timestamp
+     * @param messageFilter expression filter applied to each message
+     * @param startOffsetInfo buffer for offset tracing info
+     * @param msgOffsetInfo   buffer for per-message offset tracing info
+     * @param orderCountInfo  buffer for order-consume count info
+     * @param randomQ       random queue offset for round-robin load balancing
+     * @param getMessageFuture future that carries the remaining message count
+     * @return a future completing with the remaining number of messages needed
+     */
     private CompletableFuture<Long> popMsgFromTopic(TopicConfig topicConfig, boolean isRetry, GetMessageResult getMessageResult,
         PopMessageRequestHeader requestHeader, int reviveQid, Channel channel, long popTime,
         ExpressionMessageFilter messageFilter, StringBuilder startOffsetInfo,
