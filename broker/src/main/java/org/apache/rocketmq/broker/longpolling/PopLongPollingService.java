@@ -52,6 +52,24 @@ import static org.apache.rocketmq.broker.longpolling.PollingResult.POLLING_FULL;
 import static org.apache.rocketmq.broker.longpolling.PollingResult.POLLING_SUC;
 import static org.apache.rocketmq.broker.longpolling.PollingResult.POLLING_TIMEOUT;
 
+/**
+ * Pop-mode long polling service that suspends Pop requests and wakes them up when new messages arrive.
+ * <p>
+ * Core responsibilities:
+ * <ul>
+ *   <li>Suspend Pop requests — when the broker has no messages to return immediately, registers requests
+ *       into the {@code pollingMap} keyed by {@code topic@cid@queueId} and waits</li>
+ *   <li>Wake up on new message arrival — {@link #notifyMessageArriving} is triggered by the message arriving
+ *       listener; it fetches matching Pop requests from the pollingMap, applies Tag filtering, and re-submits
+ *       them to the PopMessageProcessor to return results to the client</li>
+ *   <li>Timeout scanning — the background thread periodically scans the waiting queues and wakes up
+ *       timed-out requests with an empty result</li>
+ *   <li>Retry topic bridging — {@link #notifyMessageArrivingFromRetry} translates a new message on the retry
+ *       topic into a wake-up notification on the original topic</li>
+ *   <li>Resource cleanup — periodically removes stale polling entries for deleted topics or
+ *       offline consumer groups</li>
+ * </ul>
+ */
 public class PopLongPollingService extends ServiceThread {
 
     private static final Logger POP_LOGGER =
