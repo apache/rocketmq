@@ -738,6 +738,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         Channel channel, long popTime, ExpressionMessageFilter messageFilter, StringBuilder startOffsetInfo,
         StringBuilder msgOffsetInfo, StringBuilder orderCountInfo) {
 
+        // get pop offset
         String lockKey =
             topic + PopAckConstants.SPLIT + requestHeader.getConsumerGroup() + PopAckConstants.SPLIT + queueId;
         boolean isOrder = requestHeader.isOrder();
@@ -751,6 +752,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return failure;
         }
 
+        // try lock
         CompletableFuture<Long> future = new CompletableFuture<>();
         if (!queueLockManager.tryLock(lockKey)) {
             try {
@@ -763,8 +765,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             }
             return future;
         }
-
         future.whenComplete((result, throwable) -> queueLockManager.unLock(lockKey));
+
+        // check inflight message number
         if (isPopShouldStop(topic, requestHeader.getConsumerGroup(), queueId)) {
             POP_LOGGER.warn("Too much msgs unacked, then stop popping. topic={}, group={}, queueId={}",
                 topic, requestHeader.getConsumerGroup(), queueId);
@@ -777,6 +780,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return future;
         }
 
+        // check orderly lock and max message number
         try {
             offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
                 true, lockKey, true);
@@ -817,6 +821,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return this.brokerController.getMessageStore()
             .getMessageAsync(requestHeader.getConsumerGroup(), topic, queueId, offset,
                 requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter)
+            // result check and retry if offset is not correct
             .thenCompose(result -> {
                 if (result == null) {
                     return CompletableFuture.completedFuture(null);
@@ -837,7 +842,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                         requestHeader.getMaxMsgNums() - getMessageResult.getMessageMapedList().size(), messageFilter);
                 }
                 return CompletableFuture.completedFuture(result);
-            }).thenApply(result -> {
+            })
+            // update order info or append checkpoint then format result
+            .thenApply(result -> {
                 if (result == null) {
                     try {
                         atomicRestNum.set(brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - atomicOffset.get() + atomicRestNum.get());
@@ -929,7 +936,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     result.getMessageCount()
                 );
                 return atomicRestNum.get();
-            }).whenComplete((result, throwable) -> {
+            })
+            // unlock queueLock
+            .whenComplete((result, throwable) -> {
                 if (throwable != null) {
                     POP_LOGGER.error("Pop message error, {}", lockKey, throwable);
                 }
