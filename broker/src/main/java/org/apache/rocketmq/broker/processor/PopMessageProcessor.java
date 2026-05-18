@@ -226,9 +226,11 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
 
+        // init request and response
         final long beginTimeMills = this.brokerController.getMessageStore().now();
 
         Channel channel = ctx.channel();
+
         RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
         response.setOpaque(request.getOpaque());
 
@@ -240,6 +242,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
         final PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
 
+        // validation
         // Pop mode only supports consumption in cluster load balancing mode
         brokerController.getConsumerManager().compensateBasicConsumerInfo(
             requestHeader.getConsumerGroup(), ConsumeType.CONSUME_POP, MessageModel.CLUSTERING);
@@ -319,6 +322,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        // init filter
         BrokerConfig brokerConfig = brokerController.getBrokerConfig();
         SubscriptionData subscriptionData = null;
         ExpressionMessageFilter messageFilter = null;
@@ -497,7 +501,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return null;
         } // end of ack by kv service
 
-        // start of ack by file merge service
+        // start of ack by file merge service mode
+        // init pop parameters
         int randomQ = random.nextInt(100);
         int reviveQid;
         if (requestHeader.isOrder()) {
@@ -530,6 +535,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
         randomQ = usePriorityMode ? 0 : randomQ; // reset randomQ
         long popTime = System.currentTimeMillis();
+
+        // pop message
         CompletableFuture<Long> getMessageFuture = CompletableFuture.completedFuture(0L);
         if (needRetry && !requestHeader.isOrder()) {
             if (needRetryV1) {
@@ -542,6 +549,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     popTime, finalMessageFilter, startOffsetInfo, msgOffsetInfo, orderCountInfo, randomQ, getMessageFuture);
             }
         }
+
         if (requestHeader.getQueueId() < 0) {
             // read all queue
             getMessageFuture = popMsgFromTopic(topicConfig, false, getMessageResult, requestHeader, reviveQid, channel,
@@ -553,6 +561,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
                     startOffsetInfo, msgOffsetInfo, orderCountInfo));
         }
+
         // if not full , fetch retry again
         if (!needRetry && getMessageResult.getMessageMapedList().size() < requestHeader.getMaxMsgNums() && !requestHeader.isOrder()) {
             if (needRetryV1) {
@@ -622,7 +631,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                             requestHeader.getTopic(), requestHeader.getQueueId(),
                             (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
                         finalResponse.setBody(r);
-                    } else {
+                    } else { // zero copy
                         final GetMessageResult tmpGetMessageResult = getMessageResult;
                         try {
                             FileRegion fileRegion =
