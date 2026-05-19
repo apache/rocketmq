@@ -44,8 +44,37 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * File based Ack buffer merge service.
+ *
+ * <p>buffer checkpoint in memory then enqueue them into system revive queue then wait to be acked.
+ *
+ * <p>Two in-memory data structures drive the merge logic:
+ * <ul>
+ *   <li>{@link #buffer} — maps {@code mergeKey} to {@link PopCheckPointWrapper},
+ *       tracking which sub-messages within a CK batch have been acked
+ *       (via {@code bits} bitmask) and which have been persisted
+ *       (via {@code toStoreBits} bitmask)</li>
+ *   <li>{@link #commitOffsets} — maps {@code topic@cid@queueId} to an ordered
+ *       queue of {@link PopCheckPointWrapper}s for sequential offset committing</li>
+ * </ul>
+ *
+ * <p>The background {@link #scan()} thread periodically evaluates each buffered CK:
+ * <ul>
+ *   <li><b>All acks received</b> — removes the CK from the buffer without writing
+ *       anything to storage (clean completion)</li>
+ *   <li><b>About to expire</b> ({@code reviveTime - now < popCkStayBufferTimeOut})
+ *       or <b>stayed too long</b> — writes the CK and all un-persisted acks
+ *       (or batch acks) to the revive topic</li>
+ * </ul>
+ *
+ * <p>This service is enabled by {@code enablePopBufferMerge} and only runs on
+ * a master or a slave acting as master. When {@code enablePopBatchAck} is set,
+ * multiple ack offsets are packed into a single {@link BatchAckMsg}.
+ */
 public class PopBufferMergeService extends ServiceThread {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    // mergeKey: topic + group + queueId + startOffset + popTime + brokerName
     ConcurrentHashMap<String/*mergeKey*/, PopCheckPointWrapper>
         buffer = new ConcurrentHashMap<>(1024 * 16);
     ConcurrentHashMap<String/*topic@cid@queueId*/, QueueWithTime<PopCheckPointWrapper>> commitOffsets =
