@@ -115,10 +115,10 @@ maven_install(
         "com.alibaba.fastjson2:fastjson2:2.0.59",
         "org.junit.jupiter:junit-jupiter-api:5.9.1",
     ],
-    fetch_sources = True,
+    fetch_sources = False,
     repositories = [
-        # Private repositories are supported through HTTP Basic auth
         "https://repo1.maven.org/maven2",
+        "https://repo.maven.apache.org/maven2",
     ],
 )
 
