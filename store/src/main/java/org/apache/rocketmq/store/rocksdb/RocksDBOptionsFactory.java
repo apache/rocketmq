@@ -41,8 +41,7 @@ import org.rocksdb.util.SizeUnit;
 
 public class RocksDBOptionsFactory {
 
-    public static ColumnFamilyOptions createCQCFOptions(final MessageStore messageStore,
-        ConsumeQueueCompactionFilterFactory consumeQueueCompactionFilterFactory) {
+    public static ColumnFamilyOptions createCQCFOptions(final MessageStore messageStore) {
         BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig().
                 setFormatVersion(5).
                 setIndexType(IndexType.kBinarySearch).
@@ -93,7 +92,6 @@ public class RocksDBOptionsFactory {
                 setTargetFileSizeBase(256 * SizeUnit.MB).
                 setTargetFileSizeMultiplier(2).
                 setMergeOperator(new StringAppendOperator()).
-                setCompactionFilterFactory(consumeQueueCompactionFilterFactory).
                 setReportBgIoStats(true).
                 setOptimizeFiltersForHits(true);
     }

@@ -139,7 +139,7 @@
         <opentelemetry-exporter-prometheus.version>1.47.0-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
         <s3.version>2.20.29</s3.version>
-        <rocksdb.version>1.0.6</rocksdb.version>
+        <rocksdbjni.version>8.4.4</rocksdbjni.version>
         <jackson-databind.version>2.13.4.2</jackson-databind.version>
         <sofa-jraft.version>1.3.14</sofa-jraft.version>
 
@@ -761,9 +761,9 @@
                 <version>${slf4j-api.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-rocksdb</artifactId>
-                <version>${rocksdb.version}</version>
+                <groupId>org.rocksdb</groupId>
+                <artifactId>rocksdbjni</artifactId>
+                <version>${rocksdbjni.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.aliyunmq</groupId>

@@ -71,5 +71,9 @@
             <groupId>io.github.aliyunmq</groupId>
             <artifactId>rocketmq-shaded-slf4j-api-bridge</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+        </dependency>
     </dependencies>
 </project>
