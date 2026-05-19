@@ -272,10 +272,10 @@ mvn test -pl store -Dtest=CqCompactionFilterJniTest -Djacoco.skip=true
 | Platform | Library name | Architecture | Status |
 |----------|-------------|--------------|--------|
 | Linux (glibc) | `libcq_compaction_filter.so` | x86_64 | Pre-built |
-| Linux (glibc) | `libcq_compaction_filter.so` | aarch64 | Requires rebuild |
+| Linux (glibc) | `libcq_compaction_filter_aarch64.so` | aarch64 | Pre-built |
 | macOS | `libcq_compaction_filter.dylib` | arm64 | Pre-built |
 | macOS | `libcq_compaction_filter.dylib` | x86_64 | Requires rebuild |
-| Windows | `cq_compaction_filter.dll` | x86_64 | Requires MSVC rebuild |
+| Windows | `cq_compaction_filter.dll` | x86_64 | Pre-built |
 
 ## Limitations
 

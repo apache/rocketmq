@@ -41,8 +41,8 @@ public class CqCompactionFilterJni {
 
     static {
         String os = System.getProperty("os.name").toLowerCase();
+        String arch = System.getProperty("os.arch");
         if (os.contains("mac") || os.contains("darwin") || os.contains("osx")) {
-            String arch = System.getProperty("os.arch");
             SHIM_LIB_NAME = "libcq_compaction_filter.dylib";
             SHIM_LIB_EXTENSION = ".dylib";
             ROCKSDB_JNI_LIB_NAME = arch.contains("aarch") || arch.contains("arm")
@@ -53,9 +53,13 @@ public class CqCompactionFilterJni {
             SHIM_LIB_EXTENSION = ".dll";
             ROCKSDB_JNI_LIB_NAME = "librocksdbjni-win64.dll";
         } else {
-            SHIM_LIB_NAME = "libcq_compaction_filter.so";
+            SHIM_LIB_NAME = arch.contains("aarch") || arch.contains("arm")
+                ? "libcq_compaction_filter_aarch64.so"
+                : "libcq_compaction_filter.so";
             SHIM_LIB_EXTENSION = ".so";
-            ROCKSDB_JNI_LIB_NAME = "librocksdbjni-linux64.so";
+            ROCKSDB_JNI_LIB_NAME = arch.contains("aarch") || arch.contains("arm")
+                ? "librocksdbjni-linux-aarch64.so"
+                : "librocksdbjni-linux64.so";
         }
     }
 
