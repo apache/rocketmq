@@ -27,7 +27,7 @@ jobs:
           distribution: "corretto"
           cache: "maven"
       - name: Build with Maven
-        run: mvn -B package --file pom.xml
+        run: mvn -B package --file pom.xml ${{ matrix.os != 'ubuntu-latest' && '-Djacoco.skip=true' || '' }}
 
       - name: Upload Auth JVM crash logs
         if: failure()
