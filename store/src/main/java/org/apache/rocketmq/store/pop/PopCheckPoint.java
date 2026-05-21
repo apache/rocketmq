@@ -21,22 +21,46 @@ import com.alibaba.fastjson2.annotation.JSONField;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * state check info for multi-messages pop from consume queue
+ */
 public class PopCheckPoint implements Comparable<PopCheckPoint> {
     @JSONField(name = "so")
     private long startOffset;
+    /**
+     * pop time, which is the time when message is popped
+     * reviveTime = popTime + invisibleTime
+     */
     @JSONField(name = "pt")
     private long popTime;
+    /**
+     * the invisible time of messages
+     * default is 60s, it can be changed by MQ client
+     */
     @JSONField(name = "it")
     private long invisibleTime;
+    /**
+     * store ack states of messages
+     * one byte for each message
+     */
     @JSONField(name = "bm")
     private int bitMap;
+    /**
+     * total number of messages
+     */
     @JSONField(name = "n")
     private byte num;
     @JSONField(name = "q")
     private int queueId;
     @JSONField(name = "t")
     private String topic;
+    /**
+     * consumer group
+     */
     private String cid;
+    /**
+     * revive offset, which is the consume queue offset of messageExt
+     */
     @JSONField(name = "ro")
     private long reviveOffset;
     @JSONField(name = "d")
