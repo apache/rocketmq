@@ -74,9 +74,26 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PopBufferMergeService extends ServiceThread {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
-    // mergeKey: topic + group + queueId + startOffset + popTime + brokerName
+    /**
+     * In-memory cache of check points.
+     *  Key: topic + group + queueId + startOffset + popTime + brokerName
+     *  Value: check point wrapper
+     * use cases:
+     * - scan: iterate buffer
+     * - addAckMsg: get check point from buffer and mark ack state of Check Point
+     */
     ConcurrentHashMap<String/*mergeKey*/, PopCheckPointWrapper>
         buffer = new ConcurrentHashMap<>(1024 * 16);
+    /**
+     * manager check point for given consumer and given queue
+     *   Key: topic@cid@queueId
+     *   Value: check point queue of specific consumer and queue
+     * use cases:
+     * - getLatestOffset: get consumer next start offset of given queue
+     * - scanGarbage
+     * - getOffsetTotalSize: get total popping num
+     * - isQueueFull
+     */
     ConcurrentHashMap<String/*topic@cid@queueId*/, QueueWithTime<PopCheckPointWrapper>> commitOffsets =
         new ConcurrentHashMap<>();
     private volatile boolean serving = true;
@@ -444,6 +461,8 @@ public class PopBufferMergeService extends ServiceThread {
 
     private boolean putOffsetQueue(PopCheckPointWrapper pointWrapper) {
         QueueWithTime<PopCheckPointWrapper> queue = this.commitOffsets.get(pointWrapper.getLockKey());
+
+        // init with empty queue
         if (queue == null) {
             queue = new QueueWithTime<>();
             QueueWithTime old = this.commitOffsets.putIfAbsent(pointWrapper.getLockKey(), queue);
@@ -451,6 +470,7 @@ public class PopBufferMergeService extends ServiceThread {
                 queue = old;
             }
         }
+
         queue.setTime(pointWrapper.getCk().getPopTime());
         return queue.get().offer(pointWrapper);
     }
@@ -484,6 +504,8 @@ public class PopBufferMergeService extends ServiceThread {
             return false;
         }
 
+        // called before buffer operation
+        // because store operation will update attributes of pointWrapper
         this.putCkToStore(pointWrapper, checkQueueOk(pointWrapper));
 
         putOffsetQueue(pointWrapper);
@@ -496,7 +518,7 @@ public class PopBufferMergeService extends ServiceThread {
     }
 
     /**
-     * mock checkpoint then add to buffer.
+     * mock checkpoint then add it to offset queue.
      * this method is called when popped message is:
      * - NO_MATCHED_MESSAGE
      * - OFFSET_FOUND_NULL
@@ -505,6 +527,7 @@ public class PopBufferMergeService extends ServiceThread {
      */
     public void addCkMock(String group, String topic, int queueId, long startOffset, long invisibleTime,
         long popTime, int reviveQueueId, long nextBeginOffset, String brokerName) {
+        // create checkpoint
         final PopCheckPoint ck = new PopCheckPoint();
         ck.setBitMap(0);
         ck.setNum((byte) 0);
@@ -520,6 +543,7 @@ public class PopBufferMergeService extends ServiceThread {
         pointWrapper.setCkStored(true);
 
         putOffsetQueue(pointWrapper);
+
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("[PopBuffer]add ck just offset, mocked, {}", pointWrapper);
         }
@@ -529,6 +553,7 @@ public class PopBufferMergeService extends ServiceThread {
      * add checkpoint to buffer.
      */
     public boolean addCk(PopCheckPoint point, int reviveQueueId, long reviveQueueOffset, long nextBeginOffset) {
+        // validate env and checkpoint
         // key: point.getT() + point.getC() + point.getQ() + point.getSo() + point.getPt()
         if (!brokerController.getBrokerConfig().isEnablePopBufferMerge()) {
             return false;
