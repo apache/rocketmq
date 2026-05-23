@@ -151,6 +151,7 @@ public class PopBufferMergeService extends ServiceThread {
 
                 scan();
                 if (scanTimes % countOfSecond30 == 0) {
+                    // remove checkpoint which are timeout
                     scanGarbage();
                 }
 
@@ -283,6 +284,26 @@ public class PopBufferMergeService extends ServiceThread {
     }
 
 
+    /**
+     * Scan and process all buffered checkpoints, then drain the offset commit queue.
+     *
+     * <p>For each entry in {@link #buffer}:
+     * <ul>
+     *   <li><b>Consumer group not found</b> — removes the entry silently</li>
+     *   <li><b>CK done</b> (all sub-messages acked) — removes from buffer, no store write needed</li>
+     *   <li><b>Just-offset entry</b> — writes the CK to the revive topic if not yet stored</li>
+     *   <li><b>Needs eviction</b> (service stopped, revive timeout, or stay timeout) —
+     *       writes the CK and all un-persisted acks (batch or individual) to the revive topic,
+     *       then removes the entry when all persisted</li>
+     *   <li><b>Otherwise</b> — leaves the entry in the buffer for the next scan cycle</li>
+     * </ul>
+     *
+     * <p>After processing the buffer, calls {@link #scanCommitOffset()} to commit offsets
+     * for finished checkpoints in FIFO order.
+     *
+     * <p>If the scan duration exceeds {@code popCkStayBufferTimeOut - 1000ms}, the service
+     * temporarily stops accepting new CKs ({@link #serving} = false) to avoid backlog.
+     */
     private void scan() {
         long startTime = System.currentTimeMillis();
         AtomicInteger count = new AtomicInteger(0);
@@ -319,6 +340,7 @@ public class PopBufferMergeService extends ServiceThread {
             PopCheckPoint point = pointWrapper.getCk();
             long now = System.currentTimeMillis();
 
+            // check whether check point is timeout
             boolean removeCk = !this.serving;
             // ck will be timeout
             if (point.getReviveTime() - now < brokerController.getBrokerConfig().getPopCkStayBufferTimeOut()) {
