@@ -35,20 +35,15 @@
 #include "rocksdb/slice.h"
 
 /* ------------------------------------------------------------------ */
-/* Windows stub implementations                                       */
+/* Stub implementations for inherited virtual methods                  */
 /*                                                                    */
-/* On Linux/macOS, ELF/Mach-O shared libraries export all symbols by  */
-/* default, so the shim resolves inherited virtual methods from       */
-/* librocksdbjni at link time. On Windows, DLLs only export symbols   */
-/* marked __declspec(dllexport) — rocksdbjni only exports JNI entry   */
-/* points, not internal C++ class methods. We must provide stub       */
-/* implementations for the Configurable/Customizable virtual methods  */
-/* that appear in CompactionFilter's vtable. These stubs are never    */
-/* called at runtime (RocksDB only invokes Filter() and Name() on     */
-/* compaction filters), but the linker needs addresses for them.      */
+/* CompactionFilter inherits from Customizable → Configurable, which  */
+/* declare many virtual methods. These stubs fill the vtable so the   */
+/* shim is fully self-contained — no DT_NEEDED on librocksdbjni.      */
+/* None of these are called at runtime: RocksDB only invokes Filter() */
+/* and Name() on compaction filters, and disOwnNativeHandle() in Java */
+/* prevents the destructor path that could touch Configurable methods. */
 /* ------------------------------------------------------------------ */
-
-#ifdef _WIN32
 
 #include "rocksdb/configurable.h"
 #include "rocksdb/customizable.h"
@@ -226,7 +221,7 @@ std::string Status::ToString() const {
 
 }  // namespace rocksdb
 
-#endif  // _WIN32
+/* End of stub implementations */
 
 /* ------------------------------------------------------------------ */
 /* Our concrete compaction filter                                     */
@@ -289,6 +284,12 @@ Java_org_apache_rocketmq_store_rocksdb_CqCompactionFilterJni_setMinPhyOffset0(
     JNIEnv* env, jclass clazz, jlong filterPtr, jlong minPhyOffset) {
     CqCompactionFilter* filter = reinterpret_cast<CqCompactionFilter*>(filterPtr);
     filter->SetMinPhyOffset(minPhyOffset);
+}
+
+JNIEXPORT void JNICALL
+Java_org_apache_rocketmq_store_rocksdb_CqCompactionFilterJni_destroyNativeFilter0(
+    JNIEnv* env, jclass clazz, jlong filterPtr) {
+    delete reinterpret_cast<CqCompactionFilter*>(filterPtr);
 }
 
 } // extern "C"
