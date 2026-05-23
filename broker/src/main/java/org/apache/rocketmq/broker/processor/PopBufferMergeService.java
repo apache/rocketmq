@@ -233,9 +233,20 @@ public class PopBufferMergeService extends ServiceThread {
         return getLatestOffset(KeyBuilder.buildPollingKey(topic, group, queueId));
     }
 
+    /**
+     * Remove stale entries from {@link #commitOffsets}.
+     *
+     * <p>Three types of entries are removed:
+     * <ul>
+     *   <li>Topic no longer exists (deleted)</li>
+     *   <li>Consumer group no longer exists (unsubscribed)</li>
+     *   <li>No activity for more than 5 minutes (idle)</li>
+     * </ul>
+     */
     private void scanGarbage() {
         Iterator<Map.Entry<String, QueueWithTime<PopCheckPointWrapper>>> iterator = commitOffsets.entrySet().iterator();
         while (iterator.hasNext()) {
+            // validate checkpoint
             Map.Entry<String, QueueWithTime<PopCheckPointWrapper>> entry = iterator.next();
             if (entry.getKey() == null) {
                 continue;
@@ -256,6 +267,7 @@ public class PopBufferMergeService extends ServiceThread {
                 iterator.remove();
                 continue;
             }
+
             if (System.currentTimeMillis() - entry.getValue().getTime() > minute5) {
                 POP_LOGGER.info("[PopBuffer]remove long time not used sub {} of topic {} in buffer!", cid, topic);
                 iterator.remove();
