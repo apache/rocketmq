@@ -75,7 +75,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class PopBufferMergeService extends ServiceThread {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     /**
-     * In-memory cache of check points.
+     * In-memory map of check points.
      *  Key: topic + group + queueId + startOffset + popTime + brokerName
      *  Value: check point wrapper
      * use cases:
@@ -85,7 +85,7 @@ public class PopBufferMergeService extends ServiceThread {
     ConcurrentHashMap<String/*mergeKey*/, PopCheckPointWrapper>
         buffer = new ConcurrentHashMap<>(1024 * 16);
     /**
-     * manager check point for given consumer and given queue
+     * manage check point of given consumer and given queue
      *   Key: topic@cid@queueId
      *   Value: check point queue of specific consumer and queue
      * use cases:
@@ -459,6 +459,21 @@ public class PopBufferMergeService extends ServiceThread {
         return true;
     }
 
+    /**
+     * Enqueue the checkpoint wrapper into the per-{@code topic@cid@queueId} offset queue
+     * for sequential offset committing.
+     *
+     * <p>The queue is maintained in FIFO order. The {@link #scanCommitOffset()} method
+     * drains the queue from the head, ensuring that offsets are committed in the same
+     * order as the checkpoints were created, which prevents consumer offset regression.
+     *
+     * <p>The {@link QueueWithTime#time} is also updated to the CK's pop time so that
+     * {@link #scanGarbage()} can identify and remove stale entries after 5 minutes of
+     * inactivity.
+     *
+     * @param pointWrapper the checkpoint wrapper to enqueue
+     * @return true if the element was added to the queue successfully
+     */
     private boolean putOffsetQueue(PopCheckPointWrapper pointWrapper) {
         QueueWithTime<PopCheckPointWrapper> queue = this.commitOffsets.get(pointWrapper.getLockKey());
 
