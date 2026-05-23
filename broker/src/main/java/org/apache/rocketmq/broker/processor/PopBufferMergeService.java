@@ -649,6 +649,12 @@ public class PopBufferMergeService extends ServiceThread {
         this.commitOffsets.remove(lockKey);
     }
 
+    /**
+     * write message(checkpoint) to revive topic, then update pointWrapper related info.
+     *
+     * @param pointWrapper checkpoint
+     * @param runInCurrent async or sync
+     */
     private void putCkToStore(final PopCheckPointWrapper pointWrapper, final boolean runInCurrent) {
         if (pointWrapper.getReviveQueueOffset() >= 0) {
             return;
@@ -658,6 +664,7 @@ public class PopBufferMergeService extends ServiceThread {
 
         // Indicates that ck message is storing
         pointWrapper.setReviveQueueOffset(Long.MAX_VALUE);
+        // default value of isAppendCkAsync is false
         if (brokerController.getBrokerConfig().isAppendCkAsync() && runInCurrent) {
             brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenAccept(putMessageResult -> {
                 handleCkMessagePutResult(putMessageResult, pointWrapper);
