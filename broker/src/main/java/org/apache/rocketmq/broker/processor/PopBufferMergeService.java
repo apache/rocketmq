@@ -138,6 +138,7 @@ public class PopBufferMergeService extends ServiceThread {
         // scan
         while (!this.isStopped()) {
             try {
+                // env check
                 if (!isShouldRunning()) {
                     // slave
                     this.waitForRunning(interval * 200 * 5);
@@ -153,8 +154,8 @@ public class PopBufferMergeService extends ServiceThread {
                     scanGarbage();
                 }
 
+                // waiting
                 this.waitForRunning(interval);
-
                 if (!this.serving && this.buffer.size() == 0 && getOffsetTotalSize() == 0) {
                     this.serving = true;
                 }
@@ -164,6 +165,7 @@ public class PopBufferMergeService extends ServiceThread {
             }
         }
 
+        // scan until buffer is empty
         this.serving = false;
         try {
             Thread.sleep(2000);
