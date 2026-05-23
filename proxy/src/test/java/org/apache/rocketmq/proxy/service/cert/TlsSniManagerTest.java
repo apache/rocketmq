@@ -265,4 +265,103 @@ public class TlsSniManagerTest {
 
         return config;
     }
+
+    @Test
+    public void testStdSslContext_WildcardMatch() {
+        TlsSniManager sniManager = new TlsSniManager();
+        sniManager.initialize(createTestModeProxyConfig());
+
+        io.netty.handler.ssl.SslContext ctx = sniManager.getStdSslContext("foo.example.com");
+        assertNotNull(ctx);
+        org.junit.Assert.assertNotSame(sniManager.getStdDefaultContext(), ctx);
+    }
+
+    @Test
+    public void testStdSslContext_FallbackToDefault() {
+        TlsSniManager sniManager = new TlsSniManager();
+        sniManager.initialize(createTestModeProxyConfig());
+
+        io.netty.handler.ssl.SslContext ctx = sniManager.getStdSslContext("unknown.other.com");
+        assertNotNull(ctx);
+        assertSame(sniManager.getStdDefaultContext(), ctx);
+    }
+
+    @Test
+    public void testStdDefaultContext_NotNull() {
+        TlsSniManager sniManager = new TlsSniManager();
+        sniManager.initialize(createTestModeProxyConfig());
+
+        assertNotNull(sniManager.getStdDefaultContext());
+    }
+
+    @Test
+    public void testReloadDomainContext_ActuallyReplaces() {
+        TlsSniManager sniManager = new TlsSniManager();
+        sniManager.initialize(createTestModeProxyConfig());
+
+        SslContext before = sniManager.getSslContext("foo.example.com");
+        sniManager.reloadDomainContext("*.example.com");
+        SslContext after = sniManager.getSslContext("foo.example.com");
+
+        assertNotNull(before);
+        assertNotNull(after);
+        org.junit.Assert.assertNotSame("reloadDomainContext should produce a new SslContext", before, after);
+    }
+
+    @Test
+    public void testReloadDefaultContext_ActuallyReplaces() {
+        TlsSniManager sniManager = new TlsSniManager();
+        sniManager.initialize(createTestModeProxyConfig());
+
+        SslContext before = sniManager.getDefaultContext();
+        sniManager.reloadDefaultContext();
+        SslContext after = sniManager.getDefaultContext();
+
+        assertNotNull(before);
+        assertNotNull(after);
+        org.junit.Assert.assertNotSame("reloadDefaultContext should produce a new SslContext", before, after);
+    }
+
+    @Test
+    public void testWildcardMatch_CaseInsensitive() {
+        TlsSniManager sniManager = new TlsSniManager();
+        sniManager.initialize(createTestModeProxyConfig());
+
+        SslContext ctx = sniManager.getSslContext("FOO.EXAMPLE.COM");
+        assertNotNull(ctx);
+        org.junit.Assert.assertNotSame(sniManager.getDefaultContext(), ctx);
+    }
+
+    @Test
+    public void testExactMatchTakesPriorityOverWildcard() {
+        TlsSniManager sniManager = new TlsSniManager();
+        sniManager.initialize(createTestModeProxyConfigWithExactAndWildcard());
+
+        SslContext exact = sniManager.getSslContext("exact.example.com");
+        SslContext wildcard = sniManager.getSslContext("other.example.com");
+
+        assertNotNull(exact);
+        assertNotNull(wildcard);
+        org.junit.Assert.assertNotSame(exact, wildcard);
+    }
+
+    private org.apache.rocketmq.proxy.config.ProxyConfig createTestModeProxyConfigWithExactAndWildcard() {
+        org.apache.rocketmq.proxy.config.ProxyConfig config = new org.apache.rocketmq.proxy.config.ProxyConfig();
+        config.setTlsTestModeEnable(true);
+
+        Map<String, TlsDomainConfig> domainConfigs = new HashMap<>();
+
+        TlsDomainConfig wildcardConfig = new TlsDomainConfig();
+        wildcardConfig.setCertPath(firstCertFile.getAbsolutePath());
+        wildcardConfig.setKeyPath(firstKeyFile.getAbsolutePath());
+        domainConfigs.put("*.example.com", wildcardConfig);
+
+        TlsDomainConfig exactConfig = new TlsDomainConfig();
+        exactConfig.setCertPath(secondCertFile.getAbsolutePath());
+        exactConfig.setKeyPath(secondKeyFile.getAbsolutePath());
+        domainConfigs.put("exact.example.com", exactConfig);
+
+        config.setTlsDomainConfigs(domainConfigs);
+        return config;
+    }
 }

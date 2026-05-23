@@ -1,3 +1,14 @@
 {
-  "rocketMQClusterName": "DefaultCluster"
+  "rocketMQClusterName": "DefaultCluster",
+  "proxyMode": "LOCAL",
+  "grpcServerPort": 8081,
+  "tlsTestModeEnable": false,
+  "tlsKeyPath": "/home/wuxingcan.wxc/rocketmq/.claude/worktrees/sni-multi-domain/distribution/conf/tls/server.key",
+  "tlsCertPath": "/home/wuxingcan.wxc/rocketmq/.claude/worktrees/sni-multi-domain/distribution/conf/tls/server.crt",
+  "tlsDomainConfigs": {
+    "*.example.com": {
+      "certPath": "/home/wuxingcan.wxc/rocketmq/.claude/worktrees/sni-multi-domain/distribution/conf/tls/example.crt",
+      "keyPath": "/home/wuxingcan.wxc/rocketmq/.claude/worktrees/sni-multi-domain/distribution/conf/tls/example.key"
+    }
+  }
 }

@@ -123,15 +123,18 @@ public class TlsSniManager {
             return defaultCtx;
         }
 
+        // Normalize to lowercase — DNS is case-insensitive per RFC 4343
+        String hostname = sniHostname.toLowerCase(java.util.Locale.ROOT);
+
         // Exact match first
-        T ctx = exactContexts.get(sniHostname);
+        T ctx = exactContexts.get(hostname);
         if (ctx != null) {
             return ctx;
         }
 
         // Wildcard match: patterns are sorted longest-first for deterministic matching
         for (WildcardSslContext<T> wc : wildcardContexts) {
-            if (wc.matches(sniHostname, wildcardMatchMultiLevel)) {
+            if (wc.matches(hostname, wildcardMatchMultiLevel)) {
                 return wc.context;
             }
         }
@@ -151,6 +154,11 @@ public class TlsSniManager {
         try {
             io.netty.handler.ssl.SslContext stdCtx = buildStdSslContext(config, tlsTestModeEnable);
             SslContext shadedCtx = buildShadedSslContext(config, tlsTestModeEnable);
+            // For exact domains, release old context to avoid native SSL resource leaks
+            if (!domainPattern.startsWith("*.")) {
+                releaseQuietly(stdExactContexts.get(domainPattern));
+                releaseQuietly(shadedExactContexts.get(domainPattern));
+            }
             addDomainContexts(domainPattern, stdCtx, shadedCtx);
             log.info("Reloaded SslContext for domain: {}", domainPattern);
         } catch (Exception e) {
@@ -165,8 +173,12 @@ public class TlsSniManager {
     public void reloadDefaultContext() {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         try {
+            io.netty.handler.ssl.SslContext oldStd = defaultStdContext;
+            SslContext oldShaded = defaultShadedContext;
             defaultStdContext = buildStdDefaultSslContext(proxyConfig);
             defaultShadedContext = buildShadedDefaultSslContext(proxyConfig);
+            releaseQuietly(oldStd);
+            releaseQuietly(oldShaded);
             log.info("Reloaded default SslContext");
         } catch (Exception e) {
             log.error("Failed to reload default SslContext", e);
@@ -226,6 +238,9 @@ public class TlsSniManager {
             io.netty.handler.ssl.SslContext stdCtx,
             SslContext shadedCtx) {
         if (domainPattern.startsWith("*.")) {
+            // Remove existing entries for this pattern before adding to ensure reload replaces old context
+            stdWildcardContexts.removeIf(wc -> wc.domainPattern.equals(domainPattern));
+            shadedWildcardContexts.removeIf(wc -> wc.domainPattern.equals(domainPattern));
             stdWildcardContexts.add(new WildcardSslContext<>(domainPattern, stdCtx));
             shadedWildcardContexts.add(new WildcardSslContext<>(domainPattern, shadedCtx));
         } else {
@@ -318,9 +333,20 @@ public class TlsSniManager {
                 return GrpcSslContexts.forServer(serverCertificateStream,
                         serverKeyInputStream,
                         StringUtils.isNotBlank(keyPassword) ? keyPassword : null)
+                    .sslProvider(provider)
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .clientAuth(io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth.NONE)
                     .build();
+            }
+        }
+    }
+
+    private static void releaseQuietly(Object ctx) {
+        if (ctx != null) {
+            try {
+                io.netty.util.ReferenceCountUtil.release(ctx);
+            } catch (Exception e) {
+                log.warn("Failed to release SslContext", e);
             }
         }
     }

@@ -17,6 +17,9 @@
 package org.apache.rocketmq.proxy.grpc;
 
 import io.grpc.Attributes;
+import io.grpc.InternalChannelz;
+import io.grpc.SecurityLevel;
+import io.grpc.internal.GrpcAttributes;
 import io.grpc.netty.shaded.io.grpc.netty.GrpcHttp2ConnectionHandler;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiationEvent;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiator;
@@ -42,6 +45,8 @@ import io.grpc.netty.shaded.io.netty.util.AsyncMapping;
 import io.grpc.netty.shaded.io.netty.util.AsciiString;
 import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
 
+import javax.net.ssl.SSLSession;
+
 import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -65,6 +70,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     private static final String HA_PROXY_HANDLER = "HAProxyHandler";
     private static final String TLS_MODE_HANDLER = "TlsModeHandler";
     private static final String SNI_HANDLER = "SniHandler";
+    private static final String GRPC_SNI_COMPLETE_HANDLER = "GrpcSniCompleteHandler";
     /**
      * the length of the ssl record header (in bytes)
      */
@@ -260,17 +266,27 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         private void addSniHandler(ChannelHandlerContext ctx) {
             TlsSniManager sniManager = getTlsSniManager();
             AsyncMapping<String, SslContext> sslContextMapping = (hostname, promise) -> {
-                SslContext sslCtx = sniManager.getSslContext(hostname);
-                if (sslCtx != null) {
-                    promise.setSuccess(sslCtx);
-                } else {
-                    promise.setSuccess(sniManager.getDefaultContext());
+                try {
+                    SslContext sslCtx = sniManager.getSslContext(hostname != null ? hostname.toLowerCase(java.util.Locale.ROOT) : null);
+                    if (sslCtx == null) {
+                        sslCtx = sniManager.getDefaultContext();
+                    }
+                    if (sslCtx == null) {
+                        promise.setFailure(new javax.net.ssl.SSLException("No SslContext available for SNI hostname: " + hostname));
+                    } else {
+                        promise.setSuccess(sslCtx);
+                    }
+                } catch (Exception e) {
+                    promise.setFailure(e);
                 }
                 return promise;
             };
+            // Pipeline order after this call:
+            //   TlsModeHandler -> SniHandler (becomes SslHandler after SNI) -> GrpcSniCompleteHandler -> ...
+            // GrpcSniCompleteHandler is AFTER SniHandler so it receives SslHandshakeCompletionEvent (inbound, head→tail)
             ctx.pipeline()
                 .addAfter(ctx.name(), SNI_HANDLER, new SniHandler(sslContextMapping))
-                .addAfter(ctx.name(), null, new GrpcSniHandshakeCompleteHandler());
+                .addAfter(SNI_HANDLER, GRPC_SNI_COMPLETE_HANDLER, new GrpcSniHandshakeCompleteHandler(grpcHandler, pne));
         }
 
         private void addPlaintextHandler(ChannelHandlerContext ctx) {
@@ -290,24 +306,76 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     }
 
     /**
-     * Fires ProtocolNegotiationEvent after SNI-based TLS handshake completes.
-     * This connects the gRPC handler (GrpcHttp2ConnectionHandler) into the pipeline
-     * so that ALPN negotiation and HTTP/2 framing can proceed.
+     * Placed AFTER the SniHandler/SslHandler in the pipeline.
+     * Receives SslHandshakeCompletionEvent (inbound, fires head→tail), then:
+     *  - verifies ALPN negotiated "h2" (warns and continues if no ALPN, to support test mode)
+     *  - builds enriched Attributes + InternalChannelz.Security from the SSL session
+     *  - replaces itself with grpcHandler
+     *  - calls grpcHandler.handleProtocolNegotiationCompleted to wire up gRPC HTTP/2
      */
-    private class GrpcSniHandshakeCompleteHandler extends ChannelInboundHandlerAdapter {
+    private static class GrpcSniHandshakeCompleteHandler extends ChannelInboundHandlerAdapter {
+
+        private final GrpcHttp2ConnectionHandler grpcHandler;
+        private ProtocolNegotiationEvent pne;
+
+        GrpcSniHandshakeCompleteHandler(GrpcHttp2ConnectionHandler grpcHandler, ProtocolNegotiationEvent pne) {
+            this.grpcHandler = grpcHandler;
+            this.pne = pne;
+        }
+
         @Override
         public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+            if (evt instanceof ProtocolNegotiationEvent) {
+                // Accumulate upstream attributes (e.g. HA proxy)
+                pne = (ProtocolNegotiationEvent) evt;
+                return;
+            }
             if (evt instanceof SslHandshakeCompletionEvent) {
                 SslHandshakeCompletionEvent event = (SslHandshakeCompletionEvent) evt;
-                if (event.isSuccess()) {
-                    ctx.fireUserEventTriggered(InternalProtocolNegotiationEvent.getDefault());
-                } else {
-                    ctx.fireExceptionCaught(event.cause());
+                try {
+                    if (!event.isSuccess()) {
+                        log.warn("SNI TLS handshake failed", event.cause());
+                        ctx.fireExceptionCaught(event.cause());
+                        ctx.pipeline().remove(this);
+                        return;
+                    }
+                    SslHandler sslHandler = ctx.pipeline().get(SslHandler.class);
+                    if (sslHandler == null) {
+                        Exception ex = new javax.net.ssl.SSLException("SslHandler not found in pipeline after SNI handshake");
+                        ctx.fireExceptionCaught(ex);
+                        ctx.pipeline().remove(this);
+                        return;
+                    }
+                    // ALPN check: gRPC requires "h2"; in test/permissive mode ALPN may be absent
+                    String protocol = sslHandler.applicationProtocol();
+                    if (protocol != null && !protocol.isEmpty() && !"h2".equals(protocol)) {
+                        Exception ex = new javax.net.ssl.SSLException(
+                            "Failed protocol negotiation: expected h2 but got " + protocol);
+                        ctx.fireExceptionCaught(ex);
+                        ctx.pipeline().remove(this);
+                        return;
+                    }
+
+                    // Build enriched Attributes and Security from SSL session
+                    SSLSession sslSession = sslHandler.engine().getSession();
+                    InternalChannelz.Security security = new InternalChannelz.Security(
+                        new InternalChannelz.Tls(sslSession));
+                    Attributes attrs = InternalProtocolNegotiationEvent.getAttributes(pne).toBuilder()
+                        .set(GrpcAttributes.ATTR_SECURITY_LEVEL, SecurityLevel.PRIVACY_AND_INTEGRITY)
+                        .set(io.grpc.Grpc.TRANSPORT_ATTR_SSL_SESSION, sslSession)
+                        .build();
+
+                    // Replace this handler with grpcHandler, then complete negotiation
+                    ctx.pipeline().replace(this, null, grpcHandler);
+                    grpcHandler.handleProtocolNegotiationCompleted(attrs, security);
+                } catch (Exception e) {
+                    log.error("Error completing SNI TLS handshake", e);
+                    ctx.fireExceptionCaught(e);
+                    ctx.pipeline().remove(this);
                 }
-            } else {
-                super.userEventTriggered(ctx, evt);
+                return;
             }
-            ctx.pipeline().remove(this);
+            super.userEventTriggered(ctx, evt);
         }
     }
 }

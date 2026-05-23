@@ -521,11 +521,22 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                                         new SniHandler(new AsyncMapping<String, SslContext>() {
                                             @Override
                                             public Promise<SslContext> map(String hostname, Promise<SslContext> promise) {
-                                                SslContext selected = sniLookup.lookup(hostname);
-                                                if (selected == null) {
-                                                    selected = sniLookup.getDefaultContext();
+                                                try {
+                                                    String normalizedHost = hostname != null
+                                                        ? hostname.toLowerCase(java.util.Locale.ROOT) : null;
+                                                    SslContext selected = sniLookup.lookup(normalizedHost);
+                                                    if (selected == null) {
+                                                        selected = sniLookup.getDefaultContext();
+                                                    }
+                                                    if (selected == null) {
+                                                        promise.setFailure(new javax.net.ssl.SSLException(
+                                                            "No SslContext available for SNI hostname: " + hostname));
+                                                    } else {
+                                                        promise.setSuccess(selected);
+                                                    }
+                                                } catch (Exception e) {
+                                                    promise.setFailure(e);
                                                 }
-                                                promise.setSuccess(selected);
                                                 return promise;
                                             }
                                         }))
