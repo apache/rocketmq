@@ -494,6 +494,14 @@ public class PopBufferMergeService extends ServiceThread {
         return true;
     }
 
+    /**
+     * mock checkpoint then add to buffer.
+     * this method is called when popped message is:
+     * - NO_MATCHED_MESSAGE
+     * - OFFSET_FOUND_NULL
+     * - MESSAGE_WAS_REMOVING
+     * - NO_MATCHED_LOGIC_QUEUE
+     */
     public void addCkMock(String group, String topic, int queueId, long startOffset, long invisibleTime,
         long popTime, int reviveQueueId, long nextBeginOffset, String brokerName) {
         final PopCheckPoint ck = new PopCheckPoint();
