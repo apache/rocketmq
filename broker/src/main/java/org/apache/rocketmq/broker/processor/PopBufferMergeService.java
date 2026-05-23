@@ -465,12 +465,13 @@ public class PopBufferMergeService extends ServiceThread {
 
     /**
      * put to store && add to buffer.
+     * addAndStoreCheckpoint maybe a better name.
      *
      * @param point check point
      * @param reviveQueueId revive queueId
      * @param reviveQueueOffset revive queueOffset
      * @param nextBeginOffset next offset
-     * @return
+     * @return true if success
      */
     public boolean addCkJustOffset(PopCheckPoint point, int reviveQueueId, long reviveQueueOffset,
         long nextBeginOffset) {
@@ -524,6 +525,9 @@ public class PopBufferMergeService extends ServiceThread {
         }
     }
 
+    /**
+     * add checkpoint to buffer.
+     */
     public boolean addCk(PopCheckPoint point, int reviveQueueId, long reviveQueueOffset, long nextBeginOffset) {
         // key: point.getT() + point.getC() + point.getQ() + point.getSo() + point.getPt()
         if (!brokerController.getBrokerConfig().isEnablePopBufferMerge()) {
