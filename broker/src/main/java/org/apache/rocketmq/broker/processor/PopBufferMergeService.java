@@ -466,10 +466,10 @@ public class PopBufferMergeService extends ServiceThread {
     /**
      * put to store && add to buffer.
      *
-     * @param point
-     * @param reviveQueueId
-     * @param reviveQueueOffset
-     * @param nextBeginOffset
+     * @param point check point
+     * @param reviveQueueId revive queueId
+     * @param reviveQueueOffset revive queueOffset
+     * @param nextBeginOffset next offset
      * @return
      */
     public boolean addCkJustOffset(PopCheckPoint point, int reviveQueueId, long reviveQueueOffset,
@@ -874,14 +874,18 @@ public class PopBufferMergeService extends ServiceThread {
         // -1: not stored, >=0: stored, Long.MAX: storing.
         private volatile long reviveQueueOffset;
         private final PopCheckPoint ck;
-        // bit for concurrent
+        // bits for concurrent
         private final AtomicInteger bits;
         // bit for stored buffer ak
         private final AtomicInteger toStoreBits;
+        // nextOffset of original topic
         private final long nextBeginOffset;
+        // topic@group@queueId
         private final String lockKey;
+        // topic + group + queueId + startOffset + popTime + brokerName
         private final String mergeKey;
         private final boolean justOffset;
+        // whether check point has stored in revive queue
         private volatile boolean ckStored = false;
 
         public PopCheckPointWrapper(int reviveQueueId, long reviveQueueOffset, PopCheckPoint point,
