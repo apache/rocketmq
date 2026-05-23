@@ -21,10 +21,14 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.MessageStore;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.FlushOptions;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -33,12 +37,12 @@ import org.rocksdb.WriteBatch;
 
 public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
 
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
+
     public static final byte[] OFFSET_COLUMN_FAMILY = "offset".getBytes(StandardCharsets.UTF_8);
 
     private final MessageStore messageStore;
     private volatile ColumnFamilyHandle offsetCFHandle;
-
-    private ConsumeQueueCompactionFilterFactory compactionFilterFactory;
 
     public ConsumeQueueRocksDBStorage(final MessageStore messageStore, final String dbPath) {
         super(dbPath);
@@ -67,20 +71,27 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
 
             final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
 
-            this.compactionFilterFactory = new ConsumeQueueCompactionFilterFactory(messageStore::getMinPhyOffset);
-
-            ColumnFamilyOptions cqCfOptions = RocksDBOptionsFactory.createCQCFOptions(this.messageStore, this.compactionFilterFactory);
+            ColumnFamilyOptions cqCfOptions = RocksDBOptionsFactory.createCQCFOptions(this.messageStore);
             this.cfOptions.add(cqCfOptions);
             cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cqCfOptions));
 
             ColumnFamilyOptions offsetCfOptions = RocksDBOptionsFactory.createOffsetCFOptions();
             this.cfOptions.add(offsetCfOptions);
             cfDescriptors.add(new ColumnFamilyDescriptor(OFFSET_COLUMN_FAMILY, offsetCfOptions));
+
+            if (CqCompactionFilterJni.isLoaded()) {
+                CqCompactionFilterJni.createAndSetFilter(cqCfOptions);
+                CqCompactionFilterJni.setMinPhyOffset(messageStore.getMinPhyOffset());
+                log.info("CqCompactionFilter created and set, minPhyOffset: {}", messageStore.getMinPhyOffset());
+            } else {
+                log.warn("CqCompactionFilterJni native library not loaded, compaction filter will not be installed");
+            }
+
             open(cfDescriptors);
             this.defaultCFHandle = cfHandles.get(0);
             this.offsetCFHandle = cfHandles.get(1);
         } catch (final Exception e) {
-            LOGGER.error("postLoad Failed. {}", this.dbPath, e);
+            log.error("postLoad Failed. {}", this.dbPath, e);
             return false;
         }
         return true;
@@ -91,11 +102,6 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
         if (this.offsetCFHandle != null) {
             this.offsetCFHandle.close();
         }
-
-        if (this.compactionFilterFactory != null) {
-            this.compactionFilterFactory.close();
-        }
-
     }
 
     public byte[] getCQ(final byte[] keyBytes) throws RocksDBException {
@@ -116,10 +122,13 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
     }
 
     public void manualCompaction(final long minPhyOffset) {
+        if (CqCompactionFilterJni.isLoaded()) {
+            CqCompactionFilterJni.setMinPhyOffset(minPhyOffset);
+        }
         try {
-            manualCompaction(minPhyOffset, this.compactRangeOptions);
+            super.manualCompaction(this.compactRangeOptions);
         } catch (Exception e) {
-            LOGGER.error("manualCompaction Failed. minPhyOffset: {}", minPhyOffset, e);
+            log.error("manualCompaction Failed. minPhyOffset: {}", minPhyOffset, e);
         }
     }
 
@@ -129,5 +138,42 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
 
     public ColumnFamilyHandle getOffsetCFHandle() {
         return this.offsetCFHandle;
+    }
+
+    /**
+     * Synchronously trigger compaction with an updated compaction filter threshold.
+     * This method updates the native compaction filter's minPhyOffset and then
+     * performs a full compaction on the default column family.
+     */
+    public void triggerCompactionSync(long minPhyOffset) throws RocksDBException {
+        if (CqCompactionFilterJni.isLoaded()) {
+            CqCompactionFilterJni.setMinPhyOffset(minPhyOffset);
+        }
+        db.compactRange(this.defaultCFHandle);
+    }
+
+    /**
+     * Flush all memtables to SST files.
+     */
+    public void flushAll() throws RocksDBException {
+        try (FlushOptions flushOpts = new FlushOptions()) {
+            flushOpts.setWaitForFlush(true);
+            flush(flushOpts);
+        }
+    }
+
+    /**
+     * Count all entries in the default column family by iterating. O(N), use only in tests.
+     */
+    public long countEntries() {
+        long count = 0;
+        try (RocksIterator iter = db.newIterator(this.defaultCFHandle)) {
+            iter.seekToFirst();
+            while (iter.isValid()) {
+                count++;
+                iter.next();
+            }
+        }
+        return count;
     }
 }

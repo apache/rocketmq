@@ -113,8 +113,8 @@
             <artifactId>rocketmq-logback-classic</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-rocksdb</artifactId>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
         </dependency>
     </dependencies>
 </project>
