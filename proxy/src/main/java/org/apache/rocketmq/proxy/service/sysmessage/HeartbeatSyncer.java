@@ -48,6 +48,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.rocketmq.proxy.common.InternalContextHolder.beginInternalScope;
+import static org.apache.rocketmq.proxy.common.InternalContextHolder.clear;
+
 public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
 
     protected ThreadPoolExecutor threadPoolExecutor;
@@ -113,6 +116,8 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         try {
             this.threadPoolExecutor.submit(() -> {
                 try {
+                    beginInternalScope();
+
                     RemoteChannel remoteChannel = RemoteChannel.create(clientChannelInfo.getChannel());
                     if (remoteChannel == null) {
                         return;
@@ -134,13 +139,13 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                     log.debug("sync register heart beat. topic:{}, data:{}", this.getBroadcastTopicName(), data);
                     this.sendSystemMessage(data);
                 } catch (Throwable t) {
-                    log.error("heartbeat register broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}, messageModel:{}, consumeFromWhere:{}, subList:{}",
-                        consumerGroup, clientChannelInfo, consumeType, messageModel, consumeFromWhere, subList, t);
+                    log.error("heartbeat register broadcast failed...", t);
+                } finally {
+                    clear();
                 }
             });
         } catch (Throwable t) {
-            log.error("heartbeat submit register broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}, messageModel:{}, consumeFromWhere:{}, subList:{}",
-                consumerGroup, clientChannelInfo, consumeType, messageModel, consumeFromWhere, subList, t);
+            log.error("heartbeat submit register broadcast failed...", t);
         }
     }
 
@@ -151,6 +156,8 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         try {
             this.threadPoolExecutor.submit(() -> {
                 try {
+                    beginInternalScope();
+
                     RemoteChannel remoteChannel = RemoteChannel.create(clientChannelInfo.getChannel());
                     if (remoteChannel == null) {
                         return;
@@ -171,13 +178,13 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                     log.debug("sync unregister heart beat. topic:{}, data:{}", this.getBroadcastTopicName(), data);
                     this.sendSystemMessage(data);
                 } catch (Throwable t) {
-                    log.error("heartbeat unregister broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}",
-                        consumerGroup, clientChannelInfo, t);
+                    log.error("heartbeat unregister broadcast failed...", t);
+                } finally {
+                    clear();
                 }
             });
         } catch (Throwable t) {
-            log.error("heartbeat submit unregister broadcast failed. group:{}, clientChannelInfo:{}, consumeType:{}",
-                consumerGroup, clientChannelInfo, t);
+            log.error("heartbeat submit unregister broadcast failed...", t);
         }
     }
 

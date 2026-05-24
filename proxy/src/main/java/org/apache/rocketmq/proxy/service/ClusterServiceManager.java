@@ -35,6 +35,7 @@ import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.SystemResourceAwareRpcHook;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.admin.AdminService;
@@ -54,6 +55,9 @@ import org.apache.rocketmq.proxy.service.transaction.ClusterTransactionService;
 import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingClient;
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.commons.lang3.StringUtils;
 
 public class ClusterServiceManager extends AbstractStartAndShutdown implements ServiceManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -74,22 +78,31 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     protected MQClientAPIFactory transactionClientAPIFactory;
     protected MQClientAPIFactory liteSubscriptionAPIFactory;
 
-    public ClusterServiceManager(RPCHook rpcHook) {
-        this(rpcHook, null);
-    }
-
     public ClusterServiceManager(RPCHook rpcHook, ObjectCreator<RemotingClient> remotingClientCreator) {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         NameserverAccessConfig nameserverAccessConfig = new NameserverAccessConfig(proxyConfig.getNamesrvAddr(),
             proxyConfig.getNamesrvDomain(), proxyConfig.getNamesrvDomainSubgroup());
         this.scheduledExecutorService = ThreadUtils.newScheduledThreadPool(3);
 
+        String proxyAccessKey = System.getProperty("rocketmq.proxy.accessKey", System.getenv("ROCKETMQ_PROXY_ACCESS_KEY"));
+        String proxySecretKey = System.getProperty("rocketmq.proxy.secretKey", System.getenv("ROCKETMQ_PROXY_SECRET_KEY"));
+
+        RPCHook systemHook = null;
+        if (StringUtils.isNotBlank(proxyAccessKey) && StringUtils.isNotBlank(proxySecretKey)) {
+            systemHook = new AclClientRPCHook(new SessionCredentials(proxyAccessKey, proxySecretKey));
+            log.info("SystemResourceAwareRpcHook initialized with provided Proxy Admin Credentials.");
+        } else {
+            log.warn("No Proxy Admin Credentials found (rocketmq.proxy.accessKey/secretKey). System requests will be anonymous.");
+        }
+
+        RPCHook systemAwareHook = new SystemResourceAwareRpcHook(rpcHook, systemHook);
+
         this.messagingClientAPIFactory = new MQClientAPIFactory(
             nameserverAccessConfig,
             "ClusterMQClient_",
             proxyConfig.getRocketmqMQClientNum(),
             new DoNothingClientRemotingProcessor(null),
-            rpcHook,
+            systemAwareHook,
             scheduledExecutorService,
             remotingClientCreator
         );
@@ -99,7 +112,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
             "OperationClient_",
             1,
             new DoNothingClientRemotingProcessor(null),
-            rpcHook,
+            systemAwareHook,
             this.scheduledExecutorService,
             remotingClientCreator
         );
@@ -110,14 +123,14 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.adminService = new DefaultAdminService(this.operationClientAPIFactory);
 
         this.producerManager = new ProducerManager();
-        this.consumerManager = new ClusterConsumerManager(this.topicRouteService, this.adminService, this.operationClientAPIFactory, new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout(), rpcHook);
+        this.consumerManager = new ClusterConsumerManager(this.topicRouteService, this.adminService, this.operationClientAPIFactory, new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout(), systemAwareHook);
 
         this.transactionClientAPIFactory = new MQClientAPIFactory(
             nameserverAccessConfig,
             "ClusterTransaction_",
             1,
             new ProxyClientRemotingProcessor(producerManager, consumerManager),
-            rpcHook,
+            systemAwareHook,
             scheduledExecutorService,
             remotingClientCreator
         );
@@ -132,7 +145,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
             "LiteSubscription_",
             1,
             new ProxyClientRemotingProcessor(producerManager, consumerManager),
-            rpcHook,
+            systemAwareHook,
             scheduledExecutorService);
         this.liteSubscriptionService = new LiteSubscriptionService(this.topicRouteService, this.liteSubscriptionAPIFactory);
 
