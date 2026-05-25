@@ -74,12 +74,10 @@ public class GrpcServer implements StartAndShutdown {
     class GrpcTlsReloadHandler implements TlsCertificateManager.TlsContextReloadListener {
         @Override
         public void onTlsContextReload() {
-            try {
-                ProxyAndTlsProtocolNegotiator.loadAllSslContexts();
-                log.info("SslContext reloaded for grpc server");
-            } catch (Exception e) {
-                log.error("Failed to reload SslContext for server", e);
-            }
+            // TlsCertificateManager's FileWatchListeners already reload the specific changed
+            // domain via TlsSniManager directly. Since TlsSniManager is a singleton, new
+            // connections automatically pick up the latest context without additional reload.
+            log.info("TLS certificate change detected, contexts already reloaded by TlsSniManager");
         }
     }
 }

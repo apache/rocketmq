@@ -78,7 +78,9 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
 
     public ProxyAndTlsProtocolNegotiator() {
         try {
-            loadAllSslContexts();
+            // Ensure TlsSniManager is initialized with all configured domain contexts.
+            // No need to call loadAllSslContexts() here — getInstance() triggers initialize().
+            getTlsSniManager();
             log.info("SslContext created for proxy server with SNI support");
         } catch (Exception e) {
             log.error("SslContext init error", e);

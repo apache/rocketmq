@@ -154,10 +154,24 @@ public class TlsSniManager {
         try {
             io.netty.handler.ssl.SslContext stdCtx = buildStdSslContext(config, tlsTestModeEnable);
             SslContext shadedCtx = buildShadedSslContext(config, tlsTestModeEnable);
-            // For exact domains, release old context to avoid native SSL resource leaks
+            // Release old context to avoid native SSL resource leaks
             if (!domainPattern.startsWith("*.")) {
                 releaseQuietly(stdExactContexts.get(domainPattern));
                 releaseQuietly(shadedExactContexts.get(domainPattern));
+            } else {
+                // For wildcard patterns, find and release old contexts before replacement
+                for (WildcardSslContext<io.netty.handler.ssl.SslContext> wc : stdWildcardContexts) {
+                    if (wc.domainPattern.equals(domainPattern)) {
+                        releaseQuietly(wc.context);
+                        break;
+                    }
+                }
+                for (WildcardSslContext<SslContext> wc : shadedWildcardContexts) {
+                    if (wc.domainPattern.equals(domainPattern)) {
+                        releaseQuietly(wc.context);
+                        break;
+                    }
+                }
             }
             addDomainContexts(domainPattern, stdCtx, shadedCtx);
             log.info("Reloaded SslContext for domain: {}", domainPattern);
