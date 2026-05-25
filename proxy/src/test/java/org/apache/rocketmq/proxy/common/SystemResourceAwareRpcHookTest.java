@@ -23,6 +23,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.GetRouteInfoRequestHeader;
 import org.junit.After;
@@ -230,6 +231,104 @@ public class SystemResourceAwareRpcHookTest {
         assertEquals(remoteAddr, userHook.lastBeforeRemoteAddr);
         assertEquals(0, systemHook.beforeRequestCount);
         assertNull(systemHook.lastBeforeRequest);
+    }
+
+    @Test
+    public void testNullRequestFallsBackToUserHook() {
+        InternalContextHolder.beginInternalScope();
+
+        rpcHook.doBeforeRequest(remoteAddr, null);
+
+        assertEquals(1, userHook.beforeRequestCount);
+        assertNull(userHook.lastBeforeRequest);
+        assertEquals(remoteAddr, userHook.lastBeforeRemoteAddr);
+
+        assertEquals(0, systemHook.beforeRequestCount);
+    }
+
+    @Test
+    public void testSendMessageV2SystemRouting() {
+        InternalContextHolder.beginInternalScope();
+
+        SendMessageRequestHeaderV2 headerV2 = new SendMessageRequestHeaderV2();
+
+        headerV2.setA(MixAll.CLIENT_INNER_PRODUCER_GROUP);
+        headerV2.setB(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(
+            RequestCode.SEND_MESSAGE_V2,
+            headerV2
+        );
+
+        request.makeCustomHeaderToNet();
+
+        rpcHook.doBeforeRequest(remoteAddr, request);
+
+        assertEquals(1, systemHook.beforeRequestCount);
+        assertSame(request, systemHook.lastBeforeRequest);
+        assertEquals(remoteAddr, systemHook.lastBeforeRemoteAddr);
+
+        assertEquals(0, userHook.beforeRequestCount);
+    }
+
+    @Test
+    public void testExceptionDuringHeaderDecodeFallsBackToUserHook() {
+        InternalContextHolder.beginInternalScope();
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(
+            RequestCode.SEND_MESSAGE,
+            null
+        );
+
+        request.addExtField("producerGroup", "groupOnly");
+
+        rpcHook.doBeforeRequest(remoteAddr, request);
+
+        assertEquals(1, userHook.beforeRequestCount);
+        assertSame(request, userHook.lastBeforeRequest);
+        assertEquals(remoteAddr, userHook.lastBeforeRemoteAddr);
+
+        assertEquals(0, systemHook.beforeRequestCount);
+    }
+
+    @Test
+    public void testFallbackExtFieldsProducerGroupSystemMatch() {
+        InternalContextHolder.beginInternalScope();
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(9999, null);
+
+        request.addExtField(
+            "producerGroup",
+            MixAll.CLIENT_INNER_PRODUCER_GROUP
+        );
+
+        rpcHook.doBeforeRequest(remoteAddr, request);
+
+        assertEquals(1, systemHook.beforeRequestCount);
+        assertSame(request, systemHook.lastBeforeRequest);
+        assertEquals(remoteAddr, systemHook.lastBeforeRemoteAddr);
+
+        assertEquals(0, userHook.beforeRequestCount);
+    }
+
+    @Test
+    public void testFallbackExtFieldsConsumerGroupSystemMatch() {
+        InternalContextHolder.beginInternalScope();
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(9999, null);
+
+        request.addExtField(
+            "consumerGroup",
+            MixAll.TOOLS_CONSUMER_GROUP
+        );
+
+        rpcHook.doBeforeRequest(remoteAddr, request);
+
+        assertEquals(1, systemHook.beforeRequestCount);
+        assertSame(request, systemHook.lastBeforeRequest);
+        assertEquals(remoteAddr, systemHook.lastBeforeRemoteAddr);
+
+        assertEquals(0, userHook.beforeRequestCount);
     }
 
     private static class RecordingHook implements RPCHook {
