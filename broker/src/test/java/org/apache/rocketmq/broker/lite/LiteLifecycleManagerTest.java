@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.lite;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -76,11 +77,16 @@ public class LiteLifecycleManagerTest {
         LiteSharding liteSharding = Mockito.mock(LiteSharding.class);
         TopicConfigManager topicConfigManager = Mockito.mock(TopicConfigManager.class);
         SubscriptionGroupManager subscriptionGroupManager = Mockito.mock(SubscriptionGroupManager.class);
+        LiteSubscriptionRegistry liteSubscriptionRegistry = Mockito.mock(LiteSubscriptionRegistry.class);
+        ConsumerOffsetManager consumerOffsetManager = Mockito.mock(ConsumerOffsetManager.class);
+        when(consumerOffsetManager.getPullOffsetTable()).thenReturn(new ConcurrentHashMap<>());
 
         when(brokerController.getBrokerConfig()).thenReturn(BROKER_CONFIG);
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
+        when(brokerController.getLiteSubscriptionRegistry()).thenReturn(liteSubscriptionRegistry);
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
         when(topicConfigManager.getTopicConfigTable()).thenReturn(TOPIC_CONFIG_TABLE);
         when(topicConfigManager.selectTopicConfig(anyString())).thenReturn(mockTopicConfig);
         when(subscriptionGroupManager.getSubscriptionGroupTable()).thenReturn(new ConcurrentHashMap<>());
@@ -177,7 +183,6 @@ public class LiteLifecycleManagerTest {
         }
     }
 
-    @Ignore("Flaky: fails 2/100 runs (2.0%)")
     @Test
     public void testCleanByParentTopic() {
         int num = 3;
