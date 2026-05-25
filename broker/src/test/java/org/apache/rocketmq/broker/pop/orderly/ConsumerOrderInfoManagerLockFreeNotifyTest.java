@@ -35,7 +35,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import org.junit.Ignore;
 
 public class ConsumerOrderInfoManagerLockFreeNotifyTest {
 
@@ -157,9 +156,9 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
         assertTrue(consumerOrderInfoManager.getConsumerOrderInfoLockManager().getTimeoutMap().isEmpty());
     }
 
-    @Ignore("Flaky: fails 2/100 runs (2.0%)")
     @Test
     public void testRecover() {
+        long recoverPopTime = System.currentTimeMillis();
         QueueLevelConsumerManager savedConsumerOrderInfoManager = new QueueLevelConsumerManager();
         savedConsumerOrderInfoManager.update(
             null,
@@ -167,7 +166,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
             TOPIC,
             GROUP,
             QUEUE_ID_0,
-            popTime,
+            recoverPopTime,
             3000,
             Lists.newArrayList(1L),
             new StringBuilder()
