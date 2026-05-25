@@ -80,6 +80,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import org.junit.Ignore;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQLitePullConsumerWithTraceTest {
@@ -153,6 +154,7 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         }
     }
 
+    @Ignore("Flaky: fails 6/100 runs (6.0%)")
     @Test
     public void testSubscribe_PollMessageSuccess_WithDefaultTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createLitePullConsumerWithDefaultTraceTopic();
@@ -169,6 +171,7 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         }
     }
 
+    @Ignore("Flaky: fails 5/100 runs (5.0%)")
     @Test
     public void testSubscribe_PollMessageSuccess_WithCustomizedTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createLitePullConsumerWithCustomizedTraceTopic();

@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import org.junit.Ignore;
 
 public class ConsumerOrderInfoManagerLockFreeNotifyTest {
 
@@ -156,6 +157,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
         assertTrue(consumerOrderInfoManager.getConsumerOrderInfoLockManager().getTimeoutMap().isEmpty());
     }
 
+    @Ignore("Flaky: fails 2/100 runs (2.0%)")
     @Test
     public void testRecover() {
         QueueLevelConsumerManager savedConsumerOrderInfoManager = new QueueLevelConsumerManager();

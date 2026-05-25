@@ -88,6 +88,7 @@ import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import org.junit.Ignore;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class DefaultMQConsumerWithTraceTest {
@@ -216,6 +217,7 @@ public class DefaultMQConsumerWithTraceTest {
         pushConsumer.shutdown();
     }
 
+    @Ignore("Flaky: fails 1/100 runs (1.0%)")
     @Test
     public void testPullMessage_WithTrace_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
         traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());

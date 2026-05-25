@@ -53,6 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.awaitility.Awaitility.await;
+import org.junit.Ignore;
 
 public class IndexStoreServiceTest {
 
@@ -308,6 +309,7 @@ public class IndexStoreServiceTest {
         }
     }
 
+    @Ignore("Flaky: fails 1/65 runs (1.5%)")
     @Test
     public void concurrentGetTest() throws InterruptedException {
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000);
@@ -352,6 +354,7 @@ public class IndexStoreServiceTest {
         Assert.assertTrue(result.get());
     }
 
+    @Ignore("Flaky: fails 35/100 runs (35.0%)")
     @Test
     public void queryCrossFileBoundaryTest() throws InterruptedException, ExecutionException {
         indexService = new IndexStoreService(fileAllocator, filePath);
