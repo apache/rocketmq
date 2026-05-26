@@ -367,6 +367,7 @@ public class PopBufferMergeService extends ServiceThread {
                 continue;
             } else if (removeCk) { // store or merge ack info
                 // put buffer ak to store
+                // revive queue offset < 0 means checkpoint was not stored
                 if (pointWrapper.getReviveQueueOffset() < 0) {
                     putCkToStore(pointWrapper, this.brokerController.getBrokerConfig().isAppendCkAsync());
                     countCk++;
