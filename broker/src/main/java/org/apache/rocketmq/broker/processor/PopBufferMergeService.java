@@ -649,6 +649,28 @@ public class PopBufferMergeService extends ServiceThread {
         return true;
     }
 
+    /**
+     * Merge a consumer ack into the buffered checkpoint.
+     *
+     * <p>The ack is not written to the revive topic immediately. Instead, a flag is
+     * set in {@link PopCheckPointWrapper#bits} via {@link #markBitCAS}.
+     * The pending ack will later be flushed to storage by {@link #scan()} when the
+     * checkpoint is evicted (timeout / buffer full / service stopping).
+     *
+     * <p>Rejection conditions (return false):
+     * <ul>
+     *   <li>{@code enablePopBufferMerge} is disabled</li>
+     *   <li>The service is not serving (too busy)</li>
+     *   <li>No matching checkpoint found in {@link #buffer}</li>
+     *   <li>The checkpoint is a {@code justOffset} entry (no messages to ack)</li>
+     *   <li>The checkpoint is too close to its revive deadline</li>
+     *   <li>The checkpoint has been buffered for too long</li>
+     * </ul>
+     *
+     * @param reviveQid revive queue id (used only for logging)
+     * @param ackMsg    the ack message from the consumer
+     * @return true if the ack was merged successfully
+     */
     public boolean addAk(int reviveQid, AckMsg ackMsg) {
         // validate env
         if (!brokerController.getBrokerConfig().isEnablePopBufferMerge()) {
