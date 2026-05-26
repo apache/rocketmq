@@ -65,6 +65,7 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     private long reviveOffset;
     /**
      * Per-message offset differences from {@link #startOffset}.
+     * queueOffsetDiff will not be null or empty in 5.*
      *
      * <p>When a batch of messages is popped, the queue offsets of the messages may not
      * be contiguous (e.g. batch messages, ConsumeQueue compaction, filter mismatch gaps).
@@ -207,7 +208,7 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
             return -1;
         }
 
-        // old version of checkpoint
+        // old version of checkpoint, this will not happen in 5.*
         if (queueOffsetDiff == null || queueOffsetDiff.isEmpty()) {
 
             if (ackOffset - startOffset < num) {
@@ -222,7 +223,7 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
     }
 
     public long ackOffsetByIndex(byte index) {
-        // old version of checkpoint
+        // old version of checkpoint, this will not happen in 5.*
         if (queueOffsetDiff == null || queueOffsetDiff.isEmpty()) {
             return startOffset + index;
         }
