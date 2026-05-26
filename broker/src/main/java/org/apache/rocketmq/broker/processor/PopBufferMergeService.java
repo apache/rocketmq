@@ -396,6 +396,7 @@ public class PopBufferMergeService extends ServiceThread {
                 } else {
                     for (byte i = 0; i < point.getNum(); i++) {
                         // reput buffer ak to store
+                        // if checkpoint is acked and not stored, call putAckToStore
                         if (DataConverter.getBit(pointWrapper.getBits().get(), i)
                             && !DataConverter.getBit(pointWrapper.getToStoreBits().get(), i)) {
                             putAckToStore(pointWrapper, i, count);
@@ -817,6 +818,7 @@ public class PopBufferMergeService extends ServiceThread {
     }
 
     private void putAckToStore(final PopCheckPointWrapper pointWrapper, byte msgIndex, AtomicInteger count) {
+        // build ackMsg and Message by checkpoint
         PopCheckPoint point = pointWrapper.getCk();
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         final AckMsg ackMsg = new AckMsg();
@@ -840,7 +842,8 @@ public class PopBufferMergeService extends ServiceThread {
 
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 
-        if (brokerController.getBrokerConfig().isAppendAckAsync()) {
+        // store message then change store status of the checkpoint
+        if (brokerController.getBrokerConfig().isAppendAckAsync()) { // default value is false
             brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenAccept(putMessageResult -> {
                 handleAckPutMessageResult(ackMsg, putMessageResult, pointWrapper, count, msgIndex);
             }).exceptionally(throwable -> {
@@ -848,7 +851,9 @@ public class PopBufferMergeService extends ServiceThread {
                 return null;
             });
         } else {
+            // store message
             PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
+            // change store status of the checkpoint
             handleAckPutMessageResult(ackMsg, putMessageResult, pointWrapper, count, msgIndex);
         }
     }
