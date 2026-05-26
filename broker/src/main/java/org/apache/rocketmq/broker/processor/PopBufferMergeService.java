@@ -182,6 +182,26 @@ public class PopBufferMergeService extends ServiceThread {
         }
     }
 
+    /**
+     * Drain the {@link #commitOffsets} queues and commit consumer offsets in FIFO order.
+     *
+     * <p>For each {@code topic@cid@queueId} queue, the method peeks the head (oldest)
+     * wrapper and checks whether it is ready to commit:
+     * <ul>
+     *   <li>Just-offset entry with CK stored</li>
+     *   <li>All sub-messages acked ({@link #isCkDone})</li>
+     *   <li>All acks persisted and CK stored ({@link #isCkDoneForFinish})</li>
+     * </ul>
+     *
+     * <p>If the head is ready, it is committed and removed. Processing continues
+     * to the next wrapper in the same queue. If the head is not ready, the loop
+     * breaks — this ensures <b>strict FIFO order</b> and prevents consumer offset
+     * regression.
+     *
+     * <p>Called at the end of {@link #scan()} after the buffer has been processed.
+     *
+     * @return the total number of remaining wrappers across all queues (for logging)
+     */
     private int scanCommitOffset() {
         Iterator<Map.Entry<String, QueueWithTime<PopCheckPointWrapper>>> iterator = this.commitOffsets.entrySet().iterator();
         int count = 0;
