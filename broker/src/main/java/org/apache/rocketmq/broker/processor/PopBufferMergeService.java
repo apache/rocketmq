@@ -356,7 +356,7 @@ public class PopBufferMergeService extends ServiceThread {
             }
 
             // double check
-            if (isCkDone(pointWrapper)) { // ck done, do nothing
+            if (isCkDone(pointWrapper)) { // all checkpoint are acked, do nothing
                 continue;
             } else if (pointWrapper.isJustOffset()) { // store checkpoint
                 // just offset should be in store.
