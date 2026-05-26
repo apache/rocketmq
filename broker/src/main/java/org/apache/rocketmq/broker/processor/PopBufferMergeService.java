@@ -1043,6 +1043,20 @@ public class PopBufferMergeService extends ServiceThread {
         private final String lockKey;
         // topic + group + queueId + startOffset + popTime + brokerName
         private final String mergeKey;
+        /**
+         * Whether this checkpoint should be written to the revive topic directly.
+         *
+         * <p>When {@code true}:
+         * <ul>
+         *   <li>The CK has already been or will be written to the revive topic directly</li>
+         *   <li>No Ack merging is needed — {@link #addAk} rejects these entries</li>
+         *   <li>The wrapper exists solely to maintain FIFO offset commit order in
+         *       {@link #commitOffsets}</li>
+         * </ul>
+         *
+         * @see PopBufferMergeService#addCkJustOffset
+         * @see PopBufferMergeService#addCkMock
+         */
         private final boolean justOffset;
         // whether check point has stored in revive queue
         private volatile boolean ckStored = false;
