@@ -184,6 +184,7 @@ public class PopBufferMergeService extends ServiceThread {
 
     /**
      * Drain the {@link #commitOffsets} queues and commit consumer offsets in FIFO order.
+     * scanAndCommitOffset may be a better name
      *
      * <p>For each {@code topic@cid@queueId} queue, the method peeks the head (oldest)
      * wrapper and checks whether it is ready to commit:
