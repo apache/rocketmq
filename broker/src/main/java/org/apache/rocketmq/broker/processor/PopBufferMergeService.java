@@ -1007,6 +1007,18 @@ public class PopBufferMergeService extends ServiceThread {
         return true;
     }
 
+    /**
+     * Check whether all acked sub-messages have been fully persisted.
+     *
+     * <p>Uses XOR: {@code bits ^ toStoreBits}. A bit is set in the result when
+     * the corresponding sub-message has been acked ({@code bits}) but not yet
+     * persisted ({@code toStoreBits}). Returns {@code true} only when every
+     * acked message has also been persisted, meaning the checkpoint is ready
+     * for final cleanup.
+     *
+     * @param pointWrapper the checkpoint wrapper to check
+     * @return {@code true} if no ack remains to be persisted
+     */
     private boolean isCkDoneForFinish(PopCheckPointWrapper pointWrapper) {
         byte num = pointWrapper.getCk().getNum();
         int bits = pointWrapper.getBits().get() ^ pointWrapper.getToStoreBits().get();
