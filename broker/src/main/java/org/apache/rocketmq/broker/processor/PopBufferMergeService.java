@@ -436,6 +436,7 @@ public class PopBufferMergeService extends ServiceThread {
             }
         }
 
+        // scan commitOffsets and commit offset which is needed.
         int offsetBufferSize = scanCommitOffset();
 
         // calculate scan times
