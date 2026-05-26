@@ -871,6 +871,15 @@ public class PopBufferMergeService extends ServiceThread {
         }
     }
 
+    /**
+     * update store status of checkpoint if revive message stored successfully.
+     *
+     * @param ackMsg          the ack message that was persisted
+     * @param putMessageResult the result returned by the store
+     * @param pointWrapper    the checkpoint wrapper being processed
+     * @param count           atomic counter incremented on success
+     * @param msgIndex        the sub-message index that was persisted
+     */
     private void handleAckPutMessageResult(AckMsg ackMsg, PutMessageResult putMessageResult,
         PopCheckPointWrapper pointWrapper, AtomicInteger count, byte msgIndex) {
         brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
