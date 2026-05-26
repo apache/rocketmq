@@ -986,6 +986,17 @@ public class PopBufferMergeService extends ServiceThread {
         return true;
     }
 
+    /**
+     * Check whether all sub-messages in the checkpoint have been acked.
+     *
+     * <p>Every sub-message has a corresponding bit in
+     * {@link PopCheckPointWrapper#bits}. This method returns {@code true} when
+     * all bits are set, meaning the CK can be removed from the buffer without
+     * writing any ack to the revive topic (clean completion).
+     *
+     * @param pointWrapper the checkpoint wrapper to check
+     * @return {@code true} if every sub-message has been acked
+     */
     private boolean isCkDone(PopCheckPointWrapper pointWrapper) {
         byte num = pointWrapper.getCk().getNum();
         for (byte i = 0; i < num; i++) {
