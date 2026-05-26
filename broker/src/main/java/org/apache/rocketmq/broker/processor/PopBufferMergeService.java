@@ -499,6 +499,22 @@ public class PopBufferMergeService extends ServiceThread {
         }
     }
 
+    /**
+     * Commit the consumer offset for the checkpoint's {@code topic@cid@queueId}.
+     *
+     * <p>Called from {@link #scanCommitOffset()} after the checkpoint is confirmed
+     * as finished (all acks received or CK stored). The offset is advanced to
+     * {@link PopCheckPointWrapper#nextBeginOffset}, which is the offset of the
+     * first message after this batch.
+     *
+     * <p>The operation is guarded by {@link PopMessageProcessor.QueueLockManager}
+     * to prevent concurrent offset updates on the same queue.
+     *
+     * @param wrapper the finished checkpoint wrapper
+     * @return {@code true} if the offset was committed or no commit is needed
+     *         ({@code nextBeginOffset < 0}); {@code false} if the lock could
+     *         not be acquired (caller should retry later)
+     */
     private boolean commitOffset(final PopCheckPointWrapper wrapper) {
         if (wrapper.getNextBeginOffset() < 0) {
             return true;
