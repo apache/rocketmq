@@ -325,7 +325,6 @@ public class PopBufferMergeService extends ServiceThread {
                 continue;
             }
 
-
             // just process offset(already stored at pull thread), or buffer ck(not stored and ack finish)
             if (pointWrapper.isJustOffset() && pointWrapper.isCkStored() || isCkDone(pointWrapper)
                 || isCkDoneForFinish(pointWrapper) && pointWrapper.isCkStored()) {
@@ -357,16 +356,16 @@ public class PopBufferMergeService extends ServiceThread {
             }
 
             // double check
-            if (isCkDone(pointWrapper)) {
+            if (isCkDone(pointWrapper)) { // ck done, do nothing
                 continue;
-            } else if (pointWrapper.isJustOffset()) {
+            } else if (pointWrapper.isJustOffset()) { // store check point
                 // just offset should be in store.
                 if (pointWrapper.getReviveQueueOffset() < 0) {
                     putCkToStore(pointWrapper, this.brokerController.getBrokerConfig().isAppendCkAsync());
                     countCk++;
                 }
                 continue;
-            } else if (removeCk) {
+            } else if (removeCk) { // store or merge ack info
                 // put buffer ak to store
                 if (pointWrapper.getReviveQueueOffset() < 0) {
                     putCkToStore(pointWrapper, this.brokerController.getBrokerConfig().isAppendCkAsync());
@@ -377,11 +376,12 @@ public class PopBufferMergeService extends ServiceThread {
                     continue;
                 }
 
-                if (brokerController.getBrokerConfig().isEnablePopBatchAck()) {
+                if (brokerController.getBrokerConfig().isEnablePopBatchAck()) { // default is false
                     List<Byte> indexList = this.batchAckIndexList;
                     try {
                         for (byte i = 0; i < point.getNum(); i++) {
                             // reput buffer ak to store
+                            // if checkpoint is acked and not stored, add to indexList
                             if (DataConverter.getBit(pointWrapper.getBits().get(), i)
                                 && !DataConverter.getBit(pointWrapper.getToStoreBits().get(), i)) {
                                 indexList.add(i);
@@ -415,6 +415,7 @@ public class PopBufferMergeService extends ServiceThread {
 
         int offsetBufferSize = scanCommitOffset();
 
+        // calculate scan times
         long eclipse = System.currentTimeMillis() - startTime;
         if (eclipse > brokerController.getBrokerConfig().getPopCkStayBufferTimeOut() - 1000) {
             POP_LOGGER.warn("[PopBuffer]scan stop, because eclipse too long, PopBufferEclipse={}, " +
@@ -649,13 +650,16 @@ public class PopBufferMergeService extends ServiceThread {
     }
 
     public boolean addAk(int reviveQid, AckMsg ackMsg) {
+        // validate env
         if (!brokerController.getBrokerConfig().isEnablePopBufferMerge()) {
             return false;
         }
         if (!serving) {
             return false;
         }
+
         try {
+            // get and validate checkpoint
             PopCheckPointWrapper pointWrapper = this.buffer.get(ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime() + ackMsg.getBrokerName());
             if (pointWrapper == null) {
                 if (brokerController.getBrokerConfig().isEnablePopLog()) {
@@ -685,7 +689,8 @@ public class PopBufferMergeService extends ServiceThread {
                 return false;
             }
 
-            if (ackMsg instanceof BatchAckMsg) {
+            // merge ackMsg with checkpoint
+            if (ackMsg instanceof BatchAckMsg) { // merge batch ackMsg
                 for (Long ackOffset : ((BatchAckMsg) ackMsg).getAckOffsetList()) {
                     int indexOfAck = point.indexOfAck(ackOffset);
                     if (indexOfAck > -1) {
@@ -694,7 +699,7 @@ public class PopBufferMergeService extends ServiceThread {
                         POP_LOGGER.error("[PopBuffer]Invalid index of ack, reviveQid={}, {}, {}", reviveQid, ackMsg, point);
                     }
                 }
-            } else {
+            } else { // merge ackMsg
                 int indexOfAck = point.indexOfAck(ackMsg.getAckOffset());
                 if (indexOfAck > -1) {
                     markBitCAS(pointWrapper.getBits(), indexOfAck);
@@ -704,6 +709,7 @@ public class PopBufferMergeService extends ServiceThread {
                 }
             }
 
+            // logging
             if (brokerController.getBrokerConfig().isEnablePopLog()) {
                 POP_LOGGER.info("[PopBuffer]add ack, rqId={}, {}, {}", reviveQid, pointWrapper, ackMsg);
             }
