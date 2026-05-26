@@ -572,6 +572,10 @@ public class BrokerConfig extends BrokerIdentity {
 
     private int liteLagLatencyTopK = 50;
 
+    // HashedWheelTimer config for pop order lock manager
+    private long popOrderLockTimerTickMs = 100;
+    private int popOrderLockTimerTicksPerWheel = 512;
+
     public String getConfigBlackList() {
         return configBlackList;
     }
@@ -2487,6 +2491,22 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setLiteLagLatencyTopK(int liteLagLatencyTopK) {
         this.liteLagLatencyTopK = liteLagLatencyTopK;
+    }
+
+    public long getPopOrderLockTimerTickMs() {
+        return popOrderLockTimerTickMs;
+    }
+
+    public void setPopOrderLockTimerTickMs(long popOrderLockTimerTickMs) {
+        this.popOrderLockTimerTickMs = popOrderLockTimerTickMs;
+    }
+
+    public int getPopOrderLockTimerTicksPerWheel() {
+        return popOrderLockTimerTicksPerWheel;
+    }
+
+    public void setPopOrderLockTimerTicksPerWheel(int popOrderLockTimerTicksPerWheel) {
+        this.popOrderLockTimerTicksPerWheel = popOrderLockTimerTicksPerWheel;
     }
 
     public boolean isUseMessageFilterForNotification() {
