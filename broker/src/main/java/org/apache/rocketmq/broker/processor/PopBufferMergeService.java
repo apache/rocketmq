@@ -817,6 +817,19 @@ public class PopBufferMergeService extends ServiceThread {
         }
     }
 
+    /**
+     * Persist message which created by checkpoint to the revive topic.
+     *
+     * <ul>
+     *     <li>create message by checkpoint</li>
+     *     <li>write message to revive topic</li>
+     *     <li>update pointWrapper related info</li>
+     * </ul>
+     *
+     * @param pointWrapper the checkpoint wrapper containing the original CK
+     * @param msgIndex     the sub-message index within the CK batch to ack
+     * @param count        atomic counter incremented on successful persistence
+     */
     private void putAckToStore(final PopCheckPointWrapper pointWrapper, byte msgIndex, AtomicInteger count) {
         // build ackMsg and Message by checkpoint
         PopCheckPoint point = pointWrapper.getCk();
