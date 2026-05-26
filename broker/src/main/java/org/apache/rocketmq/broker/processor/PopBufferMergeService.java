@@ -453,6 +453,15 @@ public class PopBufferMergeService extends ServiceThread {
         return this.counter.get();
     }
 
+    /**
+     * Atomically set the bit at {@code index} in an {@link AtomicInteger} bitmask.
+     *
+     * <p>Uses a CAS (compare-and-swap) loop to ensure thread safety without locking.
+     * If the bit is already set, this method returns immediately (no-op).
+     *
+     * @param setBits the atomic bitmask to update
+     * @param index   the bit position (0-based)
+     */
     private void markBitCAS(AtomicInteger setBits, int index) {
         while (true) {
             int bits = setBits.get();
