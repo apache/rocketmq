@@ -25,7 +25,6 @@ import org.junit.Test;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import org.junit.Ignore;
 
 public class BloomFilterTest {
 
@@ -143,14 +142,14 @@ public class BloomFilterTest {
         assertThat(bloomFilter.isValid(bloomFilterData)).isFalse();
     }
 
-    @Ignore("Flaky: fails 1/100 runs (1.0%)")
     @Test
     public void testCheckFalseHit() {
+        Random random = new Random(42);
         BloomFilter bloomFilter = BloomFilter.createByFn(1, 300);
         BitsArray bits = BitsArray.create(bloomFilter.getM());
         int falseHit = 0;
         for (int i = 0; i < bloomFilter.getN(); i++) {
-            String str = randomString((new Random(System.nanoTime())).nextInt(127) + 10);
+            String str = randomString(random, random.nextInt(127) + 10);
             int[] bitPos = bloomFilter.calcBitPositions(str);
 
             if (bloomFilter.checkFalseHit(bitPos, bits)) {
@@ -163,10 +162,10 @@ public class BloomFilterTest {
         assertThat(falseHit).isLessThanOrEqualTo(bloomFilter.getF() * bloomFilter.getN() / 100);
     }
 
-    private String randomString(int length) {
+    private String randomString(Random random, int length) {
         StringBuilder stringBuilder = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
-            stringBuilder.append((char) ((new Random(System.nanoTime())).nextInt(123 - 97) + 97));
+            stringBuilder.append((char) (random.nextInt(26) + 'a'));
         }
 
         return stringBuilder.toString();

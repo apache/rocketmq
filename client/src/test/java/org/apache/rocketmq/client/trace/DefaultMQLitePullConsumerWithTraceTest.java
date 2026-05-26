@@ -80,8 +80,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import org.junit.Ignore;
-
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQLitePullConsumerWithTraceTest {
 
@@ -118,6 +116,11 @@ public class DefaultMQLitePullConsumerWithTraceTest {
                 MQClientManager.getInstance(), "factoryTable", true);
         factoryTable.forEach((clientId, instance) -> instance.shutdown());
         factoryTable.clear();
+
+        Field field = RebalanceService.class.getDeclaredField("waitInterval");
+        field.setAccessible(true);
+        field.set(null, 100L);
+
         mQClientFactory = null;
         mqClientInstance = null;
         traceMqClientInstance = null;
@@ -154,7 +157,6 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         }
     }
 
-    @Ignore("Flaky: fails 6/100 runs (6.0%)")
     @Test
     public void testSubscribe_PollMessageSuccess_WithDefaultTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createLitePullConsumerWithDefaultTraceTopic();
@@ -171,7 +173,6 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         }
     }
 
-    @Ignore("Flaky: fails 5/100 runs (5.0%)")
     @Test
     public void testSubscribe_PollMessageSuccess_WithCustomizedTraceTopic() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createLitePullConsumerWithCustomizedTraceTopic();
@@ -237,13 +238,6 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         mQClientFactory = spy(mqClientInstance);
         mQClientFactory.getClientConfig().setDecodeReadBody(true);
         field.set(litePullConsumerImpl, mQClientFactory);
-
-        field = MQClientInstance.class.getDeclaredField("rebalanceService");
-        field.setAccessible(true);
-        RebalanceService rebalanceService = (RebalanceService) field.get(mQClientFactory);
-        field = RebalanceService.class.getDeclaredField("waitInterval");
-        field.setAccessible(true);
-        field.set(rebalanceService, 100);
 
         PullAPIWrapper pullAPIWrapper = litePullConsumerImpl.getPullAPIWrapper();
         field = PullAPIWrapper.class.getDeclaredField("mQClientFactory");
