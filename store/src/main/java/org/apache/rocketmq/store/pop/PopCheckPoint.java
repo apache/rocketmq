@@ -203,6 +203,17 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         this.queueOffsetDiff.add(diff);
     }
 
+    /**
+     * Map an ack offset to its index within the checkpoint batch.
+     *
+     * <p>The index is used to look up the corresponding bit in the {@link #bitMap}
+     * (or in {@code PopCheckPointWrapper.bits}) and to retrieve the original
+     * queue offset via {@link #ackOffsetByIndex}.
+     *
+     * @param ackOffset the queue offset being acked
+     * @return the sub-message index (0-based), or -1 if the offset is not found
+     *         in this checkpoint
+     */
     public int indexOfAck(long ackOffset) {
         if (ackOffset < startOffset) {
             return -1;
