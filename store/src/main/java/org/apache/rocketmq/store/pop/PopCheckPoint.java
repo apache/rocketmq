@@ -233,6 +233,14 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
         return queueOffsetDiff.indexOf((int) (ackOffset - startOffset));
     }
 
+    /**
+     * get original queue offset by index.
+     * the method name is miss-leading, it should be getQueueOffsetByIndex.
+     * queueOffset  = startOffset + queueOffsetDiff[index]
+     *
+     * @param index sub-message index within this checkpoint (0-based)
+     * @return the original queue offset in the consume queue
+     */
     public long ackOffsetByIndex(byte index) {
         // old version of checkpoint, this will not happen in 5.*
         if (queueOffsetDiff == null || queueOffsetDiff.isEmpty()) {
