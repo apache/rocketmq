@@ -158,6 +158,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
 
     @Test
     public void testRecover() {
+        long recoverPopTime = System.currentTimeMillis();
         QueueLevelConsumerManager savedConsumerOrderInfoManager = new QueueLevelConsumerManager();
         savedConsumerOrderInfoManager.update(
             null,
@@ -165,7 +166,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
             TOPIC,
             GROUP,
             QUEUE_ID_0,
-            popTime,
+            recoverPopTime,
             3000,
             Lists.newArrayList(1L),
             new StringBuilder()

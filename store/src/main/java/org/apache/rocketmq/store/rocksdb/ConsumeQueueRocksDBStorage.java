@@ -99,6 +99,7 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
 
     @Override
     protected void preShutdown() {
+        CqCompactionFilterJni.destroyNativeFilter();
         if (this.offsetCFHandle != null) {
             this.offsetCFHandle.close();
         }

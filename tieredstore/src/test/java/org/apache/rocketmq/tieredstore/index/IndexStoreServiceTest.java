@@ -313,6 +313,9 @@ public class IndexStoreServiceTest {
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000);
         indexService = new IndexStoreService(fileAllocator, filePath);
         indexService.start();
+        // Wait for service thread to complete its first iteration and enter 10s wait,
+        // preventing compaction from racing with queries below.
+        TimeUnit.MILLISECONDS.sleep(500);
 
         int fileCount = 10;
         for (int j = 0; j < fileCount; j++) {
@@ -357,35 +360,32 @@ public class IndexStoreServiceTest {
         indexService = new IndexStoreService(fileAllocator, filePath);
         indexService.start();
 
-        // Create first file with early beginTime
-        long file1Begin = System.currentTimeMillis();
-        for (int i = 0; i < storeConfig.getTieredStoreIndexFileMaxIndexNum() - 1; i++) {
+        long file1Begin = indexService.getTimeStoreTable().firstKey();
+
+        // Fill file1 completely to trigger SEALED and create file2.
+        // maxIndexNum=20, seals when indexItemCount + 1 >= 20, so 20 puts will seal and overflow.
+        for (int i = 0; i < storeConfig.getTieredStoreIndexFileMaxIndexNum(); i++) {
             indexService.putKey(TOPIC_NAME, TOPIC_ID, QUEUE_ID,
                 Collections.singleton("crossKey"), i * 100L, MESSAGE_SIZE, file1Begin + i * 1000);
         }
 
-        // Create second file with later beginTime (beyond query range)
-        long file2Begin = System.currentTimeMillis() + 100_000;
-        indexService.createNewIndexFile(file2Begin);
+        // One more put to go into file2
+        long file2ItemTimestamp = file1Begin + 100_000;
         for (int i = 0; i < 5; i++) {
             indexService.putKey(TOPIC_NAME, TOPIC_ID, QUEUE_ID,
-                Collections.singleton("crossKey"), i * 100L, MESSAGE_SIZE, file2Begin + i);
+                Collections.singleton("crossKey"), (20 + i) * 100L, MESSAGE_SIZE, file2ItemTimestamp + i);
         }
 
         Assert.assertEquals(2, indexService.getTimeStoreTable().size());
 
-        // Query range: beginTime is AFTER file1's beginTime but BEFORE file1's last item timestamp
-        // This should select file1, NOT file2 (file2 beginTime > queryEnd)
+        // Query range starts AFTER file1's beginTimestamp but covers file1's items.
+        // This verifies headMap(endTime) correctly includes file1 even though file1.key < queryBegin.
         long queryBegin = file1Begin + 5_000;
         long queryEnd = file1Begin + 15_000;
 
         List<IndexItem> results = indexService.queryAsync(
-            TOPIC_NAME, "crossKey", 10, queryBegin, queryEnd).get();
+            TOPIC_NAME, "crossKey", 50, queryBegin, queryEnd).get();
 
-        // file1 has items at timestamps: file1Begin, file1Begin+1000, ..., file1Begin+(N-1)*1000
-        // Items in range [file1Begin+5000, file1Begin+15000] should match
-        // The bug (subMap) would return empty because file1's key < queryBegin
         Assert.assertFalse("Should find index items from file covering query range", results.isEmpty());
-        Assert.assertTrue("Should find items within query time range", results.size() > 0);
     }
 }

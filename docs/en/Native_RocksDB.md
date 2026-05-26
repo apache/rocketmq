@@ -42,8 +42,7 @@ To implement a custom compaction filter outside the `rocksdbjni` build, we creat
                    ▼
 ┌──────────────────────────────────────────────────────┐
 │  CqCompactionFilterJni.java                          │
-│  - Extracts libcq_compaction_filter.so to the same   │
-│    temp dir as the already-loaded rocksdbjni .so     │
+│  - Extracts libcq_compaction_filter.so to temp dir   │
 │  - Uses NativeCqCompactionFilter wrapper with        │
 │    disOwnNativeHandle() + public setCompactionFilter │
 │  - Calls native createNativeFilter0() → raw pointer  │
@@ -59,33 +58,24 @@ To implement a custom compaction filter outside the `rocksdbjni` build, we creat
 │  JNI: createNativeFilter0() → new CqCompactionFilter │
 │  JNI: setMinPhyOffset0(ptr, offset)                  │
 │                                                      │
-│  NEEDED: librocksdbjni-linux64.so ($ORIGIN RPATH)    │
-└──────────────────┬───────────────────────────────────┘
-                   │
-                   ▼
-┌──────────────────────────────────────────────────────┐
-│  librocksdbjni-linux64.so (official rocksdbjni)      │
-│  - All RocksDB C++ classes (CompactionFilter, etc.)  │
-│  - JNI glue for all Java↔C++ bindings                │
-│  - Compiled with -fno-rtti -D_GLIBCXX_USE_CXX11_ABI=0│
+│  Self-contained: stub vtable methods inline,         │
+│  NO DT_NEEDED on librocksdbjni                       │
 └──────────────────────────────────────────────────────┘
 ```
 
 ### Key design decisions
 
-**1. Direct C++ subclassing with explicit linking**
+**1. Self-contained C++ shim with stub vtable methods**
 
-The shim directly subclasses `rocksdb::CompactionFilter` in C++ and is compiled with matching ABI flags (`-fno-rtti -D_GLIBCXX_USE_CXX11_ABI=0`) to match how `librocksdbjni` was built. It is explicitly linked against `librocksdbjni-linux64.so` (extracted from the `rocksdbjni` jar) with `$ORIGIN` RPATH so the dynamic linker resolves symbols from the same directory.
-
-This replaced an earlier dlopen/RTLD_GLOBAL approach that caused C++ `double free` crashes — loading the same `.so` twice (once via JVM's `RTLD_LOCAL` and once via `RTLD_GLOBAL`) creates conflicting C++ global state (memory allocators, static singletons, vtables).
+The shim directly subclasses `rocksdb::CompactionFilter` in C++ and is compiled with matching ABI flags (`-fno-rtti -D_GLIBCXX_USE_CXX11_ABI=0`). All inherited virtual methods from `Configurable` and `Customizable` are provided as inline stub implementations, making the shim fully self-contained with **no runtime dependency on librocksdbjni**. This avoids the JVM crash caused by `dlopen` loading a second copy of rocksdbjni (which has no SONAME — different temp paths produce different inodes, so `dlopen` treats them as separate libraries, duplicating global state).
 
 **2. Raw pointer as jlong, wrapped with disOwnNativeHandle()**
 
 The native shim creates `new CqCompactionFilter()` and returns the raw C++ pointer as a `jlong`. A thin Java wrapper `NativeCqCompactionFilter extends AbstractCompactionFilter<Slice>` passes this pointer to the protected `AbstractCompactionFilter(long)` constructor, then calls `disOwnNativeHandle()` so that `close()` does not free the native memory. This is critical because `AbstractRocksDBStorage.shutdown()` closes `ColumnFamilyOptions` (step 2) before closing the DB (step 4) — without `disOwnNativeHandle()`, background compaction threads would access a freed filter. The filter is then set via the public `ColumnFamilyOptions.setCompactionFilter()` API, avoiding reflection and ensuring JDK 17+ compatibility.
 
-**3. Shared temp directory for .so resolution**
+**3. Simple temp file extraction**
 
-At runtime, `CqCompactionFilterJni` loads `librocksdbjni-linux64.so` from the rocksdbjni JAR first (via `System.loadLibrary` or extraction to a temp dir), then extracts `libcq_compaction_filter.so` to the same temp directory. This ensures the `$ORIGIN` RPATH in the shim correctly resolves its `NEEDED` dependency on `librocksdbjni-linux64.so`. The rocksdbjni native library is NOT bundled in the RocketMQ repository — it is sourced from the `org.rocksdb:rocksdbjni:8.4.4` JAR at runtime.
+At runtime, `CqCompactionFilterJni` extracts the shim library to a temp file and calls `System.load()`. Since the shim is self-contained (no `DT_NEEDED` on rocksdbjni), it can be loaded from any directory without worrying about library path resolution. The rocksdbjni native library is loaded separately by `AbstractRocksDBStorage` via `RocksDB.loadLibrary()` — the two libraries are independent at the dynamic linker level.
 
 **4. Thread-safe minPhyOffset with std::atomic**
 
@@ -116,98 +106,60 @@ Prerequisites: `g++` / `clang++`, RocksDB C++ headers matching `rocksdbjni` vers
 ### Linux (x86_64)
 
 ```bash
-# 1. Extract librocksdbjni from the rocksdbjni jar
-ROCKSDB_JAR=~/.m2/repository/org/rocksdb/rocksdbjni/8.4.4/rocksdbjni-8.4.4.jar
-unzip -j "$ROCKSDB_JAR" librocksdbjni-linux64.so -d /tmp/rocksdb-native/
-
-# 2. Download matching RocksDB headers
+# 1. Download matching RocksDB headers (only headers needed — no linking against rocksdbjni)
 wget https://github.com/facebook/rocksdb/archive/refs/tags/v8.4.4.tar.gz
 tar xzf v8.4.4.tar.gz rocksdb-8.4.4/include --strip-components=1
 
-# 3. Compile the shim with explicit linking
+# 2. Compile the self-contained shim
 export JAVA_HOME=/usr/lib/jvm/java-8   # or your JDK path
 g++ -shared -fPIC -O2 -std=c++17 -fno-rtti -D_GLIBCXX_USE_CXX11_ABI=0 \
     -I./include \
     -I${JAVA_HOME}/include \
     -I${JAVA_HOME}/include/linux \
-    -Wl,--no-undefined \
-    -Wl,-rpath,\$ORIGIN \
-    -L/tmp/rocksdb-native \
-    -l:librocksdbjni-linux64.so \
     -o libcq_compaction_filter.so \
     store/src/main/resources/native/cq_compaction_filter.cpp
 
-# 4. Verify NEEDED and RPATH
-readelf -d libcq_compaction_filter.so | grep -E "NEEDED|RPATH"
-# Should show: NEEDED librocksdbjni-linux64.so, RPATH $ORIGIN
+# 3. Verify no dependency on rocksdbjni
+objdump -p libcq_compaction_filter.so | grep NEEDED
+# Should show ONLY: libstdc++, libm, libgcc_s, libc — NOT librocksdbjni
+nm -D libcq_compaction_filter.so | grep " U " | grep rocksdb
+# Should be empty (no undefined rocksdb symbols)
 
-# 5. Replace the pre-built .so
+# 4. Replace the pre-built .so
 cp libcq_compaction_filter.so store/src/main/resources/native/
 ```
 
 ### macOS (arm64 / x86_64)
 
-On macOS, the rocksdbjni jar uses `.jnilib` extension (not `.so` or bare names) and the native library names differ from Linux. Key gotchas:
-- Apple Silicon uses `librocksdbjni-osx-arm64.jnilib` (not `librocksdbjni-osx-aarch64` as the filename pattern might suggest)
-- macOS `ld` does NOT support the `-l:` syntax used on Linux — pass the `.jnilib` file directly
-- After linking, use `install_name_tool` to fix the absolute install name to `@loader_path`, otherwise the shim fails to resolve the rocksdbjni dependency at runtime
-- GitHub downloads may be blocked by corporate firewalls; use a mirror (e.g. `ghproxy.net`) or a local RocksDB checkout for headers
-
 ```bash
-# 1. Extract the macOS native library from rocksdbjni jar
-#    The jar contains librocksdbjni-osx-arm64.jnilib (arm64) or librocksdbjni-osx-x86_64.jnilib
-ROCKSDB_JAR=~/.m2/repository/org/rocksdb/rocksdbjni/8.4.4/rocksdbjni-8.4.4.jar
-mkdir -p /tmp/rocksdb-native
-
-# For Apple Silicon (arm64):
-unzip -j "$ROCKSDB_JAR" librocksdbjni-osx-arm64.jnilib -d /tmp/rocksdb-native/
-
-# For Intel Mac (x86_64):
-unzip -j "$ROCKSDB_JAR" librocksdbjni-osx-x86_64.jnilib -d /tmp/rocksdb-native/
-
-# 2. Download matching RocksDB headers
+# 1. Download matching RocksDB headers
 #    Use ghproxy.net mirror if github.com is blocked:
 curl -sL "https://ghproxy.net/https://github.com/facebook/rocksdb/archive/refs/tags/v8.4.4.tar.gz" -o /tmp/rocksdb-8.4.4.tar.gz
 tar xzf /tmp/rocksdb-8.4.4.tar.gz -C /tmp rocksdb-8.4.4/include --strip-components=1
 # Or use a local RocksDB checkout if available:
 # ROCKSDB_INCLUDE=/path/to/rocksdb/include
 
-# 3. Compile the shim — pass .jnilib directly (macOS ld does NOT support -l: syntax)
+# 2. Compile the self-contained shim (no linking against rocksdbjni needed)
 export JAVA_HOME=$(/usr/libexec/java_home)
 ROCKSDB_INCLUDE=${ROCKSDB_INCLUDE:-./include}  # adjust to your headers location
-ROCKSDB_JNILIB=/tmp/rocksdb-native/librocksdbjni-osx-arm64.jnilib  # or -x86_64.jnilib
 clang++ -shared -fPIC -O2 -std=c++17 -fno-rtti \
     -I"$ROCKSDB_INCLUDE" \
     -I${JAVA_HOME}/include \
     -I${JAVA_HOME}/include/darwin \
-    -Wl,-undefined,error \
-    "$ROCKSDB_JNILIB" \
-    -o /tmp/rocksdb-native/libcq_compaction_filter.dylib \
+    -o libcq_compaction_filter.dylib \
     store/src/main/resources/native/cq_compaction_filter.cpp
 
-# 4. Fix the install_name to use @loader_path for runtime resolution
-#    Without this, otool -L shows an absolute path to the build directory
-install_name_tool -change "$ROCKSDB_JNILIB" "@loader_path/$(basename $ROCKSDB_JNILIB)" \
-    /tmp/rocksdb-native/libcq_compaction_filter.dylib
+# 3. Verify no dependency on rocksdbjni
+otool -L libcq_compaction_filter.dylib
+# Should show ONLY system libs (libc++, libSystem) — NOT librocksdbjni
 
-# 5. Verify dependencies
-otool -L /tmp/rocksdb-native/libcq_compaction_filter.dylib
-# Should show @loader_path/librocksdbjni-osx-arm64.jnilib (or -x86_64.jnilib)
-
-# 6. Place the output
-cp /tmp/rocksdb-native/libcq_compaction_filter.dylib store/src/main/resources/native/
+# 4. Place the output
+cp libcq_compaction_filter.dylib store/src/main/resources/native/
 ```
 
 ### Windows (x86_64)
 
-**⚠ Must use MSVC — MinGW is NOT compatible**
-
-The official `librocksdbjni-win64.dll` is compiled with MSVC. MinGW-w64 produces incompatible C++ binaries (different vtable layout, name mangling, exception handling). Attempting to link a MinGW-compiled shim against the MSVC-compiled rocksdbjni DLL will cause undefined symbol errors at link time and crashes at runtime.
-
-**Option A: Native MSVC build (required for Windows)**
-
-1. Install Visual Studio Build Tools 2019 (v14.29, matching the rocksdbjni linker version 14.29.30159).
-2. Use the x64 Native Tools Command Prompt or set up the environment manually.
+**⚠ Must use MSVC — MinGW is NOT compatible** (different vtable layout, name mangling, exception handling).
 
 ```powershell
 # 1. Set up environment (run vcvarsall.bat first, or use the VS Dev Command Prompt)
@@ -219,7 +171,7 @@ set "JAVA_HOME=C:\path\to\jdk8"
 curl -LO https://github.com/facebook/rocksdb/archive/refs/tags/v8.4.4.tar.gz
 tar xzf v8.4.4.tar.gz rocksdb-8.4.4/include --strip-components=1
 
-# 3. Compile with MSVC cl.exe (must use /GR- to disable RTTI, matching rocksdbjni)
+# 3. Compile with MSVC cl.exe (no linking against rocksdbjni needed)
 cl.exe /LD /O2 /std:c++17 /GR- /EHsc /utf-8 ^
    /I"%JAVA_HOME%\include" ^
    /I"%JAVA_HOME%\include\win32" ^
@@ -244,24 +196,12 @@ dumpbin /exports cq_compaction_filter.dll
 copy cq_compaction_filter.dll store\src\main\resources\native\
 ```
 
-> **Note on Git Bash / MSYS2**: When running `cl.exe` from Git Bash, MSYS2's automatic path conversion will corrupt `/LD`, `/O2` etc. into `C:/Program/LD` etc. Use `MSYS2_ARG_CONV_EXCL='*'` to disable this, or run from `cmd.exe` / PowerShell directly.
-
-**Windows build troubleshooting**
-
-| Problem | Cause | Solution |
-|---------|-------|----------|
-| `cl: warning D9024: cannot recognize source file type` | MSYS2/Git Bash converts `/LD` to `C:/Program/LD` | Prefix command with `MSYS2_ARG_CONV_EXCL='*'` or use `cmd.exe` |
-| `fatal error C1083: cannot open include file 'atomic'` | MSVC C++ headers directory not in include path | Add `/I"%VCTools%\include"` (from VS Build Tools) |
-| `LNK2019: unresolved external symbol ... Configurable::GetOption` | `CompactionFilter` inherits from `Configurable`/`Customizable`, whose virtual methods are not exported by `librocksdbjni-win64.dll` | Provide inline stub implementations in your `.cpp` for all unexported pure virtual methods |
-| `LNK2019: unresolved external symbol ... Status::Status(Code,SubCode,Slice,Slice,Severity)` | `Status::NotSupported("msg")` calls the non-inline 5-parameter constructor (defined in `status.cc`, not exported by DLL) | Use `return Status();` instead of `return Status::NotSupported("...");` — `Status()` default constructor is fully inline |
+> **Note on Git Bash / MSYS2**: Use `MSYS2_ARG_CONV_EXCL='*'` to prevent path corruption of `/LD`, `/O2` etc.
 
 **Option B: Run on WSL (recommended for development)**
 
-Run the entire RocketMQ build and test under WSL (Windows Subsystem for Linux). This uses the native Linux toolchain and pre-built `.so` with zero code changes:
-
 ```bash
 # In WSL (Ubuntu)
-java -version    # should show WSL JDK
 mvn test -pl store -Dtest=CqCompactionFilterJniTest -Djacoco.skip=true
 ```
 
@@ -285,6 +225,6 @@ mvn test -pl store -Dtest=CqCompactionFilterJniTest -Djacoco.skip=true
 
 3. **C++17 required** — The C++ source uses `std::atomic<int64_t>` which requires a C++17-capable compiler. All modern compilers (GCC 7+, Clang 5+, MSVC 2017+) support this.
 
-4. **Shim depends on rocksdbjni native library at runtime** — The `libcq_compaction_filter.so` has a `DT_NEEDED` entry for `librocksdbjni-linux64.so` (~13 MB). The `CqCompactionFilterJni` class handles this by extracting the shim to the same temp directory as the rocksdbjni native library, so the `$ORIGIN` RPATH resolves correctly without requiring `LD_LIBRARY_PATH`.
+4. **Windows requires MSVC** — MinGW produces incompatible C++ binaries (different vtable layout). Must use MSVC for the Windows build.
 
-5. **Windows requires MSVC** — `librocksdbjni-win64.dll` is compiled with MSVC and does not export C++ base class symbols (`Configurable`/`Customizable` vtable methods, `Status` constructors). A MinGW-compiled shim cannot link against it. Must use the same MSVC version (v14.29 for rocksdbjni 8.4.4) and provide inline stubs for unexported virtual methods.
+5. **Stub vtable methods must match RocksDB version** — The shim provides stub implementations of `Configurable`/`Customizable`/`Status` methods to fill the vtable. If the upstream RocksDB header adds new virtual methods to these classes in a future version, the stubs must be updated accordingly.
