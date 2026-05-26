@@ -61,7 +61,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import org.junit.Ignore;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TransactionalMessageServiceImplTest {
@@ -163,7 +162,6 @@ public class TransactionalMessageServiceImplTest {
         assertThat(res).isFalse();
     }
 
-    @Ignore("Flaky: fails 1/100 runs (1.0%)")
     @Test
     public void testDeletePrepareMessage_maxSize() throws InterruptedException {
         brokerController.getBrokerConfig().setTransactionOpMsgMaxSize(1);
@@ -171,7 +169,7 @@ public class TransactionalMessageServiceImplTest {
         queueTransactionMsgService.open();
         boolean res = queueTransactionMsgService.deletePrepareMessage(createMessageBrokerInner(1000, "test", "testHello"));
         assertThat(res).isTrue();
-        verify(bridge, timeout(50)).writeOp(any(Integer.class), any(Message.class));
+        verify(bridge, timeout(3000)).writeOp(any(Integer.class), any(Message.class));
         queueTransactionMsgService.close();
     }
 

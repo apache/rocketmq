@@ -49,7 +49,6 @@ import org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyServic
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
 import org.apache.rocketmq.client.impl.consumer.PullAPIWrapper;
-import org.apache.rocketmq.client.impl.consumer.PullMessageService;
 import org.apache.rocketmq.client.impl.consumer.PullRequest;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.consumer.RebalancePushImpl;
@@ -88,7 +87,6 @@ import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import org.junit.Ignore;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class DefaultMQConsumerWithTraceTest {
@@ -217,7 +215,6 @@ public class DefaultMQConsumerWithTraceTest {
         pushConsumer.shutdown();
     }
 
-    @Ignore("Flaky: fails 1/100 runs (1.0%)")
     @Test
     public void testPullMessage_WithTrace_Success() throws InterruptedException, RemotingException, MQBrokerException, MQClientException {
         traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
@@ -234,9 +231,8 @@ public class DefaultMQConsumerWithTraceTest {
             }
         }));
 
-        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
-        pullMessageService.executePullRequestImmediately(createPullRequest());
-        countDownLatch.await(30, TimeUnit.SECONDS);
+        pushConsumer.getDefaultMQPushConsumerImpl().pullMessage(createPullRequest());
+        countDownLatch.await(10, TimeUnit.SECONDS);
         MessageExt msg = messageAtomic.get();
         assertThat(msg).isNotNull();
         assertThat(msg.getTopic()).isEqualTo(topic);
