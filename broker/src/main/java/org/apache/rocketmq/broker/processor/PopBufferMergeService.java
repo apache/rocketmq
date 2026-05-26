@@ -997,9 +997,9 @@ public class PopBufferMergeService extends ServiceThread {
         // -1: not stored, >=0: stored, Long.MAX: storing.
         private volatile long reviveQueueOffset;
         private final PopCheckPoint ck;
-        // bits for concurrent
+        // store ack states of messages, one byte for each message
         private final AtomicInteger bits;
-        // bit for stored buffer ak
+        // bits for stored buffer ak, one byte for each message
         private final AtomicInteger toStoreBits;
         // nextOffset of original topic
         private final long nextBeginOffset;
