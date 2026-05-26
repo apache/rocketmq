@@ -1030,7 +1030,18 @@ public class PopBufferMergeService extends ServiceThread {
 
     public class PopCheckPointWrapper {
         private final int reviveQueueId;
-        // -1: not stored, >=0: stored, Long.MAX: storing.
+        /**
+         * The consume queue offset of the CK message in the revive topic.
+         *
+         * <p>Three-state indicator:
+         * <ul>
+         *   <li>{@code -1} — not yet stored; {@link #putCkToStore} will write it</li>
+         *   <li>{@code >= 0} — successfully stored; the value is the offset in the
+         *       revive topic's consume queue</li>
+         *   <li>{@link Long#MAX_VALUE} — a write is in progress (prevents duplicate
+         *       writes from concurrent scans)</li>
+         * </ul>
+         */
         private volatile long reviveQueueOffset;
         private final PopCheckPoint ck;
         // store ack states of messages, one byte for each message
