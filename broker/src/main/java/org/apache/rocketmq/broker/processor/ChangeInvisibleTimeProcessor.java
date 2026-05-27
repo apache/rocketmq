@@ -27,6 +27,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.MemoryConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
+import org.apache.rocketmq.broker.pop.PopConsumerService;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
@@ -52,6 +53,23 @@ import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
+/**
+ * Processes the nack {@code ChangeInvisibleTime} request from consumers.
+ *
+ * <p>When a consumer needs more time to process a message (or wants to
+ * suspend/nack it), this processor updates the message's visibility
+ * timeout. The implementation varies by the ack mode:
+ * <ul>
+ *   <li><b>KVStore path</b> — delegates to
+ *       {@link PopConsumerService#changeInvisibilityDuration}</li>
+ *   <li><b>File-based path</b> — writes a new CK to the revive topic with
+ *       the updated invisible time, then acks the original CK so that
+ *       the message will not be revived until the new timeout expires</li>
+ * </ul>
+ *
+ * <p>For orderly consumption, the next visible time is updated directly in
+ * the {@link ConsumerOrderInfoManager} without writing to the revive topic.
+ */
 public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
