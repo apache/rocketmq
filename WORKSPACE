@@ -38,6 +38,19 @@ load("@bazel_features//:deps.bzl", "bazel_features_deps")
 bazel_features_deps()
 
 http_archive(
+    name = "rules_java",
+    urls = [
+        "https://github.com/bazelbuild/rules_java/releases/download/8.13.0/rules_java-8.13.0.tar.gz",
+    ],
+    sha256 = "b6c6d92ca9dbb77de31fb6c6a794d20427072663ce41c2b047902ffcc123e3ef",
+)
+load("@rules_java//java:rules_java_deps.bzl", "rules_java_dependencies")
+rules_java_dependencies()
+
+load("@rules_java//java:repositories.bzl", "rules_java_toolchains")
+rules_java_toolchains()
+
+http_archive(
     name = "rules_android",
     sha256 = "f8f8bca6df61ea6070a0a8abc4054940b19c9fdb4fabb864e40d29d124f517f9",
     strip_prefix = "rules_android-0.6.6",
