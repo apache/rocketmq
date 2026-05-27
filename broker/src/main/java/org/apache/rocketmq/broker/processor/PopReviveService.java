@@ -352,6 +352,37 @@ public class PopReviveService extends ServiceThread {
         return foundList;
     }
 
+    /**
+     * Pull Message from revive topic then transfer to checkpoint and ack messages.
+     *
+     * <p>This method reads messages from the revive topic starting from the
+     * current offset. Each message is classified by its tag:
+     * <ul>
+     *   <li>{@link PopAckConstants#CK_TAG} — a checkpoint, deserialized from
+     *       JSON and stored in the map by its merge key</li>
+     *   <li>{@link PopAckConstants#ACK_TAG} or
+     *       {@link PopAckConstants#BATCH_ACK_TAG} — an ack, matched to its
+     *       corresponding checkpoint via the merge key. The ack offset is translated
+     *       to a sub-message index ({@link PopCheckPoint#indexOfAck}) and
+     *       the checkpoint's bitMap is updated via {@link DataConverter#setBit}</li>
+     * </ul>
+     *
+     * <p>AckMsg that arrive after their checkpoint has already been processed
+     * ({@code enableSkipLongAwaitingAck}) are handled by creating a mock CK
+     * via {@link #mockCkForAck} so that the revive offset can still be
+     * committed correctly.
+     *
+     * <p>The scan stops when any of:
+     * <ul>
+     *   <li>No more messages in the revive topic (tail reached)</li>
+     *   <li>Scan time exceeds {@code reviveScanTime}</li>
+     *   <li>The elapsed time since the first CK's revive time exceeds
+     *       {@code ackTimeInterval + 1s}</li>
+     * </ul>
+     *
+     * @param consumeReviveObj the mutable container that receives the collected
+     *                         CKs and the computed {@code endTime}
+     */
     protected void consumeReviveMessage(ConsumeReviveObj consumeReviveObj) {
         HashMap<String, PopCheckPoint> map = consumeReviveObj.map;
         HashMap<String, PopCheckPoint> mockPointMap = new HashMap<>();
