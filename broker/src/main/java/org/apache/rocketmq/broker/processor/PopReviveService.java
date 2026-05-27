@@ -224,6 +224,17 @@ public class PopReviveService extends ServiceThread {
         return oriQueueId;
     }
 
+    /**
+     * Pull a batch of messages from the revive topic at the given offset.
+     *
+     * <p>If the offset becomes illegal (e.g. the revive topic was truncated),
+     * the revive offset is corrected to {@code nextBeginOffset - 1} so that
+     * the next scan starts from a valid position.
+     *
+     * @param offset  the queue offset to start reading from
+     * @param queueId the revive queue id
+     * @return a list of decoded messages, or {@code null} if at the tail
+     */
     protected List<MessageExt> getReviveMessage(long offset, int queueId) {
         PullResult pullResult = getMessage(PopAckConstants.REVIVE_GROUP, reviveTopic, queueId, offset, 32, true);
         if (pullResult == null) {
