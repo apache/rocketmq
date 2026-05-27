@@ -53,6 +53,12 @@ proto_bazel_features(name = "proto_bazel_features")
 load("@rules_java//java:repositories.bzl", "rules_java_toolchains")
 rules_java_toolchains()
 
+http_archive(
+    name = "rules_android",
+    sha256 = "f8f8bca6df61ea6070a0a8abc4054940b19c9fdb4fabb864e40d29d124f517f9",
+    url = "https://github.com/bazelbuild/rules_android/releases/download/v0.6.6/rules_android-v0.6.6.tar.gz",
+)
+
 RULES_JVM_EXTERNAL_TAG = "6.10"
 
 RULES_JVM_EXTERNAL_SHA = "e5f83b8f2678d2b26441e5eafefb1b061826608417b8d24e5e8e15e585eab1ba"
