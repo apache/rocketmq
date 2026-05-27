@@ -17,14 +17,24 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
+    name = "bazel_skylib",
+    sha256 = "51b5105a760b353773f904d2bbc5e664d0987fbaf22265164de65d43e910d8ac",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.8.1/bazel-skylib-1.8.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.8.1/bazel-skylib-1.8.1.tar.gz",
+    ],
+)
+
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+bazel_skylib_workspace()
+
+http_archive(
     name = "bazel_features",
     sha256 = "a660027f5a87f13224ab54b8dc6e191693c554f2692fcca46e8e29ee7dabc43b",
     strip_prefix = "bazel_features-1.30.0",
     url = "https://github.com/bazel-contrib/bazel_features/releases/download/v1.30.0/bazel_features-v1.30.0.tar.gz",
 )
-
 load("@bazel_features//:deps.bzl", "bazel_features_deps")
-
 bazel_features_deps()
 
 http_archive(
@@ -34,10 +44,14 @@ http_archive(
     ],
     sha256 = "19008f8a85125c9476ef37b6ad945f665d7178aaab3746f7962917ccd87d2477",
 )
-
 load("@rules_java//java:rules_java_deps.bzl", "rules_java_dependencies")
-
 rules_java_dependencies()
+
+load("@com_google_protobuf//bazel/private:proto_bazel_features.bzl", "proto_bazel_features")
+proto_bazel_features(name = "proto_bazel_features")
+
+load("@rules_java//java:repositories.bzl", "rules_java_toolchains")
+rules_java_toolchains()
 
 RULES_JVM_EXTERNAL_TAG = "6.10"
 
@@ -125,7 +139,7 @@ maven_install(
         "io.github.aliyunmq:rocketmq-slf4j-api:1.0.1",
         "io.github.aliyunmq:rocketmq-logback-classic:1.0.1",
         "org.slf4j:jul-to-slf4j:2.0.6",
-    	"org.jetbrains:annotations:23.1.0",
+        "org.jetbrains:annotations:23.1.0",
         "io.github.aliyunmq:rocketmq-shaded-slf4j-api-bridge:1.0.0",
         "software.amazon.awssdk:s3:2.20.29",
         "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
@@ -156,24 +170,6 @@ load("@io_buildbuddy_buildbuddy_toolchain//:deps.bzl", "buildbuddy_deps")
 buildbuddy_deps()
 load("@io_buildbuddy_buildbuddy_toolchain//:rules.bzl", "buildbuddy")
 buildbuddy(name = "buildbuddy_toolchain")
-
-http_archive(
-    name = "bazel_skylib",
-    sha256 = "51b5105a760b353773f904d2bbc5e664d0987fbaf22265164de65d43e910d8ac",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.8.1/bazel-skylib-1.8.1.tar.gz",
-        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.8.1/bazel-skylib-1.8.1.tar.gz",
-    ],
-)
-
-load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
-bazel_skylib_workspace()
-
-load("@com_google_protobuf//bazel/private:proto_bazel_features.bzl", "proto_bazel_features")
-proto_bazel_features(name = "proto_bazel_features")
-
-load("@rules_java//java:repositories.bzl", "rules_java_toolchains")
-rules_java_toolchains()
 
 load("@rules_java//toolchains:local_java_repository.bzl", "local_java_repository")
 local_java_repository(
