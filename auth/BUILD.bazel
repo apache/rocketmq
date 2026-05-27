@@ -43,7 +43,7 @@ java_library(
 java_library(
     name = "tests",
     srcs = glob(["src/test/java/**/*.java"]),
-    resources = glob(["src/test/resources/**/*.yml"]),
+    resources = glob(["src/test/resources/**/*.yml"], allow_empty = True),
     visibility = ["//visibility:public"],
     deps = [
         ":auth",

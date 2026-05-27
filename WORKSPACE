@@ -87,7 +87,7 @@ maven_install(
         "org.powermock:powermock-api-mockito2:2.0.9",
         "org.powermock:powermock-core:2.0.9",
         "com.github.luben:zstd-jni:1.5.2-2",
-        "org.lz4:lz4-java:1.10.3",
+        "at.yawk.lz4:lz4-java:1.10.3",
         "commons-validator:commons-validator:1.10.0",
         "org.apache.commons:commons-lang3:3.20.0",
         "org.hamcrest:hamcrest-core:1.3",

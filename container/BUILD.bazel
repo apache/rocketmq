@@ -34,7 +34,7 @@ java_library(
         "@maven//:commons_collections_commons_collections",
         "@maven//:commons_codec_commons_codec",
         "@maven//:com_github_luben_zstd_jni",
-        "@maven//:org_lz4_lz4_java",
+        "@maven//:at_yawk_lz4_lz4_java",
         "@maven//:io_netty_netty_all",
         "@maven//:com_google_guava_guava",
         "@maven//:org_slf4j_slf4j_api",
@@ -65,7 +65,7 @@ java_library(
         "@maven//:io_netty_netty_all",    
         "@maven//:com_google_guava_guava",  
     ],
-    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+    resources = glob(["src/test/resources/certs/*.pem"], allow_empty = True) + glob(["src/test/resources/certs/*.key"], allow_empty = True)
 )
 
 GenTestRules(

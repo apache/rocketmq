@@ -71,7 +71,7 @@ java_library(
         "@maven//:org_jetbrains_annotations",
         "@maven//:org_reflections_reflections",
     ],
-    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+    resources = glob(["src/test/resources/certs/*.pem"], allow_empty = True) + glob(["src/test/resources/certs/*.key"], allow_empty = True)
 )
 
 GenTestRules(

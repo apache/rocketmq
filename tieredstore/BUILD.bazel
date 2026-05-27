@@ -49,7 +49,7 @@ java_library(
 java_library(
     name = "tests",
     srcs = glob(["src/test/java/**/*.java"]),
-    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"]),
+    resources = glob(["src/test/resources/certs/*.pem"], allow_empty = True) + glob(["src/test/resources/certs/*.key"], allow_empty = True),
     visibility = ["//visibility:public"],
     deps = [
         ":tieredstore",
