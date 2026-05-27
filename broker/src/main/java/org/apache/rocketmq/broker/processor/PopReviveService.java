@@ -673,6 +673,21 @@ public class PopReviveService extends ServiceThread {
         return Math.max(0, diff);
     }
 
+    /**
+     * Main loop: periodically consume revive messages and revive timed-out CKs.
+     *
+     * <p>Each iteration:
+     * <ol>
+     *   <li>Waits for {@code reviveInterval} (configurable)</li>
+     *   <li>Calls {@link #consumeReviveMessage} to scan the revive topic and
+     *       merge checkpoints with their corresponding AckMsg</li>
+     *   <li>Calls {@link #mergeAndRevive} to re-publish all un-acked
+     *       sub-messages whose revive time has elapsed</li>
+     *   <li>If no checkpoints were processed, increases a {@code slow} counter and
+     *       sleeps longer — the idle interval ramps up to
+     *       {@code reviveMaxSlow * reviveInterval}</li>
+     * </ol>
+     */
     @Override
     public void run() {
         int slow = 1;
