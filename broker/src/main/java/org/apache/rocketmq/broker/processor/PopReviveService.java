@@ -142,6 +142,21 @@ public class PopReviveService extends ServiceThread {
         return shouldRunPopRevive;
     }
 
+    /**
+     * Re-publish a timed-out message to the retry topic.
+     *
+     * <p>Constructs a new {@link MessageExtBrokerInner} from the original
+     * message, increments the reconsume count (unless suspended), sets the
+     * first-pop time and origin group properties, and writes it to the
+     * appropriate retry topic (V1 or V2 depending on configuration).
+     *
+     * <p>If the retry topic does not exist, it is created automatically
+     * via {@link #addRetryTopicIfNotExist}.
+     *
+     * @param popCheckPoint the checkpoint that triggered the revive
+     * @param messageExt    the original message to re-publish
+     * @return {@code true} if the message was written successfully
+     */
     private boolean reviveRetry(PopCheckPoint popCheckPoint, MessageExt messageExt) {
         // convert checkpoint to inner message
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
