@@ -479,6 +479,7 @@ public class PopReviveService extends ServiceThread {
                     String mergeKey = ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime() + brokerName;
                     PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
+                        // default value of enableSkipLongAwaitingAck is false
                         if (!brokerController.getBrokerConfig().isEnableSkipLongAwaitingAck()) {
                             continue;
                         }
@@ -486,6 +487,7 @@ public class PopReviveService extends ServiceThread {
                             firstRt = mockPointMap.get(mergeKey).getReviveTime();
                         }
                     } else {
+                        // merge ackMsg into checkpoint
                         int indexOfAck = point.indexOfAck(ackMsg.getAckOffset());
                         if (indexOfAck > -1) {
                             point.setBitMap(DataConverter.setBit(point.getBitMap(), indexOfAck, true));
@@ -506,6 +508,7 @@ public class PopReviveService extends ServiceThread {
                     String mergeKey = bAckMsg.getTopic() + bAckMsg.getConsumerGroup() + bAckMsg.getQueueId() + bAckMsg.getStartOffset() + bAckMsg.getPopTime() + brokerName;
                     PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
+                        // default value of enableSkipLongAwaitingAck is false
                         if (!brokerController.getBrokerConfig().isEnableSkipLongAwaitingAck()) {
                             continue;
                         }
@@ -513,6 +516,7 @@ public class PopReviveService extends ServiceThread {
                             firstRt = mockPointMap.get(mergeKey).getReviveTime();
                         }
                     } else {
+                        // merge ackMsgs into checkpoint
                         List<Long> ackOffsetList = bAckMsg.getAckOffsetList();
                         for (Long ackOffset : ackOffsetList) {
                             int indexOfAck = point.indexOfAck(ackOffset);
