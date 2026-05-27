@@ -16,6 +16,8 @@
 #
 startup --host_jvm_args=-Xmx2g
 
+common --enable_workspace
+
 run --color=yes
 
 build --color=yes
@@ -45,7 +47,6 @@ build:remote --remote_executor=grpcs://remote.buildbuddy.io
 build:remote --host_platform=@buildbuddy_toolchain//:platform
 build:remote --platforms=@buildbuddy_toolchain//:platform
 build:remote --extra_execution_platforms=@buildbuddy_toolchain//:platform
-build:remote --crosstool_top=@buildbuddy_toolchain//:toolchain
 build:remote --extra_toolchains=@buildbuddy_toolchain//:cc_toolchain
 build:remote --java_language_version=8
 build:remote --java_runtime_version=8
