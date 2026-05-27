@@ -68,6 +68,8 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOP
  * Per-queue service that reads the revive topic, matches checkpoints with AckMsgs, and
  * revives timed-out messages by re-publishing them to the retry topic.
  *
+ * <p>There is only one public method for business: run</p>
+ *
  * <p>Each revive queue has its own dedicated {@code PopReviveService} instance.
  * The service periodically:
  * <ol>
