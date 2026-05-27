@@ -146,6 +146,7 @@ public class LiteManagerProcessorTest {
         when(brokerController.getLiteEventDispatcher()).thenReturn(liteEventDispatcher);
         when(brokerController.getPopLiteMessageProcessor()).thenReturn(popLiteMessageProcessor);
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
 
         ConsumerOrderInfoManager consumerOrderInfoManager = new MemoryConsumerOrderInfoManager(brokerController);
         when(popLiteMessageProcessor.getConsumerOrderInfoManager()).thenReturn(consumerOrderInfoManager);
