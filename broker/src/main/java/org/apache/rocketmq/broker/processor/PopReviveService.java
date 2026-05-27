@@ -725,6 +725,24 @@ public class PopReviveService extends ServiceThread {
             });
     }
 
+    /**
+     * Re-write a checkpoint to the revive topic after a failed revive attempt.
+     *
+     * <p>When a sub-message cannot be revived (e.g. the original message is
+     * temporarily unavailable), the CK is re-published with:
+     * <ul>
+     *   <li>A single sub-message targeting the failed offset</li>
+     *   <li>An increased {@code rePutTimes} and an extended invisible time
+     *       based on the backoff interval</li>
+     *   <li>A cleared bitMap, so the next revive cycle will retry it</li>
+     * </ul>
+     *
+     * <p>If {@code rePutTimes} exceeds the backoff table length and
+     * {@code skipWhenCKRePutReachMaxTimes} is set, the CK is dropped.
+     *
+     * @param oldCK the original checkpoint that failed to revive
+     * @param pair   the failed offset and result (object1 = offset, object2 = result)
+     */
     private void rePutCK(PopCheckPoint oldCK, Pair<Long, Boolean> pair) {
         int rePutTimes = oldCK.parseRePutTimes();
         if (rePutTimes >= ckRewriteIntervalsInSeconds.length && brokerController.getBrokerConfig().isSkipWhenCKRePutReachMaxTimes()) {
