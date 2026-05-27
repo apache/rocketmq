@@ -38,6 +38,7 @@ rules_jvm_external_setup()
 load("@rules_jvm_external//:defs.bzl", "maven_install")
 
 maven_install(
+    version_conflict_policy = "pinned",
     artifacts = [
         "junit:junit:4.13.2",
         "com.alibaba:fastjson:1.2.83",
@@ -98,6 +99,7 @@ maven_install(
         "io.grpc:grpc-context:1.53.0",
         "io.grpc:grpc-stub:1.53.0",
         "io.grpc:grpc-api:1.53.0",
+        "io.grpc:grpc-protobuf:1.53.0",
         "io.grpc:grpc-testing:1.53.0",
         "org.springframework:spring-core:5.3.27",
         "io.opentelemetry:opentelemetry-exporter-otlp:1.47.0",
@@ -126,9 +128,9 @@ maven_install(
         "com.alibaba.fastjson2:fastjson2:2.0.59",
         "org.junit.jupiter:junit-jupiter-api:5.9.1",
     ],
-    excluded_artifacts = [
-        "com.google.protobuf:protobuf-javalite",
-    ],
+    override_targets = {
+        "com.google.protobuf:protobuf-javalite": "@maven//:com_google_protobuf_protobuf_java",
+    },
     fetch_sources = False,
     repositories = [
         "https://repo1.maven.org/maven2",
