@@ -143,6 +143,7 @@ public class PopReviveService extends ServiceThread {
     }
 
     private boolean reviveRetry(PopCheckPoint popCheckPoint, MessageExt messageExt) {
+        // convert checkpoint to inner message
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         if (!popCheckPoint.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             msgInner.setTopic(KeyBuilder.buildPopRetryTopic(popCheckPoint.getTopic(), popCheckPoint.getCId(), brokerController.getBrokerConfig().isEnableRetryTopicV2()));
@@ -171,9 +172,15 @@ public class PopReviveService extends ServiceThread {
         }
         msgInner.getProperties().put(MessageConst.PROPERTY_ORIGIN_GROUP, popCheckPoint.getCId());
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+
+        // set topic and queueId
         addRetryTopicIfNotExist(msgInner.getTopic(), popCheckPoint.getCId());
         msgInner.setQueueId(getRetryQueueId(msgInner.getTopic(), messageExt));
+
+        // store message
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
+
+        // logging and metric
         brokerController.getBrokerMetricsManager().getPopMetricsManager().incPopReviveRetryMessageCount(popCheckPoint, putMessageResult.getPutMessageStatus());
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("reviveQueueId={},retry msg, ck={}, msg queueId {}, offset {}, reviveDelay={}, result is {} ",
