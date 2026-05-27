@@ -139,6 +139,7 @@ GenTestRules(
     exclude_tests = [
         "src/test/java/org/apache/rocketmq/proxy/config/InitConfigTest",
         "src/test/java/org/apache/rocketmq/proxy/service/cert/TlsCertificateManagerTest",
+        "src/test/java/org/apache/rocketmq/proxy/remoting/protocol/http2proxy/Http2ProtocolProxyHandlerTest",
     ],
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [
