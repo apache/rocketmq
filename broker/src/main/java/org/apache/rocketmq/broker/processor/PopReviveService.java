@@ -612,6 +612,7 @@ public class PopReviveService extends ServiceThread {
      * @throws Throwable if any revive operation fails
      */
     protected void mergeAndRevive(ConsumeReviveObj consumeReviveObj) throws Throwable {
+        // sort checkpoints and init newOffset
         ArrayList<PopCheckPoint> sortList = consumeReviveObj.genSortList();
         POP_LOGGER.info("reviveQueueId={}, ck listSize={}", queueId, sortList.size());
         if (sortList.size() != 0) {
@@ -619,6 +620,7 @@ public class PopReviveService extends ServiceThread {
                 sortList.get(0).getReviveOffset(), sortList.get(sortList.size() - 1).getStartOffset(), sortList.get(sortList.size() - 1).getReviveOffset());
         }
         long newOffset = consumeReviveObj.oldOffset;
+
         for (PopCheckPoint popCheckPoint : sortList) {
             if (!shouldRunPopRevive) {
                 POP_LOGGER.info("slave skip ck process, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
@@ -641,6 +643,7 @@ public class PopReviveService extends ServiceThread {
                 continue;
             }
 
+            // restore checkpoint
             while (inflightReviveRequestMap.size() > 3) {
                 waitForRunning(100);
                 Pair<Long, Boolean> pair = inflightReviveRequestMap.firstEntry().getValue();
@@ -653,10 +656,12 @@ public class PopReviveService extends ServiceThread {
                 }
             }
 
+            // revive message
             reviveMsgFromCk(popCheckPoint);
-
             newOffset = popCheckPoint.getReviveOffset();
         }
+
+        // commit offset
         if (newOffset > consumeReviveObj.oldOffset) {
             if (!shouldRunPopRevive) {
                 POP_LOGGER.info("slave skip commit, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
