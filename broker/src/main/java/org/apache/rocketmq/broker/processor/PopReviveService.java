@@ -75,7 +75,7 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOP
  * <ol>
  *   <li>Scans the revive topic ({@link #consumeReviveMessage}) to collect CK
  *       (checkpoint) and Ack messages, merging Acks into CK's bitMap</li>
- *   <li>Processes expired CKs ({@link #mergeAndRevive}) by re-publishing any
+ *   <li>Processes expired checkpoints ({@link #mergeAndRevive}) by re-publishing any
  *       un-acked sub-messages back to the retry topic via {@link #reviveRetry}</li>
  * </ol>
  *
@@ -678,6 +678,7 @@ public class PopReviveService extends ServiceThread {
         int slow = 1;
         while (!this.isStopped()) {
             try {
+                // env check
                 if (System.currentTimeMillis() < brokerController.getShouldStartTime()) {
                     POP_LOGGER.info("PopReviveService Ready to run after {}", brokerController.getShouldStartTime());
                     this.waitForRunning(1000);
@@ -695,6 +696,8 @@ public class PopReviveService extends ServiceThread {
                 }
 
                 POP_LOGGER.info("start revive topic={}, reviveQueueId={}", reviveTopic, queueId);
+
+                // consume revive message
                 ConsumeReviveObj consumeReviveObj = new ConsumeReviveObj();
                 consumeReviveMessage(consumeReviveObj);
 
@@ -703,8 +706,10 @@ public class PopReviveService extends ServiceThread {
                     continue;
                 }
 
+                // merge checkpoint and ackMsg then revive
                 mergeAndRevive(consumeReviveObj);
 
+                // wait and logging
                 ArrayList<PopCheckPoint> sortList = consumeReviveObj.sortList;
                 long delay = 0;
                 if (sortList != null && !sortList.isEmpty()) {
