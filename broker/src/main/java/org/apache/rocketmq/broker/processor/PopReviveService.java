@@ -673,6 +673,25 @@ public class PopReviveService extends ServiceThread {
         consumeReviveObj.newOffset = newOffset;
     }
 
+    /**
+     * Revive all un-acked sub-messages in a checkpoint:
+     * - reput message to revive topic
+     * - put message to retry topic
+     *
+     * <p>For each sub-message whose bit is not set in the bitMap, the original
+     * message is fetched via {@link #getBizMessage} and re-published to the
+     * retry topic via {@link #reviveRetry}. All revive attempts run
+     * concurrently via {@link CompletableFuture#allOf}.
+     *
+     * <p>After all attempts complete:
+     * <ul>
+     *   <li>Failed offsets are re-queued via {@link #rePutCK}</li>
+     *   <li>The {@link #inflightReviveRequestMap} is updated and completed
+     *       entries are removed in order, advancing the revive offset</li>
+     * </ul>
+     *
+     * @param popCheckPoint the checkpoint whose un-acked messages should be revived
+     */
     private void reviveMsgFromCk(PopCheckPoint popCheckPoint) {
         if (!shouldRunPopRevive) {
             POP_LOGGER.info("slave skip retry, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
