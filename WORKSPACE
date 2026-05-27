@@ -149,12 +149,17 @@ bazel_skylib_workspace()
 http_archive(
     name = "rules_java",
     urls = [
-        "https://github.com/bazelbuild/rules_java/releases/download/7.12.5/rules_java-7.12.5.tar.gz",
+        "https://github.com/bazelbuild/rules_java/releases/download/8.6.3/rules_java-8.6.3.tar.gz",
     ],
-    sha256 = "17b18cb4f92ab7b94aa343ce78531b73960b1bed2ba166e5b02c9fdf0b0ac270",
+    sha256 = "6d8c6d5cd86fed031ee48424f238fa35f33abc9921fd97dd4ae1119a29fc807f",
 )
-load("@rules_java//java:repositories.bzl", "rules_java_dependencies", "rules_java_toolchains")
+load("@rules_java//java:rules_java_deps.bzl", "rules_java_dependencies")
 rules_java_dependencies()
+
+load("@com_google_protobuf//bazel/private:proto_bazel_features.bzl", "proto_bazel_features")
+proto_bazel_features(name = "proto_bazel_features")
+
+load("@rules_java//java:repositories.bzl", "rules_java_toolchains")
 rules_java_toolchains()
 
 load("@rules_java//toolchains:local_java_repository.bzl", "local_java_repository")
