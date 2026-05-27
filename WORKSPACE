@@ -16,58 +16,15 @@
 #
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-http_archive(
-    name = "bazel_skylib",
-    sha256 = "51b5105a760b353773f904d2bbc5e664d0987fbaf22265164de65d43e910d8ac",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.8.1/bazel-skylib-1.8.1.tar.gz",
-        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.8.1/bazel-skylib-1.8.1.tar.gz",
-    ],
-)
+RULES_JVM_EXTERNAL_TAG = "4.2"
 
-load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
-bazel_skylib_workspace()
-
-# Standalone proto_bazel_features to avoid cycle with @com_google_protobuf
-load("//:proto_bazel_features.bzl", "proto_bazel_features")
-proto_bazel_features(name = "proto_bazel_features")
-
-http_archive(
-    name = "bazel_features",
-    sha256 = "a660027f5a87f13224ab54b8dc6e191693c554f2692fcca46e8e29ee7dabc43b",
-    strip_prefix = "bazel_features-1.30.0",
-    url = "https://github.com/bazel-contrib/bazel_features/releases/download/v1.30.0/bazel_features-v1.30.0.tar.gz",
-)
-load("@bazel_features//:deps.bzl", "bazel_features_deps")
-bazel_features_deps()
-
-http_archive(
-    name = "rules_java",
-    urls = [
-        "https://github.com/bazelbuild/rules_java/releases/download/7.12.2/rules_java-7.12.2.tar.gz",
-    ],
-    sha256 = "a9690bc00c538246880d5c83c233e4deb83fe885f54c21bb445eb8116a180b83",
-)
-load("@rules_java//java:repositories.bzl", "rules_java_dependencies", "rules_java_toolchains")
-rules_java_dependencies()
-rules_java_toolchains()
-
-http_archive(
-    name = "rules_android",
-    sha256 = "f8f8bca6df61ea6070a0a8abc4054940b19c9fdb4fabb864e40d29d124f517f9",
-    strip_prefix = "rules_android-0.6.6",
-    url = "https://github.com/bazelbuild/rules_android/archive/v0.6.6.tar.gz",
-)
-
-RULES_JVM_EXTERNAL_TAG = "6.10"
-
-RULES_JVM_EXTERNAL_SHA = "e5f83b8f2678d2b26441e5eafefb1b061826608417b8d24e5e8e15e585eab1ba"
+RULES_JVM_EXTERNAL_SHA = "cd1a77b7b02e8e008439ca76fd34f5b07aecb8c752961f9640dea15e9e5ba1ca"
 
 http_archive(
     name = "rules_jvm_external",
     sha256 = RULES_JVM_EXTERNAL_SHA,
     strip_prefix = "rules_jvm_external-%s" % RULES_JVM_EXTERNAL_TAG,
-    url = "https://github.com/bazel-contrib/rules_jvm_external/releases/download/%s/rules_jvm_external-%s.tar.gz" % (RULES_JVM_EXTERNAL_TAG, RULES_JVM_EXTERNAL_TAG),
+    url = "https://github.com/bazelbuild/rules_jvm_external/archive/%s.zip" % RULES_JVM_EXTERNAL_TAG,
 )
 
 load("@rules_jvm_external//:repositories.bzl", "rules_jvm_external_deps")
@@ -131,7 +88,6 @@ maven_install(
         "io.grpc:grpc-stub:1.53.0",
         "io.grpc:grpc-api:1.53.0",
         "io.grpc:grpc-testing:1.53.0",
-        "io.grpc:grpc-netty:1.53.0",
         "org.springframework:spring-core:5.3.27",
         "io.opentelemetry:opentelemetry-exporter-otlp:1.47.0",
         "io.opentelemetry:opentelemetry-exporter-prometheus:1.47.0-alpha",
@@ -145,7 +101,7 @@ maven_install(
         "io.github.aliyunmq:rocketmq-slf4j-api:1.0.1",
         "io.github.aliyunmq:rocketmq-logback-classic:1.0.1",
         "org.slf4j:jul-to-slf4j:2.0.6",
-        "org.jetbrains:annotations:23.1.0",
+    	"org.jetbrains:annotations:23.1.0",
         "io.github.aliyunmq:rocketmq-shaded-slf4j-api-bridge:1.0.0",
         "software.amazon.awssdk:s3:2.20.29",
         "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
@@ -156,6 +112,7 @@ maven_install(
         "com.alipay.sofa:hessian:3.3.6",
         "io.netty:netty-tcnative-boringssl-static:2.0.53.Final",
         "org.mockito:mockito-junit-jupiter:4.11.0",
+        "com.alibaba.fastjson2:fastjson2:2.0.59",
         "org.junit.jupiter:junit-jupiter-api:5.9.1",
         "io.opentelemetry:opentelemetry-context:1.47.0",
     ],
@@ -176,6 +133,29 @@ load("@io_buildbuddy_buildbuddy_toolchain//:deps.bzl", "buildbuddy_deps")
 buildbuddy_deps()
 load("@io_buildbuddy_buildbuddy_toolchain//:rules.bzl", "buildbuddy")
 buildbuddy(name = "buildbuddy_toolchain")
+
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "51b5105a760b353773f904d2bbc5e664d0987fbaf22265164de65d43e910d8ac",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.8.1/bazel-skylib-1.8.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.8.1/bazel-skylib-1.8.1.tar.gz",
+    ],
+)
+
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+bazel_skylib_workspace()
+
+http_archive(
+    name = "rules_java",
+    urls = [
+        "https://github.com/bazelbuild/rules_java/releases/download/7.12.5/rules_java-7.12.5.tar.gz",
+    ],
+    sha256 = "17b18cb4f92ab7b94aa343ce78531b73960b1bed2ba166e5b02c9fdf0b0ac270",
+)
+load("@rules_java//java:repositories.bzl", "rules_java_dependencies", "rules_java_toolchains")
+rules_java_dependencies()
+rules_java_toolchains()
 
 load("@rules_java//toolchains:local_java_repository.bzl", "local_java_repository")
 local_java_repository(
