@@ -693,21 +693,26 @@ public class PopReviveService extends ServiceThread {
      * @param popCheckPoint the checkpoint whose un-acked messages should be revived
      */
     private void reviveMsgFromCk(PopCheckPoint popCheckPoint) {
+        // env check and init
         if (!shouldRunPopRevive) {
             POP_LOGGER.info("slave skip retry, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
             return;
         }
         inflightReviveRequestMap.put(popCheckPoint, new Pair<>(System.currentTimeMillis(), false));
         List<CompletableFuture<Pair<Long, Boolean>>> futureList = new ArrayList<>(popCheckPoint.getNum());
+
+        // put message to retry topic if checkpoint was not acked
         for (int j = 0; j < popCheckPoint.getNum(); j++) {
+            // if checkpoint was acked, skip
             if (DataConverter.getBit(popCheckPoint.getBitMap(), j)) {
                 continue;
             }
 
-            // retry msg
+            // get message by checkpoint, then put message to retry topic
             long msgOffset = popCheckPoint.ackOffsetByIndex((byte) j);
             CompletableFuture<Pair<Long, Boolean>> future = getBizMessage(popCheckPoint, msgOffset)
                 .thenApply(rst -> {
+                    // validate message
                     MessageExt message = rst.getLeft();
                     if (message == null) {
                         POP_LOGGER.info("reviveQueueId={}, can not get biz msg, topic:{}, qid:{}, offset:{}, brokerName:{}, info:{}, retry:{}, then continue",
@@ -719,8 +724,11 @@ public class PopReviveService extends ServiceThread {
                 });
             futureList.add(future);
         }
+
+        // reput checkpoint to revive topic if retry failed
         CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]))
             .whenComplete((v, e) -> {
+                // reput checkpoint
                 for (CompletableFuture<Pair<Long, Boolean>> future : futureList) {
                     Pair<Long, Boolean> pair = future.getNow(new Pair<>(0L, false));
                     if (!pair.getObject2()) {
@@ -728,9 +736,12 @@ public class PopReviveService extends ServiceThread {
                     }
                 }
 
+                // update ack status of inflight checkpoint
                 if (inflightReviveRequestMap.containsKey(popCheckPoint)) {
                     inflightReviveRequestMap.get(popCheckPoint).setObject2(true);
                 }
+
+                // commit offset and remove inflight checkpoint
                 for (Map.Entry<PopCheckPoint, Pair<Long, Boolean>> entry : inflightReviveRequestMap.entrySet()) {
                     PopCheckPoint oldCK = entry.getKey();
                     Pair<Long, Boolean> pair = entry.getValue();
