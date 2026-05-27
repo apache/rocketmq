@@ -279,17 +279,23 @@ public class PopBufferMergeService extends ServiceThread {
             }
             String topic = keyArray[0];
             String cid = keyArray[1];
+
+            // remove if topic no longer exists
             if (brokerController.getTopicConfigManager().selectTopicConfig(topic) == null) {
                 POP_LOGGER.info("[PopBuffer]remove nonexistent topic {} in buffer!", topic);
                 iterator.remove();
                 continue;
             }
+
+            // remove if subscription group no longer exists
             if (!brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(cid)) {
                 POP_LOGGER.info("[PopBuffer]remove nonexistent subscription group {} of topic {} in buffer!", cid, topic);
                 iterator.remove();
                 continue;
             }
 
+            // remove if idle
+            // entry.getValue().getTime() = popTime of last checkpoint enqueued in the queue
             if (System.currentTimeMillis() - entry.getValue().getTime() > minute5) {
                 POP_LOGGER.info("[PopBuffer]remove long time not used sub {} of topic {} in buffer!", cid, topic);
                 iterator.remove();
