@@ -539,6 +539,20 @@ public class PopReviveService extends ServiceThread {
         consumeReviveObj.endTime = endTime;
     }
 
+    /**
+     * Create a mock CK for an ack whose original CK has already been processed.
+     *
+     * <p>When an ack arrives long after its CK has been consumed (e.g. network
+     * delay), the CK is no longer in the scan map. If {@code enableSkipLongAwaitingAck}
+     * is enabled, this method creates a synthetic CK so that the revive offset
+     * can still be advanced correctly in {@link #mergeAndRevive}.
+     *
+     * @param messageExt   the revive topic message that carried the ack
+     * @param ackMsg       the decoded ack
+     * @param mergeKey     the merge key for the CK lookup
+     * @param mockPointMap map to collect the mock CKs
+     * @return {@code true} if a mock CK was created
+     */
     private boolean mockCkForAck(MessageExt messageExt, AckMsg ackMsg, String mergeKey, HashMap<String, PopCheckPoint> mockPointMap) {
         long ackWaitTime = System.currentTimeMillis() - messageExt.getDeliverTimeMs();
         long reviveAckWaitMs = brokerController.getBrokerConfig().getReviveAckWaitMs();
@@ -554,6 +568,17 @@ public class PopReviveService extends ServiceThread {
         return false;
     }
 
+    /**
+     * Build a synthetic checkpoint from an ack message.
+     *
+     * <p>The mock CK has {@code num = 0} and empty bitMap, meaning no actual
+     * messages to revive. Its only purpose is to carry the {@code reviveOffset}
+     * so that the revive consumer offset can be committed past this ack.
+     *
+     * @param ackMsg       the ack message
+     * @param reviveOffset the queue offset of the ack message in the revive topic
+     * @return a mock checkpoint with no sub-messages
+     */
     private PopCheckPoint createMockCkForAck(AckMsg ackMsg, long reviveOffset) {
         PopCheckPoint point = new PopCheckPoint();
         point.setStartOffset(ackMsg.getStartOffset());
