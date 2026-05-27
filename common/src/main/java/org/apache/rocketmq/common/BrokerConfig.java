@@ -572,6 +572,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private int liteLagLatencyTopK = 50;
 
+    private boolean useSeparateRetryQueueForPriorityTopic = false;
+
     public String getConfigBlackList() {
         return configBlackList;
     }
@@ -2503,5 +2505,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setMaxMessageFilterNumForNotification(int maxMessageFilterNumForNotification) {
         this.maxMessageFilterNumForNotification = maxMessageFilterNumForNotification;
+    }
+
+    public boolean isUseSeparateRetryQueueForPriorityTopic() {
+        return useSeparateRetryQueueForPriorityTopic;
+    }
+
+    public void setUseSeparateRetryQueueForPriorityTopic(boolean useSeparateRetryQueueForPriorityTopic) {
+        this.useSeparateRetryQueueForPriorityTopic = useSeparateRetryQueueForPriorityTopic;
     }
 }
