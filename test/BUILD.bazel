@@ -84,6 +84,7 @@ java_library(
         "@maven//:com_google_truth_truth",
         "@maven//:io_grpc_grpc_api",
         "@maven//:io_grpc_grpc_context",
+        "@maven//:io_grpc_grpc_protobuf",
         "@maven//:io_grpc_grpc_netty_shaded",
         "@maven//:io_grpc_grpc_stub",
         "@maven//:io_grpc_grpc_testing",
