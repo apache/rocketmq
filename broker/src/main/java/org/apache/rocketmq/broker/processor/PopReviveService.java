@@ -384,6 +384,7 @@ public class PopReviveService extends ServiceThread {
      *                         CKs and the computed {@code endTime}
      */
     protected void consumeReviveMessage(ConsumeReviveObj consumeReviveObj) {
+        // init context parameters
         HashMap<String, PopCheckPoint> map = consumeReviveObj.map;
         HashMap<String, PopCheckPoint> mockPointMap = new HashMap<>();
         long startScanTime = System.currentTimeMillis();
@@ -396,11 +397,14 @@ public class PopReviveService extends ServiceThread {
         int noMsgCount = 0;
         long firstRt = 0;
         // offset self amend
+
         while (true) {
             if (!shouldRunPopRevive) {
                 POP_LOGGER.info("slave skip scan, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
                 break;
             }
+
+            // pull revive messages
             List<MessageExt> messageExts = getReviveMessage(offset, queueId);
             if (messageExts == null || messageExts.isEmpty()) {
                 long old = endTime;
@@ -429,10 +433,13 @@ public class PopReviveService extends ServiceThread {
             } else {
                 noMsgCount = 0;
             }
+
             if (System.currentTimeMillis() - startScanTime > brokerController.getBrokerConfig().getReviveScanTime()) {
                 POP_LOGGER.info("reviveQueueId={}, scan timeout ", queueId);
                 break;
             }
+
+            // convert message to PopCheckPoint and AckMsg
             for (MessageExt messageExt : messageExts) {
                 if (PopAckConstants.CK_TAG.equals(messageExt.getTags())) {
                     String raw = new String(messageExt.getBody(), DataConverter.CHARSET_UTF8);
