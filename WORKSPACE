@@ -16,6 +16,18 @@
 #
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+# com_google_protobuf must be declared before rules_cc to avoid dependency cycles
+# rules_cc 0.1.1 transitively depends on com_google_protobuf for proto compilation
+http_archive(
+    name = "com_google_protobuf",
+    sha256 = "d19643d265b978383352b3143f04c0641eea75a75235c111cc01a1350173180e",
+    strip_prefix = "protobuf-25.3",
+    urls = ["https://github.com/protocolbuffers/protobuf/releases/download/v25.3/protobuf-25.3.tar.gz"],
+)
+
+load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+protobuf_deps()
+
 # rules_cc must be declared early — @bazel_tools/tools/cpp transitively
 # references @@rules_cc during repo mapping computation
 http_archive(
