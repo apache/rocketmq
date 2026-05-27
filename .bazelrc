@@ -17,6 +17,7 @@
 startup --host_jvm_args=-Xmx2g
 
 common --enable_workspace
+common --repositories_without_autoloads=bazel_features_version,bazel_features_globals
 
 run --color=yes
 
