@@ -643,12 +643,14 @@ public class PopReviveService extends ServiceThread {
                 continue;
             }
 
-            // restore checkpoint
+            // Concurrency control for revive: skip first long-running revive task.
             while (inflightReviveRequestMap.size() > 3) {
                 waitForRunning(100);
                 Pair<Long, Boolean> pair = inflightReviveRequestMap.firstEntry().getValue();
+                // if first revive task is timeout, reput it to revive topic, then skip
                 if (!pair.getObject2() && System.currentTimeMillis() - pair.getObject1() > 1000 * 30) {
                     PopCheckPoint oldCK = inflightReviveRequestMap.firstKey();
+                    // reput checkpoint to revive topic
                     rePutCK(oldCK, pair);
                     inflightReviveRequestMap.remove(oldCK);
                     POP_LOGGER.warn("stay too long, remove from reviveRequestMap, {}, {}, {}, {}", popCheckPoint.getTopic(),
