@@ -50,6 +50,7 @@ maven_install(
         "io.netty:netty-codec:4.1.130.Final",
         "io.netty:netty-codec-http:4.1.130.Final",
         "io.netty:netty-codec-http2:4.1.130.Final",
+        "io.netty:netty-codec-haproxy:4.1.130.Final",
         "io.netty:netty-transport-native-epoll:4.1.130.Final",
         "io.netty:netty-resolver:4.1.130.Final",
         "io.netty:netty-common:4.1.130.Final",
