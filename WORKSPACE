@@ -112,7 +112,6 @@ maven_install(
         "org.apache.rocketmq:rocketmq-rocksdb:1.0.6",
         "com.alipay.sofa:jraft-core:1.3.14",
         "com.alipay.sofa:hessian:3.3.6",
-        "io.netty:netty-tcnative-boringssl-static:2.0.53.Final",
         "org.mockito:mockito-junit-jupiter:4.11.0",
         "com.alibaba.fastjson2:fastjson2:2.0.59",
         "org.junit.jupiter:junit-jupiter-api:5.9.1",
