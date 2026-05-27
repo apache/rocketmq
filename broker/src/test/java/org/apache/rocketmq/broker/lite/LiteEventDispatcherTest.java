@@ -580,9 +580,9 @@ public class LiteEventDispatcherTest {
         when(consumerOffsetManager.queryOffset(group, lmqName, 0)).thenReturn(50L);
 
         LiteEventDispatcher.ClientEventSet eventSet = spy(liteEventDispatcher.new ClientEventSet(group));
-        when(eventSet.maybeBlock()).thenReturn(false);
-        when(eventSet.isLowWaterMark()).thenReturn(true);
-        when(eventSet.offer(lmqName)).thenReturn(true);
+        doReturn(false).when(eventSet).maybeBlock();
+        doReturn(true).when(eventSet).isLowWaterMark();
+        doReturn(true).when(eventSet).offer(lmqName);
 
         liteEventDispatcher.clientEventMap.put(clientId, eventSet);
 
