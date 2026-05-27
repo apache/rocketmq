@@ -28,6 +28,10 @@ http_archive(
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
 bazel_skylib_workspace()
 
+# Standalone proto_bazel_features to avoid cycle with @com_google_protobuf
+load("//:proto_bazel_features.bzl", "proto_bazel_features")
+proto_bazel_features(name = "proto_bazel_features")
+
 http_archive(
     name = "bazel_features",
     sha256 = "a660027f5a87f13224ab54b8dc6e191693c554f2692fcca46e8e29ee7dabc43b",
@@ -40,14 +44,12 @@ bazel_features_deps()
 http_archive(
     name = "rules_java",
     urls = [
-        "https://github.com/bazelbuild/rules_java/releases/download/8.13.0/rules_java-8.13.0.tar.gz",
+        "https://github.com/bazelbuild/rules_java/releases/download/7.12.2/rules_java-7.12.2.tar.gz",
     ],
-    sha256 = "b6c6d92ca9dbb77de31fb6c6a794d20427072663ce41c2b047902ffcc123e3ef",
+    sha256 = "a9690bc00c538246880d5c83c233e4deb83fe885f54c21bb445eb8116a180b83",
 )
-load("@rules_java//java:rules_java_deps.bzl", "rules_java_dependencies")
+load("@rules_java//java:repositories.bzl", "rules_java_dependencies", "rules_java_toolchains")
 rules_java_dependencies()
-
-load("@rules_java//java:repositories.bzl", "rules_java_toolchains")
 rules_java_toolchains()
 
 http_archive(
