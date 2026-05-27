@@ -54,6 +54,27 @@ import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.BatchAckMsg;
 
+/**
+ * Processes consumer ack messages in Pop consumption mode.
+ *
+ * <p>Handles both single ({@link RequestCode#ACK_MESSAGE}) and batch
+ * ({@link RequestCode#BATCH_ACK_MESSAGE}) acks. Each ack is processed
+ * through one of two paths:
+ * <ul>
+ *   <li><b>KVStore path</b> ({@code popConsumerKVServiceEnable=true}) —
+ *       delegates to {@link PopConsumerService#ackAsync}</li>
+ *   <li><b>File-based path</b> — tries {@link PopBufferMergeService#addAk}
+ *       first; if the buffer merge is not available, writes the ack as a
+ *       message to the system revive topic</li>
+ * </ul>
+ *
+ * <p>Orderly ack is handled separately by {@link #ackOrderly} /
+ * {@link #ackOrderlyNew}, which update the consumer order info and advance
+ * the consumer offset while notifying any long-polling waiters.
+ *
+ * <p>This class also owns and manages the {@link PopReviveService} instances
+ * for the file-based revive path.
+ */
 public class AckMessageProcessor implements NettyRequestProcessor {
 
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
