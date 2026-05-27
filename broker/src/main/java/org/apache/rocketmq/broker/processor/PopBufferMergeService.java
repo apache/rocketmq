@@ -398,6 +398,7 @@ public class PopBufferMergeService extends ServiceThread {
                     continue;
                 }
 
+                // store checkpoint
                 if (brokerController.getBrokerConfig().isEnablePopBatchAck()) { // default is false
                     List<Byte> indexList = this.batchAckIndexList;
                     try {
@@ -426,6 +427,7 @@ public class PopBufferMergeService extends ServiceThread {
                     }
                 }
 
+                // remove checkpoint from buffer
                 if (isCkDoneForFinish(pointWrapper) && pointWrapper.isCkStored()) {
                     if (brokerController.getBrokerConfig().isEnablePopLog()) {
                         POP_LOGGER.info("[PopBuffer]ck finish, {}", pointWrapper);
