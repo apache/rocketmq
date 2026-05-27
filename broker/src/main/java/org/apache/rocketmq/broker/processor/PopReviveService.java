@@ -93,6 +93,25 @@ public class PopReviveService extends ServiceThread {
     private long currentReviveMessageTimestamp = -1;
     private volatile boolean shouldRunPopRevive = false;
 
+    /**
+     * Tracks checkpoints that are currently being revived.
+     *
+     * <p>Key — the checkpoint being processed.
+     * Value — a pair of (startTime, completed), where:
+     * <ul>
+     *   <li>{@code startTime} is the timestamp when revival began</li>
+     *   <li>{@code completed} is {@code true} once all sub-messages have been
+     *       processed (success or failure)</li>
+     * </ul>
+     *
+     * <p>The map is sorted by {@link PopCheckPoint#compareTo} (by startOffset).
+     * This ordering is used to drain completed entries from the head, ensuring
+     * the revive topic offset is committed strictly in sequence.
+     *
+     * <p>Concurrency is limited to at most 3 entries at a time (see
+     * {@link #mergeAndRevive}). If an entry stays incomplete for over 30
+     * seconds, it is considered hung and is skipped via {@link #rePutCK}.
+     */
     private final NavigableMap<PopCheckPoint/* oldCK */, Pair<Long/* timestamp */, Boolean/* result */>> inflightReviveRequestMap = Collections.synchronizedNavigableMap(new TreeMap<>());
     private long reviveOffset;
 
