@@ -64,6 +64,23 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CON
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 
+/**
+ * Per-queue service that reads the revive topic, matches checkpoints with AckMsgs, and
+ * revives timed-out messages by re-publishing them to the retry topic.
+ *
+ * <p>Each revive queue has its own dedicated {@code PopReviveService} instance.
+ * The service periodically:
+ * <ol>
+ *   <li>Scans the revive topic ({@link #consumeReviveMessage}) to collect CK
+ *       (checkpoint) and Ack messages, merging Acks into CK's bitMap</li>
+ *   <li>Processes expired CKs ({@link #mergeAndRevive}) by re-publishing any
+ *       un-acked sub-messages back to the retry topic via {@link #reviveRetry}</li>
+ * </ol>
+ *
+ * <p>This is the <b>file-based</b> revive path (CK + Ack messages are stored in
+ * the system revive topic). It is complemented by the KVStore-based path in
+ * {@code PopConsumerService} which handles the {@code PopConsumerKVStore} flow.
+ */
 public class PopReviveService extends ServiceThread {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final int[] ckRewriteIntervalsInSeconds = new int[] { 10, 20, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 1200, 1800, 3600, 7200 };
