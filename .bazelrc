@@ -23,6 +23,7 @@ run --color=yes
 
 build --color=yes
 build --enable_platform_specific_config
+build --incompatible_disallow_empty_glob=false
 
 test --action_env=TEST_TMPDIR=/tmp
 
