@@ -593,6 +593,24 @@ public class PopReviveService extends ServiceThread {
         return point;
     }
 
+    /**
+     * Process collected checkpoints and revive all un-acked sub-messages.
+     *
+     * <p>Checkpoints are sorted by revive offset. For each one:
+     * <ul>
+     *   <li>Skip if the revive time has not yet elapsed (within
+     *       {@code ackTimeInterval + 1s} of {@code endTime})</li>
+     *   <li>Skip if the normal topic or consumer group no longer exists</li>
+     *   <li>Wait if too many revives are already in-flight (max 3)</li>
+     *   <li>Call {@link #reviveMsgFromCk} to re-publish un-acked messages</li>
+     * </ul>
+     *
+     * <p>After processing, the revive topic offset is advanced past all
+     * processed checkpoints.
+     *
+     * @param consumeReviveObj the container with collected CKs and scan state
+     * @throws Throwable if any revive operation fails
+     */
     protected void mergeAndRevive(ConsumeReviveObj consumeReviveObj) throws Throwable {
         ArrayList<PopCheckPoint> sortList = consumeReviveObj.genSortList();
         POP_LOGGER.info("reviveQueueId={}, ck listSize={}", queueId, sortList.size());
