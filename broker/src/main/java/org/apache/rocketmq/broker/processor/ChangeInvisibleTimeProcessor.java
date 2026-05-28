@@ -94,8 +94,12 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
 
+        // process request async
         CompletableFuture<RemotingCommand> responseFuture = processRequestAsync(channel, request, brokerAllowSuspend);
 
+        // process response sync or a sync
+        // default value of appendCkAsync is false
+        // default value of appendAckAsync is false
         if (brokerController.getBrokerConfig().isAppendCkAsync() && brokerController.getBrokerConfig().isAppendAckAsync()) {
             responseFuture.thenAccept(response -> doResponse(channel, request, response)).exceptionally(throwable -> {
                 RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
