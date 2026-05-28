@@ -310,6 +310,22 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * Ack the original checkpoint after created a new checkpoint successfully.
+     *
+     * <p>Called after the new checkpoint has been written successfully. This method
+     * writes an {@link PopAckConstants#ACK_TAG} message that matches the
+     * original checkpoint's merge key. When {@link PopReviveService} processes this
+     * ack, it sets the corresponding bit in the old CK's bitMap, causing
+     * the old CK to be treated as fully acked and skipped during revive.
+     *
+     * <p>If {@link PopBufferMergeService#addAk} accepts the ack (buffer
+     * merge enabled), it is merged in memory without writing to the store.
+     *
+     * @param requestHeader the original request header
+     * @param extraInfo     the extra info from the original pop request
+     * @return a future that completes with {@code true} on success
+     */
     private CompletableFuture<Boolean> ackOrigin(final ChangeInvisibleTimeRequestHeader requestHeader,
         String[] extraInfo) {
         // create ackMsg and related message
