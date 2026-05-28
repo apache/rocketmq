@@ -356,6 +356,7 @@ public class PopConsumerService extends ServiceThread {
         String groupId, String topicId, int queueId, int batchSize, boolean fifo, String attemptId, int initMode,
         MessageFilter filter) {
 
+        // init context params
         PopConsumerContext popConsumerContext =
             new PopConsumerContext(clientHost, popTime, invisibleTime, groupId, fifo, initMode, attemptId);
 
@@ -391,18 +392,22 @@ public class PopConsumerService extends ServiceThread {
             CompletableFuture.completedFuture(popConsumerContext);
 
         try {
+            // get message from retry topic,
             if (!fifo && preferRetry) {
+                // default config of retrieveMessageFromPopRetryTopicV1 is true,
                 if (brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
                     getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
                         retryTopicV1, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V1);
                 }
 
+                // default config of enableRetryTopicV2 is false
                 if (brokerConfig.isEnableRetryTopicV2()) {
                     getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
                         retryTopicV2, requestCount, batchSize, filter, PopConsumerRecord.RetryType.RETRY_TOPIC_V2);
                 }
             }
 
+            // get message from normal topic
             if (queueId != -1) {
                 getMessageFuture = this.getMessageAsync(getMessageFuture, clientHost, groupId,
                     topicId, queueId, batchSize, filter, PopConsumerRecord.RetryType.NORMAL_TOPIC);
@@ -410,6 +415,7 @@ public class PopConsumerService extends ServiceThread {
                 getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
                     topicId, requestCount, batchSize, filter, PopConsumerRecord.RetryType.NORMAL_TOPIC);
 
+                // get message from retry topic
                 if (!fifo && !preferRetry) {
                     if (brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
                         getMessageFuture = this.getMessageFromTopicAsync(getMessageFuture, clientHost, groupId,
@@ -425,6 +431,8 @@ public class PopConsumerService extends ServiceThread {
 
             return getMessageFuture.thenCompose(result -> {
                 if (result.isFound() && !result.isFifo()) {
+                    // write checkpoint to cache or store
+                    // default config of enablePopBufferMerge is false
                     if (brokerConfig.isEnablePopBufferMerge() &&
                         popConsumerCache != null && !popConsumerCache.isCacheFull()) {
                         this.popConsumerCache.writeRecords(result.getPopConsumerRecordList());
@@ -432,6 +440,7 @@ public class PopConsumerService extends ServiceThread {
                         this.popConsumerStore.writeRecords(result.getPopConsumerRecordList());
                     }
 
+                    // format result
                     for (int i = 0; i < result.getGetMessageResultList().size(); i++) {
                         GetMessageResult getMessageResult = result.getGetMessageResultList().get(i);
                         PopConsumerRecord popConsumerRecord = result.getPopConsumerRecordList().get(i);
@@ -449,6 +458,7 @@ public class PopConsumerService extends ServiceThread {
                 }
                 return CompletableFuture.completedFuture(result);
             }).whenComplete((result, throwable) -> {
+                // unlock by consumerLockService
                 try {
                     if (throwable != null) {
                         log.error("PopConsumerService popAsync get message error",
