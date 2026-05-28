@@ -388,7 +388,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
         // There are two type of ack mode:
         // 1. ack by KV service
-        // 2. ack by file merge service
+        // 2. ack by file merge service, default mode
         if (brokerConfig.isPopConsumerKVServiceEnable()) {
 
             CompletableFuture<PopConsumerContext> popAsyncFuture = brokerController.getPopConsumerService().popAsync(
