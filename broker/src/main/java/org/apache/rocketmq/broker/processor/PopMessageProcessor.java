@@ -438,6 +438,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 requestHeader.getAttemptId(), requestHeader.getInitMode(), messageFilter);
 
             popAsyncFuture.thenApply(result -> {
+                // callback
                 try {
                     if (request.getCallbackList() != null) {
                         request.getCallbackList().forEach(CommandCallback::accept);
@@ -447,6 +448,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     POP_LOGGER.error("PopProcessor execute callback error", t);
                 }
 
+                // long polling process
                 if (result.isFound()) {
                     response.setCode(ResponseCode.SUCCESS);
                     getMessageResult.setStatus(GetMessageStatus.FOUND);
@@ -479,6 +481,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
                 }
 
+                // format response
                 responseHeader.setPopTime(result.getPopTime());
                 responseHeader.setInvisibleTime(result.getInvisibleTime());
                 responseHeader.setReviveQid(
