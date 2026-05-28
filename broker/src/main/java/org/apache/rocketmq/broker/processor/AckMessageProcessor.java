@@ -26,6 +26,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
+import org.apache.rocketmq.broker.pop.PopConsumerService;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
@@ -144,11 +145,14 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
+        // init context params
         AckMessageRequestHeader requestHeader;
         BatchAckMessageRequestBody reqBody = null;
         final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
         response.setOpaque(request.getOpaque());
+
         if (request.getCode() == RequestCode.ACK_MESSAGE) {
+            // decode and validate request
             requestHeader = (AckMessageRequestHeader) request.decodeCommandCustomHeader(AckMessageRequestHeader.class);
 
             TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
@@ -188,12 +192,15 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 response.setRemark(errorInfo);
                 return response;
             }
+
+            // append ack
             if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
                 appendAckNew(requestHeader, null, response, channel, null);
             } else {
                 appendAck(requestHeader, null, response, channel, null);
             }
         } else if (request.getCode() == RequestCode.BATCH_ACK_MESSAGE) {
+            // decode and validate request
             if (request.getBody() != null) {
                 reqBody = BatchAckMessageRequestBody.decode(request.getBody(), BatchAckMessageRequestBody.class);
             }
@@ -201,7 +208,10 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.NO_MESSAGE);
                 return response;
             }
+
+            // process each ack
             for (BatchAck bAck : reqBody.getAcks()) {
+                // default value of popConsumerKVServiceEnable is false
                 if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
                     appendAckNew(null, bAck, response, channel, reqBody.getBrokerName());
                 } else {
@@ -209,6 +219,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 }
             }
         } else {
+            // unsupported request, logging and return
             POP_LOGGER.error("AckMessageProcessor failed to process RequestCode: {}, consumer: {} ", request.getCode(), RemotingHelper.parseChannelRemoteAddr(channel));
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             response.setRemark(String.format("AckMessageProcessor failed to process RequestCode: %d", request.getCode()));
