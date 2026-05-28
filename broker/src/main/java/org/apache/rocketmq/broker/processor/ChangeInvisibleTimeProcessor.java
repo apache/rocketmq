@@ -377,7 +377,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genCkUniqueId(ck));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 
-        // store message then call ackOrigin
+        // store new checkpoint to extend invisible time
+        // then ack origin checkpoint
         return this.brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenCompose(putMessageResult -> {
             if (brokerController.getBrokerConfig().isEnablePopLog()) {
                 POP_LOGGER.info("change Invisible, appendCheckPoint, topic {}, queueId {},reviveId {}, cid {}, startOffset {}, rt {}, result {}", requestHeader.getTopic(), queueId, reviveQid, requestHeader.getConsumerGroup(), offset,
