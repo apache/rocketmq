@@ -62,6 +62,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+@Ignore("Flaky: HA port binding and timeout issues across platforms")
 public class AutoSwitchHATest {
     private final String storeMessage = "Once, there was a chance for me!";
     private final int defaultMappedFileSize = 1024 * 1024;

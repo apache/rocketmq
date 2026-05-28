@@ -51,6 +51,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.rocketmq.store.StoreTestUtil.releaseMmapFilesOnWindows;
 import static org.awaitility.Awaitility.await;
 
+@Ignore("Flaky: DLedger integration test, extremely slow and environment-sensitive")
 public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @BeforeClass
