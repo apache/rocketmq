@@ -448,7 +448,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     POP_LOGGER.error("PopProcessor execute callback error", t);
                 }
 
-                // long polling process
+                // long polling process, useless in rocketmq 5.*
                 if (result.isFound()) {
                     response.setCode(ResponseCode.SUCCESS);
                     getMessageResult.setStatus(GetMessageStatus.FOUND);
