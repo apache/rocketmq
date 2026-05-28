@@ -298,6 +298,31 @@ public class PopConsumerService extends ServiceThread {
             context.getAttemptId(), topicId, groupId, queueId, context.getInvisibleTime());
     }
 
+    /**
+     * Fetch messages from a single queue and append them to the pop context.
+     *
+     * <p>Chained via {@link CompletableFuture#thenCompose} from
+     * {@link #getMessageFromTopicAsync}. When the batch is already full
+     * ({@code remain <= 0}), the pending count is added to the context and
+     * the chain stops. Otherwise, messages are fetched from the store and
+     * the result is merged into the context via {@link #handleGetMessageResult}.
+     *
+     * <p>Early termination can occur inside this method when:
+     * <ul>
+     *   <li>Too many inflight (un-acked) messages exist</li>
+     *   <li>A FIFO queue is blocked</li>
+     * </ul>
+     *
+     * @param future    the accumulator future carrying the pop context
+     * @param clientHost the client address
+     * @param groupId   consumer group id
+     * @param topicId   topic name
+     * @param queueId   queue id
+     * @param batchSize max number of messages still needed
+     * @param filter    message filter
+     * @param retryType whether this is a retry topic V1/V2
+     * @return a future completing with the pop context updated with results
+     */
     protected CompletableFuture<PopConsumerContext> getMessageAsync(CompletableFuture<PopConsumerContext> future,
         String clientHost, String groupId, String topicId, int queueId, int batchSize, MessageFilter filter,
         PopConsumerRecord.RetryType retryType) {
