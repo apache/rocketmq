@@ -213,7 +213,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 return response;
             }
 
-            // append ack
+            // append ack, default mode is file based merge, call appendAck
             if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
                 appendAckNew(requestHeader, null, response, channel, null);
             } else {
