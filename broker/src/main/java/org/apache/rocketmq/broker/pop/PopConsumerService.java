@@ -352,6 +352,33 @@ public class PopConsumerService extends ServiceThread {
         return future;
     }
 
+    /**
+     * Asynchronously pop messages for the KVStore-based ack path.
+     *
+     * <p>This method coordinates the full Pop lifecycle:
+     * <ol>
+     *   <li>Validates topic, group, and acquires the consumer lock</li>
+     *   <li>Determines whether to pull from retry topic first
+     *       (based on {@code popFromRetryProbability})</li>
+     *   <li>Pulls messages from normal topic (and retry topic V1/V2 if configured)</li>
+     *   <li>Writes checkpoints to {@link PopConsumerCache} (buffer merge) or
+     *       {@link PopConsumerKVStore} (RocksDB)</li>
+     *   <li>Re-encodes retry messages if needed</li>
+     * </ol>
+     *
+     * @param clientHost   the client address
+     * @param popTime      the pop invocation timestamp
+     * @param invisibleTime the message visibility timeout
+     * @param groupId      consumer group id
+     * @param topicId      topic name
+     * @param queueId      queue id (-1 for all queues)
+     * @param batchSize    max number of messages to return
+     * @param fifo         whether this is a FIFO ordered consumption
+     * @param attemptId    attempt id for idempotent consumption
+     * @param initMode     consume init mode (min/max)
+     * @param filter       message filter expression
+     * @return a future that completes with the pop result context
+     */
     public CompletableFuture<PopConsumerContext> popAsync(String clientHost, long popTime, long invisibleTime,
         String groupId, String topicId, int queueId, int batchSize, boolean fifo, String attemptId, int initMode,
         MessageFilter filter) {
