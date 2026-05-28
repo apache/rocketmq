@@ -241,6 +241,27 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             topic, queueId, cid, false, null, 0L, null, null);
     }
 
+    /**
+     * Process a PopMessage request.
+     *
+     * <p>This method handles the full Pop lifecycle:
+     * <ol>
+     *   <li>Validates the request (topic, group, permissions, subscription)</li>
+     *   <li>Routes to the <b>KVStore path</b> (via {@link PopConsumerService#popAsync})
+     *       or the <b>file-based path</b> (inline CompletableFuture chain)</li>
+     *   <li>Pops messages from normal and retry topics (V1/V2)</li>
+     *   <li>Creates checkpoints and appends them to the revive topic</li>
+     *   <li>Suspends the request via {@link PopLongPollingService#polling} if
+     *       no messages are available</li>
+     *   <li>Transfers messages via heap copy or zero-copy ({@code FileRegion})</li>
+     * </ol>
+     *
+     * @param ctx     the Netty channel handler context
+     * @param request the incoming PopMessage request
+     * @return the response, or {@code null} if the response is sent asynchronously
+     *         (zero-copy path or long-polling suspension)
+     * @throws RemotingCommandException if the request cannot be decoded
+     */
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
