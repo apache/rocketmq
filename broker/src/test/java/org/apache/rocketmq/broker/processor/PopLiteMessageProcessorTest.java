@@ -22,6 +22,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.lite.AbstractLiteLifecycleManager;
 import org.apache.rocketmq.broker.lite.LiteEventDispatcher;
+import org.apache.rocketmq.broker.lite.LiteSubscriptionRegistry;
 import org.apache.rocketmq.broker.longpolling.PopLiteLongPollingService;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
@@ -96,6 +97,8 @@ public class PopLiteMessageProcessorTest {
     private SubscriptionGroupManager subscriptionGroupManager;
     @Mock
     private AbstractLiteLifecycleManager liteLifecycleManager;
+    @Mock
+    private LiteSubscriptionRegistry liteSubscriptionRegistry;
 
     private BrokerConfig brokerConfig;
     private PopLiteMessageProcessor popLiteMessageProcessor;
@@ -110,6 +113,7 @@ public class PopLiteMessageProcessorTest {
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         when(brokerController.getLiteLifecycleManager()).thenReturn(liteLifecycleManager);
+        when(brokerController.getLiteSubscriptionRegistry()).thenReturn(liteSubscriptionRegistry);
 
         PopLiteMessageProcessor testObject = new PopLiteMessageProcessor(brokerController, liteEventDispatcher);
         FieldUtils.writeDeclaredField(testObject, "popLiteLongPollingService", popLiteLongPollingService, true);
@@ -486,5 +490,71 @@ public class PopLiteMessageProcessorTest {
             }
         }
         return getMessageResult;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testPopByClientId_tombstoneRejectsPull() {
+        String clientId = "clientId";
+        String group = "exclusiveGroup";
+        String lmqName = "lmqName";
+
+        // Configure exclusive mode
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
+        // Tombstone exists for this client+lmqName
+        when(liteSubscriptionRegistry.hasExclusiveEvictionTombstone(clientId, lmqName)).thenReturn(true);
+
+        Iterator<String> mockIterator = mock(Iterator.class);
+        when(mockIterator.hasNext()).thenReturn(true, false);
+        when(mockIterator.next()).thenReturn(lmqName);
+        when(liteEventDispatcher.getEventIterator(clientId)).thenReturn(mockIterator);
+
+        Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popByClientId(
+            "clientHost", "parentTopic", group, clientId, System.currentTimeMillis(), 6000L, 32, "attemptId");
+
+        // Should return empty result since tombstone blocks the pull
+        assertEquals(0, result.getObject2().getMessageCount());
+        // popLiteTopic should never be called for the tombstoned lmqName
+        verify(popLiteMessageProcessor, never())
+            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testPopByClientId_noTombstoneAllowsPull() {
+        String clientId = "clientId";
+        String group = "exclusiveGroup";
+        String lmqName = "lmqName";
+        int msgCount = 1;
+        GetMessageResult mockResult = mockGetMessageResult(GetMessageStatus.FOUND, msgCount, 100L);
+        long pollTime = System.currentTimeMillis();
+
+        // Configure exclusive mode
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
+        // No tombstone
+        when(liteSubscriptionRegistry.hasExclusiveEvictionTombstone(clientId, lmqName)).thenReturn(false);
+
+        Iterator<String> mockIterator = mock(Iterator.class);
+        when(mockIterator.hasNext()).thenReturn(true, false);
+        when(mockIterator.next()).thenReturn(lmqName);
+        when(liteEventDispatcher.getEventIterator(clientId)).thenReturn(mockIterator);
+        doReturn(new Pair<>(new StringBuilder("0"), mockResult))
+            .when(popLiteMessageProcessor)
+            .popLiteTopic(anyString(), anyString(), anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyString());
+
+        Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popByClientId(
+            "clientHost", "parentTopic", group, clientId, pollTime, 6000L, 32, "attemptId");
+
+        // Should return the message since no tombstone blocks
+        assertEquals(msgCount, result.getObject2().getMessageCount());
+        verify(popLiteMessageProcessor).popLiteTopic("parentTopic", "clientHost", group, lmqName, 32L, pollTime, 6000L, "attemptId");
     }
 }
