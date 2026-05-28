@@ -126,6 +126,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
 
     public CompletableFuture<RemotingCommand> processRequestAsync(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
+        // decode and validate request
         final ChangeInvisibleTimeRequestHeader requestHeader = (ChangeInvisibleTimeRequestHeader) request.decodeCommandCustomHeader(ChangeInvisibleTimeRequestHeader.class);
         RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
         response.setCode(ResponseCode.SUCCESS);
@@ -148,11 +149,13 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             return CompletableFuture.completedFuture(response);
         }
 
+        // lite topic process
         CompletableFuture<RemotingCommand> future = processChangeInvisibleTimeForLite(requestHeader, response, responseHeader);
         if (future != null) {
             return future;
         }
 
+        // offset check
         long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
         long maxOffset;
         try {
@@ -166,6 +169,9 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         }
 
         String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
+
+        // default value of popConsumerKVServiceEnable is false
+        // kv based ack service
         if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
             if (ExtraInfoUtil.isOrder(extraInfo)) {
                 return this.processChangeInvisibleTimeForOrderNew(
@@ -186,6 +192,9 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             return CompletableFuture.completedFuture(response);
         }
 
+        // file merge based ack service
+
+        // orderly topic
         if (ExtraInfoUtil.isOrder(extraInfo)) {
             return CompletableFuture.completedFuture(
                 processChangeInvisibleTimeForOrder(requestHeader, extraInfo, response, responseHeader));
@@ -196,6 +205,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         CompletableFuture<Boolean> futureResult = appendCheckPointThenAckOrigin(requestHeader,
             ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now, extraInfo);
 
+        // format response
         return futureResult.thenCompose(result -> {
             if (result) {
                 responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
