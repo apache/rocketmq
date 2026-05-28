@@ -346,6 +346,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         // add check point msg to revive log
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(reviveTopic);
+
+        // create checkpoint
         PopCheckPoint ck = new PopCheckPoint();
         ck.setBitMap(0);
         ck.setNum((byte) 1);
@@ -359,6 +361,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         ck.setBrokerName(ExtraInfoUtil.getBrokerName(extraInfo));
         ck.setSuspend(requestHeader.isSuspend());
 
+        // init message with checkpoint
         msgInner.setBody(JSON.toJSONString(ck).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(reviveQid);
         msgInner.setTags(PopAckConstants.CK_TAG);
@@ -368,6 +371,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         msgInner.setDeliverTimeMs(ck.getReviveTime() - PopAckConstants.ackTimeInterval);
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genCkUniqueId(ck));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+
+        // store message then call ackOrigin
         return this.brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenCompose(putMessageResult -> {
             if (brokerController.getBrokerConfig().isEnablePopLog()) {
                 POP_LOGGER.info("change Invisible, appendCheckPoint, topic {}, queueId {},reviveId {}, cid {}, startOffset {}, rt {}, result {}", requestHeader.getTopic(), queueId, reviveQid, requestHeader.getConsumerGroup(), offset,
@@ -381,6 +386,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
                     this.brokerController.getBrokerStatsManager().incGroupCkNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
                 }
             }
+
             if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
                 && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
                 && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
