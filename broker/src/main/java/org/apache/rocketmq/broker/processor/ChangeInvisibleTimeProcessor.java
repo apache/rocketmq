@@ -362,6 +362,27 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         });
     }
 
+    /**
+     * Extend the visibility timeout by writing a new checkpoint and ack the old one.
+     *
+     * <p>This is the core of the <b>file-based non-orderly</b> ChangeInvisibleTime path:
+     * <ol>
+     *   <li>Writes a <b>new CK</b> ({@link PopAckConstants#CK_TAG}) to the revive
+     *       topic with the updated {@code invisibleTime}. This CK will trigger a
+     *       revive at the new timeout if not acked.</li>
+     *   <li>If the CK is stored successfully, calls {@link #ackOrigin} to write
+     *       an <b>Ack</b> ({@link PopAckConstants#ACK_TAG}) for the original CK,
+     *       preventing the old CK from triggering a premature revive.</li>
+     * </ol>
+     *
+     * @param requestHeader the original request header
+     * @param reviveQid     the revive queue to write to
+     * @param queueId       the original queue id
+     * @param offset        the message offset being extended
+     * @param popTime       the new pop time (current time)
+     * @param extraInfo     the extra info from the original pop request
+     * @return a future that completes with {@code true} on success
+     */
     private CompletableFuture<Boolean> appendCheckPointThenAckOrigin(
         final ChangeInvisibleTimeRequestHeader requestHeader,
         int reviveQid,
@@ -411,6 +432,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
                 }
             }
 
+            // if success, ack origin checkpoint
             if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
                 && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
                 && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
