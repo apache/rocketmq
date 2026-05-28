@@ -248,6 +248,28 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * Append an ack (single or batch) in the <b>file-based path</b>.
+     *
+     * <p>For <b>single ack</b>: parses the extra info from the request header,
+     * routes orderly acks to {@link #ackOrderly}, or creates a single {@link AckMsg}.
+     *
+     * <p>For <b>batch ack</b>: expands the {@link BitSet} from the
+     * {@link BatchAck} into individual offsets, routes orderly acks individually,
+     * and packs the remaining offsets into a {@link BatchAckMsg}.
+     *
+     * <p>The ack is first offered to {@link PopBufferMergeService#addAk}.
+     * If the buffer merge is not available, the ack is serialized as JSON and
+     * written to the revive topic with tag {@link PopAckConstants#ACK_TAG}
+     * or {@link PopAckConstants#BATCH_ACK_TAG}.
+     *
+     * @param requestHeader the single-ack request header (null for batch)
+     * @param batchAck      the batch ack body (null for single)
+     * @param response      the response to modify on error
+     * @param channel       the Netty channel
+     * @param brokerName    the broker name
+     * @throws RemotingCommandException if offset validation fails
+     */
     private void appendAck(final AckMessageRequestHeader requestHeader, final BatchAck batchAck,
         final RemotingCommand response, final Channel channel, String brokerName) throws RemotingCommandException {
         // init context params
