@@ -250,6 +250,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
     private void appendAck(final AckMessageRequestHeader requestHeader, final BatchAck batchAck,
         final RemotingCommand response, final Channel channel, String brokerName) throws RemotingCommandException {
+        // init context params
         String[] extraInfo;
         String consumeGroup, topic;
         int qId, rqId;
@@ -257,8 +258,11 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         long popTime, invisibleTime;
         AckMsg ackMsg;
         int ackCount = 0;
+
+        // ack orderly or set context params
         if (batchAck == null) {
             // single ack
+            // set context params
             extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
             brokerName = ExtraInfoUtil.getBrokerName(extraInfo);
             consumeGroup = requestHeader.getConsumerGroup();
@@ -270,15 +274,18 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             popTime = ExtraInfoUtil.getPopTime(extraInfo);
             invisibleTime = ExtraInfoUtil.getInvisibleTime(extraInfo);
 
+            // ack orderly if revive queue
             if (rqId == KeyBuilder.POP_ORDER_REVIVE_QUEUE) {
                 ackOrderly(topic, consumeGroup, qId, ackOffset, popTime, invisibleTime, channel, response);
                 return;
             }
 
+            // set ackMsg and ackCount
             ackMsg = new AckMsg();
             ackCount = 1;
         } else {
             // batch ack
+            // set context params
             consumeGroup = batchAck.getConsumerGroup();
             topic = ExtraInfoUtil.getRealTopic(batchAck.getTopic(), batchAck.getConsumerGroup(), batchAck.getRetry());
             qId = batchAck.getQueueId();
@@ -288,6 +295,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             popTime = batchAck.getPopTime();
             invisibleTime = batchAck.getInvisibleTime();
 
+            // offset check
             long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, qId);
             long maxOffset;
             try {
@@ -300,6 +308,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 return;
             }
 
+            // ack orderly or add offset to batchAckMsg
             BatchAckMsg batchAckMsg = new BatchAckMsg();
             BitSet bitSet = batchAck.getBitSet();
             for (int i = bitSet.nextSetBit(0); i >= 0; i = bitSet.nextSetBit(i + 1)) {
@@ -316,10 +325,13 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                     batchAckMsg.getAckOffsetList().add(offset);
                 }
             }
+
+            // skip if empty or is revive queue
             if (rqId == KeyBuilder.POP_ORDER_REVIVE_QUEUE || batchAckMsg.getAckOffsetList().isEmpty()) {
                 return;
             }
 
+            // set ackMsg and ackCount
             ackMsg = batchAckMsg;
             ackCount = batchAckMsg.getAckOffsetList().size();
         }
@@ -327,6 +339,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         this.brokerController.getBrokerStatsManager().incBrokerAckNums(ackCount);
         this.brokerController.getBrokerStatsManager().incGroupAckNums(consumeGroup, topic, ackCount);
 
+        // set ackMsg
         ackMsg.setConsumerGroup(consumeGroup);
         ackMsg.setTopic(topic);
         ackMsg.setQueueId(qId);
@@ -335,11 +348,13 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         ackMsg.setPopTime(popTime);
         ackMsg.setBrokerName(brokerName);
 
+        // add ackMsg
         if (this.brokerController.getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
             brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(topic, consumeGroup, popTime, qId, ackCount);
             return;
         }
 
+        // create revive message by ackMsg, if add ackMsg failed
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(reviveTopic);
         msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(StandardCharsets.UTF_8));
@@ -357,7 +372,9 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         msgInner.setDeliverTimeMs(popTime + invisibleTime);
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genAckUniqueId(ackMsg));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-        if (brokerController.getBrokerConfig().isAppendAckAsync()) {
+
+        // store revive message
+        if (brokerController.getBrokerConfig().isAppendAckAsync()) { // default is false
             int finalAckCount = ackCount;
             this.brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenAccept(putMessageResult -> {
                 handlePutMessageResult(putMessageResult, ackMsg, topic, consumeGroup, popTime, qId, finalAckCount);
