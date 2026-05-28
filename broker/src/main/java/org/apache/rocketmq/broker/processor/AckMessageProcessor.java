@@ -143,6 +143,26 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         return false;
     }
 
+    /**
+     * Process an ack request (single or batch).
+     *
+     * <p>Routes to one of two paths based on {@code popConsumerKVServiceEnable}:
+     * <ul>
+     *   <li>{@code true} — {@link #appendAckNew} (KVStore path, delegates to
+     *       {@link PopConsumerService#ackAsync})</li>
+     *   <li>{@code false} — {@link #appendAck} (file-based path, tries
+     *       {@link PopBufferMergeService#addAk} first, then writes to revive topic)</li>
+     * </ul>
+     *
+     * <p>Orderly acks ({@code rqId == POP_ORDER_REVIVE_QUEUE}) are handled by
+     * {@link #ackOrderly} / {@link #ackOrderlyNew} instead.
+     *
+     * @param channel           the Netty channel of the requesting client
+     * @param request           the incoming request
+     * @param brokerAllowSuspend whether the broker may suspend the request
+     * @return the response to send back to the client
+     * @throws RemotingCommandException if the request cannot be decoded
+     */
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
         // init context params
