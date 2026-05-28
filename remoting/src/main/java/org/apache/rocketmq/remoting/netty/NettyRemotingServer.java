@@ -53,6 +53,7 @@ import io.netty.util.CharsetUtil;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.TimerTask;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -183,7 +184,17 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
         if (tlsMode != TlsMode.DISABLED) {
             try {
-                sslContext = TlsHelper.buildSslContext(false);
+                SslContext newSslContext = TlsHelper.buildSslContext(false);
+                SslContext oldSslContext = this.sslContext;
+                this.sslContext = newSslContext;
+                if (oldSslContext != null) {
+                    try {
+                        ReferenceCountUtil.release(oldSslContext);
+                        log.info("Old SslContext released for server");
+                    } catch (Exception e) {
+                        log.warn("Failed to release old SslContext for server", e);
+                    }
+                }
                 log.info("SslContext created for server");
             } catch (CertificateException | IOException e) {
                 log.error("Failed to create SslContext for server", e);
