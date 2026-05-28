@@ -124,6 +124,24 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         return null;
     }
 
+    /**
+     * Asynchronously process a ChangeInvisibleTime request.
+     *
+     * <p>Routes to the appropriate handler based on message type:
+     * <ul>
+     *   <li><b>Lite message</b> — {@link #processChangeInvisibleTimeForLite}</li>
+     *   <li><b>KVStore path + orderly</b> — {@link #processChangeInvisibleTimeForOrderNew}</li>
+     *   <li><b>KVStore path + non-orderly</b> — {@link PopConsumerService#changeInvisibilityDuration}</li>
+     *   <li><b>File-based path + orderly</b> — {@link #processChangeInvisibleTimeForOrder}</li>
+     *   <li><b>File-based path + non-orderly</b> — {@link #appendCheckPointThenAckOrigin}</li>
+     * </ul>
+     *
+     * @param channel           the Netty channel
+     * @param request           the incoming request
+     * @param brokerAllowSuspend whether the broker may suspend
+     * @return a future that completes with the response
+     * @throws RemotingCommandException if the request cannot be decoded
+     */
     public CompletableFuture<RemotingCommand> processRequestAsync(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
         // decode and validate request
@@ -200,7 +218,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
                 processChangeInvisibleTimeForOrder(requestHeader, extraInfo, response, responseHeader));
         }
 
-        // add new ck
+        // add new checkpoint then ack origin checkpoint
         long now = System.currentTimeMillis();
         CompletableFuture<Boolean> futureResult = appendCheckPointThenAckOrigin(requestHeader,
             ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now, extraInfo);
