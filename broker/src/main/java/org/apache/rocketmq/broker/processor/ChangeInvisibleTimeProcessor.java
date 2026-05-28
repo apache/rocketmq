@@ -294,6 +294,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
 
     private CompletableFuture<Boolean> ackOrigin(final ChangeInvisibleTimeRequestHeader requestHeader,
         String[] extraInfo) {
+        // create ackMsg and related message
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         AckMsg ackMsg = new AckMsg();
 
@@ -310,10 +311,12 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         this.brokerController.getBrokerStatsManager().incBrokerAckNums(1);
         this.brokerController.getBrokerStatsManager().incGroupAckNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
 
+        // add ackMsg
         if (brokerController.getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
             return CompletableFuture.completedFuture(true);
         }
 
+        // init message
         msgInner.setTopic(reviveTopic);
         msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(rqId);
@@ -324,6 +327,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         msgInner.setDeliverTimeMs(ExtraInfoUtil.getPopTime(extraInfo) + ExtraInfoUtil.getInvisibleTime(extraInfo));
         msgInner.getProperties().put(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, PopMessageProcessor.genAckUniqueId(ackMsg));
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+
+        // store message
         return this.brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenCompose(putMessageResult -> {
             if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
                 && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
