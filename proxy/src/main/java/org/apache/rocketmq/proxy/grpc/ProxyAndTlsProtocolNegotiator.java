@@ -45,6 +45,7 @@ import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactor
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.grpc.netty.shaded.io.netty.util.AsciiString;
 import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
+import io.grpc.netty.shaded.io.netty.util.ReferenceCountUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -77,7 +78,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
      */
     private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
-    private static SslContext sslContext;
+    private static volatile SslContext sslContext;
 
     public ProxyAndTlsProtocolNegotiator() {
         try {
@@ -113,6 +114,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
             provider = SslProvider.JDK;
             log.info("Using JDK SSL provider");
         }
+        SslContext oldSslContext = sslContext;
         if (proxyConfig.isTlsTestModeEnable()) {
             SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
             sslContext = GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
@@ -135,6 +137,9 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                     .clientAuth(ClientAuth.NONE)
                     .build();
             }
+        }
+        if (oldSslContext != null) {
+            ReferenceCountUtil.release(oldSslContext);
         }
     }
 

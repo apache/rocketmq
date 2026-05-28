@@ -45,12 +45,14 @@ import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
 import io.netty.handler.codec.haproxy.HAProxyTLV;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import io.netty.util.HashedWheelTimer;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.Timeout;
 import io.netty.util.TimerTask;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
@@ -183,7 +185,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
         if (tlsMode != TlsMode.DISABLED) {
             try {
+                SslContext oldSslContext = sslContext;
                 sslContext = TlsHelper.buildSslContext(false);
+                if (oldSslContext != null) {
+                    ReferenceCountUtil.release(oldSslContext);
+                }
                 log.info("SslContext created for server");
             } catch (CertificateException | IOException e) {
                 log.error("Failed to create SslContext for server", e);
