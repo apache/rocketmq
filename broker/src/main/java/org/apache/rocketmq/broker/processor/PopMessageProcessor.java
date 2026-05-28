@@ -33,6 +33,7 @@ import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
 import org.apache.rocketmq.broker.longpolling.PopRequest;
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
 import org.apache.rocketmq.broker.pop.PopConsumerContext;
+import org.apache.rocketmq.broker.pop.PopConsumerService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
@@ -99,6 +100,24 @@ import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESPONSE_CODE;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESULT;
 
+/**
+ * Processes PopMessage requests from consumers.
+ *
+ * <p>This is the core processor for the Pop consumption mode. It handles:
+ * <ul>
+ *   <li>Validating the request (topic, group, queue, subscription, permissions)</li>
+ *   <li>Routing to the {@link PopConsumerService} (KVStore path) or the
+ *       inline file-based path</li>
+ *   <li>Popping messages from normal and retry topics (V1/V2)</li>
+ *   <li>Creating checkpoints and writing them to the revive topic</li>
+ *   <li>Long-polling suspension via {@link PopLongPollingService}</li>
+ *   <li>Transferring messages to the client (heap copy or zero-copy)</li>
+ * </ul>
+ *
+ * <p>This class also owns the {@link PopLongPollingService},
+ * {@link PopBufferMergeService}, and {@link QueueLockManager} instances
+ * used by the file-based ack path.
+ */
 public class PopMessageProcessor implements NettyRequestProcessor {
 
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
@@ -615,6 +634,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
             }
 
+            // format response
             responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
             responseHeader.setPopTime(popTime);
             responseHeader.setReviveQid(reviveQid);
