@@ -360,10 +360,13 @@ public class PopConsumerService extends ServiceThread {
     protected CompletableFuture<PopConsumerContext> getMessageFromTopicAsync(CompletableFuture<PopConsumerContext> future,
         String clientHost, String groupId, String topicId, long requestCount, int batchSize, MessageFilter filter,
         PopConsumerRecord.RetryType retryType) {
+        // get topic config
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topicId);
         if (null == topicConfig) {
             return future;
         }
+
+        // iterate all queues of the topic
         for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
             long index = (brokerController.getBrokerConfig().isPriorityOrderAsc() ?
                 topicConfig.getReadQueueNums() - 1 - i : i) + requestCount;
