@@ -335,6 +335,28 @@ public class PopConsumerService extends ServiceThread {
         });
     }
 
+    /**
+     * Fetch messages from every read queue of a topic via a CompletableFuture chain.
+     *
+     * <p>Each queue is visited once. For each queue the
+     * {@link #getMessageAsync(CompletableFuture, String, String, String, int, int, MessageFilter, PopConsumerRecord.RetryType)}
+     * method is chained via {@link CompletableFuture#thenCompose}. The chain carries
+     * the accumulated result through all queues, stopping early when the batch is
+     * filled, the queue is blocked, or the inflight threshold is reached.
+     *
+     * <p>Queue iteration order respects {@code priorityOrderAsc} and uses
+     * {@code requestCount} as a round-robin offset for load balancing.
+     *
+     * @param future       the accumulator future
+     * @param clientHost   the client address
+     * @param groupId      consumer group id
+     * @param topicId      topic name
+     * @param requestCount round-robin counter for queue selection
+     * @param batchSize    max number of messages to return
+     * @param filter       message filter expression
+     * @param retryType    whether this is a retry topic V1/V2
+     * @return a future completing with the pop result context
+     */
     protected CompletableFuture<PopConsumerContext> getMessageFromTopicAsync(CompletableFuture<PopConsumerContext> future,
         String clientHost, String groupId, String topicId, long requestCount, int batchSize, MessageFilter filter,
         PopConsumerRecord.RetryType retryType) {
