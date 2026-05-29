@@ -117,7 +117,6 @@ public class ExclusiveEvictionTombstonesTest {
     /**
      * Verifies that real RocketMQ clientId formats (containing '@') and lmqName formats
      * (e.g. topic@group for wildcard) do not cause cross-client collisions.
-     * This is the core safety guarantee of using '\0' separator instead of '@'.
      */
     @Test
     public void testRealClientIdFormat_NoCrossClientCollision() {
