@@ -19,7 +19,9 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -390,12 +392,42 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             MessageAccessor.clearProperty(newMsg, MessageConst.PROPERTY_TRANSACTION_PREPARED);
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
 
-            this.defaultMQPushConsumerImpl.getmQClientFactory().getDefaultMQProducer().send(newMsg);
+            if (!trySendToTopicBroker(newMsg, msg)) {
+                this.defaultMQPushConsumerImpl.getmQClientFactory().getDefaultMQProducer().send(newMsg);
+            }
             return true;
         } catch (Exception e) {
             log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(), e);
         }
 
+        return false;
+    }
+
+    private boolean trySendToTopicBroker(Message retryMsg, MessageExt originalMsg) {
+        Set<MessageQueue> mqs = this.defaultMQPushConsumerImpl.getRebalanceImpl()
+            .getTopicSubscribeInfoTable().get(originalMsg.getTopic());
+        if (mqs == null || mqs.isEmpty()) {
+            return false;
+        }
+
+        Set<String> brokerNames = new LinkedHashSet<>();
+        String originalBroker = originalMsg.getBrokerName();
+        if (originalBroker != null) {
+            brokerNames.add(originalBroker);
+        }
+        for (MessageQueue mq : mqs) {
+            brokerNames.add(mq.getBrokerName());
+        }
+
+        for (String brokerName : brokerNames) {
+            try {
+                MessageQueue retryMQ = new MessageQueue(retryMsg.getTopic(), brokerName, 0);
+                this.defaultMQPushConsumerImpl.getmQClientFactory().getDefaultMQProducer().send(retryMsg, retryMQ);
+                return true;
+            } catch (Exception e) {
+                log.warn("Failed to send retry message to broker {}, trying next", brokerName, e);
+            }
+        }
         return false;
     }
 
