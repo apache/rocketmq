@@ -383,6 +383,12 @@ public class RocksDBMessageStoreTest {
         //Thread.sleep(10);
         StoreTestUtil.waitCommitLogReput((RocksDBMessageStore) messageStore);
 
+        Awaitility.await()
+                .with()
+                .atMost(3, TimeUnit.SECONDS)
+                .pollInterval(1, TimeUnit.MILLISECONDS)
+                .until(() -> messageStore.getMaxOffsetInQueue(topic, queueId) == totalCount);
+
         ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         int minOffsetInQueue = (int) consumeQueue.getMinOffsetInQueue();
         for (int i = minOffsetInQueue; i < consumeQueue.getMaxOffsetInQueue(); i++) {
@@ -412,6 +418,13 @@ public class RocksDBMessageStoreTest {
         AppendMessageResult[] appendMessageResults = putMessages(totalCount, topic, queueId, false);
         //Thread.sleep(10);
         StoreTestUtil.waitCommitLogReput((RocksDBMessageStore) messageStore);
+
+        Awaitility.await()
+                .with()
+                .atMost(3, TimeUnit.SECONDS)
+                .pollInterval(1, TimeUnit.MILLISECONDS)
+                .until(() -> messageStore.getMaxOffsetInQueue(topic, queueId) == totalCount);
+
         ConsumeQueueInterface consumeQueue = messageStore.getConsumeQueue(topic, queueId);
 
         for (int i = 0; i < totalCount; i++) {
