@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -505,10 +506,14 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
             if (null == topicConfig) {
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                    topicConfig =
-                        this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
-                            requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ,
-                            topicSysFlag);
+                    String consumerGroup = requestHeader.getTopic().substring(
+                        MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+                    if (isConsumerGroupSubscribedTopicOnThisBroker(consumerGroup)) {
+                        topicConfig =
+                            this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
+                                requestHeader.getTopic(), 1, PermName.PERM_WRITE | PermName.PERM_READ,
+                                topicSysFlag);
+                    }
                 }
             }
 
@@ -587,6 +592,24 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 }
             }
         }
+    }
+
+    private boolean isConsumerGroupSubscribedTopicOnThisBroker(String consumerGroup) {
+        ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager()
+            .getConsumerGroupInfo(consumerGroup);
+        if (consumerGroupInfo == null) {
+            return true;
+        }
+        for (String topic : consumerGroupInfo.getSubscribeTopics()) {
+            if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+                || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+                continue;
+            }
+            if (this.brokerController.getTopicConfigManager().containsTopic(topic)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

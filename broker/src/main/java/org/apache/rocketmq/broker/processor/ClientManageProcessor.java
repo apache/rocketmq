@@ -114,13 +114,28 @@ public class ClientManageProcessor implements NettyRequestProcessor {
             }
 
             isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
-            int topicSysFlag = 0;
-            if (consumerData.isUnitMode()) {
-                topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
+
+            boolean shouldCreateRetryTopic = false;
+            for (SubscriptionData subscriptionData : consumerData.getSubscriptionDataSet()) {
+                String topic = subscriptionData.getTopic();
+                if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+                    || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+                    continue;
+                }
+                if (this.brokerController.getTopicConfigManager().containsTopic(topic)) {
+                    shouldCreateRetryTopic = true;
+                    break;
+                }
             }
-            String newTopic = MixAll.getRetryTopic(consumerData.getGroupName());
-            this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, subscriptionGroupConfig.getRetryQueueNums(),
-                PermName.PERM_WRITE | PermName.PERM_READ, hasOrderTopicSub, topicSysFlag);
+            if (shouldCreateRetryTopic) {
+                int topicSysFlag = 0;
+                if (consumerData.isUnitMode()) {
+                    topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
+                }
+                String newTopic = MixAll.getRetryTopic(consumerData.getGroupName());
+                this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, subscriptionGroupConfig.getRetryQueueNums(),
+                    PermName.PERM_WRITE | PermName.PERM_READ, hasOrderTopicSub, topicSysFlag);
+            }
 
             boolean changed = this.brokerController.getConsumerManager().registerConsumer(
                 consumerData.getGroupName(),
@@ -176,12 +191,27 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 continue;
             }
             isNotifyConsumerIdsChangedEnable = subscriptionGroupConfig.isNotifyConsumerIdsChangedEnable();
-            int topicSysFlag = 0;
-            if (consumerData.isUnitMode()) {
-                topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
+
+            boolean shouldCreateRetryTopic = false;
+            for (SubscriptionData subscriptionData : consumerData.getSubscriptionDataSet()) {
+                String topic = subscriptionData.getTopic();
+                if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+                    || topic.startsWith(MixAll.DLQ_GROUP_TOPIC_PREFIX)) {
+                    continue;
+                }
+                if (this.brokerController.getTopicConfigManager().containsTopic(topic)) {
+                    shouldCreateRetryTopic = true;
+                    break;
+                }
             }
-            String newTopic = MixAll.getRetryTopic(consumerData.getGroupName());
-            this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, subscriptionGroupConfig.getRetryQueueNums(), PermName.PERM_WRITE | PermName.PERM_READ, hasOrderTopicSub, topicSysFlag);
+            if (shouldCreateRetryTopic) {
+                int topicSysFlag = 0;
+                if (consumerData.isUnitMode()) {
+                    topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
+                }
+                String newTopic = MixAll.getRetryTopic(consumerData.getGroupName());
+                this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, subscriptionGroupConfig.getRetryQueueNums(), PermName.PERM_WRITE | PermName.PERM_READ, hasOrderTopicSub, topicSysFlag);
+            }
             boolean changed = false;
             if (heartbeatData.isWithoutSub()) {
                 changed = this.brokerController.getConsumerManager().registerConsumerWithoutSub(consumerData.getGroupName(), clientChannelInfo, consumerData.getConsumeType(), consumerData.getMessageModel(), consumerData.getConsumeFromWhere(), isNotifyConsumerIdsChangedEnable);
