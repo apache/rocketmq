@@ -43,7 +43,7 @@ public class DLedgerMultiPathTest extends MessageStoreTestBase {
         Assume.assumeFalse(MixAll.isWindows());
         String base = createBaseDir();
         String topic = UUID.randomUUID().toString();
-        String peers = String.format("n0-localhost:%d", nextPort());
+        String peers = "n0-localhost:0";
         String group = UUID.randomUUID().toString();
         String multiStorePath =
             base + "/multi/a/" + MessageStoreConfig.MULTI_PATH_SPLITTER +

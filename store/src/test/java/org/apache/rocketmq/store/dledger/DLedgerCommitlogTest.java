@@ -63,7 +63,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     @Test
     public void testTruncateCQ() throws Exception {
         String base = createBaseDir();
-        String peers = String.format("n0-localhost:%d", nextPort());
+        String peers = "n0-localhost:0";
         String group = UUID.randomUUID().toString();
         String topic = UUID.randomUUID().toString();
         {
@@ -122,7 +122,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     @Test
     public void testRecover() throws Exception {
         String base = createBaseDir();
-        String peers = String.format("n0-localhost:%d", nextPort());
+        String peers = "n0-localhost:0";
         String group = UUID.randomUUID().toString();
         String topic = UUID.randomUUID().toString();
         {
@@ -162,7 +162,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     @Test
     public void testDLedgerAbnormallyRecover() throws Exception {
         String base = createBaseDir();
-        String peers = String.format("n0-localhost:%d", nextPort());
+        String peers = "n0-localhost:0";
         String group = UUID.randomUUID().toString();
         String topic = UUID.randomUUID().toString();
 
@@ -199,7 +199,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     @Test
     public void testPutAndGetMessage() throws Exception {
         String base = createBaseDir();
-        String peers = String.format("n0-localhost:%d", nextPort());
+        String peers = "n0-localhost:0";
         String group = UUID.randomUUID().toString();
         DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
         DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
@@ -242,7 +242,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     @Test
     public void testBatchPutAndGetMessage() throws Exception {
         String base = createBaseDir();
-        String peers = String.format("n0-localhost:%d", nextPort());
+        String peers = "n0-localhost:0";
         String group = UUID.randomUUID().toString();
         DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
         DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
@@ -289,7 +289,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     public void testAsyncPutAndGetMessage() throws Exception {
         Assume.assumeFalse(MixAll.isWindows());
         String base = createBaseDir();
-        String peers = String.format("n0-localhost:%d", nextPort());
+        String peers = "n0-localhost:0";
         String group = UUID.randomUUID().toString();
         DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
         DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
@@ -333,7 +333,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     @Test
     public void testAsyncBatchPutAndGetMessage() throws Exception {
         String base = createBaseDir();
-        String peers = String.format("n0-localhost:%d", nextPort());
+        String peers = "n0-localhost:0";
         String group = UUID.randomUUID().toString();
         DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
         DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
@@ -380,7 +380,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testCommittedPos() throws Exception {
-        String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());
+        String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextAvailablePort(), nextAvailablePort());
         String group = UUID.randomUUID().toString();
         DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group, "n0", peers, "n0", false, 0);
 
@@ -409,7 +409,7 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testIPv6HostMsgCommittedPos() throws Exception {
-        String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());
+        String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextAvailablePort(), nextAvailablePort());
         String group = UUID.randomUUID().toString();
         DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group, "n0", peers, "n0", false, 0);
 

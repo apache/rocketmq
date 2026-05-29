@@ -100,8 +100,8 @@ public class AutoSwitchHATest {
         storeConfig1.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#1" + File.separator + "EpochFileCache");
         storeConfig1.setTotalReplicas(3);
         storeConfig1.setInSyncReplicas(2);
+        storeConfig1.setHaListenPort(0);
         buildMessageStoreConfig(storeConfig1, mappedFileSize);
-        this.store1HaAddress = "127.0.0.1:10912";
 
         storeConfig2 = new MessageStoreConfig();
         storeConfig2.setBrokerRole(BrokerRole.SLAVE);
@@ -109,11 +109,10 @@ public class AutoSwitchHATest {
         storeConfig2.setStorePathRootDir(storePathRootDir + File.separator + brokerName + "#2");
         storeConfig2.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#2" + File.separator + "commitlog");
         storeConfig2.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#2" + File.separator + "EpochFileCache");
-        storeConfig2.setHaListenPort(10943);
+        storeConfig2.setHaListenPort(0);
         storeConfig2.setTotalReplicas(3);
         storeConfig2.setInSyncReplicas(2);
         buildMessageStoreConfig(storeConfig2, mappedFileSize);
-        this.store2HaAddress = "127.0.0.1:10943";
 
         messageStore1 = buildMessageStore(storeConfig1, 1L);
         messageStore2 = buildMessageStore(storeConfig2, 2L);
@@ -124,7 +123,7 @@ public class AutoSwitchHATest {
         storeConfig3.setStorePathRootDir(storePathRootDir + File.separator + brokerName + "#3");
         storeConfig3.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#3" + File.separator + "commitlog");
         storeConfig3.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#3" + File.separator + "EpochFileCache");
-        storeConfig3.setHaListenPort(10980);
+        storeConfig3.setHaListenPort(0);
         storeConfig3.setTotalReplicas(3);
         storeConfig3.setInSyncReplicas(2);
         buildMessageStoreConfig(storeConfig3, mappedFileSize);
@@ -136,6 +135,8 @@ public class AutoSwitchHATest {
         messageStore1.start();
         messageStore2.start();
         messageStore3.start();
+        this.store1HaAddress = haAddress(storeConfig1);
+        this.store2HaAddress = haAddress(storeConfig2);
 
 //        ((AutoSwitchHAService) this.messageStore1.getHaService()).("127.0.0.1:8000");
 //        ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
@@ -154,18 +155,17 @@ public class AutoSwitchHATest {
         storeConfig1.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#1" + File.separator + "commitlog");
         storeConfig1.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#1" + File.separator + "EpochFileCache");
         storeConfig1.setAllAckInSyncStateSet(allAckInSyncStateSet);
+        storeConfig1.setHaListenPort(0);
         buildMessageStoreConfig(storeConfig1, mappedFileSize);
-        this.store1HaAddress = "127.0.0.1:10912";
 
         storeConfig2 = new MessageStoreConfig();
         storeConfig2.setBrokerRole(BrokerRole.SLAVE);
         storeConfig2.setStorePathRootDir(storePathRootDir + File.separator + brokerName + "#2");
         storeConfig2.setStorePathCommitLog(storePathRootDir + File.separator + brokerName + "#2" + File.separator + "commitlog");
         storeConfig2.setStorePathEpochFile(storePathRootDir + File.separator + brokerName + "#2" + File.separator + "EpochFileCache");
-        storeConfig2.setHaListenPort(10943);
+        storeConfig2.setHaListenPort(0);
         storeConfig2.setAllAckInSyncStateSet(allAckInSyncStateSet);
         buildMessageStoreConfig(storeConfig2, mappedFileSize);
-        this.store2HaAddress = "127.0.0.1:10943";
 
         messageStore1 = buildMessageStore(storeConfig1, 1L);
         messageStore2 = buildMessageStore(storeConfig2, 2L);
@@ -174,6 +174,8 @@ public class AutoSwitchHATest {
         assertTrue(messageStore2.load());
         messageStore1.start();
         messageStore2.start();
+        this.store1HaAddress = haAddress(storeConfig1);
+        this.store2HaAddress = haAddress(storeConfig2);
 
 //        ((AutoSwitchHAService) this.messageStore1.getHaService()).setLocalAddress("127.0.0.1:8000");
 //        ((AutoSwitchHAService) this.messageStore2.getHaService()).setLocalAddress("127.0.0.1:8001");
@@ -190,6 +192,8 @@ public class AutoSwitchHATest {
         flag &= slave.getHaService().changeToSlave("", epoch, slaveId);
         slave.getHaService().updateHaMasterAddress(masterHaAddress);
         flag &= master.getHaService().changeToMaster(epoch);
+        AutoSwitchHAService masterHaService = (AutoSwitchHAService) master.getHaService();
+        await().atMost(10, TimeUnit.SECONDS).until(() -> masterHaService.getConnectionCount().get() > 0);
         // Put message on master
         for (int i = 0; i < totalPutMessageNums; i++) {
             PutMessageResult result = master.putMessage(buildMessage());
@@ -219,7 +223,7 @@ public class AutoSwitchHATest {
         final long confirmOffset = this.messageStore1.getConfirmOffset();
 
         // Step2, shutdown store2
-        this.messageStore2.shutdown();
+        this.messageStore2 = shutdownStore(this.messageStore2);
 
         // Put message, which should succeed because slave is removed from syncStateSet, only master remains
         final PutMessageResult putMessageResult = this.messageStore1.putMessage(buildMessage());
@@ -229,7 +233,7 @@ public class AutoSwitchHATest {
         assertTrue(this.messageStore1.getConfirmOffset() >= confirmOffset);
 
         // Step3, shutdown store1, start store2, change store2 to master, epoch = 2
-        this.messageStore1.shutdown();
+        this.messageStore1 = shutdownStore(this.messageStore1);
 
         storeConfig2.setBrokerRole(BrokerRole.SYNC_MASTER);
         messageStore2 = buildMessageStore(storeConfig2, 2L);
@@ -293,8 +297,7 @@ public class AutoSwitchHATest {
         assertTrue(result.contains(2L));
 
         // Now, shutdown store2
-        this.messageStore2.shutdown();
-        this.messageStore2.destroy();
+        this.messageStore2 = destroyStore(this.messageStore2);
 
         // Wait for connection to be removed and syncStateSet to be updated by removeConnection
         await().atMost(10, TimeUnit.SECONDS).until(() -> {
@@ -447,8 +450,7 @@ public class AutoSwitchHATest {
         checkMessage(this.messageStore2, 20, 0);
 
         // Step2: restart broker3
-        messageStore3.shutdown();
-        messageStore3.destroy();
+        messageStore3 = destroyStore(messageStore3);
 
         storeConfig3.setSyncFromLastFile(true);
         messageStore3 = buildMessageStore(storeConfig3, 3L);
@@ -457,7 +459,7 @@ public class AutoSwitchHATest {
 
         // Step2: add new broker3, link to broker1. because broker3 request sync from lastFile, so it only synced 10 msg from offset 10;
         messageStore3.getHaService().changeToSlave("", 2, 3L);
-        messageStore3.getHaService().updateHaMasterAddress("127.0.0.1:10912");
+        messageStore3.getHaService().updateHaMasterAddress(store1HaAddress);
 
         checkMessage(messageStore3, 10, 10);
     }
@@ -498,7 +500,7 @@ public class AutoSwitchHATest {
 
         long tmpConfirmOffset = this.messageStore2.getConfirmOffset();
         long setConfirmOffset = this.messageStore2.getConfirmOffset() - this.messageStore2.getConfirmOffset() / 2;
-        messageStore2.shutdown();
+        messageStore2 = shutdownStore(messageStore2);
         StoreCheckpoint storeCheckpoint = new StoreCheckpoint(storeConfig2.getStorePathRootDir() + File.separator + "checkpoint");
         assertEquals(tmpConfirmOffset, storeCheckpoint.getConfirmPhyOffset());
         storeCheckpoint.setConfirmPhyOffset(setConfirmOffset);
@@ -514,20 +516,26 @@ public class AutoSwitchHATest {
 
     @After
     public void destroy() throws Exception {
-        if (this.messageStore2 != null) {
-            messageStore2.shutdown();
-            messageStore2.destroy();
-        }
-        if (this.messageStore1 != null) {
-            messageStore1.shutdown();
-            messageStore1.destroy();
-        }
-        if (this.messageStore3 != null) {
-            messageStore3.shutdown();
-            messageStore3.destroy();
-        }
+        this.messageStore2 = destroyStore(this.messageStore2);
+        this.messageStore1 = destroyStore(this.messageStore1);
+        this.messageStore3 = destroyStore(this.messageStore3);
         File file = new File(storePathRootParentDir);
         UtilAll.deleteFile(file);
+    }
+
+    private DefaultMessageStore shutdownStore(DefaultMessageStore messageStore) {
+        if (messageStore != null) {
+            messageStore.shutdown();
+        }
+        return null;
+    }
+
+    private DefaultMessageStore destroyStore(DefaultMessageStore messageStore) {
+        if (messageStore != null) {
+            messageStore.shutdown();
+            messageStore.destroy();
+        }
+        return null;
     }
 
     private DefaultMessageStore buildMessageStore(MessageStoreConfig messageStoreConfig,
@@ -536,6 +544,10 @@ public class AutoSwitchHATest {
         brokerConfig.setBrokerId(brokerId);
         brokerConfig.setEnableControllerMode(true);
         return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig, new ConcurrentHashMap<>());
+    }
+
+    private String haAddress(MessageStoreConfig messageStoreConfig) {
+        return "127.0.0.1:" + messageStoreConfig.getHaListenPort();
     }
 
     private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig, int mappedFileSize) {
