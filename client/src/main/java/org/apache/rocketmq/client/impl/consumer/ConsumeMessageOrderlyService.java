@@ -404,8 +404,12 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
     }
 
     private boolean trySendToTopicBroker(Message retryMsg, MessageExt originalMsg) {
-        Set<MessageQueue> mqs = this.defaultMQPushConsumerImpl.getRebalanceImpl()
-            .getTopicSubscribeInfoTable().get(originalMsg.getTopic());
+        java.util.concurrent.ConcurrentMap<String, Set<MessageQueue>> table =
+            this.defaultMQPushConsumerImpl.getRebalanceImpl().getTopicSubscribeInfoTable();
+        if (table == null) {
+            return false;
+        }
+        Set<MessageQueue> mqs = table.get(originalMsg.getTopic());
         if (mqs == null || mqs.isEmpty()) {
             return false;
         }
