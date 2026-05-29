@@ -84,6 +84,14 @@ public class PopConsumerRecord {
     @JSONField(ordinal = 8)
     private String attemptId;
 
+    /**
+     * Whether the consumer has suspended (nacked) this message.
+     *
+     * <p>When {@code true}, the reconsume count is <b>not</b> incremented on
+     * revive, so the message will not be prematurely sent to the DLQ due to
+     * repeated visibility timeout extensions. Set via
+     * {@code ChangeInvisibleTimeRequestHeader#isSuspend}.
+     */
     @JSONField(ordinal = 9)
     private boolean suspend;
 
