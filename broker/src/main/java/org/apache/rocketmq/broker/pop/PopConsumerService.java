@@ -213,6 +213,7 @@ public class PopConsumerService extends ServiceThread {
             this.brokerController.getConsumerOffsetManager().queryOffset(groupId, topicId, queueId) :
             this.brokerController.getConsumerOffsetManager().queryPullOffset(groupId, topicId, queueId);
 
+        // init offset
         if (offset < 0L) {
             try {
                 offset = this.brokerController.getPopMessageProcessor()
@@ -223,6 +224,8 @@ public class PopConsumerService extends ServiceThread {
                 throw new RuntimeException(e);
             }
         }
+
+        // get reset offset
         Long resetOffset =
             this.brokerController.getConsumerOffsetManager().queryThenEraseResetOffset(topicId, groupId, queueId);
         if (resetOffset != null) {
@@ -231,6 +234,7 @@ public class PopConsumerService extends ServiceThread {
             this.brokerController.getConsumerOffsetManager()
                 .commitOffset("ResetPopOffset", groupId, topicId, queueId, resetOffset);
         }
+
         return resetOffset != null ? resetOffset : offset;
     }
 
