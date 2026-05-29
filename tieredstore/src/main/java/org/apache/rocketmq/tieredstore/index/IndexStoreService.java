@@ -174,9 +174,14 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         try {
             this.readWriteLock.writeLock().lock();
             IndexFile indexFile = this.currentWriteFile;
-            if (this.timeStoreTable.containsKey(timestamp) ||
-                indexFile != null && IndexFile.IndexStatusEnum.UNSEALED.equals(indexFile.getFileStatus())) {
+            if (indexFile != null && IndexFile.IndexStatusEnum.UNSEALED.equals(indexFile.getFileStatus())) {
                 return;
+            }
+            // Ensure timestamp is unique. On systems with coarse-grained clocks (e.g. Windows
+            // where System.currentTimeMillis() has ~15ms resolution), the requested timestamp
+            // may collide with an existing file. Increment until a unique key is found.
+            while (this.timeStoreTable.containsKey(timestamp)) {
+                timestamp++;
             }
             IndexStoreFile newStoreFile = new IndexStoreFile(storeConfig, timestamp);
             this.timeStoreTable.put(timestamp, newStoreFile);
