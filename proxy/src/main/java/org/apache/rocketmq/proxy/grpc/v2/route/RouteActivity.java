@@ -242,55 +242,35 @@ public class RouteActivity extends AbstractMessagingActivity {
         TopicMessageType topicMessageType, Broker broker) {
         List<MessageQueue> messageQueueList = new ArrayList<>();
 
-        int r = 0;
-        int w = 0;
-        int rw = 0;
-        int n = 0;
-        if (PermName.isWriteable(queueData.getPerm()) && PermName.isReadable(queueData.getPerm())) {
-            rw = Math.min(queueData.getWriteQueueNums(), queueData.getReadQueueNums());
-            r = queueData.getReadQueueNums() - rw;
-            w = queueData.getWriteQueueNums() - rw;
-        } else if (PermName.isWriteable(queueData.getPerm())) {
-            w = queueData.getWriteQueueNums();
-        } else if (PermName.isReadable(queueData.getPerm())) {
-            r = queueData.getReadQueueNums();
-        } else if (!PermName.isAccessible(queueData.getPerm())) {
-            n = Math.max(1, Math.max(queueData.getWriteQueueNums(), queueData.getReadQueueNums()));
+        boolean topicReadable = PermName.isReadable(queueData.getPerm());
+        boolean topicWritable = PermName.isWriteable(queueData.getPerm());
+        int queueNums = 0;
+        if (topicReadable) {
+            queueNums = Math.max(queueNums, queueData.getReadQueueNums());
+        }
+        if (topicWritable) {
+            queueNums = Math.max(queueNums, queueData.getWriteQueueNums());
+        }
+        if (!PermName.isAccessible(queueData.getPerm())) {
+            queueNums = Math.max(1, Math.max(queueData.getReadQueueNums(), queueData.getWriteQueueNums()));
         }
 
-        // r here means readOnly queue nums, w means writeOnly queue nums, while rw means both readable and writable queue nums.
-        int queueIdIndex = 0;
-        for (int i = 0; i < r; i++) {
+        for (int i = 0; i < queueNums; i++) {
+            boolean readable = topicReadable && i < queueData.getReadQueueNums();
+            boolean writable = topicWritable && i < queueData.getWriteQueueNums();
+            Permission permission;
+            if (readable && writable) {
+                permission = Permission.READ_WRITE;
+            } else if (readable) {
+                permission = Permission.READ;
+            } else if (writable) {
+                permission = Permission.WRITE;
+            } else {
+                permission = Permission.NONE;
+            }
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.READ)
-                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
-                .build();
-            messageQueueList.add(messageQueue);
-        }
-
-        for (int i = 0; i < w; i++) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.WRITE)
-                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
-                .build();
-            messageQueueList.add(messageQueue);
-        }
-
-        for (int i = 0; i < rw; i++) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.READ_WRITE)
-                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
-                .build();
-            messageQueueList.add(messageQueue);
-        }
-
-        for (int i = 0; i < n; i++) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.NONE)
+                .setId(i)
+                .setPermission(permission)
                 .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);
