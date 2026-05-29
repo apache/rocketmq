@@ -168,6 +168,33 @@ public class PopConsumerService extends ServiceThread {
         return result;
     }
 
+    /**
+     * Merge a GetMessageResult into the pop context and commit the consumer offset.
+     *
+     * <p>If messages were found:
+     * <ul>
+     *   <li>For FIFO — the queue is blocked via {@link #setFifoBlocked} so that
+     *       subsequent pops on the same queue wait for the ack</li>
+     *   <li>The result is appended to the context along with the topic, queue,
+     *       and retry type metadata</li>
+     * </ul>
+     *
+     * <p>The consumer offset is then committed:
+     * <ul>
+     *   <li>For FIFO when no messages found — committed to the next begin offset</li>
+     *   <li>For non-FIFO — the pull offset is updated. If buffer merge is enabled,
+     *       the offset is clamped to the minimum offset still in the cache to
+     *       prevent regression</li>
+     * </ul>
+     *
+     * @param context    the pop context to update
+     * @param result     the result from the message store
+     * @param topicId    topic name
+     * @param queueId    queue id
+     * @param retryType  whether this is a retry topic V1/V2
+     * @param offset     the original consume offset used for this fetch
+     * @return the updated pop context
+     */
     public PopConsumerContext handleGetMessageResult(PopConsumerContext context, GetMessageResult result,
         String topicId, int queueId, PopConsumerRecord.RetryType retryType, long offset) {
 
