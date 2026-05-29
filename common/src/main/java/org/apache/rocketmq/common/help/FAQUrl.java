@@ -18,7 +18,7 @@ package org.apache.rocketmq.common.help;
 
 public class FAQUrl {
 
-    public static final String DEFAULT_FAQ_URL = "https://rocketmq.apache.org/docs/bestPractice/06FAQ";
+    public static final String DEFAULT_FAQ_URL = "https://rocketmq.apache.org/docs/faq/";
 
     public static final String APPLY_TOPIC_URL = DEFAULT_FAQ_URL;
 
