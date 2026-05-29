@@ -205,6 +205,28 @@ public class PopConsumerService extends ServiceThread {
         return context;
     }
 
+    /**
+     * Retrieve the starting consume offset for a pop request.
+     *
+     * <p>For FIFO consumers, the offset is read from the regular consumer offset.
+     * For non-FIFO consumers, a separate pull offset is used (compatibility with
+     * pull consumer switchover).
+     *
+     * <p>If no offset is stored (first pop), it is initialized via
+     * {@code PopMessageProcessor#getInitOffset} based on {@code initMode}
+     * (beginning or end of the queue).
+     *
+     * <p>If a reset offset exists (offset reset command issued), the cache is
+     * cleared, FIFO lock unlock, and the reset offset takes effect
+     * immediately.
+     *
+     * @param groupId   consumer group id
+     * @param topicId   topic name
+     * @param queueId   queue id
+     * @param initMode  consume init mode (min/max)
+     * @param fifo      whether this is a FIFO ordered consumption
+     * @return the consume offset to start popping from
+     */
     public long getPopOffset(String groupId, String topicId, int queueId, int initMode, boolean fifo) {
 
         // For FIFO messages, the pull offset is not used.
