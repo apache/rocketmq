@@ -67,6 +67,20 @@ public class PopConsumerRecord {
     @JSONField(ordinal = 7)
     private int attemptTimes;
 
+    /**
+     * Client-generated idempotency key for FIFO ordered consumption.
+     *
+     * <p>Possible values:
+     * <ul>
+     *   <li>Client request — a unique id from {@code PopMessageRequestHeader#getAttemptId},
+     *       used by {@code ConsumerOrderInfoManager} to block subsequent pops on the same
+     *       queue until the current batch is acked</li>
+     *   <li>{@code null} — for ack records ({@code PopConsumerService#ackAsync}) and
+     *       change-invisibility records, where FIFO ordering is not applicable</li>
+     *   <li>Copied from the original record — for revive retry records, the attemptId is
+     *       inherited from the expired record</li>
+     * </ul>
+     */
     @JSONField(ordinal = 8)
     private String attemptId;
 
