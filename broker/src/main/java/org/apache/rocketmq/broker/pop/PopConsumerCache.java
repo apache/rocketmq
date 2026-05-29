@@ -35,6 +35,30 @@ import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * In-memory cache for un-acked Pop consumer records, used when
+ * {@code enablePopBufferMerge} is enabled in the KVStore path.
+ *
+ * <p>Popped messages are stored here by
+ * {@link PopConsumerService#popAsync}. The background {@link #run()} thread
+ * periodically scans the cache and processes expired records:
+ * <ul>
+ *   <li><b>Visibility timeout expired</b> — the record is passed to the
+ *       {@code reviveConsumer} (which calls
+ *       {@link PopConsumerService#revive}) to re-publish the message to
+ *       the retry topic</li>
+ *   <li><b>Consumer offline</b> (lock timeout) — all records for that
+ *       {code groupId, topicId} pair are flushed to
+ *       {@link PopConsumerKVStore} without revival</li>
+ *   <li><b>Consumer acked</b> — the record is removed via
+ *       {@link #deleteRecords} when a matching ack arrives</li>
+ * </ul>
+ *
+ * <p>Each {@code groupId@topicId@queueId} entry is backed by a
+ * {@link ConsumerRecords} instance containing two
+ * {@link ConcurrentSkipListMap}s — one for active records and one for
+ * records staged for removal.
+ */
 public class PopConsumerCache extends ServiceThread {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
