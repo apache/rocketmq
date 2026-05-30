@@ -58,25 +58,39 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
     // https://www.cnblogs.com/renjc/p/rocksdb-class-db.html
     // https://github.com/johnzeng/rocksdb-doc-cn/blob/master/doc/RocksDB-Tuning-Guide.md
     protected void initOptions() {
+        // durability-first: enable WAL and sync flush for pop state recovery
         this.options = RocksDBOptionsFactory.createDBOptions();
 
         this.writeOptions = new WriteOptions();
+        // fsync every write to disk
         this.writeOptions.setSync(true);
+        // enable WAL
         this.writeOptions.setDisableWAL(false);
+        // allow writing throttling under pressure
         this.writeOptions.setNoSlowdown(false);
 
+        // delete must be durable too — otherwise ack can be lost and message revived incorrectly
         this.deleteOptions = new WriteOptions();
         this.deleteOptions.setSync(true);
         this.deleteOptions.setDisableWAL(false);
         this.deleteOptions.setNoSlowdown(false);
 
+        // aggressive compaction to purge expired pop records and reclaim space
         this.compactRangeOptions = new CompactRangeOptions();
+        // force compact bottom level
         this.compactRangeOptions.setBottommostLevelCompaction(
             CompactRangeOptions.BottommostLevelCompaction.kForce);
+        // allow compaction to pause writes
         this.compactRangeOptions.setAllowWriteStall(true);
+        // manual compaction runs in parallel with auto-compaction.
+        // Appropriate here because expired Pop records generate tombstones continuously,
+        // and cleanup should not starve RocksDB's normal background work
         this.compactRangeOptions.setExclusiveManualCompaction(false);
+        // Allows compaction to move data across levels
         this.compactRangeOptions.setChangeLevel(true);
+        // -1 delegates level selection to RocksDB's internal heuristics
         this.compactRangeOptions.setTargetLevel(-1);
+        // Splits the compaction work into at most 4 parallel sub-tasks
         this.compactRangeOptions.setMaxSubcompactions(4);
     }
 
