@@ -153,6 +153,8 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
 
     /**
      * Batch-write consumer records to RocksDB via a single {@link WriteBatch}.
+     * Key: timestamp(8) + groupId + topicId + queueId + offset
+     * value: PopConsumerRecord.toJsonBytes
      *
      * <p>Each record is serialized with its visibility-timeout-prefixed key
      * so that {@link #scanExpiredRecords} can efficiently scan by time range.
@@ -195,8 +197,19 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         }
     }
 
+    /**
+     * Scan and return expired consumer records within a visibility-timeout range.
+     *
+     * <p>Because each record's key is prefixed with {@code visibilityTimeout},
+     * this method uses a RocksDB iterator bounded by {@code [lower, upper)} to
+     * efficiently scan only the relevant time window without a full table scan.
+     *
+     * @param lower    inclusive lower bound of the visibility timeout (ms)
+     * @param upper    exclusive upper bound of the visibility timeout (ms)
+     * @param maxCount maximum number of records to return
+     * @return up to {@code maxCount} expired records, or an empty list
+     */
     @Override
-    // https://github.com/facebook/rocksdb/issues/10300
     public List<PopConsumerRecord> scanExpiredRecords(long lower, long upper, int maxCount) {
         // In RocksDB, we can use SstPartitionerFixedPrefixFactory in cfOptions
         // and new ColumnFamilyOptions().useFixedLengthPrefixExtractor() to
