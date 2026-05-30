@@ -173,6 +173,14 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         }
     }
 
+    /**
+     * Batch-delete consumer records from RocksDB via a single {@link WriteBatch}.
+     *
+     * <p>Deletion uses the same durability guarantees as writes ({@code sync=true},
+     * WAL enabled)
+     *
+     * @param consumerRecordList the records to remove
+     */
     @Override
     public void deleteRecords(List<PopConsumerRecord> consumerRecordList) {
         if (!consumerRecordList.isEmpty()) {
