@@ -55,8 +55,18 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         this.writeBufferSize = writeBufferSize;
     }
 
-    // https://www.cnblogs.com/renjc/p/rocksdb-class-db.html
-    // https://github.com/johnzeng/rocksdb-doc-cn/blob/master/doc/RocksDB-Tuning-Guide.md
+    /**
+     * Configure RocksDB options for Pop consumer record storage.
+     *
+     * <p>Unlike the parent class defaults, write and delete options enable
+     * WAL and synchronous flush — Pop visibility state is the sole source
+     * of truth and must survive crashes. Compaction is configured to be
+     * aggressive so that expired-then-deleted records are purged promptly,
+     * reclaiming disk space.
+     *
+     * @see <a href="https://www.cnblogs.com/renjc/p/rocksdb-class-db.html">rocksdb-class-db</a>
+     * @see <a href="https://github.com/johnzeng/rocksdb-doc-cn/blob/master/doc/RocksDB-Tuning-Guide.md">RocksDB-Tuning-Guide</a>
+     */
     protected void initOptions() {
         // durability-first: enable WAL and sync flush for pop state recovery
         this.options = RocksDBOptionsFactory.createDBOptions();
