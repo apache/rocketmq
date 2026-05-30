@@ -70,7 +70,14 @@ public class PopConsumerCache extends ServiceThread {
     private final Consumer<PopConsumerRecord> reviveConsumer;
 
     private final AtomicInteger estimateCacheSize;
-    // key: groupId@topicId@queueId
+    /**
+     * Maps {@code consumerGroupId@topicId@queueId} to the buffered records for that
+     * consumer-queue.
+     *
+     * <p>Used by {@link #writeRecords} to add popped messages,
+     * {@link #deleteRecords} to remove acked messages, and
+     * {@link #cleanupRecords} to process expired records.
+     */
     private final ConcurrentMap<String, ConsumerRecords> consumerRecordTable;
 
     public PopConsumerCache(BrokerController brokerController, PopConsumerKVStore consumerRecordStore,
