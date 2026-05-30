@@ -39,6 +39,17 @@ import org.slf4j.LoggerFactory;
  * In-memory cache for un-acked Pop consumer records, used when
  * {@code enablePopBufferMerge} is enabled in the KVStore path.
  *
+ * <p>
+ * The cache structure is as follows: {
+ *     groupId@topicId@queueId: {
+ *         active: ConcurrentSkipListMap<offset, PopConsumerRecord>,
+ *         removed: ConcurrentSkipListMap<offset, PopConsumerRecord>
+ *     }
+ * }
+ * active(recordTreeMap): in-flight records
+ * removed(removedTreeMap): records to be removed
+ * </p>
+ *
  * <p>Popped messages are stored here by
  * {@link PopConsumerService#popAsync}. The background {@link #run()} thread
  * periodically scans the cache and processes expired records:
