@@ -121,9 +121,20 @@ public class PopConsumerCache extends ServiceThread {
         return consumerRecords != null ? consumerRecords.getInFlightRecordCount() : 0L;
     }
 
+    /**
+     * Write popped records into the cache.
+     *
+     * <p>Each record is inserted into the {@link ConsumerRecords} for its
+     * {@code groupId@topicId@queueId}. If no entry exists for that key, a
+     * new one is created. The cache size estimate is incremented.
+     *
+     * @param consumerRecordList the popped records to cache
+     */
     public void writeRecords(List<PopConsumerRecord> consumerRecordList) {
         this.estimateCacheSize.addAndGet(consumerRecordList.size());
         consumerRecordList.forEach(consumerRecord -> {
+            // consumerRecords is the recordMap in cache
+            // it contains two maps of PopConsumerRecord
             ConsumerRecords consumerRecords = ConcurrentHashMapUtils.computeIfAbsent(consumerRecordTable,
                 this.getKey(consumerRecord), k -> new ConsumerRecords(brokerController.getBrokerConfig(),
                     consumerRecord.getGroupId(), consumerRecord.getTopicId(), consumerRecord.getQueueId()));
