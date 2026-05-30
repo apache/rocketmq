@@ -175,6 +175,16 @@ public abstract class AbstractRocksDBStorage {
         this.flushOptions = new FlushOptions();
     }
 
+    /**
+     * check RocksDB status. isReady maybe a better name.
+     *
+     * <p>Called before every read/write operation. Returns {@code true} if the
+     * database is fully loaded, the handle is non-null, and the instance has not
+     * been closed (e.g. due to a scheduled reload). Subclasses may override
+     * {@link #release()} to pair with this call (e.g. for reference counting).
+     *
+     * @return {@code true} if the database is ready for operations
+     */
     public boolean hold() {
         if (!this.loaded || this.db == null || this.closed) {
             LOGGER.error("hold rocksdb Failed. {}", this.dbPath);
