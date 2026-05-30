@@ -104,6 +104,22 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         this.compactRangeOptions.setMaxSubcompactions(4);
     }
 
+    /**
+     * Initialise the RocksDB instance with a dedicated column family for Pop state.
+     *
+     * <p>Two column families are created:
+     * <ol>
+     *   <li>{@code default} — unused, required by RocksDB</li>
+     *   <li>{@code "popState"} — stores Pop consumer records keyed by
+     *       {@code visibilityTimeout|groupId@topicId@queueId@offset}</li>
+     * </ol>
+     *
+     * <p>Called by {@link AbstractRocksDBStorage#start()} before the storage
+     * is marked as loaded. Returns {@code false} if any step fails, preventing
+     * all subsequent read/write operations via {@link #hold()}.
+     *
+     * @return {@code true} if the database was opened successfully
+     */
     @Override
     protected boolean postLoad() {
         try {
