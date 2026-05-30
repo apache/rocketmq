@@ -70,6 +70,7 @@ public class PopConsumerCache extends ServiceThread {
     private final Consumer<PopConsumerRecord> reviveConsumer;
 
     private final AtomicInteger estimateCacheSize;
+    // key: groupId@topicId@queueId
     private final ConcurrentMap<String, ConsumerRecords> consumerRecordTable;
 
     public PopConsumerCache(BrokerController brokerController, PopConsumerKVStore consumerRecordStore,
@@ -229,13 +230,46 @@ public class PopConsumerCache extends ServiceThread {
         }
     }
 
+    /**
+     * Records for one {@code consumerGroupId@topicId@queueId} in the Pop cache.
+     *
+     * <p>Uses two {@link ConcurrentSkipListMap}s to separate active and
+     * expiring records for safe two-phase cleanup:
+     * <ol>
+     *   <li>{@link #stageExpiredRecords} moves timed-out records from
+     *       {@link #recordTreeMap} to {@link #removeTreeMap}</li>
+     *   <li>{@link PopConsumerCache#cleanupRecords} drains
+     *       {@link #removeTreeMap} — true-expired records are revived,
+     *       approaching-expired records are written to the KVStore</li>
+     * </ol>
+     */
     protected static class ConsumerRecords {
 
         private final String groupId;
         private final String topicId;
         private final int queueId;
         private final BrokerConfig brokerConfig;
+        /**
+         * Staged records awaiting cleanup (revival or KVStore write).
+         *
+         * <p>Populated by {@link #stageExpiredRecords} and drained by
+         * {@link PopConsumerCache#cleanupRecords}. Sorted by offset
+         * so that {@link #getMinOffset} can include these records in
+         * the minimum offset computation.
+         */
         private final ConcurrentSkipListMap<Long /* offset */, PopConsumerRecord> removeTreeMap;
+        /**
+         * Active (in-flight) records that have been popped but not yet
+         * acked by the consumer.
+         *
+         * <p>Records are added via {@link #write} when messages are popped,
+         * removed via {@link #delete} when an ack arrives, and moved to
+         * {@link #removeTreeMap} via {@link #stageExpiredRecords} when
+         * the visibility timeout or stay-buffer time expires.
+         *
+         * <p>Sorted by offset for efficient minimum-offset queries
+         * ({@link #getMinOffset}).
+         */
         private final ConcurrentSkipListMap<Long /* offset */, PopConsumerRecord> recordTreeMap;
 
         public ConsumerRecords(BrokerConfig brokerConfig, String groupId, String topicId, int queueId) {
