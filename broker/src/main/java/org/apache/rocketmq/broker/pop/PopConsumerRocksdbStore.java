@@ -151,6 +151,14 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         return this.dbPath;
     }
 
+    /**
+     * Batch-write consumer records to RocksDB via a single {@link WriteBatch}.
+     *
+     * <p>Each record is serialized with its visibility-timeout-prefixed key
+     * so that {@link #scanExpiredRecords} can efficiently scan by time range.
+     *
+     * @param consumerRecordList the records to persist
+     */
     @Override
     public void writeRecords(List<PopConsumerRecord> consumerRecordList) {
         if (!consumerRecordList.isEmpty()) {
