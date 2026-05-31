@@ -695,6 +695,7 @@ public class PopConsumerService extends ServiceThread {
 
         // No need to generate new records when the group does not exist,
         // because these retry messages will not be consumed by anyone.
+        // default value of popReviveSkipIfGroupAbsent is true
         boolean skipWrite = brokerConfig.isPopReviveSkipIfGroupAbsent() &&
             !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId);
 
@@ -712,7 +713,7 @@ public class PopConsumerService extends ServiceThread {
         }
 
         // If the new CK has the same key as the old CK (same visibilityTimeout),
-        // the write already overwrites the old record in RocksDB, skip delete
+        // the write one already overwrites the old record in RocksDB, skip delete
         // to avoid removing the newly written record.
         if (skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout()) {
             this.popConsumerStore.deleteRecords(Collections.singletonList(ackRecord));

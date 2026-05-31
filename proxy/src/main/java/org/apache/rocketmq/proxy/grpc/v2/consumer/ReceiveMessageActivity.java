@@ -115,9 +115,13 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
             String topic = request.getMessageQueue().getTopic().getName();
             String group = request.getGroup().getName();
 
+            // invisibleTime was set by client
+            // proxy can override it
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+            // default enableProxyAutoRenew is true
             if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
+                // default defaultInvisibleTimeMills is 60s
                 actualInvisibleTime = proxyConfig.getDefaultInvisibleTimeMills();
             } else {
                 validateInvisibleTime(actualInvisibleTime,
