@@ -622,6 +622,8 @@ public class PopConsumerService extends ServiceThread {
      *       deletion falls through to {@link PopConsumerKVStore#deleteRecords}</li>
      * </ul>
      *
+     * <p>memo: Notify polling request when receive orderly ack
+     *
      * @param popTime       the original pop time of the message
      * @param invisibleTime the original visibility timeout
      * @param groupId       consumer group id
@@ -630,7 +632,6 @@ public class PopConsumerService extends ServiceThread {
      * @param offset        the acked offset
      * @return a future that completes with {@code true} on success
      */
-    // Notify polling request when receive orderly ack
     public CompletableFuture<Boolean> ackAsync(
         long popTime, long invisibleTime, String groupId, String topicId, int queueId, long offset) {
 
@@ -652,7 +653,30 @@ public class PopConsumerService extends ServiceThread {
         return CompletableFuture.completedFuture(true);
     }
 
-    // refer ChangeInvisibleTimeProcessor.appendCheckPointThenAckOrigin
+    /**
+     * Extend the visibility timeout of a popped message (KVStore path).
+     *
+     * <p>refer: ChangeInvisibleTimeProcessor.appendCheckPointThenAckOrigin
+     * This is the KVStore equivalent of {@code ChangeInvisibleTimeProcessor#appendCheckPointThenAckOrigin}.
+     *
+     * <p>A new record with the updated timeout is written to the KVStore, and the
+     * old record (identified by the original {@code popTime + invisibleTime}) is
+     * deleted from the cache and KVStore.
+     *
+     * <p>If the new and old records have the same visibility timeout (e.g. the
+     * consumer extended by the same duration it already had), the delete one is
+     * skipped because the write one already overwrites the old record in RocksDB.
+     *
+     * @param popTime             the original pop time
+     * @param invisibleTime       the original visibility timeout
+     * @param changedPopTime      the new pop time (typically current time)
+     * @param changedInvisibleTime the new visibility timeout
+     * @param groupId             consumer group id
+     * @param topicId             topic name
+     * @param queueId             queue id
+     * @param offset              the message offset
+     * @param suspend             whether to suspend (nack without incrementing reconsume count)
+     */
     public void changeInvisibilityDuration(long popTime, long invisibleTime, long changedPopTime,
                                            long changedInvisibleTime, String groupId, String topicId,
                                            int queueId, long offset, boolean suspend) {
