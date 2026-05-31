@@ -610,6 +610,26 @@ public class PopConsumerService extends ServiceThread {
         return getMessageFuture;
     }
 
+    /**
+     * Delete the acked record from the cache and/or RocksDB store.
+     *
+     * <p>The deletion is a two-step fallback:
+     * <ul>
+     *   <li>First, the record is deleted from {@link PopConsumerCache} (if buffer
+     *       merge is enabled). If the record was present in the cache and removed
+     *       successfully, the operation returns immediately without touching RocksDB</li>
+     *   <li>If the cache is not enabled or the record was not found in the cache,
+     *       deletion falls through to {@link PopConsumerKVStore#deleteRecords}</li>
+     * </ul>
+     *
+     * @param popTime       the original pop time of the message
+     * @param invisibleTime the original visibility timeout
+     * @param groupId       consumer group id
+     * @param topicId       topic name
+     * @param queueId       queue id
+     * @param offset        the acked offset
+     * @return a future that completes with {@code true} on success
+     */
     // Notify polling request when receive orderly ack
     public CompletableFuture<Boolean> ackAsync(
         long popTime, long invisibleTime, String groupId, String topicId, int queueId, long offset) {
