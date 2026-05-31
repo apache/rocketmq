@@ -24,11 +24,13 @@ import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -75,6 +77,9 @@ public class PopBufferMergeServiceTest {
     private ConsumerManager consumerManager;
 
     @Mock
+    private SubscriptionGroupManager subscriptionGroupManager;
+
+    @Mock
     private DefaultMessageStore messageStore;
 
     @Mock
@@ -103,6 +108,7 @@ public class PopBufferMergeServiceTest {
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getScheduleMessageService()).thenReturn(scheduleMessageService);
         when(brokerController.getConsumerManager()).thenReturn(consumerManager);
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         popMessageProcessor = new PopMessageProcessor(brokerController);
         popBufferMergeService = new PopBufferMergeService(brokerController, popMessageProcessor);
@@ -242,7 +248,7 @@ public class PopBufferMergeServiceTest {
         point.setCId(defaultGroup);
         point.setTopic(defaultTopic);
         point.setQueueId(1);
-        point.setNum((byte) 2);
+        point.setNum((byte) 3);
         long popTime = System.currentTimeMillis() - 20000;
         point.setPopTime(popTime);
         point.setInvisibleTime(30000);
@@ -257,6 +263,8 @@ public class PopBufferMergeServiceTest {
         when(brokerConfig.isEnablePopBatchAck()).thenReturn(true);
         when(brokerConfig.isAppendAckAsync()).thenReturn(true);
         when(brokerConfig.getPopCkStayBufferTimeOut()).thenReturn(3000);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(defaultGroup))
+            .thenReturn(new SubscriptionGroupConfig());
 
         java.util.concurrent.CompletableFuture<PutMessageResult> future =
             new java.util.concurrent.CompletableFuture<>();
