@@ -16,7 +16,15 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      - name: Cache Bazel repository
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/bazel
+          key: bazel-repo-${{ runner.os }}-${{ hashFiles('WORKSPACE') }}
+          restore-keys: |
+            bazel-repo-${{ runner.os }}-
       - name: Build
         run: bazel build --config=remote //...
       - name: Run Tests

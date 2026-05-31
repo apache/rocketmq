@@ -174,9 +174,14 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         try {
             this.readWriteLock.writeLock().lock();
             IndexFile indexFile = this.currentWriteFile;
-            if (this.timeStoreTable.containsKey(timestamp) ||
-                indexFile != null && IndexFile.IndexStatusEnum.UNSEALED.equals(indexFile.getFileStatus())) {
+            if (indexFile != null && IndexFile.IndexStatusEnum.UNSEALED.equals(indexFile.getFileStatus())) {
                 return;
+            }
+            // Ensure timestamp is unique. On systems with coarse-grained clocks (e.g. Windows
+            // where System.currentTimeMillis() has ~15ms resolution), the requested timestamp
+            // may collide with an existing file. Increment until a unique key is found.
+            while (this.timeStoreTable.containsKey(timestamp)) {
+                timestamp++;
             }
             IndexStoreFile newStoreFile = new IndexStoreFile(storeConfig, timestamp);
             this.timeStoreTable.put(timestamp, newStoreFile);
@@ -235,11 +240,14 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         try {
             readWriteLock.readLock().lock();
             ConcurrentNavigableMap<Long, IndexFile> pendingMap =
-                this.timeStoreTable.subMap(beginTime, true, endTime, true);
+                this.timeStoreTable.headMap(endTime, true);
             List<CompletableFuture<Void>> futureList = new ArrayList<>(pendingMap.size());
             ConcurrentSkipListMap<String /* queueId-offset */, IndexItem> result = new ConcurrentSkipListMap<>();
 
             for (Map.Entry<Long, IndexFile> entry : pendingMap.descendingMap().entrySet()) {
+                if (entry.getValue().getEndTimestamp() < beginTime) {
+                    break;
+                }
                 CompletableFuture<Void> completableFuture = entry.getValue()
                     .queryAsync(topic, key, maxCount, beginTime, endTime)
                     .thenAccept(itemList -> itemList.forEach(indexItem -> {

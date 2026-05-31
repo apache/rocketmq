@@ -98,7 +98,9 @@ public class PopConsumerService extends ServiceThread {
         this.lastCleanupLockTime = new AtomicLong(System.currentTimeMillis());
         this.consumerLockService = new PopConsumerLockService(TimeUnit.MINUTES.toMillis(2));
         this.popConsumerStore = new PopConsumerRocksdbStore(Paths.get(
-            brokerController.getMessageStoreConfig().getStorePathRootDir(), ROCKSDB_DIRECTORY).toString());
+            brokerController.getMessageStoreConfig().getStorePathRootDir(), ROCKSDB_DIRECTORY).toString(),
+            brokerController.getMessageStoreConfig().getPopRocksdbBlockCacheSize(),
+            brokerController.getMessageStoreConfig().getPopRocksdbWriteBufferSize());
         this.popConsumerCache = brokerConfig.isEnablePopBufferMerge() ? new PopConsumerCache(
             brokerController, this.popConsumerStore, this.consumerLockService, this::revive) : null;
 
@@ -509,8 +511,10 @@ public class PopConsumerService extends ServiceThread {
 
         // No need to generate new records when the group does not exist,
         // because these retry messages will not be consumed by anyone.
-        if (brokerConfig.isPopReviveSkipIfGroupAbsent() &&
-            !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)) {
+        boolean skipWrite = brokerConfig.isPopReviveSkipIfGroupAbsent() &&
+            !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId);
+
+        if (skipWrite) {
             log.info("PopConsumerService change invisibility skip, time={}, " +
                 "groupId={}, topicId={}, queueId={}, offset={}", popTime, groupId, topicId, queueId, offset);
         } else {
@@ -523,7 +527,12 @@ public class PopConsumerService extends ServiceThread {
             }
         }
 
-        this.popConsumerStore.deleteRecords(Collections.singletonList(ackRecord));
+        // If the new CK has the same key as the old CK (same visibilityTimeout),
+        // the write already overwrites the old record in RocksDB, skip delete
+        // to avoid removing the newly written record.
+        if (skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout()) {
+            this.popConsumerStore.deleteRecords(Collections.singletonList(ackRecord));
+        }
     }
 
     // Use broker escape bridge to support remote read

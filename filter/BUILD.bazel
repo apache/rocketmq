@@ -25,7 +25,7 @@ java_library(
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:commons_validator_commons_validator",
         "@maven//:com_github_luben_zstd_jni",
-        "@maven//:org_lz4_lz4_java",
+        "@maven//:at_yawk_lz4_lz4_java",
         "@maven//:io_netty_netty_all",
         "@maven//:com_google_guava_guava",
     ],

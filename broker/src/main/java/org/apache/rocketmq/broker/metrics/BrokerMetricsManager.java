@@ -28,6 +28,7 @@ import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.common.export.MemoryMode;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.InstrumentType;
@@ -69,6 +70,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -318,6 +320,19 @@ public class BrokerMetricsManager {
         return false;
     }
 
+    private static MemoryMode resolveMemoryMode(String configured) {
+        if (StringUtils.isBlank(configured)) {
+            return MemoryMode.IMMUTABLE_DATA;
+        }
+        try {
+            return MemoryMode.valueOf(configured.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            LOGGER.warn("Invalid metricsExportOtelMemoryMode '{}', falling back to IMMUTABLE_DATA. Valid values: IMMUTABLE_DATA, REUSABLE_DATA.",
+                configured);
+            return MemoryMode.IMMUTABLE_DATA;
+        }
+    }
+
     private void init() {
         MetricsExporterType metricsExporterType = brokerConfig.getMetricsExporterType();
         if (metricsExporterType == MetricsExporterType.DISABLE) {
@@ -356,9 +371,16 @@ public class BrokerMetricsManager {
             if (!endpoint.startsWith("http")) {
                 endpoint = "https://" + endpoint;
             }
+            // OTel 1.44.0 ~ 1.46.x defaults OtlpGrpcMetricExporter to REUSABLE_DATA,
+            // whose MetricReusableDataMarshaler uses a non-thread-safe ArrayDeque pool.
+            // Combined with BatchSplittingMetricExporter's concurrent sub-batch export
+            // this triggers a pool race that leaks marshalers until OOM (fixed upstream
+            // in 1.47.0 via opentelemetry-java#7041). IMMUTABLE_DATA bypasses that path.
+            MemoryMode memoryMode = resolveMemoryMode(brokerConfig.getMetricsExportOtelMemoryMode());
             OtlpGrpcMetricExporterBuilder metricExporterBuilder = OtlpGrpcMetricExporter.builder()
                 .setEndpoint(endpoint)
                 .setCompression("gzip")
+                .setMemoryMode(memoryMode)
                 .setTimeout(brokerConfig.getMetricGrpcExporterTimeOutInMills(), TimeUnit.MILLISECONDS)
                 .setAggregationTemporalitySelector(type -> {
                     if (brokerConfig.isMetricsInDelta() &&
@@ -384,8 +406,16 @@ public class BrokerMetricsManager {
             }
 
             OtlpGrpcMetricExporter otlpExporter = metricExporterBuilder.build();
-            metricExporter = new BatchSplittingMetricExporter(otlpExporter,
-                brokerConfig::getMetricsExportBatchMaxDataPoints);
+            if (brokerConfig.isMetricsExportBatchSplitEnabled()) {
+                metricExporter = new BatchSplittingMetricExporter(otlpExporter,
+                    brokerConfig::getMetricsExportBatchMaxDataPoints,
+                    brokerConfig::getMetricsExportBatchMaxConcurrent);
+            } else {
+                // Escape hatch: skip the splitter wrapper entirely and use the raw
+                // OTLP exporter. Gives up the oversized-payload guard but removes
+                // any splitter-side overhead/risk. Re-enable if needed.
+                metricExporter = otlpExporter;
+            }
 
             periodicMetricReader = PeriodicMetricReader.builder(metricExporter)
                 .setInterval(brokerConfig.getMetricGrpcExporterIntervalInMills(), TimeUnit.MILLISECONDS)

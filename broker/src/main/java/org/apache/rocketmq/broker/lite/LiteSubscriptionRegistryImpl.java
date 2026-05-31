@@ -400,7 +400,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
 
     private void unmarkWildcardGroupIfNecessary(String lmqName) {
         if (!LiteUtil.isLiteTopicQueue(lmqName)) { // must be topic@group
-            String[] topicAtGroup = StringUtils.split(lmqName);
+            String[] topicAtGroup = StringUtils.split(lmqName, "@");
             if (null == topicAtGroup || topicAtGroup.length != 2) {
                 return;
             }

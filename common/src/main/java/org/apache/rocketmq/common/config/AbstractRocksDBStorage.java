@@ -427,22 +427,35 @@ public abstract class AbstractRocksDBStorage {
         if (!hold()) {
             return;
         }
-        long s1 = System.currentTimeMillis();
+        long before = getEstimateNumKeys();
+        long startMs = System.currentTimeMillis();
         boolean result = true;
         try {
-            LOGGER.info("manualCompaction Start. {}", this.dbPath);
+            LOGGER.info("ManualCompaction started, dbPath={}, estimateNumKeys={}", this.dbPath, before);
             this.db.compactRange(this.defaultCFHandle, null, null, compactRangeOptions);
         } catch (RocksDBException e) {
             result = false;
             scheduleReloadRocksdb(e);
-            LOGGER.error("manualCompaction Failed. {}, {}", this.dbPath, getStatusError(e));
+            LOGGER.error("ManualCompaction failed, dbPath={}, error={}", this.dbPath, getStatusError(e));
         } finally {
             release();
-            LOGGER.info("manualCompaction End. {}, rt: {}(ms), result: {}", this.dbPath, System.currentTimeMillis() - s1, result);
+            long after = getEstimateNumKeys();
+            long elapsed = System.currentTimeMillis() - startMs;
+            String ratio = before > 0 ? String.format("%.1f", (1.0 - (double) after / before) * 100) : "0.0";
+            LOGGER.info("ManualCompaction finished, dbPath={}, elapsed={}ms, success={}, before={}, after={}, reduced={}%",
+                this.dbPath, elapsed, result, before, after, ratio);
         }
     }
 
-    protected void manualCompaction(long minPhyOffset, final CompactRangeOptions compactRangeOptions) {
+    private long getEstimateNumKeys() {
+        try {
+            return this.db.getLongProperty(this.defaultCFHandle, "rocksdb.estimate-num-keys");
+        } catch (RocksDBException e) {
+            return -1L;
+        }
+    }
+
+    protected void manualCompaction(final CompactRangeOptions compactRangeOptions) {
         this.manualCompactionThread.submit(new Runnable() {
             @Override
             public void run() {

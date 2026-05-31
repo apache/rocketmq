@@ -308,6 +308,34 @@ public class LiteSubscriptionRegistryImplTest {
     }
 
     /**
+     * Test removeCompleteSubscription cleans wildcard group metadata
+     */
+    @Test
+    public void testRemoveCompleteSubscription_WildcardGroupMetadataCleanup() {
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "testTopic";
+        Set<String> lmqNameAll = new HashSet<>();
+        lmqNameAll.add("lmq1");
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setWildcardLiteGroup(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
+        registry.addCompleteSubscription(clientId, group, topic, lmqNameAll, 1L);
+
+        assertTrue(registry.wildcardGroupMap.containsKey(topic));
+        assertTrue(registry.wildcardGroupMap.get(topic).contains(group));
+
+        registry.removeCompleteSubscription(clientId);
+
+        assertFalse(registry.wildcardGroupMap.containsKey(topic));
+        assertNull(registry.getLiteSubscription(clientId));
+        assertEquals(0, registry.getActiveSubscriptionNum());
+    }
+
+    /**
      * Test addCompleteSubscription updates complete subscription
      */
     @Test
