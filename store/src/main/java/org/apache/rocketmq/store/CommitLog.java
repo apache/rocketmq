@@ -621,7 +621,7 @@ public class CommitLog implements Swappable {
                         fullMessageBuffer.limit(messageStartPos + totalSize);
                         byte[] fullMessageBytes = new byte[totalSize];
                         fullMessageBuffer.get(fullMessageBytes, 0, totalSize);
-                        
+
                         // Print full message and especially properties
                         log.warn(
                             "CommitLog#checkAndDispatchMessage: failed to check message CRC, not found CRC in properties. topic={}, properties={}, propertiesLength={}, fullMessageHex={}",
@@ -967,6 +967,7 @@ public class CommitLog implements Swappable {
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
+        // format message and int context params
         // Set the storage time
         if (!defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
             msg.setStoreTimestamp(System.currentTimeMillis());
@@ -1004,6 +1005,8 @@ public class CommitLog implements Swappable {
         updateMaxMessageSize(putMessageThreadLocal);
         String topicQueueKey = generateKey(putMessageThreadLocal.getKeyBuilder(), msg);
         long elapsedTimeInLock = 0;
+
+        // locate mappedFile and get write position
         MappedFile unlockMappedFile = null;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
 
@@ -1014,6 +1017,7 @@ public class CommitLog implements Swappable {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
 
+        // handle HA
         int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
         boolean needHandleHA = needHandleHA(msg);
 
@@ -1037,7 +1041,7 @@ public class CommitLog implements Swappable {
 
         topicQueueLock.lock(topicQueueKey);
         try {
-
+            // assign consume queue offset
             boolean needAssignOffset = true;
             if (defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()
                 && defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
@@ -1047,6 +1051,7 @@ public class CommitLog implements Swappable {
                 defaultMessageStore.assignOffset(msg);
             }
 
+            // encode message and ...
             PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
             if (encodeResult != null) {
                 return CompletableFuture.completedFuture(encodeResult);
@@ -1056,6 +1061,7 @@ public class CommitLog implements Swappable {
 
             putMessageLock.lock(); //spin or ReentrantLock, depending on store config
             try {
+                // validate and init some context params
                 long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
                 this.beginTimeInLock = beginLockTimestamp;
 
@@ -1076,7 +1082,10 @@ public class CommitLog implements Swappable {
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
                 }
 
+                // append to mappedFile
                 result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
+
+                // check result, retry if needed,
                 switch (result.getStatus()) {
                     case PUT_OK:
                         onCommitLogAppend(msg, result, mappedFile);
@@ -1112,6 +1121,7 @@ public class CommitLog implements Swappable {
                 beginTimeInLock = 0;
                 putMessageLock.unlock();
             }
+
             // Increase queue offset when messages are successfully written
             if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
                 this.defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
@@ -1122,6 +1132,7 @@ public class CommitLog implements Swappable {
             topicQueueLock.unlock(topicQueueKey);
         }
 
+        // unlock MappedFile and metrics
         if (elapsedTimeInLock > 500) {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, result);
         }
