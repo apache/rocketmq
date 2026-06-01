@@ -966,6 +966,24 @@ public class CommitLog implements Swappable {
         }
     }
 
+    /**
+     * Asynchronously encode and append a single message to the commit log.
+     *
+     * <p>The method:
+     * <ol>
+     *   <li>Encodes the message and validates compat flags (V1/V2, IPv6)</li>
+     *   <li>Acquires a per-topic-queue-lock for offset assignment, then the
+     *       global put-message lock for the append</li>
+     *   <li>Acquires the commitLog write lock for MappedFile writing </li>
+     *   <li>Appends to the current mapped file; if full, opens a new file
+     *       and retries</li>
+     *   <li>After the append, increments the consume queue offset and
+     *       triggers HA replication if configured</li>
+     * </ol>
+     *
+     * @param msg the message to write
+     * @return a future that completes with the append result
+     */
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
         // format message and int context params
         // Set the storage time
