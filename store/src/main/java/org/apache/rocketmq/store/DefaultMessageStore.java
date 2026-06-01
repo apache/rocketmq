@@ -652,7 +652,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
-
+        // execute beforePutMessage hooks
         for (PutMessageHook putMessageHook : putMessageHookList) {
             PutMessageResult handleResult = putMessageHook.executeBeforePutMessage(msg);
             if (handleResult != null) {
@@ -660,12 +660,14 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
+        // check inner batch message num
         if (msg.getProperties().containsKey(MessageConst.PROPERTY_INNER_NUM)
             && !MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
             LOGGER.warn("[BUG]The message had property {} but is not an inner batch", MessageConst.PROPERTY_INNER_NUM);
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
         }
 
+        // check inner batch message topic
         if (MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
             Optional<TopicConfig> topicConfig = this.getTopicConfig(msg.getTopic());
             if (!QueueTypeUtils.isBatchCq(topicConfig)) {
@@ -674,9 +676,11 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
+        // put message
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
 
+        // metrics
         putResultFuture.thenAccept(result -> {
             long elapsedTime = this.getSystemClock().now() - beginTime;
             if (elapsedTime > 500) {
