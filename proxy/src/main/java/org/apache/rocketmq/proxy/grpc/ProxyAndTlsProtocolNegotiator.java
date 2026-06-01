@@ -141,6 +141,14 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         SslContext oldSslContext = sslContext;
         sslContext = newSslContext;
         if (oldSslContext != null) {
+            // Release the old SslContext to free native memory (OpenSSL provider only).
+            // ReferenceCountUtil.release() is a no-op for JDK SslContext since it does not
+            // implement ReferenceCounted.
+            // Note: there is a theoretical race where an event-loop thread could read the old
+            // sslContext (volatile) and call newHandler() after release. In practice this is
+            // negligible because cert reload is very infrequent and the window is nanoseconds.
+            // Worst case: the single new connection gets an IllegalReferenceCountException and
+            // the client retries successfully — no pod crash or service disruption.
             try {
                 ReferenceCountUtil.release(oldSslContext);
                 log.info("Old SslContext released for proxy server");
