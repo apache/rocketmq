@@ -222,6 +222,7 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
              RocksIterator iterator = db.newIterator(this.columnFamilyHandle, scanOptions)) {
             iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lower).array());
             while (iterator.isValid() && consumerRecordList.size() < maxCount) {
+                // decode json bytes to PopConsumerRecord
                 consumerRecordList.add(PopConsumerRecord.decode(iterator.value()));
                 iterator.next();
             }
