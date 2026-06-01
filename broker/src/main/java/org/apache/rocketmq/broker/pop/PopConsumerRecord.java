@@ -124,7 +124,19 @@ public class PopConsumerRecord {
     }
 
     /**
-     * Key: timestamp(8) + groupId + topicId + queueId + offset
+     * Build the RocksDB key for this record.
+     *
+     * <p>Format:
+     * <pre>
+     * visibilityTimeout(8B) + groupId + '@' + topicId + '@' + queueId(4B) + '@' + offset(8B)
+     * </pre>
+     *
+     * <p>The {@code visibilityTimeout} is placed first so that records are ordered
+     * by expiration time in RocksDB's SST files. This allows
+     * {@code PopConsumerRocksdbStore#scanExpiredRecords} to use a bounded iterator
+     * to scan only the relevant time window without a full table scan.
+     *
+     * <p>NACK(changeInvisibleTime) will create a new record, and the old one will be deleted.
      */
     @JSONField(serialize = false)
     public byte[] getKeyBytes() {
