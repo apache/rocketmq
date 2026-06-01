@@ -234,6 +234,7 @@ public class PopConsumerService extends ServiceThread {
 
     /**
      * Retrieve the starting consume offset for a pop request.
+     * should be private, no external callers.
      *
      * <p>For FIFO consumers, the offset is read from the regular consumer offset.
      * For non-FIFO consumers, a separate pull offset is used (compatibility with
@@ -287,6 +288,25 @@ public class PopConsumerService extends ServiceThread {
         return resetOffset != null ? resetOffset : offset;
     }
 
+    /**
+     * Fetch messages from the store with automatic offset correction.
+     * No external callers, except unit tests.
+     *
+     * <p>If the stored offset is behind the actual consume queue offset
+     * ({@code OFFSET_TOO_SMALL}, {@code OFFSET_OVERFLOW_BADLY},
+     * {@code OFFSET_FOUND_NULL}), the offset is corrected and a retry is
+     * issued with the corrected offset. This prevents duplicate messages
+     * when the Pop buffer offset has not yet been committed.
+     *
+     * @param clientHost the client address
+     * @param groupId    consumer group id
+     * @param topicId    topic name
+     * @param queueId    queue id
+     * @param offset     the consume offset to start from
+     * @param batchSize  max number of messages
+     * @param filter     message filter
+     * @return a future completing with the fetch result
+     */
     public CompletableFuture<GetMessageResult> getMessageAsync(String clientHost,
         String groupId, String topicId, int queueId, long offset, int batchSize, MessageFilter filter) {
 
@@ -353,6 +373,7 @@ public class PopConsumerService extends ServiceThread {
 
     /**
      * Fetch messages from a single queue and append them to the pop context.
+     * No external callers, except unit tests.
      *
      * <p>Chained via {@link CompletableFuture#thenCompose} from
      * {@link #getMessageFromTopicAsync}. When the batch is already full
@@ -720,6 +741,17 @@ public class PopConsumerService extends ServiceThread {
         }
     }
 
+    /**
+     * Read the original message from storage for revival.
+     * No external callers, except unit tests.
+     *
+     * <p>Used by {@link #revive(PopConsumerRecord)} when a visibility timeout
+     * expires. Delegates to {@link org.apache.rocketmq.broker.EscapeBridge}
+     * which can read from either the local store or a remote broker's store.
+     *
+     * @param consumerRecord the expired record
+     * @return a triple of (message, info, needRetry)
+     */
     // Use broker escape bridge to support remote read
     public CompletableFuture<Triple<MessageExt, String, Boolean>> getMessageAsync(PopConsumerRecord consumerRecord) {
         return this.brokerController.getEscapeBridge().getMessageAsync(consumerRecord.getTopicId(),
