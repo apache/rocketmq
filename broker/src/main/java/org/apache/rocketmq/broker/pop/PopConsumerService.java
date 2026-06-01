@@ -764,7 +764,17 @@ public class PopConsumerService extends ServiceThread {
             consumerRecord.getOffset(), consumerRecord.getQueueId(), brokerConfig.getBrokerName(), false);
     }
 
-    // No external callers, only called by unit tests.
+    /**
+     * Revive a single expired record by re-publishing it to the retry topic.
+     * No external callers, only called by unit tests.
+     *
+     * <p>Skips the record if the consumer group no longer exists.
+     * Otherwise, reads the original message,
+     * and re-publishes it via {@link #reviveRetry}.
+     *
+     * @param record the expired record to revive
+     * @return a future completing with {@code true} on success
+     */
     public CompletableFuture<Boolean> revive(PopConsumerRecord record) {
 
         if (brokerConfig.isPopReviveSkipIfGroupAbsent() &&
@@ -795,7 +805,27 @@ public class PopConsumerService extends ServiceThread {
         }
     }
 
-    // No external callers, only called by unit tests.
+    /**
+     * Scan the KVStore for expired records and revive them.
+     * No external callers, only called by unit tests.
+     *
+     * <p>This is the core revival loop called by {@link #run()}:
+     * <ol>
+     *   <li>Scans {@link PopConsumerKVStore#scanExpiredRecords} for records
+     *       whose visibility timeout falls within {@code [currentTime-3s, now)}</li>
+     *   <li>For each expired record, calls {@link #revive(PopConsumerRecord)} to
+     *       read the original message and re-publish it to the retry topic.
+     *       Concurrency is controlled by a semaphore</li>
+     *   <li>Failed revive attempts are retried with exponential backoff via a
+     *       new record with increased {@code invisibleTime} and
+     *       {@code attemptTimes}</li>
+     *   <li>After the maximum retry attempts, the record is dropped</li>
+     * </ol>
+     *
+     * @param currentTime tracks the last scanned visibility timeout (for incremental progress)
+     * @param maxCount    maximum number of records to process per batch
+     * @return the number of consumed (revived) records
+     */
     public long revive(AtomicLong currentTime, int maxCount) {
         Stopwatch stopwatch = Stopwatch.createStarted();
         long upperTime = System.currentTimeMillis() - 50L;
