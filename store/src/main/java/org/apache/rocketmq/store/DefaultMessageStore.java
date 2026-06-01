@@ -650,6 +650,17 @@ public class DefaultMessageStore implements MessageStore {
         return commitLogSize + consumeQueueSize + indexFileSize;
     }
 
+    /**
+     * Asynchronously write a message to the commit log.
+     *
+     * <p>Before writing, any registered {@link PutMessageHook} instances are
+     * invoked — a non-null result from a hook short-circuits the process.
+     * Inner-batch message flags are validated
+     * then the actual write is delegated to {@link CommitLog#asyncPutMessage}.
+     *
+     * @param msg the message to write
+     * @return a future that completes with the put result
+     */
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
         // execute beforePutMessage hooks
