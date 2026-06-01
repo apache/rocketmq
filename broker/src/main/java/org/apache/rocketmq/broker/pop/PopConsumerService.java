@@ -831,7 +831,7 @@ public class PopConsumerService extends ServiceThread {
         Stopwatch stopwatch = Stopwatch.createStarted();
         long upperTime = System.currentTimeMillis() - 50L;
 
-        // scan expired records
+        // scan expired records between [currentTime-3s, now-50ms)]
         List<PopConsumerRecord> consumerRecords = this.popConsumerStore.scanExpiredRecords(
                 currentTime.get() - TimeUnit.SECONDS.toMillis(3), upperTime, maxCount);
 
