@@ -38,6 +38,19 @@ import org.rocksdb.WriteOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * RocksDB-backed implementation of {@link PopConsumerKVStore} for the
+ * KVStore-based Pop ack path.
+ *
+ * <p>Stores Pop consumer records in a dedicated {@code "popState"} column
+ * family. Each record is keyed by {@code visibilityTimeout|groupId@topicId@queueId@offset}
+ * so that {@link #scanExpiredRecords} can efficiently scan only expired
+ * records within a time window without a full table scan.
+ *
+ * <p>Write and delete operations use synchronous flush and WAL for
+ * durability — Pop visibility state is the sole source of truth in the
+ * KVStore path and must survive crashes.
+ */
 public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements PopConsumerKVStore {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
