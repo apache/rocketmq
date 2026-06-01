@@ -211,6 +211,13 @@ public class DefaultMessageStore implements MessageStore {
 
     private final AtomicInteger mappedPageHoldCount = new AtomicInteger(0);
 
+    /**
+     * BatchDispatchRequest queue
+     * offer by ConcurrentReputMessageService.createBatchDispatchRequest()
+     * poll by MainBatchDispatchRequestService.pollBatchDispatchRequest()
+     *
+     * <p>if enableBuildConsumeQueueConcurrently is false, It is useless
+     */
     private final ConcurrentLinkedQueue<BatchDispatchRequest> batchDispatchRequestQueue = new ConcurrentLinkedQueue<>();
 
     private final int dispatchRequestOrderlyQueueSize = 16;
