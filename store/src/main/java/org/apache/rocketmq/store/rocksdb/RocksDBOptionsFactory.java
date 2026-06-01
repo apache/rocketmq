@@ -18,6 +18,7 @@ package org.apache.rocketmq.store.rocksdb;
 
 import org.apache.rocketmq.common.config.ConfigHelper;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
 import org.rocksdb.ColumnFamilyOptions;
@@ -57,19 +58,18 @@ public class RocksDBOptionsFactory {
                 setBlockCache(new LRUCache(1024 * SizeUnit.MB, 8, false)).
                 setWholeKeyFiltering(true);
 
+        MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         ColumnFamilyOptions columnFamilyOptions = new ColumnFamilyOptions();
-        CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal();
-        compactionOption.setSizeRatio(100).
-                setMaxSizeAmplificationPercent(25).
+        CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal().
+                setSizeRatio(100).
+                setMaxSizeAmplificationPercent(messageStoreConfig.getRocksdbMaxSizeAmplificationPercent()).
                 setAllowTrivialMove(true).
                 setMinMergeWidth(2).
                 setMaxMergeWidth(Integer.MAX_VALUE).
                 setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize).
                 setCompressionSizePercent(-1);
-        String bottomMostCompressionTypeOpt = messageStore.getMessageStoreConfig()
-            .getBottomMostCompressionTypeForConsumeQueueStore();
-        String compressionTypeOpt = messageStore.getMessageStoreConfig()
-            .getRocksdbCompressionType();
+        String bottomMostCompressionTypeOpt = messageStoreConfig.getBottomMostCompressionTypeForConsumeQueueStore();
+        String compressionTypeOpt = messageStoreConfig.getRocksdbCompressionType();
         CompressionType bottomMostCompressionType = CompressionType.getCompressionType(bottomMostCompressionTypeOpt);
         CompressionType compressionType = CompressionType.getCompressionType(compressionTypeOpt);
         return columnFamilyOptions.setMaxWriteBufferNumber(4).
