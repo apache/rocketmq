@@ -153,7 +153,7 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
 
     /**
      * Batch-write consumer records to RocksDB via a single {@link WriteBatch}.
-     * Key: timestamp(8) + groupId + topicId + queueId + offset
+     * Key: (popTime + invisibleTime) + groupId + topicId + queueId + offset
      * value: PopConsumerRecord.toJsonBytes
      *
      * <p>Each record is serialized with its visibility-timeout-prefixed key
