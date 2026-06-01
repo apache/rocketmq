@@ -1053,6 +1053,19 @@ public class PopConsumerService extends ServiceThread {
         }
     }
 
+    /**
+     * Background thread that periodically revives expired Pop records.
+     *
+     * <p>Each iteration:
+     * <ol>
+     *   <li>Calls {@link #revive(AtomicLong, int)} to scan the RocksDB store for
+     *       records whose visibility timeout has elapsed, fetch the original
+     *       message, and re-publish it to the retry topic</li>
+     *   <li>Cleans up stale consumer locks every minute</li>
+     *   <li>When the number of revived records is below the batch limit, sleeps
+     *       for a short interval to avoid busy-waiting</li>
+     * </ol>
+     */
     @Override
     public void run() {
         this.consumerRunning.set(true);
