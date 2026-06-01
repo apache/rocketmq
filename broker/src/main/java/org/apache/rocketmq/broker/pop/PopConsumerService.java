@@ -109,6 +109,7 @@ public class PopConsumerService extends ServiceThread {
     }
 
     /**
+     * No external callers, only called by unit tests.
      * In-flight messages are those that have been received from a queue
      * by a consumer but have not yet been deleted. For standard queues,
      * there is a limit on the number of in-flight messages, depending on queue traffic and message backlog.
@@ -119,6 +120,7 @@ public class PopConsumerService extends ServiceThread {
                 brokerConfig.getPopInflightMessageThreshold();
     }
 
+    // No external callers, only called by unit tests.
     public long getPendingFilterCount(String groupId, String topicId, int queueId) {
         try {
             long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topicId, queueId);
@@ -129,6 +131,7 @@ public class PopConsumerService extends ServiceThread {
         }
     }
 
+    // No external callers, only called by unit tests.
     public GetMessageResult recodeRetryMessage(GetMessageResult getMessageResult,
         String topicId, long offset, long popTime, long invisibleTime) {
 
@@ -170,6 +173,7 @@ public class PopConsumerService extends ServiceThread {
 
     /**
      * Merge a GetMessageResult into the pop context and commit the consumer offset.
+     * No external callers, only called by unit tests.
      *
      * <p>If messages were found:
      * <ul>
@@ -352,6 +356,7 @@ public class PopConsumerService extends ServiceThread {
 
     /**
      * Fifo message does not have retry feature in broker
+     * No external callers, only called by unit tests.
      */
     public void setFifoBlocked(PopConsumerContext context,
         String groupId, String topicId, int queueId, List<Long> queueOffsetList, GetMessageResult getMessageResult) {
@@ -360,6 +365,7 @@ public class PopConsumerService extends ServiceThread {
             context.getPopTime(), context.getInvisibleTime(), queueOffsetList, context.getOrderCountInfoBuilder(), getMessageResult);
     }
 
+    // No external callers, only called by unit tests.
     public boolean isFifoBlocked(PopConsumerContext context, String groupId, String topicId, int queueId) {
         // If server-side reset offset is enabled, and there is a reset offset,
         // then return false to make sure that the reset offset takes effect.
@@ -758,6 +764,7 @@ public class PopConsumerService extends ServiceThread {
             consumerRecord.getOffset(), consumerRecord.getQueueId(), brokerConfig.getBrokerName(), false);
     }
 
+    // No external callers, only called by unit tests.
     public CompletableFuture<Boolean> revive(PopConsumerRecord record) {
 
         if (brokerConfig.isPopReviveSkipIfGroupAbsent() &&
@@ -781,12 +788,14 @@ public class PopConsumerService extends ServiceThread {
             });
     }
 
+    // No external callers, only called by unit tests.
     public void clearCache(String groupId, String topicId, int queueId) {
         if (popConsumerCache != null) {
             popConsumerCache.removeRecords(groupId, topicId, queueId);
         }
     }
 
+    // No external callers, only called by unit tests.
     public long revive(AtomicLong currentTime, int maxCount) {
         Stopwatch stopwatch = Stopwatch.createStarted();
         long upperTime = System.currentTimeMillis() - 50L;
@@ -853,6 +862,7 @@ public class PopConsumerService extends ServiceThread {
         return consumerRecords.size();
     }
 
+    // No external callers, only called by unit tests.
     public void createRetryTopicIfNeeded(String groupId, String retryTopic) {
         TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(retryTopic);
         if (topicConfig != null && !brokerController.getBrokerConfig().isUseSeparateRetryQueue()) {
@@ -885,6 +895,7 @@ public class PopConsumerService extends ServiceThread {
 
     @SuppressWarnings("DuplicatedCode")
     // org.apache.rocketmq.broker.processor.PopReviveService#reviveRetry
+    // No external callers, only called by unit tests.
     public boolean reviveRetry(PopConsumerRecord record, MessageExt messageExt) {
 
         if (brokerConfig.isPopConsumerKVServiceLog()) {
@@ -962,6 +973,7 @@ public class PopConsumerService extends ServiceThread {
     }
 
     // Export kv store record to revive topic
+    // admin service
     @SuppressWarnings("ExtractMethodRecommender")
     public synchronized void transferToFsStore() {
         Stopwatch stopwatch = Stopwatch.createStarted();
