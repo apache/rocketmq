@@ -829,8 +829,12 @@ public class PopConsumerService extends ServiceThread {
     public long revive(AtomicLong currentTime, int maxCount) {
         Stopwatch stopwatch = Stopwatch.createStarted();
         long upperTime = System.currentTimeMillis() - 50L;
+
+        // scan expired records
         List<PopConsumerRecord> consumerRecords = this.popConsumerStore.scanExpiredRecords(
                 currentTime.get() - TimeUnit.SECONDS.toMillis(3), upperTime, maxCount);
+
+        // init context params
         long scanCostTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
 
         // When reading messages from local storage, the current thread is used
@@ -844,6 +848,7 @@ public class PopConsumerService extends ServiceThread {
         // could merge read operation here
         for (PopConsumerRecord record : consumerRecords) {
             CompletableFuture<Boolean> future;
+            // revive record
             try {
                 semaphore.acquire();
                 future = this.revive(record);
@@ -851,6 +856,8 @@ public class PopConsumerService extends ServiceThread {
                 semaphore.release();
                 throw new RuntimeException(e);
             }
+
+            // add future result to futureList
             futureList.add(future.thenAccept(result -> {
                 if (!result) {
                     if (record.getAttemptTimes() < brokerConfig.getPopReviveMaxAttemptTimes()) {
@@ -870,9 +877,14 @@ public class PopConsumerService extends ServiceThread {
             }).whenComplete((result, ex) -> semaphore.release()));
         }
 
+        // wait for all futures to complete
         CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();
+
+        // then restore failure records and delete successful records
         this.popConsumerStore.writeRecords(new ArrayList<>(failureList));
         this.popConsumerStore.deleteRecords(consumerRecords);
+
+        // set currentTime and logging
         currentTime.set(consumerRecords.isEmpty() ?
             upperTime : consumerRecords.get(consumerRecords.size() - 1).getVisibilityTimeout());
 
