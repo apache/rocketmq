@@ -505,6 +505,8 @@ public class MessageStoreConfig {
 
     private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
 
+    private int rocksdbMaxSizeAmplificationPercent = 25;
+
     private long popRocksdbBlockCacheSize = 256 * SizeUnit.MB;
 
     private long popRocksdbWriteBufferSize = 32 * SizeUnit.MB;
@@ -533,6 +535,14 @@ public class MessageStoreConfig {
 
     public void setRocksdbCompressionType(String compressionType) {
         this.rocksdbCompressionType = compressionType;
+    }
+
+    public int getRocksdbMaxSizeAmplificationPercent() {
+        return rocksdbMaxSizeAmplificationPercent;
+    }
+
+    public void setRocksdbMaxSizeAmplificationPercent(int rocksdbMaxSizeAmplificationPercent) {
+        this.rocksdbMaxSizeAmplificationPercent = rocksdbMaxSizeAmplificationPercent;
     }
 
     public long getPopRocksdbBlockCacheSize() {

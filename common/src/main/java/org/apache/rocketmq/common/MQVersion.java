@@ -20,22 +20,24 @@ public class MQVersion {
 
     public static final int CURRENT_VERSION = Version.V5_5_0.ordinal();
 
-    public static String getVersionDesc(int value) {
-        int length = Version.values().length;
-        if (value >= length) {
-            return Version.values()[length - 1].name();
-        }
+    private static final Version[] VERSION_VALUES = Version.values();
 
-        return Version.values()[value].name();
+    public static String getVersionDesc(int value) {
+        Version[] versions = VERSION_VALUES;
+        int length = versions.length;
+        if (value >= length) {
+            return versions[length - 1].name();
+        }
+        return versions[value].name();
     }
 
     public static Version value2Version(int value) {
-        int length = Version.values().length;
+        Version[] versions = VERSION_VALUES;
+        int length = versions.length;
         if (value >= length) {
-            return Version.values()[length - 1];
+            return versions[length - 1];
         }
-
-        return Version.values()[value];
+        return versions[value];
     }
 
     public enum Version {
