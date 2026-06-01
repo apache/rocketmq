@@ -52,8 +52,7 @@ public class RocksDBOptionsFactoryTest {
         MessageStore messageStore = mock(MessageStore.class);
         when(messageStore.getMessageStoreConfig()).thenReturn(config);
 
-        ConsumeQueueCompactionFilterFactory compactionFilterFactory = new ConsumeQueueCompactionFilterFactory(() -> 0);
-        try (ColumnFamilyOptions options = RocksDBOptionsFactory.createCQCFOptions(messageStore, compactionFilterFactory);
+        try (ColumnFamilyOptions options = RocksDBOptionsFactory.createCQCFOptions(messageStore);
             CompactionOptionsUniversal compactionOptions = options.compactionOptionsUniversal()) {
             Assert.assertEquals(50, compactionOptions.maxSizeAmplificationPercent());
         }
