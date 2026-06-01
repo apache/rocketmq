@@ -794,6 +794,7 @@ public class PopConsumerService extends ServiceThread {
                     log.info("PopConsumerService revive no need retry, record={}", record);
                     return CompletableFuture.completedFuture(!result.getRight());
                 }
+
                 return CompletableFuture.completedFuture(this.reviveRetry(record, result.getLeft()));
             });
     }
@@ -946,11 +947,13 @@ public class PopConsumerService extends ServiceThread {
                 record.getQueueId(), record.getOffset());
         }
 
+        // create retry topic if needed
         boolean retry = StringUtils.startsWith(record.getTopicId(), MixAll.RETRY_GROUP_TOPIC_PREFIX);
         String retryTopic = retry ? record.getTopicId() : KeyBuilder.buildPopRetryTopic(
             record.getTopicId(), record.getGroupId(), brokerConfig.isEnableRetryTopicV2());
         this.createRetryTopicIfNeeded(record.getGroupId(), retryTopic);
 
+        // create retry message
         // deep copy here
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(retryTopic);
