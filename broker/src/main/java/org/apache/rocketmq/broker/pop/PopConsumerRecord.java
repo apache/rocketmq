@@ -58,6 +58,15 @@ public class PopConsumerRecord {
     @JSONField(ordinal = 4)
     private int retryFlag;
 
+    /**
+     * Message visibility timeout in milliseconds.
+     *
+     * <p>The visibility timeout ({@code popTime + invisibleTime}) determines when
+     * a popped-but-unacked message becomes eligible for revival. Set by the
+     * consumer (default 60s via {@code DefaultMQPushConsumer#setPopInvisibleTime}).
+     * Can be changed by proxy with config.
+     * Can be extended via {@code ChangeInvisibleTime}.
+     */
     @JSONField(ordinal = 5)
     private long invisibleTime;
 
