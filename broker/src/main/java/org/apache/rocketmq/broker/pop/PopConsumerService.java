@@ -823,7 +823,7 @@ public class PopConsumerService extends ServiceThread {
      * </ol>
      *
      * @param currentTime tracks the last scanned visibility timeout (for incremental progress)
-     * @param maxCount    maximum number of records to process per batch
+     * @param maxCount    maximum number of records to process per batch(load from config: 16 * 1024)
      * @return the number of consumed (revived) records
      */
     public long revive(AtomicLong currentTime, int maxCount) {
