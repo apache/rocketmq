@@ -1356,6 +1356,20 @@ public class CommitLog implements Swappable {
         return true;
     }
 
+    /**
+     * Wait for both disk flush and HA replication to complete, then merge results.
+     *
+     * <p>Disk flush and HA replication run in parallel via
+     * {@link CompletableFuture#thenCombine}. If either fails, the combined
+     * result is updated with the failure status — both must succeed for
+     * the overall result to be {@code PUT_OK}.
+     *
+     * @param putMessageResult the append result to update
+     * @param messageExt       the original message (needed by flush)
+     * @param needAckNums      number of slave acks required (0/1 = no HA)
+     * @param needHandleHA     whether HA replication is configured
+     * @return a future completing with the merged result
+     */
     private CompletableFuture<PutMessageResult> handleDiskFlushAndHA(PutMessageResult putMessageResult,
         MessageExt messageExt, int needAckNums, boolean needHandleHA) {
         CompletableFuture<PutMessageStatus> flushResultFuture = handleDiskFlush(putMessageResult.getAppendMessageResult(), messageExt);
