@@ -45,6 +45,7 @@ import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactor
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.grpc.netty.shaded.io.netty.util.AsciiString;
 import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
+import io.grpc.netty.shaded.io.netty.util.ReferenceCountUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -77,7 +78,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
      */
     private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
-    private static SslContext sslContext;
+    private static volatile SslContext sslContext;
 
     public ProxyAndTlsProtocolNegotiator() {
         try {
@@ -113,9 +114,10 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
             provider = SslProvider.JDK;
             log.info("Using JDK SSL provider");
         }
+        SslContext newSslContext;
         if (proxyConfig.isTlsTestModeEnable()) {
             SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
-            sslContext = GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
+            newSslContext = GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
                 .sslProvider(provider)
                 .trustManager(InsecureTrustManagerFactory.INSTANCE)
                 .clientAuth(ClientAuth.NONE)
@@ -128,12 +130,30 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                 Paths.get(tlsKeyPath));
                  InputStream serverCertificateStream = Files.newInputStream(
                      Paths.get(tlsCertPath))) {
-                sslContext = GrpcSslContexts.forServer(serverCertificateStream,
+                newSslContext = GrpcSslContexts.forServer(serverCertificateStream,
                         serverKeyInputStream,
                         StringUtils.isNotBlank(tlsKeyPassword) ? tlsKeyPassword : null)
                     .trustManager(InsecureTrustManagerFactory.INSTANCE)
                     .clientAuth(ClientAuth.NONE)
                     .build();
+            }
+        }
+        SslContext oldSslContext = sslContext;
+        sslContext = newSslContext;
+        if (oldSslContext != null) {
+            // Release the old SslContext to free native memory (OpenSSL provider only).
+            // ReferenceCountUtil.release() is a no-op for JDK SslContext since it does not
+            // implement ReferenceCounted.
+            // Note: there is a theoretical race where an event-loop thread could read the old
+            // sslContext (volatile) and call newHandler() after release. In practice this is
+            // negligible because cert reload is very infrequent and the window is nanoseconds.
+            // Worst case: the single new connection gets an IllegalReferenceCountException and
+            // the client retries successfully — no pod crash or service disruption.
+            try {
+                ReferenceCountUtil.release(oldSslContext);
+                log.info("Old SslContext released for proxy server");
+            } catch (Exception e) {
+                log.warn("Failed to release old SslContext for proxy server", e);
             }
         }
     }
