@@ -63,11 +63,16 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
      */
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager) {
         super(messagingProcessor, serviceManager);
+
+        // create event listener
         StateEventListener<RenewEvent> eventListener = event -> {
+            // convert event to ReceiptHandle
             ProxyContext context = createContext(event.getEventType().name())
                 .setChannel(event.getKey().getChannel());
             MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
             ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
+
+            // change invisible time
             messagingProcessor
                 .changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
                     messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(),
@@ -80,6 +85,8 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
                     event.getFuture().complete(v);
                 });
         };
+
+        // pass event listener to DefaultReceiptHandleManager
         this.receiptHandleManager = new DefaultReceiptHandleManager(serviceManager.getMetadataService(), serviceManager.getConsumerManager(), eventListener);
         this.appendStartAndShutdown(receiptHandleManager);
     }
