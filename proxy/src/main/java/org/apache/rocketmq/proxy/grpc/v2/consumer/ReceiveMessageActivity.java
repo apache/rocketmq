@@ -207,6 +207,28 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
         }
     }
 
+    /**
+     * Register receipt handles for auto-renewal of message visibility timeouts.
+     *
+     * <p>When auto-renew is enabled ({@code enableProxyAutoRenew}), the proxy
+     * periodically extends the invisible time of delivered but unacked messages
+     * so that they are not revived while the consumer is still processing them.
+     *
+     * <p>This method extracts the {@code PROPERTY_POP_CK} from each popped
+     * message, wraps it into a {@link MessageReceiptHandle}, and registers it
+     * via {@link MessagingProcessor#addReceiptHandle}. The returned
+     * {@link Runnable} is executed after the response has been written to the
+     * client stream.
+     *
+     * @param ctx     the proxy context
+     * @param request the original receive-message request
+     * @param group   consumer group
+     * @param topic   topic name
+     * @param popResult the pop result returned from the broker
+     * @param writer  the response stream writer
+     * @return a runnable to execute after the response write, or {@code null}
+     *         if no messages were found
+     */
     private Runnable handleAutoRenew(ProxyContext ctx, ReceiveMessageRequest request,
         String group, String topic, PopResult popResult, ReceiveMessageResponseStreamWriter writer
     ) {
