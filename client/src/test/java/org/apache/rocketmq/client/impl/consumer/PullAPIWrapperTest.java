@@ -60,6 +60,7 @@ import java.util.concurrent.ConcurrentMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -151,6 +152,29 @@ public class PullAPIWrapperTest {
                 eq(defaultTimeout),
                 any(CommunicationMode.class),
                 any(PullCallback.class));
+    }
+
+    @Test
+    public void testPullKernelImplWithMissingTopicRouteDataForClassFilter() {
+        when(mQClientFactory.getTopicRouteTable()).thenReturn(new ConcurrentHashMap<>());
+
+        MQClientException actual = assertThrows(MQClientException.class, () -> pullAPIWrapper.pullKernelImpl(
+            createMessageQueue(),
+            "",
+            "",
+            1L,
+            1L,
+            1,
+            1,
+            PullSysFlag.buildSysFlag(false, false, false, true),
+            1L,
+            System.currentTimeMillis(),
+            defaultTimeout,
+            CommunicationMode.SYNC,
+            null
+        ));
+
+        assertTrue(actual.getMessage().contains("Find Filter Server Failed"));
     }
 
     @Test
