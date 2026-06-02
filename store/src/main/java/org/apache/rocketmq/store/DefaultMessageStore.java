@@ -885,6 +885,33 @@ public class DefaultMessageStore implements MessageStore {
         return CompletableFuture.completedFuture(getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter));
     }
 
+    /**
+     * Pull messages from the consume queue, applying filters and reading bodies
+     * from the commit log.
+     *
+     * <p>The method:
+     * <ol>
+     *   <li>Validates the store state and finds the consume queue for the
+     *       topic</li>
+     *   <li>Checks the offset against the queue bounds and sets the
+     *       appropriate status if out of range</li>
+     *   <li>Iterates through the consume queue entries, applies both
+     *       consume-queue-level and commit-log-level message filters</li>
+     *   <li>Reads message bodies from the commit log and appends them to the
+     *       result until the size or count limit is reached</li>
+     *   <li>Reports disk-fall-behind metrics and suggests pulling from a
+     *       slave if the data is too far behind in physical offset</li>
+     * </ol>
+     *
+     * @param group          consumer group
+     * @param topic          topic name
+     * @param queueId        queue id
+     * @param offset         starting offset in the consume queue
+     * @param maxMsgNums     maximum number of messages to return
+     * @param maxTotalMsgSize maximum total message body size
+     * @param messageFilter  message filter (may be null)
+     * @return the pull result with status, messages, and next offset
+     */
     @Override
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter) {
