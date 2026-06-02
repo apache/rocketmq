@@ -89,6 +89,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         this.consumerManager = consumerManager;
         this.eventListener = eventListener;
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+
+        // by default, minThreadNum is 2, maxThreadNum is 4
         this.renewalWorkerService = ThreadPoolMonitor.createAndMonitor(
             proxyConfig.getRenewThreadPoolNums(),
             proxyConfig.getRenewMaxThreadPoolNums(),
@@ -96,6 +98,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             "RenewalWorkerThread",
             proxyConfig.getRenewThreadPoolQueueCapacity()
         );
+
+        // by default, minThreadNum is 2, maxThreadNum is 4
         this.returnHandleGroupWorkerService = ThreadPoolMonitor.createAndMonitor(
             proxyConfig.getReturnHandleGroupThreadPoolNums(),
             proxyConfig.getReturnHandleGroupThreadPoolNums() * 2,
@@ -103,6 +107,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             "ReturnHandleGroupWorkerThread",
             proxyConfig.getRenewThreadPoolQueueCapacity()
         );
+
+        // clear receipt by group when consumer unregister
         consumerManager.appendConsumerIdsChangeListener(new ConsumerIdsChangeListener() {
             @Override
             public void handle(ConsumerGroupEvent event, String group, Object... args) {
@@ -127,11 +133,15 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
 
             }
         });
+
         this.receiptHandleGroupMap = new ConcurrentHashMap<>();
         this.renewalWorkerService.setRejectedExecutionHandler((r, executor) -> log.warn("add renew task failed. queueSize:{}", executor.getQueue().size()));
+
+        // add periodic scan task
         this.appendStartAndShutdown(new StartAndShutdown() {
             @Override
             public void start() throws Exception {
+                // by default, interval is 5000ms
                 scheduledExecutorService.scheduleWithFixedDelay(() -> scheduleRenewTask(), 0,
                     ConfigurationManager.getProxyConfig().getRenewSchedulePeriodMillis(), TimeUnit.MILLISECONDS);
             }
