@@ -24,6 +24,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -712,5 +713,66 @@ public class ConsumeQueueTest {
 
         consumeQueue.destroy();
         FileUtils.deleteDirectory(tmpDir);
+    }
+
+    @Test
+    public void testCorrectMinOffsetAfterAllFilesDeleted() throws IOException {
+        String topic = "T1";
+        int queueId = 0;
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        File tmpDir = Files.createTempDirectory("testCorrectMinOffsetAfterAllFilesDeleted").toFile();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setEnableConsumeQueueExt(false);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+
+        RunningFlags runningFlags = new RunningFlags();
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(runningFlags);
+
+        StoreCheckpoint storeCheckpoint = Mockito.mock(StoreCheckpoint.class);
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(storeCheckpoint);
+
+        ConsumeQueue consumeQueue = null;
+        ConsumeQueue reloadedConsumeQueue = null;
+        try {
+            consumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+
+            int max = 10;
+            int messageSize = 100;
+            for (int i = 0; i < max; ++i) {
+                DispatchRequest dispatchRequest = new DispatchRequest(topic, queueId, messageSize * i, messageSize, 0, 0, i,
+                    null, null, 0, 0, null);
+                consumeQueue.putMessagePositionInfoWrapper(dispatchRequest);
+            }
+
+            File consumeQueueDir = new File(storeConfig.getStorePathRootDir(), topic + File.separator + queueId);
+            Assert.assertTrue(consumeQueueDir.exists());
+
+            consumeQueue.setMinLogicOffset(ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            consumeQueue.setMaxPhysicOffset(max * messageSize);
+            consumeQueue.destroy();
+            consumeQueue = null;
+            FileUtils.deleteQuietly(consumeQueueDir);
+            Assert.assertFalse(consumeQueueDir.exists());
+
+            reloadedConsumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+                storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+            Assert.assertTrue(reloadedConsumeQueue.load());
+            reloadedConsumeQueue.recover();
+            reloadedConsumeQueue.setMinLogicOffset(ConsumeQueue.CQ_STORE_UNIT_SIZE);
+            reloadedConsumeQueue.setMaxPhysicOffset(max * messageSize);
+            reloadedConsumeQueue.correctMinOffset(0L);
+            Assert.assertEquals(0L, reloadedConsumeQueue.getMinLogicOffset());
+            Assert.assertEquals(-1L, reloadedConsumeQueue.getMaxPhysicOffset());
+        } finally {
+            if (reloadedConsumeQueue != null) {
+                reloadedConsumeQueue.destroy();
+            }
+            if (consumeQueue != null) {
+                consumeQueue.destroy();
+            }
+            FileUtils.deleteQuietly(tmpDir);
+        }
     }
 }
