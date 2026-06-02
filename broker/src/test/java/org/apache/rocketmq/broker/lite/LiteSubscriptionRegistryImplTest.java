@@ -699,4 +699,229 @@ public class LiteSubscriptionRegistryImplTest {
         assertFalse(registry.client2Subscription.containsKey(clientId));
         assertEquals(0, registry.getActiveSubscriptionNum());
     }
+
+    // ==================== Exclusive Eviction Tombstone Tests ====================
+
+    /**
+     * Test: When clientB takes over lmq in exclusive mode, clientA gets a tombstone
+     */
+    @Test
+    public void testExclusiveEviction_TombstoneCreatedOnEviction() {
+        String clientA = "clientA";
+        String clientB = "clientB";
+        String group = "exclusiveGroup";
+        String topic = "testTopic";
+        String lmqName = "lmq1";
+        Set<String> lmqNameSet = Collections.singleton(lmqName);
+
+        // Configure exclusive mode
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(topic, lmqName)).thenReturn(true);
+
+        // clientA subscribes
+        registry.updateClientChannel(clientA, mock(Channel.class));
+        registry.addPartialSubscription(clientA, group, topic, lmqNameSet, null);
+
+        assertFalse(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+
+        // clientB takes over → clientA should get tombstone
+        registry.updateClientChannel(clientB, mock(Channel.class));
+        registry.addPartialSubscription(clientB, group, topic, lmqNameSet, null);
+
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+        assertFalse(registry.hasExclusiveEvictionTombstone(clientB, lmqName));
+    }
+
+    /**
+     * Test: addCompleteSubscription clears stale tombstones but keeps active ones
+     */
+    @Test
+    public void testExclusiveEviction_CompleteSyncClearsStale() {
+        String clientA = "clientA";
+        String clientB = "clientB";
+        String group = "exclusiveGroup";
+        String topic = "testTopic";
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        // clientA subscribes to lmq1 and lmq2
+        Set<String> initialSet = new HashSet<>();
+        initialSet.add("lmq1");
+        initialSet.add("lmq2");
+        registry.updateClientChannel(clientA, mock(Channel.class));
+        registry.addPartialSubscription(clientA, group, topic, initialSet, null);
+
+        // clientB takes over lmq1 and lmq2 from clientA
+        registry.updateClientChannel(clientB, mock(Channel.class));
+        registry.addPartialSubscription(clientB, group, topic, Collections.singleton("lmq1"), null);
+        registry.addPartialSubscription(clientB, group, topic, Collections.singleton("lmq2"), null);
+
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, "lmq1"));
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, "lmq2"));
+
+        // clientA does full sync with only lmq2 in active set → lmq1 tombstone should be cleaned
+        Set<String> newActiveSet = new HashSet<>();
+        newActiveSet.add("lmq2");
+        newActiveSet.add("lmq3");
+        registry.addCompleteSubscription(clientA, group, topic, newActiveSet, 2L);
+
+        assertFalse(registry.hasExclusiveEvictionTombstone(clientA, "lmq1")); // cleared (not in newActiveSet)
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, "lmq2"));  // retained (in newActiveSet)
+    }
+
+    /**
+     * Test: removeCompleteSubscription clears all tombstones for the client
+     */
+    @Test
+    public void testExclusiveEviction_RemoveClientClearsTombstones() {
+        String clientA = "clientA";
+        String clientB = "clientB";
+        String group = "exclusiveGroup";
+        String topic = "testTopic";
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        // Setup: clientA subscribes then gets evicted by clientB
+        registry.updateClientChannel(clientA, mock(Channel.class));
+        registry.addPartialSubscription(clientA, group, topic, Collections.singleton("lmq1"), null);
+        registry.addPartialSubscription(clientA, group, topic, Collections.singleton("lmq2"), null);
+
+        registry.updateClientChannel(clientB, mock(Channel.class));
+        registry.addPartialSubscription(clientB, group, topic, Collections.singleton("lmq1"), null);
+        registry.addPartialSubscription(clientB, group, topic, Collections.singleton("lmq2"), null);
+
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, "lmq1"));
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, "lmq2"));
+
+        // clientA disconnects
+        registry.removeCompleteSubscription(clientA);
+
+        assertFalse(registry.hasExclusiveEvictionTombstone(clientA, "lmq1"));
+        assertFalse(registry.hasExclusiveEvictionTombstone(clientA, "lmq2"));
+        // clientB unaffected
+        assertFalse(registry.hasExclusiveEvictionTombstone(clientB, "lmq1"));
+    }
+
+    /**
+     * Test: expired subscription cleanup also clears tombstones
+     */
+    @Test
+    public void testExclusiveEviction_ExpiredCleanupClearsTombstones() {
+        String clientA = "clientA";
+        String clientB = "clientB";
+        String group = "exclusiveGroup";
+        String topic = "testTopic";
+        String lmqName = "lmq1";
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(topic, lmqName)).thenReturn(true);
+
+        // clientA subscribes, then gets evicted
+        registry.updateClientChannel(clientA, mock(Channel.class));
+        registry.addPartialSubscription(clientA, group, topic, Collections.singleton(lmqName), null);
+
+        registry.updateClientChannel(clientB, mock(Channel.class));
+        registry.addPartialSubscription(clientB, group, topic, Collections.singleton(lmqName), null);
+
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+
+        // Simulate clientA becoming expired (sub was already removed, manually add back for timeout test)
+        LiteSubscription expiredSub = new LiteSubscription();
+        expiredSub.setGroup(group);
+        expiredSub.setTopic(topic);
+        expiredSub.setUpdateTime(System.currentTimeMillis() - 60000L);
+        registry.client2Subscription.put(clientA, expiredSub);
+
+        registry.cleanupExpiredSubscriptions(10000L);
+
+        assertFalse(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+    }
+
+    /**
+     * Test: addPartialSubscription clears stale tombstone when client re-claims an lmqName
+     */
+    @Test
+    public void testExclusiveEviction_ReClaimClearsStaleTombstone() {
+        String clientA = "clientA";
+        String clientB = "clientB";
+        String group = "exclusiveGroup";
+        String topic = "testTopic";
+        String lmqName = "lmq1";
+        Set<String> lmqNameSet = Collections.singleton(lmqName);
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(topic, lmqName)).thenReturn(true);
+
+        // clientA subscribes first
+        registry.updateClientChannel(clientA, mock(Channel.class));
+        registry.addPartialSubscription(clientA, group, topic, lmqNameSet, null);
+
+        // clientB takes over → clientA gets tombstone
+        registry.updateClientChannel(clientB, mock(Channel.class));
+        registry.addPartialSubscription(clientB, group, topic, lmqNameSet, null);
+
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+
+        // clientA re-claims the lmqName → tombstone should be cleared
+        registry.addPartialSubscription(clientA, group, topic, lmqNameSet, null);
+
+        assertFalse(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+    }
+
+    /**
+     * Test: addCompleteSubscription re-sends unsubscribe for tombstoned lmqNames still in active set
+     */
+    @Test
+    public void testExclusiveEviction_CompleteSyncReNotifiesForTombstonedLmq() {
+        String clientA = "clientA";
+        String clientB = "clientB";
+        String group = "exclusiveGroup";
+        String topic = "testTopic";
+        String lmqName = "lmq1";
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteSubExclusive(true);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        Channel clientAChannel = mock(Channel.class);
+        registry.updateClientChannel(clientA, clientAChannel);
+        registry.addPartialSubscription(clientA, group, topic, Collections.singleton(lmqName), null);
+
+        // clientB takes over → clientA gets tombstone
+        registry.updateClientChannel(clientB, mock(Channel.class));
+        registry.addPartialSubscription(clientB, group, topic, Collections.singleton(lmqName), null);
+
+        assertTrue(registry.hasExclusiveEvictionTombstone(clientA, lmqName));
+
+        // clientA does full sync still reporting lmq1 → re-notify should be triggered
+        Set<String> fullSet = new HashSet<>();
+        fullSet.add(lmqName);
+        registry.addCompleteSubscription(clientA, group, topic, fullSet, 2L);
+
+        // Verify notifyUnsubscribeLite was called for the tombstoned lmqName during full sync
+        // The first call is during eviction, the second is during re-notify
+        ArgumentCaptor<NotifyUnsubscribeLiteRequestHeader> captor =
+            ArgumentCaptor.forClass(NotifyUnsubscribeLiteRequestHeader.class);
+        verify(mockBroker2Client, org.mockito.Mockito.atLeast(2))
+            .notifyUnsubscribeLite(eq(clientAChannel), captor.capture());
+    }
 }

@@ -61,6 +61,8 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     private final BrokerController brokerController;
     private final AbstractLiteLifecycleManager liteLifecycleManager;
 
+    private final ExclusiveEvictionTombstones exclusiveEvictionTombstones = new ExclusiveEvictionTombstones();
+
     public LiteSubscriptionRegistryImpl(BrokerController brokerController,
         AbstractLiteLifecycleManager liteLifecycleManager) {
         this.brokerController = brokerController;
@@ -99,6 +101,10 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             // First remove the old subscription
             if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
                 excludeClientByLmqName(clientId, group, lmqName);
+                // Boundary case: this client may have a stale tombstone from a previous eviction.
+                // Since it is now actively re-claiming the lmqName, clear its own tombstone so
+                // subsequent popLiteTopic is not blocked by the stale mark.
+                exclusiveEvictionTombstones.remove(clientId, lmqName);
             }
             resetOffset(lmqName, group, clientId, offsetOption);
             addTopicGroup(clientGroup, lmqName);
@@ -144,12 +150,31 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             thisSub.addLiteTopic(lmqName);
             addTopicGroup(clientGroup, lmqName);
         });
+        // Tombstone operations only apply to exclusive groups.
+        if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
+            // Boundary case: if any lmqName in the client's reported full subscription still has
+            // a tombstone, the previous notifyUnsubscribeLite was likely lost. Re-send the
+            // unsubscribe notification to drive the client's local state to converge.
+            lmqNameNew.stream()
+                .filter(lmqName -> exclusiveEvictionTombstones.contains(clientId, lmqName))
+                .forEach(lmqName -> {
+                    LOGGER.info("re-notify unsubscribe for tombstoned lmqName, clientId:{}, group:{}, lmqName:{}",
+                        clientId, group, lmqName);
+                    notifyUnsubscribeLite(clientId, group, lmqName);
+                });
+            // Clean exclusive-eviction tombstones for liteTopics no longer in the client's full subscription set
+            exclusiveEvictionTombstones.removeStale(clientId, lmqNameNew);
+        }
     }
 
     @Override
     public void removeCompleteSubscription(String clientId) {
         clientChannels.remove(clientId);
         LiteSubscription thisSub = client2Subscription.remove(clientId);
+        // Only clean tombstones for exclusive groups.
+        if (thisSub == null || LiteMetadataUtil.isSubLiteExclusive(thisSub.getGroup(), brokerController)) {
+            exclusiveEvictionTombstones.removeAllOf(clientId);
+        }
         if (thisSub == null) {
             return;
         }
@@ -299,6 +324,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                     client2Subscription.remove(clientGroup.clientId);
                 }
             }
+            exclusiveEvictionTombstones.add(clientGroup.clientId, lmqName);
             notifyUnsubscribeLite(clientGroup.clientId, clientGroup.group, lmqName);
             boolean resetOffset = LiteMetadataUtil.isResetOffsetInExclusiveMode(group, brokerController);
             LOGGER.info("excludeClientByLmqName group:{}, lmqName:{}, resetOffset:{}, clientId:{} -> {}",
@@ -464,6 +490,16 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             LOGGER.info("Remove expired LiteSubscription, topic: {}, group: {}, clientId: {}, timeout: {}ms, expired: {}ms",
                 topic, group, clientId, checkTimeout, System.currentTimeMillis() - liteSubscription.getUpdateTime());
         });
+
+        int tombstoneSize = exclusiveEvictionTombstones.size();
+        if (tombstoneSize > 0) {
+            LOGGER.info("ExclusiveEvictionTombstones size: {}", tombstoneSize);
+        }
+    }
+
+    @Override
+    public boolean hasExclusiveEvictionTombstone(String clientId, String lmqName) {
+        return exclusiveEvictionTombstones.contains(clientId, lmqName);
     }
 
 }
