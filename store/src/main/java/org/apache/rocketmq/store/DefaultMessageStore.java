@@ -909,7 +909,7 @@ public class DefaultMessageStore implements MessageStore {
      * @param offset         starting offset in the consume queue
      * @param maxMsgNums     maximum number of messages to return
      * @param maxTotalMsgSize maximum total message body size
-     * @param messageFilter  message filter (may be null)
+     * @param messageFilter  message filter (maybe null)
      * @return the pull result with status, messages, and next offset
      */
     @Override
