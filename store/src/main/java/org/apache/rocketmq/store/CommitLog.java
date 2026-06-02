@@ -1449,6 +1449,20 @@ public class CommitLog implements Swappable {
         return -1;
     }
 
+    /**
+     * Read a message body from the commit log at the given physical offset.
+     *
+     * <p>The difference between getData is:
+     *    getMessage add process: setInCache
+     *
+     * <p>Finds the mapped file containing the offset and selects a buffer
+     * for the given size. The returned buffer includes cache-status metadata
+     * for cold-data flow control.
+     *
+     * @param offset physical offset in the commit log
+     * @param size   number of bytes to read
+     * @return the mapped buffer, or {@code null} if the file is unavailable
+     */
     public SelectMappedBufferResult getMessage(final long offset, final int size) {
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
         MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);
