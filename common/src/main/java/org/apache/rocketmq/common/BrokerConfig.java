@@ -563,6 +563,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private int maxClientEventCount = 100;
 
+    private long liteEventCapacityCacheTtlMs = 5000;
+
     private long liteEventFullDispatchDelayTime = 10 * 1000;
 
     private long liteEventFullDispatchDelayTimeForWildcardGroup = 10 * 1000;
@@ -2448,6 +2450,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setMaxClientEventCount(int maxClientEventCount) {
         this.maxClientEventCount = maxClientEventCount;
+    }
+
+    public long getLiteEventCapacityCacheTtlMs() {
+        return liteEventCapacityCacheTtlMs;
+    }
+
+    public void setLiteEventCapacityCacheTtlMs(long liteEventCapacityCacheTtlMs) {
+        this.liteEventCapacityCacheTtlMs = liteEventCapacityCacheTtlMs;
     }
 
     public long getLiteEventFullDispatchDelayTime() {

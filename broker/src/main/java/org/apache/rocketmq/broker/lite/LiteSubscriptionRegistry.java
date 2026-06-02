@@ -50,6 +50,8 @@ public interface LiteSubscriptionRegistry {
 
     void cleanSubscription(String lmqName, boolean notifyClient);
 
+    boolean hasExclusiveEvictionTombstone(String clientId, String lmqName);
+
     void start();
 
     void shutdown();

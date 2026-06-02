@@ -24,6 +24,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.entity.ClientGroup;
@@ -445,15 +446,36 @@ public class LiteEventDispatcher extends ServiceThread {
         private final String group;
         private volatile long lastAccessTime = System.currentTimeMillis();
         private volatile long lastConsumeTime = System.currentTimeMillis();
+        /**
+         * Cache resolved max capacity to avoid per-offer SubscriptionGroupConfig lookup + attribute
+         * parsing on the hot dispatch path. Soft-cap semantics tolerate a short staleness window,
+         * so refresh lazily by TTL {@link BrokerConfig#getLiteEventCapacityCacheTtlMs()}.
+         */
+        private volatile int maxCapacityCache;
+        private volatile long capacityRefreshTime = System.currentTimeMillis();
 
         public ClientEventSet(String group) {
             this.group = group;
-            events = new LinkedBlockingQueue<>(LiteMetadataUtil.getMaxClientEventCount(group, brokerController));
+            // Use a large bounded queue as a hard ceiling; the effective capacity is enforced
+            // dynamically via soft-cap in offer() so that maxClientEventCount can be changed
+            // at runtime without restart.
+            this.events = new LinkedBlockingQueue<>(100_000);
+            this.maxCapacityCache = LiteMetadataUtil.getMaxClientEventCount(group, brokerController);
+        }
+
+        private int getMaxCapacity() {
+            long now = System.currentTimeMillis();
+            long ttl = brokerController.getBrokerConfig().getLiteEventCapacityCacheTtlMs();
+            if (now - capacityRefreshTime > ttl) {
+                maxCapacityCache = LiteMetadataUtil.getMaxClientEventCount(group, brokerController);
+                capacityRefreshTime = now;
+            }
+            return maxCapacityCache;
         }
 
         // return false if and only if the queue is full, has race condition with poll(), but no side effect.
         public boolean offer(String event) {
-            if (events.remainingCapacity() == 0) {
+            if (events.size() >= getMaxCapacity()) {
                 return false;
             }
             boolean rst;
@@ -486,7 +508,8 @@ public class LiteEventDispatcher extends ServiceThread {
 
         public boolean isLowWaterMark() {
             int used = events.size();
-            return (double) used / (used + events.remainingCapacity()) < LOW_WATER_MARK;
+            int maxCapacity = getMaxCapacity();
+            return maxCapacity <= 0 || (double) used / maxCapacity < LOW_WATER_MARK;
         }
 
         public boolean isActiveConsuming() {
@@ -516,7 +539,7 @@ public class LiteEventDispatcher extends ServiceThread {
         }
 
         /**
-         *  Mostly triggered when client channel closed, ensure that lite subscriptions is cleared before.
+         * Mostly triggered when client channel closed, ensure that lite subscriptions is cleared before.
          */
         @Override
         public void onRemoveAll(String clientId, String group) {
@@ -553,10 +576,12 @@ public class LiteEventDispatcher extends ServiceThread {
     static class LiteSubscriptionIterator implements Iterator<String> {
         private final Iterator<String> iterator;
         private final String parentTopic;
+
         public LiteSubscriptionIterator(String parentTopic, Iterator<String> iterator) {
             this.parentTopic = parentTopic;
             this.iterator = iterator;
         }
+
         @Override
         public boolean hasNext() {
             return iterator.hasNext();
@@ -572,6 +597,7 @@ public class LiteEventDispatcher extends ServiceThread {
         private final String clientId;
         private final String group;
         private final long timestamp;
+
         public FullDispatchRequest(String clientId, String group, long delayMillis) {
             this.clientId = clientId;
             this.group = group;
