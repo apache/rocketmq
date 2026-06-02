@@ -176,6 +176,23 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         return this.consumerManager.findChannel(groupKey.getGroup(), groupKey.getChannel()) == null;
     }
 
+    /**
+     * Periodic scan of all receipt handle groups, called by the
+     * {@link #scheduledExecutorService} at a fixed interval.
+     *
+     * <p>For each group:
+     * <ul>
+     *   <li>If the client has gone offline, the entire group is cleared
+     *       immediately</li>
+     *   <li>Otherwise, each handle is inspected — if its next visible time
+     *       minus the current time is within the {@code renewAheadTimeMillis}
+     *       threshold, a renewal is submitted to the
+     *       {@link #renewalWorkerService} thread pool</li>
+     * </ul>
+     *
+     * <p>The scan runs synchronously in the scheduler thread; the actual
+     * renewal work is dispatched asynchronously to the worker pool.
+     */
     protected void scheduleRenewTask() {
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
