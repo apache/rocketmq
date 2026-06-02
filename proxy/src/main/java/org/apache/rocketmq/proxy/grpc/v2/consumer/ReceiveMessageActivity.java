@@ -232,10 +232,12 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
     private Runnable handleAutoRenew(ProxyContext ctx, ReceiveMessageRequest request,
         String group, String topic, PopResult popResult, ReceiveMessageResponseStreamWriter writer
     ) {
+        // check result status
         if (!PopStatus.FOUND.equals(popResult.getPopStatus())) {
             return null;
         }
 
+        // get socket channel
         GrpcClientChannel clientChannel = grpcChannelManager.getChannel(ctx.getClientID());
         if (clientChannel == null) {
             GrpcProxyException e = new GrpcProxyException(Code.MESSAGE_NOT_FOUND,
@@ -244,6 +246,7 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                 writer.processThrowableWhenWriteMessage(e, ctx, request, messageExt));
             throw e;
         }
+
         return () -> {
             List<MessageExt> messageExtList = popResult.getMsgFoundList();
             for (MessageExt messageExt : messageExtList) {

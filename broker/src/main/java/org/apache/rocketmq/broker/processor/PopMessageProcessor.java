@@ -555,11 +555,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerConfig().getReviveQueueNum());
         }
 
-        // properties of rocketmq 4.x, useless in 5.x
         StringBuilder startOffsetInfo = new StringBuilder(64);
-        // properties of rocketmq 4.x, useless in 5.x
         StringBuilder msgOffsetInfo = new StringBuilder(64);
-        // properties of rocketmq 4.x, useless in 5.x
         StringBuilder orderCountInfo = requestHeader.isOrder() ? new StringBuilder(64) : null;
 
         // Due to the design of the fields startOffsetInfo, msgOffsetInfo, and orderCountInfo,
