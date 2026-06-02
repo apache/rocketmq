@@ -29,6 +29,19 @@ import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.receipt.DefaultReceiptHandleManager;
 
+/**
+ * Bridges receipt handle renewal events to the messaging processor.
+ *
+ * <p>Owns a {@link DefaultReceiptHandleManager} and wires its
+ * {@link RenewEvent} listener to {@link MessagingProcessor#changeInvisibleTime}.
+ * When a receipt handle is about to expire, the manager fires a {@code RENEW}
+ * event which this processor translates into a
+ * {@code ChangeInvisibleTime} call.
+ *
+ * <p>When the renewal limit is reached, a {@code STOP_RENEW} event fires
+ * which nacks the message via {@code changeInvisibleTime} with the group's
+ * retry policy delay.
+ */
 public class ReceiptHandleProcessor extends AbstractProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected DefaultReceiptHandleManager receiptHandleManager;
