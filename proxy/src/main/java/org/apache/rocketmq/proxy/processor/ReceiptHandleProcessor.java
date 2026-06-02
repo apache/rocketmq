@@ -46,6 +46,21 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected DefaultReceiptHandleManager receiptHandleManager;
 
+    /**
+     * Wire the receipt handle manager to the messaging processor.
+     *
+     * <p>pass StateEventListener to DefaultReceiptHandleManager
+     * so that when DefaultReceiptHandleManager find the message is expired,
+     * call StateEventListener to change the invisible time of the message.
+     *
+     * <p>Creates an event listener that translates all {@link RenewEvent}
+     * types ({@code RENEW}, {@code STOP_RENEW}, {@code CLEAR_GROUP}) into
+     * {@link MessagingProcessor#changeInvisibleTime} calls, which update
+     * the message's visibility timeout on the broker.
+     *
+     * @param messagingProcessor the core messaging processor
+     * @param serviceManager     the service manager providing metadata and consumer services
+     */
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager) {
         super(messagingProcessor, serviceManager);
         StateEventListener<RenewEvent> eventListener = event -> {
