@@ -686,11 +686,23 @@ public class MappedFileQueue implements Swappable {
     }
 
     /**
-     * Finds a mapped file by offset.
+     * Locate the mapped file containing the given physical offset.
      *
-     * @param offset Offset.
-     * @param returnFirstOnNotFound If the mapped file is not found, then return the first one.
-     * @return Mapped file or null (when not found and returnFirstOnNotFound is <code>false</code>).
+     * <p>The lookup strategy:
+     * <ol>
+     *   <li><b>Index-based</b> (O(1)) — computes the index from the offset
+     *       and the first file's offset and accesses the list directly</li>
+     *   <li><b>Iteration</b> (O(n)) — falls back to a linear scan when the
+     *       index-based result does not match the expected range</li>
+     *   <li>return first if returnFirstOnNotFound is true</li>
+     *   <li>return null if not found</li>
+     * </ol>
+     *
+     * @param offset               physical offset to find
+     * @param returnFirstOnNotFound if {@code true}, returns the first mapped
+     *                              file when the offset is outside the range
+     * @return the mapped file, or {@code null} if not found and
+     *         {@code returnFirstOnNotFound} is {@code false}
      */
     public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
         try {
