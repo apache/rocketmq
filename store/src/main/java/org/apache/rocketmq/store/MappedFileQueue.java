@@ -697,6 +697,7 @@ public class MappedFileQueue implements Swappable {
             MappedFile firstMappedFile = this.getFirstMappedFile();
             MappedFile lastMappedFile = this.getLastMappedFile();
             if (firstMappedFile != null && lastMappedFile != null) {
+                // offset is not in range of [firstOffset, lastOffset]
                 if (offset < firstMappedFile.getFileFromOffset() || offset >= lastMappedFile.getFileFromOffset() + this.mappedFileSize) {
                     LOG_ERROR.warn("Offset not matched. Request offset: {}, firstOffset: {}, lastOffset: {}, mappedFileSize: {}, mappedFiles count: {}",
                         offset,
@@ -705,6 +706,7 @@ public class MappedFileQueue implements Swappable {
                         this.mappedFileSize,
                         this.mappedFiles.size());
                 } else {
+                    // get file by index
                     int index = (int) ((offset / this.mappedFileSize) - (firstMappedFile.getFileFromOffset() / this.mappedFileSize));
                     MappedFile targetFile = null;
                     try {
@@ -717,6 +719,7 @@ public class MappedFileQueue implements Swappable {
                         return targetFile;
                     }
 
+                    // iterate to find file
                     for (MappedFile tmpMappedFile : this.mappedFiles) {
                         if (offset >= tmpMappedFile.getFileFromOffset()
                             && offset < tmpMappedFile.getFileFromOffset() + this.mappedFileSize) {
