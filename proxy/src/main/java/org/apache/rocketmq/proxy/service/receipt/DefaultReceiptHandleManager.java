@@ -60,6 +60,18 @@ import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.remoting.protocol.subscription.RetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
+/**
+ * Manages receipt handles for gRPC proxy auto-renewal of message visibility timeouts.
+ *
+ * <p>When auto-renew is enabled, popped messages are registered here with their
+ * {@code PROPERTY_POP_CK} data. A periodic {@link #scheduledExecutorService} scans
+ * all registered handles and extends the invisible time for messages that are
+ * about to expire. When the total renewal duration exceeds
+ * {@code renewMaxTimeMillis}, the message is nack'd and returned to the broker.
+ *
+ * <p>Handles are grouped by {@link ReceiptHandleGroupKey} (channel + consumer group)
+ * and cleaned up automatically when a gRPC client disconnects.
+ */
 public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implements ReceiptHandleManager {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected final MetadataService metadataService;
