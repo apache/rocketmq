@@ -230,6 +230,28 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         }
     }
 
+    /**
+     * Renew a single message's visibility timeout, or stop if the renewal
+     * limit has been reached.
+     *
+     * <p>Decision logic:
+     * <ul>
+     *   <li>If the handle has exceeded {@code maxRenewRetryTimes}, it is
+     *       dropped</li>
+     *   <li>If the total renewal duration is within {@code renewMaxTimeMillis},
+     *       a {@link RenewEvent.EventType#RENEW} event is fired to extend the
+     *       invisible time</li>
+     *   <li>If the renewal duration has exceeded {@code renewMaxTimeMillis},
+     *       a {@link RenewEvent.EventType#STOP_RENEW} event is fired which
+     *       nacks the message with the group's retry policy delay</li>
+     * </ul>
+     *
+     * @param context              the proxy context
+     * @param key                  the receipt handle group key
+     * @param messageReceiptHandle the handle to renew
+     * @return a future completing with the updated handle (or {@code null} if
+     *         renewal is stopped)
+     */
     protected CompletableFuture<MessageReceiptHandle> startRenewMessage(ProxyContext context, ReceiptHandleGroupKey key, MessageReceiptHandle messageReceiptHandle) {
         CompletableFuture<MessageReceiptHandle> resFuture = new CompletableFuture<>();
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
@@ -239,6 +261,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 log.warn("handle has exceed max renewRetryTimes. handle:{}", messageReceiptHandle);
                 return CompletableFuture.completedFuture(null);
             }
+            
             if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
                 eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()), RenewEvent.EventType.RENEW, future));
