@@ -257,11 +257,12 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         long current = System.currentTimeMillis();
         try {
+            // by default, maxRenewRetryTimes is 3
             if (messageReceiptHandle.getRenewRetryTimes() >= proxyConfig.getMaxRenewRetryTimes()) {
                 log.warn("handle has exceed max renewRetryTimes. handle:{}", messageReceiptHandle);
                 return CompletableFuture.completedFuture(null);
             }
-            
+
             if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
                 eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()), RenewEvent.EventType.RENEW, future));

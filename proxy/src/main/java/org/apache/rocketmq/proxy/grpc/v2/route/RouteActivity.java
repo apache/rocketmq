@@ -60,6 +60,30 @@ public class RouteActivity extends AbstractMessagingActivity {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
+    /**
+     * query route info by topic
+     *
+     * @param ctx ctx
+     * @param request {
+     *        topic: xxx,
+     *        endpoints: from client config, it is an endpoint list, it's a bad design
+     *      }
+     * @return route info {
+     *     status: xxx,
+     *     message_queues: [
+     *      {
+     *        topic: xxx,
+     *        permission: (enum)xxx,
+     *        broker: {
+     *            name: xxx,
+     *            id: xxx,
+     *            endPoints: xxx,
+     *        },
+     *        accept_message_type: xxx
+     *      }, ...
+     *     ]
+     * }
+     */
     public CompletableFuture<QueryRouteResponse> queryRoute(ProxyContext ctx, QueryRouteRequest request) {
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
         try {
