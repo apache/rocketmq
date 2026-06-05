@@ -120,6 +120,33 @@ public class RouteActivity extends AbstractMessagingActivity {
         return future;
     }
 
+    /**
+     *
+     * @param ctx context
+     * @param request request {
+     *      topic: xxx,
+     *      group: xxx,
+     *      endpoints: xxx
+     * }
+     * @return response {
+     *      status: xxx,
+     *      assignments: [
+     *          {
+     *             message_queue: {
+     *                  topic: xxx,
+     *                  permission: (enum)xxx,
+     *                  broker: {
+     *                      name: xxx,
+     *                      id: xxx,
+     *                      endPoints: xxx,
+     *                  },
+     *                  accept_message_type: xxx
+     *             }
+     *          },
+     *          ...
+     *      ]
+     * }
+     */
     public CompletableFuture<QueryAssignmentResponse> queryAssignment(ProxyContext ctx,
         QueryAssignmentRequest request) {
         CompletableFuture<QueryAssignmentResponse> future = new CompletableFuture<>();
