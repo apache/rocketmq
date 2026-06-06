@@ -1901,6 +1901,22 @@ public class MQClientAPIImplTest {
     }
 
     @Test
+    public void testDeleteAclWithPolicyType() throws RemotingException, InterruptedException, MQBrokerException {
+        when(response.getCode()).thenReturn(ResponseCode.SUCCESS);
+        doAnswer(invocation -> {
+            RemotingCommand request = invocation.getArgument(1);
+            request.makeCustomHeaderToNet();
+            assertThat(request.getExtFields()).isNotNull();
+            assertThat(request.getExtFields().get("subject")).isEqualTo("User:abc");
+            assertThat(request.getExtFields().get("policyType")).isEqualTo("Default");
+            assertThat(request.getExtFields().get("resource")).isEqualTo("Topic:test");
+            return response;
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        mqClientAPI.deleteAcl(defaultBrokerAddr, "User:abc", "Default", "Topic:test", defaultTimeout);
+    }
+
+    @Test
     public void assertGetAcl() throws RemotingException, InterruptedException, MQBrokerException {
         mockInvokeSync();
         setResponseBody(createAclInfo());
