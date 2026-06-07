@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -42,6 +43,7 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
@@ -216,6 +218,63 @@ public class ClientManageProcessorTest {
         heartbeatData.getConsumerDataSet().add(consumerData);
         heartbeatData.setWithoutSub(isWithoutSub);
         return heartbeatData;
+    }
+
+    @Test
+    public void testHeartbeatMultiGroupChannelIndependentExpiry() throws RemotingCommandException {
+        String groupA = "GroupA";
+        String groupB = "GroupB";
+
+        // Send heartbeat containing two consumer groups
+        RemotingCommand request = createMultiGroupHeartbeatCommand(groupA, groupB);
+        RemotingCommand response = clientManageProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        ConsumerGroupInfo groupAInfo = brokerController.getConsumerManager().getConsumerGroupInfo(groupA);
+        ConsumerGroupInfo groupBInfo = brokerController.getConsumerManager().getConsumerGroupInfo(groupB);
+        assertThat(groupAInfo).isNotNull();
+        assertThat(groupBInfo).isNotNull();
+
+        // Each group must hold an independent ClientChannelInfo instance
+        ClientChannelInfo channelInfoInA = groupAInfo.getChannelInfoTable().get(channel);
+        ClientChannelInfo channelInfoInB = groupBInfo.getChannelInfoTable().get(channel);
+        assertThat(channelInfoInA).isNotSameAs(channelInfoInB);
+
+        // Simulate time exceeding the expiry threshold
+        long expiredTs = System.currentTimeMillis()
+            - brokerController.getBrokerConfig().getChannelExpiredTimeout() * 2;
+        channelInfoInA.setLastUpdateTimestamp(expiredTs);
+        channelInfoInB.setLastUpdateTimestamp(expiredTs);
+
+        // Only groupA sends a subsequent heartbeat
+        RemotingCommand heartbeatOnlyA = createMultiGroupHeartbeatCommand(groupA);
+        clientManageProcessor.processRequest(handlerContext, heartbeatOnlyA);
+
+        brokerController.getConsumerManager().scanNotActiveChannel();
+
+        // groupA should survive (just sent heartbeat)
+        assertThat(brokerController.getConsumerManager().getConsumerGroupInfo(groupA)).isNotNull();
+        // groupB should be evicted (no heartbeat renewal)
+        assertThat(brokerController.getConsumerManager().getConsumerGroupInfo(groupB)).isNull();
+    }
+
+    private RemotingCommand createMultiGroupHeartbeatCommand(String... groups) {
+        HeartbeatData heartbeatData = new HeartbeatData();
+        heartbeatData.setClientID(clientId);
+        for (String g : groups) {
+            ConsumerData consumerData = createConsumerData(g);
+            SubscriptionData sub = new SubscriptionData();
+            sub.setTopic(topic);
+            sub.setSubString("*");
+            sub.setSubVersion(100L);
+            consumerData.getSubscriptionDataSet().add(sub);
+            heartbeatData.getConsumerDataSet().add(consumerData);
+        }
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        request.setLanguage(LanguageCode.JAVA);
+        request.setVersion(100);
+        request.setBody(heartbeatData.encode());
+        return request;
     }
 
     static ConsumerData createConsumerData(String group) {
