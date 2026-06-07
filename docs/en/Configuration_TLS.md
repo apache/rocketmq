@@ -78,14 +78,14 @@ The value of "tls.config.file" needs to be replaced by the file path created in 
 ### 3.1 Edit runserver.sh
 Add following content in JAVA_OPT:
 ```shell
-JAVA_OPT="${JAVA_OPT} -Dtls.server.mode=enforcing -Dtls.config.file=/opt/rocketmq-4.9.3/conf/tls.properties"
+JAVA_OPT="${JAVA_OPT} -Dtls.server.mode=enforcing -Dtls.config.file=/opt/rocketmq-5.5.0/conf/tls.properties"
 ```
 
 ### 3.2 Edit runbroker.sh
 Add following content in JAVA_OPT:
 
 ```shell
-JAVA_OPT="${JAVA_OPT} -Dorg.apache.rocketmq.remoting.ssl.mode=enforcing -Dtls.config.file=/opt/rocketmq-4.9.3/conf/tls.properties  -Dtls.enable=true"
+JAVA_OPT="${JAVA_OPT} -Dorg.apache.rocketmq.remoting.ssl.mode=enforcing -Dtls.config.file=/opt/rocketmq-5.5.0/conf/tls.properties  -Dtls.enable=true"
 ```
 
 # 4 Client connection

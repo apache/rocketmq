@@ -83,13 +83,13 @@ tls.client.trustCertPath=/opt/certFiles/ca.pem
 
 ### 3.1 编辑runserver.sh，在JAVA_OPT中增加以下内容：
 ```shell
-JAVA_OPT="${JAVA_OPT} -Dtls.server.mode=enforcing -Dtls.config.file=/opt/rocketmq-4.9.3/conf/tls.properties"
+JAVA_OPT="${JAVA_OPT} -Dtls.server.mode=enforcing -Dtls.config.file=/opt/rocketmq-5.5.0/conf/tls.properties"
 ```
 
 ### 3.2 编辑runbroker.sh，在JAVA_OPT中增加以下内容：
 
 ```shell
-JAVA_OPT="${JAVA_OPT} -Dorg.apache.rocketmq.remoting.ssl.mode=enforcing -Dtls.config.file=/opt/rocketmq-4.9.3/conf/tls.properties  -Dtls.enable=true"
+JAVA_OPT="${JAVA_OPT} -Dorg.apache.rocketmq.remoting.ssl.mode=enforcing -Dtls.config.file=/opt/rocketmq-5.5.0/conf/tls.properties  -Dtls.enable=true"
 ```
 
 # 4 客户端连接

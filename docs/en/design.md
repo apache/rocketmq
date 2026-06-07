@@ -52,7 +52,7 @@
 
 
 ### 5 Transactional Message
-Apache RocketMQ supports distributed transactional message from version 4.3.0. RocketMQ implements transactional message by using the protocol of 2PC(two-phase commit), in addition adding a compensation logic to handle timeout-case or failure-case of commit-phase, as shown below.
+Apache RocketMQ supports distributed transactional message from version 4.3.0. RocketMQ implements transactional message by using the protocol of 2PC(two-phase commit), in addition to adding a compensation logic to handle timeout-case or failure-case of commit-phase, as shown below.
 
 ![](../cn/image/rocketmq_design_10.png)
 
