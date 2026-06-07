@@ -628,10 +628,10 @@ public class TopicConfigManager extends ConfigManager {
 
     public TopicConfigSerializeWrapper buildTopicConfigSerializeWrapper() {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
-        topicConfigSerializeWrapper.setTopicConfigTable(this.topicConfigTable);
         DataVersion dataVersionCopy = new DataVersion();
         dataVersionCopy.assignNewOne(this.dataVersion);
         topicConfigSerializeWrapper.setDataVersion(dataVersionCopy);
+        topicConfigSerializeWrapper.setTopicConfigTable(new ConcurrentHashMap<>(this.topicConfigTable));
         return topicConfigSerializeWrapper;
     }
 
