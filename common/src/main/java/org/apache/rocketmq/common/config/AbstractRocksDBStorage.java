@@ -29,7 +29,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -323,7 +322,7 @@ public abstract class AbstractRocksDBStorage {
         }
     }
 
-    public void iterate(ColumnFamilyHandle columnFamilyHandle, final byte[] prefix, BiConsumer<byte[], byte[]> callback)
+    public void iterate(ColumnFamilyHandle columnFamilyHandle, final byte[] prefix, IteratorCallback callback)
         throws RocksDBException {
 
         if (ArrayUtils.isEmpty(prefix)) {
@@ -334,7 +333,7 @@ public abstract class AbstractRocksDBStorage {
     }
 
     public void iterate(ColumnFamilyHandle columnFamilyHandle, byte[] prefix,
-        final byte[] start, final byte[] end, BiConsumer<byte[], byte[]> callback) throws RocksDBException {
+        final byte[] start, final byte[] end, IteratorCallback callback) throws RocksDBException {
 
         if (ArrayUtils.isEmpty(prefix) && ArrayUtils.isEmpty(start)) {
             throw new RocksDBException(
@@ -358,7 +357,11 @@ public abstract class AbstractRocksDBStorage {
         try {
             readOptions = new ReadOptions();
             readOptions.setTotalOrderSeek(true);
-            readOptions.setReadaheadSize(4L * 1024 * 1024);
+            // Preserve 4MB readahead for scans without an upper bound, while avoiding over-prefetch for bounded ranges.
+            if (ArrayUtils.isEmpty(end)) {
+                readOptions.setReadaheadSize(4L * 1024 * 1024);
+            }
+
             boolean hasStart = !ArrayUtils.isEmpty(start);
             boolean hasPrefix = !ArrayUtils.isEmpty(prefix);
 
@@ -389,9 +392,13 @@ public abstract class AbstractRocksDBStorage {
                 if (hasPrefix && !checkPrefix(key, prefix)) {
                     break;
                 }
-                callback.accept(iterator.key(), iterator.value());
+                byte[] value = iterator.value();
+                if (!callback.accept(key, value)) {
+                    break;
+                }
                 iterator.next();
             }
+            iterator.status();
         } finally {
             if (startSlice != null) {
                 startSlice.close();
@@ -761,4 +768,9 @@ public abstract class AbstractRocksDBStorage {
             file.delete();
         }
     }
+
+    public interface IteratorCallback {
+        boolean accept(byte[] key, byte[] value);
+    }
+
 }

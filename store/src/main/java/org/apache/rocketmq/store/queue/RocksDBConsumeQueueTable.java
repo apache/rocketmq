@@ -19,6 +19,8 @@ package org.apache.rocketmq.store.queue;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.rocketmq.common.BoundaryType;
@@ -123,44 +125,28 @@ public class RocksDBConsumeQueueTable {
     }
 
     public List<ByteBuffer> rangeQuery(final String topic, final int queueId, final long startIndex, final int num) throws RocksDBException {
+        if (startIndex < 0 || num <= 0) {
+            return Collections.emptyList();
+        }
         final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
-        final List<ColumnFamilyHandle> defaultCFHList = new ArrayList<>(num);
-        final ByteBuffer[] resultList = new ByteBuffer[num];
-        final List<Integer> kvIndexList = new ArrayList<>(num);
-        final List<byte[]> kvKeyList = new ArrayList<>(num);
-        for (int i = 0; i < num; i++) {
-            final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, startIndex + i);
-            kvIndexList.add(i);
-            kvKeyList.add(keyBB.array());
-            defaultCFHList.add(this.defaultCFH);
-        }
-        int keyNum = kvIndexList.size();
-        if (keyNum > 0) {
-            List<byte[]> kvValueList = this.rocksDBStorage.multiGet(defaultCFHList, kvKeyList);
-            final int valueNum = kvValueList.size();
-            if (keyNum != valueNum) {
-                throw new RocksDBException("rocksdb bug, multiGet");
+        final byte[] startKeyBytes = buildCQKeyByteBuffer(topicBytes, queueId, startIndex).array();
+        final byte[] endKeyBytes = buildCQKeyByteBuffer(topicBytes, queueId, startIndex + num).array();
+        final byte[] prefix = Arrays.copyOf(startKeyBytes, startKeyBytes.length - Long.BYTES);
+        List<ByteBuffer> results = new ArrayList<>();
+        this.rocksDBStorage.iterate(this.defaultCFH, prefix, startKeyBytes, endKeyBytes, (key, value) -> {
+            if (key.length < Long.BYTES || value == null || value.length != CQ_UNIT_SIZE) {
+                return false;
             }
-            for (int i = 0; i < valueNum; i++) {
-                byte[] value = kvValueList.get(i);
-                if (value == null) {
-                    continue;
-                }
-                ByteBuffer byteBuffer = ByteBuffer.wrap(value);
-                resultList[kvIndexList.get(i)] = byteBuffer;
+            long expectedOffset = startIndex + results.size();
+            long currentOffset = ByteBuffer.wrap(key).getLong(key.length - Long.BYTES);
+            // ConsumeQueue offsets are expected to be continuous.
+            if (currentOffset != expectedOffset) {
+                return false;
             }
-        }
-
-        final int resultSize = resultList.length;
-        List<ByteBuffer> bbValueList = new ArrayList<>(resultSize);
-        for (int i = 0; i < resultSize; i++) {
-            ByteBuffer byteBuffer = resultList[i];
-            if (byteBuffer == null) {
-                break;
-            }
-            bbValueList.add(byteBuffer);
-        }
-        return bbValueList;
+            results.add(ByteBuffer.wrap(value));
+            return true;
+        });
+        return results;
     }
 
     /**

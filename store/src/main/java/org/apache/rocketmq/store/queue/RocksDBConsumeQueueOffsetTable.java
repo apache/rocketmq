@@ -161,6 +161,7 @@ public class RocksDBConsumeQueueOffsetTable {
             keyBuffer.position(prefix.length);
             int queueId = keyBuffer.getInt();
             queueIdSet.add(queueId);
+            return true;
         });
         return queueIdSet;
     }
