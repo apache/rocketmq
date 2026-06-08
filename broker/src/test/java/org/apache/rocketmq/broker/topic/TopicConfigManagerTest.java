@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.attribute.LongRangeAttribute;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Assert;
@@ -399,5 +400,18 @@ public class TopicConfigManagerTest {
         Assert.assertTrue(result.containsKey(String.format("topic%05d", ThreadLocalRandom.current().nextInt(beginIndex, endIndex))));
         Assert.assertFalse(result.containsKey(String.format("topic%05d", beginIndex - 1)));
         Assert.assertFalse(result.containsKey(String.format("topic%05d", endIndex + 1)));
+    }
+
+    @Test
+    public void testBuildSerializeWrapperUpdatesDataVersionWhenSplitRegistrationEnabled() {
+        brokerController.getBrokerConfig().setEnableSplitRegistration(true);
+        long counterBefore = topicConfigManager.getDataVersion().getCounter().get();
+
+        TopicConfigAndMappingSerializeWrapper wrapper =
+            topicConfigManager.buildSerializeWrapper(topicConfigManager.getTopicConfigTable());
+
+        long counterAfter = topicConfigManager.getDataVersion().getCounter().get();
+        Assert.assertEquals(counterBefore + 1, counterAfter);
+        Assert.assertEquals(counterAfter, wrapper.getDataVersion().getCounter().get());
     }
 }
