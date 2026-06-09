@@ -109,7 +109,8 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         GetBrokerLiteInfoResponseBody body = new GetBrokerLiteInfoResponseBody();
-        body.setStoreType(brokerController.getMessageStoreConfig().getStoreType());
+        body.setStoreType(brokerController.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable() ?
+            "Combine" : brokerController.getMessageStoreConfig().getStoreType());
         body.setMaxLmqNum(brokerController.getMessageStoreConfig().getMaxLmqConsumeQueueNum());
         body.setCurrentLmqNum(brokerController.getMessageStore().getQueueStore().getLmqNum());
         body.setLiteSubscriptionCount(brokerController.getLiteSubscriptionRegistry().getActiveSubscriptionNum());
