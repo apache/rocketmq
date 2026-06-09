@@ -27,7 +27,7 @@ $ nohup sh bin/mqbroker -n localhost:9876 &
 
 ### Then verify that the broker is started successfully, for example, the IP of broker is 192.168.1.2 and the name is broker-a
 $ tail -f ~/logs/rocketmqlogs/Broker.log 
-The broker[broker-a,192.169.1.2:10911] boot success...
+The broker[broker-a,192.168.1.2:10911] boot success...
 ```
 
 We can see 'The broker[brokerName,ip:port] boot success..' in Broker.log that indicates the broker has been started successfully.
