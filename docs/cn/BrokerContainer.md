@@ -51,7 +51,7 @@ BrokerContainer中的所有broker共享同一个传输层，就像RocketMQ客户
 
 BrokerContainer配置文件内容主要是Netty网络层参数（由于传输层共享），BrokerContainer的监听端口、namesrv配置，以及最重要的brokerConfigPaths参数，brokerConfigPaths是指需要向BrokerContainer内添加的brokerConfig路径，多个config间用“:”分隔，不指定则只启动BrokerConainer，具体broker可通过mqadmin工具添加
 
-broker-container.conf（distribution/conf/container/broker-container.conf）:
+broker-container.conf（可参考 distribution/conf/container/2container-2m-2s/broker-container1.conf）:
 
 ```
 #配置端口，用于接收mqadmin命令
