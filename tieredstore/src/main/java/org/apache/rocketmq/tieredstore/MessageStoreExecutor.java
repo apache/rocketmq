@@ -23,25 +23,20 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageStoreExecutor {
 
-    public final BlockingQueue<Runnable> bufferCommitThreadPoolQueue;
-    public final BlockingQueue<Runnable> bufferFetchThreadPoolQueue;
-    public final BlockingQueue<Runnable> fileRecyclingThreadPoolQueue;
+    private static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
 
-    public final ScheduledExecutorService commonExecutor;
-    public final ExecutorService bufferCommitExecutor;
-    public final ExecutorService bufferFetchExecutor;
-    public final ExecutorService fileRecyclingExecutor;
+    private final BlockingQueue<Runnable> bufferCommitThreadPoolQueue;
+    private final BlockingQueue<Runnable> bufferFetchThreadPoolQueue;
 
-    private static class SingletonHolder {
-        private static final MessageStoreExecutor INSTANCE = new MessageStoreExecutor();
-    }
-
-    public static MessageStoreExecutor getInstance() {
-        return SingletonHolder.INSTANCE;
-    }
+    private final ScheduledExecutorService commonExecutor;
+    private final ExecutorService bufferCommitExecutor;
+    private final ExecutorService bufferFetchExecutor;
 
     public MessageStoreExecutor() {
         this(10000);
@@ -69,19 +64,32 @@ public class MessageStoreExecutor {
             TimeUnit.MINUTES.toMillis(1), TimeUnit.MILLISECONDS,
             this.bufferFetchThreadPoolQueue,
             new ThreadFactoryImpl("BufferFetchExecutor_"));
+    }
 
-        this.fileRecyclingThreadPoolQueue = new LinkedBlockingQueue<>(maxQueueCapacity);
-        this.fileRecyclingExecutor = ThreadUtils.newThreadPoolExecutor(
-            Math.max(4, processors),
-            Math.max(4, processors),
-            TimeUnit.MINUTES.toMillis(1), TimeUnit.MILLISECONDS,
-            this.fileRecyclingThreadPoolQueue,
-            new ThreadFactoryImpl("BufferFetchExecutor_"));
+    public ScheduledExecutorService getCommonExecutor() {
+        return commonExecutor;
+    }
+
+    public ExecutorService getBufferCommitExecutor() {
+        return bufferCommitExecutor;
+    }
+
+    public ExecutorService getBufferFetchExecutor() {
+        return bufferFetchExecutor;
     }
 
     private void shutdownExecutor(ExecutorService executor) {
-        if (executor != null) {
-            executor.shutdown();
+        if (executor == null) {
+            return;
+        }
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -89,6 +97,6 @@ public class MessageStoreExecutor {
         this.shutdownExecutor(this.commonExecutor);
         this.shutdownExecutor(this.bufferCommitExecutor);
         this.shutdownExecutor(this.bufferFetchExecutor);
-        this.shutdownExecutor(this.fileRecyclingExecutor);
+        log.info("MessageStoreExecutor shutdown complete");
     }
 }

@@ -89,6 +89,7 @@ public class MessageStoreDispatcherImplTest {
         if (messageStore != null) {
             messageStore.destroy();
         }
+        executor.shutdown();
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 
@@ -100,7 +101,7 @@ public class MessageStoreDispatcherImplTest {
 
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         indexService.start();
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
@@ -168,7 +169,7 @@ public class MessageStoreDispatcherImplTest {
 
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         indexService.start();
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
@@ -232,7 +233,7 @@ public class MessageStoreDispatcherImplTest {
 
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         indexService.start();
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
@@ -289,7 +290,7 @@ public class MessageStoreDispatcherImplTest {
         MessageStore defaultStore = Mockito.mock(MessageStore.class);
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
         Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
@@ -323,7 +324,7 @@ public class MessageStoreDispatcherImplTest {
         MessageStore defaultStore = Mockito.mock(MessageStore.class);
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
         Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);

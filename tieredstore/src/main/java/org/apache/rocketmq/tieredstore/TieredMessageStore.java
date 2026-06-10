@@ -112,7 +112,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         if (result) {
             indexService.start();
             dispatcher.start();
-            storeExecutor.commonExecutor.scheduleWithFixedDelay(
+            storeExecutor.getCommonExecutor().scheduleWithFixedDelay(
                 flatFileStore::scheduleDeleteExpireFile, storeConfig.getTieredStoreDeleteFileInterval(),
                 storeConfig.getTieredStoreDeleteFileInterval(), TimeUnit.MILLISECONDS);
         }
@@ -525,12 +525,10 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
     @Override
     public synchronized void shutdown() {
-        if (next != null) {
-            next.shutdown();
-        }
         if (dispatcher != null) {
             dispatcher.shutdown();
         }
+
         if (indexService != null) {
             if (defaultStore.getRunningFlags() != null && defaultStore.getRunningFlags().isStoreWriteable()) {
                 indexService.shutdown();
@@ -538,12 +536,16 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 indexService.forceShutdown();
             }
         }
+        if (storeExecutor != null) {
+            storeExecutor.shutdown();
+        }
 
         if (flatFileStore != null) {
             flatFileStore.shutdown();
         }
-        if (storeExecutor != null) {
-            storeExecutor.shutdown();
+
+        if (next != null) {
+            next.shutdown();
         }
     }
 

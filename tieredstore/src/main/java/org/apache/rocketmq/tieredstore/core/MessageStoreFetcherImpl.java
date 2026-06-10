@@ -219,7 +219,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
         // this method may trigger an RPC call, causing buffer fetch thread starvation
         return fetchMessageThenPutToCache(flatFile, queueOffset, fetchSize)
             .thenApplyAsync(maxOffset -> getMessageFromCache(flatFile, queueOffset, maxCount, messageFilter),
-                messageStore.getStoreExecutor().commonExecutor);
+                messageStore.getStoreExecutor().getCommonExecutor());
     }
 
     public CompletableFuture<GetMessageResultExt> getMessageFromTieredStoreAsync(

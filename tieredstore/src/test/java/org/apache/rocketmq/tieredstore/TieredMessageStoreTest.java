@@ -84,6 +84,7 @@ public class TieredMessageStoreTest {
         Properties properties = new Properties();
         properties.setProperty("recordGetMessageResult", Boolean.TRUE.toString().toLowerCase(Locale.ROOT));
         properties.setProperty("tieredBackendServiceProvider", PosixFileSegment.class.getName());
+        properties.setProperty("tieredStoreFilePath", storePath);
 
         configuration = new Configuration(LoggerFactory.getLogger(
             MessageStoreUtil.TIERED_STORE_LOGGER_NAME), storePath + File.separator + "conf",
