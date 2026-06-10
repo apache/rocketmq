@@ -57,6 +57,7 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
+import org.apache.rocketmq.store.pop.PopCheckPoint;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Assert;
@@ -421,6 +422,7 @@ public class PopConsumerServiceTest {
         record.setGroupId("group");
         record.setQueueId(0);
         record.setOffset(0);
+        record.setSuspend(true);
         consumerService.getPopConsumerStore().writeRecords(Collections.singletonList(record));
 
         Mockito.doReturn(CompletableFuture.completedFuture(Triple.of(Mockito.mock(MessageExt.class), "", false)))
@@ -436,7 +438,11 @@ public class PopConsumerServiceTest {
         // should be invisible now
         Assert.assertEquals(0, consumerService.getPopConsumerStore().scanExpiredRecords(0, visibleTimestamp, 1).size());
         // will be visible again in 10 seconds
-        Assert.assertEquals(1, consumerService.getPopConsumerStore().scanExpiredRecords(visibleTimestamp, System.currentTimeMillis() + visibleTimestamp + 10 * 1000, 1).size());
+        List<PopConsumerRecord> retryRecords = consumerService.getPopConsumerStore()
+            .scanExpiredRecords(visibleTimestamp, System.currentTimeMillis() + visibleTimestamp + 10 * 1000, 1);
+        Assert.assertEquals(1, retryRecords.size());
+        Assert.assertTrue(retryRecords.get(0).isSuspend());
+        Assert.assertEquals(1, retryRecords.get(0).getAttemptTimes());
 
         consumerService.shutdown();
     }
@@ -453,11 +459,13 @@ public class PopConsumerServiceTest {
                 temp.setGroupId("group");
                 temp.setQueueId(2);
                 temp.setOffset(i);
+                temp.setSuspend(true);
                 return temp;
             })
             .collect(Collectors.toList());
 
-        Mockito.when(brokerController.getPopMessageProcessor().buildCkMsg(any(), anyInt()))
+        ArgumentCaptor<PopCheckPoint> ckCaptor = ArgumentCaptor.forClass(PopCheckPoint.class);
+        Mockito.when(brokerController.getPopMessageProcessor().buildCkMsg(ckCaptor.capture(), anyInt()))
             .thenReturn(new MessageExtBrokerInner());
         Mockito.when(brokerController.getMessageStore()).thenReturn(Mockito.mock(MessageStore.class));
         Mockito.when(brokerController.getMessageStore().asyncPutMessage(any()))
@@ -467,6 +475,10 @@ public class PopConsumerServiceTest {
         consumerService.start();
         consumerService.getPopConsumerStore().writeRecords(consumerRecordList);
         consumerService.transferToFsStore();
+        Assert.assertEquals(3, ckCaptor.getAllValues().size());
+        for (PopCheckPoint ck : ckCaptor.getAllValues()) {
+            Assert.assertTrue(ck.isSuspend());
+        }
         consumerService.shutdown();
     }
 

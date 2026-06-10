@@ -625,6 +625,7 @@ public class PopReviveService extends ServiceThread {
         newCk.setBrokerName(oldCK.getBrokerName());
         newCk.addDiff(0);
         newCk.setRePutTimes(String.valueOf(rePutTimes + 1)); // always increment even if removed from reviveRequestMap
+        newCk.setSuspend(oldCK.isSuspend());
         if (oldCK.getReviveTime() <= System.currentTimeMillis()) {
             // never expect an ACK matched in the future, we just use it to rewrite CK and try to revive retry message next time
             int intervalIndex = rePutTimes >= ckRewriteIntervalsInSeconds.length ? ckRewriteIntervalsInSeconds.length - 1 : rePutTimes;
