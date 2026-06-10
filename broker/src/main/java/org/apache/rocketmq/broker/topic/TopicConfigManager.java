@@ -626,6 +626,15 @@ public class TopicConfigManager extends ConfigManager {
         }
     }
 
+    public void deleteTopicConfigList(final List<String> topics) {
+        if (topics == null || topics.isEmpty()) {
+            return;
+        }
+        for (String topic : topics) {
+            deleteTopicConfig(topic);
+        }
+    }
+
     public TopicConfigSerializeWrapper buildTopicConfigSerializeWrapper() {
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
         DataVersion dataVersionCopy = new DataVersion();

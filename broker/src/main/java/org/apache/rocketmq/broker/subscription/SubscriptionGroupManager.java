@@ -396,6 +396,14 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
+    public void deleteSubscriptionGroupConfigList(final List<String> groupNames) {
+        if (groupNames == null || groupNames.isEmpty()) {
+            return;
+        }
+        for (String groupName : groupNames) {
+            deleteSubscriptionGroupConfig(groupName);
+        }
+    }
 
     public void setSubscriptionGroupTable(ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable) {
         this.subscriptionGroupTable = subscriptionGroupTable;

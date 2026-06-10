@@ -311,4 +311,7 @@ public class RequestCode {
     public static final int AUTH_LIST_ACL = 3010;
 
     public static final int SWITCH_TIMER_ENGINE = 5001;
+
+    public static final int DELETE_TOPIC_IN_BROKER_LIST = 5002;
+    public static final int DELETE_SUBSCRIPTION_GROUP_LIST = 5003;
 }

@@ -380,6 +380,18 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean validateSystemTopicWhenUpdateTopic = true;
 
     /**
+     * Maximum rate (permits per second) for batch topic deletion.
+     * Setting to 0 or negative disables rate limiting.
+     */
+    private double batchDeleteTopicMaxRate = 10.0;
+
+    /**
+     * Maximum rate (permits per second) for batch subscription-group deletion.
+     * Setting to 0 or negative disables rate limiting.
+     */
+    private double batchDeleteSubscriptionGroupMaxRate = 10.0;
+
+    /**
      * It is an important basis for the controller to choose the broker master.
      * The lower the value of brokerElectionPriority, the higher the priority of the broker being selected as the master.
      * You can set a lower priority for the broker with better machine conditions.
@@ -2061,6 +2073,22 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setValidateSystemTopicWhenUpdateTopic(boolean validateSystemTopicWhenUpdateTopic) {
         this.validateSystemTopicWhenUpdateTopic = validateSystemTopicWhenUpdateTopic;
+    }
+
+    public double getBatchDeleteTopicMaxRate() {
+        return batchDeleteTopicMaxRate;
+    }
+
+    public void setBatchDeleteTopicMaxRate(double batchDeleteTopicMaxRate) {
+        this.batchDeleteTopicMaxRate = batchDeleteTopicMaxRate;
+    }
+
+    public double getBatchDeleteSubscriptionGroupMaxRate() {
+        return batchDeleteSubscriptionGroupMaxRate;
+    }
+
+    public void setBatchDeleteSubscriptionGroupMaxRate(double batchDeleteSubscriptionGroupMaxRate) {
+        this.batchDeleteSubscriptionGroupMaxRate = batchDeleteSubscriptionGroupMaxRate;
     }
 
     public boolean isEstimateAccumulation() {
