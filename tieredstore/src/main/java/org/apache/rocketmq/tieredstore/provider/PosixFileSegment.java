@@ -173,8 +173,7 @@ public class PosixFileSegment extends FileSegment {
         return CompletableFuture.supplyAsync((Supplier<ByteBuffer>) () -> {
             ByteBuffer byteBuffer = ByteBuffer.allocate(length);
             try {
-                readFileChannel.position(position);
-                readFileChannel.read(byteBuffer);
+                readFileChannel.read(byteBuffer, position);
                 byteBuffer.flip();
                 byteBuffer.limit(length);
 

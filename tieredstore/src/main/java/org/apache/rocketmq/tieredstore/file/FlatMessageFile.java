@@ -48,8 +48,8 @@ public class FlatMessageFile implements FlatFileInterface {
     protected static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
     protected volatile boolean closed = false;
 
-    protected TopicMetadata topicMetadata;
-    protected QueueMetadata queueMetadata;
+    protected volatile TopicMetadata topicMetadata;
+    protected volatile QueueMetadata queueMetadata;
 
     protected final String filePath;
     protected final ReentrantLock fileLock;

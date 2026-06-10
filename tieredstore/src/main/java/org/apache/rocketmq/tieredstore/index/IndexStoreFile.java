@@ -161,9 +161,12 @@ public class IndexStoreFile implements IndexFile {
         return String.format("%s#%s", topic, key);
     }
 
+    /**
+     * Equivalent to {@code org.apache.rocketmq.store.index.IndexFile#indexKeyHashMethod}.
+     * Bitmask ensures non-negative result, including Integer.MIN_VALUE → 0.
+     */
     protected int hashCode(String keyStr) {
-        int keyHash = keyStr.hashCode();
-        return (keyHash < 0) ? -keyHash : keyHash;
+        return keyStr.hashCode() & 0x7FFFFFFF;
     }
 
     protected void flushNewMetadata(ByteBuffer byteBuffer, boolean end) throws IOException {
@@ -234,11 +237,13 @@ public class IndexStoreFile implements IndexFile {
                 return AppendResult.FILE_FULL;
             }
 
+            ByteBuffer slotBuffer = ByteBuffer.allocate(Integer.BYTES);
             for (String key : keySet) {
                 int hashCode = this.hashCode(this.buildKey(topic, key));
                 int slotPosition = this.getSlotPosition(hashCode % this.hashSlotMaxCount);
                 int slotOldValue = this.getSlotValue(slotPosition);
-                int timeDiff = (int) ((timestamp - this.beginTimestamp.get()) / 1000L);
+                int timeDiff = (int) Math.max(0, Math.min(Integer.MAX_VALUE,
+                    (timestamp - this.beginTimestamp.get()) / 1000L));
 
                 IndexItem indexItem = new IndexItem(
                     topicId, queueId, offset, size, hashCode, timeDiff, slotOldValue);
@@ -251,10 +256,8 @@ public class IndexStoreFile implements IndexFile {
                     fileChannel.position(itemPosition);
                     fileChannel.write(itemBuffer);
 
-                    ByteBuffer slotBuffer = ByteBuffer.allocate(Integer.BYTES);
                     slotBuffer.putInt(0, itemIndex);
                     slotBuffer.position(0);
-                    slotBuffer.limit(Integer.BYTES);
                     fileChannel.position(slotPosition);
                     fileChannel.write(slotBuffer);
                 } else {
@@ -306,6 +309,7 @@ public class IndexStoreFile implements IndexFile {
         String key, int maxCount, long beginTime, long endTime) {
 
         List<IndexItem> result = new ArrayList<>();
+        boolean held = false;
         try {
             fileReadWriteLock.readLock().lock();
             if (!UNSEALED.equals(this.fileStatus.get()) && !SEALED.equals(this.fileStatus.get())) {
@@ -315,6 +319,7 @@ public class IndexStoreFile implements IndexFile {
             if (mappedFile == null || !mappedFile.hold()) {
                 return CompletableFuture.completedFuture(result);
             }
+            held = true;
 
             int hashCode = this.hashCode(key);
             int slotPosition = this.getSlotPosition(hashCode % this.hashSlotMaxCount);
@@ -334,7 +339,7 @@ public class IndexStoreFile implements IndexFile {
                 if (hashCode == indexItem.getHashCode() &&
                     beginTime <= storeTimestamp && storeTimestamp <= endTime) {
                     result.add(indexItem);
-                    if (result.size() > maxCount) {
+                    if (result.size() >= maxCount) {
                         break;
                     }
                 }
@@ -350,7 +355,9 @@ public class IndexStoreFile implements IndexFile {
                 "key: {}, maxCount: {}, timestamp={}-{}", getTimestamp(), key, maxCount, beginTime, endTime, e);
         } finally {
             fileReadWriteLock.readLock().unlock();
-            mappedFile.release();
+            if (held) {
+                mappedFile.release();
+            }
         }
 
         return CompletableFuture.completedFuture(result);
