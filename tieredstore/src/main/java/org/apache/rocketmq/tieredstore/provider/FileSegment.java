@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
@@ -153,6 +154,14 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
         } finally {
             fileLock.unlock();
         }
+        CompletableFuture<Boolean> inflight = this.flightCommitRequest;
+        if (inflight != null && !inflight.isDone()) {
+            try {
+                inflight.get(30, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.warn("FileSegment#close, await in-flight commit timeout, filePath={}", filePath, e);
+            }
+        }
     }
 
     protected List<ByteBuffer> borrowBuffer() {
@@ -228,7 +237,7 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
         if (fileSegmentInputStream != null) {
             long fileSize = this.getSize();
             if (fileSize == GET_FILE_SIZE_ERROR) {
-                log.error("FileSegment correct position error, fileName={}, commit={}, append={}, buffer={}",
+                log.error("FileSegment#commitAsync, correct position error, fileName={}, commit={}, append={}, buffer={}",
                     this.getPath(), commitPosition, appendPosition, fileSegmentInputStream.getContentLength());
                 releaseCommitLock();
                 return CompletableFuture.completedFuture(false);
@@ -272,7 +281,7 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
 
     private boolean handleCommitException(Throwable e) {
 
-        log.warn("FileSegment commit exception, filePath={}", this.filePath, e);
+        log.warn("FileSegment#handleCommitException, commit exception, filePath={}", this.filePath, e);
 
         // Get root cause here
         Throwable rootCause = e.getCause() != null ? e.getCause() : e;
@@ -282,7 +291,7 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
 
         long expectPosition = commitPosition + fileSegmentInputStream.getContentLength();
         if (fileSize == GET_FILE_SIZE_ERROR) {
-            log.error("Get file size error after commit, FileName: {}, Commit: {}, Content: {}, Expect: {}, Append: {}",
+            log.error("FileSegment#handleCommitException, get file size error after commit, fileName={}, commit={}, content={}, expect={}, append={}",
                 this.getPath(), commitPosition, fileSegmentInputStream.getContentLength(), expectPosition, appendPosition);
             return false;
         }
@@ -326,26 +335,26 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
     public CompletableFuture<ByteBuffer> readAsync(long position, int length) {
         CompletableFuture<ByteBuffer> future = new CompletableFuture<>();
 
-        if (position < 0 || position >= commitPosition) {
+        long currentCommitPosition = commitPosition;
+        if (position < 0 || position >= currentCommitPosition) {
             future.completeExceptionally(new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM,
                 String.format("FileSegment read position illegal, filePath=%s, fileType=%s, position=%d, length=%d, commit=%d",
-                    filePath, fileType, position, length, commitPosition)));
+                    filePath, fileType, position, length, currentCommitPosition)));
             return future;
         }
 
         if (length <= 0) {
             future.completeExceptionally(new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM,
                 String.format("FileSegment read length illegal, filePath=%s, fileType=%s, position=%d, length=%d, commit=%d",
-                    filePath, fileType, position, length, commitPosition)));
+                    filePath, fileType, position, length, currentCommitPosition)));
             return future;
         }
 
-        int readableBytes = (int) (commitPosition - position);
+        int readableBytes = (int) (currentCommitPosition - position);
         if (readableBytes < length) {
+            log.debug("FileSegment#readAsync, request position exceeds commit position, file={}, requestPosition={}, commitPosition={}, changeLength={} to {}",
+                getPath(), position, currentCommitPosition, length, readableBytes);
             length = readableBytes;
-            log.debug("FileSegment expect request position is greater than commit position, " +
-                    "file: {}, request position: {}, commit position: {}, change length from {} to {}",
-                getPath(), position, commitPosition, length, readableBytes);
         }
         return this.read0(position, length);
     }

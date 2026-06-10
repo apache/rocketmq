@@ -20,7 +20,6 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import org.apache.rocketmq.common.message.MessageQueue;
 
@@ -37,10 +36,8 @@ public class MessageStoreUtil {
     public static final long PB = TB << 10;
     public static final long EB = PB << 10;
 
-    private static final DecimalFormat DEC_FORMAT = new DecimalFormat("#.##");
-
     private static String formatSize(long size, long divider, String unitName) {
-        return DEC_FORMAT.format((double) size / divider) + unitName;
+        return String.format("%.2f%s", (double) size / divider, unitName);
     }
 
     public static String toHumanReadable(long size) {

@@ -27,6 +27,7 @@ import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.BoundaryType;
@@ -112,7 +113,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         if (result) {
             indexService.start();
             dispatcher.start();
-            storeExecutor.commonExecutor.scheduleWithFixedDelay(
+            storeExecutor.getCommonExecutor().scheduleWithFixedDelay(
                 flatFileStore::scheduleDeleteExpireFile, storeConfig.getTieredStoreDeleteFileInterval(),
                 storeConfig.getTieredStoreDeleteFileInterval(), TimeUnit.MILLISECONDS);
         }
@@ -294,7 +295,12 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
                 return result;
             }).exceptionally(e -> {
-                log.error("GetMessageAsync from tiered store failed", e);
+                Throwable cause = e instanceof CompletionException && e.getCause() != null ? e.getCause() : e;
+                if (cause instanceof Error) {
+                    throw (Error) cause;
+                }
+                log.error("GetMessageAsync from tiered store failed, fall back to next store, " +
+                    "topic: {}, queue: {}, offset: {}", topic, queueId, offset, cause);
                 return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
             });
     }
@@ -419,7 +425,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         int maxNum, long begin, long end) {
         long earliestTimeInNextStore = next.getEarliestMessageTime();
         if (earliestTimeInNextStore <= 0) {
-            log.warn("TieredMessageStore#queryMessageAsync: get earliest message time in next store failed: {}", earliestTimeInNextStore);
+            log.warn("TieredMessageStore#queryMessageAsync, get earliest message time in next store failed, earliestTime={}", earliestTimeInNextStore);
         }
         boolean isForce = storeConfig.getTieredStorageLevel() == MessageStoreConfig.TieredStorageLevel.FORCE;
         QueryMessageResult result = end < earliestTimeInNextStore || isForce ?
@@ -442,7 +448,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                         return result;
                     });
             } catch (Exception e) {
-                log.error("TieredMessageStore#queryMessageAsync: query message in tiered store failed", e);
+                log.error("TieredMessageStore#queryMessageAsync, query message in tiered store failed, topic={}, key={}", topic, key, e);
                 return CompletableFuture.completedFuture(result);
             }
         }
@@ -453,7 +459,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key, int maxNum, long begin, long end, String indexType, String lastKey) {
         long earliestTimeInNextStore = next.getEarliestMessageTime();
         if (earliestTimeInNextStore <= 0) {
-            log.warn("TieredMessageStore queryMessageAsync: get earliest message time in next store failed: {}", earliestTimeInNextStore);
+            log.warn("TieredMessageStore#queryMessageAsync, get earliest message time in next store failed, earliestTime={}", earliestTimeInNextStore);
         }
         boolean isForce = storeConfig.getTieredStorageLevel() == MessageStoreConfig.TieredStorageLevel.FORCE;
         QueryMessageResult result = end < earliestTimeInNextStore || isForce ? new QueryMessageResult() : next.queryMessage(topic, key, maxNum, begin, end, indexType, lastKey);
@@ -474,7 +480,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                         return result;
                     });
             } catch (Exception e) {
-                log.error("TieredMessageStore#queryMessageAsync: query message in tiered store failed", e);
+                log.error("TieredMessageStore#queryMessageAsync, query message in tiered store failed, topic={}, key={}, indexType={}", topic, key, indexType, e);
                 return CompletableFuture.completedFuture(result);
             }
         }
@@ -520,19 +526,17 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 flatFileStore.destroyFile(queueMetadata.getQueue());
             });
             metadataStore.deleteTopic(topic);
-            log.info("MessageStore delete topic success, topicName={}", topic);
+            log.info("TieredMessageStore#deleteTopics, delete topic success, topic={}", topic);
         }
         return next.deleteTopics(deleteTopics);
     }
 
     @Override
     public synchronized void shutdown() {
-        if (next != null) {
-            next.shutdown();
-        }
         if (dispatcher != null) {
             dispatcher.shutdown();
         }
+
         if (indexService != null) {
             if (defaultStore.getRunningFlags() != null && defaultStore.getRunningFlags().isStoreWriteable()) {
                 indexService.shutdown();
@@ -540,12 +544,16 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 indexService.forceShutdown();
             }
         }
+        if (storeExecutor != null) {
+            storeExecutor.shutdown();
+        }
 
         if (flatFileStore != null) {
             flatFileStore.shutdown();
         }
-        if (storeExecutor != null) {
-            storeExecutor.shutdown();
+
+        if (next != null) {
+            next.shutdown();
         }
     }
 

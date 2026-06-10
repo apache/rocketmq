@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ServiceThread;
@@ -69,7 +68,6 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
     protected final FlatFileStore flatFileStore;
     protected final MessageStoreExecutor storeExecutor;
     protected final MessageStoreFilter topicFilter;
-    protected final Semaphore semaphore;
     protected final IndexService indexService;
     protected final Map<FlatFileInterface, GroupCommitContext> failedGroupCommitMap;
 
@@ -78,8 +76,6 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
         this.storeConfig = messageStore.getStoreConfig();
         this.defaultStore = messageStore.getDefaultStore();
         this.brokerName = storeConfig.getBrokerName();
-        this.semaphore = new Semaphore(
-            this.storeConfig.getTieredStoreMaxPendingLimit() / 4);
         this.topicFilter = messageStore.getTopicFilter();
         this.flatFileStore = messageStore.getFlatFileStore();
         this.storeExecutor = messageStore.getStoreExecutor();
@@ -97,16 +93,28 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
         return failedGroupCommitMap;
     }
 
-    public void dispatchWithSemaphore(FlatFileInterface flatFile) {
+    protected boolean isMemoryEnough(FlatFileInterface flatFile) {
+        Runtime runtime = Runtime.getRuntime();
+        long availableMemory = runtime.maxMemory() - runtime.totalMemory() + runtime.freeMemory();
+        long ratioThreshold = (long) (runtime.maxMemory() * storeConfig.getTieredStoreDispatchMinFreeMemoryRatio());
+        long memoryThreshold = Math.min(ratioThreshold, storeConfig.getTieredStoreDispatchMinFreeMemoryMaxBytes());
+        if (availableMemory < memoryThreshold) {
+            log.warn("MessageStore dispatch skipped due to memory backpressure, " +
+                "availableMemory={}MB, threshold={}MB, topic={}, queueId={}",
+                availableMemory / (1024 * 1024), memoryThreshold / (1024 * 1024),
+                flatFile.getMessageQueue().getTopic(), flatFile.getMessageQueue().getQueueId());
+            return false;
+        }
+        return true;
+    }
+
+    public void dispatch(FlatFileInterface flatFile) {
+        if (stopped || !isMemoryEnough(flatFile)) {
+            return;
+        }
         try {
-            if (stopped) {
-                return;
-            }
-            semaphore.acquire();
-            this.doScheduleDispatch(flatFile, false)
-                .whenComplete((future, throwable) -> semaphore.release());
+            this.doScheduleDispatch(flatFile, false);
         } catch (Throwable t) {
-            semaphore.release();
             log.error("MessageStore dispatch error, topic={}, queueId={}",
                 flatFile.getMessageQueue().getTopic(), flatFile.getMessageQueue().getQueueId(), t);
         }
@@ -308,12 +316,12 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                             //next commit async,execute constructIndexFile.
                             GroupCommitContext oldCommit = failedGroupCommitMap.put(flatFile, groupCommitContext);
                             if (oldCommit != null) {
-                                log.warn("MessageDispatcher#commitAsync failed,flatFile old failed commit context not release, topic={}, queueId={}  ", topic, queueId);
+                                log.warn("MessageDispatcher#schedule, commitAsync failed, old failed commit context not released, topic={}, queueId={}", topic, queueId);
                                 oldCommit.release();
                             }
                         }
                         if (success && repeat) {
-                            storeExecutor.commonExecutor.submit(() -> dispatchWithSemaphore(flatFile));
+                            storeExecutor.getCommonExecutor().submit(() -> dispatch(flatFile));
                         }
                     }
                 );
@@ -333,13 +341,13 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
     }
 
     public void constructIndexFile(long topicId, GroupCommitContext groupCommitContext) {
-        MessageStoreExecutor.getInstance().bufferCommitExecutor.submit(() -> {
+        storeExecutor.getBufferCommitExecutor().submit(() -> {
             if (storeConfig.isMessageIndexEnable()) {
                 try {
                     groupCommitContext.getDispatchRequests().forEach(request -> constructIndexFile0(topicId, request));
                 }
                 catch (Throwable e) {
-                    log.error("constructIndexFile error {}", topicId, e);
+                    log.error("MessageDispatcher#constructIndexFile, construct index file error, topicId={}", topicId, e);
                 }
             }
             groupCommitContext.release();
@@ -378,7 +386,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
         log.info("{} service started", this.getServiceName());
         while (!this.isStopped()) {
             try {
-                flatFileStore.deepCopyFlatFileToList().forEach(this::dispatchWithSemaphore);
+                flatFileStore.deepCopyFlatFileToList().forEach(this::dispatch);
 
                 releaseClosedPendingGroupCommit();
 

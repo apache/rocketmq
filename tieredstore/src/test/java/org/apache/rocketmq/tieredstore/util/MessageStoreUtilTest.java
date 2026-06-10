@@ -53,14 +53,14 @@ public class MessageStoreUtilTest {
         Map<Long, String> capacityTable = new HashMap<Long, String>() {
             {
                 put(-1L, "-1");
-                put(0L, "0B");
-                put(1023L, "1023B");
-                put(1024L, "1KB");
+                put(0L, "0.00B");
+                put(1023L, "1023.00B");
+                put(1024L, "1.00KB");
                 put(12_345L, "12.06KB");
                 put(10_123_456L, "9.65MB");
                 put(10_123_456_798L, "9.43GB");
-                put(123 * 1024L * 1024L * 1024L * 1024L, "123TB");
-                put(123 * 1024L * 1024L * 1024L * 1024L * 1024L, "123PB");
+                put(123 * 1024L * 1024L * 1024L * 1024L, "123.00TB");
+                put(123 * 1024L * 1024L * 1024L * 1024L * 1024L, "123.00PB");
                 put(1_777_777_777_777_777_777L, "1.54EB");
             }
         };

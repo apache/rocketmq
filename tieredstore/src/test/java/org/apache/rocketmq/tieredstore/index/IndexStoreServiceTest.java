@@ -37,6 +37,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.file.FlatAppendFile;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
@@ -67,6 +68,7 @@ public class IndexStoreServiceTest {
 
     private String filePath;
     private MessageStoreConfig storeConfig;
+    private MessageStoreExecutor executor;
     private FlatFileFactory fileAllocator;
     private IndexStoreService indexService;
 
@@ -81,7 +83,8 @@ public class IndexStoreServiceTest {
         storeConfig.setTieredStoreIndexFileMaxIndexNum(20);
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.PosixFileSegment");
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-        fileAllocator = new FlatFileFactory(metadataStore, storeConfig);
+        executor = new MessageStoreExecutor();
+        fileAllocator = new FlatFileFactory(metadataStore, storeConfig, executor);
     }
 
     @After
@@ -90,6 +93,7 @@ public class IndexStoreServiceTest {
             indexService.shutdown();
             indexService.destroy();
         }
+        executor.shutdown();
         MessageStoreUtilTest.deleteStoreDirectory(storeConfig.getTieredStoreFilePath());
     }
 

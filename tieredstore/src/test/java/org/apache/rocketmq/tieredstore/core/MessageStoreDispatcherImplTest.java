@@ -37,6 +37,7 @@ import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.apache.rocketmq.tieredstore.common.GroupCommitContext;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
+import org.apache.rocketmq.tieredstore.file.FlatFileInterface;
 import org.apache.rocketmq.tieredstore.file.FlatFileStore;
 import org.apache.rocketmq.tieredstore.file.FlatMessageFile;
 import org.apache.rocketmq.tieredstore.index.IndexItem;
@@ -88,6 +89,7 @@ public class MessageStoreDispatcherImplTest {
         if (messageStore != null) {
             messageStore.destroy();
         }
+        executor.shutdown();
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 
@@ -99,7 +101,7 @@ public class MessageStoreDispatcherImplTest {
 
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         indexService.start();
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
@@ -167,7 +169,7 @@ public class MessageStoreDispatcherImplTest {
 
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         indexService.start();
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
@@ -231,7 +233,7 @@ public class MessageStoreDispatcherImplTest {
 
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         indexService.start();
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
@@ -288,7 +290,7 @@ public class MessageStoreDispatcherImplTest {
         MessageStore defaultStore = Mockito.mock(MessageStore.class);
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
         Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
@@ -311,7 +313,7 @@ public class MessageStoreDispatcherImplTest {
         Mockito.doAnswer(mock -> {
             result.set(true);
             return true;
-        }).when(dispatcherSpy).dispatchWithSemaphore(any());
+        }).when(dispatcherSpy).dispatch(any(FlatFileInterface.class));
         dispatcherSpy.start();
         Awaitility.await().atMost(Duration.ofSeconds(10)).until(result::get);
         dispatcherSpy.shutdown();

@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
@@ -38,6 +37,7 @@ public class FlatAppendFile {
 
     protected static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
     public static final long GET_FILE_SIZE_ERROR = -1L;
+    public static final long GET_TIMESTAMP_ERROR = -1L;
 
     protected final String filePath;
     protected final FileSegmentType fileType;
@@ -81,22 +81,15 @@ public class FlatAppendFile {
      * @see <a href="https://github.com/apache/rocketmq/issues/9544">Related GitHub Issue</a>
      */
     public long getFileCorrectSize(FileSegment fileSegment) {
-        while (true) {
+        for (int retry = 0; retry < 3; retry++) {
             long fileSize = fileSegment.getSize();
             if (fileSize != GET_FILE_SIZE_ERROR) {
-                log.debug("FlatAppendFile get file correct size, filePath={} fileType={}, fileSize={}",
-                    fileSegment.getPath(), fileSegment.getFileType(), fileSize);
                 return fileSize;
-            } else {
-                log.warn("FlatAppendFile get file correct size error, filePath={}, fileType={}",
-                    fileSegment.getPath(), fileSegment.getFileType());
-                try {
-                    TimeUnit.MILLISECONDS.sleep(50);
-                } catch (InterruptedException e) {
-                    log.warn("FlatAppendFile get file correct size interrupted", e);
-                }
             }
         }
+        log.error("FlatAppendFile#getFileCorrectSize, get file correct size failed after 3 retries, path={}, type={}",
+            fileSegment.getPath(), fileSegment.getFileType());
+        return GET_FILE_SIZE_ERROR;
     }
 
     public void recoverFileSize() {
@@ -108,7 +101,7 @@ public class FlatAppendFile {
         if (fileSegment.getCommitPosition() != fileSize) {
             fileSegment.initPosition(fileSize);
             flushFileSegmentMeta(fileSegment);
-            log.warn("FlatAppendFile last file size not correct, filePath: {}", this.filePath);
+            log.warn("FlatAppendFile#recoverFileSize, last file size not correct, filePath={}", this.filePath);
         }
     }
 
@@ -164,12 +157,12 @@ public class FlatAppendFile {
 
     public long getMinTimestamp() {
         List<FileSegment> list = this.fileSegmentTable;
-        return list.isEmpty() ? GET_FILE_SIZE_ERROR : list.get(0).getMinTimestamp();
+        return list.isEmpty() ? GET_TIMESTAMP_ERROR : list.get(0).getMinTimestamp();
     }
 
     public long getMaxTimestamp() {
         List<FileSegment> list = this.fileSegmentTable;
-        return list.isEmpty() ? GET_FILE_SIZE_ERROR : list.get(list.size() - 1).getMaxTimestamp();
+        return list.isEmpty() ? GET_TIMESTAMP_ERROR : list.get(list.size() - 1).getMaxTimestamp();
     }
 
     public FileSegment rollingNewFile(long offset) {
@@ -202,7 +195,7 @@ public class FlatAppendFile {
             result = fileSegment.append(buffer, timestamp);
             if (result == AppendResult.FILE_FULL) {
                 boolean commitResult = fileSegment.commitAsync().join();
-                log.info("FlatAppendFile#append not successful for the file {} is full, commit result={}",
+                log.info("FlatAppendFile#append, file is full, filePath={}, commitResult={}",
                     fileSegment.getPath(), commitResult);
                 if (commitResult) {
                     this.flushFileSegmentMeta(fileSegment);
@@ -279,9 +272,8 @@ public class FlatAppendFile {
 
                 if (fileSegment.getMaxTimestamp() != Long.MAX_VALUE &&
                     fileSegment.getMaxTimestamp() >= expireTimestamp) {
-                    log.debug("FileSegment has not expired, filePath={}, fileType={}, " +
-                            "offset={}, expireTimestamp={}, maxTimestamp={}", filePath, fileType,
-                        fileSegment.getBaseOffset(), expireTimestamp, fileSegment.getMaxTimestamp());
+                    log.debug("FlatAppendFile#destroyExpiredFile, file not expired, filePath={}, fileType={}, offset={}, expireTimestamp={}, maxTimestamp={}",
+                        filePath, fileType, fileSegment.getBaseOffset(), expireTimestamp, fileSegment.getMaxTimestamp());
                     break;
                 }
 

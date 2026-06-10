@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -71,18 +70,14 @@ public class FlatFileStore {
     }
 
     public void recover() {
-        Semaphore semaphore = new Semaphore(storeConfig.getTieredStoreMaxPendingLimit() / 4);
         List<CompletableFuture<Void>> futures = new ArrayList<>();
-        metadataStore.iterateTopic(topicMetadata -> {
-            semaphore.acquireUninterruptibly();
+        metadataStore.iterateTopic(topicMetadata ->
             futures.add(this.recoverAsync(topicMetadata)
                 .whenComplete((unused, throwable) -> {
                     if (throwable != null) {
-                        log.error("FlatFileStore recover file error, topic={}", topicMetadata.getTopic(), throwable);
+                        log.error("FlatFileStore#recoverAsync, recover file error, topic={}", topicMetadata.getTopic(), throwable);
                     }
-                    semaphore.release();
-                }));
-        });
+                })));
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 
@@ -100,7 +95,7 @@ public class FlatFileStore {
             });
             log.info("FlatFileStore recover file, topic={}, total={}, cost={}ms",
                 topicMetadata.getTopic(), queueCount.get(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        }, executor.bufferCommitExecutor);
+        }, executor.getCommonExecutor());
     }
 
     public void scheduleDeleteExpireFile() {
