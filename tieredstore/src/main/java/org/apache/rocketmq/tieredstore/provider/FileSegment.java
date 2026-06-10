@@ -335,25 +335,26 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
     public CompletableFuture<ByteBuffer> readAsync(long position, int length) {
         CompletableFuture<ByteBuffer> future = new CompletableFuture<>();
 
-        if (position < 0 || position >= commitPosition) {
+        long currentCommitPosition = commitPosition;
+        if (position < 0 || position >= currentCommitPosition) {
             future.completeExceptionally(new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM,
                 String.format("FileSegment read position illegal, filePath=%s, fileType=%s, position=%d, length=%d, commit=%d",
-                    filePath, fileType, position, length, commitPosition)));
+                    filePath, fileType, position, length, currentCommitPosition)));
             return future;
         }
 
         if (length <= 0) {
             future.completeExceptionally(new TieredStoreException(TieredStoreErrorCode.ILLEGAL_PARAM,
                 String.format("FileSegment read length illegal, filePath=%s, fileType=%s, position=%d, length=%d, commit=%d",
-                    filePath, fileType, position, length, commitPosition)));
+                    filePath, fileType, position, length, currentCommitPosition)));
             return future;
         }
 
-        int readableBytes = (int) (commitPosition - position);
+        int readableBytes = (int) (currentCommitPosition - position);
         if (readableBytes < length) {
             log.debug("FileSegment#readAsync, request position exceeds commit position, " +
                     "file={}, requestPosition={}, commitPosition={}, changeLength={} to {}",
-                getPath(), position, commitPosition, length, readableBytes);
+                getPath(), position, currentCommitPosition, length, readableBytes);
             length = readableBytes;
         }
         return this.read0(position, length);

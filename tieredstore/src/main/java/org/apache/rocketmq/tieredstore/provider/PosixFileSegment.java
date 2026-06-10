@@ -202,6 +202,7 @@ public class PosixFileSegment extends FileSegment {
                 long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
                 attributesBuilder.put(LABEL_SUCCESS, false);
                 TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
+                throw new RuntimeException(e);
             }
             return byteBuffer;
         }, executor.getBufferFetchExecutor());

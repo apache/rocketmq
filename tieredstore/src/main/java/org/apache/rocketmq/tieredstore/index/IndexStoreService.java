@@ -137,6 +137,10 @@ public class IndexStoreService extends ServiceThread implements IndexService {
                     log.info("IndexStoreService#recover, load local file, timestamp={}", indexFile.getTimestamp());
                 } catch (Exception e) {
                     log.error("IndexStoreService#recover, load local file error, destroying={}", file.getName(), e);
+                    try {
+                        UtilAll.deleteFile(file);
+                    } catch (Exception ignored) {
+                    }
                 }
             }
         }
@@ -327,6 +331,10 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         boolean result = flatAppendFile.commitAsync().join();
 
         List<FileSegment> fileSegmentList = flatAppendFile.getFileSegmentList();
+        if (fileSegmentList.isEmpty()) {
+            log.warn("IndexStoreService upload error, fileSegmentList empty, timestamp: {}", indexFile.getTimestamp());
+            return false;
+        }
         FileSegment fileSegment = fileSegmentList.get(fileSegmentList.size() - 1);
         if (!result || fileSegment == null || fileSegment.getMinTimestamp() != indexFile.getTimestamp()) {
             log.warn("IndexStoreService#doCompactThenUploadFile, upload compacted file error, timestamp={}", indexFile.getTimestamp());

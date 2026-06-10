@@ -37,6 +37,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import static org.mockito.Mockito.when;
 
 public class FlatAppendFileTest {
 
@@ -215,5 +218,34 @@ public class FlatAppendFileTest {
         flatFile.commitAsync().join();
         flatFile.destroy();
         Assert.assertEquals(0, flatFile.fileSegmentTable.size());
+    }
+
+    @Test
+    public void getFileCorrectSizeTest() {
+        String filePath = MessageStoreUtil.toFilePath(queue);
+        FlatAppendFile flatFile = flatFileFactory.createFlatFileForConsumeQueue(filePath);
+
+        // first try succeeds
+        FileSegment success = Mockito.mock(FileSegment.class);
+        when(success.getSize()).thenReturn(1024L);
+        Assert.assertEquals(1024L, flatFile.getFileCorrectSize(success));
+        Mockito.verify(success, Mockito.times(1)).getSize();
+
+        // retry then succeed
+        FileSegment retry = Mockito.mock(FileSegment.class);
+        when(retry.getSize())
+            .thenReturn(FlatAppendFile.GET_FILE_SIZE_ERROR)
+            .thenReturn(FlatAppendFile.GET_FILE_SIZE_ERROR)
+            .thenReturn(2048L);
+        Assert.assertEquals(2048L, flatFile.getFileCorrectSize(retry));
+        Mockito.verify(retry, Mockito.times(3)).getSize();
+
+        // all retries fail
+        FileSegment fail = Mockito.mock(FileSegment.class);
+        when(fail.getSize()).thenReturn(FlatAppendFile.GET_FILE_SIZE_ERROR);
+        when(fail.getPath()).thenReturn("/test/path");
+        when(fail.getFileType()).thenReturn(FileSegmentType.CONSUME_QUEUE);
+        Assert.assertEquals(FlatAppendFile.GET_FILE_SIZE_ERROR, flatFile.getFileCorrectSize(fail));
+        Mockito.verify(fail, Mockito.times(3)).getSize();
     }
 }

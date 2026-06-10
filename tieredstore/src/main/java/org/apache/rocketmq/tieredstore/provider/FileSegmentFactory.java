@@ -42,7 +42,7 @@ public class FileSegmentFactory {
             fileSegmentConstructor = clazz.getConstructor(
                 MessageStoreConfig.class, FileSegmentType.class, String.class, Long.TYPE, MessageStoreExecutor.class);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to load FileSegment provider: " + storeConfig.getTieredBackendServiceProvider(), e);
         }
     }
 
@@ -58,7 +58,7 @@ public class FileSegmentFactory {
         try {
             return fileSegmentConstructor.newInstance(this.storeConfig, fileType, filePath, baseOffset, executor);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to create FileSegment: type=" + fileType + ", path=" + filePath, e);
         }
     }
 
