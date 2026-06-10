@@ -23,7 +23,7 @@ import java.util.Map;
 
 public class ProxyContext {
     public static final String INNER_ACTION_PREFIX = "Inner";
-    private static final int DEFAULT_INITIAL_CAPACITY = 32;
+    private static final int DEFAULT_INITIAL_CAPACITY = 64;
     private final Map<String, Object> value = new HashMap<>(DEFAULT_INITIAL_CAPACITY);
 
     public static ProxyContext create() {
