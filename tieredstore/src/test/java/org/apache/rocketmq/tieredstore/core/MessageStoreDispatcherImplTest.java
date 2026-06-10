@@ -37,6 +37,7 @@ import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.apache.rocketmq.tieredstore.common.GroupCommitContext;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
+import org.apache.rocketmq.tieredstore.file.FlatFileInterface;
 import org.apache.rocketmq.tieredstore.file.FlatFileStore;
 import org.apache.rocketmq.tieredstore.file.FlatMessageFile;
 import org.apache.rocketmq.tieredstore.index.IndexItem;
@@ -311,7 +312,7 @@ public class MessageStoreDispatcherImplTest {
         Mockito.doAnswer(mock -> {
             result.set(true);
             return true;
-        }).when(dispatcherSpy).dispatchWithSemaphore(any());
+        }).when(dispatcherSpy).dispatch(any(FlatFileInterface.class));
         dispatcherSpy.start();
         Awaitility.await().atMost(Duration.ofSeconds(10)).until(result::get);
         dispatcherSpy.shutdown();
