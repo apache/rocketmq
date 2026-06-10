@@ -23,7 +23,7 @@ import java.util.Map;
 
 public class ProxyContext {
     public static final String INNER_ACTION_PREFIX = "Inner";
-    private final Map<String, Object> value = new HashMap<>();
+    private final Map<String, Object> value = new HashMap<>(32);
 
     public static ProxyContext create() {
         return new ProxyContext();
