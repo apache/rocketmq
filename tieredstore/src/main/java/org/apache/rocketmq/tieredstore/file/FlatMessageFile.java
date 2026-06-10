@@ -287,16 +287,16 @@ public class FlatMessageFile implements FlatFileInterface {
         ByteBuffer buffer = getMessageAsync(cqMax).join();
         long storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
         if (storeTime < timestamp) {
-            log.info("FlatMessageFile getQueueOffsetByTimeAsync, exceeded maximum time, " +
-                "filePath={}, timestamp={}, result={}", filePath, timestamp, cqMax + 1);
+            log.debug("FlatMessageFile#getQueueOffsetByTimeAsync, exceeded maximum time, filePath={}, timestamp={}, result={}",
+                filePath, timestamp, cqMax + 1);
             return CompletableFuture.completedFuture(cqMax + 1);
         }
 
         buffer = getMessageAsync(cqMin).join();
         storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
         if (storeTime > timestamp) {
-            log.info("FlatMessageFile getQueueOffsetByTimeAsync, less than minimum time, " +
-                "filePath={}, timestamp={}, result={}", filePath, timestamp, cqMin);
+            log.debug("FlatMessageFile#getQueueOffsetByTimeAsync, less than minimum time, filePath={}, timestamp={}, result={}",
+                filePath, timestamp, cqMin);
             return CompletableFuture.completedFuture(cqMin);
         }
 
@@ -351,7 +351,7 @@ public class FlatMessageFile implements FlatFileInterface {
             }
         }
 
-        log.info("FlatMessageFile getQueueOffsetByTimeAsync, filePath={}, timestamp={}, result={}, log={}",
+        log.debug("FlatMessageFile#getQueueOffsetByTimeAsync, filePath={}, timestamp={}, result={}, log={}",
             filePath, timestamp, offset, JSON.toJSONString(queryLog));
         return CompletableFuture.completedFuture(offset);
     }

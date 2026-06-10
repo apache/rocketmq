@@ -108,7 +108,7 @@ public class FlatAppendFile {
         if (fileSegment.getCommitPosition() != fileSize) {
             fileSegment.initPosition(fileSize);
             flushFileSegmentMeta(fileSegment);
-            log.warn("FlatAppendFile last file size not correct, filePath: {}", this.filePath);
+            log.warn("FlatAppendFile#recoverFileSize, last file size not correct, filePath={}", this.filePath);
         }
     }
 
@@ -202,7 +202,7 @@ public class FlatAppendFile {
             result = fileSegment.append(buffer, timestamp);
             if (result == AppendResult.FILE_FULL) {
                 boolean commitResult = fileSegment.commitAsync().join();
-                log.info("FlatAppendFile#append not successful for the file {} is full, commit result={}",
+                log.debug("FlatAppendFile#append, file is full, filePath={}, commitResult={}",
                     fileSegment.getPath(), commitResult);
                 if (commitResult) {
                     this.flushFileSegmentMeta(fileSegment);
@@ -279,7 +279,7 @@ public class FlatAppendFile {
 
                 if (fileSegment.getMaxTimestamp() != Long.MAX_VALUE &&
                     fileSegment.getMaxTimestamp() >= expireTimestamp) {
-                    log.debug("FileSegment has not expired, filePath={}, fileType={}, " +
+                    log.debug("FlatAppendFile#destroyExpiredFile, file not expired, filePath={}, fileType={}, " +
                             "offset={}, expireTimestamp={}, maxTimestamp={}", filePath, fileType,
                         fileSegment.getBaseOffset(), expireTimestamp, fileSegment.getMaxTimestamp());
                     break;

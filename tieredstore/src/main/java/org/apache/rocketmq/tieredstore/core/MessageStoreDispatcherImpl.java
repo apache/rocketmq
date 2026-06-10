@@ -168,7 +168,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             if (commitOffset < currentOffset) {
                 this.commitAsync(flatFile).whenComplete((result, throwable) -> {
                     if (throwable != null) {
-                        log.error("MessageDispatcher#flatFile commitOffset less than currentOffset, commitAsync again failed. topic: {}, queueId: {} ", topic, queueId, throwable);
+                        log.error("MessageDispatcher#doScheduleDispatch, commitOffset less than currentOffset, commitAsync again failed, topic={}, queueId={}", topic, queueId, throwable);
                     }
                 });
                 return CompletableFuture.completedFuture(false);
@@ -308,7 +308,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                             //next commit async,execute constructIndexFile.
                             GroupCommitContext oldCommit = failedGroupCommitMap.put(flatFile, groupCommitContext);
                             if (oldCommit != null) {
-                                log.warn("MessageDispatcher#commitAsync failed,flatFile old failed commit context not release, topic={}, queueId={}  ", topic, queueId);
+                                log.warn("MessageDispatcher#doScheduleDispatch, commitAsync failed, old failed commit context not released, topic={}, queueId={}", topic, queueId);
                                 oldCommit.release();
                             }
                         }
@@ -339,7 +339,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                     groupCommitContext.getDispatchRequests().forEach(request -> constructIndexFile0(topicId, request));
                 }
                 catch (Throwable e) {
-                    log.error("constructIndexFile error {}", topicId, e);
+                    log.error("MessageDispatcher#constructIndexFile, construct index file error, topicId={}", topicId, e);
                 }
             }
             groupCommitContext.release();
