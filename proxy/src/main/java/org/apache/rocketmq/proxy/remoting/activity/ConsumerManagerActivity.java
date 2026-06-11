@@ -54,7 +54,7 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
     public ConsumerManagerActivity(RequestPipeline requestPipeline, MessagingProcessor messagingProcessor) {
         super(requestPipeline, messagingProcessor);
     }
-
+    
     @Override
     protected RemotingCommand processRequest0(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
@@ -87,7 +87,7 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         }
         return null;
     }
-
+    
     protected RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
         RemotingCommand response = RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
@@ -100,7 +100,7 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         response.setCode(ResponseCode.SUCCESS);
         return response;
     }
-
+    
     protected RemotingCommand getConsumerConnectionList(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -137,7 +137,7 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         response.setRemark("the consumer group[" + header.getConsumerGroup() + "] not online");
         return response;
     }
-
+    
     protected RemotingCommand getConsumerRunningInfo(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -170,7 +170,7 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         });
         return null;
     }
-
+    
     protected RemotingCommand lockBatchMQ(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -191,7 +191,7 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
             });
         return null;
     }
-
+    
     protected RemotingCommand unlockBatchMQ(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
