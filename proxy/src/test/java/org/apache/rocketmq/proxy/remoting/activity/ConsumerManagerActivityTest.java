@@ -61,9 +61,9 @@ import static org.mockito.Mockito.when;
 public class ConsumerManagerActivityTest extends InitConfigTest {
     private static final String GROUP = "group";
     private static final String CLIENT_ID = "clientId";
-
+    
     private ConsumerManagerActivity consumerManagerActivity;
-
+    
     @Mock
     private MessagingProcessor messagingProcessor;
     @Mock
@@ -79,7 +79,7 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
             return null;
         }
     };
-
+    
     @Before
     public void setUp() {
         this.consumerManagerActivity = new ConsumerManagerActivity(null, messagingProcessor);
@@ -89,29 +89,29 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
             public boolean isOpen() {
                 return true;
             }
-
+            
             @Override
             public boolean isActive() {
                 return true;
             }
-
+            
             @Override
             protected CompletableFuture<Void> processOtherMessage(Object msg) {
                 return CompletableFuture.completedFuture(null);
             }
-
+            
             @Override
             protected CompletableFuture<Void> processCheckTransaction(CheckTransactionStateRequestHeader header,
                 MessageExt messageExt, TransactionData transactionData,
                 CompletableFuture<ProxyRelayResult<Void>> responseFuture) {
                 return CompletableFuture.completedFuture(null);
             }
-
+            
             @Override
             protected CompletableFuture<Void> processNotifyUnsubscribeLite(NotifyUnsubscribeLiteRequestHeader header) {
                 return CompletableFuture.completedFuture(null);
             }
-
+            
             @Override
             protected CompletableFuture<Void> processGetConsumerRunningInfo(RemotingCommand command,
                 GetConsumerRunningInfoRequestHeader header,
@@ -119,7 +119,7 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
                 consumerRunningInfoFuture.thenAccept(responseFuture::complete);
                 return CompletableFuture.completedFuture(null);
             }
-
+            
             @Override
             protected CompletableFuture<Void> processConsumeMessageDirectly(RemotingCommand command,
                 ConsumeMessageDirectlyResultRequestHeader header, MessageExt messageExt,
@@ -128,7 +128,7 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
             }
         };
     }
-
+    
     @Test
     public void testGetConsumerRunningInfo() throws Exception {
         GetConsumerRunningInfoRequestHeader header = new GetConsumerRunningInfoRequestHeader();
@@ -154,7 +154,7 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
         assertThat(captor.getValue().getRemark()).isEqualTo("ok");
         assertThat(captor.getValue().getBody()).isEqualTo(runningInfo.encode());
     }
-
+    
     @Test
     public void testGetConsumerRunningInfoWhenConsumerNotOnline() throws Exception {
         GetConsumerRunningInfoRequestHeader header = new GetConsumerRunningInfoRequestHeader();
