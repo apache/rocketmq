@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
@@ -43,6 +44,7 @@ public class FlatAppendFileTest {
     private MessageQueue queue;
     private MetadataStore metadataStore;
     private MessageStoreConfig storeConfig;
+    private MessageStoreExecutor executor;
     private FlatFileFactory flatFileFactory;
 
     @Before
@@ -56,11 +58,13 @@ public class FlatAppendFileTest {
         storeConfig.setTieredStoreConsumeQueueMaxSize(2000L);
         queue = new MessageQueue("TieredFlatFileTest", storeConfig.getBrokerName(), 0);
         metadataStore = new DefaultMetadataStore(storeConfig);
-        flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
+        executor = new MessageStoreExecutor();
+        flatFileFactory = new FlatFileFactory(metadataStore, storeConfig, executor);
     }
 
     @After
     public void shutdown() throws IOException {
+        executor.shutdown();
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 

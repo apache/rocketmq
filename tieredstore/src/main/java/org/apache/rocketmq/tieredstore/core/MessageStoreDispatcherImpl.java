@@ -321,7 +321,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                             }
                         }
                         if (success && repeat) {
-                            storeExecutor.commonExecutor.submit(() -> dispatch(flatFile));
+                            storeExecutor.getCommonExecutor().submit(() -> dispatch(flatFile));
                         }
                     }
                 );
@@ -341,7 +341,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
     }
 
     public void constructIndexFile(long topicId, GroupCommitContext groupCommitContext) {
-        MessageStoreExecutor.getInstance().bufferCommitExecutor.submit(() -> {
+        storeExecutor.getBufferCommitExecutor().submit(() -> {
             if (storeConfig.isMessageIndexEnable()) {
                 try {
                     groupCommitContext.getDispatchRequests().forEach(request -> constructIndexFile0(topicId, request));

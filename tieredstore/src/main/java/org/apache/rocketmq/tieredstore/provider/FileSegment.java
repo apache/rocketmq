@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
@@ -152,6 +153,14 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
             this.closed = true;
         } finally {
             fileLock.unlock();
+        }
+        CompletableFuture<Boolean> inflight = this.flightCommitRequest;
+        if (inflight != null && !inflight.isDone()) {
+            try {
+                inflight.get(30, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.warn("FileSegment close: await in-flight commit timeout, filePath={}", filePath, e);
+            }
         }
     }
 

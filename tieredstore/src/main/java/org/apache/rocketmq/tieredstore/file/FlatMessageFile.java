@@ -22,8 +22,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -59,8 +57,6 @@ public class FlatMessageFile implements FlatFileInterface {
     protected final FlatCommitLogFile commitLog;
     protected final FlatConsumeQueueFile consumeQueue;
 
-    protected final ConcurrentMap<String, CompletableFuture<?>> inFlightRequestMap;
-
     public FlatMessageFile(FlatFileFactory fileFactory, String topic, int queueId) {
         this(fileFactory, MessageStoreUtil.toFilePath(
             new MessageQueue(topic, fileFactory.getStoreConfig().getBrokerName(), queueId)));
@@ -75,7 +71,6 @@ public class FlatMessageFile implements FlatFileInterface {
         this.metadataStore = fileFactory.getMetadataStore();
         this.commitLog = fileFactory.createFlatFileForCommitLog(filePath);
         this.consumeQueue = fileFactory.createFlatFileForConsumeQueue(filePath);
-        this.inFlightRequestMap = new ConcurrentHashMap<>();
     }
 
     @Override

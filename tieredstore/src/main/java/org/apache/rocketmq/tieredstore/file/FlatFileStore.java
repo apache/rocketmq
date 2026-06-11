@@ -100,7 +100,7 @@ public class FlatFileStore {
             });
             log.info("FlatFileStore recover file, topic={}, total={}, cost={}ms",
                 topicMetadata.getTopic(), queueCount.get(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        }, executor.bufferCommitExecutor);
+        }, executor.getBufferCommitExecutor());
     }
 
     public void scheduleDeleteExpireFile() {
