@@ -25,24 +25,30 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
+import org.apache.rocketmq.proxy.service.relay.ProxyChannel;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.Connection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerConnectionListRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseHeader;
-import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
 
 public class ConsumerManagerActivity extends AbstractRemotingActivity {
     public ConsumerManagerActivity(RequestPipeline requestPipeline, MessagingProcessor messagingProcessor) {
@@ -72,6 +78,9 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
             }
             case RequestCode.GET_CONSUMER_CONNECTION_LIST: {
                 return getConsumerConnectionList(ctx, request, context);
+            }
+            case RequestCode.GET_CONSUMER_RUNNING_INFO: {
+                return getConsumerRunningInfo(ctx, request, context);
             }
             default:
                 break;
@@ -127,6 +136,39 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         response.setCode(ResponseCode.CONSUMER_NOT_ONLINE);
         response.setRemark("the consumer group[" + header.getConsumerGroup() + "] not online");
         return response;
+    }
+
+    protected RemotingCommand getConsumerRunningInfo(ChannelHandlerContext ctx, RemotingCommand request,
+        ProxyContext context) throws Exception {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        GetConsumerRunningInfoRequestHeader header =
+            (GetConsumerRunningInfoRequestHeader) request.decodeCommandCustomHeader(GetConsumerRunningInfoRequestHeader.class);
+        ConsumerGroupInfo consumerGroupInfo = messagingProcessor.getConsumerGroupInfo(context, header.getConsumerGroup());
+        ClientChannelInfo clientChannelInfo = null;
+        if (consumerGroupInfo != null) {
+            clientChannelInfo = consumerGroupInfo.findChannel(header.getClientId());
+        }
+        if (clientChannelInfo == null || !(clientChannelInfo.getChannel() instanceof ProxyChannel)) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.format("The Consumer <%s> <%s> not online", header.getConsumerGroup(), header.getClientId()));
+            return response;
+        }
+
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> relayFuture =
+            ((ProxyChannel) clientChannelInfo.getChannel()).processGetConsumerRunningInfo(request, header);
+        relayFuture.thenAccept(result -> {
+            RemotingCommand relayResponse = RemotingCommand.createResponseCommand(null);
+            relayResponse.setCode(result.getCode());
+            relayResponse.setRemark(result.getRemark());
+            if (result.getCode() == ResponseCode.SUCCESS && result.getResult() != null) {
+                relayResponse.setBody(result.getResult().encode());
+            }
+            writeResponse(ctx, context, request, relayResponse);
+        }).exceptionally(t -> {
+            writeErrResponse(ctx, context, request, ExceptionUtils.getRealException(t));
+            return null;
+        });
+        return null;
     }
 
     protected RemotingCommand lockBatchMQ(ChannelHandlerContext ctx, RemotingCommand request,

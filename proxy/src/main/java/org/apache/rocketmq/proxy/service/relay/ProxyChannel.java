@@ -145,6 +145,18 @@ public abstract class ProxyChannel extends SimpleChannel {
         GetConsumerRunningInfoRequestHeader header,
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture);
 
+    public CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(
+        RemotingCommand command,
+        GetConsumerRunningInfoRequestHeader header) {
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture = new CompletableFuture<>();
+        this.processGetConsumerRunningInfo(command, header, responseFuture)
+            .exceptionally(t -> {
+                responseFuture.completeExceptionally(t);
+                return null;
+            });
+        return responseFuture;
+    }
+
     protected abstract CompletableFuture<Void> processConsumeMessageDirectly(
         RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header,

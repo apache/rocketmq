@@ -38,7 +38,7 @@ public class ClusterProxyRelayService extends AbstractProxyRelayService {
     public CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(
         ProxyContext context, RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header) {
-        return null;
+        return new CompletableFuture<>();
     }
 
     @Override
