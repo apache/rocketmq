@@ -48,31 +48,32 @@ public class MessageStoreExecutor {
     }
 
     public MessageStoreExecutor(int maxQueueCapacity) {
+        int processors = Runtime.getRuntime().availableProcessors();
 
         this.commonExecutor = ThreadUtils.newScheduledThreadPool(
-            Math.max(4, Runtime.getRuntime().availableProcessors()),
+            Math.max(4, processors),
             new ThreadFactoryImpl("TieredCommonExecutor_"));
 
         this.bufferCommitThreadPoolQueue = new LinkedBlockingQueue<>(maxQueueCapacity);
         this.bufferCommitExecutor = ThreadUtils.newThreadPoolExecutor(
-            Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
-            Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
+            Math.max(4, processors),
+            Math.max(16, processors * 2),
             TimeUnit.MINUTES.toMillis(1), TimeUnit.MILLISECONDS,
             this.bufferCommitThreadPoolQueue,
             new ThreadFactoryImpl("BufferCommitExecutor_"));
 
         this.bufferFetchThreadPoolQueue = new LinkedBlockingQueue<>(maxQueueCapacity);
         this.bufferFetchExecutor = ThreadUtils.newThreadPoolExecutor(
-            Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
-            Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
+            Math.max(4, processors),
+            Math.max(16, processors * 2),
             TimeUnit.MINUTES.toMillis(1), TimeUnit.MILLISECONDS,
             this.bufferFetchThreadPoolQueue,
             new ThreadFactoryImpl("BufferFetchExecutor_"));
 
         this.fileRecyclingThreadPoolQueue = new LinkedBlockingQueue<>(maxQueueCapacity);
         this.fileRecyclingExecutor = ThreadUtils.newThreadPoolExecutor(
-            Math.max(4, Runtime.getRuntime().availableProcessors()),
-            Math.max(4, Runtime.getRuntime().availableProcessors()),
+            Math.max(4, processors),
+            Math.max(4, processors),
             TimeUnit.MINUTES.toMillis(1), TimeUnit.MILLISECONDS,
             this.fileRecyclingThreadPoolQueue,
             new ThreadFactoryImpl("BufferFetchExecutor_"));
