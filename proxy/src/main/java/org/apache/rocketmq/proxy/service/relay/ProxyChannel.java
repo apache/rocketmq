@@ -52,9 +52,9 @@ public abstract class ProxyChannel extends SimpleChannel {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected final SocketAddress remoteSocketAddress;
     protected final SocketAddress localSocketAddress;
-
+    
     protected final ProxyRelayService proxyRelayService;
-
+    
     protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, String remoteAddress,
         String localAddress) {
         super(parent, remoteAddress, localAddress);
@@ -62,7 +62,7 @@ public abstract class ProxyChannel extends SimpleChannel {
         this.remoteSocketAddress = NetworkUtil.string2SocketAddress(remoteAddress);
         this.localSocketAddress = NetworkUtil.string2SocketAddress(localAddress);
     }
-
+    
     protected ProxyChannel(ProxyRelayService proxyRelayService, Channel parent, ChannelId id, String remoteAddress,
         String localAddress) {
         super(parent, id, remoteAddress, localAddress);
@@ -70,7 +70,7 @@ public abstract class ProxyChannel extends SimpleChannel {
         this.remoteSocketAddress = NetworkUtil.string2SocketAddress(remoteAddress);
         this.localSocketAddress = NetworkUtil.string2SocketAddress(localAddress);
     }
-
+    
     @Override
     public ChannelFuture writeAndFlush(Object msg) {
         CompletableFuture<Void> processFuture = new CompletableFuture<>();
@@ -129,22 +129,22 @@ public abstract class ProxyChannel extends SimpleChannel {
             });
         return promise;
     }
-
+    
     protected abstract CompletableFuture<Void> processOtherMessage(Object msg);
-
+    
     protected abstract CompletableFuture<Void> processCheckTransaction(
         CheckTransactionStateRequestHeader header,
         MessageExt messageExt,
         TransactionData transactionData,
         CompletableFuture<ProxyRelayResult<Void>> responseFuture);
-
+    
     protected abstract CompletableFuture<Void> processNotifyUnsubscribeLite(NotifyUnsubscribeLiteRequestHeader header);
-
+    
     protected abstract CompletableFuture<Void> processGetConsumerRunningInfo(
         RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header,
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture);
-
+    
     public CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(
         RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header) {
@@ -156,63 +156,63 @@ public abstract class ProxyChannel extends SimpleChannel {
             });
         return responseFuture;
     }
-
+    
     protected abstract CompletableFuture<Void> processConsumeMessageDirectly(
         RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header,
         MessageExt messageExt,
         CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> responseFuture);
-
+    
     @Override
     public ChannelConfig config() {
         return null;
     }
-
+    
     @Override
     public ChannelMetadata metadata() {
         return null;
     }
-
+    
     @Override
     protected AbstractUnsafe newUnsafe() {
         return null;
     }
-
+    
     @Override
     protected boolean isCompatible(EventLoop loop) {
         return false;
     }
-
+    
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
 
     }
-
+    
     @Override
     protected void doDisconnect() throws Exception {
 
     }
-
+    
     @Override
     protected void doClose() throws Exception {
 
     }
-
+    
     @Override
     protected void doBeginRead() throws Exception {
 
     }
-
+    
     @Override
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
 
     }
-
+    
     @Override
     protected SocketAddress localAddress0() {
         return this.localSocketAddress;
     }
-
+    
     @Override
     protected SocketAddress remoteAddress0() {
         return this.remoteSocketAddress;
