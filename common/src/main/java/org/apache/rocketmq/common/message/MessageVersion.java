@@ -71,13 +71,14 @@ public enum MessageVersion {
     }
 
     public static MessageVersion valueOfMagicCode(int magicCode) {
-        for (MessageVersion version : MessageVersion.values()) {
-            if (version.getMagicCode() == magicCode) {
-                return version;
-            }
+        switch (magicCode) {
+            case MessageDecoder.MESSAGE_MAGIC_CODE:
+                return MESSAGE_VERSION_V1;
+            case MessageDecoder.MESSAGE_MAGIC_CODE_V2:
+                return MESSAGE_VERSION_V2;
+            default:
+                throw new IllegalArgumentException("Invalid magicCode " + magicCode);
         }
-
-        throw new IllegalArgumentException("Invalid magicCode " + magicCode);
     }
 
     public int getMagicCode() {
