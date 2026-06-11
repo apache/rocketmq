@@ -396,7 +396,7 @@ public class BrokerController {
         this.authorizationMetadataManager = AuthorizationFactory.getMetadataManager(this.authConfig);
         this.topicRouteInfoManager = new TopicRouteInfoManager(this);
         this.liteSharding = new LiteShardingImpl(this, this.topicRouteInfoManager);
-        this.liteLifecycleManager = this.messageStoreConfig.isEnableRocksDBStore() ?
+        this.liteLifecycleManager = this.messageStoreConfig.isEnableRocksDBStore() || this.messageStoreConfig.isRocksdbCQDoubleWriteEnable() ?
             new RocksDBLiteLifecycleManager(this, this.liteSharding) : new LiteLifecycleManager(this, this.liteSharding);
         this.liteSubscriptionRegistry = new LiteSubscriptionRegistryImpl(this, liteLifecycleManager);
         this.liteSubscriptionCtlProcessor = new LiteSubscriptionCtlProcessor(this, liteSubscriptionRegistry);
@@ -951,6 +951,8 @@ public class BrokerController {
         //scheduleMessageService load after messageStore load success
         result = result && this.scheduleMessageService.load();
 
+        result = result && initLiteService();
+
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
             if (brokerAttachedPlugin != null) {
                 result = result && brokerAttachedPlugin.load();
@@ -974,8 +976,6 @@ public class BrokerController {
             initialRpcHooks();
 
             initialRequestPipeline();
-
-            initLiteService();
 
             if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
                 // Register a listener to reload SslContext
@@ -1153,9 +1153,9 @@ public class BrokerController {
         }
     }
 
-    private void initLiteService() {
+    private boolean initLiteService() {
         this.liteEventDispatcher.init();
-        this.liteLifecycleManager.init();
+        return this.liteLifecycleManager.init();
     }
 
     public void registerProcessor() {

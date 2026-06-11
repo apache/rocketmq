@@ -21,29 +21,64 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-
 
 public class IndexServiceTest {
 
-    @Test
-    public void testQueryOffsetThrow() throws Exception {
-        assertDoesNotThrow(() -> {
-            DefaultMessageStore store = new DefaultMessageStore(
-                    new MessageStoreConfig(),
-                    new BrokerStatsManager(new BrokerConfig()),
-                    null,
-                    new BrokerConfig(),
-                    new ConcurrentHashMap<>()
-            );
+    private IndexService indexService;
 
-            IndexService indexService = new IndexService(store);
+    @Before
+    public void setUp() throws Exception {
+        DefaultMessageStore store = new DefaultMessageStore(
+                new MessageStoreConfig(),
+                new BrokerStatsManager(new BrokerConfig()),
+                null,
+                new BrokerConfig(),
+                new ConcurrentHashMap<>()
+        );
+        indexService = new IndexService(store);
+    }
+
+    @Test
+    public void testQueryOffsetThrow() {
+        assertDoesNotThrow(() -> {
             indexService.queryOffset("test", "", Integer.MAX_VALUE, 10, 100);
         });
     }
 
+    @Test
+    public void testQueryOffsetWithoutIndexType() {
+        QueryOffsetResult result = indexService.queryOffset("test", "testKey", 10, 0, 100);
+        assertNotNull(result);
+        assertEquals(Collections.emptyList(), result.getPhyOffsets());
+    }
+
+    @Test
+    public void testQueryOffsetWithIndexType() {
+        QueryOffsetResult result = indexService.queryOffset("test", "testKey", 10, 0, 100, "TAG");
+        assertNotNull(result);
+        assertEquals(Collections.emptyList(), result.getPhyOffsets());
+    }
+
+    @Test
+    public void testQueryOffsetWithNullKey() {
+        QueryOffsetResult result = indexService.queryOffset("test", null, 10, 0, 100);
+        assertNotNull(result);
+        assertEquals(Collections.emptyList(), result.getPhyOffsets());
+    }
+
+    @Test
+    public void testQueryOffsetWithZeroMaxNum() {
+        QueryOffsetResult result = indexService.queryOffset("test", "testKey", 0, 0, 100);
+        assertNotNull(result);
+        assertEquals(Collections.emptyList(), result.getPhyOffsets());
+    }
 }

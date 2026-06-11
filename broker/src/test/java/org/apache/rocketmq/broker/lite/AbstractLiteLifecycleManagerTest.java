@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import java.util.function.Function;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
@@ -277,6 +279,11 @@ public class AbstractLiteLifecycleManagerTest {
         @Override
         public List<String> collectByParentTopic(String parentTopic) {
             return PARENT_TOPIC.equals(parentTopic) ? Collections.singletonList(EXIST_LMQ_NAME) : Collections.emptyList();
+        }
+
+        @Override
+        public void forEachLiteTopic(Function<Triple<String, Long, Long>, Boolean> function) {
+
         }
     }
 }

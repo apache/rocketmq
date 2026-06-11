@@ -20,6 +20,7 @@ run --color=yes
 
 build --color=yes
 build --enable_platform_specific_config
+build --nojava_header_compilation
 
 test --action_env=TEST_TMPDIR=/tmp
 

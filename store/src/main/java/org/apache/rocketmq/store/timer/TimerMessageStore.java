@@ -526,6 +526,9 @@ public class TimerMessageStore {
             public void run() {
                 try {
                     if (storeConfig.isTimerEnableCheckMetrics()) {
+                        if (storeConfig.isTimerStopEnqueue()) {
+                            return;
+                        }
                         String when = storeConfig.getTimerCheckMetricsWhen();
                         if (!UtilAll.isItTimeToDo(when)) {
                             return;

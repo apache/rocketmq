@@ -28,12 +28,13 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.LiteSubModel;
 
-import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_SUB_CLIENT_MAX_EVENT_COUNT;
+import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_SUB_CLIENT_MAX_EVENT_COUNT_ATTRIBUTE;
 import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_SUB_CLIENT_QUOTA_ATTRIBUTE;
 import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_SUB_MODEL_ATTRIBUTE;
 import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_SUB_RESET_OFFSET_EXCLUSIVE_ATTRIBUTE;
 import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_BIND_TOPIC_ATTRIBUTE;
 import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_SUB_RESET_OFFSET_UNSUBSCRIBE_ATTRIBUTE;
+import static org.apache.rocketmq.common.SubscriptionGroupAttributes.LITE_SUB_WILDCARD_ATTRIBUTE;
 
 import static org.apache.rocketmq.common.SubscriptionGroupAttributes.PRIORITY_FACTOR_ATTRIBUTE;
 
@@ -215,6 +216,13 @@ public class SubscriptionGroupConfig {
     }
 
     @JSONField(serialize = false, deserialize = false)
+    public void setLiteSubExclusive(boolean liteSubExclusive) {
+        if (liteSubExclusive) {
+            attributes.put(LITE_SUB_MODEL_ATTRIBUTE.getName(), LiteSubModel.Exclusive.name());
+        }
+    }
+
+    @JSONField(serialize = false, deserialize = false)
     public boolean isLiteSubExclusive() {
         String subLiteModel = attributes.get(LITE_SUB_MODEL_ATTRIBUTE.getName());
         return Objects.equals(LiteSubModel.Exclusive.name(), subLiteModel);
@@ -237,11 +245,23 @@ public class SubscriptionGroupConfig {
 
     @JSONField(serialize = false, deserialize = false)
     public int getMaxClientEventCount() {
-        String content = attributes.get(LITE_SUB_CLIENT_MAX_EVENT_COUNT.getName());
+        String content = attributes.get(LITE_SUB_CLIENT_MAX_EVENT_COUNT_ATTRIBUTE.getName());
         if (content == null) {
             return -1;
         }
         return NumberUtils.toInt(content, -1);
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public void setWildcardLiteGroup(boolean wildcard) {
+        if (wildcard) {
+            attributes.put(LITE_SUB_WILDCARD_ATTRIBUTE.getName(), "true");
+        }
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public boolean isWildcardLiteGroup() {
+        return attributes.containsKey(LITE_SUB_WILDCARD_ATTRIBUTE.getName());
     }
 
     @Override

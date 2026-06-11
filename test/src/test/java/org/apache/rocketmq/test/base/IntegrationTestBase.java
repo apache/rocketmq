@@ -171,6 +171,11 @@ public class IntegrationTestBase {
         storeConfig.setEnableLmq(Boolean.valueOf(System.getProperty("enableLmq", "false")));
         storeConfig.setEnableMultiDispatch(Boolean.valueOf(System.getProperty("enableMultiDispatch", "false")));
         storeConfig.setStoreType(System.getProperty("storeType", "default"));
+        storeConfig.setRocksdbCQDoubleWriteEnable(Boolean.parseBoolean(System.getProperty("rocksdbCQDoubleWriteEnable", "false")));
+        storeConfig.setCombineCQLoadingCQTypes(System.getProperty("combineCQLoadingCQTypes", "default"));
+        storeConfig.setCombineCQUseRocksdbForLmq(Boolean.parseBoolean(System.getProperty("combineCQUseRocksdbForLmq", "false")));
+        storeConfig.setCombineAssignOffsetCQType(System.getProperty("combineAssignOffsetCQType", "default"));
+        storeConfig.setCombineCQPreferCQType(System.getProperty("combineCQPreferCQType", "default"));
         return createAndStartBroker(storeConfig, brokerConfig);
     }
 

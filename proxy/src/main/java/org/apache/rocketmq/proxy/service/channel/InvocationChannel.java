@@ -41,7 +41,6 @@ public class InvocationChannel extends SimpleChannel {
             if (null != context) {
                 context.handle(responseCommand);
             }
-            inFlightRequestMap.remove(responseCommand.getOpaque());
         }
         return super.writeAndFlush(msg);
     }

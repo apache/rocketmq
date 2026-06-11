@@ -140,7 +140,7 @@ public abstract class RebalanceImpl {
             Set<MessageQueue> mqs = result.get(destBrokerName);
             if (null == mqs) {
                 mqs = new HashSet<>();
-                result.put(mq.getBrokerName(), mqs);
+                result.put(destBrokerName, mqs);
             }
 
             mqs.add(mq);

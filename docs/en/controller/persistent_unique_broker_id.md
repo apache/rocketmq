@@ -100,7 +100,7 @@ After successful registration, all subsequent requests and state records for the
 
 ## Upgrade plan
 
-To upgrade to version 4.x, follow the 5.0 upgrade documentation process.
+To upgrade from version 4.x, follow the 5.0 upgrade documentation process.
 For upgrading from the non-persistent BrokerId version in 5.0.0 or 5.1.0 to the persistent BrokerId version 5.1.1 or above, follow the following steps:
 
 ### Upgrade Controller

@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -299,6 +300,28 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         assertEquals(CONSUMER_GROUP, requestHeaderArgumentCaptor.getValue().getConsumerGroup());
         assertEquals(1000, requestHeaderArgumentCaptor.getValue().getInvisibleTime().longValue());
         assertEquals(handle.getReceiptHandle(), requestHeaderArgumentCaptor.getValue().getExtraInfo());
+    }
+
+    @Test
+    public void testChangeInvisibleTimeShouldPreservePopTimeWhenExtraInfoUpdated() throws Throwable {
+        ReceiptHandle handle = create(createMessageExt(MixAll.RETRY_GROUP_TOPIC_PREFIX + TOPIC, "", 0, 3000));
+        assertNotNull(handle);
+
+        long popTime = 1777203436411L;
+        String newExtraInfo = "newExtraInfo";
+        AckResult innerAckResult = new AckResult();
+        innerAckResult.setStatus(AckStatus.OK);
+        innerAckResult.setPopTime(popTime);
+        innerAckResult.setExtraInfo(newExtraInfo);
+        when(this.messageService.changeInvisibleTime(any(), any(), anyString(), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(innerAckResult));
+
+        AckResult ackResult = this.consumerProcessor.changeInvisibleTime(createContext(), handle,
+            MessageClientIDSetter.createUniqID(), CONSUMER_GROUP, TOPIC, 1000, null, 3000, true).get();
+
+        assertEquals(AckStatus.OK, ackResult.getStatus());
+        assertEquals(newExtraInfo + MessageConst.KEY_SEPARATOR + handle.getCommitLogOffset(), ackResult.getExtraInfo());
+        assertEquals(popTime, ackResult.getPopTime());
     }
 
     @Test

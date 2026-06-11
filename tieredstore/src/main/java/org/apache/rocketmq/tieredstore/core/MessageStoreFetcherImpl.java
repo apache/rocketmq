@@ -61,6 +61,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     private final TieredMessageStore messageStore;
     private final IndexService indexService;
     private final FlatFileStore flatFileStore;
+    private final MessageStoreFilter topicFilter;
     private final long memoryMaxSize;
     private final Cache<String /* topic@queueId@offset */, SelectBufferResult> fetcherCache;
 
@@ -78,6 +79,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
         this.messageStore = messageStore;
         this.indexService = indexService;
         this.metadataStore = flatFileStore.getMetadataStore();
+        this.topicFilter = messageStore.getTopicFilter();
         this.memoryMaxSize =
             (long) (Runtime.getRuntime().maxMemory() * storeConfig.getReadAheadCacheSizeThresholdRate());
         this.fetcherCache = this.initCache(storeConfig);
@@ -436,6 +438,10 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     @Override
     public CompletableFuture<QueryMessageResult> queryMessageAsync(
         String topic, String key, int maxCount, long begin, long end) {
+
+        if (topicFilter.filterTopic(topic)) {
+            return CompletableFuture.completedFuture(new QueryMessageResult());
+        }
 
         long topicId;
         try {

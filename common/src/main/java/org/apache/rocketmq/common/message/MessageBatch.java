@@ -40,8 +40,9 @@ public class MessageBatch extends Message implements Iterable<Message> {
     }
 
     public static MessageBatch generateFromList(Collection<? extends Message> messages) {
-        assert messages != null;
-        assert messages.size() > 0;
+        if (messages == null || messages.isEmpty()) {
+            throw new IllegalArgumentException("messages must not be null or empty");
+        }
         List<Message> messageList = new ArrayList<>(messages.size());
         Message first = null;
         for (Message message : messages) {

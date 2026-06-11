@@ -42,7 +42,7 @@ import org.apache.rocketmq.store.GetMessageResult;
 
 public class QueueLevelConsumerManager extends ConfigManager implements ConsumerOrderInfoManager {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
     private static final long CLEAN_SPAN_FROM_LAST = 24 * 3600 * 1000;
 
@@ -291,8 +291,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         updateLockFreeTimestamp(topic, group, queueId, orderInfo);
     }
 
-    @VisibleForTesting
-    protected void autoClean() {
+    public void autoClean() {
         if (brokerController == null) {
             return;
         }

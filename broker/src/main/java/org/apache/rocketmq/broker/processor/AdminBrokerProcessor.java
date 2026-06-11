@@ -2183,7 +2183,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 brokerController.getPopInflightMessageCounter().clearInFlightMessageNum(topic, group, entry.getKey());
             }
             if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
-                brokerController.getPopConsumerService().clearCache(group, topic, entry.getKey());
                 brokerController.getConsumerOffsetManager().clearPullOffset(group, topic);
             }
             body.getOffsetTable().put(new MessageQueue(topic, brokerName, entry.getKey()), entry.getValue());

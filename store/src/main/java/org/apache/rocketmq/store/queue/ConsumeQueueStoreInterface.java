@@ -19,15 +19,17 @@ package org.apache.rocketmq.store.queue;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.store.CommitLogDispatchStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.exception.StoreException;
 import org.rocksdb.RocksDBException;
 
-public interface ConsumeQueueStoreInterface {
+public interface ConsumeQueueStoreInterface extends CommitLogDispatchStore {
 
     /**
      * Load from file.
+     *
      * @return true if loaded successfully.
      */
     boolean load();
@@ -39,27 +41,9 @@ public interface ConsumeQueueStoreInterface {
     void recover(boolean concurrently) throws RocksDBException;
 
     /**
-     * Get the dispatch offset in consume queue store, messages whose phyOffset larger than this offset need
-     * to be dispatched. The dispatch offset only used in recover.
-     *
-     * @return the dispatch phyOffset
-     */
-    long getDispatchFromPhyOffset();
-
-    /**
      * Start the consumeQueueStore
      */
     void start();
-
-    /**
-     * Used to determine whether to start doDispatch from this commitLog mappedFile
-     *
-     * @param phyOffset      the offset of the first message in this commitlog mappedFile
-     * @param storeTimestamp the timestamp of the first message in this commitlog mappedFile
-     * @return whether to start recovering from this MappedFile
-     */
-    boolean isMappedFileMatchedRecover(long phyOffset, long storeTimestamp,
-        boolean recoverNormally) throws RocksDBException;
 
     /**
      * Shutdown the consumeQueueStore

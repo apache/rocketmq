@@ -636,6 +636,7 @@ public class GrpcBaseIT extends BaseConf {
     }
 
     public void testSimpleConsumerSendAndRecvPriorityMessage() throws Exception {
+        brokerController1.getBrokerConfig().setPriorityOrderAsc(true);
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.PRIORITY);
         String group = MQRandomUtils.getRandomConsumerGroup();
         initConsumerGroup(group);

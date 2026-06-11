@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.lite;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -32,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 public class LiteLifecycleManager extends AbstractLiteLifecycleManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
@@ -85,5 +87,30 @@ public class LiteLifecycleManager extends AbstractLiteLifecycleManager {
             }
         }
         return lmqToDelete;
+    }
+
+    @Override
+    public void forEachLiteTopic(Function<Triple<String, Long, Long>, Boolean> function) {
+        Iterator<Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>>> iterator =
+            messageStore.getQueueStore().getConsumeQueueTable().entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> entry = iterator.next();
+            if (!LiteUtil.isLiteTopicQueue(entry.getKey())) {
+                continue;
+            }
+            ConsumeQueueInterface consumeQueueInterface = entry.getValue().get(0);
+            if (null == consumeQueueInterface) {
+                continue;
+            }
+            Triple<String, Long, Long> triple = Triple.of(entry.getKey(), consumeQueueInterface.getMaxOffsetInQueue(), null);
+            try {
+                if (!function.apply(triple)) {
+                    break;
+                }
+            } catch (Throwable e) {
+                LOGGER.error("forEachLiteTopic error. {}", entry.getKey(), e);
+                break;
+            }
+        }
     }
 }

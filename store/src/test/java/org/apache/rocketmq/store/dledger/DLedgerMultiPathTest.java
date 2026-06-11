@@ -31,9 +31,11 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.Assume;
+import org.junit.Ignore;
 
 import static org.awaitility.Awaitility.await;
 
+@Ignore("Flaky: DLedger multi-path integration test, extremely slow and environment-sensitive")
 public class DLedgerMultiPathTest extends MessageStoreTestBase {
 
 

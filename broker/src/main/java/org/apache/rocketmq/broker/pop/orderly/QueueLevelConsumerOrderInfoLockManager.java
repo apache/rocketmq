@@ -35,18 +35,18 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class QueueLevelConsumerOrderInfoLockManager {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
-    private ConsumerOrderInfoManager consumerOrderInfoManager;
 
     private final BrokerController brokerController;
     private final Map<Key, Timeout> timeoutMap = new ConcurrentHashMap<>();
     private final Timer timer;
-    private static final int TIMER_TICK_MS = 100;
 
     public QueueLevelConsumerOrderInfoLockManager(BrokerController brokerController) {
         this.brokerController = brokerController;
+        long tickMs = brokerController.getBrokerConfig().getPopOrderLockTimerTickMs();
+        int ticksPerWheel = brokerController.getBrokerConfig().getPopOrderLockTimerTicksPerWheel();
         this.timer = new HashedWheelTimer(
             new ThreadFactoryImpl("ConsumerOrderInfoLockManager_"),
-            TIMER_TICK_MS, TimeUnit.MILLISECONDS);
+            tickMs, TimeUnit.MILLISECONDS, ticksPerWheel);
     }
 
     /**

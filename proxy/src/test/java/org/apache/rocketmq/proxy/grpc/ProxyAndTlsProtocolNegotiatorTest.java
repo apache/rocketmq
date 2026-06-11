@@ -20,8 +20,15 @@ import io.grpc.Attributes;
 import io.grpc.netty.shaded.io.netty.buffer.ByteBuf;
 import io.grpc.netty.shaded.io.netty.buffer.Unpooled;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,11 +46,57 @@ public class ProxyAndTlsProtocolNegotiatorTest {
         negotiator = new ProxyAndTlsProtocolNegotiator();
     }
 
+    @After
+    public void tearDown() {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        proxyConfig.setTlsTestModeEnable(true);
+        proxyConfig.setTlsKeyPath("");
+        proxyConfig.setTlsCertPath("");
+        proxyConfig.setTlsKeyPassword("");
+    }
+
     @Test
     public void handleHAProxyTLV() {
         ByteBuf content = Unpooled.buffer();
         content.writeBytes("xxxx".getBytes(StandardCharsets.UTF_8));
         HAProxyTLV haProxyTLV = new HAProxyTLV((byte) 0xE1, content);
         negotiator.handleHAProxyTLV(haProxyTLV, Attributes.newBuilder());
+    }
+
+    @Test
+    public void testLoadSslContextWithUnencryptedKey() throws Exception {
+        configureTls("server.key", "server.pem", "");
+        ProxyAndTlsProtocolNegotiator.loadSslContext();
+    }
+
+    @Test
+    public void testLoadSslContextWithEncryptedKey() throws Exception {
+        // "1234" is the password of certs/client.key, inherited from remoting module test resources
+        configureTls("client.key", "client.pem", "1234");
+        ProxyAndTlsProtocolNegotiator.loadSslContext();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testLoadSslContextWithWrongPassword() throws Exception {
+        configureTls("client.key", "client.pem", "wrong_password");
+        ProxyAndTlsProtocolNegotiator.loadSslContext();
+    }
+
+    private void configureTls(String keyFile, String certFile, String password) throws IOException {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        proxyConfig.setTlsTestModeEnable(false);
+        proxyConfig.setTlsKeyPath(getCertsPath(keyFile));
+        proxyConfig.setTlsCertPath(getCertsPath(certFile));
+        proxyConfig.setTlsKeyPassword(password);
+    }
+
+    private static String getCertsPath(String fileName) throws IOException {
+        File tempFile = File.createTempFile(fileName, null);
+        tempFile.deleteOnExit();
+        try (InputStream is = ProxyAndTlsProtocolNegotiatorTest.class
+            .getClassLoader().getResourceAsStream("certs/" + fileName)) {
+            Files.copy(is, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+        return tempFile.getAbsolutePath();
     }
 }

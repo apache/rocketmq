@@ -484,6 +484,7 @@ public class MessageStoreConfig {
     private String combineAssignOffsetCQType = StoreType.DEFAULT.getStoreType();
     private boolean combineCQEnableCheckSelf = false;
     private int combineCQMaxExtraSearchCommitLogFiles = 3;
+    private boolean combineCQUseRocksdbForLmq = false;
 
     /**
      * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
@@ -504,6 +505,12 @@ public class MessageStoreConfig {
 
     private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
 
+    private int rocksdbMaxSizeAmplificationPercent = 25;
+
+    private long popRocksdbBlockCacheSize = 256 * SizeUnit.MB;
+
+    private long popRocksdbWriteBufferSize = 32 * SizeUnit.MB;
+
     /**
      * Flush RocksDB WAL frequency, aka, flush WAL every N write ops.
      */
@@ -512,14 +519,15 @@ public class MessageStoreConfig {
     private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
 
     /**
-     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH
-     * and the storeType was defaultRocksDB. This switch is not recommended for normal use cases (include master-slave
-     * or controller mode).
+     * Note: For correctness, this switch should be enabled only if the previous startup was configured with SYNC_FLUSH.
+     * This switch is not recommended for normal use cases (include master-slave or controller mode).
      */
     private boolean enableAcceleratedRecovery = false;
 
     // Shared byte buffer manager configuration
     private int sharedByteBufferNum = 16;
+
+    private boolean useSeparateStorePathForRocksdbCQ = false;
 
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
@@ -527,6 +535,30 @@ public class MessageStoreConfig {
 
     public void setRocksdbCompressionType(String compressionType) {
         this.rocksdbCompressionType = compressionType;
+    }
+
+    public int getRocksdbMaxSizeAmplificationPercent() {
+        return rocksdbMaxSizeAmplificationPercent;
+    }
+
+    public void setRocksdbMaxSizeAmplificationPercent(int rocksdbMaxSizeAmplificationPercent) {
+        this.rocksdbMaxSizeAmplificationPercent = rocksdbMaxSizeAmplificationPercent;
+    }
+
+    public long getPopRocksdbBlockCacheSize() {
+        return popRocksdbBlockCacheSize;
+    }
+
+    public void setPopRocksdbBlockCacheSize(long popRocksdbBlockCacheSize) {
+        this.popRocksdbBlockCacheSize = popRocksdbBlockCacheSize;
+    }
+
+    public long getPopRocksdbWriteBufferSize() {
+        return popRocksdbWriteBufferSize;
+    }
+
+    public void setPopRocksdbWriteBufferSize(long popRocksdbWriteBufferSize) {
+        this.popRocksdbWriteBufferSize = popRocksdbWriteBufferSize;
     }
 
     /**
@@ -2111,6 +2143,14 @@ public class MessageStoreConfig {
         this.combineCQMaxExtraSearchCommitLogFiles = combineCQMaxExtraSearchCommitLogFiles;
     }
 
+    public boolean isCombineCQUseRocksdbForLmq() {
+        return combineCQUseRocksdbForLmq;
+    }
+
+    public void setCombineCQUseRocksdbForLmq(boolean combineCQUseRocksdbForLmq) {
+        this.combineCQUseRocksdbForLmq = combineCQUseRocksdbForLmq;
+    }
+
     public boolean isEnableLogConsumeQueueRepeatedlyBuildWhenRecover() {
         return enableLogConsumeQueueRepeatedlyBuildWhenRecover;
     }
@@ -2302,5 +2342,13 @@ public class MessageStoreConfig {
 
     public void setAppendTopicForTimerDeleteKey(boolean appendTopicForTimerDeleteKey) {
         this.appendTopicForTimerDeleteKey = appendTopicForTimerDeleteKey;
+    }
+
+    public boolean isUseSeparateStorePathForRocksdbCQ() {
+        return useSeparateStorePathForRocksdbCQ;
+    }
+
+    public void setUseSeparateStorePathForRocksdbCQ(boolean useSeparateStorePathForRocksdbCQ) {
+        this.useSeparateStorePathForRocksdbCQ = useSeparateStorePathForRocksdbCQ;
     }
 }

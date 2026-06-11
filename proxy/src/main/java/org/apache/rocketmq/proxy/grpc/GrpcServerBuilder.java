@@ -24,16 +24,16 @@ import io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.GlobalExceptionInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
-
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 
 public class GrpcServerBuilder {
@@ -52,18 +52,20 @@ public class GrpcServerBuilder {
     }
 
     protected GrpcServerBuilder(ThreadPoolExecutor executor, int port, TlsCertificateManager tlsCertificateManager) {
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
         this.tlsCertificateManager = tlsCertificateManager;
-        serverBuilder = NettyServerBuilder.forPort(port);
+        serverBuilder = NettyServerBuilder.forPort(port)
+            .maxConcurrentCallsPerConnection(config.getGrpcMaxConcurrentCallsPerConnection());
 
         serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());
 
         // build server
-        int bossLoopNum = ConfigurationManager.getProxyConfig().getGrpcBossLoopNum();
-        int workerLoopNum = ConfigurationManager.getProxyConfig().getGrpcWorkerLoopNum();
-        int maxInboundMessageSize = ConfigurationManager.getProxyConfig().getGrpcMaxInboundMessageSize();
-        long idleTimeMills = ConfigurationManager.getProxyConfig().getGrpcClientIdleTimeMills();
+        int bossLoopNum = config.getGrpcBossLoopNum();
+        int workerLoopNum = config.getGrpcWorkerLoopNum();
+        int maxInboundMessageSize = config.getGrpcMaxInboundMessageSize();
+        long idleTimeMills = config.getGrpcClientIdleTimeMills();
 
-        if (ConfigurationManager.getProxyConfig().isEnableGrpcEpoll()) {
+        if (config.isEnableGrpcEpoll()) {
             serverBuilder.bossEventLoopGroup(new EpollEventLoopGroup(bossLoopNum))
                 .workerEventLoopGroup(new EpollEventLoopGroup(workerLoopNum))
                 .channelType(EpollServerSocketChannel.class)

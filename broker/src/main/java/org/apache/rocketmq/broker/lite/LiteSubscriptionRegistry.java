@@ -21,7 +21,6 @@ import io.netty.channel.Channel;
 
 import java.util.List;
 import java.util.Set;
-import org.apache.rocketmq.common.entity.ClientGroup;
 import org.apache.rocketmq.common.lite.LiteSubscription;
 import org.apache.rocketmq.common.lite.OffsetOption;
 
@@ -43,11 +42,15 @@ public interface LiteSubscriptionRegistry {
 
     void addListener(LiteCtlListener listener);
 
-    Set<ClientGroup> getSubscriber(String lmqName);
+    SubscriberWrapper getAllSubscriber(String group, String lmqName);
+
+    SubscriberWrapper.ListWrapper getWildcardSubscriber(String group, String parentTopic);
 
     List<String> getAllClientIdByGroup(String group);
 
     void cleanSubscription(String lmqName, boolean notifyClient);
+
+    boolean hasExclusiveEvictionTombstone(String clientId, String lmqName);
 
     void start();
 

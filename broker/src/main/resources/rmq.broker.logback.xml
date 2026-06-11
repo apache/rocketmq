@@ -731,8 +731,7 @@
         <appender-ref ref="RocketmqPopLiteSiftingAppender"/>
     </logger>
 
-    <logger name="RocketmqColdCtr" additivity="false">
-        <level value="INFO"/>
+    <logger name="RocketmqColdCtr" additivity="false" level="INFO">
         <appender-ref ref="RocketmqColdCtrSiftingAppender"/>
     </logger>
 

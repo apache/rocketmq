@@ -25,11 +25,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.entity.TopicGroup;
 import org.apache.rocketmq.common.lite.LiteLagInfo;
 import org.apache.rocketmq.common.lite.LiteUtil;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,6 +56,9 @@ public class LiteConsumerLagCalculatorTest {
 
     @Mock
     private ConsumerOffsetManager consumerOffsetManager;
+
+    @Mock
+    private SubscriptionGroupManager subscriptionGroupManager;
 
     private final BrokerConfig brokerConfig = new BrokerConfig();
 
@@ -276,10 +281,16 @@ public class LiteConsumerLagCalculatorTest {
 
         when(consumerOffsetManager.getOffsetTable()).thenReturn(offsetTable);
 
+        // Mock SubscriptionGroupManager to return liteBindTopic
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setLiteBindTopic(topic);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
         // Mock store timestamps
         long timestamp1 = 1000L;
         long timestamp2 = 2000L;
-        long timestamp3 = 1500L;
 
         // Create a spy of the calculator to allow partial mocking
         LiteConsumerLagCalculator spyCalculator = spy(liteConsumerLagCalculator);
@@ -287,8 +298,6 @@ public class LiteConsumerLagCalculatorTest {
         // Mock getStoreTimestamp method on the spy
         doReturn(timestamp1).when(spyCalculator).getStoreTimestamp(lmqName1, consumerOffset1);
         doReturn(timestamp2).when(spyCalculator).getStoreTimestamp(lmqName2, consumerOffset2);
-        doReturn(timestamp3).when(spyCalculator).getStoreTimestamp(lmqName3, consumerOffset3);
-
         // Mock getMaxOffset method on the spy
         doReturn(100L).when(spyCalculator).getMaxOffset(lmqName1);
         doReturn(80L).when(spyCalculator).getMaxOffset(lmqName2);

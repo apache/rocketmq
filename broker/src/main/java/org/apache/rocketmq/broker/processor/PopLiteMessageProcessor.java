@@ -22,6 +22,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.opentelemetry.api.common.Attributes;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.lite.LiteEventDispatcher;
+import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
 import org.apache.rocketmq.broker.longpolling.PollingResult;
 import org.apache.rocketmq.broker.longpolling.PopLiteLongPollingService;
 import org.apache.rocketmq.broker.metrics.LiteConsumerLagCalculator;
@@ -253,6 +254,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         StringBuilder orderCountInfoAll = new StringBuilder();
         AtomicLong total = new AtomicLong(0);
 
+        boolean isExclusiveGroup = LiteMetadataUtil.isSubLiteExclusive(group, brokerController);
         Set<String> processed = new HashSet<>(); // deduplication in one request
         Iterator<String> iterator = liteEventDispatcher.getEventIterator(clientId);
         while (total.get() < maxNum && iterator.hasNext()) {
@@ -262,6 +264,11 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
             }
             if (!processed.add(lmqName)) {
                 continue; // wait for next pop request or re-fetch in current process, here prefer the former approach
+            }
+            // Tombstone check: reject pull if this client was evicted from the liteTopic (exclusive mode)
+            if (isExclusiveGroup && brokerController.getLiteSubscriptionRegistry().hasExclusiveEvictionTombstone(clientId, lmqName)) {
+                LOGGER.info("popLiteTopic rejected by tombstone: clientId={}, group={}, lmqName={}", clientId, group, lmqName);
+                continue;
             }
             Pair<StringBuilder, GetMessageResult> pair = popLiteTopic(parentTopic, clientHost, group, lmqName,
                 maxNum - total.get(), popTime, invisibleTime, attemptId);
@@ -438,6 +445,9 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
     }
 
     public class PopLiteLockManager extends ServiceThread {
+        private static final long AUTO_CLEAN_INTERVAL = 5 * 60 * 1000;
+        private long lastCleanTime = System.currentTimeMillis();
+
         @Override
         public String getServiceName() {
             if (brokerController.getBrokerConfig().isInBrokerContainer()) {
@@ -452,6 +462,10 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
                 try {
                     waitForRunning(60000);
                     lockService.removeTimeout();
+                    if (System.currentTimeMillis() - lastCleanTime >= AUTO_CLEAN_INTERVAL) {
+                        ((MemoryConsumerOrderInfoManager) consumerOrderInfoManager).autoClean();
+                        lastCleanTime = System.currentTimeMillis();
+                    }
                 } catch (Exception ignored) {
                 }
             }
