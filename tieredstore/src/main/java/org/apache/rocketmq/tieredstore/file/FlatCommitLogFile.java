@@ -54,8 +54,11 @@ public class FlatCommitLogFile extends FlatAppendFile {
     }
 
     public long getMinOffsetFromFile() {
-        return firstOffset.get() == GET_OFFSET_ERROR ?
-            this.getMinOffsetFromFileAsync().join() : firstOffset.get();
+        long cached = firstOffset.get();
+        if (cached != GET_OFFSET_ERROR) {
+            return cached;
+        }
+        return getMinOffsetFromFileAsync().join();
     }
 
     public CompletableFuture<Long> getMinOffsetFromFileAsync() {
