@@ -73,7 +73,7 @@ public class PosixFileSegment extends FileSegment {
         String clusterBasePath = String.format("%s_%s", MessageStoreUtil.getHash(clusterName), clusterName);
         fullPath = Paths.get(basePath, clusterBasePath, filePath,
             fileType.toString(), MessageStoreUtil.offset2FileName(baseOffset)).toString();
-        log.info("Constructing Posix FileSegment, filePath: {}", fullPath);
+        log.info("PosixFileSegment#init, constructing, filePath={}", fullPath);
 
         this.createFile();
     }
@@ -123,14 +123,14 @@ public class PosixFileSegment extends FileSegment {
             }
             if (!file.exists()) {
                 if (file.createNewFile()) {
-                    log.debug("Create Posix FileSegment, filePath: {}", fullPath);
+                    log.debug("PosixFileSegment#createFile0, create file, filePath={}", fullPath);
                 }
             }
             this.readFileChannel = new RandomAccessFile(file, "r").getChannel();
             this.writeFileChannel = new RandomAccessFile(file, "rwd").getChannel();
             this.file = file;
         } catch (Exception e) {
-            log.error("PosixFileSegment#createFile: create file {} failed: ", filePath, e);
+            log.error("PosixFileSegment#createFile0, create file failed, filePath={}", filePath, e);
         }
     }
 
@@ -140,9 +140,9 @@ public class PosixFileSegment extends FileSegment {
         this.close();
         if (file != null && file.exists()) {
             if (file.delete()) {
-                log.info("Destroy Posix FileSegment, filePath: {}", fullPath);
+                log.info("PosixFileSegment#destroyFile, destroy file, filePath={}", fullPath);
             } else {
-                log.warn("Destroy Posix FileSegment error, filePath: {}", fullPath);
+                log.warn("PosixFileSegment#destroyFile, destroy file error, filePath={}", fullPath);
             }
         }
     }
@@ -160,7 +160,7 @@ public class PosixFileSegment extends FileSegment {
                 writeFileChannel = null;
             }
         } catch (IOException e) {
-            log.error("Destroy Posix FileSegment failed, filePath: {}", fullPath, e);
+            log.error("PosixFileSegment#close, close failed, filePath={}", fullPath, e);
         }
     }
 

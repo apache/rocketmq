@@ -92,7 +92,7 @@ public class MemoryFileSegment extends FileSegment {
 
         try {
             if (blocker != null && !blocker.get()) {
-                log.info("Commit Blocker Exception for Memory Test");
+                log.debug("MemoryFileSegment#commit0, commit blocker exception for memory test");
                 return CompletableFuture.completedFuture(false);
             }
 

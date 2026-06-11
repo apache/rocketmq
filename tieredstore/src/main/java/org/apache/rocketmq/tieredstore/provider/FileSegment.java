@@ -228,7 +228,7 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
         if (fileSegmentInputStream != null) {
             long fileSize = this.getSize();
             if (fileSize == GET_FILE_SIZE_ERROR) {
-                log.error("FileSegment correct position error, fileName={}, commit={}, append={}, buffer={}",
+                log.error("FileSegment#commitAsync, correct position error, fileName={}, commit={}, append={}, buffer={}",
                     this.getPath(), commitPosition, appendPosition, fileSegmentInputStream.getContentLength());
                 releaseCommitLock();
                 return CompletableFuture.completedFuture(false);
@@ -272,7 +272,7 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
 
     private boolean handleCommitException(Throwable e) {
 
-        log.warn("FileSegment commit exception, filePath={}", this.filePath, e);
+        log.warn("FileSegment#handleCommitException, commit exception, filePath={}", this.filePath, e);
 
         // Get root cause here
         Throwable rootCause = e.getCause() != null ? e.getCause() : e;
@@ -282,7 +282,7 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
 
         long expectPosition = commitPosition + fileSegmentInputStream.getContentLength();
         if (fileSize == GET_FILE_SIZE_ERROR) {
-            log.error("Get file size error after commit, FileName: {}, Commit: {}, Content: {}, Expect: {}, Append: {}",
+            log.error("FileSegment#handleCommitException, get file size error after commit, fileName={}, commit={}, content={}, expect={}, append={}",
                 this.getPath(), commitPosition, fileSegmentInputStream.getContentLength(), expectPosition, appendPosition);
             return false;
         }
@@ -342,10 +342,10 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
 
         int readableBytes = (int) (commitPosition - position);
         if (readableBytes < length) {
-            length = readableBytes;
-            log.debug("FileSegment expect request position is greater than commit position, " +
-                    "file: {}, request position: {}, commit position: {}, change length from {} to {}",
+            log.debug("FileSegment#readAsync, request position exceeds commit position, " +
+                    "file={}, requestPosition={}, commitPosition={}, changeLength={} to {}",
                 getPath(), position, commitPosition, length, readableBytes);
+            length = readableBytes;
         }
         return this.read0(position, length);
     }
