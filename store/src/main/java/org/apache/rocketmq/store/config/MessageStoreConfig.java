@@ -473,6 +473,9 @@ public class MessageStoreConfig {
 
     private boolean rocksdbCQDoubleWriteEnable = false;
 
+    // Secondary switch of rocksdbCQDoubleWriteEnable. In CombineConsumeQueueStore, only specific topics will double-write CQ.
+    private boolean rocksdbCQSelectiveDoubleWriteEnable = false;
+
     /**
      * CombineConsumeQueueStore
      * combineCQLoadingCQTypes is used to configure the loading types of CQ. load / recover / start order: [default -> defaultRocksDB]
@@ -584,6 +587,13 @@ public class MessageStoreConfig {
         this.rocksdbCQDoubleWriteEnable = rocksdbWriteEnable;
     }
 
+    public boolean isRocksdbCQSelectiveDoubleWriteEnable() {
+        return rocksdbCQSelectiveDoubleWriteEnable;
+    }
+
+    public void setRocksdbCQSelectiveDoubleWriteEnable(boolean rocksdbCQSelectiveDoubleWriteEnable) {
+        this.rocksdbCQSelectiveDoubleWriteEnable = rocksdbCQSelectiveDoubleWriteEnable;
+    }
 
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;

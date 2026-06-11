@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,6 +30,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.common.Pair;
@@ -122,6 +125,14 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
         }
 
         if (messageStoreConfig.isCombineCQUseRocksdbForLmq() && assignOffsetStore != consumeQueueStore) {
+            throw new IllegalArgumentException("CombineConsumeQueueStore maybe incorrect config");
+        }
+
+        if (messageStoreConfig.isRocksdbCQSelectiveDoubleWriteEnable() && assignOffsetStore != consumeQueueStore) {
+            throw new IllegalArgumentException("CombineConsumeQueueStore maybe incorrect config");
+        }
+
+        if (messageStoreConfig.isRocksdbCQSelectiveDoubleWriteEnable() && currentReadStore != consumeQueueStore) {
             throw new IllegalArgumentException("CombineConsumeQueueStore maybe incorrect config");
         }
 
@@ -248,6 +259,10 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
                         continue;
                     }
 
+                    if (abstractConsumeQueueStore == rocksDBConsumeQueueStore && !shouldDoubleWriteForTopic(topic)) {
+                        continue;
+                    }
+
                     ConsumeQueueInterface queue = abstractConsumeQueueStore.findOrCreateConsumeQueue(topic, queueId);
                     long maxOffset0 = queue.getMaxOffsetInQueue();
 
@@ -347,6 +362,10 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     @Override
     public void putMessagePositionInfoWrapper(DispatchRequest request) throws RocksDBException {
         for (AbstractConsumeQueueStore store : innerConsumeQueueStoreList) {
+            // Not all topics are double-written
+            if (store == rocksDBConsumeQueueStore && !shouldDoubleWriteForTopic(request.getTopic())) {
+                continue;
+            }
             store.putMessagePositionInfoWrapper(request);
         }
     }
@@ -500,6 +519,11 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     private boolean processConsumeQueuesForTopic(ConcurrentMap<Integer, ConsumeQueueInterface> queueMap, String topic,
         AbstractConsumeQueueStore abstractConsumeQueueStore, StringBuilder diffResult, boolean printDetail,
         long checkpointByStoreTime) {
+
+        if (abstractConsumeQueueStore == rocksDBConsumeQueueStore && !shouldDoubleWriteForTopic(topic)) {
+            return true;
+        }
+
         boolean processResult = true;
         for (Map.Entry<Integer, ConsumeQueueInterface> queueEntry : queueMap.entrySet()) {
             Integer queueId = queueEntry.getKey();
@@ -600,5 +624,19 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
             return rocksDBConsumeQueueStore;
         }
         return currentReadStore;
+    }
+
+    /**
+     * Determines whether RocksDB CQ should be written for the given topic under selective double-write mode.
+     * The file-based ConsumeQueueStore is treated as the base store.
+     * @param topic the topic name
+     * @return true if RocksDB CQ should be written for this topic
+     */
+    protected boolean shouldDoubleWriteForTopic(String topic) {
+        if (!messageStoreConfig.isRocksdbCQSelectiveDoubleWriteEnable()) {
+            return true;
+        }
+        Optional<TopicConfig> tc = messageStore.getTopicConfig(topic);
+        return tc.isPresent() && tc.get().getTopicMessageType() == TopicMessageType.LITE;
     }
 }
