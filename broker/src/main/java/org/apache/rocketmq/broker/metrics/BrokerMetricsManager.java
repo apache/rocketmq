@@ -229,7 +229,10 @@ public class BrokerMetricsManager {
     }
 
     public static TopicMessageType getMessageType(SendMessageRequestHeader requestHeader) {
-        Map<String, String> properties = MessageDecoder.string2messageProperties(requestHeader.getProperties());
+        return getMessageType(MessageDecoder.string2messageProperties(requestHeader.getProperties()));
+    }
+
+    public static TopicMessageType getMessageType(Map<String, String> properties) {
         String traFlag = properties.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
         TopicMessageType topicMessageType = TopicMessageType.NORMAL;
         if (Boolean.parseBoolean(traFlag)) {
