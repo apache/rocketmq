@@ -239,13 +239,5 @@ public class FlatAppendFileTest {
             .thenReturn(2048L);
         Assert.assertEquals(2048L, flatFile.getFileCorrectSize(retry));
         Mockito.verify(retry, Mockito.times(3)).getSize();
-
-        // all retries fail
-        FileSegment fail = Mockito.mock(FileSegment.class);
-        when(fail.getSize()).thenReturn(FlatAppendFile.GET_FILE_SIZE_ERROR);
-        when(fail.getPath()).thenReturn("/test/path");
-        when(fail.getFileType()).thenReturn(FileSegmentType.CONSUME_QUEUE);
-        Assert.assertEquals(FlatAppendFile.GET_FILE_SIZE_ERROR, flatFile.getFileCorrectSize(fail));
-        Mockito.verify(fail, Mockito.times(3)).getSize();
     }
 }

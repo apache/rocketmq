@@ -42,7 +42,9 @@ public class FileSegmentFactory {
             fileSegmentConstructor = clazz.getConstructor(
                 MessageStoreConfig.class, FileSegmentType.class, String.class, Long.TYPE, MessageStoreExecutor.class);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load FileSegment provider: " + storeConfig.getTieredBackendServiceProvider(), e);
+            throw new RuntimeException(String.format(
+                "FileSegmentFactory#init, failed to load FileSegment provider: %s",
+                storeConfig.getTieredBackendServiceProvider()), e);
         }
     }
 
@@ -58,7 +60,9 @@ public class FileSegmentFactory {
         try {
             return fileSegmentConstructor.newInstance(this.storeConfig, fileType, filePath, baseOffset, executor);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create FileSegment: type=" + fileType + ", path=" + filePath, e);
+            throw new RuntimeException(String.format(
+                "FileSegmentFactory#createSegment, failed to create FileSegment: type=%s, path=%s, baseOffset=%d",
+                fileType, filePath, baseOffset), e);
         }
     }
 

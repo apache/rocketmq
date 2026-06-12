@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
@@ -81,15 +82,22 @@ public class FlatAppendFile {
      * @see <a href="https://github.com/apache/rocketmq/issues/9544">Related GitHub Issue</a>
      */
     public long getFileCorrectSize(FileSegment fileSegment) {
-        for (int retry = 0; retry < 3; retry++) {
+        while (true) {
             long fileSize = fileSegment.getSize();
             if (fileSize != GET_FILE_SIZE_ERROR) {
+                log.debug("FlatAppendFile get file correct size, filePath={} fileType={}, fileSize={}",
+                    fileSegment.getPath(), fileSegment.getFileType(), fileSize);
                 return fileSize;
+            } else {
+                log.warn("FlatAppendFile get file correct size error, filePath={}, fileType={}",
+                    fileSegment.getPath(), fileSegment.getFileType());
+                try {
+                    TimeUnit.MILLISECONDS.sleep(50);
+                } catch (InterruptedException e) {
+                    log.warn("FlatAppendFile get file correct size interrupted", e);
+                }
             }
         }
-        log.error("FlatAppendFile#getFileCorrectSize, get file correct size failed after 3 retries, path={}, type={}",
-            fileSegment.getPath(), fileSegment.getFileType());
-        return GET_FILE_SIZE_ERROR;
     }
 
     public void recoverFileSize() {
