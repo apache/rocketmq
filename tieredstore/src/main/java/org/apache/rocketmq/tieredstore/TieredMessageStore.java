@@ -27,6 +27,7 @@ import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.BoundaryType;
@@ -292,7 +293,12 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
                 return result;
             }).exceptionally(e -> {
-                log.error("GetMessageAsync from tiered store failed", e);
+                Throwable cause = e instanceof CompletionException && e.getCause() != null ? e.getCause() : e;
+                if (cause instanceof Error) {
+                    throw (Error) cause;
+                }
+                log.error("TieredMessageStore#getMessageAsync, get message from tiered store failed, " +
+                    "topic={}, queueId={}, offset={}", topic, queueId, offset, cause);
                 return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
             });
     }

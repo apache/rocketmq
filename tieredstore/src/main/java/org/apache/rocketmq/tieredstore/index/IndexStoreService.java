@@ -327,6 +327,10 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         boolean result = flatAppendFile.commitAsync().join();
 
         List<FileSegment> fileSegmentList = flatAppendFile.getFileSegmentList();
+        if (fileSegmentList.isEmpty()) {
+            log.warn("IndexStoreService#doCompactThenUploadFile, fileSegmentList empty, timestamp={}", indexFile.getTimestamp());
+            return false;
+        }
         FileSegment fileSegment = fileSegmentList.get(fileSegmentList.size() - 1);
         if (!result || fileSegment == null || fileSegment.getMinTimestamp() != indexFile.getTimestamp()) {
             log.warn("IndexStoreService#doCompactThenUploadFile, upload compacted file error, timestamp={}", indexFile.getTimestamp());

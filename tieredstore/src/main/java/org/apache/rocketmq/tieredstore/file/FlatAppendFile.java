@@ -38,6 +38,7 @@ public class FlatAppendFile {
 
     protected static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
     public static final long GET_FILE_SIZE_ERROR = -1L;
+    public static final long GET_TIMESTAMP_ERROR = -1L;
 
     protected final String filePath;
     protected final FileSegmentType fileType;
@@ -164,12 +165,12 @@ public class FlatAppendFile {
 
     public long getMinTimestamp() {
         List<FileSegment> list = this.fileSegmentTable;
-        return list.isEmpty() ? GET_FILE_SIZE_ERROR : list.get(0).getMinTimestamp();
+        return list.isEmpty() ? GET_TIMESTAMP_ERROR : list.get(0).getMinTimestamp();
     }
 
     public long getMaxTimestamp() {
         List<FileSegment> list = this.fileSegmentTable;
-        return list.isEmpty() ? GET_FILE_SIZE_ERROR : list.get(list.size() - 1).getMaxTimestamp();
+        return list.isEmpty() ? GET_TIMESTAMP_ERROR : list.get(list.size() - 1).getMaxTimestamp();
     }
 
     public FileSegment rollingNewFile(long offset) {

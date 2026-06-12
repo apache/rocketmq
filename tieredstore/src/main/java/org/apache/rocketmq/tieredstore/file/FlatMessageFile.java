@@ -231,8 +231,7 @@ public class FlatMessageFile implements FlatFileInterface {
 
     @Override
     public CompletableFuture<Boolean> commitAsync() {
-        // acquire lock
-        if (commitLock.drainPermits() <= 0) {
+        if (!commitLock.tryAcquire()) {
             return CompletableFuture.completedFuture(false);
         }
 
