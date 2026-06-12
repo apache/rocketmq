@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.broker.metrics;
 
+import io.opentelemetry.api.common.AttributeKey;
+
 public class BrokerMetricsConstant {
     public static final String OPEN_TELEMETRY_METER_NAME = "broker-meter";
 
@@ -64,4 +66,21 @@ public class BrokerMetricsConstant {
     public static final String LABEL_LANGUAGE = "language";
     public static final String LABEL_VERSION = "version";
     public static final String LABEL_CONSUME_MODE = "consume_mode";
+
+    // Pre-built typed AttributeKey singletons. Use these in AttributesBuilder.put()
+    // on hot paths to avoid allocating a fresh InternalAttributeKeyImpl per call.
+    public static final AttributeKey<String>  LABEL_CLUSTER_NAME_KEY     = AttributeKey.stringKey(LABEL_CLUSTER_NAME);
+    public static final AttributeKey<String>  LABEL_NODE_TYPE_KEY        = AttributeKey.stringKey(LABEL_NODE_TYPE);
+    public static final AttributeKey<String>  LABEL_NODE_ID_KEY          = AttributeKey.stringKey(LABEL_NODE_ID);
+    public static final AttributeKey<String>  LABEL_AGGREGATION_KEY      = AttributeKey.stringKey(LABEL_AGGREGATION);
+    public static final AttributeKey<String>  LABEL_PROCESSOR_KEY        = AttributeKey.stringKey(LABEL_PROCESSOR);
+    public static final AttributeKey<String>  LABEL_TOPIC_KEY            = AttributeKey.stringKey(LABEL_TOPIC);
+    public static final AttributeKey<String>  LABEL_INVOCATION_STATUS_KEY = AttributeKey.stringKey(LABEL_INVOCATION_STATUS);
+    public static final AttributeKey<Boolean> LABEL_IS_RETRY_KEY         = AttributeKey.booleanKey(LABEL_IS_RETRY);
+    public static final AttributeKey<Boolean> LABEL_IS_SYSTEM_KEY        = AttributeKey.booleanKey(LABEL_IS_SYSTEM);
+    public static final AttributeKey<String>  LABEL_CONSUMER_GROUP_KEY   = AttributeKey.stringKey(LABEL_CONSUMER_GROUP);
+    public static final AttributeKey<String>  LABEL_MESSAGE_TYPE_KEY     = AttributeKey.stringKey(LABEL_MESSAGE_TYPE);
+    public static final AttributeKey<String>  LABEL_LANGUAGE_KEY         = AttributeKey.stringKey(LABEL_LANGUAGE);
+    public static final AttributeKey<String>  LABEL_VERSION_KEY          = AttributeKey.stringKey(LABEL_VERSION);
+    public static final AttributeKey<String>  LABEL_CONSUME_MODE_KEY     = AttributeKey.stringKey(LABEL_CONSUME_MODE);
 }

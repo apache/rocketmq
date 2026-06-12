@@ -101,19 +101,19 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_CONSUMER_GROUP_CREATE_EXECUTE_TIME;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_AGGREGATION;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLUSTER_NAME;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUME_MODE;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_RETRY;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_LANGUAGE;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP_KEY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUME_MODE_KEY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_RETRY_KEY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM_KEY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_LANGUAGE_KEY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_ID;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_TYPE;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_PROCESSOR;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_VERSION;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_PROCESSOR_KEY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC_KEY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_VERSION_KEY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.NODE_TYPE_BROKER;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.OPEN_TELEMETRY_METER_NAME;
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_PROTOCOL_TYPE;
+import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_PROTOCOL_TYPE_KEY;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.PROTOCOL_TYPE_REMOTING;
 
 public class BrokerMetricsManager {
@@ -197,10 +197,10 @@ public class BrokerMetricsManager {
 
     private Attributes buildLagAttributes(ConsumerLagCalculator.BaseCalculateResult result) {
         AttributesBuilder attributesBuilder = newAttributesBuilder();
-        attributesBuilder.put(LABEL_CONSUMER_GROUP, result.group);
-        attributesBuilder.put(LABEL_TOPIC, result.topic);
-        attributesBuilder.put(LABEL_IS_RETRY, result.isRetry);
-        attributesBuilder.put(LABEL_IS_SYSTEM, isSystem(result.topic, result.group));
+        attributesBuilder.put(LABEL_CONSUMER_GROUP_KEY, result.group);
+        attributesBuilder.put(LABEL_TOPIC_KEY, result.topic);
+        attributesBuilder.put(LABEL_IS_RETRY_KEY, result.isRetry);
+        attributesBuilder.put(LABEL_IS_SYSTEM_KEY, isSystem(result.topic, result.group));
         return attributesBuilder.build();
     }
 
@@ -571,18 +571,18 @@ public class BrokerMetricsManager {
             .setDescription("Request processor watermark")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                measurement.record(brokerController.getSendThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "send").build());
-                measurement.record(brokerController.getAsyncPutThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "async_put").build());
-                measurement.record(brokerController.getPullThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "pull").build());
-                measurement.record(brokerController.getAckThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "ack").build());
-                measurement.record(brokerController.getQueryThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "query_message").build());
-                measurement.record(brokerController.getClientManagerThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "client_manager").build());
-                measurement.record(brokerController.getHeartbeatThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "heartbeat").build());
-                measurement.record(brokerController.getLitePullThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "lite_pull").build());
-                measurement.record(brokerController.getEndTransactionThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "transaction").build());
-                measurement.record(brokerController.getConsumerManagerThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "consumer_manager").build());
-                measurement.record(brokerController.getAdminBrokerThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "admin").build());
-                measurement.record(brokerController.getReplyThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR, "reply").build());
+                measurement.record(brokerController.getSendThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "send").build());
+                measurement.record(brokerController.getAsyncPutThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "async_put").build());
+                measurement.record(brokerController.getPullThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "pull").build());
+                measurement.record(brokerController.getAckThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "ack").build());
+                measurement.record(brokerController.getQueryThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "query_message").build());
+                measurement.record(brokerController.getClientManagerThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "client_manager").build());
+                measurement.record(brokerController.getHeartbeatThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "heartbeat").build());
+                measurement.record(brokerController.getLitePullThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "lite_pull").build());
+                measurement.record(brokerController.getEndTransactionThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "transaction").build());
+                measurement.record(brokerController.getConsumerManagerThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "consumer_manager").build());
+                measurement.record(brokerController.getAdminBrokerThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "admin").build());
+                measurement.record(brokerController.getReplyThreadPoolQueue().size(), newAttributesBuilder().put(LABEL_PROCESSOR_KEY, "reply").build());
             });
 
         brokerPermission = brokerMeter.gaugeBuilder(GAUGE_BROKER_PERMISSION)
@@ -662,9 +662,9 @@ public class BrokerMetricsManager {
                     });
                 metricsMap.forEach((attr, count) -> {
                     Attributes attributes = newAttributesBuilder()
-                        .put(LABEL_LANGUAGE, attr.language.name().toLowerCase())
-                        .put(LABEL_VERSION, MQVersion.getVersionDesc(attr.version).toLowerCase())
-                        .put(LABEL_PROTOCOL_TYPE, PROTOCOL_TYPE_REMOTING)
+                        .put(LABEL_LANGUAGE_KEY, attr.language.name().toLowerCase())
+                        .put(LABEL_VERSION_KEY, MQVersion.getVersionDesc(attr.version).toLowerCase())
+                        .put(LABEL_PROTOCOL_TYPE_KEY, PROTOCOL_TYPE_REMOTING)
                         .build();
                     measurement.record(count, attributes);
                 });
@@ -688,12 +688,12 @@ public class BrokerMetricsManager {
                     });
                 metricsMap.forEach((attr, count) -> {
                     Attributes attributes = newAttributesBuilder()
-                        .put(LABEL_CONSUMER_GROUP, attr.group)
-                        .put(LABEL_LANGUAGE, attr.language.name().toLowerCase())
-                        .put(LABEL_VERSION, MQVersion.getVersionDesc(attr.version).toLowerCase())
-                        .put(LABEL_CONSUME_MODE, attr.consumeMode.getTypeCN().toLowerCase())
-                        .put(LABEL_PROTOCOL_TYPE, PROTOCOL_TYPE_REMOTING)
-                        .put(LABEL_IS_SYSTEM, isSystemGroup(attr.group))
+                        .put(LABEL_CONSUMER_GROUP_KEY, attr.group)
+                        .put(LABEL_LANGUAGE_KEY, attr.language.name().toLowerCase())
+                        .put(LABEL_VERSION_KEY, MQVersion.getVersionDesc(attr.version).toLowerCase())
+                        .put(LABEL_CONSUME_MODE_KEY, attr.consumeMode.getTypeCN().toLowerCase())
+                        .put(LABEL_PROTOCOL_TYPE_KEY, PROTOCOL_TYPE_REMOTING)
+                        .put(LABEL_IS_SYSTEM_KEY, isSystemGroup(attr.group))
                         .build();
                     measurement.record(count, attributes);
                 });
