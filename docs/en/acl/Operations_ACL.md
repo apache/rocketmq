@@ -33,7 +33,8 @@ The definition of Topic resource access control for RocketMQ is mainly as shown 
 For details, please refer to the **distribution/conf/plain_acl.yml** configuration file.
 
 ## 3. Cluster deployment with permission control
-After defining the permission attribute in the **distribution/conf/plain_acl.yml** configuration file as described above, open the **aclEnable** switch variable to enable the ACL feature of the RocketMQ cluster.The configuration file of the ACL feature enabled on the broker is as follows:
+After defining the permission attribute in the **distribution/conf/plain_acl.yml** configuration file as described above, enable the ACL feature by setting the following properties in the broker configuration file:
+
 ```properties
 brokerClusterName=DefaultCluster
 brokerName=broker-a
@@ -47,6 +48,12 @@ storePathCommitLog=/data/rocketmq/commitlog-a-m
 autoCreateSubscriptionGroup=true
 ## if acl is open,the flag will be true
 aclEnable=true
+## RocketMQ 5.x requires the following additional ACL properties
+authenticationEnabled=true
+authorizationEnabled=true
+migrateAuthFromV1Enabled=true
+authenticationMetadataProvider=org.apache.rocketmq.auth.authentication.provider.LocalAuthenticationMetadataProvider
+authorizationMetadataProvider=org.apache.rocketmq.auth.authorization.provider.LocalAuthorizationMetadataProvider
 listenPort=10911
 brokerIP1=XX.XX.XX.XX1
 namesrvAddr=XX.XX.XX.XX:9876

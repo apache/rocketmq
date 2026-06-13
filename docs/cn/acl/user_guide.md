@@ -34,7 +34,8 @@ ACL客户端可以参考：**org.apache.rocketmq.example.simple**包下面的**A
 具体可以参考**distribution/conf/plain_acl.yml**配置文件
 
 ## 3. 支持权限控制的集群部署
-在**distribution/conf/plain_acl.yml**配置文件中按照上述说明定义好权限属性后，打开**aclEnable**开关变量即可开启RocketMQ集群的ACL特性。这里贴出Broker端开启ACL特性的properties配置文件内容：
+在**distribution/conf/plain_acl.yml**配置文件中按照上述说明定义好权限属性后，在Broker配置文件中设置以下属性即可开启RocketMQ集群的ACL特性：
+
 ```
 brokerClusterName=DefaultCluster
 brokerName=broker-a
@@ -48,6 +49,12 @@ storePathCommitLog=/data/rocketmq/commitlog-a-m
 autoCreateSubscriptionGroup=true
 ## if acl is open,the flag will be true
 aclEnable=true
+## RocketMQ 5.x 需要额外配置以下ACL属性
+authenticationEnabled=true
+authorizationEnabled=true
+migrateAuthFromV1Enabled=true
+authenticationMetadataProvider=org.apache.rocketmq.auth.authentication.provider.LocalAuthenticationMetadataProvider
+authorizationMetadataProvider=org.apache.rocketmq.auth.authorization.provider.LocalAuthorizationMetadataProvider
 listenPort=10911
 brokerIP1=XX.XX.XX.XX1
 namesrvAddr=XX.XX.XX.XX:9876
