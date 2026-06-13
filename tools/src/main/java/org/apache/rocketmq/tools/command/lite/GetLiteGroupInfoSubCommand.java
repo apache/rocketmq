@@ -89,7 +89,7 @@ public class GetLiteGroupInfoSubCommand implements SubCommand {
             System.out.printf("Lite Group Info: [%s] [%s]%n", group, parentTopic);
 
             long totalLagCount = 0;
-            long earliestUnconsumedTimestamp = System.currentTimeMillis();
+            long earliestUnconsumedTimestamp = -1;
             List<LiteLagInfo> lagCountTopK = new ArrayList<>();
             List<LiteLagInfo> lagTimestampTopK = new ArrayList<>();
 
@@ -111,8 +111,9 @@ public class GetLiteGroupInfoSubCommand implements SubCommand {
                 try {
                     GetLiteGroupInfoResponseBody body = defaultMQAdminExt.getLiteGroupInfo(brokerAddr, group, liteTopic, topK);
                     totalLagCount += body.getTotalLagCount() > 0 ? body.getTotalLagCount() : 0;
-                    if (body.getEarliestUnconsumedTimestamp() > 0) {
-                        earliestUnconsumedTimestamp = Math.min(earliestUnconsumedTimestamp, body.getEarliestUnconsumedTimestamp());
+                    long ts = body.getEarliestUnconsumedTimestamp();
+                    if (ts > 0 && (earliestUnconsumedTimestamp < 0 || ts < earliestUnconsumedTimestamp)) {
+                        earliestUnconsumedTimestamp = ts;
                     }
                     printOffsetWrapper(queryByLiteTopic, brokerData.getBrokerName(), body.getLiteTopicOffsetWrapper());
                     lagCountTopK.addAll(body.getLagCountTopK() != null ? body.getLagCountTopK() : Collections.emptyList());
@@ -122,17 +123,15 @@ public class GetLiteGroupInfoSubCommand implements SubCommand {
                 }
             }
 
-            System.out.printf("Total Lag Count: %d%n", totalLagCount);
-            long lagTime = System.currentTimeMillis() - earliestUnconsumedTimestamp;
-            System.out.printf("Min Unconsumed Timestamp: %d (%d s ago)%n%n", earliestUnconsumedTimestamp, lagTime / 1000);
-
             if (queryByLiteTopic) {
+                System.out.printf("Total Lag Count: %d%n", totalLagCount);
                 return;
             }
 
             // Sort and print topK lagCountTopK
             lagCountTopK.sort((o1, o2) -> Long.compare(o2.getLagCount(), o1.getLagCount()));
             System.out.printf("------TopK by lag count-----%n");
+            System.out.printf("Total Lag Count: %d%n", totalLagCount);
             System.out.printf("%-6s %-40s %-12s %-30s%n", "NO", "Lite Topic", "Lag Count", "UnconsumedTimestamp");
             for (int i = 0; i < lagCountTopK.size(); i++) {
                 LiteLagInfo info = lagCountTopK.get(i);
@@ -144,6 +143,12 @@ public class GetLiteGroupInfoSubCommand implements SubCommand {
             // Sort and print topK lagTimestampTopK
             lagTimestampTopK.sort(Comparator.comparingLong(LiteLagInfo::getEarliestUnconsumedTimestamp));
             System.out.printf("%n------TopK by lag time------%n");
+            if (earliestUnconsumedTimestamp > 0) {
+                long lagTime = System.currentTimeMillis() - earliestUnconsumedTimestamp;
+                System.out.printf("Min Unconsumed Timestamp: %d (%d s ago)%n", earliestUnconsumedTimestamp, lagTime / 1000);
+            } else {
+                System.out.printf("Min Unconsumed Timestamp: -1 (lag time topK may not enabled)%n");
+            }
             System.out.printf("%-6s %-40s %-12s %-30s%n", "NO", "Lite Topic", "Lag Count", "UnconsumedTimestamp");
             for (int i = 0; i < lagTimestampTopK.size(); i++) {
                 LiteLagInfo info = lagTimestampTopK.get(i);

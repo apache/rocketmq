@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.queue.offset.OffsetEntryType;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
 import org.junit.AfterClass;
@@ -38,6 +39,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -54,10 +56,16 @@ public class RocksDBConsumeQueueOffsetTableTest {
     private ConsumeQueueRocksDBStorage rocksDBStorage;
 
     @Mock
+    private ColumnFamilyHandle columnFamilyHandle;
+
+    @Mock
     private RocksDBConsumeQueueTable consumeQueueTable;
 
     @Mock
     private DefaultMessageStore messageStore;
+
+    @Mock
+    private MessageStoreConfig messageStoreConfig;
 
     private static RocksDB db;
 
@@ -90,6 +98,8 @@ public class RocksDBConsumeQueueOffsetTableTest {
     public void setUp() {
         RocksIterator iterator = db.newIterator();
         Mockito.doReturn(iterator).when(rocksDBStorage).seekOffsetCF();
+        Mockito.doReturn(columnFamilyHandle).when(rocksDBStorage).getOffsetCFHandle();
+        Mockito.doReturn(messageStoreConfig).when(messageStore).getMessageStoreConfig();
         offsetTable = new RocksDBConsumeQueueOffsetTable(consumeQueueTable, rocksDBStorage, messageStore);
     }
 
@@ -134,6 +144,19 @@ public class RocksDBConsumeQueueOffsetTableTest {
         Mockito.doReturn(db.newIterator()).when(rocksDBStorage).seekOffsetCF();
         offsetTable.load();
         Assert.assertEquals(initCount + lmqCount, offsetTable.getLmqNum());
+    }
+
+    @Test
+    public void testLmqCounter_decrement() throws RocksDBException {
+        offsetTable.load();
+        int initCount = offsetTable.getLmqNum();
+        String topic = MixAll.LMQ_PREFIX + UUID.randomUUID();
+        Long maxOffset = offsetTable.getMaxCqOffset(topic, 0);
+        Assert.assertNull(maxOffset);
+        Assert.assertEquals(initCount, offsetTable.getLmqNum());
+
+        offsetTable.destroyOffset(topic, 0, new WriteBatch());
+        Assert.assertEquals(initCount, offsetTable.getLmqNum());
     }
 
     private static void writeOffset(String topic, int queueId, long phyOffset,

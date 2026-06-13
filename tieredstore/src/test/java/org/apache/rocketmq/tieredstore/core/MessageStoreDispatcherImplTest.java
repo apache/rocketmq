@@ -37,6 +37,7 @@ import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.apache.rocketmq.tieredstore.common.GroupCommitContext;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
+import org.apache.rocketmq.tieredstore.file.FlatFileInterface;
 import org.apache.rocketmq.tieredstore.file.FlatFileStore;
 import org.apache.rocketmq.tieredstore.file.FlatMessageFile;
 import org.apache.rocketmq.tieredstore.index.IndexItem;
@@ -88,6 +89,7 @@ public class MessageStoreDispatcherImplTest {
         if (messageStore != null) {
             messageStore.destroy();
         }
+        executor.shutdown();
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 
@@ -99,7 +101,7 @@ public class MessageStoreDispatcherImplTest {
 
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         indexService.start();
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
@@ -167,7 +169,7 @@ public class MessageStoreDispatcherImplTest {
 
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         indexService.start();
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
@@ -231,7 +233,7 @@ public class MessageStoreDispatcherImplTest {
 
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         indexService.start();
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
@@ -288,7 +290,7 @@ public class MessageStoreDispatcherImplTest {
         MessageStore defaultStore = Mockito.mock(MessageStore.class);
         messageStore = Mockito.mock(TieredMessageStore.class);
         IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
         Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
@@ -311,9 +313,46 @@ public class MessageStoreDispatcherImplTest {
         Mockito.doAnswer(mock -> {
             result.set(true);
             return true;
-        }).when(dispatcherSpy).dispatchWithSemaphore(any());
+        }).when(dispatcherSpy).dispatch(any(FlatFileInterface.class));
         dispatcherSpy.start();
         Awaitility.await().atMost(Duration.ofSeconds(10)).until(result::get);
         dispatcherSpy.shutdown();
+    }
+
+    @Test
+    public void isMemoryEnoughTest() {
+        MessageStore defaultStore = Mockito.mock(MessageStore.class);
+        messageStore = Mockito.mock(TieredMessageStore.class);
+        IndexService indexService =
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig, executor), storePath);
+        Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
+        Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
+        Mockito.when(messageStore.getFlatFileStore()).thenReturn(fileStore);
+        Mockito.when(messageStore.getIndexService()).thenReturn(indexService);
+        MessageStoreDispatcherImpl dispatcher = new MessageStoreDispatcherImpl(messageStore);
+
+        FlatFileInterface flatFile = Mockito.mock(FlatFileInterface.class);
+        Mockito.when(flatFile.getMessageQueue()).thenReturn(mq);
+
+        // (1) memory sufficient: threshold = min(maxMemory * 0, 0) = 0 → always true
+        storeConfig.setTieredStoreDispatchMinFreeMemoryRatio(0.0f);
+        storeConfig.setTieredStoreDispatchMinFreeMemoryMaxBytes(0L);
+        Assert.assertTrue(dispatcher.isMemoryEnough(flatFile));
+
+        // (2) memory below threshold: threshold = min(maxMemory * 1.0, MAX_VALUE) = maxMemory → always false
+        storeConfig.setTieredStoreDispatchMinFreeMemoryRatio(1.0f);
+        storeConfig.setTieredStoreDispatchMinFreeMemoryMaxBytes(Long.MAX_VALUE);
+        Assert.assertFalse(dispatcher.isMemoryEnough(flatFile));
+
+        // (3) maxBytes cap: ratio = 1.0 → ratioThreshold = maxMemory
+        // maxBytes = 1 → threshold = min(maxMemory, 1) = 1 → available > 1 → true
+        storeConfig.setTieredStoreDispatchMinFreeMemoryMaxBytes(1L);
+        Assert.assertTrue(dispatcher.isMemoryEnough(flatFile));
+        // maxBytes = MAX_VALUE → threshold = maxMemory → available < maxMemory → false
+        storeConfig.setTieredStoreDispatchMinFreeMemoryMaxBytes(Long.MAX_VALUE);
+        Assert.assertFalse(dispatcher.isMemoryEnough(flatFile));
+
+        dispatcher.shutdown();
     }
 }

@@ -16,11 +16,16 @@
  */
 package org.apache.rocketmq.common.lite;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+
 public class LiteLagInfo {
     private String liteTopic;
     private long lagCount;
     // earliest unconsumed timestamp
     private long earliestUnconsumedTimestamp = -1;
+
+    @JSONField(serialize = false)
+    private long consumerOffset = -1;
 
     public String getLiteTopic() {
         return liteTopic;
@@ -44,5 +49,13 @@ public class LiteLagInfo {
 
     public void setEarliestUnconsumedTimestamp(long earliestUnconsumedTimestamp) {
         this.earliestUnconsumedTimestamp = earliestUnconsumedTimestamp;
+    }
+
+    public long getConsumerOffset() {
+        return consumerOffset;
+    }
+
+    public void setConsumerOffset(long consumerOffset) {
+        this.consumerOffset = consumerOffset;
     }
 }

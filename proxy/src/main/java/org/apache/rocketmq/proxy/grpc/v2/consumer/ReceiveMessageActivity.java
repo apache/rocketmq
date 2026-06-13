@@ -254,7 +254,8 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                 if (receiptHandle != null) {
                     MessageReceiptHandle messageReceiptHandle =
                         new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
-                            messageExt.getQueueOffset(), messageExt.getReconsumeTimes());
+                            messageExt.getQueueOffset(), messageExt.getReconsumeTimes(),
+                            messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC));
                     messagingProcessor.addReceiptHandle(ctx, clientChannel, group, messageExt.getMsgId(), messageReceiptHandle);
                 }
             }

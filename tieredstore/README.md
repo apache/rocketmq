@@ -18,7 +18,7 @@ Use the following steps to easily use tiered storage
 
 ## Configuration
 
-The following are some core configurations, for more details, see [TieredMessageStoreConfig](https://github.com/apache/rocketmq/blob/develop/tieredstore/src/main/java/org/apache/rocketmq/tieredstore/common/TieredMessageStoreConfig.java)
+The following are some core configurations, for more details, see [MessageStoreConfig](https://github.com/apache/rocketmq/blob/develop/tieredstore/src/main/java/org/apache/rocketmq/tieredstore/MessageStoreConfig.java)
 
 | Configuration                   | Default value                                                 | Unit        | Function                                                                        |
 | ------------------------------- |---------------------------------------------------------------| ----------- |---------------------------------------------------------------------------------|

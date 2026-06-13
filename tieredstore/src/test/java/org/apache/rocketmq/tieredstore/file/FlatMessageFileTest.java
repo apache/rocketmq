@@ -23,6 +23,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
@@ -41,6 +42,7 @@ public class FlatMessageFileTest {
     private final String storePath = MessageStoreUtilTest.getRandomStorePath();
     private MessageStoreConfig storeConfig;
     private MetadataStore metadataStore;
+    private MessageStoreExecutor executor;
     private FlatFileFactory flatFileFactory;
 
     @Before
@@ -48,15 +50,18 @@ public class FlatMessageFileTest {
         storeConfig = new MessageStoreConfig();
         storeConfig.setBrokerName("brokerName");
         storeConfig.setStorePathRootDir(storePath);
+        storeConfig.setTieredStoreFilePath(storePath);
         storeConfig.setTieredBackendServiceProvider(PosixFileSegment.class.getName());
         storeConfig.setCommitLogRollingInterval(0);
         storeConfig.setCommitLogRollingMinimumSize(999);
         metadataStore = new DefaultMetadataStore(storeConfig);
-        flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
+        executor = new MessageStoreExecutor();
+        flatFileFactory = new FlatFileFactory(metadataStore, storeConfig, executor);
     }
 
     @After
     public void shutdown() throws IOException {
+        executor.shutdown();
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 
@@ -142,7 +147,7 @@ public class FlatMessageFileTest {
 
         // replace provider, need new factory again
         storeConfig.setTieredBackendServiceProvider(PosixFileSegment.class.getName());
-        flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
+        flatFileFactory = new FlatFileFactory(metadataStore, storeConfig, executor);
 
         // inject store time: 0, +100, +100, +100, +200
         MessageQueue mq = new MessageQueue("TopicTest", "BrokerName", 1);

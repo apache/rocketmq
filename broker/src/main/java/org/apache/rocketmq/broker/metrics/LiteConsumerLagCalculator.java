@@ -28,12 +28,12 @@ import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.entity.TopicGroup;
@@ -212,23 +212,21 @@ public class LiteConsumerLagCalculator {
     ) {
         // Use a min heap to maintain the largest topK lag counts
         PriorityQueue<LiteLagInfo> minHeap = new PriorityQueue<>(topK, Comparator.comparingLong(LiteLagInfo::getLagCount));
-        AtomicLong totalLagCount = new AtomicLong(0L);
+        long[] totalLagCount = {0L};
 
         offsetTableForEachByGroup(group, (topicGroup, consumerOffset) -> {
-            String topic = topicGroup.topic;
-
-            long diff = offsetDiff(consumerOffset, topic);
+            String lmqName = topicGroup.topic;
+            long diff = offsetDiff(consumerOffset, lmqName);
             if (diff > 0) {
-                totalLagCount.addAndGet(diff);
-                LiteLagInfo liteLagInfo = new LiteLagInfo();
-                liteLagInfo.setLiteTopic(LiteUtil.getLiteTopic(topic));
-                liteLagInfo.setLagCount(diff);
-                liteLagInfo.setEarliestUnconsumedTimestamp(getStoreTimestamp(topic, consumerOffset));
-
-                if (minHeap.size() < topK) {
-                    minHeap.offer(liteLagInfo);
-                } else if (minHeap.peek() != null && liteLagInfo.getLagCount() > minHeap.peek().getLagCount()) {
-                    minHeap.poll();
+                totalLagCount[0] += diff;
+                if (minHeap.size() < topK || minHeap.peek() != null && diff > minHeap.peek().getLagCount()) {
+                    LiteLagInfo liteLagInfo = new LiteLagInfo();
+                    liteLagInfo.setLiteTopic(LiteUtil.getLiteTopic(lmqName));
+                    liteLagInfo.setLagCount(diff);
+                    liteLagInfo.setConsumerOffset(consumerOffset);
+                    if (minHeap.size() >= topK) {
+                        minHeap.poll();
+                    }
                     minHeap.offer(liteLagInfo);
                 }
             }
@@ -238,7 +236,17 @@ public class LiteConsumerLagCalculator {
         List<LiteLagInfo> topList = new ArrayList<>(minHeap);
         topList.sort(Comparator.comparingLong(LiteLagInfo::getLagCount).reversed());
 
-        return Pair.of(topList, totalLagCount.get());
+        // Compute getStoreTimestamp only for topK results (expensive operation)
+        String parentTopic = LiteMetadataUtil.getLiteBindTopic(group, brokerController);
+        for (LiteLagInfo lagInfo : topList) {
+            long consumerOffset = lagInfo.getConsumerOffset();
+            if (consumerOffset >= 0) {
+                String lmqName = LiteUtil.toLmqName(parentTopic, lagInfo.getLiteTopic());
+                lagInfo.setEarliestUnconsumedTimestamp(getStoreTimestamp(lmqName, consumerOffset));
+            }
+        }
+
+        return Pair.of(topList, totalLagCount[0]);
     }
 
     /**
@@ -254,21 +262,25 @@ public class LiteConsumerLagCalculator {
         ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable =
             brokerController.getConsumerOffsetManager().getOffsetTable();
         offsetTable.forEach((topicAtGroup, queueOffset) -> {
-            String[] topicGroup = topicAtGroup.split(ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR);
-            if (topicGroup.length == 2) {
-                if (!LiteUtil.isLiteTopicQueue(topicGroup[0])) {
-                    return;
-                }
-                // If group specified, only process the matching group
-                if (StringUtils.isEmpty(group) || group.equals(topicGroup[1])) {
-                    TopicGroup tg = new TopicGroup(topicGroup[0], topicGroup[1]);
-                    Long consumerOffset = queueOffset.get(0);
-                    if (consumerOffset == null) {
-                        return;
-                    }
-                    consumer.accept(tg, consumerOffset);
-                }
+            int sepIdx = topicAtGroup.indexOf(ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR);
+            if (sepIdx <= 0 || sepIdx == topicAtGroup.length() - 1) {
+                return;
             }
+            // Early check lite prefix before any string allocation
+            if (!LiteUtil.isLiteTopicQueue(topicAtGroup)) {
+                return;
+            }
+            // Only extract group substring when needed for comparison
+            String entryGroup = topicAtGroup.substring(sepIdx + 1);
+            if (StringUtils.isNotEmpty(group) && !group.equals(entryGroup)) {
+                return;
+            }
+            Long consumerOffset = queueOffset.get(0);
+            if (consumerOffset == null) {
+                return;
+            }
+            String topic = topicAtGroup.substring(0, sepIdx);
+            consumer.accept(new TopicGroup(topic, entryGroup), consumerOffset);
         });
     }
 

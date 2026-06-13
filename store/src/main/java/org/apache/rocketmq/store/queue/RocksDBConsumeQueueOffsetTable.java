@@ -600,7 +600,11 @@ public class RocksDBConsumeQueueOffsetTable {
     private Long removeHeapMaxCqOffset(String topicQueueId) {
         Long prev = this.topicQueueMaxCqOffset.remove(topicQueueId);
         if (prev != null && topicQueueId.startsWith(MixAll.LMQ_PREFIX)) {
-            lmqCounter.decrementAndGet();
+            if (prev != -1L) {
+                lmqCounter.decrementAndGet();
+            } else {
+                ERROR_LOG.warn("remove lmq entry that was never actually used. {}", topicQueueId);
+            }
         }
         return prev;
     }
