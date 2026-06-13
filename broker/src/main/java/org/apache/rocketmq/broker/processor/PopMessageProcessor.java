@@ -578,6 +578,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
         // pop message
         CompletableFuture<Long> getMessageFuture = CompletableFuture.completedFuture(0L);
+        // pop message from retry topic
         if (needRetry && !requestHeader.isOrder()) {
             if (needRetryV1) {
                 String retryTopic = KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup());
@@ -618,6 +619,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         // async result handle
         final RemotingCommand finalResponse = response;
         getMessageFuture.thenApply(restNum -> {
+            // execute callback
             try {
                 if (request.getCallbackList() != null) {
                     request.getCallbackList().forEach(CommandCallback::accept);

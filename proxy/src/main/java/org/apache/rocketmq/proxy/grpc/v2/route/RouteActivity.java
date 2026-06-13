@@ -73,6 +73,7 @@ public class RouteActivity extends AbstractMessagingActivity {
      *     message_queues: [
      *      {
      *        topic: xxx,
+     *        id: xxx, // queue id
      *        permission: (enum)xxx,
      *        broker: {
      *            name: xxx,
@@ -134,6 +135,7 @@ public class RouteActivity extends AbstractMessagingActivity {
      *          {
      *             message_queue: {
      *                  topic: xxx,
+     *                  id: xxx, // queue id
      *                  permission: (enum)xxx,
      *                  broker: {
      *                      name: xxx,
