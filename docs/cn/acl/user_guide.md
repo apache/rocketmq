@@ -84,86 +84,104 @@ RocketMQ的权限控制存储的默认实现是基于yml配置文件。用户可
 
 ## 7. ACL mqadmin配置管理命令
 
-### 7.1 更新ACL配置文件中“account”的属性值
+RocketMQ 5.x 提供了以下 mqadmin 命令用于管理 ACL。所有命令均支持 `-h` 查看帮助。
 
-该命令的示例如下：
+### 7.1 创建ACL规则
 
-sh mqadmin updateAclConfig -n 192.168.1.2:9876 -b 192.168.12.134:10911 -a RocketMQ -s 1234567809123 
--t topicA=DENY,topicD=SUB -g groupD=DENY,groupB=SUB
+该命令用于为指定用户（subject）创建一条ACL规则。
 
-说明：如果不存在则会在ACL Config YAML配置文件中创建；若存在，则会更新对应的“accounts”的属性值;
-如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
-
-| 参数 | 取值 | 含义 |
-| --- | --- | --- |
-| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
-| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
-| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
-| a | eg:RocketMQ | Access Key值(必填) |
-| s | eg:1234567809123 | Secret Key值(可选) |
-| m | eg:true | 是否管理员账户(可选) |
-| w | eg:192.168.0.* | whiteRemoteAddress,用户IP白名单(可选) |
-| i | eg:DENY;PUB;SUB;PUB\|SUB | defaultTopicPerm,默认Topic权限(可选) |
-| u | eg:DENY;PUB;SUB;PUB\|SUB | defaultGroupPerm,默认ConsumerGroup权限(可选) |
-| t | eg:topicA=DENY,topicD=SUB | topicPerms,各个Topic的权限(可选) |
-| g | eg:groupD=DENY,groupB=SUB | groupPerms,各个ConsumerGroup的权限(可选) |
-
-### 7.2 删除ACL配置文件里面的对应“account”
-该命令的示例如下：
-
-sh mqadmin deleteAccessConfig -n 192.168.1.2:9876 -c DefaultCluster -a RocketMQ
-
-说明：如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
-其中，参数"a"为Access Key的值，用以标识唯一账户id，因此该命令的参数中指定账户id即可。
+```shell
+sh mqadmin createAcl -n 192.168.1.2:9876 -c DefaultCluster -s RocketMQ -r topic=TestTopic -a PUB -d ALLOW
+```
 
 | 参数 | 取值 | 含义 |
 | --- | --- | --- |
-| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
-| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
-| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
-| a | eg:RocketMQ | Access Key的值(必填) |
+| n | eg:192.168.1.2:9876 | namesrv地址 |
+| c | eg:DefaultCluster | 目标集群名称(与-b二选一) |
+| b | eg:192.168.1.2:10911 | 目标broker地址(与-c二选一) |
+| s | eg:RocketMQ | 用户标识（必填） |
+| r | eg:topic=TestTopic | 资源描述，格式为 topic=xxx 或 group=xxx（必填） |
+| a | eg:PUB | 允许的操作：PUB、SUB、PUB\|SUB（必填） |
+| d | eg:ALLOW | 决策类型：ALLOW 或 DENY（必填） |
+| i | eg:192.168.0.* | 源IP白名单（可选） |
 
+### 7.2 更新ACL规则
 
-### 7.3 更新ACL配置文件里面中的全局白名单
-该命令的示例如下：
+更新已有的ACL规则，参数与 createAcl 相同。
 
-sh mqadmin updateGlobalWhiteAddr -n 192.168.1.2:9876 -b 192.168.12.134:10911 -g 10.10.154.1,10.10.154.2
+```shell
+sh mqadmin updateAcl -n 192.168.1.2:9876 -c DefaultCluster -s RocketMQ -r topic=TestTopic -a “PUB|SUB” -d ALLOW
+```
 
-说明：如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
-其中，参数"g"为全局IP白名的值，用以更新ACL配置文件中的“globalWhiteRemoteAddresses”字段的属性值。
+### 7.3 删除ACL规则
 
-| 参数 | 取值 | 含义 |
-| --- | --- | --- |
-| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
-| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
-| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
-| g | eg:10.10.154.1,10.10.154.2 | 全局IP白名单(必填) |
+删除指定用户的所有ACL规则，或删除指定用户在某资源上的规则。
 
-### 7.4 查询集群/Broker的ACL配置文件版本信息
-该命令的示例如下：
+```shell
+# 删除用户的所有ACL规则
+sh mqadmin deleteAcl -n 192.168.1.2:9876 -c DefaultCluster -s RocketMQ
 
-sh mqadmin clusterAclConfigVersion -n 192.168.1.2:9876 -c DefaultCluster
-
-说明：如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
-
-| 参数 | 取值 | 含义 |
-| --- | --- | --- |
-| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
-| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
-| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
-
-### 7.5 查询集群/Broker的ACL配置文件全部内容
-该命令的示例如下：
-
-sh mqadmin getAclConfig -n 192.168.1.2:9876 -c DefaultCluster
-
-说明：如果指定的是集群名称，则会在集群中各个broker节点执行该命令；否则会在单个broker节点执行该命令。
+# 删除用户在某资源上的ACL规则
+sh mqadmin deleteAcl -n 192.168.1.2:9876 -c DefaultCluster -s RocketMQ -r topic=TestTopic
+```
 
 | 参数 | 取值 | 含义 |
 | --- | --- | --- |
-| n | eg:192.168.1.2:9876 | namesrv地址(必填) |
-| c | eg:DefaultCluster | 指定集群名称(与broker地址二选一) |
-| b | eg:192.168.12.134:10911 | 指定broker地址(与集群名称二选一) |
+| n | eg:192.168.1.2:9876 | namesrv地址 |
+| c | eg:DefaultCluster | 目标集群名称(与-b二选一) |
+| b | eg:192.168.1.2:10911 | 目标broker地址(与-c二选一) |
+| s | eg:RocketMQ | 用户标识（必填） |
+| r | eg:topic=TestTopic | 资源描述，不填则删除该用户的所有规则（可选） |
 
-**特别注意**开启Acl鉴权认证后导致Master/Slave和Dledger模式下Broker同步数据异常的问题，
-在社区[4.5.1]版本中已经修复，具体的PR链接为：#1149。
+### 7.4 查询ACL规则
+
+查询指定用户的ACL规则。
+
+```shell
+sh mqadmin getAcl -n 192.168.1.2:9876 -c DefaultCluster -s RocketMQ
+```
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| n | eg:192.168.1.2:9876 | namesrv地址 |
+| c | eg:DefaultCluster | 目标集群名称(与-b二选一) |
+| b | eg:192.168.1.2:10911 | 目标broker地址(与-c二选一) |
+| s | eg:RocketMQ | 用户标识，不填则查询所有用户（可选） |
+
+### 7.5 列出ACL规则
+
+列出集群或Broker上的所有ACL规则，可按用户或资源过滤。
+
+```shell
+# 列出所有ACL
+sh mqadmin listAcl -n 192.168.1.2:9876 -c DefaultCluster
+
+# 按用户过滤
+sh mqadmin listAcl -n 192.168.1.2:9876 -c DefaultCluster -s RocketMQ
+
+# 按资源过滤
+sh mqadmin listAcl -n 192.168.1.2:9876 -c DefaultCluster -r topic=TestTopic
+```
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| n | eg:192.168.1.2:9876 | namesrv地址 |
+| c | eg:DefaultCluster | 目标集群名称(与-b二选一) |
+| b | eg:192.168.1.2:10911 | 目标broker地址(与-c二选一) |
+| s | eg:RocketMQ | 按用户过滤（可选） |
+| r | eg:topic=TestTopic | 按资源过滤（可选） |
+
+### 7.6 复制ACL规则
+
+将一个Broker上的ACL规则复制到另一个Broker。
+
+```shell
+sh mqadmin copyAcl -n 192.168.1.2:9876 -f 192.168.1.2:10911 -t 192.168.1.3:10911
+```
+
+| 参数 | 取值 | 含义 |
+| --- | --- | --- |
+| n | eg:192.168.1.2:9876 | namesrv地址 |
+| f | eg:192.168.1.2:10911 | 源Broker地址（必填） |
+| t | eg:192.168.1.3:10911 | 目标Broker地址（必填） |
+| s | eg:RocketMQ,testuser | 要复制的用户列表，逗号分隔（可选） |
