@@ -196,7 +196,6 @@ name-service         1/1     107m
 * Issues: <https://github.com/apache/rocketmq/issues>
 * Rips: <https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal>
 * Ask: <https://stackoverflow.com/questions/tagged/rocketmq>
-* Slack: <https://rocketmq-invite-automation.herokuapp.com/>
 
 
 ----------
