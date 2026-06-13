@@ -117,13 +117,29 @@ public class UtilAll {
     }
 
     public static boolean isItTimeToDo(final String when) {
+        if (StringUtils.isBlank(when)) {
+            return false;
+        }
+
         String[] whiles = when.split(";");
         if (whiles.length > 0) {
             Calendar now = Calendar.getInstance();
+            int nowHour = now.get(Calendar.HOUR_OF_DAY);
             for (String w : whiles) {
-                int nowHour = Integer.parseInt(w);
-                if (nowHour == now.get(Calendar.HOUR_OF_DAY)) {
-                    return true;
+                if (StringUtils.isBlank(w)) {
+                    continue;
+                }
+                String trimmed = w.trim();
+                try {
+                    int hour = Integer.parseInt(trimmed);
+                    if (hour < 0 || hour > 23) {
+                        continue;
+                    }
+                    if (hour == nowHour) {
+                        return true;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Ignore invalid hour tokens to avoid breaking scheduled tasks.
                 }
             }
         }

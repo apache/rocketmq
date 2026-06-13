@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -34,6 +35,7 @@ import org.junit.rules.TemporaryFolder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class UtilAllTest {
@@ -149,6 +151,20 @@ public class UtilAllTest {
         assertEquals(list, UtilAll.split("groupA=DENY,groupB=PUB|SUB,groupC=SUB", comma));
         assertEquals(null, UtilAll.split(null, comma));
         assertEquals(Collections.EMPTY_LIST, UtilAll.split("", comma));
+    }
+
+    @Test
+    public void testIsItTimeToDo() {
+        int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        assertTrue(UtilAll.isItTimeToDo(String.valueOf(currentHour)));
+        assertTrue(UtilAll.isItTimeToDo("foo; " + currentHour + " ; 25"));
+        assertTrue(UtilAll.isItTimeToDo("  " + currentHour + "  "));
+
+        assertFalse(UtilAll.isItTimeToDo(null));
+        assertFalse(UtilAll.isItTimeToDo(""));
+        assertFalse(UtilAll.isItTimeToDo(" ; "));
+        assertFalse(UtilAll.isItTimeToDo("not_a_number"));
+        assertFalse(UtilAll.isItTimeToDo("99"));
     }
 
     static class DemoConfig {

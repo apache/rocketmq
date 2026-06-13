@@ -11,7 +11,7 @@
 
 ## 2 Support for Message Trace Cluster Deployment
 
-### 2.1 Broker Configuration Fille
+### 2.1 Broker Configuration File
 
 The properties profile content of the Broker side enabled message trace feature is pasted here:
 
