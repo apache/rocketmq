@@ -2,7 +2,7 @@
 Load balancing in RocketMQ is accomplished on Client side. Specifically, it can be divided into load balancing at Producer side when sending messages and load balancing at Consumer side when subscribing messages.
 
 ### Producer Load Balancing
-When the Producer sends a message, it will first find the specified TopicPublishInfo according to Topic. After getting the routing information of TopicPublishInfo, the RocketMQ client will select a queue (MessageQueue) from the messageQueue List in TopicPublishInfo  to send the message by default.Specific fault-tolerant strategies are defined in the MQFaultStrategy class.
+When the Producer sends a message, it will first find the specified TopicPublishInfo according to Topic. After getting the routing information of TopicPublishInfo, the RocketMQ client will select a queue (MessageQueue) from the messageQueue List in TopicPublishInfo  to send the message by default. Specific fault-tolerant strategies are defined in the MQFaultStrategy class.
 Here is a sendLatencyFaultEnable switch variable, which, if turned on, filters out the Broker agents that are not available on the basis of randomly gradually increasing modular arithmetic selection. The so-called "latencyFault Tolerance" refers to a certain period of time to avoid previous failures. For example, if the latency of the last request exceeds 550 Lms, it will evade 30000 Lms; if it exceeds 1000L, it will evade 60000L; if it is closed, it will choose a queue (MessageQueue) to send messages by randomly gradually increasing modular arithmetic, and the latencyFault Tolerance mechanism is the key to achieve high availability of message sending.
 
 ### Consumer Load Balancing
