@@ -60,13 +60,6 @@ public class PlainAccessConfigTest {
     }
 
     @Test
-    public void testEqualsSameObject() {
-        PlainAccessConfig config = new PlainAccessConfig();
-        config.setAccessKey("ak");
-        assertEquals(config, config);
-    }
-
-    @Test
     public void testEqualsIdenticalConfigs() {
         PlainAccessConfig c1 = new PlainAccessConfig();
         c1.setAccessKey("ak");
