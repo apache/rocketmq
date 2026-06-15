@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.client.consumer.filter;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +26,8 @@ import java.util.Set;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.impl.FindBrokerResult;
+import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -41,6 +44,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class SqlFilterIT extends BaseConf {
     private static Logger logger = LoggerFactory.getLogger(SqlFilterIT.class);
@@ -98,6 +102,20 @@ public class SqlFilterIT extends BaseConf {
 
         List<String> receivedMessage = new ArrayList<>(2);
         Set<MessageQueue> mqs = consumer.fetchSubscribeMessageQueues(topic);
+        MQClientInstance mqClientInstance = consumer.getDefaultMQPullConsumerImpl()
+            .getRebalanceImpl().getmQClientFactory();
+        await().atMost(Duration.ofSeconds(30)).until(() -> {
+            mqClientInstance.updateTopicRouteInfoFromNameServer(topic);
+            mqClientInstance.sendHeartbeatToAllBrokerWithLock();
+            for (MessageQueue mq : mqs) {
+                FindBrokerResult brokerResult = mqClientInstance.findBrokerAddressInSubscribe(
+                    mqClientInstance.getBrokerNameFromMessageQueue(mq), 0, false);
+                if (brokerResult == null || brokerResult.getBrokerVersion() == 0) {
+                    return false;
+                }
+            }
+            return true;
+        });
         for (MessageQueue mq : mqs) {
             SINGLE_MQ:
             while (true) {

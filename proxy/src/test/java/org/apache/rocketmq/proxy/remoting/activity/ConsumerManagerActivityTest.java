@@ -70,6 +70,8 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
     private ConsumerGroupInfo consumerGroupInfo;
     @Mock
     private ProxyRelayService consumerProxyRelayService;
+    @Mock
+    private ClientChannelInfo clientChannelInfo;
     private CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> consumerRunningInfoFuture;
     private ProxyChannel consumerChannel;
     @Spy
@@ -116,7 +118,13 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
             protected CompletableFuture<Void> processGetConsumerRunningInfo(RemotingCommand command,
                 GetConsumerRunningInfoRequestHeader header,
                 CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture) {
-                consumerRunningInfoFuture.thenAccept(responseFuture::complete);
+                consumerRunningInfoFuture.whenComplete((result, t) -> {
+                    if (t != null) {
+                        responseFuture.completeExceptionally(t);
+                    } else {
+                        responseFuture.complete(result);
+                    }
+                });
                 return CompletableFuture.completedFuture(null);
             }
 
@@ -156,6 +164,53 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void testGetConsumerRunningInfoWhenRelayReturnsError() throws Exception {
+        GetConsumerRunningInfoRequestHeader header = new GetConsumerRunningInfoRequestHeader();
+        header.setConsumerGroup(GROUP);
+        header.setClientId(CLIENT_ID);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, header);
+        request.makeCustomHeaderToNet();
+        ClientChannelInfo proxyClientChannelInfo = new ClientChannelInfo(consumerChannel, CLIENT_ID, LanguageCode.JAVA, 0);
+
+        when(messagingProcessor.getConsumerGroupInfo(any(), eq(GROUP))).thenReturn(consumerGroupInfo);
+        when(consumerGroupInfo.findChannel(eq(CLIENT_ID))).thenReturn(proxyClientChannelInfo);
+
+        RemotingCommand response = consumerManagerActivity.processRequest0(ctx, request, null);
+        assertThat(response).isNull();
+
+        consumerRunningInfoFuture.complete(new ProxyRelayResult<>(ResponseCode.SYSTEM_ERROR, "failed", null));
+
+        ArgumentCaptor<RemotingCommand> captor = ArgumentCaptor.forClass(RemotingCommand.class);
+        verify(ctx, times(1)).writeAndFlush(captor.capture());
+        assertThat(captor.getValue().getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(captor.getValue().getRemark()).isEqualTo("failed");
+        assertThat(captor.getValue().getBody()).isNull();
+    }
+
+    @Test
+    public void testGetConsumerRunningInfoWhenRelayThrows() throws Exception {
+        GetConsumerRunningInfoRequestHeader header = new GetConsumerRunningInfoRequestHeader();
+        header.setConsumerGroup(GROUP);
+        header.setClientId(CLIENT_ID);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, header);
+        request.makeCustomHeaderToNet();
+        ClientChannelInfo proxyClientChannelInfo = new ClientChannelInfo(consumerChannel, CLIENT_ID, LanguageCode.JAVA, 0);
+
+        when(messagingProcessor.getConsumerGroupInfo(any(), eq(GROUP))).thenReturn(consumerGroupInfo);
+        when(consumerGroupInfo.findChannel(eq(CLIENT_ID))).thenReturn(proxyClientChannelInfo);
+
+        RemotingCommand response = consumerManagerActivity.processRequest0(ctx, request, null);
+        assertThat(response).isNull();
+
+        consumerRunningInfoFuture.completeExceptionally(new RuntimeException("failed"));
+
+        ArgumentCaptor<RemotingCommand> captor = ArgumentCaptor.forClass(RemotingCommand.class);
+        verify(ctx, times(1)).writeAndFlush(captor.capture());
+        assertThat(captor.getValue().getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(captor.getValue().getRemark()).isEqualTo("failed");
+    }
+
+    @Test
     public void testGetConsumerRunningInfoWhenConsumerNotOnline() throws Exception {
         GetConsumerRunningInfoRequestHeader header = new GetConsumerRunningInfoRequestHeader();
         header.setConsumerGroup(GROUP);
@@ -164,6 +219,23 @@ public class ConsumerManagerActivityTest extends InitConfigTest {
         request.makeCustomHeaderToNet();
 
         when(messagingProcessor.getConsumerGroupInfo(any(), eq(GROUP))).thenReturn(null);
+
+        RemotingCommand response = consumerManagerActivity.processRequest0(ctx, request, null);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).contains(GROUP, CLIENT_ID, "not online");
+    }
+
+    @Test
+    public void testGetConsumerRunningInfoWhenConsumerChannelIsNotProxyChannel() throws Exception {
+        GetConsumerRunningInfoRequestHeader header = new GetConsumerRunningInfoRequestHeader();
+        header.setConsumerGroup(GROUP);
+        header.setClientId(CLIENT_ID);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, header);
+        request.makeCustomHeaderToNet();
+
+        when(messagingProcessor.getConsumerGroupInfo(any(), eq(GROUP))).thenReturn(consumerGroupInfo);
+        when(consumerGroupInfo.findChannel(eq(CLIENT_ID))).thenReturn(clientChannelInfo);
+        when(clientChannelInfo.getChannel()).thenReturn(new SimpleChannel(null, "1", "2"));
 
         RemotingCommand response = consumerManagerActivity.processRequest0(ctx, request, null);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
