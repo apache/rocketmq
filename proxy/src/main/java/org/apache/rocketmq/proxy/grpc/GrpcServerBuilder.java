@@ -78,7 +78,9 @@ public class GrpcServerBuilder {
         }
 
         serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
-            .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
+            .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS)
+            .permitKeepAliveTime(config.getGrpcServerPermitKeepAliveTimeMillis(), TimeUnit.MILLISECONDS)
+            .permitKeepAliveWithoutCalls(config.isGrpcServerPermitKeepAliveWithoutCalls());
 
         log.info("grpc server has built. port: {}, bossLoopNum: {}, workerLoopNum: {}, maxInboundMessageSize: {}",
             port, bossLoopNum, workerLoopNum, maxInboundMessageSize);
