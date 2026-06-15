@@ -29,18 +29,18 @@ import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoReques
  * not implement yet
  */
 public class ClusterProxyRelayService extends AbstractProxyRelayService {
-
+    
     public ClusterProxyRelayService(TransactionService transactionService) {
         super(transactionService);
     }
-
+    
     @Override
     public CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(
         ProxyContext context, RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header) {
         return new CompletableFuture<>();
     }
-
+    
     @Override
     public CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> processConsumeMessageDirectly(
         ProxyContext context, RemotingCommand command,
