@@ -233,6 +233,14 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public CompletableFuture<List<BatchChangeInvisibleTimeResult>> batchChangeInvisibleTime(ProxyContext ctx,
+        List<ReceiptHandleMessage> handleMessageList, String consumerGroup, String topic, long invisibleTime,
+        long timeoutMillis, boolean suspend) {
+        return this.consumerProcessor.batchChangeInvisibleTime(
+            ctx, handleMessageList, consumerGroup, topic, invisibleTime, timeoutMillis, suspend);
+    }
+
+    @Override
     public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle, String messageId,
         String groupName, String topicName, long invisibleTime, String liteTopic, long timeoutMillis, boolean suspend) {
         return this.consumerProcessor.changeInvisibleTime(ctx, handle, messageId, groupName, topicName,

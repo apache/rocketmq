@@ -25,6 +25,7 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
 import io.grpc.stub.StreamObserver;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,9 +39,11 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
-import java.lang.reflect.Method;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
+import org.apache.rocketmq.proxy.processor.BatchChangeInvisibleTimeResult;
+import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,6 +53,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -58,6 +62,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -206,6 +211,112 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
         assertTrue("Suspend should be true for nack", changeInvisibleTimeSuspendCaptor.getValue());
     }
 
+    @Test
+    public void testBatchNackWhenWriteStatusFailed() {
+        ConfigurationManager.getProxyConfig().setEnableBatchChangeInvisibleTime(true);
+        ArgumentCaptor<List> handleMessageListCaptor = ArgumentCaptor.forClass(List.class);
+        doReturn(CompletableFuture.completedFuture(new ArrayList<BatchChangeInvisibleTimeResult>()))
+            .when(this.messagingProcessor).batchChangeInvisibleTime(
+                any(), handleMessageListCaptor.capture(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+        doThrow(new RuntimeException("client cancelled")).when(streamObserver).onNext(any());
+
+        List<MessageExt> messageExtList = new ArrayList<>();
+        messageExtList.add(createMessageExt(TOPIC, "tag"));
+        messageExtList.add(createMessageExt(TOPIC, "tag"));
+        writer.writeAndComplete(
+            ProxyContext.create(),
+            createReceiveMessageRequest(),
+            new PopResult(PopStatus.FOUND, messageExtList)
+        );
+
+        verify(this.messagingProcessor, times(1)).batchChangeInvisibleTime(
+            any(), anyList(), eq(CONSUMER_GROUP), eq(TOPIC),
+            eq(ReceiveMessageResponseStreamWriter.NACK_INVISIBLE_TIME),
+            eq(org.apache.rocketmq.proxy.processor.MessagingProcessor.DEFAULT_TIMEOUT_MILLS),
+            eq(true));
+        verify(this.messagingProcessor, never()).changeInvisibleTime(
+            any(), any(), anyString(), anyString(), anyString(), anyLong(), any(), anyLong(), anyBoolean());
+        assertEquals(2, handleMessageListCaptor.getValue().size());
+        assertEquals(messageExtList.get(0).getMsgId(),
+            ((ReceiptHandleMessage) handleMessageListCaptor.getValue().get(0)).getMessageId());
+        assertEquals(messageExtList.get(1).getMsgId(),
+            ((ReceiptHandleMessage) handleMessageListCaptor.getValue().get(1)).getMessageId());
+    }
+
+    @Test
+    public void testSingleNackWhenWriteStatusFailedUseSingleChangeInvisibleTime() {
+        ConfigurationManager.getProxyConfig().setEnableBatchChangeInvisibleTime(true);
+        doReturn(CompletableFuture.completedFuture(mock(AckResult.class)))
+            .when(this.messagingProcessor).changeInvisibleTime(
+                any(), any(), anyString(), anyString(), anyString(), anyLong(), any(), anyLong(), anyBoolean());
+        doThrow(new RuntimeException("client cancelled")).when(streamObserver).onNext(any());
+
+        List<MessageExt> messageExtList = new ArrayList<>();
+        messageExtList.add(createMessageExt(TOPIC, "tag"));
+        writer.writeAndComplete(
+            ProxyContext.create(),
+            createReceiveMessageRequest(),
+            new PopResult(PopStatus.FOUND, messageExtList)
+        );
+
+        verify(this.messagingProcessor, times(1)).changeInvisibleTime(
+            any(), any(), eq(messageExtList.get(0).getMsgId()), eq(CONSUMER_GROUP), eq(TOPIC),
+            eq(ReceiveMessageResponseStreamWriter.NACK_INVISIBLE_TIME), eq(null),
+            eq(org.apache.rocketmq.proxy.processor.MessagingProcessor.DEFAULT_TIMEOUT_MILLS), eq(true));
+        verify(this.messagingProcessor, never()).batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+    }
+
+    @Test
+    public void testBatchNackRemainingMessagesWhenClientCancelMidStream() {
+        ConfigurationManager.getProxyConfig().setEnableBatchChangeInvisibleTime(true);
+        ArgumentCaptor<List> handleMessageListCaptor = ArgumentCaptor.forClass(List.class);
+        doReturn(CompletableFuture.completedFuture(new ArrayList<BatchChangeInvisibleTimeResult>()))
+            .when(this.messagingProcessor).batchChangeInvisibleTime(
+                any(), handleMessageListCaptor.capture(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+
+        AtomicInteger onNextCallNum = new AtomicInteger(0);
+        doAnswer(mock -> {
+            if (onNextCallNum.incrementAndGet() == 3) {
+                throw new RuntimeException("client cancelled");
+            }
+            return null;
+        }).when(streamObserver).onNext(any());
+
+        List<MessageExt> messageExtList = new ArrayList<>();
+        messageExtList.add(createMessageExt(TOPIC, "tag"));
+        messageExtList.add(createMessageExt(TOPIC, "tag"));
+        messageExtList.add(createMessageExt(TOPIC, "tag"));
+        writer.writeAndComplete(
+            ProxyContext.create(),
+            createReceiveMessageRequest(),
+            new PopResult(PopStatus.FOUND, messageExtList)
+        );
+
+        verify(this.messagingProcessor, times(1)).batchChangeInvisibleTime(
+            any(), anyList(), eq(CONSUMER_GROUP), eq(TOPIC),
+            eq(ReceiveMessageResponseStreamWriter.NACK_INVISIBLE_TIME),
+            eq(org.apache.rocketmq.proxy.processor.MessagingProcessor.DEFAULT_TIMEOUT_MILLS),
+            eq(true));
+        verify(this.messagingProcessor, never()).changeInvisibleTime(
+            any(), any(), anyString(), anyString(), anyString(), anyLong(), any(), anyLong(), anyBoolean());
+        assertEquals(2, handleMessageListCaptor.getValue().size());
+        assertEquals(messageExtList.get(1).getMsgId(),
+            ((ReceiptHandleMessage) handleMessageListCaptor.getValue().get(0)).getMessageId());
+        assertEquals(messageExtList.get(2).getMsgId(),
+            ((ReceiptHandleMessage) handleMessageListCaptor.getValue().get(1)).getMessageId());
+    }
+
+    private static ReceiveMessageRequest createReceiveMessageRequest() {
+        return ReceiveMessageRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+            .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+            .setFilterExpression(FilterExpression.newBuilder()
+                .setType(FilterType.TAG)
+                .setExpression("*")
+                .build())
+            .build();
+    }
 
     private static MessageExt createMessageExt(String topic, String tags) {
         String msgId = MessageClientIDSetter.createUniqID();

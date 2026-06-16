@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
@@ -116,6 +117,68 @@ public class PopConsumerCache extends ServiceThread {
         return remain;
     }
 
+    public void writeAndDeleteRecords(List<PopConsumerRecord> writeRecordList,
+        List<PopConsumerRecord> deleteRecordList) {
+        if (deleteRecordList.isEmpty()) {
+            consumerRecordStore.writeAndDeleteRecords(writeRecordList, deleteRecordList);
+            return;
+        }
+
+        PopConsumerRecord lockRecord = validateAndGetLockRecord(writeRecordList, deleteRecordList);
+        String lockTopic = KeyBuilder.parseNormalTopic(lockRecord.getTopicId(), lockRecord.getGroupId());
+        while (!consumerLockService.tryLock(lockRecord.getGroupId(), lockTopic)) {
+            Thread.yield();
+        }
+        try {
+            List<PopConsumerRecord> storeDeleteRecords = new ArrayList<>(deleteRecordList.size());
+            List<PopConsumerRecord> bufferDeleteRecords = new ArrayList<>(deleteRecordList.size());
+            deleteRecordList.forEach(consumerRecord -> {
+                ConsumerRecords consumerRecords = consumerRecordTable.get(this.getKey(consumerRecord));
+                if (consumerRecords != null && consumerRecords.contains(consumerRecord)) {
+                    bufferDeleteRecords.add(consumerRecord);
+                } else {
+                    storeDeleteRecords.add(consumerRecord);
+                }
+            });
+
+            consumerRecordStore.writeAndDeleteRecords(writeRecordList, storeDeleteRecords);
+
+            int deleted = 0;
+            for (PopConsumerRecord consumerRecord : bufferDeleteRecords) {
+                ConsumerRecords consumerRecords = consumerRecordTable.get(this.getKey(consumerRecord));
+                if (consumerRecords != null && consumerRecords.delete(consumerRecord)) {
+                    deleted++;
+                }
+            }
+            this.estimateCacheSize.addAndGet(-deleted);
+        } finally {
+            consumerLockService.unlock(lockRecord.getGroupId(), lockTopic);
+        }
+    }
+
+    private PopConsumerRecord validateAndGetLockRecord(List<PopConsumerRecord> writeRecordList,
+        List<PopConsumerRecord> deleteRecordList) {
+        PopConsumerRecord lockRecord = null;
+        lockRecord = validateAndGetLockRecord(lockRecord, deleteRecordList);
+        return validateAndGetLockRecord(lockRecord, writeRecordList);
+    }
+
+    private PopConsumerRecord validateAndGetLockRecord(PopConsumerRecord expectedRecord,
+        List<PopConsumerRecord> consumerRecordList) {
+        PopConsumerRecord lockRecord = expectedRecord;
+        for (PopConsumerRecord consumerRecord : consumerRecordList) {
+            if (lockRecord == null) {
+                lockRecord = consumerRecord;
+                continue;
+            }
+            if (!lockRecord.getGroupId().equals(consumerRecord.getGroupId()) ||
+                !lockRecord.getTopicId().equals(consumerRecord.getTopicId())) {
+                throw new IllegalArgumentException("batch write and delete records must use the same consumer");
+            }
+        }
+        return lockRecord;
+    }
+
     public int cleanupRecords(Consumer<PopConsumerRecord> consumer) {
         int remain = 0;
         Iterator<Map.Entry<String, ConsumerRecords>> iterator = consumerRecordTable.entrySet().iterator();
@@ -124,44 +187,59 @@ public class PopConsumerCache extends ServiceThread {
             ConsumerRecords records = iterator.next().getValue();
             boolean timeout = consumerLockService.isLockTimeout(
                 records.getGroupId(), records.getTopicId());
-
-            if (timeout) {
-                records.stageExpiredRecords(Long.MAX_VALUE);
-                List<PopConsumerRecord> writeConsumerRecords =
-                    new ArrayList<>(records.getRemoveTreeMap().values());
-                if (!writeConsumerRecords.isEmpty()) {
-                    consumerRecordStore.writeRecords(writeConsumerRecords);
-                }
-                records.clearStagedRecords();
-                log.info("PopConsumerOffline, so clean expire records, groupId={}, topic={}, queueId={}, records={}",
-                    records.getGroupId(), records.getTopicId(), records.getQueueId(), records.getInFlightRecordCount());
-                iterator.remove();
+            String lockTopic = KeyBuilder.parseNormalTopic(records.getTopicId(), records.getGroupId());
+            if (!consumerLockService.tryLock(records.getGroupId(), lockTopic)) {
                 continue;
             }
-
-            long currentTime = System.currentTimeMillis();
-            records.stageExpiredRecords(currentTime);
-            List<PopConsumerRecord> writeConsumerRecords = new ArrayList<>();
-            records.getRemoveTreeMap().values().forEach(record -> {
-                if (record.getVisibilityTimeout() <= currentTime) {
-                    consumer.accept(record);
-                } else {
-                    writeConsumerRecords.add(record);
+            try {
+                if (timeout) {
+                    records.stageExpiredRecords(Long.MAX_VALUE);
+                    List<PopConsumerRecord> writeConsumerRecords =
+                        new ArrayList<>(records.getRemoveTreeMap().values());
+                    if (!writeConsumerRecords.isEmpty()) {
+                        consumerRecordStore.writeRecords(writeConsumerRecords);
+                    }
+                    records.clearStagedRecords();
+                    log.info("PopConsumerOffline, so clean expire records, groupId={}, topic={}, queueId={}, records={}",
+                        records.getGroupId(), records.getTopicId(), records.getQueueId(), records.getInFlightRecordCount());
+                    iterator.remove();
+                    continue;
                 }
-            });
 
-            // write to store and handle it later
-            consumerRecordStore.writeRecords(writeConsumerRecords);
-            records.clearStagedRecords();
+                long currentTime = System.currentTimeMillis();
+                records.stageExpiredRecords(currentTime);
+                List<PopConsumerRecord> writeConsumerRecords = new ArrayList<>();
+                records.getRemoveTreeMap().values().forEach(record -> {
+                    if (record.getVisibilityTimeout() <= currentTime) {
+                        consumer.accept(record);
+                    } else {
+                        writeConsumerRecords.add(record);
+                    }
+                });
 
-            // commit min offset in buffer to offset store
-            long offset = records.getMinOffsetInBuffer();
-            if (offset > OFFSET_NOT_EXIST) {
-                this.commitOffset("PopConsumerCache",
-                    records.getGroupId(), records.getTopicId(), records.getQueueId(), offset);
+                // write to store and handle it later
+                consumerRecordStore.writeRecords(writeConsumerRecords);
+                records.clearStagedRecords();
+
+                // commit min offset in buffer to offset store
+                long offset = records.getMinOffsetInBuffer();
+                if (offset > OFFSET_NOT_EXIST) {
+                    ConsumerOffsetManager consumerOffsetManager = brokerController.getConsumerOffsetManager();
+                    long commit = consumerOffsetManager.queryOffset(records.getGroupId(), records.getTopicId(),
+                        records.getQueueId());
+                    if (commit != OFFSET_NOT_EXIST && offset < commit) {
+                        log.info("PopConsumerCache, consumer offset less than store, " +
+                            "groupId={}, topicId={}, queueId={}, offset={}", records.getGroupId(),
+                            records.getTopicId(), records.getQueueId(), offset);
+                    }
+                    consumerOffsetManager.commitOffset("PopConsumerCache", records.getGroupId(),
+                        records.getTopicId(), records.getQueueId(), offset);
+                }
+
+                remain += records.getInFlightRecordCount();
+            } finally {
+                consumerLockService.unlock(records.getGroupId(), lockTopic);
             }
-
-            remain += records.getInFlightRecordCount();
         }
         return remain;
     }
@@ -229,6 +307,10 @@ public class PopConsumerCache extends ServiceThread {
 
         public boolean delete(PopConsumerRecord record) {
             return recordTreeMap.remove(record.getOffset()) != null;
+        }
+
+        public boolean contains(PopConsumerRecord record) {
+            return recordTreeMap.containsKey(record.getOffset());
         }
 
         public long getMinOffsetInBuffer() {

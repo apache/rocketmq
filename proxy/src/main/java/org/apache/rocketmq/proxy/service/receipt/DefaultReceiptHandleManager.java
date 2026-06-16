@@ -19,6 +19,9 @@ package org.apache.rocketmq.proxy.service.receipt;
 
 import com.google.common.base.Stopwatch;
 import io.netty.channel.Channel;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -166,6 +169,21 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 }
 
                 ReceiptHandleGroup group = entry.getValue();
+                if (proxyConfig.isEnableBatchChangeInvisibleTime()) {
+                    List<RenewMessage> renewMessageList = new ArrayList<>();
+                    group.scan((msgID, handleStr, v) -> {
+                        long current = System.currentTimeMillis();
+                        ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandleStr());
+                        if (handle.getNextVisibleTime() - current <= proxyConfig.getRenewAheadTimeMillis()) {
+                            renewMessageList.add(new RenewMessage(msgID, handleStr));
+                        }
+                    });
+                    if (!renewMessageList.isEmpty()) {
+                        renewalWorkerService.submit(() -> renewMessageBatch(createContext("RenewMessage"), key, group,
+                            renewMessageList));
+                    }
+                    continue;
+                }
                 group.scan((msgID, handleStr, v) -> {
                     long current = System.currentTimeMillis();
                     ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandleStr());
@@ -192,17 +210,56 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
     }
 
     protected CompletableFuture<MessageReceiptHandle> startRenewMessage(ProxyContext context, ReceiptHandleGroupKey key, MessageReceiptHandle messageReceiptHandle) {
+        RenewEventData renewEventData = prepareRenewMessage(context, key, messageReceiptHandle);
+        if (renewEventData.getEventType() != null) {
+            eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, renewEventData.getRenewTime(),
+                renewEventData.getEventType(), renewEventData.getAckFuture()));
+        }
+        return renewEventData.getResultFuture();
+    }
+
+    protected void renewMessageBatch(ProxyContext context, ReceiptHandleGroupKey key, ReceiptHandleGroup group,
+        List<RenewMessage> renewMessageList) {
+        Map<String, List<RenewEventData>> eventDataMap = new HashMap<>();
+        for (RenewMessage renewMessage : renewMessageList) {
+            try {
+                group.computeIfPresent(renewMessage.getMsgID(), renewMessage.getHandleStr(), messageReceiptHandle -> {
+                    RenewEventData renewEventData = prepareRenewMessage(context, key, messageReceiptHandle);
+                    if (renewEventData.getEventType() != null) {
+                        String batchKey = renewEventData.getEventType().name() + "@" + renewEventData.getRenewTime();
+                        eventDataMap.computeIfAbsent(batchKey, ignore -> new ArrayList<>()).add(renewEventData);
+                    }
+                    return renewEventData.getResultFuture();
+                }, 0);
+            } catch (Exception e) {
+                log.error("error when renew message. msgID:{}, handleStr:{}", renewMessage.getMsgID(), renewMessage.getHandleStr(), e);
+            }
+        }
+
+        for (List<RenewEventData> renewEventDataList : eventDataMap.values()) {
+            List<MessageReceiptHandle> handleList = new ArrayList<>(renewEventDataList.size());
+            List<CompletableFuture<AckResult>> futureList = new ArrayList<>(renewEventDataList.size());
+            for (RenewEventData renewEventData : renewEventDataList) {
+                handleList.add(renewEventData.getMessageReceiptHandle());
+                futureList.add(renewEventData.getAckFuture());
+            }
+            RenewEventData first = renewEventDataList.get(0);
+            eventListener.fireEvent(new RenewEvent(key, handleList, first.getRenewTime(), first.getEventType(), futureList));
+        }
+    }
+
+    protected RenewEventData prepareRenewMessage(ProxyContext context, ReceiptHandleGroupKey key,
+        MessageReceiptHandle messageReceiptHandle) {
         CompletableFuture<MessageReceiptHandle> resFuture = new CompletableFuture<>();
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         long current = System.currentTimeMillis();
         try {
             if (messageReceiptHandle.getRenewRetryTimes() >= proxyConfig.getMaxRenewRetryTimes()) {
                 log.warn("handle has exceed max renewRetryTimes. handle:{}", messageReceiptHandle);
-                return CompletableFuture.completedFuture(null);
+                return RenewEventData.completed(messageReceiptHandle, resFuture, null);
             }
             if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
-                eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()), RenewEvent.EventType.RENEW, future));
                 future.whenComplete((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when renew. handle:{}", messageReceiptHandle, throwable);
@@ -222,28 +279,31 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                         resFuture.complete(null);
                     }
                 });
+                return new RenewEventData(messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()),
+                    RenewEvent.EventType.RENEW, future, resFuture);
             } else {
                 SubscriptionGroupConfig subscriptionGroupConfig =
                     metadataService.getSubscriptionGroupConfig(context, messageReceiptHandle.getGroup());
                 if (subscriptionGroupConfig == null) {
                     log.error("group's subscriptionGroupConfig is null when renew. handle: {}", messageReceiptHandle);
-                    return CompletableFuture.completedFuture(null);
+                    return RenewEventData.completed(messageReceiptHandle, resFuture, null);
                 }
                 RetryPolicy retryPolicy = subscriptionGroupConfig.getGroupRetryPolicy().getRetryPolicy();
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
-                eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()), RenewEvent.EventType.STOP_RENEW, future));
                 future.whenComplete((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when nack in renew. handle:{}", messageReceiptHandle, throwable);
                     }
                     resFuture.complete(null);
                 });
+                return new RenewEventData(messageReceiptHandle, retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()),
+                    RenewEvent.EventType.STOP_RENEW, future, resFuture);
             }
         } catch (Throwable t) {
             log.error("unexpect error when renew message, stop to renew it. handle:{}", messageReceiptHandle, t);
             resFuture.complete(null);
         }
-        return resFuture;
+        return RenewEventData.completed(messageReceiptHandle, resFuture, null);
     }
 
     protected void clearGroup(ReceiptHandleGroupKey key) {
@@ -261,21 +321,47 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             return;
         }
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        if (proxyConfig.isEnableBatchChangeInvisibleTime()) {
+            fireClearGroupEventBatch(key, handleGroup, proxyConfig);
+        } else {
+            handleGroup.scan((msgID, handle, v) -> {
+                try {
+                    handleGroup.computeIfPresent(msgID, handle, messageReceiptHandle -> {
+                        CompletableFuture<AckResult> future = new CompletableFuture<>();
+                        eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle,
+                            proxyConfig.getInvisibleTimeMillisWhenClear(), RenewEvent.EventType.CLEAR_GROUP, future));
+                        return CompletableFuture.completedFuture(null);
+                    }, 0);
+                } catch (Exception e) {
+                    log.error("error when clear handle for group. key:{}", key, e);
+                }
+            });
+        }
+        // scheduleRenewTask will trigger cleanup again
+        if (!handleGroup.isEmpty()) {
+            log.warn("The handle cannot be completely cleared, the remaining quantity is {}, key:{}", handleGroup.getHandleNum(), key);
+            receiptHandleGroupMap.putIfAbsent(key, handleGroup);
+        }
+    }
+
+    protected void fireClearGroupEventBatch(ReceiptHandleGroupKey key, ReceiptHandleGroup handleGroup,
+        ProxyConfig proxyConfig) {
+        List<MessageReceiptHandle> handleList = new ArrayList<>();
+        List<CompletableFuture<AckResult>> futureList = new ArrayList<>();
         handleGroup.scan((msgID, handle, v) -> {
             try {
                 handleGroup.computeIfPresent(msgID, handle, messageReceiptHandle -> {
-                    CompletableFuture<AckResult> future = new CompletableFuture<>();
-                    eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, proxyConfig.getInvisibleTimeMillisWhenClear(), RenewEvent.EventType.CLEAR_GROUP, future));
+                    handleList.add(messageReceiptHandle);
+                    futureList.add(new CompletableFuture<>());
                     return CompletableFuture.completedFuture(null);
                 }, 0);
             } catch (Exception e) {
                 log.error("error when clear handle for group. key:{}", key, e);
             }
         });
-        // scheduleRenewTask will trigger cleanup again
-        if (!handleGroup.isEmpty()) {
-            log.warn("The handle cannot be completely cleared, the remaining quantity is {}, key:{}", handleGroup.getHandleNum(), key);
-            receiptHandleGroupMap.putIfAbsent(key, handleGroup);
+        if (!handleList.isEmpty()) {
+            eventListener.fireEvent(new RenewEvent(key, handleList, proxyConfig.getInvisibleTimeMillisWhenClear(),
+                RenewEvent.EventType.CLEAR_GROUP, futureList));
         }
     }
 
@@ -302,5 +388,67 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
 
     protected ProxyContext createContext(String actionName) {
         return ProxyContext.createForInner(this.getClass().getSimpleName() + actionName);
+    }
+
+    protected static class RenewMessage {
+        private final String msgID;
+        private final String handleStr;
+
+        public RenewMessage(String msgID, String handleStr) {
+            this.msgID = msgID;
+            this.handleStr = handleStr;
+        }
+
+        public String getMsgID() {
+            return msgID;
+        }
+
+        public String getHandleStr() {
+            return handleStr;
+        }
+    }
+
+    protected static class RenewEventData {
+        private final MessageReceiptHandle messageReceiptHandle;
+        private final long renewTime;
+        private final RenewEvent.EventType eventType;
+        private final CompletableFuture<AckResult> ackFuture;
+        private final CompletableFuture<MessageReceiptHandle> resultFuture;
+
+        public RenewEventData(MessageReceiptHandle messageReceiptHandle, long renewTime,
+            RenewEvent.EventType eventType, CompletableFuture<AckResult> ackFuture,
+            CompletableFuture<MessageReceiptHandle> resultFuture) {
+            this.messageReceiptHandle = messageReceiptHandle;
+            this.renewTime = renewTime;
+            this.eventType = eventType;
+            this.ackFuture = ackFuture;
+            this.resultFuture = resultFuture;
+        }
+
+        public static RenewEventData completed(MessageReceiptHandle messageReceiptHandle,
+            CompletableFuture<MessageReceiptHandle> resultFuture, MessageReceiptHandle result) {
+            resultFuture.complete(result);
+            return new RenewEventData(messageReceiptHandle, 0, null, null, resultFuture);
+        }
+
+        public MessageReceiptHandle getMessageReceiptHandle() {
+            return messageReceiptHandle;
+        }
+
+        public long getRenewTime() {
+            return renewTime;
+        }
+
+        public RenewEvent.EventType getEventType() {
+            return eventType;
+        }
+
+        public CompletableFuture<AckResult> getAckFuture() {
+            return ackFuture;
+        }
+
+        public CompletableFuture<MessageReceiptHandle> getResultFuture() {
+            return resultFuture;
+        }
     }
 }

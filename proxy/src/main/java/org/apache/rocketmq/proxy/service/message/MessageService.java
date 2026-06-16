@@ -108,6 +108,22 @@ public interface MessageService {
         long timeoutMillis
     );
 
+    /**
+     * Change invisible time for handles that have already been grouped by broker.
+     *
+     * @param handleList non-empty handles from the same broker
+     * @param suspend whether the new checkpoint should be marked suspended
+     */
+    CompletableFuture<List<AckResult>> batchChangeInvisibleTime(
+        ProxyContext ctx,
+        List<ReceiptHandleMessage> handleList,
+        String consumerGroup,
+        String topic,
+        long invisibleTime,
+        long timeoutMillis,
+        boolean suspend
+    );
+
     CompletableFuture<PullResult> pullMessage(
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,

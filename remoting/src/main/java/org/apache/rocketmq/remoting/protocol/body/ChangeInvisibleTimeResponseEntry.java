@@ -15,35 +15,43 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.service.message;
+package org.apache.rocketmq.remoting.protocol.body;
 
-import org.apache.rocketmq.common.consumer.ReceiptHandle;
+public class ChangeInvisibleTimeResponseEntry {
+    private int code;
+    private long popTime;
+    private long invisibleTime;
+    private int reviveQid;
 
-public class ReceiptHandleMessage {
-
-    private final ReceiptHandle receiptHandle;
-    private final String messageId;
-    private final String liteTopic;
-
-    public ReceiptHandleMessage(ReceiptHandle receiptHandle, String messageId) {
-        this(receiptHandle, messageId, null);
+    public int getCode() {
+        return code;
     }
 
-    public ReceiptHandleMessage(ReceiptHandle receiptHandle, String messageId, String liteTopic) {
-        this.receiptHandle = receiptHandle;
-        this.messageId = messageId;
-        this.liteTopic = liteTopic;
+    public void setCode(int code) {
+        this.code = code;
     }
 
-    public ReceiptHandle getReceiptHandle() {
-        return receiptHandle;
+    public long getPopTime() {
+        return popTime;
     }
 
-    public String getMessageId() {
-        return messageId;
+    public void setPopTime(long popTime) {
+        this.popTime = popTime;
     }
 
-    public String getLiteTopic() {
-        return liteTopic;
+    public long getInvisibleTime() {
+        return invisibleTime;
+    }
+
+    public void setInvisibleTime(long invisibleTime) {
+        this.invisibleTime = invisibleTime;
+    }
+
+    public int getReviveQid() {
+        return reviveQid;
+    }
+
+    public void setReviveQid(int reviveQid) {
+        this.reviveQid = reviveQid;
     }
 }

@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -115,9 +116,13 @@ import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
 import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.remoting.protocol.body.BatchAck;
 import org.apache.rocketmq.remoting.protocol.body.BatchAckMessageRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeRequestEntry;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeResponseEntry;
 import org.apache.rocketmq.remoting.protocol.body.CheckClientRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
@@ -156,6 +161,7 @@ import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.AddBrokerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.BatchChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
@@ -1038,6 +1044,88 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
                 ackCallback.onException(throwable);
             }
         });
+    }
+
+    public CompletableFuture<List<AckResult>> batchChangeInvisibleTimeAsync(
+        final String addr,
+        final String topic,
+        final String consumerGroup,
+        final BatchChangeInvisibleTimeRequestBody requestBody,
+        final long timeoutMillis
+    ) {
+        CompletableFuture<List<AckResult>> future = new CompletableFuture<>();
+        BatchChangeInvisibleTimeRequestHeader requestHeader = new BatchChangeInvisibleTimeRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setConsumerGroup(consumerGroup);
+        final RemotingCommand request = RemotingCommand.createRequestCommand(
+            RequestCode.BATCH_CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        if (requestBody != null) {
+            request.setBody(requestBody.encode());
+        }
+        try {
+            this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
+                @Override
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
+                    try {
+                        if (ResponseCode.SUCCESS != response.getCode()) {
+                            future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark(), addr));
+                            return;
+                        }
+                        future.complete(processBatchChangeInvisibleTimeResponse(addr, requestBody, response));
+                    } catch (Throwable t) {
+                        future.completeExceptionally(t);
+                    }
+                }
+
+                @Override
+                public void operationFail(Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    protected List<AckResult> processBatchChangeInvisibleTimeResponse(String addr,
+        BatchChangeInvisibleTimeRequestBody requestBody, RemotingCommand response) throws MQBrokerException {
+        List<ChangeInvisibleTimeRequestEntry> requestEntries = requestBody == null || requestBody.getEntries() == null ?
+            Collections.emptyList() : requestBody.getEntries();
+        BatchChangeInvisibleTimeResponseBody responseBody =
+            BatchChangeInvisibleTimeResponseBody.decode(response.getBody(), BatchChangeInvisibleTimeResponseBody.class);
+        List<ChangeInvisibleTimeResponseEntry> responseEntries = responseBody == null || responseBody.getEntries() == null ?
+            Collections.emptyList() : responseBody.getEntries();
+        if (requestEntries.size() != responseEntries.size()) {
+            throw new MQBrokerException(ResponseCode.SYSTEM_ERROR,
+                String.format("batch change invisible time response size mismatch, request=%d, response=%d",
+                    requestEntries.size(), responseEntries.size()), addr);
+        }
+
+        List<AckResult> resultList = new ArrayList<>(responseEntries.size());
+        for (int i = 0; i < responseEntries.size(); i++) {
+            ChangeInvisibleTimeRequestEntry requestEntry = requestEntries.get(i);
+            ChangeInvisibleTimeResponseEntry responseEntry = responseEntries.get(i);
+            AckResult ackResult = new AckResult();
+            if (requestEntry != null && responseEntry != null && ResponseCode.SUCCESS == responseEntry.getCode()) {
+                ackResult.setStatus(AckStatus.OK);
+                ackResult.setPopTime(responseEntry.getPopTime());
+                String brokerName = ExtraInfoUtil.getBrokerName(ExtraInfoUtil.split(requestEntry.getExtraInfo()));
+                ackResult.setExtraInfo(ExtraInfoUtil
+                    .buildExtraInfo(requestEntry.getOffset(), responseEntry.getPopTime(), responseEntry.getInvisibleTime(),
+                        responseEntry.getReviveQid(), requestEntry.getTopic(), brokerName, requestEntry.getQueueId()) + MessageConst.KEY_SEPARATOR
+                    + requestEntry.getOffset());
+            } else {
+                ackResult.setStatus(AckStatus.NO_EXIST);
+            }
+            resultList.add(ackResult);
+        }
+        return resultList;
     }
 
     private void pullMessageAsync(

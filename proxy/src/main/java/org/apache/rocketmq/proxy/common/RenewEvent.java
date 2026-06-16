@@ -17,15 +17,19 @@
 
 package org.apache.rocketmq.proxy.common;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 
 public class RenewEvent {
     protected ReceiptHandleGroupKey key;
     protected MessageReceiptHandle messageReceiptHandle;
+    protected List<MessageReceiptHandle> messageReceiptHandleList;
     protected long renewTime;
     protected EventType eventType;
     protected CompletableFuture<AckResult> future;
+    protected List<CompletableFuture<AckResult>> futureList;
 
     public enum EventType {
         RENEW,
@@ -37,9 +41,23 @@ public class RenewEvent {
         EventType eventType, CompletableFuture<AckResult> future) {
         this.key = key;
         this.messageReceiptHandle = messageReceiptHandle;
+        this.messageReceiptHandleList = Collections.singletonList(messageReceiptHandle);
         this.renewTime = renewTime;
         this.eventType = eventType;
         this.future = future;
+        this.futureList = Collections.singletonList(future);
+    }
+
+    public RenewEvent(ReceiptHandleGroupKey key, List<MessageReceiptHandle> messageReceiptHandleList, long renewTime,
+        EventType eventType, List<CompletableFuture<AckResult>> futureList) {
+        this.key = key;
+        this.messageReceiptHandleList = messageReceiptHandleList;
+        this.messageReceiptHandle = messageReceiptHandleList == null || messageReceiptHandleList.isEmpty() ?
+            null : messageReceiptHandleList.get(0);
+        this.renewTime = renewTime;
+        this.eventType = eventType;
+        this.futureList = futureList;
+        this.future = futureList == null || futureList.isEmpty() ? null : futureList.get(0);
     }
 
     public ReceiptHandleGroupKey getKey() {
@@ -48,6 +66,10 @@ public class RenewEvent {
 
     public MessageReceiptHandle getMessageReceiptHandle() {
         return messageReceiptHandle;
+    }
+
+    public List<MessageReceiptHandle> getMessageReceiptHandleList() {
+        return messageReceiptHandleList;
     }
 
     public long getRenewTime() {
@@ -60,5 +82,9 @@ public class RenewEvent {
 
     public CompletableFuture<AckResult> getFuture() {
         return future;
+    }
+
+    public List<CompletableFuture<AckResult>> getFutureList() {
+        return futureList;
     }
 }

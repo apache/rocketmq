@@ -535,6 +535,120 @@ public class PopConsumerService extends ServiceThread {
         }
     }
 
+    public void batchChangeInvisibilityDuration(List<ChangeInvisibilityRecord> changeRecords) {
+        if (changeRecords == null || changeRecords.isEmpty()) {
+            return;
+        }
+
+        List<PopConsumerRecord> ckRecords = new ArrayList<>(changeRecords.size());
+        List<PopConsumerRecord> ackRecords = new ArrayList<>(changeRecords.size());
+        List<PopConsumerRecord> storeAckRecords = new ArrayList<>(changeRecords.size());
+
+        for (ChangeInvisibilityRecord changeRecord : changeRecords) {
+            if (brokerConfig.isPopConsumerKVServiceLog()) {
+                log.info("PopConsumerService batch change, time={}, invisible={}, " +
+                        "groupId={}, topic={}, queueId={}, offset={}, new time={}, new invisible={}",
+                    changeRecord.getPopTime(), changeRecord.getInvisibleTime(), changeRecord.getGroupId(),
+                    changeRecord.getTopicId(), changeRecord.getQueueId(), changeRecord.getOffset(),
+                    changeRecord.getChangedPopTime(), changeRecord.getChangedInvisibleTime());
+            }
+
+            PopConsumerRecord ckRecord = new PopConsumerRecord(
+                changeRecord.getChangedPopTime(), changeRecord.getGroupId(), changeRecord.getTopicId(),
+                changeRecord.getQueueId(), 0, changeRecord.getChangedInvisibleTime(), changeRecord.getOffset(),
+                null, changeRecord.isSuspend());
+
+            PopConsumerRecord ackRecord = new PopConsumerRecord(
+                changeRecord.getPopTime(), changeRecord.getGroupId(), changeRecord.getTopicId(),
+                changeRecord.getQueueId(), 0, changeRecord.getInvisibleTime(), changeRecord.getOffset(),
+                null, changeRecord.isSuspend());
+
+            boolean skipWrite = brokerConfig.isPopReviveSkipIfGroupAbsent() &&
+                !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(changeRecord.getGroupId());
+
+            if (skipWrite) {
+                log.info("PopConsumerService batch change invisibility skip, time={}, " +
+                    "groupId={}, topicId={}, queueId={}, offset={}", changeRecord.getPopTime(),
+                    changeRecord.getGroupId(), changeRecord.getTopicId(), changeRecord.getQueueId(),
+                    changeRecord.getOffset());
+            } else {
+                ckRecords.add(ckRecord);
+            }
+
+            ackRecords.add(ackRecord);
+            if (skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout()) {
+                storeAckRecords.add(ackRecord);
+            }
+        }
+
+        if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
+            popConsumerCache.writeAndDeleteRecords(ckRecords, ackRecords);
+        } else {
+            this.popConsumerStore.writeAndDeleteRecords(ckRecords, storeAckRecords);
+        }
+    }
+
+    public static class ChangeInvisibilityRecord {
+        private final long popTime;
+        private final long invisibleTime;
+        private final long changedPopTime;
+        private final long changedInvisibleTime;
+        private final String groupId;
+        private final String topicId;
+        private final int queueId;
+        private final long offset;
+        private final boolean suspend;
+
+        public ChangeInvisibilityRecord(long popTime, long invisibleTime, long changedPopTime,
+            long changedInvisibleTime, String groupId, String topicId, int queueId, long offset, boolean suspend) {
+            this.popTime = popTime;
+            this.invisibleTime = invisibleTime;
+            this.changedPopTime = changedPopTime;
+            this.changedInvisibleTime = changedInvisibleTime;
+            this.groupId = groupId;
+            this.topicId = topicId;
+            this.queueId = queueId;
+            this.offset = offset;
+            this.suspend = suspend;
+        }
+
+        public long getPopTime() {
+            return popTime;
+        }
+
+        public long getInvisibleTime() {
+            return invisibleTime;
+        }
+
+        public long getChangedPopTime() {
+            return changedPopTime;
+        }
+
+        public long getChangedInvisibleTime() {
+            return changedInvisibleTime;
+        }
+
+        public String getGroupId() {
+            return groupId;
+        }
+
+        public String getTopicId() {
+            return topicId;
+        }
+
+        public int getQueueId() {
+            return queueId;
+        }
+
+        public long getOffset() {
+            return offset;
+        }
+
+        public boolean isSuspend() {
+            return suspend;
+        }
+    }
+
     // Use broker escape bridge to support remote read
     public CompletableFuture<Triple<MessageExt, String, Boolean>> getMessageAsync(PopConsumerRecord consumerRecord) {
         return this.brokerController.getEscapeBridge().getMessageAsync(consumerRecord.getTopicId(),

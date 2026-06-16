@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.utils.NetworkUtil;
@@ -292,6 +293,8 @@ public class ProxyConfig implements ConfigFile {
     private long remotingWaitTimeMillsInDefaultQueue = 3 * 1000;
 
     private boolean enableBatchAck = false;
+    private boolean enableBatchChangeInvisibleTime = false;
+    private int batchChangeInvisibleTimeMaxNum = PopAckConstants.DEFAULT_BATCH_CHANGE_INVISIBLE_TIME_MAX_NUM;
 
     @Override
     public void initData() {
@@ -1569,6 +1572,22 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableBatchAck(boolean enableBatchAck) {
         this.enableBatchAck = enableBatchAck;
+    }
+
+    public boolean isEnableBatchChangeInvisibleTime() {
+        return enableBatchChangeInvisibleTime;
+    }
+
+    public void setEnableBatchChangeInvisibleTime(boolean enableBatchChangeInvisibleTime) {
+        this.enableBatchChangeInvisibleTime = enableBatchChangeInvisibleTime;
+    }
+
+    public int getBatchChangeInvisibleTimeMaxNum() {
+        return batchChangeInvisibleTimeMaxNum;
+    }
+
+    public void setBatchChangeInvisibleTimeMaxNum(int batchChangeInvisibleTimeMaxNum) {
+        this.batchChangeInvisibleTimeMaxNum = batchChangeInvisibleTimeMaxNum;
     }
 
     public boolean isEnableMessageBodyEmptyCheck() {

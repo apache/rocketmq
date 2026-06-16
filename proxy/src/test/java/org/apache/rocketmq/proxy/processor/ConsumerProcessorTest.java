@@ -46,6 +46,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.common.utils.FutureUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
@@ -68,6 +69,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -75,6 +77,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -282,6 +285,196 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     }
 
     @Test
+    public void testBatchChangeInvisibleTime() throws Throwable {
+        String brokerName1 = "brokerName1";
+        String brokerName2 = "brokerName2";
+        MessageExt expireMessage = createMessageExt(TOPIC, "", 0, 3000, System.currentTimeMillis() - 10000,
+            0, 0, 0, 0, brokerName1);
+        ReceiptHandle expireHandle = create(expireMessage);
+
+        List<ReceiptHandleMessage> receiptHandleMessageList = new ArrayList<>();
+        receiptHandleMessageList.add(new ReceiptHandleMessage(expireHandle, expireMessage.getMsgId()));
+        List<String> broker1Msg = new ArrayList<>();
+        List<String> broker2Msg = new ArrayList<>();
+
+        long now = System.currentTimeMillis();
+        int msgNum = 3;
+        for (int i = 0; i < msgNum; i++) {
+            MessageExt brokerMessage = createMessageExt(TOPIC, "", 0, 3000, now,
+                0, 0, 0, i + 1, brokerName1);
+            ReceiptHandle brokerHandle = create(brokerMessage);
+            receiptHandleMessageList.add(new ReceiptHandleMessage(brokerHandle, brokerMessage.getMsgId()));
+            broker1Msg.add(brokerMessage.getMsgId());
+        }
+        for (int i = 0; i < msgNum; i++) {
+            MessageExt brokerMessage = createMessageExt(TOPIC, "", 0, 3000, now,
+                0, 0, 0, i + 1, brokerName2);
+            ReceiptHandle brokerHandle = create(brokerMessage);
+            receiptHandleMessageList.add(new ReceiptHandleMessage(brokerHandle, brokerMessage.getMsgId()));
+            broker2Msg.add(brokerMessage.getMsgId());
+        }
+
+        String newExtraInfo = "newExtraInfo";
+        long popTime = 12345L;
+        doAnswer((Answer<CompletableFuture<List<AckResult>>>) invocation -> {
+            List<ReceiptHandleMessage> handleMessageList = invocation.getArgument(1, List.class);
+            List<AckResult> ackResultList = new ArrayList<>();
+            String brokerName = handleMessageList.get(0).getReceiptHandle().getBrokerName();
+            for (ReceiptHandleMessage ignored : handleMessageList) {
+                AckResult ackResult = new AckResult();
+                if (brokerName.equals(brokerName1)) {
+                    ackResult.setStatus(AckStatus.OK);
+                    ackResult.setPopTime(popTime);
+                    ackResult.setExtraInfo(newExtraInfo);
+                } else {
+                    ackResult.setStatus(AckStatus.NO_EXIST);
+                }
+                ackResultList.add(ackResult);
+            }
+            return CompletableFuture.completedFuture(ackResultList);
+        }).when(this.messageService).batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+
+        List<BatchChangeInvisibleTimeResult> resultList = this.consumerProcessor.batchChangeInvisibleTime(
+            createContext(), receiptHandleMessageList, CONSUMER_GROUP, TOPIC, 3000, 3000, true).get();
+
+        assertEquals(receiptHandleMessageList.size(), resultList.size());
+        Map<String, BatchChangeInvisibleTimeResult> msgResult = new HashMap<>();
+        for (BatchChangeInvisibleTimeResult result : resultList) {
+            msgResult.put(result.getReceiptHandleMessage().getMessageId(), result);
+        }
+        for (String msgId : broker1Msg) {
+            BatchChangeInvisibleTimeResult result = msgResult.get(msgId);
+            assertEquals(AckStatus.OK, result.getAckResult().getStatus());
+            assertEquals(popTime, result.getAckResult().getPopTime());
+            assertEquals(newExtraInfo + MessageConst.KEY_SEPARATOR
+                + result.getReceiptHandleMessage().getReceiptHandle().getCommitLogOffset(),
+                result.getAckResult().getExtraInfo());
+            assertNull(result.getProxyException());
+        }
+        for (String msgId : broker2Msg) {
+            assertEquals(AckStatus.NO_EXIST, msgResult.get(msgId).getAckResult().getStatus());
+            assertNull(msgResult.get(msgId).getProxyException());
+        }
+        assertNotNull(msgResult.get(expireMessage.getMsgId()).getProxyException());
+        assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE,
+            msgResult.get(expireMessage.getMsgId()).getProxyException().getCode());
+        assertNull(msgResult.get(expireMessage.getMsgId()).getAckResult());
+    }
+
+    @Test
+    public void testBatchChangeInvisibleTimeSplitByRealTopic() throws Throwable {
+        String brokerName = "brokerName1";
+        String retryTopic = KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP,
+            new BrokerConfig().isEnableRetryTopicV2());
+        List<ReceiptHandleMessage> receiptHandleMessageList = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (int i = 0; i < 2; i++) {
+            MessageExt normalMessage = createMessageExt(TOPIC, "", 0, 3000, now,
+                0, 0, 0, i + 1, brokerName);
+            receiptHandleMessageList.add(new ReceiptHandleMessage(create(normalMessage), normalMessage.getMsgId()));
+
+            MessageExt retryMessage = createMessageExt(retryTopic, "", 0, 3000, now,
+                0, 0, 0, i + 10, brokerName);
+            receiptHandleMessageList.add(new ReceiptHandleMessage(create(retryMessage), retryMessage.getMsgId()));
+        }
+
+        ArgumentCaptor<List> batchHandleListCaptor = ArgumentCaptor.forClass(List.class);
+        doAnswer((Answer<CompletableFuture<List<AckResult>>>) invocation -> {
+            List<ReceiptHandleMessage> handleMessageList = invocation.getArgument(1, List.class);
+            List<AckResult> ackResultList = new ArrayList<>();
+            for (ReceiptHandleMessage ignored : handleMessageList) {
+                AckResult ackResult = new AckResult();
+                ackResult.setStatus(AckStatus.OK);
+                ackResultList.add(ackResult);
+            }
+            return CompletableFuture.completedFuture(ackResultList);
+        }).when(this.messageService).batchChangeInvisibleTime(
+            any(), batchHandleListCaptor.capture(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+
+        List<BatchChangeInvisibleTimeResult> resultList = this.consumerProcessor.batchChangeInvisibleTime(
+            createContext(), receiptHandleMessageList, CONSUMER_GROUP, TOPIC, 3000, 3000, true).get();
+
+        assertEquals(receiptHandleMessageList.size(), resultList.size());
+        verify(this.messageService, times(2)).batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+        assertEquals(2, batchHandleListCaptor.getAllValues().size());
+        assertEquals(2, batchHandleListCaptor.getAllValues().get(0).size());
+        assertEquals(2, batchHandleListCaptor.getAllValues().get(1).size());
+        verify(this.messageService, never()).changeInvisibleTime(any(), any(), anyString(), any(), anyLong());
+    }
+
+    @Test
+    public void testBatchChangeInvisibleTimeWithSingleHandleUseSingleChange() throws Throwable {
+        MessageExt messageExt = createMessageExt(TOPIC, "", 0, 3000);
+        ReceiptHandle handle = create(messageExt);
+        List<ReceiptHandleMessage> receiptHandleMessageList = Collections.singletonList(
+            new ReceiptHandleMessage(handle, messageExt.getMsgId()));
+
+        String newExtraInfo = "newExtraInfo";
+        AckResult innerAckResult = new AckResult();
+        innerAckResult.setStatus(AckStatus.OK);
+        innerAckResult.setPopTime(12345L);
+        innerAckResult.setExtraInfo(newExtraInfo);
+        when(this.messageService.changeInvisibleTime(any(), any(), anyString(), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(innerAckResult));
+
+        List<BatchChangeInvisibleTimeResult> resultList = this.consumerProcessor.batchChangeInvisibleTime(
+            createContext(), receiptHandleMessageList, CONSUMER_GROUP, TOPIC, 3000, 3000, true).get();
+
+        assertEquals(1, resultList.size());
+        assertSame(receiptHandleMessageList.get(0), resultList.get(0).getReceiptHandleMessage());
+        assertEquals(AckStatus.OK, resultList.get(0).getAckResult().getStatus());
+        assertEquals(newExtraInfo + MessageConst.KEY_SEPARATOR + handle.getCommitLogOffset(),
+            resultList.get(0).getAckResult().getExtraInfo());
+        assertNull(resultList.get(0).getProxyException());
+        verify(this.messageService).changeInvisibleTime(any(), any(), eq(messageExt.getMsgId()), any(), anyLong());
+        verify(this.messageService, never()).batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+    }
+
+    @Test
+    public void testBatchChangeInvisibleTimeSplitOversizedBrokerGroup() throws Throwable {
+        String brokerName = "brokerName1";
+        assertEquals(1024, ConfigurationManager.getProxyConfig().getBatchChangeInvisibleTimeMaxNum());
+        int batchMaxNum = ConfigurationManager.getProxyConfig().getBatchChangeInvisibleTimeMaxNum();
+        List<ReceiptHandleMessage> receiptHandleMessageList = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (int i = 0; i <= batchMaxNum; i++) {
+            MessageExt brokerMessage = createMessageExt(TOPIC, "", 0, 3000, now,
+                0, 0, 0, i + 1, brokerName);
+            receiptHandleMessageList.add(new ReceiptHandleMessage(create(brokerMessage), brokerMessage.getMsgId()));
+        }
+
+        ArgumentCaptor<List> batchHandleListCaptor = ArgumentCaptor.forClass(List.class);
+        doAnswer((Answer<CompletableFuture<List<AckResult>>>) invocation -> {
+            List<ReceiptHandleMessage> handleMessageList = invocation.getArgument(1, List.class);
+            List<AckResult> ackResultList = new ArrayList<>();
+            for (ReceiptHandleMessage ignored : handleMessageList) {
+                AckResult ackResult = new AckResult();
+                ackResult.setStatus(AckStatus.OK);
+                ackResultList.add(ackResult);
+            }
+            return CompletableFuture.completedFuture(ackResultList);
+        }).when(this.messageService).batchChangeInvisibleTime(
+            any(), batchHandleListCaptor.capture(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+
+        AckResult singleAckResult = new AckResult();
+        singleAckResult.setStatus(AckStatus.OK);
+        when(this.messageService.changeInvisibleTime(any(), any(), anyString(), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(singleAckResult));
+
+        List<BatchChangeInvisibleTimeResult> resultList = this.consumerProcessor.batchChangeInvisibleTime(
+            createContext(), receiptHandleMessageList, CONSUMER_GROUP, TOPIC, 3000, 3000, true).get();
+
+        assertEquals(receiptHandleMessageList.size(), resultList.size());
+        assertEquals(batchMaxNum, batchHandleListCaptor.getValue().size());
+        verify(this.messageService).batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+        verify(this.messageService).changeInvisibleTime(any(), any(), anyString(), any(), anyLong());
+    }
+
+    @Test
     public void testChangeInvisibleTime() throws Throwable {
         ReceiptHandle handle = create(createMessageExt(MixAll.RETRY_GROUP_TOPIC_PREFIX + TOPIC, "", 0, 3000));
         assertNotNull(handle);
@@ -437,6 +630,107 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             eq(MessagingProcessor.DEFAULT_TIMEOUT_MILLS), eq(true));
 
         // Verify that the message was NOT added to the result list
+        assertEquals(PopStatus.FOUND, popResult.getPopStatus());
+        assertEquals(0, popResult.getMsgFoundList().size());
+    }
+
+    @Test
+    public void testPopMessageWithToReturnFilterUseBatchChangeInvisibleTime() throws Throwable {
+        ConfigurationManager.getProxyConfig().setEnableBatchChangeInvisibleTime(true);
+        final String tag = "tag";
+        final long invisibleTime = Duration.ofSeconds(15).toMillis();
+        ArgumentCaptor<AddressableMessageQueue> messageQueueArgumentCaptor = ArgumentCaptor.forClass(AddressableMessageQueue.class);
+        ArgumentCaptor<PopMessageRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(PopMessageRequestHeader.class);
+
+        List<MessageExt> messageExtList = new ArrayList<>();
+        messageExtList.add(createMessageExt(TOPIC, tag, 0, invisibleTime));
+        messageExtList.add(createMessageExt(TOPIC, tag, 0, invisibleTime));
+        PopResult innerPopResult = new PopResult(PopStatus.FOUND, messageExtList);
+        when(this.messageService.popMessage(any(), messageQueueArgumentCaptor.capture(), requestHeaderArgumentCaptor.capture(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(innerPopResult));
+
+        when(this.topicRouteService.getCurrentMessageQueueView(any(), anyString()))
+            .thenReturn(mock(MessageQueueView.class));
+
+        ArgumentCaptor<List> handleMessageListCaptor = ArgumentCaptor.forClass(List.class);
+        when(this.messagingProcessor.batchChangeInvisibleTime(any(), handleMessageListCaptor.capture(),
+            anyString(), anyString(), anyLong(), anyLong(), anyBoolean()))
+            .thenReturn(CompletableFuture.completedFuture(Collections.emptyList()));
+
+        AddressableMessageQueue messageQueue = mock(AddressableMessageQueue.class);
+        PopResult popResult = this.consumerProcessor.popMessage(
+            createContext(),
+            (ctx, messageQueueView) -> messageQueue,
+            CONSUMER_GROUP,
+            TOPIC,
+            60,
+            invisibleTime,
+            Duration.ofSeconds(3).toMillis(),
+            ConsumeInitMode.MAX,
+            FilterAPI.build(TOPIC, tag, ExpressionType.TAG),
+            false,
+            (ctx, consumerGroup, subscriptionData, messageExt) -> PopMessageResultFilter.FilterResult.TO_RETURN,
+            null,
+            Duration.ofSeconds(3).toMillis()
+        ).get();
+
+        verify(this.messagingProcessor).batchChangeInvisibleTime(any(), anyList(),
+            eq(CONSUMER_GROUP), eq(TOPIC), eq(Duration.ofSeconds(1).toMillis()),
+            eq(MessagingProcessor.DEFAULT_TIMEOUT_MILLS), eq(true));
+        verify(this.messagingProcessor, never()).changeInvisibleTime(any(), any(), anyString(),
+            anyString(), anyString(), anyLong(), any(), anyLong(), anyBoolean());
+        assertEquals(2, handleMessageListCaptor.getValue().size());
+        assertEquals(messageExtList.get(0).getMsgId(),
+            ((ReceiptHandleMessage) handleMessageListCaptor.getValue().get(0)).getMessageId());
+        assertEquals(messageExtList.get(1).getMsgId(),
+            ((ReceiptHandleMessage) handleMessageListCaptor.getValue().get(1)).getMessageId());
+        assertEquals(PopStatus.FOUND, popResult.getPopStatus());
+        assertEquals(0, popResult.getMsgFoundList().size());
+    }
+
+    @Test
+    public void testPopMessageWithSingleToReturnFilterUseSingleChangeInvisibleTime() throws Throwable {
+        ConfigurationManager.getProxyConfig().setEnableBatchChangeInvisibleTime(true);
+        final String tag = "tag";
+        final long invisibleTime = Duration.ofSeconds(15).toMillis();
+        ArgumentCaptor<AddressableMessageQueue> messageQueueArgumentCaptor = ArgumentCaptor.forClass(AddressableMessageQueue.class);
+        ArgumentCaptor<PopMessageRequestHeader> requestHeaderArgumentCaptor = ArgumentCaptor.forClass(PopMessageRequestHeader.class);
+
+        List<MessageExt> messageExtList = new ArrayList<>();
+        messageExtList.add(createMessageExt(TOPIC, tag, 0, invisibleTime));
+        PopResult innerPopResult = new PopResult(PopStatus.FOUND, messageExtList);
+        when(this.messageService.popMessage(any(), messageQueueArgumentCaptor.capture(), requestHeaderArgumentCaptor.capture(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(innerPopResult));
+
+        when(this.topicRouteService.getCurrentMessageQueueView(any(), anyString()))
+            .thenReturn(mock(MessageQueueView.class));
+
+        when(this.messagingProcessor.changeInvisibleTime(any(), any(), anyString(),
+            anyString(), anyString(), anyLong(), any(), anyLong(), anyBoolean()))
+            .thenReturn(CompletableFuture.completedFuture(mock(AckResult.class)));
+
+        AddressableMessageQueue messageQueue = mock(AddressableMessageQueue.class);
+        PopResult popResult = this.consumerProcessor.popMessage(
+            createContext(),
+            (ctx, messageQueueView) -> messageQueue,
+            CONSUMER_GROUP,
+            TOPIC,
+            60,
+            invisibleTime,
+            Duration.ofSeconds(3).toMillis(),
+            ConsumeInitMode.MAX,
+            FilterAPI.build(TOPIC, tag, ExpressionType.TAG),
+            false,
+            (ctx, consumerGroup, subscriptionData, messageExt) -> PopMessageResultFilter.FilterResult.TO_RETURN,
+            null,
+            Duration.ofSeconds(3).toMillis()
+        ).get();
+
+        verify(this.messagingProcessor).changeInvisibleTime(any(), any(), eq(messageExtList.get(0).getMsgId()),
+            eq(CONSUMER_GROUP), eq(TOPIC), eq(Duration.ofSeconds(1).toMillis()), eq(null),
+            eq(MessagingProcessor.DEFAULT_TIMEOUT_MILLS), eq(true));
+        verify(this.messagingProcessor, never()).batchChangeInvisibleTime(any(), anyList(),
+            anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
         assertEquals(PopStatus.FOUND, popResult.getPopStatus());
         assertEquals(0, popResult.getMsgFoundList().size());
     }

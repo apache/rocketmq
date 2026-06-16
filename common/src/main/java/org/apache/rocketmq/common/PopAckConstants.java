@@ -32,6 +32,7 @@ public class PopAckConstants {
     public static final String ACK_TAG = "ack";
     public static final String BATCH_ACK_TAG = "bAck";
     public static final String SPLIT = "@";
+    public static final int DEFAULT_BATCH_CHANGE_INVISIBLE_TIME_MAX_NUM = 1024;
 
     /**
      * Build cluster revive topic

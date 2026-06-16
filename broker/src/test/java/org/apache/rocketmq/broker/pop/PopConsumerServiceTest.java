@@ -539,6 +539,44 @@ public class PopConsumerServiceTest {
     }
 
     @Test
+    public void testBatchChangeInvisibilityDurationDeletesSameVisibilityOldRecordFromCache()
+        throws IllegalAccessException {
+        long current = System.currentTimeMillis();
+        long popTime = current - 1000;
+        long invisibleTime = 10000;
+        long changedPopTime = current;
+        long changedInvisibleTime = 9000;
+        long offset = 300L;
+
+        consumerService.getPopConsumerStore().start();
+        Mockito.when(brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)).thenReturn(true);
+
+        PopConsumerCache consumerCache = (PopConsumerCache) FieldUtils.readField(
+            consumerService, "popConsumerCache", true);
+        PopConsumerRecord oldRecord = new PopConsumerRecord(popTime, groupId, topicId, queueId,
+            0, invisibleTime, offset, null, false);
+        consumerCache.writeRecords(Collections.singletonList(oldRecord));
+        Assert.assertEquals(1, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
+
+        PopConsumerService.ChangeInvisibilityRecord changeRecord =
+            new PopConsumerService.ChangeInvisibilityRecord(popTime, invisibleTime, changedPopTime,
+                changedInvisibleTime, groupId, topicId, queueId, offset, false);
+        consumerService.batchChangeInvisibilityDuration(Collections.singletonList(changeRecord));
+
+        Assert.assertEquals(0, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
+        List<PopConsumerRecord> records = consumerService.getPopConsumerStore()
+            .scanExpiredRecords(0, changedPopTime + changedInvisibleTime + 1000, 10);
+        PopConsumerRecord ckRecord = records.stream()
+            .filter(r -> r.getOffset() == offset && r.getPopTime() == changedPopTime)
+            .findFirst()
+            .orElse(null);
+        Assert.assertNotNull("Should find the changed checkpoint record", ckRecord);
+        Assert.assertEquals(changedInvisibleTime, ckRecord.getInvisibleTime());
+
+        consumerService.shutdown();
+    }
+
+    @Test
     public void testReviveRetryWithSuspendTrue() {
         Mockito.when(brokerController.getTopicConfigManager().selectTopicConfig(topicId)).thenReturn(null);
         Mockito.when(brokerController.getConsumerOffsetManager().queryOffset(groupId, topicId, 0)).thenReturn(-1L);

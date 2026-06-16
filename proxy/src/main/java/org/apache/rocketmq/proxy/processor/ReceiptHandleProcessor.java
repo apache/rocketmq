@@ -18,6 +18,12 @@
 package org.apache.rocketmq.proxy.processor;
 
 import io.netty.channel.Channel;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.state.StateEventListener;
@@ -27,10 +33,13 @@ import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.service.ServiceManager;
+import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.receipt.DefaultReceiptHandleManager;
 
 public class ReceiptHandleProcessor extends AbstractProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final String RENEW_BATCH_KEY_SEPARATOR = "\u0001";
+
     protected DefaultReceiptHandleManager receiptHandleManager;
 
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager) {
@@ -38,7 +47,15 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
         StateEventListener<RenewEvent> eventListener = event -> {
             ProxyContext context = createContext(event.getEventType().name())
                 .setChannel(event.getKey().getChannel());
-            MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
+            List<MessageReceiptHandle> messageReceiptHandleList = event.getMessageReceiptHandleList();
+            if (messageReceiptHandleList == null || messageReceiptHandleList.isEmpty()) {
+                return;
+            }
+            if (messageReceiptHandleList.size() > 1) {
+                batchChangeInvisibleTime(context, event);
+                return;
+            }
+            MessageReceiptHandle messageReceiptHandle = messageReceiptHandleList.get(0);
             ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
             messagingProcessor
                 .changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
@@ -54,6 +71,74 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
         };
         this.receiptHandleManager = new DefaultReceiptHandleManager(serviceManager.getMetadataService(), serviceManager.getConsumerManager(), eventListener);
         this.appendStartAndShutdown(receiptHandleManager);
+    }
+
+    protected void batchChangeInvisibleTime(ProxyContext context, RenewEvent event) {
+        List<MessageReceiptHandle> messageReceiptHandleList = event.getMessageReceiptHandleList();
+        List<CompletableFuture<AckResult>> futureList = event.getFutureList();
+        Map<String, List<Integer>> indexesByGroupAndTopic = new HashMap<>();
+        for (int i = 0; i < messageReceiptHandleList.size(); i++) {
+            MessageReceiptHandle messageReceiptHandle = messageReceiptHandleList.get(i);
+            String key = messageReceiptHandle.getGroup() + RENEW_BATCH_KEY_SEPARATOR + messageReceiptHandle.getTopic();
+            indexesByGroupAndTopic.computeIfAbsent(key, ignored -> new ArrayList<>()).add(i);
+        }
+
+        for (List<Integer> indexes : indexesByGroupAndTopic.values()) {
+            MessageReceiptHandle firstHandle = messageReceiptHandleList.get(indexes.get(0));
+            if (indexes.size() == 1) {
+                int index = indexes.get(0);
+                CompletableFuture<AckResult> future = futureList.get(index);
+                ReceiptHandle handle = ReceiptHandle.decode(firstHandle.getReceiptHandleStr());
+                messagingProcessor
+                    .changeInvisibleTime(context, handle, firstHandle.getMessageId(),
+                        firstHandle.getGroup(), firstHandle.getTopic(),
+                        event.getRenewTime(), firstHandle.getLiteTopic())
+                    .whenComplete((ackResult, throwable) -> {
+                        if (throwable != null) {
+                            future.completeExceptionally(throwable);
+                        } else {
+                            future.complete(ackResult);
+                        }
+                    });
+                continue;
+            }
+
+            List<ReceiptHandleMessage> handleMessageList = new ArrayList<>(indexes.size());
+            for (Integer index : indexes) {
+                MessageReceiptHandle messageReceiptHandle = messageReceiptHandleList.get(index);
+                handleMessageList.add(new ReceiptHandleMessage(
+                    ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr()),
+                    messageReceiptHandle.getMessageId(),
+                    messageReceiptHandle.getLiteTopic()));
+            }
+            messagingProcessor.batchChangeInvisibleTime(
+                    context,
+                    handleMessageList,
+                    firstHandle.getGroup(),
+                    firstHandle.getTopic(),
+                    event.getRenewTime(),
+                    MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
+                    false)
+                .whenComplete((results, throwable) -> {
+                    if (throwable != null) {
+                        indexes.forEach(index -> futureList.get(index).completeExceptionally(throwable));
+                        return;
+                    }
+                    for (int i = 0; i < indexes.size(); i++) {
+                        CompletableFuture<AckResult> future = futureList.get(indexes.get(i));
+                        if (results == null || i >= results.size()) {
+                            future.completeExceptionally(new IllegalStateException("batch change invisible time result missing"));
+                            continue;
+                        }
+                        BatchChangeInvisibleTimeResult result = results.get(i);
+                        if (result.getProxyException() != null) {
+                            future.completeExceptionally(result.getProxyException());
+                        } else {
+                            future.complete(result.getAckResult());
+                        }
+                    }
+                });
+        }
     }
 
     protected ProxyContext createContext(String actionName) {
