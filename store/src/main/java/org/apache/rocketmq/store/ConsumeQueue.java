@@ -47,7 +47,7 @@ import org.apache.rocketmq.store.util.LibC;
 
 public class ConsumeQueue implements ConsumeQueueInterface {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private static final boolean IS_LINUX = !MixAll.isWindows();
+    private static final boolean IS_LINUX = !MixAll.isWindows() && !MixAll.isMac();
 
     /**
      * ConsumeQueue's store unit. Format:
