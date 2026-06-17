@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.store;
 
+import com.sun.jna.NativeLong;
+import com.sun.jna.Pointer;
+import io.netty.util.internal.PlatformDependent;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -40,9 +43,11 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.queue.QueueOffsetOperator;
 import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.apache.rocketmq.store.util.LibC;
 
 public class ConsumeQueue implements ConsumeQueueInterface {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final boolean IS_LINUX = !MixAll.isWindows();
 
     /**
      * ConsumeQueue's store unit. Format:
@@ -611,6 +616,29 @@ public class ConsumeQueue implements ConsumeQueueInterface {
                 return;
             }
 
+            // Disable kernel read-ahead for the binary search below.
+            //
+            // correctMinOffset performs binary search on mmap'd ConsumeQueue files, which is a
+            // random access pattern. The kernel's default read-ahead window is aggressively large
+            // on NVMe devices, so each page fault pulls in far more data than needed, producing
+            // periodic disk read pulses. On cloud disks where read/write bandwidth share a single
+            // quota, these pulses squeeze CommitLog writes and cause send-RT spikes.
+            //
+            // madvise(MADV_RANDOM) tells the kernel to skip read-ahead for this VMA; after the
+            // search we restore MADV_NORMAL in the finally block so sequential consumers are
+            // unaffected. Controlled by correctMinOffsetMadviseEnable (default: off).
+            // Skipped on Windows where madvise is not available.
+            Pointer pointer = null;
+            if (IS_LINUX && messageStore.getMessageStoreConfig().isCorrectMinOffsetMadviseEnable()) {
+                long address = PlatformDependent.directBufferAddress(mappedFile.getMappedByteBuffer());
+                pointer = new Pointer(address);
+                int ret = LibC.INSTANCE.madvise(pointer, new NativeLong(mappedFile.getFileSize()), LibC.MADV_RANDOM);
+                if (ret != 0) {
+                    log.warn("Failed to set MADV_RANDOM for ConsumeQueue[topic={}, queueId={}] file: {}, ret={}",
+                        topic, queueId, mappedFile.getFileName(), ret);
+                }
+            }
+
             try {
                 // No valid consume entries
                 if (result.getSize() == 0) {
@@ -670,6 +698,14 @@ public class ConsumeQueue implements ConsumeQueueInterface {
             } catch (Exception e) {
                 log.error("Exception thrown when correctMinOffset", e);
             } finally {
+                // Restore MADV_NORMAL to allow normal readahead for sequential access
+                if (IS_LINUX && pointer != null) {
+                    int ret = LibC.INSTANCE.madvise(pointer, new NativeLong(mappedFile.getFileSize()), LibC.MADV_NORMAL);
+                    if (ret != 0) {
+                        log.warn("Failed to restore MADV_NORMAL for ConsumeQueue[topic={}, queueId={}] file: {}, ret={}",
+                            topic, queueId, mappedFile.getFileName(), ret);
+                    }
+                }
                 result.release();
             }
         }
