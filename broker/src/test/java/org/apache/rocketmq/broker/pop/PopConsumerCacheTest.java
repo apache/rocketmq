@@ -26,7 +26,6 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.KeyBuilder;
 import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
@@ -103,7 +102,6 @@ public class PopConsumerCacheTest {
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
         PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
         Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
-        Mockito.when(consumerLockService.tryLock(anyString(), anyString())).thenReturn(true);
 
         PopConsumerCache consumerCache =
             new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
@@ -151,30 +149,6 @@ public class PopConsumerCacheTest {
     }
 
     @Test
-    public void cleanupRecordsShouldCommitOffsetWhileHoldingConsumerLock() {
-        BrokerConfig brokerConfig = new BrokerConfig();
-        brokerConfig.setPopCkStayBufferTime(60000);
-        BrokerController brokerController = Mockito.mock(BrokerController.class);
-        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
-        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
-        ConsumerOffsetManager consumerOffsetManager = Mockito.mock(ConsumerOffsetManager.class);
-        Mockito.when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
-        Mockito.when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
-        Mockito.when(consumerLockService.tryLock(anyString(), anyString())).thenReturn(true);
-
-        PopConsumerCache consumerCache =
-            new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
-        PopConsumerRecord record = new PopConsumerRecord(System.currentTimeMillis(), groupId, topicId, queueId,
-            0, 20000, 100, attemptId);
-        consumerCache.writeRecords(Collections.singletonList(record));
-
-        int remain = consumerCache.cleanupRecords(ignored -> Assert.fail("Record should remain in cache"));
-
-        Assert.assertEquals(1, remain);
-        Mockito.verify(consumerOffsetManager).commitOffset("PopConsumerCache", groupId, topicId, queueId, 100L);
-    }
-
-    @Test
     public void writeAndDeleteRecordsShouldSkipStoreDeleteForBufferedRecords() {
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
@@ -205,52 +179,22 @@ public class PopConsumerCacheTest {
     }
 
     @Test
-    public void writeAndDeleteRecordsShouldUseSingleConsumerLock() {
+    public void writeAndDeleteRecordsShouldWriteDirectlyWhenDeleteListIsEmpty() {
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
         PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
         Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
-        Mockito.when(consumerLockService.tryLock(anyString(), anyString())).thenReturn(true);
 
         PopConsumerCache consumerCache =
             new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
-        PopConsumerRecord oldRecord1 = new PopConsumerRecord(2L, groupId, topicId, queueId,
-            0, 20000, 100, attemptId);
-        PopConsumerRecord oldRecord2 = new PopConsumerRecord(3L, groupId, topicId, queueId + 1,
-            0, 20000, 101, attemptId);
-        PopConsumerRecord newRecord1 = new PopConsumerRecord(4L, groupId, topicId, queueId,
-            0, 30000, 100, attemptId);
-        PopConsumerRecord newRecord2 = new PopConsumerRecord(5L, groupId, topicId, queueId + 1,
-            0, 30000, 101, attemptId);
-
-        consumerCache.writeAndDeleteRecords(Arrays.asList(newRecord1, newRecord2),
-            Arrays.asList(oldRecord1, oldRecord2));
-
-        Mockito.verify(consumerLockService, Mockito.times(1)).tryLock(groupId, topicId);
-        Mockito.verify(consumerLockService, Mockito.times(1)).unlock(groupId, topicId);
-    }
-
-    @Test
-    public void writeAndDeleteRecordsShouldLockNormalTopicForRetryTopic() {
-        BrokerController brokerController = Mockito.mock(BrokerController.class);
-        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
-        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
-        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
-        Mockito.when(consumerLockService.tryLock(anyString(), anyString())).thenReturn(true);
-
-        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topicId, groupId);
-        PopConsumerCache consumerCache =
-            new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
-        PopConsumerRecord oldRecord = new PopConsumerRecord(2L, groupId, retryTopic, queueId,
-            0, 20000, 100, attemptId);
-        PopConsumerRecord newRecord = new PopConsumerRecord(4L, groupId, retryTopic, queueId,
+        PopConsumerRecord newRecord = new PopConsumerRecord(4L, groupId, topicId, queueId,
             0, 30000, 100, attemptId);
 
-        consumerCache.writeAndDeleteRecords(Collections.singletonList(newRecord),
-            Collections.singletonList(oldRecord));
+        consumerCache.writeAndDeleteRecords(Collections.singletonList(newRecord), Collections.emptyList());
 
-        Mockito.verify(consumerLockService, Mockito.times(1)).tryLock(groupId, topicId);
-        Mockito.verify(consumerLockService, Mockito.times(1)).unlock(groupId, topicId);
+        Mockito.verify(consumerKVStore).writeRecords(Collections.singletonList(newRecord));
+        Mockito.verify(consumerKVStore, Mockito.never()).writeAndDeleteRecords(any(), any());
+        Mockito.verify(consumerLockService, Mockito.never()).tryLock(anyString(), anyString());
     }
 
     @Test
