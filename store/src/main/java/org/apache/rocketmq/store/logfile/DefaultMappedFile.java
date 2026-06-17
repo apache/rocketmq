@@ -99,6 +99,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     protected volatile long storeTimestamp = 0;
     protected boolean firstCreateInQueue = false;
     private long lastFlushTime = -1L;
+    private ByteBuffer cachedAppendSlice;
 
     protected MappedByteBuffer mappedByteBufferWaitToClean = null;
     protected long swapMapTime = 0L;
@@ -305,8 +306,13 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 byteBuffer.position(0).limit(byteBuffer.capacity());
                 fileFromOffset += currentPos;
             } else {
-                byteBuffer = appendMessageBuffer().slice();
+                byteBuffer = this.cachedAppendSlice;
+                if (byteBuffer == null) {
+                    byteBuffer = appendMessageBuffer().slice();
+                    this.cachedAppendSlice = byteBuffer;
+                }
                 byteBuffer.position(currentPos);
+                byteBuffer.limit(byteBuffer.capacity());
             }
 
             try {
@@ -365,8 +371,13 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 byteBuffer.position(0).limit(byteBuffer.capacity());
                 fileFromOffset += currentPos;
             } else {
-                byteBuffer = appendMessageBuffer().slice();
+                byteBuffer = this.cachedAppendSlice;
+                if (byteBuffer == null) {
+                    byteBuffer = appendMessageBuffer().slice();
+                    this.cachedAppendSlice = byteBuffer;
+                }
                 byteBuffer.position(currentPos);
+                byteBuffer.limit(byteBuffer.capacity());
             }
 
             AppendMessageResult result;
@@ -509,6 +520,26 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 this.fileChannel.position(currentPos);
                 this.fileChannel.write(ByteBuffer.wrap(data, 0, data.length));
                 WROTE_POSITION_UPDATER.addAndGet(this, data.length);
+                return true;
+            } catch (Throwable e) {
+                log.error("Error occurred when append message to mappedFile.", e);
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean appendMessageUsingFileChannel(ByteBuffer data) {
+        int currentPos = WROTE_POSITION_UPDATER.get(this);
+        int len = data.remaining();
+
+        if ((currentPos + len) <= this.fileSize) {
+            try {
+                this.fileChannel.position(currentPos);
+                this.fileChannel.write(data);
+                WROTE_POSITION_UPDATER.addAndGet(this, len);
                 return true;
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
@@ -670,10 +701,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
             if (this.hold()) {
                 this.mappedByteBufferAccessCountSinceLastSwap++;
 
-                ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
+                ByteBuffer byteBuffer = this.mappedByteBuffer.duplicate();
                 byteBuffer.position(pos);
+                byteBuffer.limit(pos + size);
                 ByteBuffer byteBufferNew = byteBuffer.slice();
-                byteBufferNew.limit(size);
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             } else {
                 log.warn("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
@@ -693,11 +724,11 @@ public class DefaultMappedFile extends AbstractMappedFile {
         if (pos < readPosition && pos >= 0) {
             if (this.hold()) {
                 this.mappedByteBufferAccessCountSinceLastSwap++;
-                ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
-                byteBuffer.position(pos);
                 int size = readPosition - pos;
+                ByteBuffer byteBuffer = this.mappedByteBuffer.duplicate();
+                byteBuffer.position(pos);
+                byteBuffer.limit(pos + size);
                 ByteBuffer byteBufferNew = byteBuffer.slice();
-                byteBufferNew.limit(size);
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             }
         }

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store;
 
 import java.nio.ByteBuffer;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +26,8 @@ public class GetMessageResult {
 
     private final List<SelectMappedBufferResult> messageMapedList;
     private final List<ByteBuffer> messageBufferList;
-    private final List<Long> messageQueueOffset;
+    private long[] messageQueueOffset;
+    private int queueOffsetSize;
 
     private GetMessageStatus status;
     private long nextBeginOffset;
@@ -47,22 +49,25 @@ public class GetMessageResult {
 
     public static final GetMessageResult NO_MATCH_LOGIC_QUEUE =
         new GetMessageResult(GetMessageStatus.NO_MATCHED_LOGIC_QUEUE, 0, 0, 0, Collections.emptyList(),
-            Collections.emptyList(), Collections.emptyList());
+            Collections.emptyList(), new long[0], 0);
 
     public GetMessageResult() {
         messageMapedList = new ArrayList<>(100);
         messageBufferList = new ArrayList<>(100);
-        messageQueueOffset = new ArrayList<>(100);
+        messageQueueOffset = new long[100];
+        queueOffsetSize = 0;
     }
 
     public GetMessageResult(int resultSize) {
-        messageMapedList = new ArrayList<>(resultSize);
-        messageBufferList = new ArrayList<>(resultSize);
-        messageQueueOffset = new ArrayList<>(resultSize);
+        int initialCapacity = Math.min(Math.max(resultSize, 1), 256);
+        messageMapedList = new ArrayList<>(initialCapacity);
+        messageBufferList = new ArrayList<>(initialCapacity);
+        messageQueueOffset = new long[initialCapacity];
+        queueOffsetSize = 0;
     }
 
     private GetMessageResult(GetMessageStatus status, long nextBeginOffset, long minOffset, long maxOffset,
-        List<SelectMappedBufferResult> messageMapedList, List<ByteBuffer> messageBufferList, List<Long> messageQueueOffset) {
+        List<SelectMappedBufferResult> messageMapedList, List<ByteBuffer> messageBufferList, long[] messageQueueOffset, int queueOffsetSize) {
         this.status = status;
         this.nextBeginOffset = nextBeginOffset;
         this.minOffset = minOffset;
@@ -70,6 +75,7 @@ public class GetMessageResult {
         this.messageMapedList = messageMapedList;
         this.messageBufferList = messageBufferList;
         this.messageQueueOffset = messageQueueOffset;
+        this.queueOffsetSize = queueOffsetSize;
     }
 
     public GetMessageStatus getStatus() {
@@ -128,7 +134,12 @@ public class GetMessageResult {
         this.msgCount4Commercial += (int) Math.ceil(
             mapedBuffer.getSize() /  (double)commercialSizePerMsg);
         this.messageCount++;
-        this.messageQueueOffset.add(queueOffset);
+        if (queueOffsetSize == messageQueueOffset.length) {
+            long[] newArr = new long[queueOffsetSize + (queueOffsetSize >> 1)];
+            System.arraycopy(messageQueueOffset, 0, newArr, 0, queueOffsetSize);
+            messageQueueOffset = newArr;
+        }
+        messageQueueOffset[queueOffsetSize++] = queueOffset;
     }
 
 
@@ -167,8 +178,25 @@ public class GetMessageResult {
         this.msgCount4Commercial = msgCount4Commercial;
     }
 
+    public void addQueueOffset(long offset) {
+        if (queueOffsetSize == messageQueueOffset.length) {
+            long[] newArr = new long[queueOffsetSize + (queueOffsetSize >> 1) + 1];
+            System.arraycopy(messageQueueOffset, 0, newArr, 0, queueOffsetSize);
+            messageQueueOffset = newArr;
+        }
+        messageQueueOffset[queueOffsetSize++] = offset;
+    }
+
     public List<Long> getMessageQueueOffset() {
-        return messageQueueOffset;
+        final long[] arr = this.messageQueueOffset;
+        final int size = this.queueOffsetSize;
+        return new AbstractList<Long>() {
+            @Override public Long get(int index) {
+                if (index < 0 || index >= size) throw new IndexOutOfBoundsException();
+                return arr[index];
+            }
+            @Override public int size() { return size; }
+        };
     }
 
     public long getColdDataSum() {

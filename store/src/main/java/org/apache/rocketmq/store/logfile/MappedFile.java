@@ -119,6 +119,8 @@ public interface MappedFile {
      */
     boolean appendMessageUsingFileChannel(byte[] data);
 
+    boolean appendMessageUsingFileChannel(java.nio.ByteBuffer data);
+
     /**
      * Appends a raw message data represents by a byte array to the current {@code MappedFile}.
      *

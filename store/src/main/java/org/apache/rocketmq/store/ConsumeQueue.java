@@ -73,6 +73,7 @@ public class ConsumeQueue implements ConsumeQueueInterface {
     private final int queueId;
     private final ByteBuffer byteBufferIndex;
 
+    private final String topicQueueKey;
     private final String storePath;
     private final int mappedFileSize;
     private long maxPhysicOffset = -1;
@@ -97,6 +98,7 @@ public class ConsumeQueue implements ConsumeQueueInterface {
 
         this.topic = topic;
         this.queueId = queueId;
+        this.topicQueueKey = topic + "-" + queueId;
 
         String queueDir = this.storePath
             + File.separator + topic
@@ -821,7 +823,6 @@ public class ConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public void assignQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg) {
-        String topicQueueKey = getTopic() + "-" + getQueueId();
         long queueOffset = queueOffsetOperator.getQueueOffset(topicQueueKey);
         msg.setQueueOffset(queueOffset);
     }
@@ -829,7 +830,6 @@ public class ConsumeQueue implements ConsumeQueueInterface {
     @Override
     public void increaseQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg,
         short messageNum) {
-        String topicQueueKey = getTopic() + "-" + getQueueId();
         queueOffsetOperator.increaseQueueOffset(topicQueueKey, messageNum);
     }
 
@@ -889,7 +889,8 @@ public class ConsumeQueue implements ConsumeQueueInterface {
             this.setMaxPhysicOffset(offset + size);
             boolean appendResult;
             if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
-                appendResult = mappedFile.appendMessageUsingFileChannel(this.byteBufferIndex.array());
+                this.byteBufferIndex.flip();
+                appendResult = mappedFile.appendMessageUsingFileChannel(this.byteBufferIndex);
             } else {
                 appendResult = mappedFile.appendMessage(this.byteBufferIndex.array());
             }
