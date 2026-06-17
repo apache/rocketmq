@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.remoting.protocol.body;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -31,6 +32,9 @@ public class BatchChangeInvisibleTimeTest {
         BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
         requestBody.setEntries(Arrays.asList(buildRequestEntry(1), buildRequestEntry(2)));
 
+        String json = new String(requestBody.encode(), StandardCharsets.UTF_8);
+        assertThat(json).doesNotContain("popTime", "oldInvisibleTime", "changedPopTime", "changedInvisibleTime");
+
         BatchChangeInvisibleTimeRequestBody decoded =
             BatchChangeInvisibleTimeRequestBody.decode(requestBody.encode(), BatchChangeInvisibleTimeRequestBody.class);
 
@@ -43,6 +47,22 @@ public class BatchChangeInvisibleTimeTest {
         assertThat(decoded.getEntries().get(0).getInvisibleTime()).isEqualTo(3000);
         assertThat(decoded.getEntries().get(0).getLiteTopic()).isEqualTo("lite");
         assertThat(decoded.getEntries().get(0).isSuspend()).isTrue();
+        assertThat(decoded.getEntries().get(0).getPopTime()).isZero();
+        assertThat(decoded.getEntries().get(0).getOldInvisibleTime()).isZero();
+        assertThat(decoded.getEntries().get(0).getChangedPopTime()).isZero();
+        assertThat(decoded.getEntries().get(0).getChangedInvisibleTime()).isZero();
+
+        String rawJsonWithBrokerFields = "{\"entries\":[{\"consumerGroup\":\"group\",\"topic\":\"topic\","
+            + "\"queueId\":1,\"extraInfo\":\"0 100 1000 0 broker 1 10\",\"offset\":10,"
+            + "\"invisibleTime\":3000,\"popTime\":100,\"oldInvisibleTime\":1000,"
+            + "\"changedPopTime\":200,\"changedInvisibleTime\":3000}]}";
+        BatchChangeInvisibleTimeRequestBody decodedWithBrokerFields =
+            BatchChangeInvisibleTimeRequestBody.decode(rawJsonWithBrokerFields.getBytes(StandardCharsets.UTF_8),
+                BatchChangeInvisibleTimeRequestBody.class);
+        assertThat(decodedWithBrokerFields.getEntries().get(0).getPopTime()).isZero();
+        assertThat(decodedWithBrokerFields.getEntries().get(0).getOldInvisibleTime()).isZero();
+        assertThat(decodedWithBrokerFields.getEntries().get(0).getChangedPopTime()).isZero();
+        assertThat(decodedWithBrokerFields.getEntries().get(0).getChangedInvisibleTime()).isZero();
     }
 
     @Test
@@ -89,6 +109,10 @@ public class BatchChangeInvisibleTimeTest {
         entry.setInvisibleTime(3000);
         entry.setLiteTopic("lite");
         entry.setSuspend(true);
+        entry.setPopTime(100);
+        entry.setOldInvisibleTime(1000);
+        entry.setChangedPopTime(200);
+        entry.setChangedInvisibleTime(3000);
         return entry;
     }
 }

@@ -25,7 +25,6 @@ import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.broker.pop.PopConsumerService;
-import org.apache.rocketmq.broker.pop.PopConsumerService.ChangeInvisibilityRecord;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import com.alibaba.fastjson2.JSON;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -303,13 +302,13 @@ public class ChangeInvisibleTimeProcessorTest {
 
         ArgumentCaptor<List> changeRecordsCaptor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(popConsumerService).batchChangeInvisibilityDuration(changeRecordsCaptor.capture());
-        List<ChangeInvisibilityRecord> changeRecords = changeRecordsCaptor.getValue();
+        List<ChangeInvisibleTimeRequestEntry> changeRecords = changeRecordsCaptor.getValue();
         assertThat(changeRecords).hasSize(1);
         assertThat(changeRecords.get(0).getPopTime()).isEqualTo(popTime);
-        assertThat(changeRecords.get(0).getInvisibleTime()).isEqualTo(oldInvisibleTime);
+        assertThat(changeRecords.get(0).getOldInvisibleTime()).isEqualTo(oldInvisibleTime);
         assertThat(changeRecords.get(0).getChangedInvisibleTime()).isEqualTo(newInvisibleTime);
-        assertThat(changeRecords.get(0).getGroupId()).isEqualTo(group);
-        assertThat(changeRecords.get(0).getTopicId()).isEqualTo(topic);
+        assertThat(changeRecords.get(0).getConsumerGroup()).isEqualTo(group);
+        assertThat(changeRecords.get(0).getTopic()).isEqualTo(topic);
         assertThat(changeRecords.get(0).getQueueId()).isEqualTo(0);
         assertThat(changeRecords.get(0).getOffset()).isEqualTo(queueOffset);
     }

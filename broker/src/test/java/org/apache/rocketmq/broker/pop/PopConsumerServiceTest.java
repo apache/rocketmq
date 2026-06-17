@@ -47,6 +47,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeRequestEntry;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -593,9 +594,16 @@ public class PopConsumerServiceTest {
         consumerCache.writeRecords(Collections.singletonList(oldRecord));
         Assert.assertEquals(1, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
 
-        PopConsumerService.ChangeInvisibilityRecord changeRecord =
-            new PopConsumerService.ChangeInvisibilityRecord(popTime, invisibleTime, changedPopTime,
-                changedInvisibleTime, groupId, topicId, queueId, offset, false);
+        ChangeInvisibleTimeRequestEntry changeRecord = new ChangeInvisibleTimeRequestEntry();
+        changeRecord.setConsumerGroup(groupId);
+        changeRecord.setTopic(topicId);
+        changeRecord.setQueueId(queueId);
+        changeRecord.setOffset(offset);
+        changeRecord.setPopTime(popTime);
+        changeRecord.setOldInvisibleTime(invisibleTime);
+        changeRecord.setChangedPopTime(changedPopTime);
+        changeRecord.setChangedInvisibleTime(changedInvisibleTime);
+        changeRecord.setSuspend(false);
         consumerService.batchChangeInvisibilityDuration(Collections.singletonList(changeRecord));
 
         Assert.assertEquals(0, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));

@@ -24,13 +24,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.MemoryConsumerOrderInfoManager;
-import org.apache.rocketmq.broker.pop.PopConsumerService.ChangeInvisibilityRecord;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.common.PopAckConstants;
@@ -235,14 +235,14 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         }
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-        if (!prepareBatchRequestEntries(batchRequestHeader, requestEntries)) {
+        if (!validateBatchRequestEntries(batchRequestHeader, requestEntries)) {
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             response.setRemark("batch change invisible time entries must use the same topic and consumerGroup as request header");
             return CompletableFuture.completedFuture(response);
         }
 
         if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
-            List<ChangeInvisibilityRecord> kvChangeRecords = new ArrayList<>();
+            List<ChangeInvisibleTimeRequestEntry> kvChangeRecords = new ArrayList<>();
             List<Integer> kvIndexes = new ArrayList<>();
             List<ChangeInvisibleTimeResponseEntry> kvSuccessEntries = new ArrayList<>();
             for (int i = 0; i < requestEntries.size(); i++) {
@@ -283,7 +283,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         });
     }
 
-    protected boolean prepareBatchRequestEntries(BatchChangeInvisibleTimeRequestHeader batchRequestHeader,
+    protected boolean validateBatchRequestEntries(BatchChangeInvisibleTimeRequestHeader batchRequestHeader,
         List<ChangeInvisibleTimeRequestEntry> requestEntries) {
         if (batchRequestHeader == null ||
             StringUtils.isBlank(batchRequestHeader.getConsumerGroup()) ||
@@ -301,8 +301,8 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             if (StringUtils.isBlank(requestEntry.getTopic())) {
                 requestEntry.setTopic(batchRequestHeader.getTopic());
             }
-            if (!StringUtils.equals(batchRequestHeader.getConsumerGroup(), requestEntry.getConsumerGroup()) ||
-                !StringUtils.equals(batchRequestHeader.getTopic(), requestEntry.getTopic())) {
+            if (!Objects.equals(batchRequestHeader.getConsumerGroup(), requestEntry.getConsumerGroup()) ||
+                !Objects.equals(batchRequestHeader.getTopic(), requestEntry.getTopic())) {
                 return false;
             }
         }
@@ -310,7 +310,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
     }
 
     protected boolean tryAppendBatchKvChange(final Channel channel, ChangeInvisibleTimeRequestEntry requestEntry, int index,
-        ChangeInvisibleTimeResponseEntry[] responseEntries, List<ChangeInvisibilityRecord> kvChangeRecords,
+        ChangeInvisibleTimeResponseEntry[] responseEntries, List<ChangeInvisibleTimeRequestEntry> kvChangeRecords,
         List<Integer> kvIndexes, List<ChangeInvisibleTimeResponseEntry> kvSuccessEntries) {
         if (requestEntry == null) {
             responseEntries[index] = buildFailedResponseEntry(ResponseCode.SYSTEM_ERROR);
@@ -333,10 +333,11 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             }
 
             long current = System.currentTimeMillis();
-            kvChangeRecords.add(new ChangeInvisibilityRecord(
-                ExtraInfoUtil.getPopTime(extraInfo), ExtraInfoUtil.getInvisibleTime(extraInfo), current,
-                requestEntry.getInvisibleTime(), requestEntry.getConsumerGroup(), requestEntry.getTopic(),
-                requestEntry.getQueueId(), requestEntry.getOffset(), requestEntry.isSuspend()));
+            requestEntry.setPopTime(ExtraInfoUtil.getPopTime(extraInfo));
+            requestEntry.setOldInvisibleTime(ExtraInfoUtil.getInvisibleTime(extraInfo));
+            requestEntry.setChangedPopTime(current);
+            requestEntry.setChangedInvisibleTime(requestEntry.getInvisibleTime());
+            kvChangeRecords.add(requestEntry);
             ChangeInvisibleTimeResponseEntry successEntry = new ChangeInvisibleTimeResponseEntry();
             successEntry.setCode(ResponseCode.SUCCESS);
             successEntry.setPopTime(current);

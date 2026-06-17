@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.remoting.protocol.body;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+
 public class ChangeInvisibleTimeRequestEntry {
     private String consumerGroup;
     private String topic;
@@ -26,6 +28,12 @@ public class ChangeInvisibleTimeRequestEntry {
     private long invisibleTime;
     private String liteTopic;
     private boolean suspend;
+
+    // broker only
+    private transient long popTime;
+    private transient long oldInvisibleTime;
+    private transient long changedPopTime;
+    private transient long changedInvisibleTime;
 
     public String getConsumerGroup() {
         return consumerGroup;
@@ -89,5 +97,45 @@ public class ChangeInvisibleTimeRequestEntry {
 
     public void setSuspend(boolean suspend) {
         this.suspend = suspend;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public long getPopTime() {
+        return popTime;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public void setPopTime(long popTime) {
+        this.popTime = popTime;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public long getOldInvisibleTime() {
+        return oldInvisibleTime;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public void setOldInvisibleTime(long oldInvisibleTime) {
+        this.oldInvisibleTime = oldInvisibleTime;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public long getChangedPopTime() {
+        return changedPopTime;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public void setChangedPopTime(long changedPopTime) {
+        this.changedPopTime = changedPopTime;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public long getChangedInvisibleTime() {
+        return changedInvisibleTime;
+    }
+
+    @JSONField(serialize = false, deserialize = false)
+    public void setChangedInvisibleTime(long changedInvisibleTime) {
+        this.changedInvisibleTime = changedInvisibleTime;
     }
 }
