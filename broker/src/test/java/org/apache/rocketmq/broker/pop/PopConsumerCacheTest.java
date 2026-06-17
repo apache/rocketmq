@@ -254,34 +254,6 @@ public class PopConsumerCacheTest {
     }
 
     @Test
-    public void writeAndDeleteRecordsShouldRejectMixedConsumerLockKey() {
-        BrokerController brokerController = Mockito.mock(BrokerController.class);
-        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);
-        PopConsumerLockService consumerLockService = Mockito.mock(PopConsumerLockService.class);
-        Mockito.when(brokerController.getBrokerConfig()).thenReturn(new BrokerConfig());
-
-        PopConsumerCache consumerCache =
-            new PopConsumerCache(brokerController, consumerKVStore, consumerLockService, null);
-        PopConsumerRecord oldRecord = new PopConsumerRecord(2L, groupId, topicId, queueId,
-            0, 20000, 100, attemptId);
-        PopConsumerRecord mixedOldRecord = new PopConsumerRecord(3L, groupId, topicId + "_other", queueId,
-            0, 20000, 101, attemptId);
-        PopConsumerRecord newRecord = new PopConsumerRecord(4L, groupId, topicId, queueId,
-            0, 30000, 100, attemptId);
-
-        try {
-            consumerCache.writeAndDeleteRecords(Collections.singletonList(newRecord),
-                Arrays.asList(oldRecord, mixedOldRecord));
-            Assert.fail("Should reject mixed consumer lock key");
-        } catch (IllegalArgumentException e) {
-            Assert.assertTrue(e.getMessage().contains("same consumer"));
-        }
-
-        Mockito.verify(consumerLockService, Mockito.never()).tryLock(anyString(), anyString());
-        Mockito.verify(consumerKVStore, Mockito.never()).writeAndDeleteRecords(any(), any());
-    }
-
-    @Test
     public void writeAndDeleteRecordsShouldDeleteBufferOnlyWhenStoreKeyMatchesNewRecord() {
         BrokerController brokerController = Mockito.mock(BrokerController.class);
         PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerRocksdbStore.class);

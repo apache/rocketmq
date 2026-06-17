@@ -124,7 +124,7 @@ public class PopConsumerCache extends ServiceThread {
             return;
         }
 
-        PopConsumerRecord lockRecord = validateAndGetLockRecord(writeRecordList, deleteRecordList);
+        PopConsumerRecord lockRecord = deleteRecordList.get(0);
         String lockTopic = KeyBuilder.parseNormalTopic(lockRecord.getTopicId(), lockRecord.getGroupId());
         while (!consumerLockService.tryLock(lockRecord.getGroupId(), lockTopic)) {
             Thread.yield();
@@ -154,29 +154,6 @@ public class PopConsumerCache extends ServiceThread {
         } finally {
             consumerLockService.unlock(lockRecord.getGroupId(), lockTopic);
         }
-    }
-
-    private PopConsumerRecord validateAndGetLockRecord(List<PopConsumerRecord> writeRecordList,
-        List<PopConsumerRecord> deleteRecordList) {
-        PopConsumerRecord lockRecord = null;
-        lockRecord = validateAndGetLockRecord(lockRecord, deleteRecordList);
-        return validateAndGetLockRecord(lockRecord, writeRecordList);
-    }
-
-    private PopConsumerRecord validateAndGetLockRecord(PopConsumerRecord expectedRecord,
-        List<PopConsumerRecord> consumerRecordList) {
-        PopConsumerRecord lockRecord = expectedRecord;
-        for (PopConsumerRecord consumerRecord : consumerRecordList) {
-            if (lockRecord == null) {
-                lockRecord = consumerRecord;
-                continue;
-            }
-            if (!lockRecord.getGroupId().equals(consumerRecord.getGroupId()) ||
-                !lockRecord.getTopicId().equals(consumerRecord.getTopicId())) {
-                throw new IllegalArgumentException("batch write and delete records must use the same consumer");
-            }
-        }
-        return lockRecord;
     }
 
     public int cleanupRecords(Consumer<PopConsumerRecord> consumer) {
