@@ -496,19 +496,19 @@ public class ConsumerProcessor extends AbstractProcessor {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         int batchMaxNum = Math.max(1, proxyConfig.getBatchChangeInvisibleTimeMaxNum());
         if (handleMessageList.size() > batchMaxNum) {
-            List<CompletableFuture<List<BatchChangeInvisibleTimeResult>>> futures = new ArrayList<>();
+            CompletableFuture<List<BatchChangeInvisibleTimeResult>> resultFuture =
+                CompletableFuture.completedFuture(new ArrayList<BatchChangeInvisibleTimeResult>(handleMessageList.size()));
             for (int fromIndex = 0; fromIndex < handleMessageList.size(); fromIndex += batchMaxNum) {
                 int toIndex = Math.min(handleMessageList.size(), fromIndex + batchMaxNum);
-                futures.add(processBrokerChangeInvisibleTime(ctx, consumerGroup, topic,
-                    handleMessageList.subList(fromIndex, toIndex), invisibleTime, timeoutMillis, suspend));
+                List<ReceiptHandleMessage> batchHandleList = handleMessageList.subList(fromIndex, toIndex);
+                // Keep oversized chunks sequential to avoid sending many write-heavy batches to the same broker at once.
+                resultFuture = resultFuture.thenCompose(results -> processBrokerChangeInvisibleTime(ctx, consumerGroup,
+                    topic, batchHandleList, invisibleTime, timeoutMillis, suspend).thenApply(batchResults -> {
+                        results.addAll(batchResults);
+                        return results;
+                    }));
             }
-            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(ignored -> {
-                List<BatchChangeInvisibleTimeResult> results = new ArrayList<>(handleMessageList.size());
-                for (CompletableFuture<List<BatchChangeInvisibleTimeResult>> resultFuture : futures) {
-                    results.addAll(resultFuture.join());
-                }
-                return results;
-            });
+            return resultFuture;
         }
         CompletableFuture<List<BatchChangeInvisibleTimeResult>> future = new CompletableFuture<>();
         this.serviceManager.getMessageService().batchChangeInvisibleTime(

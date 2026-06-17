@@ -475,6 +475,48 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     }
 
     @Test
+    public void testBatchChangeInvisibleTimeSplitOversizedBrokerGroupSequentially() throws Throwable {
+        String brokerName = "brokerName1";
+        int batchMaxNum = 2;
+        ConfigurationManager.getProxyConfig().setBatchChangeInvisibleTimeMaxNum(batchMaxNum);
+        List<ReceiptHandleMessage> receiptHandleMessageList = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (int i = 0; i < batchMaxNum * 2; i++) {
+            MessageExt brokerMessage = createMessageExt(TOPIC, "", 0, 3000, now,
+                0, 0, 0, i + 1, brokerName);
+            receiptHandleMessageList.add(new ReceiptHandleMessage(create(brokerMessage), brokerMessage.getMsgId()));
+        }
+
+        List<CompletableFuture<List<AckResult>>> batchFutures = new ArrayList<>();
+        ArgumentCaptor<List> batchHandleListCaptor = ArgumentCaptor.forClass(List.class);
+        doAnswer((Answer<CompletableFuture<List<AckResult>>>) invocation -> {
+            CompletableFuture<List<AckResult>> batchFuture = new CompletableFuture<>();
+            batchFutures.add(batchFuture);
+            return batchFuture;
+        }).when(this.messageService).batchChangeInvisibleTime(
+            any(), batchHandleListCaptor.capture(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+
+        CompletableFuture<List<BatchChangeInvisibleTimeResult>> resultFuture = this.consumerProcessor.batchChangeInvisibleTime(
+            createContext(), receiptHandleMessageList, CONSUMER_GROUP, TOPIC, 3000, 3000, true);
+
+        assertEquals(1, batchFutures.size());
+        assertEquals(batchMaxNum, batchHandleListCaptor.getAllValues().get(0).size());
+        assertFalse(resultFuture.isDone());
+
+        batchFutures.get(0).complete(buildAckResultList(batchMaxNum));
+        assertEquals(2, batchFutures.size());
+        assertEquals(batchMaxNum, batchHandleListCaptor.getAllValues().get(1).size());
+        assertFalse(resultFuture.isDone());
+
+        batchFutures.get(1).complete(buildAckResultList(batchMaxNum));
+        List<BatchChangeInvisibleTimeResult> resultList = resultFuture.get();
+        assertEquals(receiptHandleMessageList.size(), resultList.size());
+        verify(this.messageService, times(2)).batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+        verify(this.messageService, never()).changeInvisibleTime(any(), any(), anyString(), any(), anyLong());
+    }
+
+    @Test
     public void testChangeInvisibleTime() throws Throwable {
         ReceiptHandle handle = create(createMessageExt(MixAll.RETRY_GROUP_TOPIC_PREFIX + TOPIC, "", 0, 3000));
         assertNotNull(handle);
@@ -777,5 +819,15 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         assertEquals(1000, requestHeaderArgumentCaptor.getValue().getInvisibleTime().longValue());
         assertEquals(handle.getReceiptHandle(), requestHeaderArgumentCaptor.getValue().getExtraInfo());
         assertTrue("Suspend should be true", requestHeaderArgumentCaptor.getValue().isSuspend());
+    }
+
+    private List<AckResult> buildAckResultList(int size) {
+        List<AckResult> ackResultList = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            AckResult ackResult = new AckResult();
+            ackResult.setStatus(AckStatus.OK);
+            ackResultList.add(ackResult);
+        }
+        return ackResultList;
     }
 }
