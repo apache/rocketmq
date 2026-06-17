@@ -333,6 +333,9 @@ public class MessageStoreConfig {
     private int correctLogicMinOffsetSleepInterval = 1;
     // Force correct min offset interval
     private int correctLogicMinOffsetForceInterval = 5 * 60 * 1000;
+    // Enable madvise(MADV_RANDOM) optimization for correctMinOffset binary search
+    private boolean correctMinOffsetMadviseEnable = false;
+
     // swap
     private boolean mappedFileSwapEnable = true;
     private long commitLogForceSwapMapInterval = 12L * 60 * 60 * 1000;
@@ -840,6 +843,14 @@ public class MessageStoreConfig {
 
     public void setCorrectLogicMinOffsetForceInterval(int correctLogicMinOffsetForceInterval) {
         this.correctLogicMinOffsetForceInterval = correctLogicMinOffsetForceInterval;
+    }
+
+    public boolean isCorrectMinOffsetMadviseEnable() {
+        return correctMinOffsetMadviseEnable;
+    }
+
+    public void setCorrectMinOffsetMadviseEnable(boolean correctMinOffsetMadviseEnable) {
+        this.correctMinOffsetMadviseEnable = correctMinOffsetMadviseEnable;
     }
 
     public boolean isCheckCRCOnRecover() {
