@@ -49,6 +49,7 @@ public class IndexService implements CommitLogDispatchStore {
     private final String storePath;
     private final ArrayList<IndexFile> indexFileList = new ArrayList<>();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    private static final ThreadLocal<StringBuilder> KEY_BUILDER = ThreadLocal.withInitial(() -> new StringBuilder(128));
 
     public IndexService(final DefaultMessageStore store) {
         this.defaultMessageStore = store;
@@ -215,10 +216,15 @@ public class IndexService implements CommitLogDispatchStore {
     }
 
     private String buildKey(final String topic, final String key) {
-        return topic + "#" + key;
+        StringBuilder keyBuilder = KEY_BUILDER.get();
+        keyBuilder.setLength(0);
+        return keyBuilder.append(topic).append('#').append(key).toString();
     }
+
     private String buildKey(final String topic, final String key, final String indexType) {
-        return topic + "#" + indexType + "#" + key;
+        StringBuilder keyBuilder = KEY_BUILDER.get();
+        keyBuilder.setLength(0);
+        return keyBuilder.append(topic).append('#').append(indexType).append('#').append(key).toString();
     }
 
     public void buildIndex(DispatchRequest req) {
