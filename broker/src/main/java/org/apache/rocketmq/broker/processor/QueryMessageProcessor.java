@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.pagecache.OneMessageTransfer;
@@ -130,7 +129,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                             .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()))
                             .put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future))
                             .build();
-                        remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
+                        remotingMetricsManager.getRpcLatency().record(request.processTimerElapsedMs(), attributes);
                         if (!future.isSuccess()) {
                             LOGGER.error("transfer query message by page cache failed, ", future.cause());
                         }
@@ -192,7 +191,7 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
                             .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()))
                             .put(LABEL_RESULT, remotingMetricsManager.getWriteAndFlushResult(future))
                             .build();
-                        remotingMetricsManager.getRpcLatency().record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
+                        remotingMetricsManager.getRpcLatency().record(request.processTimerElapsedMs(), attributes);
                         if (!future.isSuccess()) {
                             LOGGER.error("Transfer one message from page cache failed, ", future.cause());
                         }
