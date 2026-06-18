@@ -445,45 +445,73 @@ public class ConsumerProcessor extends AbstractProcessor {
     ) {
         CompletableFuture<List<BatchChangeInvisibleTimeResult>> future = new CompletableFuture<>();
         try {
-            List<BatchChangeInvisibleTimeResult> batchResultList = new ArrayList<>(handleMessageList.size());
-            Map<String, List<ReceiptHandleMessage>> brokerHandleListMap = new HashMap<>();
+            BatchChangeInvisibleTimeResult[] batchResults = new BatchChangeInvisibleTimeResult[handleMessageList.size()];
+            Map<String, List<Integer>> brokerHandleIndexMap = new HashMap<>();
 
-            for (ReceiptHandleMessage handleMessage : handleMessageList) {
+            for (int i = 0; i < handleMessageList.size(); i++) {
+                ReceiptHandleMessage handleMessage = handleMessageList.get(i);
                 if (handleMessage.getReceiptHandle().isExpired()) {
-                    batchResultList.add(new BatchChangeInvisibleTimeResult(handleMessage, EXPIRED_HANDLE_PROXY_EXCEPTION));
+                    batchResults[i] = new BatchChangeInvisibleTimeResult(handleMessage, EXPIRED_HANDLE_PROXY_EXCEPTION);
                     continue;
                 }
                 ReceiptHandle handle = handleMessage.getReceiptHandle();
                 String realTopic = handle.getRealTopic(topic, consumerGroup);
                 String batchKey = handle.getBrokerName() + "@" + realTopic;
-                brokerHandleListMap.computeIfAbsent(batchKey, key -> new ArrayList<>())
-                    .add(handleMessage);
+                brokerHandleIndexMap.computeIfAbsent(batchKey, key -> new ArrayList<>()).add(i);
             }
 
-            if (brokerHandleListMap.isEmpty()) {
-                return FutureUtils.addExecutor(CompletableFuture.completedFuture(batchResultList), this.executor);
+            if (brokerHandleIndexMap.isEmpty()) {
+                return FutureUtils.addExecutor(CompletableFuture.completedFuture(
+                    buildBatchChangeInvisibleTimeResultList(handleMessageList, batchResults)), this.executor);
             }
 
-            CompletableFuture<List<BatchChangeInvisibleTimeResult>>[] futures = new CompletableFuture[brokerHandleListMap.size()];
-            int futureIndex = 0;
-            for (List<ReceiptHandleMessage> brokerHandleList : brokerHandleListMap.values()) {
-                futures[futureIndex++] = processBrokerChangeInvisibleTime(
-                    ctx, consumerGroup, topic, brokerHandleList, invisibleTime, timeoutMillis, suspend);
+            List<CompletableFuture<Void>> futures = new ArrayList<>(brokerHandleIndexMap.size());
+            for (List<Integer> brokerHandleIndexes : brokerHandleIndexMap.values()) {
+                List<ReceiptHandleMessage> brokerHandleList = new ArrayList<>(brokerHandleIndexes.size());
+                for (Integer index : brokerHandleIndexes) {
+                    brokerHandleList.add(handleMessageList.get(index));
+                }
+                futures.add(processBrokerChangeInvisibleTime(
+                    ctx, consumerGroup, topic, brokerHandleList, invisibleTime, timeoutMillis, suspend)
+                    .thenAccept(results -> {
+                        for (int i = 0; i < brokerHandleIndexes.size(); i++) {
+                            int index = brokerHandleIndexes.get(i);
+                            if (results == null || i >= results.size()) {
+                                batchResults[index] = new BatchChangeInvisibleTimeResult(handleMessageList.get(index),
+                                    new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR,
+                                        "batch change invisible time result missing"));
+                            } else {
+                                batchResults[index] = results.get(i);
+                            }
+                        }
+                    }));
             }
-            CompletableFuture.allOf(futures).whenComplete((val, throwable) -> {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).whenComplete((val, throwable) -> {
                 if (throwable != null) {
                     future.completeExceptionally(throwable);
                     return;
                 }
-                for (CompletableFuture<List<BatchChangeInvisibleTimeResult>> resultFuture : futures) {
-                    batchResultList.addAll(resultFuture.join());
-                }
-                future.complete(batchResultList);
+                future.complete(buildBatchChangeInvisibleTimeResultList(handleMessageList, batchResults));
             });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
         return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    protected List<BatchChangeInvisibleTimeResult> buildBatchChangeInvisibleTimeResultList(
+        List<ReceiptHandleMessage> handleMessageList, BatchChangeInvisibleTimeResult[] batchResults) {
+        List<BatchChangeInvisibleTimeResult> resultList = new ArrayList<>(batchResults.length);
+        for (int i = 0; i < batchResults.length; i++) {
+            BatchChangeInvisibleTimeResult result = batchResults[i];
+            if (result == null) {
+                result = new BatchChangeInvisibleTimeResult(handleMessageList.get(i),
+                    new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR,
+                        "batch change invisible time result missing"));
+            }
+            resultList.add(result);
+        }
+        return resultList;
     }
 
     protected CompletableFuture<List<BatchChangeInvisibleTimeResult>> processBrokerChangeInvisibleTime(

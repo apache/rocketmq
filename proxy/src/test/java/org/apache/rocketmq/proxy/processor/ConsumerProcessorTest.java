@@ -363,6 +363,70 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     }
 
     @Test
+    public void testBatchChangeInvisibleTimePreserveInputOrderWithExpiredAndInterleavedGroups() throws Throwable {
+        String brokerName1 = "brokerName1";
+        String brokerName2 = "brokerName2";
+        long now = System.currentTimeMillis();
+
+        List<ReceiptHandleMessage> receiptHandleMessageList = new ArrayList<>();
+        MessageExt broker2Message1 = createMessageExt(TOPIC, "", 0, 3000, now,
+            0, 0, 0, 1, brokerName2);
+        receiptHandleMessageList.add(new ReceiptHandleMessage(create(broker2Message1), broker2Message1.getMsgId()));
+
+        MessageExt expireMessage = createMessageExt(TOPIC, "", 0, 3000, now - 10000,
+            0, 0, 0, 2, brokerName1);
+        receiptHandleMessageList.add(new ReceiptHandleMessage(create(expireMessage), expireMessage.getMsgId()));
+
+        MessageExt broker1Message1 = createMessageExt(TOPIC, "", 0, 3000, now,
+            0, 0, 0, 3, brokerName1);
+        receiptHandleMessageList.add(new ReceiptHandleMessage(create(broker1Message1), broker1Message1.getMsgId()));
+
+        MessageExt broker2Message2 = createMessageExt(TOPIC, "", 0, 3000, now,
+            0, 0, 0, 4, brokerName2);
+        receiptHandleMessageList.add(new ReceiptHandleMessage(create(broker2Message2), broker2Message2.getMsgId()));
+
+        MessageExt broker1Message2 = createMessageExt(TOPIC, "", 0, 3000, now,
+            0, 0, 0, 5, brokerName1);
+        receiptHandleMessageList.add(new ReceiptHandleMessage(create(broker1Message2), broker1Message2.getMsgId()));
+
+        doAnswer((Answer<CompletableFuture<List<AckResult>>>) invocation -> {
+            List<ReceiptHandleMessage> handleMessageList = invocation.getArgument(1, List.class);
+            List<AckResult> ackResultList = new ArrayList<>();
+            for (ReceiptHandleMessage handleMessage : handleMessageList) {
+                AckResult ackResult = new AckResult();
+                ackResult.setStatus(AckStatus.OK);
+                ackResult.setExtraInfo("extra-" + handleMessage.getMessageId());
+                ackResultList.add(ackResult);
+            }
+            return CompletableFuture.completedFuture(ackResultList);
+        }).when(this.messageService).batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+
+        List<BatchChangeInvisibleTimeResult> resultList = this.consumerProcessor.batchChangeInvisibleTime(
+            createContext(), receiptHandleMessageList, CONSUMER_GROUP, TOPIC, 3000, 3000, true).get();
+
+        assertEquals(receiptHandleMessageList.size(), resultList.size());
+        for (int i = 0; i < receiptHandleMessageList.size(); i++) {
+            BatchChangeInvisibleTimeResult result = resultList.get(i);
+            ReceiptHandleMessage expectedHandleMessage = receiptHandleMessageList.get(i);
+            assertSame(expectedHandleMessage, result.getReceiptHandleMessage());
+            if (expectedHandleMessage.getReceiptHandle().isExpired()) {
+                assertEquals(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, result.getProxyException().getCode());
+                assertNull(result.getAckResult());
+            } else {
+                assertEquals(AckStatus.OK, result.getAckResult().getStatus());
+                assertEquals("extra-" + expectedHandleMessage.getMessageId() + MessageConst.KEY_SEPARATOR
+                    + expectedHandleMessage.getReceiptHandle().getCommitLogOffset(),
+                    result.getAckResult().getExtraInfo());
+                assertNull(result.getProxyException());
+            }
+        }
+        verify(this.messageService, times(2)).batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+        verify(this.messageService, never()).changeInvisibleTime(any(), any(), anyString(), any(), anyLong());
+    }
+
+    @Test
     public void testBatchChangeInvisibleTimeSplitByRealTopic() throws Throwable {
         String brokerName = "brokerName1";
         String retryTopic = KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP,
