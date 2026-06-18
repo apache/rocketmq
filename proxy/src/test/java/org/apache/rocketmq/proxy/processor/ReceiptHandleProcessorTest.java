@@ -104,12 +104,27 @@ public class ReceiptHandleProcessorTest extends InitConfigTest {
 
     @Test
     public void testStart() throws Exception {
-        receiptHandleProcessor.start();
-        receiptHandleProcessor.addReceiptHandle(PROXY_CONTEXT, PROXY_CONTEXT.getChannel(), CONSUMER_GROUP, MSG_ID, messageReceiptHandle);
         Mockito.when(consumerManager.findChannel(Mockito.eq(CONSUMER_GROUP), Mockito.eq(PROXY_CONTEXT.getChannel()))).thenReturn(Mockito.mock(ClientChannelInfo.class));
-        Mockito.verify(messagingProcessor, Mockito.timeout(10000).times(1))
-            .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
-                Mockito.eq(CONSUMER_GROUP), Mockito.eq(TOPIC), Mockito.eq(ConfigurationManager.getProxyConfig().getDefaultInvisibleTimeMills()), Mockito.eq(null));
+        AckResult ackResult = new AckResult();
+        ackResult.setStatus(AckStatus.OK);
+        ackResult.setExtraInfo(messageReceiptHandle.getReceiptHandleStr());
+        Mockito.when(messagingProcessor.changeInvisibleTime(
+                Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
+                Mockito.eq(CONSUMER_GROUP), Mockito.eq(TOPIC),
+                Mockito.eq(ConfigurationManager.getProxyConfig().getDefaultInvisibleTimeMills()), Mockito.eq(null)))
+            .thenReturn(CompletableFuture.completedFuture(ackResult));
+
+        receiptHandleProcessor.addReceiptHandle(PROXY_CONTEXT, PROXY_CONTEXT.getChannel(), CONSUMER_GROUP, MSG_ID, messageReceiptHandle);
+        try {
+            receiptHandleProcessor.start();
+            Mockito.verify(messagingProcessor, Mockito.timeout(10000).times(1))
+                .changeInvisibleTime(Mockito.any(ProxyContext.class), Mockito.any(ReceiptHandle.class), Mockito.eq(MESSAGE_ID),
+                    Mockito.eq(CONSUMER_GROUP), Mockito.eq(TOPIC), Mockito.eq(ConfigurationManager.getProxyConfig().getDefaultInvisibleTimeMills()), Mockito.eq(null));
+        } finally {
+            receiptHandleProcessor.removeReceiptHandle(PROXY_CONTEXT, PROXY_CONTEXT.getChannel(), CONSUMER_GROUP, MSG_ID,
+                messageReceiptHandle.getReceiptHandleStr());
+            receiptHandleProcessor.shutdown();
+        }
     }
 
     @Test
