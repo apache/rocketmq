@@ -497,18 +497,35 @@ public class PopConsumerService extends ServiceThread {
     public void changeInvisibilityDuration(long popTime, long invisibleTime, long changedPopTime,
                                            long changedInvisibleTime, String groupId, String topicId,
                                            int queueId, long offset, boolean suspend) {
-        ChangeInvisibleTimeRequestEntry changeRecord = new ChangeInvisibleTimeRequestEntry();
-        changeRecord.setConsumerGroup(groupId);
-        changeRecord.setTopic(topicId);
-        changeRecord.setQueueId(queueId);
-        changeRecord.setOffset(offset);
-        changeRecord.setInvisibleTime(changedInvisibleTime);
-        changeRecord.setPopTime(popTime);
-        changeRecord.setOldInvisibleTime(invisibleTime);
-        changeRecord.setChangedPopTime(changedPopTime);
-        changeRecord.setChangedInvisibleTime(changedInvisibleTime);
-        changeRecord.setSuspend(suspend);
-        batchChangeInvisibilityDuration(Collections.singletonList(changeRecord));
+        if (brokerConfig.isPopConsumerKVServiceLog()) {
+            log.info("PopConsumerService change, time={}, invisible={}, " +
+                    "groupId={}, topic={}, queueId={}, offset={}, new time={}, new invisible={}",
+                popTime, invisibleTime, groupId, topicId, queueId, offset, changedPopTime, changedInvisibleTime);
+        }
+
+        PopConsumerRecord ckRecord = new PopConsumerRecord(
+            changedPopTime, groupId, topicId, queueId, 0, changedInvisibleTime, offset, null, suspend);
+
+        PopConsumerRecord ackRecord = new PopConsumerRecord(
+            popTime, groupId, topicId, queueId, 0, invisibleTime, offset, null, suspend);
+
+        // No need to generate new records when the group does not exist,
+        // because these retry messages will not be consumed by anyone.
+        boolean skipWrite = brokerConfig.isPopReviveSkipIfGroupAbsent() &&
+            !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId);
+
+        if (skipWrite) {
+            log.info("PopConsumerService change invisibility skip, time={}, " +
+                "groupId={}, topicId={}, queueId={}, offset={}", popTime, groupId, topicId, queueId, offset);
+        }
+
+        List<PopConsumerRecord> ckRecords = skipWrite ? Collections.emptyList() : Collections.singletonList(ckRecord);
+        List<PopConsumerRecord> ackRecords = Collections.singletonList(ackRecord);
+        if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
+            popConsumerCache.writeAndDeleteRecords(ckRecords, ackRecords);
+        } else {
+            this.popConsumerStore.writeAndDeleteRecords(ckRecords, ackRecords);
+        }
     }
 
     public void batchChangeInvisibilityDuration(List<ChangeInvisibleTimeRequestEntry> changeRecords) {
