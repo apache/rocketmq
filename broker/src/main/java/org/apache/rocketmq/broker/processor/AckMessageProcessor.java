@@ -197,6 +197,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 return ackLiteResponse;
             }
 
+            // get and validate offset
             long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
             long maxOffset;
             try {
@@ -213,7 +214,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 return response;
             }
 
-            // append ack, default mode is file based merge, call appendAck
+            // append ack, default mode is queue based merge, call appendAck
             if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
                 appendAckNew(requestHeader, null, response, channel, null);
             } else {
@@ -416,6 +417,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         final RemotingCommand response, final Channel channel, String brokerName) throws RemotingCommandException {
 
         if (requestHeader != null && batchAck == null) {
+            // init context params
             String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
             String groupId = requestHeader.getConsumerGroup();
             String topicId = requestHeader.getTopic();
@@ -425,6 +427,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             long invisibleTime = ExtraInfoUtil.getInvisibleTime(extraInfo);
 
             int reviveQueueId = ExtraInfoUtil.getReviveQid(extraInfo);
+
             if (reviveQueueId == KeyBuilder.POP_ORDER_REVIVE_QUEUE) {
                 ackOrderlyNew(topicId, groupId, queueId, ackOffset, popTime, invisibleTime, channel, response);
             } else {
@@ -435,6 +438,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             this.brokerController.getBrokerStatsManager().incBrokerAckNums(1);
             this.brokerController.getBrokerStatsManager().incGroupAckNums(groupId, topicId, 1);
         } else {
+            // init context params
             String groupId = batchAck.getConsumerGroup();
             String topicId = ExtraInfoUtil.getRealTopic(
                 batchAck.getTopic(), batchAck.getConsumerGroup(), batchAck.getRetry());
@@ -445,6 +449,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             long invisibleTime = batchAck.getInvisibleTime();
 
             try {
+                // get minOffset and maxOffset
                 long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(topicId, queueId);
                 long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topicId, queueId);
                 if (minOffset == -1 || maxOffset == -1) {
@@ -456,6 +461,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 // Maintain consistency with the old implementation code style
                 BitSet bitSet = batchAck.getBitSet();
                 for (int i = bitSet.nextSetBit(0); i >= 0; i = bitSet.nextSetBit(i + 1)) {
+                    // validate offset
                     if (i == Integer.MAX_VALUE) {
                         break;
                     }
