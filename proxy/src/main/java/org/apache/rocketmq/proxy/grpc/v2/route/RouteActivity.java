@@ -242,58 +242,59 @@ public class RouteActivity extends AbstractMessagingActivity {
         TopicMessageType topicMessageType, Broker broker) {
         List<MessageQueue> messageQueueList = new ArrayList<>();
 
-        int r = 0;
-        int w = 0;
-        int rw = 0;
-        int n = 0;
-        if (PermName.isWriteable(queueData.getPerm()) && PermName.isReadable(queueData.getPerm())) {
-            rw = Math.min(queueData.getWriteQueueNums(), queueData.getReadQueueNums());
-            r = queueData.getReadQueueNums() - rw;
-            w = queueData.getWriteQueueNums() - rw;
-        } else if (PermName.isWriteable(queueData.getPerm())) {
-            w = queueData.getWriteQueueNums();
-        } else if (PermName.isReadable(queueData.getPerm())) {
-            r = queueData.getReadQueueNums();
+        int readQueueNums = queueData.getReadQueueNums();
+        int writeQueueNums = queueData.getWriteQueueNums();
+        boolean isReadable = PermName.isReadable(queueData.getPerm());
+        boolean isWriteable = PermName.isWriteable(queueData.getPerm());
+
+        if (isReadable && isWriteable) {
+            // Derive the permission per queue id so that it matches the actual queue id.
+            // Queue id < readQueueNums means readable, id < writeQueueNums means writable.
+            int totalQueueNums = Math.max(readQueueNums, writeQueueNums);
+            for (int queueId = 0; queueId < totalQueueNums; queueId++) {
+                Permission permission;
+                if (queueId < readQueueNums && queueId < writeQueueNums) {
+                    permission = Permission.READ_WRITE;
+                } else if (queueId < writeQueueNums) {
+                    permission = Permission.WRITE;
+                } else {
+                    permission = Permission.READ;
+                }
+                MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+                    .setId(queueId)
+                    .setPermission(permission)
+                    .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                    .build();
+                messageQueueList.add(messageQueue);
+            }
+        } else if (isWriteable) {
+            for (int queueId = 0; queueId < writeQueueNums; queueId++) {
+                MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+                    .setId(queueId)
+                    .setPermission(Permission.WRITE)
+                    .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                    .build();
+                messageQueueList.add(messageQueue);
+            }
+        } else if (isReadable) {
+            for (int queueId = 0; queueId < readQueueNums; queueId++) {
+                MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+                    .setId(queueId)
+                    .setPermission(Permission.READ)
+                    .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                    .build();
+                messageQueueList.add(messageQueue);
+            }
         } else if (!PermName.isAccessible(queueData.getPerm())) {
-            n = Math.max(1, Math.max(queueData.getWriteQueueNums(), queueData.getReadQueueNums()));
-        }
-
-        // r here means readOnly queue nums, w means writeOnly queue nums, while rw means both readable and writable queue nums.
-        int queueIdIndex = 0;
-        for (int i = 0; i < r; i++) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.READ)
-                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
-                .build();
-            messageQueueList.add(messageQueue);
-        }
-
-        for (int i = 0; i < w; i++) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.WRITE)
-                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
-                .build();
-            messageQueueList.add(messageQueue);
-        }
-
-        for (int i = 0; i < rw; i++) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.READ_WRITE)
-                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
-                .build();
-            messageQueueList.add(messageQueue);
-        }
-
-        for (int i = 0; i < n; i++) {
-            MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
-                .setId(queueIdIndex++)
-                .setPermission(Permission.NONE)
-                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
-                .build();
-            messageQueueList.add(messageQueue);
+            int noneQueueNums = Math.max(1, Math.max(writeQueueNums, readQueueNums));
+            for (int queueId = 0; queueId < noneQueueNums; queueId++) {
+                MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
+                    .setId(queueId)
+                    .setPermission(Permission.NONE)
+                    .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                    .build();
+                messageQueueList.add(messageQueue);
+            }
         }
 
         return messageQueueList;

@@ -264,7 +264,8 @@ public class RouteActivityTest extends BaseActivityTest {
         assertEquals(0, partitionWith8R0WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
         assertEquals(0, partitionWith8R0WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
 
-        // test queueData with 4 read queues, 8 write queues, and rw permission, expect 4 rw queues and  4 write only queues.
+        // test queueData with 4 read queues, 8 write queues, and rw permission, expect 4 rw queues and 4 write only queues.
+        // Queue ids 0..3 are READ_WRITE (readable and writable), ids 4..7 are WRITE (writable only).
         QueueData queueDataWith4R8WPermRW = createQueueData(4, 8, PermName.PERM_READ | PermName.PERM_WRITE);
         List<MessageQueue> partitionWith4R8WPermRW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith4R8WPermRW, GRPC_TOPIC, TopicMessageType.UNSPECIFIED, GRPC_BROKER);
         assertEquals(8, partitionWith4R8WPermRW.size());
@@ -272,6 +273,31 @@ public class RouteActivityTest extends BaseActivityTest {
         assertEquals(4, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
         assertEquals(4, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
         assertEquals(0, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count());
+        for (int i = 0; i < 4; i++) {
+            assertEquals(Permission.READ_WRITE, partitionWith4R8WPermRW.get(i).getPermission());
+            assertEquals(i, partitionWith4R8WPermRW.get(i).getId());
+        }
+        for (int i = 4; i < 8; i++) {
+            assertEquals(Permission.WRITE, partitionWith4R8WPermRW.get(i).getPermission());
+            assertEquals(i, partitionWith4R8WPermRW.get(i).getId());
+        }
+
+        // test queueData with 8 read queues, 4 write queues, and rw permission, expect 4 rw queues and 4 read only queues.
+        // Queue ids 0..3 are READ_WRITE (readable and writable), ids 4..7 are READ (readable only).
+        QueueData queueDataWith8R4WPermRW = createQueueData(8, 4, PermName.PERM_READ | PermName.PERM_WRITE);
+        List<MessageQueue> partitionWith8R4WPermRW = this.routeActivity.genMessageQueueFromQueueData(queueDataWith8R4WPermRW, GRPC_TOPIC, TopicMessageType.UNSPECIFIED, GRPC_BROKER);
+        assertEquals(8, partitionWith8R4WPermRW.size());
+        assertEquals(4, partitionWith8R4WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count());
+        assertEquals(4, partitionWith8R4WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
+        assertEquals(0, partitionWith8R4WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
+        for (int i = 0; i < 4; i++) {
+            assertEquals(Permission.READ_WRITE, partitionWith8R4WPermRW.get(i).getPermission());
+            assertEquals(i, partitionWith8R4WPermRW.get(i).getId());
+        }
+        for (int i = 4; i < 8; i++) {
+            assertEquals(Permission.READ, partitionWith8R4WPermRW.get(i).getPermission());
+            assertEquals(i, partitionWith8R4WPermRW.get(i).getId());
+        }
 
         // test queueData with 2 read queues, 2 write queues, and no permission, expect 2 no permission queues.
         QueueData queueDataWith2R2WNoPerm = createQueueData(2, 2, 0);
