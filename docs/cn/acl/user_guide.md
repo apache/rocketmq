@@ -34,7 +34,7 @@ ACL客户端可以参考：**org.apache.rocketmq.example.simple**包下面的**A
 具体可以参考**distribution/conf/plain_acl.yml**配置文件
 
 ## 3. 支持权限控制的集群部署
-在**distribution/conf/plain_acl.yml**配置文件中按照上述说明定义好权限属性后，在Broker配置文件中设置以下属性即可开启RocketMQ集群的ACL特性：
+在Broker配置文件中设置以下属性即可开启RocketMQ集群的ACL 2.0特性：
 
 ```
 brokerClusterName=DefaultCluster
@@ -47,17 +47,26 @@ flushDiskType=ASYNC_FLUSH
 storePathRootDir=/data/rocketmq/rootdir-a-m
 storePathCommitLog=/data/rocketmq/commitlog-a-m
 autoCreateSubscriptionGroup=true
-## if acl is open,the flag will be true
-aclEnable=true
-## RocketMQ 5.x 需要额外配置以下ACL属性
-authenticationEnabled=true
-authorizationEnabled=true
-migrateAuthFromV1Enabled=true
-authenticationMetadataProvider=org.apache.rocketmq.auth.authentication.provider.LocalAuthenticationMetadataProvider
-authorizationMetadataProvider=org.apache.rocketmq.auth.authorization.provider.LocalAuthorizationMetadataProvider
 listenPort=10911
 brokerIP1=XX.XX.XX.XX1
 namesrvAddr=XX.XX.XX.XX:9876
+
+## 启用认证
+authenticationEnabled=true
+authenticationMetadataProvider=org.apache.rocketmq.auth.authentication.provider.LocalAuthenticationMetadataProvider
+
+## 启用授权
+authorizationEnabled=true
+authorizationMetadataProvider=org.apache.rocketmq.auth.authorization.provider.LocalAuthorizationMetadataProvider
+
+## 初始化超级用户(首次启动自动创建)
+initAuthenticationUser={"username":"rocketmq","password":"12345678"}
+
+## Broker间内部通信凭证
+innerClientAuthenticationCredentials={"accessKey":"rocketmq","secretKey":"12345678"}
+```
+
+> 说明：RocketMQ 5.x 中 `aclEnable=true` 已被 `authenticationEnabled` 和 `authorizationEnabled` 取代。详见 [ACL 2.0 文档](https://rocketmq.apache.org/docs/bestPractice/06access)。
 ```
 
 ## 4. 权限控制主要流程

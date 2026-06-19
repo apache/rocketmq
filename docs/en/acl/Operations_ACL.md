@@ -33,7 +33,7 @@ The definition of Topic resource access control for RocketMQ is mainly as shown 
 For details, please refer to the **distribution/conf/plain_acl.yml** configuration file.
 
 ## 3. Cluster deployment with permission control
-After defining the permission attribute in the **distribution/conf/plain_acl.yml** configuration file as described above, enable the ACL feature by setting the following properties in the broker configuration file:
+Add the following ACL 2.0 properties to the broker configuration file:
 
 ```properties
 brokerClusterName=DefaultCluster
@@ -46,18 +46,26 @@ flushDiskType=ASYNC_FLUSH
 storePathRootDir=/data/rocketmq/rootdir-a-m
 storePathCommitLog=/data/rocketmq/commitlog-a-m
 autoCreateSubscriptionGroup=true
-## if acl is open,the flag will be true
-aclEnable=true
-## RocketMQ 5.x requires the following additional ACL properties
-authenticationEnabled=true
-authorizationEnabled=true
-migrateAuthFromV1Enabled=true
-authenticationMetadataProvider=org.apache.rocketmq.auth.authentication.provider.LocalAuthenticationMetadataProvider
-authorizationMetadataProvider=org.apache.rocketmq.auth.authorization.provider.LocalAuthorizationMetadataProvider
 listenPort=10911
 brokerIP1=XX.XX.XX.XX1
 namesrvAddr=XX.XX.XX.XX:9876
+
+## Enable authentication
+authenticationEnabled=true
+authenticationMetadataProvider=org.apache.rocketmq.auth.authentication.provider.LocalAuthenticationMetadataProvider
+
+## Enable authorization
+authorizationEnabled=true
+authorizationMetadataProvider=org.apache.rocketmq.auth.authorization.provider.LocalAuthorizationMetadataProvider
+
+## Initialize super user (auto-created on first startup)
+initAuthenticationUser={"username":"rocketmq","password":"12345678"}
+
+## Internal credentials for broker-to-broker communication
+innerClientAuthenticationCredentials={"accessKey":"rocketmq","secretKey":"12345678"}
 ```
+
+> Note: `aclEnable=true` from RocketMQ 4.x ACL has been replaced by `authenticationEnabled` and `authorizationEnabled` in 5.x. See the [ACL 2.0 documentation](https://rocketmq.apache.org/docs/bestPractice/06access) for details.
 ## 4. Main process of access control
 The main ACL process is divided into two parts, including privilege resolution and privilege check.
 
