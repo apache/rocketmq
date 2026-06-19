@@ -84,7 +84,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     private volatile ColumnFamilyHandle transCFHandle;
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private static final Cache<byte[], byte[]> DELETE_KEY_CACHE_FOR_TIMER = CacheBuilder.newBuilder()
+    private static final Cache<ByteBuffer, byte[]> DELETE_KEY_CACHE_FOR_TIMER = CacheBuilder.newBuilder()
         .maximumSize(10000)
         .expireAfterWrite(60, TimeUnit.MINUTES)
         .build();
@@ -354,9 +354,9 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
                         writeBatch.put(cfHandle, keyBytes, valueBytes);
                     } else if (record.getActionFlag() == TIMER_ROCKSDB_DELETE) {
                         writeBatch.delete(cfHandle, keyBytes);
-                        DELETE_KEY_CACHE_FOR_TIMER.put(keyBytes, DELETE_VAL_FLAG);
+                        DELETE_KEY_CACHE_FOR_TIMER.put(ByteBuffer.wrap(keyBytes), DELETE_VAL_FLAG);
                     } else if (record.getActionFlag() == TIMER_ROCKSDB_UPDATE) {
-                        byte[] deleteByte = DELETE_KEY_CACHE_FOR_TIMER.getIfPresent(keyBytes);
+                        byte[] deleteByte = DELETE_KEY_CACHE_FOR_TIMER.getIfPresent(ByteBuffer.wrap(keyBytes));
                         if (null == deleteByte) {
                             writeBatch.put(cfHandle, keyBytes, valueBytes);
                         }
