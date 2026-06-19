@@ -24,6 +24,7 @@ import apache.rocketmq.v2.QueryOffsetRequest;
 import apache.rocketmq.v2.QueryOffsetResponse;
 import com.google.protobuf.util.Timestamps;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -40,7 +41,6 @@ public class OffsetActivity extends AbstractMessagingActivity {
     }
 
     public CompletableFuture<GetOffsetResponse> getOffset(ProxyContext ctx, GetOffsetRequest request) {
-        CompletableFuture<GetOffsetResponse> future = new CompletableFuture<>();
         try {
             validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
             org.apache.rocketmq.common.message.MessageQueue messageQueue = convertMessageQueue(request.getMessageQueue());
@@ -51,20 +51,17 @@ public class OffsetActivity extends AbstractMessagingActivity {
                 MessagingProcessor.DEFAULT_TIMEOUT_MILLS
             ).thenApply(this::convertToGetOffsetResponse);
         } catch (Throwable t) {
-            future.completeExceptionally(t);
+            return FutureUtils.completeExceptionally(t);
         }
-        return future;
     }
 
     public CompletableFuture<QueryOffsetResponse> queryOffset(ProxyContext ctx, QueryOffsetRequest request) {
-        CompletableFuture<QueryOffsetResponse> future = new CompletableFuture<>();
         try {
             validateTopic(request.getMessageQueue().getTopic());
             return queryOffset0(ctx, request).thenApply(this::convertToQueryOffsetResponse);
         } catch (Throwable t) {
-            future.completeExceptionally(t);
+            return FutureUtils.completeExceptionally(t);
         }
-        return future;
     }
 
     protected CompletableFuture<Long> queryOffset0(ProxyContext ctx, QueryOffsetRequest request) {
