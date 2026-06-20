@@ -93,6 +93,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             case RequestCode.CONSUMER_SEND_MSG_BACK:
                 return this.consumerSendMsgBack(ctx, request);
             default:
+                // build send message context
                 SendMessageRequestHeader requestHeader = parseRequestHeader(request);
                 if (requestHeader == null) {
                     return null;
@@ -103,6 +104,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     return rewriteResult;
                 }
                 sendMessageContext = buildMsgContext(ctx, requestHeader, request);
+
+                // execute send message hook before
                 try {
                     this.executeSendMessageHookBefore(sendMessageContext);
                 } catch (AbortProcessException e) {
@@ -114,7 +117,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 RemotingCommand response;
                 clearReservedProperties(requestHeader);
 
-                if (requestHeader.isBatch()) {
+                if (requestHeader.isBatch()) { // no batch message after 5.0
                     response = this.sendBatchMessage(ctx, request, sendMessageContext, requestHeader, mappingContext,
                         (ctx1, response1) -> executeSendMessageHookAfter(response1, ctx1));
                 } else {
