@@ -147,9 +147,12 @@ public class HookUtils {
     public static PutMessageResult handleScheduleMessage(BrokerController brokerController,
         final MessageExtBrokerInner msg) {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+        // normal message or committed message can be delayed
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            // is timer topic
             if (!isRolledTimerMessage(msg)) {
+                // double check, has delay level or, is timer topic and has delivery time
                 if (checkIfTimerMessage(msg)) {
                     if (!brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
                         //wheel timer is not enabled, reject the message
@@ -161,7 +164,7 @@ public class HookUtils {
                     }
                 }
             }
-            // Delay Delivery
+            // Delay Delivery, useless with default config
             if (msg.getDelayTimeLevel() > 0) {
                 transformDelayLevelMessage(brokerController, msg);
             }
