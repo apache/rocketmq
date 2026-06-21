@@ -605,6 +605,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             }
         }
 
+        // the body of OP_Message is the offset of Half_Message
+        // every Half_Message store a lot of offset, split by comma
+        // default number of offset is 4096
         String data = messageExt.getQueueOffset() + TransactionalMessageUtil.OFFSET_SEPARATOR;
         try {
             boolean res = mqContext.getContextQueue().offer(data, 100, TimeUnit.MILLISECONDS);
