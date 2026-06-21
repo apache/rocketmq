@@ -213,6 +213,7 @@ public class TransactionalMessageBridge {
     }
 
     public CompletableFuture<PutMessageResult> asyncPutHalfMessage(MessageExtBrokerInner messageInner) {
+        // store is DefaultMessageStore
         return store.asyncPutMessage(parseHalfMessageInner(messageInner));
     }
 
