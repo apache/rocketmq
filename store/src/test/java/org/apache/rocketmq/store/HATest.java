@@ -25,6 +25,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.ha.HAConnection;
 import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
@@ -104,6 +106,7 @@ public class HATest {
         slaveMessageStore.start();
         slaveMessageStore.updateHaMasterAddress("127.0.0.1:" + masterMessageStoreConfig.getHaListenPort());
         await().atMost(6, SECONDS).until(() -> slaveMessageStore.getHaService().getHAClient().getCurrentState() == HAConnectionState.TRANSFER);
+        await().atMost(6, SECONDS).until(this::isSlaveReadyForReplication);
     }
 
     @Test
@@ -279,6 +282,20 @@ public class HATest {
         msg.setBornHost(bornHost);
         msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
         return msg;
+    }
+
+    private boolean isSlaveReadyForReplication() {
+        if (slaveMessageStore.getHaService().getHAClient().getCurrentState() != HAConnectionState.TRANSFER) {
+            return false;
+        }
+
+        long slaveMaxOffset = slaveMessageStore.getMaxPhyOffset();
+        List<HAConnection> connections = messageStore.getHaService().getConnectionList();
+        synchronized (connections) {
+            return connections.stream().anyMatch(connection ->
+                connection.getCurrentState() == HAConnectionState.TRANSFER
+                    && connection.getSlaveAckOffset() >= slaveMaxOffset);
+        }
     }
 
     private boolean isCommitLogAvailable(DefaultMessageStore store) {
