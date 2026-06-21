@@ -221,6 +221,28 @@ public class HookUtils {
         return null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS) || null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) || null != msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC);
     }
 
+    /**
+     * Transform a timer message and redirect it to the timer wheel topic.
+     *
+     * <p>Parses the delivery time from {@code PROPERTY_TIMER_DELAY_SEC},
+     * {@code PROPERTY_TIMER_DELAY_MS}, or {@code PROPERTY_TIMER_DELIVER_MS}.
+     * The time is aligned to {@code timerPrecisionMs} boundaries to match
+     * the TimerWheel tick resolution.
+     *
+     * <p>The original topic and queue are saved as properties.
+     * topic was changed to {@link TimerMessageStore#TIMER_TOPIC},
+     * queue was changed to 0
+     *
+     * <p>Rejection conditions:
+     * <ul>
+     *   <li>Non-delay-level messages exceeding {@code timerMaxDelaySec}</li>
+     *   <li>TimerWheel slot congestion ({@link TimerMessageStore#isReject})</li>
+     * </ul>
+     *
+     * @param brokerController the broker controller
+     * @param msg              the message to transform
+     * @return a non-null {@link PutMessageResult} if the message is rejected
+     */
     private static PutMessageResult transformTimerMessage(BrokerController brokerController,
         MessageExtBrokerInner msg) {
         //do transform
