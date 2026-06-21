@@ -225,6 +225,8 @@ public class HookUtils {
         MessageExtBrokerInner msg) {
         //do transform
         int delayLevel = msg.getDelayTimeLevel();
+
+        // calculate deliver time
         long deliverMs;
         try {
             if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
@@ -237,21 +239,28 @@ public class HookUtils {
         } catch (Exception e) {
             return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
         }
+
         if (deliverMs > System.currentTimeMillis()) {
+            // default value of timerMaxDelaySec is 3600 * 24 * 3
             if (delayLevel <= 0 && deliverMs - System.currentTimeMillis() > brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L) {
                 return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, null);
             }
 
+            // precision operation
             int timerPrecisionMs = brokerController.getMessageStoreConfig().getTimerPrecisionMs();
             if (deliverMs % timerPrecisionMs == 0) {
+                // Exactly on boundary → move one tick earlier
                 deliverMs -= timerPrecisionMs;
             } else {
+                // Not on boundary → round down to nearest tick
                 deliverMs = deliverMs / timerPrecisionMs * timerPrecisionMs;
             }
 
+            // flow control, always skip with default config
             if (brokerController.getTimerMessageStore().isReject(deliverMs)) {
                 return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL, null);
             }
+
             MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TIMER_OUT_MS, deliverMs + "");
             MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, msg.getTopic());
             MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_QUEUE_ID, String.valueOf(msg.getQueueId()));
