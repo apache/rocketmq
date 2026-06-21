@@ -593,10 +593,28 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return response;
     }
 
+    /**
+     * Logically delete a prepared (half) message by writing its offset to the
+     * OP (operation) topic.
+     *
+     * <p>Offsets are first buffered in per-queue {@link MessageQueueOpContext}
+     * queues. When the buffer exceeds {@code transactionOpMsgMaxSize}, or when
+     * the buffer is full, they are flushed as a batch OP message containing
+     * multiple comma-separated offsets. If buffering fails entirely, a single
+     * OP message is written synchronously.
+     *
+     * <p>The transaction checker later reads the OP topic and skips any half
+     * message whose offset appears in the OP stream.
+     *
+     * @param messageExt the prepared (half) message to delete
+     * @return {@code true} if the OP record was written successfully
+     */
     @Override
     public boolean deletePrepareMessage(MessageExt messageExt) {
         Integer queueId = messageExt.getQueueId();
         MessageQueueOpContext mqContext = deleteContext.get(queueId);
+
+        // init mq op context if not exist
         if (mqContext == null) {
             mqContext = new MessageQueueOpContext(System.currentTimeMillis(), 20000);
             MessageQueueOpContext old = deleteContext.putIfAbsent(queueId, mqContext);
