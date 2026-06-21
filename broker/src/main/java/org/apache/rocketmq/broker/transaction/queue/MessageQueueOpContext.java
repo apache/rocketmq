@@ -37,6 +37,7 @@ public class MessageQueueOpContext {
     // offset1, offset2, offsetN, ...
     private LinkedBlockingQueue<String> contextQueue;
 
+    // queueLength is 20000, hard coded.
     public MessageQueueOpContext(long timestamp, int queueLength) {
         this.lastWriteTimestamp = timestamp;
         contextQueue = new LinkedBlockingQueue<String>(queueLength);

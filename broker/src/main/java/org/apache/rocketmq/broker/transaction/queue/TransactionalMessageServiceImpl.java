@@ -628,9 +628,12 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         // default number of offset is 4096
         String data = messageExt.getQueueOffset() + TransactionalMessageUtil.OFFSET_SEPARATOR;
         try {
+            // add offset to context queue
             boolean res = mqContext.getContextQueue().offer(data, 100, TimeUnit.MILLISECONDS);
+            // if offer succeed, wait for batch write
             if (res) {
                 int totalSize = mqContext.getTotalSize().addAndGet(data.length());
+                // default value of transactionOpMsgMaxSize is 4096
                 if (totalSize > transactionalMessageBridge.getBrokerController().getBrokerConfig().getTransactionOpMsgMaxSize()) {
                     this.transactionalOpBatchService.wakeup();
                 }
@@ -641,6 +644,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         } catch (InterruptedException ignore) {
         }
 
+        // if failed to enqueue offset to memory queue, write to OP topic
         Message msg = getOpMessage(queueId, data);
         if (this.transactionalMessageBridge.writeOp(queueId, msg)) {
             log.warn("Force add remove op data. queueId={}", queueId);
