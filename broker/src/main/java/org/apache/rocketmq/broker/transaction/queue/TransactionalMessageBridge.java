@@ -217,20 +217,31 @@ public class TransactionalMessageBridge {
     }
 
     private MessageExtBrokerInner parseHalfMessageInner(MessageExtBrokerInner msgInner) {
+        // set transactionId
         String uniqId = msgInner.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
         if (uniqId != null && !uniqId.isEmpty()) {
             MessageAccessor.putProperty(msgInner, TransactionalMessageUtil.TRANSACTION_ID, uniqId);
         }
+
+        // store real topic and queueId to properties
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC, msgInner.getTopic());
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID,
             String.valueOf(msgInner.getQueueId()));
+
+        // clear transaction flag
         msgInner.setSysFlag(
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
+
+        // set transactional topic
+        // 1. TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC if rocksdb enable
+        // 2. TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC
         if (null != store.getMessageStoreConfig() && store.getMessageStoreConfig().isTransRocksDBEnable() && !store.getMessageStoreConfig().isTransWriteOriginTransHalfEnable()) {
             msgInner.setTopic(TransactionalMessageUtil.buildHalfTopicForRocksDB());
         } else {
             msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());
         }
+
+        // set queueId and propertiesString
         msgInner.setQueueId(0);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;
