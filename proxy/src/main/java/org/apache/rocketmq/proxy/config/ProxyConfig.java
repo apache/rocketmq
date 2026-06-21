@@ -156,6 +156,8 @@ public class ProxyConfig implements ConfigFile {
     private long grpcClientConsumerMaxLongPollingTimeoutMillis = Duration.ofSeconds(20).toMillis();
     private int grpcClientConsumerLongPollingBatchSize = 32;
     private long grpcClientIdleTimeMills = Duration.ofSeconds(120).toMillis();
+    private long grpcServerPermitKeepAliveTimeMillis = 30000;
+    private boolean grpcServerPermitKeepAliveWithoutCalls = true;
 
     private int channelExpiredInSeconds = 60;
     private int contextExpiredInSeconds = 30;
@@ -1248,6 +1250,22 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcClientIdleTimeMills(final long grpcClientIdleTimeMills) {
         this.grpcClientIdleTimeMills = grpcClientIdleTimeMills;
+    }
+
+    public long getGrpcServerPermitKeepAliveTimeMillis() {
+        return grpcServerPermitKeepAliveTimeMillis;
+    }
+
+    public void setGrpcServerPermitKeepAliveTimeMillis(long grpcServerPermitKeepAliveTimeMillis) {
+        this.grpcServerPermitKeepAliveTimeMillis = grpcServerPermitKeepAliveTimeMillis;
+    }
+
+    public boolean isGrpcServerPermitKeepAliveWithoutCalls() {
+        return grpcServerPermitKeepAliveWithoutCalls;
+    }
+
+    public void setGrpcServerPermitKeepAliveWithoutCalls(boolean grpcServerPermitKeepAliveWithoutCalls) {
+        this.grpcServerPermitKeepAliveWithoutCalls = grpcServerPermitKeepAliveWithoutCalls;
     }
 
     public String getRegionId() {

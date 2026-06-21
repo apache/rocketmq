@@ -45,8 +45,8 @@ import org.apache.rocketmq.store.pop.PopCheckPoint;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP_KEY;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC_KEY;
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.COUNTER_POP_REVIVE_IN_MESSAGE_TOTAL;
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.COUNTER_POP_REVIVE_OUT_MESSAGE_TOTAL;
 import static org.apache.rocketmq.broker.metrics.PopMetricsConstant.COUNTER_POP_REVIVE_RETRY_MESSAGES_TOTAL;
@@ -181,8 +181,8 @@ public class PopMetricsManager {
     public void incPopRevivePutCount(String group, String topic, PopReviveMessageType messageType,
         PutMessageStatus status, int num) {
         Attributes attributes = this.newAttributesBuilder()
-            .put(LABEL_CONSUMER_GROUP, group)
-            .put(LABEL_TOPIC, topic)
+            .put(LABEL_CONSUMER_GROUP_KEY, group)
+            .put(LABEL_TOPIC_KEY, topic)
             .put(LABEL_REVIVE_MESSAGE_TYPE, messageType.name())
             .put(LABEL_PUT_STATUS, status.name())
             .build();
@@ -201,8 +201,8 @@ public class PopMetricsManager {
         int num) {
         AttributesBuilder builder = this.newAttributesBuilder();
         Attributes attributes = builder
-            .put(LABEL_CONSUMER_GROUP, group)
-            .put(LABEL_TOPIC, topic)
+            .put(LABEL_CONSUMER_GROUP_KEY, group)
+            .put(LABEL_TOPIC_KEY, topic)
             .put(LABEL_QUEUE_ID, queueId)
             .put(LABEL_REVIVE_MESSAGE_TYPE, messageType.name())
             .build();
@@ -212,8 +212,8 @@ public class PopMetricsManager {
     public void incPopReviveRetryMessageCount(PopCheckPoint checkPoint, PutMessageStatus status) {
         AttributesBuilder builder = this.newAttributesBuilder();
         Attributes attributes = builder
-            .put(LABEL_CONSUMER_GROUP, checkPoint.getCId())
-            .put(LABEL_TOPIC, checkPoint.getTopic())
+            .put(LABEL_CONSUMER_GROUP_KEY, checkPoint.getCId())
+            .put(LABEL_TOPIC_KEY, checkPoint.getTopic())
             .put(LABEL_PUT_STATUS, status.name())
             .build();
         this.popReviveRetryMessageTotal.add(1, attributes);

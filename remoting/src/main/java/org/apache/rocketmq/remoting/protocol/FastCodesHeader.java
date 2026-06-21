@@ -38,8 +38,24 @@ public interface FastCodesHeader {
     default void writeIfNotNull(ByteBuf out, String key, Object value) {
         if (value != null) {
             RocketMQSerializable.writeStr(out, true, key);
-            RocketMQSerializable.writeStr(out, false, value.toString());
+            if (value instanceof Long) {
+                RocketMQSerializable.writeDecimalLong(out, (Long) value);
+            } else if (value instanceof Integer) {
+                RocketMQSerializable.writeDecimalInt(out, (Integer) value);
+            } else {
+                RocketMQSerializable.writeStr(out, false, value.toString());
+            }
         }
+    }
+
+    default void writeLong(ByteBuf out, String key, long value) {
+        RocketMQSerializable.writeStr(out, true, key);
+        RocketMQSerializable.writeDecimalLong(out, value);
+    }
+
+    default void writeInt(ByteBuf out, String key, int value) {
+        RocketMQSerializable.writeStr(out, true, key);
+        RocketMQSerializable.writeDecimalInt(out, value);
     }
 
     void encode(ByteBuf out);

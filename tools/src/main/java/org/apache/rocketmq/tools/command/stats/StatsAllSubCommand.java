@@ -25,6 +25,8 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.stats.Stats;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
@@ -38,6 +40,8 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class StatsAllSubCommand implements SubCommand {
+
+    private static final Logger log = LoggerFactory.getLogger(StatsAllSubCommand.class);
     public static void printTopicDetail(final DefaultMQAdminExt admin, final String topic, final boolean activeTopic)
         throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         TopicRouteData topicRouteData = admin.examineTopicRouteInfo(topic);
@@ -56,6 +60,7 @@ public class StatsAllSubCommand implements SubCommand {
                     inTPS += bsd.getStatsMinute().getTps();
                     inMsgCntToday += compute24HourSum(bsd);
                 } catch (Exception e) {
+                    log.debug("Failed to get TOPIC_PUT_NUMS stats for topic={} from broker={}", topic, masterAddr, e);
                 }
             }
         }
@@ -75,6 +80,7 @@ public class StatsAllSubCommand implements SubCommand {
                             outTPS += bsd.getStatsMinute().getTps();
                             outMsgCntToday += compute24HourSum(bsd);
                         } catch (Exception e) {
+                            log.debug("Failed to get GROUP_GET_NUMS stats for topic={}, group={} from broker={}", topic, group, masterAddr, e);
                         }
                     }
                 }
@@ -89,6 +95,7 @@ public class StatsAllSubCommand implements SubCommand {
                         }
                     }
                 } catch (Exception e) {
+                    log.debug("Failed to examine consume stats for group={}, topic={}", group, topic, e);
                 }
 
                 if (!activeTopic || inMsgCntToday > 0 ||
@@ -196,6 +203,7 @@ public class StatsAllSubCommand implements SubCommand {
                 try {
                     printTopicDetail(defaultMQAdminExt, topic, activeTopic);
                 } catch (Exception e) {
+                    log.debug("Failed to print topic detail for topic={}", topic, e);
                 }
             }
         } catch (Exception e) {

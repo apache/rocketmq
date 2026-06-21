@@ -68,4 +68,3 @@ public class Producer {
 |DefaultMQProducer(RPCHook rpcHook)|creates a producer with  a rpc hook.|
 |DefaultMQProducer(final String producerGroup, RPCHook rpcHook)|creates a producer with  a rpc hook and producer group.|
 |DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,final String customizedTraceTopic)|all of above.|
-
