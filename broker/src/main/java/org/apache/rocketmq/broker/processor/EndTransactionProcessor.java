@@ -55,6 +55,34 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         this.brokerController = brokerController;
     }
 
+    /**
+     * End a transaction (commit or rollback) for a prepared half message.
+     *
+     * <p>Two incoming paths:
+     * <ul>
+     *   <li><b>Producer end</b> ({@code fromTransactionCheck = false}) —
+     *       the producer explicitly commits or rolls back after the
+     *       half message was written</li>
+     *   <li><b>Transaction check</b> ({@code fromTransactionCheck = true}) —
+     *       TransactionCheck call producer, then producer send this request</li>
+     * </ul>
+     *
+     * <p>For commit:
+     * <ol>
+     *   <li>Reads the prepared half message from the store</li>
+     *   <li>Rejects if the message's immunity time has expired and this is
+     *       <b>not</b> a checker callback</li>
+     *   <li>Restores the original topic/queue from properties, writes the
+     *       final message to the store, and deletes the half message</li>
+     * </ol>
+     *
+     * <p>For rollback: deletes the prepared half message without writing.
+     *
+     * @param ctx     the Netty channel context
+     * @param request the end-transaction request
+     * @return the response
+     * @throws RemotingCommandException if the request cannot be decoded
+     */
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws
         RemotingCommandException {
