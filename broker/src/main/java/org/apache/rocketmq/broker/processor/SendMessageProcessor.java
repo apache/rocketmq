@@ -326,7 +326,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         String traFlag = oriProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
         boolean sendTransactionPrepareMessage;
         if (Boolean.parseBoolean(traFlag)
+            // For client under version 4.6.1, exclude retry message with delay level.
             && !(msgInner.getReconsumeTimes() > 0 && msgInner.getDelayTimeLevel() > 0)) { //For client under version 4.6.1
+            // default value of rejectTransactionMessage is false
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
                 response.setCode(ResponseCode.NO_PERMISSION);
                 response.setRemark(
