@@ -226,6 +226,21 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    /**
+     * Delete a prepared (half) message after transaction commit or rollback.
+     *
+     * <p>Deletion strategy depends on the half-message storage:
+     * <ul>
+     *   <li>{@code RMQ_SYS_TRANS_HALF_TOPIC} — writes an OP record to
+     *       {@code RMQ_SYS_TRANS_OP_HALF_TOPIC} as a logical-delete marker;
+     *       the transaction checker skips messages that have a matching OP</li>
+     *   <li>{@code RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC} — physically deletes
+     *       the message from RocksDB via
+     *       {@code TransMessageRocksDBStore#deletePrepareMessage}</li>
+     * </ul>
+     *
+     * @param result the operation result containing the prepared message
+     */
     private void deletePrepareMessage(OperationResult result) {
         if (null == result || null == result.getPrepareMessage()) {
             LOGGER.error("deletePrepareMessage param error, result is null or prepareMessage is null");
