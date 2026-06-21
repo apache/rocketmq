@@ -96,6 +96,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        // validate transaction flag and logging
         if (requestHeader.getFromTransactionCheck()) {
             switch (requestHeader.getCommitOrRollback()) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE: {
@@ -155,8 +156,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     return null;
             }
         }
+
         OperationResult result = new OperationResult();
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
+            // get prepare message from prepare topic
             result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 if (rejectCommitOrRollback(requestHeader, result.getPrepareMessage())) {
@@ -165,6 +168,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                             requestHeader.getMsgId(), requestHeader.getCommitLogOffset());
                     return response;
                 }
+
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
                     MessageExtBrokerInner msgInner = endMessageTransaction(result.getPrepareMessage());
@@ -173,8 +177,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());
                     msgInner.setStoreTimestamp(result.getPrepareMessage().getStoreTimestamp());
                     MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED);
+                    // enqueue message to original topic
                     RemotingCommand sendResult = sendFinalMessage(msgInner);
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
+                        // delete prepare message
                         deletePrepareMessage(result);
                         // successful committed, then total num of half-messages minus 1
                         this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(msgInner.getTopic(), -1);
@@ -192,6 +198,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 return res;
             }
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
+            // get prepare message from prepare topic
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 if (rejectCommitOrRollback(requestHeader, result.getPrepareMessage())) {
@@ -200,8 +207,10 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                             requestHeader.getMsgId(), requestHeader.getCommitLogOffset());
                     return response;
                 }
+
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
+                    // delete prepare message
                     deletePrepareMessage(result);
                     // roll back, then total num of half-messages minus 1
                     this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(result.getPrepareMessage().getProperty(MessageConst.PROPERTY_REAL_TOPIC), -1);
