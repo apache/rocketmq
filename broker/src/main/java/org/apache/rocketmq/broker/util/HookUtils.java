@@ -41,6 +41,23 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 
+/**
+ * Pre-processing utilities invoked before putting a message to the store.
+ *
+ * <p>All methods are static and called sequentially from
+ * {@code SendMessageProcessor#asyncSendMessage}:
+ * <ol>
+ *   <li>{@link #checkBeforePutMessage} — validates store state, topic length,
+ *       body presence, and OS page cache pressure</li>
+ *   <li>{@link #checkInnerBatch} — checks inner-batch sysFlag consistency</li>
+ *   <li>{@link #handleScheduleMessage} — routes timer and delay-level messages
+ *       to {@code TIMER_TOPIC} or {@code SCHEDULE_TOPIC}</li>
+ *   <li>{@link #handleLmqQuota} — enforces Light Message Queue limits</li>
+ * </ol>
+ *
+ * <p>If any step returns a non-null {@link PutMessageResult}, the operation is
+ * aborted immediately.
+ */
 public class HookUtils {
 
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
