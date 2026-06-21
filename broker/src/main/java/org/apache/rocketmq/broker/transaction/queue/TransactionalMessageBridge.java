@@ -216,6 +216,24 @@ public class TransactionalMessageBridge {
         return store.asyncPutMessage(parseHalfMessageInner(messageInner));
     }
 
+    /**
+     * Transform a transactional message into a half message and redirect it to
+     * the half-message topic.
+     *
+     * <p>The method:
+     * <ol>
+     *   <li>Copies the client message ID as the transaction ID for later
+     *       checkpoint lookup</li>
+     *   <li>Preserves the original topic and queue as properties so that
+     *       they can be restored when the transaction commits</li>
+     *   <li>Clears the transaction sys-flag to prevent re-interception</li>
+     *   <li>Redirects the message to {@code RMQ_SYS_TRANS_HALF_TOPIC}
+     *       or {@code RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC} depending on config</li>
+     * </ol>
+     *
+     * @param msgInner the original transactional message
+     * @return the transformed half message
+     */
     private MessageExtBrokerInner parseHalfMessageInner(MessageExtBrokerInner msgInner) {
         // set transactionId
         String uniqId = msgInner.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
@@ -228,7 +246,7 @@ public class TransactionalMessageBridge {
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID,
             String.valueOf(msgInner.getQueueId()));
 
-        // clear transaction flag
+        // Clears the transaction sys-flag to prevent re-interception
         msgInner.setSysFlag(
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
 
