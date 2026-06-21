@@ -324,6 +324,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         // Map<String, String> oriProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String traFlag = oriProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+        // sendTransactionPrepareMessage is true, when traFlag is true, after version 4.6.1
         boolean sendTransactionPrepareMessage;
         if (Boolean.parseBoolean(traFlag)
             // For client under version 4.6.1, exclude retry message with delay level.
