@@ -246,6 +246,10 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
         return queueOffset;
     }
 
+    public void setQueueOffset(long queueOffset) {
+        this.queueOffset = queueOffset;
+    }
+
     public void setQueueOffset(Long queueOffset) {
         this.queueOffset = queueOffset;
     }
@@ -270,12 +274,20 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
         return commitOffset;
     }
 
+    public void setCommitOffset(long commitOffset) {
+        this.commitOffset = commitOffset;
+    }
+
     public void setCommitOffset(Long commitOffset) {
         this.commitOffset = commitOffset;
     }
 
     public Long getSuspendTimeoutMillis() {
         return suspendTimeoutMillis;
+    }
+
+    public void setSuspendTimeoutMillis(long suspendTimeoutMillis) {
+        this.suspendTimeoutMillis = suspendTimeoutMillis;
     }
 
     public void setSuspendTimeoutMillis(Long suspendTimeoutMillis) {
@@ -292,6 +304,10 @@ public class PullMessageRequestHeader extends TopicQueueRequestHeader implements
 
     public Long getSubVersion() {
         return subVersion;
+    }
+
+    public void setSubVersion(long subVersion) {
+        this.subVersion = subVersion;
     }
 
     public void setSubVersion(Long subVersion) {

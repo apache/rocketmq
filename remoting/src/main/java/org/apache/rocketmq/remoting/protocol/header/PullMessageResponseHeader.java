@@ -110,12 +110,20 @@ public class PullMessageResponseHeader implements CommandCustomHeader, FastCodes
         return nextBeginOffset;
     }
 
+    public void setNextBeginOffset(long nextBeginOffset) {
+        this.nextBeginOffset = nextBeginOffset;
+    }
+
     public void setNextBeginOffset(Long nextBeginOffset) {
         this.nextBeginOffset = nextBeginOffset;
     }
 
     public Long getMinOffset() {
         return minOffset;
+    }
+
+    public void setMinOffset(long minOffset) {
+        this.minOffset = minOffset;
     }
 
     public void setMinOffset(Long minOffset) {
@@ -126,12 +134,20 @@ public class PullMessageResponseHeader implements CommandCustomHeader, FastCodes
         return maxOffset;
     }
 
+    public void setMaxOffset(long maxOffset) {
+        this.maxOffset = maxOffset;
+    }
+
     public void setMaxOffset(Long maxOffset) {
         this.maxOffset = maxOffset;
     }
 
     public Long getSuggestWhichBrokerId() {
         return suggestWhichBrokerId;
+    }
+
+    public void setSuggestWhichBrokerId(long suggestWhichBrokerId) {
+        this.suggestWhichBrokerId = suggestWhichBrokerId;
     }
 
     public void setSuggestWhichBrokerId(Long suggestWhichBrokerId) {
