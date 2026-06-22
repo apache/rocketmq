@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
@@ -440,7 +441,7 @@ public class ClientActivity extends AbstractMessagingActivity {
             this.buildConsumeType(clientType),
             this.buildMessageModel(clientType),
             ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
-            this.buildSubscriptionDataSet(subscriptionEntryList),
+            this.buildSubscriptionDataSet(ctx, consumerGroup, subscriptionEntryList),
             updateSubscription
         );
         return channel;
@@ -532,14 +533,36 @@ public class ClientActivity extends AbstractMessagingActivity {
         return MessageModel.CLUSTERING;
     }
 
-    protected Set<SubscriptionData> buildSubscriptionDataSet(List<SubscriptionEntry> subscriptionEntryList) {
+    protected Set<SubscriptionData> buildSubscriptionDataSet(ProxyContext ctx, String consumerGroup,
+        List<SubscriptionEntry> subscriptionEntryList) {
         Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
+        ConsumerGroupInfo consumerGroupInfo = this.messagingProcessor.getConsumerGroupInfo(ctx, consumerGroup);
         for (SubscriptionEntry sub : subscriptionEntryList) {
             String topicName = sub.getTopic().getName();
             FilterExpression filterExpression = sub.getExpression();
-            subscriptionDataSet.add(buildSubscriptionData(topicName, filterExpression));
+            SubscriptionData subscriptionData = buildSubscriptionData(topicName, filterExpression);
+            reuseSubscriptionVersion(consumerGroupInfo, subscriptionData);
+            subscriptionDataSet.add(subscriptionData);
         }
         return subscriptionDataSet;
+    }
+
+    protected void reuseSubscriptionVersion(ConsumerGroupInfo consumerGroupInfo, SubscriptionData subscriptionData) {
+        if (consumerGroupInfo == null) {
+            return;
+        }
+        SubscriptionData oldSubscriptionData = consumerGroupInfo.findSubscriptionData(subscriptionData.getTopic());
+        if (oldSubscriptionData == null) {
+            return;
+        }
+        // FilterAPI.build creates a fresh subVersion every time gRPC settings rebuild the
+        // subscription. Normalize the version before equals so unchanged subscriptions do
+        // not look like real updates; restore it below when the subscription content differs.
+        long subVersion = subscriptionData.getSubVersion();
+        subscriptionData.setSubVersion(oldSubscriptionData.getSubVersion());
+        if (!oldSubscriptionData.equals(subscriptionData)) {
+            subscriptionData.setSubVersion(subVersion);
+        }
     }
 
     protected SubscriptionData buildSubscriptionData(String topicName, FilterExpression filterExpression) {
