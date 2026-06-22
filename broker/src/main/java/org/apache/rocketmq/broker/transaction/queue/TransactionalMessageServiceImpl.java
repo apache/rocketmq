@@ -67,6 +67,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private static final int SLEEP_WHILE_NO_OP = 1000;
 
+    /**
+     * deleted offset queue map
+     * only one key: 0
+     */
     private final ConcurrentHashMap<Integer, MessageQueueOpContext> deleteContext = new ConcurrentHashMap<>();
 
     private ServiceThread transactionalOpBatchService;
@@ -705,7 +709,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     }
 
     /**
-     * build op message:
+     * build op message with data in deleteContext.get(queueId)
      *  - topic: op_topic
      *  - tag: REMOVE_TAG
      *  - body: moreData(prepareOffset + ",")
@@ -757,6 +761,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return new Message(opTopic, TransactionalMessageUtil.REMOVE_TAG,
                 sb.toString().getBytes(TransactionalMessageUtil.CHARSET));
     }
+
     /**
      * Flush buffered delete offsets for all queues to the OP topic.
      * Called by independent thread(TransactionalOpBatchService)
@@ -785,7 +790,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             boolean overSize = false;
             for (Map.Entry<Integer, MessageQueueOpContext> entry : deleteContext.entrySet()) {
                 MessageQueueOpContext mqContext = entry.getValue();
-                //no msg in contextQueue
+                // skip: no data or wait for the interval
                 if (mqContext.getTotalSize().get() <= 0 || mqContext.getContextQueue().size() == 0 ||
                         // wait for the interval
                         mqContext.getTotalSize().get() < maxSize &&
@@ -798,10 +803,14 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     sendMap = new HashMap<>();
                 }
 
+                // build op message with data in deleteContext.get(queueId)
+                // will build a message contains all offsets in deleteContext.get(queueId)
+                // it's better to pass mqContext as parameter
                 Message opMsg = getOpMessage(entry.getKey(), null);
                 if (opMsg == null) {
                     continue;
                 }
+
                 sendMap.put(entry.getKey(), opMsg);
                 firstTimestamp = Math.min(firstTimestamp, mqContext.getLastWriteTimestamp());
                 if (mqContext.getTotalSize().get() >= maxSize) {
