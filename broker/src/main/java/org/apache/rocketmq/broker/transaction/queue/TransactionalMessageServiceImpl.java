@@ -158,6 +158,32 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         }
     }
 
+    /**
+     * Scan the half-message topic and compare with the OP topic to find
+     * unresolved transactions. called by independent thread(TransactionalMessageCheckService).
+     *
+     * <p>For each queue in the HALF topic:
+     * <ol>
+     *   <li>Fetches the OP (operation) topic at the current offset and builds
+     *       a {@code removeMap} — half offsets that have been committed or
+     *       rolled back</li>
+     *   <li>Iterates through the HALF topic:
+     *       <ul>
+     *         <li>If the offset is in {@code removeMap} → skip (already done)</li>
+     *         <li>If the message is outside the immunity window → calls
+     *             {@code listener.resolveHalfMsg} to trigger a broker-side
+     *             check-back to the producer</li>
+     *         <li>If the message exceeds check max or file-reserved time →
+     *             {@code listener.resolveDiscardMsg}</li>
+     *       </ul>
+     *   </li>
+     *   <li>Updates consume offsets for both HALF and OP topics</li>
+     * </ol>
+     *
+     * @param transactionTimeout   the transaction timeout in milliseconds
+     * @param transactionCheckMax  maximum number of times to check a transaction
+     * @param listener             callback for resolved or discarded messages
+     */
     @Override
     public void check(long transactionTimeout, int transactionCheckMax,
         AbstractTransactionalMessageCheckListener listener) {
