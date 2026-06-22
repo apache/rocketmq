@@ -746,6 +746,22 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return new Message(opTopic, TransactionalMessageUtil.REMOVE_TAG,
                 sb.toString().getBytes(TransactionalMessageUtil.CHARSET));
     }
+    /**
+     * Flush buffered delete offsets for all queues to the OP topic.
+     * Called by independent thread(TransactionalOpBatchService)
+     *
+     * <p>Iterates over each per-queue {@link MessageQueueOpContext}. If the
+     * buffer has data and the time since the last write exceeds
+     * {@code transactionOpBatchInterval} (or the buffer is oversized), the
+     * buffered offsets are drained via {@link #getOpMessage}, combined into
+     * a single OP message, and written via
+     * {@link TransactionalMessageBridge#writeOp}.
+     *
+     * <p>Called by {@link TransactionalOpBatchService#onWaitEnd()}.
+     *
+     * @return the earliest wakeup timestamp for the next flush, or 0 if no
+     *         waiting is needed
+     */
     public long batchSendOpMessage() {
         long startTime = System.currentTimeMillis();
         try {
