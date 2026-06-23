@@ -552,17 +552,18 @@ public class ConsumeQueue implements ConsumeQueueInterface {
      */
     @Override
     public void correctMinOffset(long minCommitLogOffset) {
-        // Check if the consume queue is the state of deprecation.
-        if (minLogicOffset >= mappedFileQueue.getMaxOffset()) {
-            log.info("ConsumeQueue[Topic={}, queue-id={}] contains no valid entries", topic, queueId);
+        MappedFile lastMappedFile = this.mappedFileQueue.getLastMappedFile();
+        if (null == lastMappedFile) {
+            log.info("ConsumeQueue[Topic={}, queue-id={}] contains no entry,"
+                    + " reset minLogicOffset to 0, maxPhysicOffset to -1", topic, queueId);
+            this.minLogicOffset = 0;
+            this.maxPhysicOffset = -1;
             return;
         }
 
-        // Check whether the consume queue maps no valid data at all. This check may cost 1 IO operation.
-        // The rationale is that consume queue always preserves the last file. In case there are many deprecated topics,
-        // This check would save a lot of efforts.
-        MappedFile lastMappedFile = this.mappedFileQueue.getLastMappedFile();
-        if (null == lastMappedFile) {
+        // Check if the consume queue is the state of deprecation.
+        if (minLogicOffset > mappedFileQueue.getMaxOffset()) {
+            log.warn("ConsumeQueue[Topic={}, queue-id={}] contains no valid entries", topic, queueId);
             return;
         }
 
