@@ -290,6 +290,20 @@ public class TransactionalMessageBridge {
         }
     }
 
+    /**
+     * Renew a half message and preserve the prepared queue offset for immunity
+     * time tracking.
+     *
+     * <p>This is used when re-putting a half message back to the HALF topic
+     * during the transaction check-back process. The
+     * {@code PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET} property records the
+     * original queue offset so that later checks can determine whether the
+     * producer has already committed or rolled back the message within the
+     * immunity window.
+     *
+     * @param msgExt the original half message
+     * @return a new half message with the prepared queue offset preserved
+     */
     public MessageExtBrokerInner renewImmunityHalfMessageInner(MessageExt msgExt) {
         MessageExtBrokerInner msgInner = renewHalfMessageInner(msgExt);
         String queueOffsetFromPrepare = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
