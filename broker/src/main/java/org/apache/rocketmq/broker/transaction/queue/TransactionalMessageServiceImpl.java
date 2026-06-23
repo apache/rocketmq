@@ -353,8 +353,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         long checkImmunityTime = transactionTimeout;
                         String checkImmunityTimeStr = msgExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
                         if (null != checkImmunityTimeStr) {
+                            // convert checkImmunityTimeStr to long, if failed, use transactionTimeout
                             checkImmunityTime = getImmunityTime(checkImmunityTimeStr, transactionTimeout);
                             if (valueOfCurrentMinusBorn <= checkImmunityTime) {
+                                // check the prepare message has been committed/rolled back
                                 if (checkPrepareQueueOffset(removeMap, doneOpOffset, msgExt, checkImmunityTimeStr)) {
                                     newOffset = i + 1;
                                     i++;
@@ -532,12 +534,26 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     }
 
     /**
-     * If return true, skip this msg
+     * Check whether the prepared queue offset of a half message has been
+     * committed or rolled back during the immunity window.
+     *
+     * <p>There are three cases:
+     * <ul>
+     *   <li>No {@code PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET} — first time
+     *   this message is checked. Re-put it back to the half topic with the
+     *   offset attached so subsequent checks can skip it by offset.</li>
+     *   <li>Offset found in {@code removeMap} — the producer has committed or
+     *   rolled back via the OP queue. Remove from the pending map and mark as
+     *   done.</li>
+     *   <li>Offset not in {@code removeMap} — the producer has not responded
+     *   yet. Re-queue for a future check.</li>
+     * </ul>
      *
      * @param removeMap Op message map to determine whether a half message was responded by producer.
      * @param doneOpOffset Op Message which has been checked.
      * @param msgExt Half message
-     * @return Return true if put success, otherwise return false.
+     * @return true if the message can be skipped (completed or re-queued),
+     *         false if the offset is illegal
      */
     private boolean checkPrepareQueueOffset(HashMap<Long, Long> removeMap, List<Long> doneOpOffset,
         MessageExt msgExt, String checkImmunityTimeStr) {
