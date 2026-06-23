@@ -543,6 +543,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         MessageExt msgExt, String checkImmunityTimeStr) {
         String prepareQueueOffsetStr = msgExt.getUserProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET);
         if (null == prepareQueueOffsetStr) {
+            // This message has never been checked by Rpc transaction-checker.
+            // We need re-put this message back to the end of the Half_Topic.
+            // so that we can skip the current offset(message) to check for the following message.
+            // PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET will be added to the message by putImmunityMsgBackToHalfQueue.
             return putImmunityMsgBackToHalfQueue(msgExt);
         } else {
             long prepareQueueOffset = getLong(prepareQueueOffsetStr);
@@ -559,6 +563,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             msgExt.getQueueOffset());
                     return true;
                 } else {
+                    // The commit/rollback confirmation message is still not received,
+                    // The message is again put back to the end of the queue for the future checking
                     return putImmunityMsgBackToHalfQueue(msgExt);
                 }
             }
