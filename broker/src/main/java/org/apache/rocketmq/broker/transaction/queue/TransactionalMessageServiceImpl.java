@@ -109,6 +109,20 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return transactionalMessageBridge.putHalfMessage(messageInner);
     }
 
+    /**
+     * Check whether the prepared message has exceeded the maximum number of
+     * transaction checks and should be discarded.
+     * isOverMaxCheckTimes may be a better method name
+     *
+     * <p>Each time the message is checked, the {@code TRANSACTION_CHECK_TIMES}
+     * property is incremented. When it reaches {@code transactionCheckMax},
+     * the message is considered expired and will be discarded via
+     * {@link AbstractTransactionalMessageCheckListener#resolveDiscardMsg}.
+     *
+     * @param msgExt             the prepared message being checked
+     * @param transactionCheckMax maximum allowed check attempts
+     * @return {@code true} if the message should be discarded
+     */
     private boolean needDiscard(MessageExt msgExt, int transactionCheckMax) {
         String checkTimes = msgExt.getProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES);
         int checkTime = 1;
@@ -257,6 +271,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     }
                     // merge prepare message and op message
                     else {
+                        // get one prepare message
                         GetResult getResult = getHalfMsg(messageQueue, i);
                         MessageExt msgExt = getResult.getMsg();
                         if (msgExt == null) {
@@ -276,6 +291,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             }
                         }
 
+                        // slave acting master mode
                         if (this.transactionalMessageBridge.getBrokerController().getBrokerConfig().isEnableSlaveActingMaster()
                             && this.transactionalMessageBridge.getBrokerController().getMinBrokerIdInGroup()
                             == this.transactionalMessageBridge.getBrokerController().getBrokerIdentity().getBrokerId()
@@ -311,6 +327,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             i++;
                             continue;
                         }
+
+                        // skip if the message is fresh
                         if (msgExt.getStoreTimestamp() >= startTime) {
                             log.debug("Fresh stored. the miss offset={}, check it later, store={}", i,
                                 new Date(msgExt.getStoreTimestamp()));
