@@ -550,11 +550,12 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             return putImmunityMsgBackToHalfQueue(msgExt);
         } else {
             long prepareQueueOffset = getLong(prepareQueueOffsetStr);
-            if (-1 == prepareQueueOffset) {
+            if (-1 == prepareQueueOffset) { // illegal offset
                 return false;
             } else {
                 Long tmpOpOffset;
                 if ((tmpOpOffset = removeMap.remove(prepareQueueOffset)) != null) {
+                    // message has been committed/rollback, remove it and add it to doneOpOffset
                     doneOpOffset.add(tmpOpOffset);
                     log.info("removeMap contain prepareQueueOffset. real_topic={},uniqKey={},immunityTime={},offset={}",
                             msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC),
