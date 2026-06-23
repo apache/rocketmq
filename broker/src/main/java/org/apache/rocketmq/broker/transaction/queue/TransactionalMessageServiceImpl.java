@@ -138,6 +138,19 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return false;
     }
 
+    /**
+     * Check whether the prepared message should be skipped because its birth
+     * time exceeds the commit log's file reserved time.
+     * isExpired maybe a better method name
+     *
+     * <p>If the message has been in the half topic longer than
+     * {@code fileReservedTime} hours, the corresponding commit log data may
+     * have already been deleted. The message is skipped rather than checked
+     * to avoid unnecessary IO and potential errors.
+     *
+     * @param msgExt the prepared message being checked
+     * @return {@code true} if the message should be skipped
+     */
     private boolean needSkip(MessageExt msgExt) {
         long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
         if (valueOfCurrentMinusBorn
@@ -321,6 +334,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             continue;
                         }
 
+                        // if isOverMaxCheckTimes or isExpired, call client to check transaction status
                         if (needDiscard(msgExt, transactionCheckMax) || needSkip(msgExt)) {
                             listener.resolveDiscardMsg(msgExt);
                             newOffset = i + 1;
