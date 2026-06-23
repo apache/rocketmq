@@ -342,7 +342,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             continue;
                         }
 
-                        // skip if the message is fresh
+                        // skip if the message is fresh, break
                         if (msgExt.getStoreTimestamp() >= startTime) {
                             log.debug("Fresh stored. the miss offset={}, check it later, store={}", i,
                                 new Date(msgExt.getStoreTimestamp()));
@@ -432,6 +432,20 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         }
     }
 
+    /**
+     * convert checkImmunityTimeStr to long, return transactionTimeout if invalid.
+     *
+     * <p>The immunity time is the minimum duration the broker must wait
+     * before initiating a transaction status check-back to the producer.
+     * If the producer specifies a custom value via
+     * {@code PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS}, it is used (converted
+     * from seconds to millis). Otherwise, the default
+     * {@code transactionTimeout} is returned.
+     *
+     * @param checkImmunityTimeStr the custom immunity time string, may be null
+     * @param transactionTimeout   the default transaction timeout
+     * @return the immunity time in milliseconds
+     */
     private long getImmunityTime(String checkImmunityTimeStr, long transactionTimeout) {
         long checkImmunityTime;
 
