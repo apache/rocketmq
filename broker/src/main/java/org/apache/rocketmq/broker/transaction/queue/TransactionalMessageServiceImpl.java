@@ -192,6 +192,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
     public void check(long transactionTimeout, int transactionCheckMax,
         AbstractTransactionalMessageCheckListener listener) {
         try {
+            // fetch message queues of the half-message topic, one queue by default
             String topic = TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC;
             Set<MessageQueue> msgQueues = transactionalMessageBridge.fetchMessageQueues(topic);
             if (msgQueues == null || msgQueues.size() == 0) {
@@ -199,7 +200,10 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 return;
             }
             log.debug("Check topic={}, queues={}", topic, msgQueues);
+
+            // loop through each prepare queue
             for (MessageQueue messageQueue : msgQueues) {
+                // init context: opQueue, offsets, etc
                 long startTime = System.currentTimeMillis();
                 MessageQueue opQueue = getOpQueue(messageQueue);
                 long halfOffset = transactionalMessageBridge.fetchConsumeOffset(messageQueue);
@@ -211,15 +215,22 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     continue;
                 }
 
+                // opOffset list
                 List<Long> doneOpOffset = new ArrayList<>();
+                // Map<prepareOffset,opOffset>
                 HashMap<Long, Long> removeMap = new HashMap<>();
+                // Map<opOffset, HashSet<opOffsetValue>>
                 HashMap<Long, HashSet<Long>> opMsgMap = new HashMap<Long, HashSet<Long>>();
+
+                // load op message to removeMap
                 PullResult pullResult = fillOpRemoveMap(removeMap, opQueue, opOffset, halfOffset, opMsgMap, doneOpOffset);
                 if (null == pullResult) {
                     log.error("The queue={} check msgOffset={} with opOffset={} failed, pullResult is null",
                         messageQueue, halfOffset, opOffset);
                     continue;
                 }
+
+                // init merge prepare queue and op queue context
                 // single thread
                 int getMessageNullCount = 1;
                 long newOffset = halfOffset;
@@ -234,6 +245,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         break;
                     }
                     Long removedOpOffset;
+
+                    // remove committed/rolled back message
                     if ((removedOpOffset = removeMap.remove(i)) != null) {
                         log.debug("Half offset {} has been committed/rolled back", i);
                         opMsgMap.get(removedOpOffset).remove(i);
@@ -241,7 +254,9 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             opMsgMap.remove(removedOpOffset);
                             doneOpOffset.add(removedOpOffset);
                         }
-                    } else {
+                    }
+                    // merge prepare message and op message
+                    else {
                         GetResult getResult = getHalfMsg(messageQueue, i);
                         MessageExt msgExt = getResult.getMsg();
                         if (msgExt == null) {
@@ -360,6 +375,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     newOffset = i + 1;
                     i++;
                 }
+
+                // update new offsets and logging
                 if (newOffset != halfOffset) {
                     transactionalMessageBridge.updateConsumeOffset(messageQueue, newOffset);
                 }
@@ -367,6 +384,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 if (newOpOffset != opOffset) {
                     transactionalMessageBridge.updateConsumeOffset(opQueue, newOpOffset);
                 }
+
                 GetResult getResult = getHalfMsg(messageQueue, newOffset);
                 pullResult = pullOpMsg(opQueue, newOpOffset, 1);
                 long maxMsgOffset = getResult.getPullResult() == null ? newOffset : getResult.getPullResult().getMaxOffset();
@@ -380,7 +398,6 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         } catch (Throwable e) {
             log.error("Check error", e);
         }
-
     }
 
     private long getImmunityTime(String checkImmunityTimeStr, long transactionTimeout) {
@@ -779,8 +796,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
      *         waiting is needed
      */
     public long batchSendOpMessage() {
-        long startTime = System.currentTimeMillis();
         try {
+            long startTime = System.currentTimeMillis();
             long firstTimestamp = startTime;
             Map<Integer, Message> sendMap = null;
             // default transactionOpBatchInterval is 3000
