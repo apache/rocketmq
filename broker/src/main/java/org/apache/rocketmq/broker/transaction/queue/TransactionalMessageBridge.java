@@ -291,8 +291,7 @@ public class TransactionalMessageBridge {
     }
 
     /**
-     * Renew a half message and preserve the prepared queue offset for immunity
-     * time tracking.
+     * Renew a half message and set property MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET if not exists
      *
      * <p>This is used when re-putting a half message back to the HALF topic
      * during the transaction check-back process. The

@@ -588,6 +588,13 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return putMessageResult;
     }
 
+    /**
+     * Renew a half message and set property MessageConst.PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET if not exists
+     * then save new half message to Half Topic
+     *
+     * @param messageExt original half message
+     * @return store status
+     */
     private boolean putImmunityMsgBackToHalfQueue(MessageExt messageExt) {
         MessageExtBrokerInner msgInner = transactionalMessageBridge.renewImmunityHalfMessageInner(messageExt);
         return transactionalMessageBridge.putMessage(msgInner);
