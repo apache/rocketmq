@@ -78,7 +78,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
         Channel channel = brokerController.getProducerManager().getAvailableChannel(groupId);
 
         if (channel != null) {
-            // invoke channel
+            // invoke channel.writeAndFlush() -> GrpcClientChannel.processCheckTransaction()
             brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
         } else {
             LOGGER.warn("Check transaction failed, channel is null. groupId={}", groupId);
@@ -98,6 +98,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
      */
     public void resolveHalfMsg(final MessageExt msgExt) {
         if (executorService != null) {
+            // executorService thread pool(2~5 threads)
             executorService.execute(new Runnable() {
                 @Override
                 public void run() {

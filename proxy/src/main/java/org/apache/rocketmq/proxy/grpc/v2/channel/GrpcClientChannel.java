@@ -260,6 +260,15 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         return clientId;
     }
 
+    /**
+     * Write a {@link TelemetryCommand} to the gRPC telemetry stream.
+     *
+     * <p>Uses double-checked locking with {@link #telemetryWriteLock} to
+     * safely handle concurrent writes. If the underlying gRPC stream is
+     * closed or throws {@link StatusRuntimeException} /
+     * {@link IllegalStateException} (e.g. client disconnected), the observer
+     * is cleared so subsequent writes are silently skipped.
+     */
     public void writeTelemetryCommand(TelemetryCommand command) {
         StreamObserver<TelemetryCommand> observer = this.telemetryCommandRef.get();
         if (observer == null) {
