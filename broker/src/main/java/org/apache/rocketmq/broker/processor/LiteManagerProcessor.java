@@ -410,8 +410,4 @@ public class LiteManagerProcessor implements NettyRequestProcessor {
             .collect(Collectors.toSet());
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
 }

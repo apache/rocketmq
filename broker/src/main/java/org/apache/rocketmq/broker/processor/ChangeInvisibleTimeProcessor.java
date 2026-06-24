@@ -68,11 +68,6 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         return this.processRequest(ctx.channel(), request, true);
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
 

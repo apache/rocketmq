@@ -75,11 +75,6 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
         return this.processRequest(ctx.channel(), request, true);
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
         throws RemotingCommandException {
         final long beginTimeMills = this.brokerController.getMessageStore().now();
