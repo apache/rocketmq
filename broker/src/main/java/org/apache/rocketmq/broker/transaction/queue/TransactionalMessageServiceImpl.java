@@ -244,7 +244,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
                 // opOffset list for which:
                 // - message body is null or empty
-                // - prepare offset < miniOffset
+                // - all corresponding prepareOffsets < miniOffset
                 // - all corresponding prepareOffsets have been committed/rolled back
                 List<Long> doneOpOffset = new ArrayList<>();
                 // the relation between:
@@ -356,6 +356,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             break;
                         }
 
+                        // check ImmunityTime, skip if bornTime <= immunityTime, reput to prepare queue if needed
                         long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
                         long checkImmunityTime = transactionTimeout;
                         String checkImmunityTimeStr = msgExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
@@ -377,13 +378,18 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                 break;
                             }
                         }
+
+                        // calculate isNeedCheck
                         List<MessageExt> opMsg = pullResult == null ? null : pullResult.getMsgFoundList();
+                        // isNeedCheck is true if:
+                        // - no opMessage && bornTime > transactionTimeout
+                        // - have opMessage && lastOpMessage.bornTime > transactionTimeout
+                        // - bornTime before now
                         boolean isNeedCheck = opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime
                             || opMsg != null && opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout
                             || valueOfCurrentMinusBorn <= -1;
 
                         if (isNeedCheck) {
-
                             if (!putBackHalfMsgQueue(msgExt, i)) {
                                 continue;
                             }
@@ -393,7 +399,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                     msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX),
                                     msgExt.getQueueOffset(), msgExt.getCommitLogOffset());
                             listener.resolveHalfMsg(msgExt);
-                        } else {
+                        } else { // fetch more opMessages and sleep if needed
                             nextOpOffset = pullResult != null ? pullResult.getNextBeginOffset() : nextOpOffset;
                             pullResult = fillOpRemoveMap(removeMap, opQueue, nextOpOffset,
                                     halfOffset, opMsgMap, doneOpOffset);
@@ -511,6 +517,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 continue;
             }
 
+            // format op message body
             HashSet<Long> set = new HashSet<Long>();
             String queueOffsetBody = new String(opMessageExt.getBody(), TransactionalMessageUtil.CHARSET);
 
@@ -534,13 +541,16 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 log.error("Found a illegal tag in opMessageExt= {} ", opMessageExt);
             }
 
+            // put opOffset Set to opMsgMap
             if (set.size() > 0) {
                 opMsgMap.put(opMessageExt.getQueueOffset(), set);
             } else {
+                // if all prepareOffset is done, add opOffset to doneOpOffset
                 doneOpOffset.add(opMessageExt.getQueueOffset());
             }
         }
 
+        // logging
         log.debug("Remove map: {}", removeMap);
         log.debug("Done op list: {}", doneOpOffset);
         log.debug("opMsg map: {}", opMsgMap);
