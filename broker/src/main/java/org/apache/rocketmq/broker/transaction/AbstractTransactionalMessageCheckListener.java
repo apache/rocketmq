@@ -48,7 +48,19 @@ public abstract class AbstractTransactionalMessageCheckListener {
         this.brokerController = brokerController;
     }
 
+    /**
+     * Send a transaction status check request to the producer that originated
+     * the half message.
+     *
+     * <p>Before sending, the message headers are restored to the real
+     * business topic and queue so the producer can identify the original
+     * message. The network request carries commitLogOffset, msgId,
+     * transactionId, and queue offset for the producer to look up the local
+     * transaction state. If the producer's channel is no longer connected,
+     * the check is skipped with a warning.
+     */
     public void sendCheckMessage(MessageExt msgExt) throws Exception {
+        // format request header and message
         CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
         checkTransactionStateRequestHeader.setTopic(msgExt.getTopic());
         checkTransactionStateRequestHeader.setCommitLogOffset(msgExt.getCommitLogOffset());
@@ -60,9 +72,13 @@ public abstract class AbstractTransactionalMessageCheckListener {
         msgExt.setTopic(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
         msgExt.setQueueId(Integer.parseInt(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
         msgExt.setStoreSize(0);
+
+        // find channel, channel can send message to client
         String groupId = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
         Channel channel = brokerController.getProducerManager().getAvailableChannel(groupId);
+
         if (channel != null) {
+            // invoke channel
             brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
         } else {
             LOGGER.warn("Check transaction failed, channel is null. groupId={}", groupId);
