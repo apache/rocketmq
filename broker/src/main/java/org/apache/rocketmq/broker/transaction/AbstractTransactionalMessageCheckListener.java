@@ -69,6 +69,17 @@ public abstract class AbstractTransactionalMessageCheckListener {
         }
     }
 
+    /**
+     * Asynchronously contact the producer to check the status of a half
+     * message (commit, rollback, or unknown).
+     *
+     * <p>This is invoked by the transaction check loop when a half message
+     * has aged past its immunity window without an OP record. The actual
+     * network request is dispatched to the dedicated
+     * {@code Transaction-msg-check-thread} pool so the caller is not blocked.
+     * If the pool is full, the {@code CallerRunsPolicy} will execute the task
+     * on the caller thread, applying back-pressure to the check loop.
+     */
     public void resolveHalfMsg(final MessageExt msgExt) {
         if (executorService != null) {
             executorService.execute(new Runnable() {
