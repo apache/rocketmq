@@ -228,7 +228,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             }
             log.debug("Check topic={}, queues={}", topic, msgQueues);
 
-            // loop through each prepare queue
+            // loop through each prepare queue, one queue by default
             for (MessageQueue messageQueue : msgQueues) {
                 // init context: opQueue, offsets, etc
                 long startTime = System.currentTimeMillis();
@@ -242,11 +242,14 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     continue;
                 }
 
-                // opOffset list
+                // opOffset list for which:
+                // - message body is null
+                // - prepare offset < miniOffset
+                // - has been committed/rolled back
                 List<Long> doneOpOffset = new ArrayList<>();
                 // Map<prepareOffset,opOffset>
                 HashMap<Long, Long> removeMap = new HashMap<>();
-                // Map<opOffset, HashSet<opOffsetValue>>
+                // Map<opOffset, HashSet<prepareOffset>>
                 HashMap<Long, HashSet<Long>> opMsgMap = new HashMap<Long, HashSet<Long>>();
 
                 // load op message to removeMap
