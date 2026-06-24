@@ -69,4 +69,38 @@ public class RemotingCodeDistributionHandlerTest {
             return f1 && f2;
         });
     }
+
+    @Test
+    public void testMultipleCodesIndependent() throws Exception {
+        RemotingCodeDistributionHandler handler = new RemotingCodeDistributionHandler();
+        Class<RemotingCodeDistributionHandler> clazz = RemotingCodeDistributionHandler.class;
+        Method methodIn = clazz.getDeclaredMethod("countInbound", int.class);
+        methodIn.setAccessible(true);
+
+        // Count code=10 three times, code=20 twice
+        methodIn.invoke(handler, 10);
+        methodIn.invoke(handler, 10);
+        methodIn.invoke(handler, 10);
+        methodIn.invoke(handler, 20);
+        methodIn.invoke(handler, 20);
+
+        String snapshot = handler.getInBoundSnapshotString();
+        Assert.assertTrue(snapshot.contains("10:3"));
+        Assert.assertTrue(snapshot.contains("20:2"));
+    }
+
+    @Test
+    public void testCacheHitSameCode() throws Exception {
+        RemotingCodeDistributionHandler handler = new RemotingCodeDistributionHandler();
+        Class<RemotingCodeDistributionHandler> clazz = RemotingCodeDistributionHandler.class;
+        Method methodIn = clazz.getDeclaredMethod("countInbound", int.class);
+        methodIn.setAccessible(true);
+
+        // Same code repeatedly should hit the CodeAdderPair cache and still count correctly
+        for (int i = 0; i < 100; i++) {
+            methodIn.invoke(handler, 42);
+        }
+        String snapshot = handler.getInBoundSnapshotString();
+        Assert.assertTrue(snapshot.contains("42:100"));
+    }
 }

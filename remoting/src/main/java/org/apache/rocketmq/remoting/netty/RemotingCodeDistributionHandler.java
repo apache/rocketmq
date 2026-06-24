@@ -33,18 +33,44 @@ public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
     private final ConcurrentMap<Integer, LongAdder> inboundDistribution;
     private final ConcurrentMap<Integer, LongAdder> outboundDistribution;
 
+    // Packed volatile holder for atomic publication of (code, adder) pair.
+    // Avoids the race where another EventLoop sees updated code but stale adder.
+    private static final class CodeAdderPair {
+        final int code;
+        final LongAdder adder;
+        CodeAdderPair(int code, LongAdder adder) {
+            this.code = code;
+            this.adder = adder;
+        }
+    }
+
+    private volatile CodeAdderPair lastIn = new CodeAdderPair(Integer.MIN_VALUE, null);
+    private volatile CodeAdderPair lastOut = new CodeAdderPair(Integer.MIN_VALUE, null);
+
     public RemotingCodeDistributionHandler() {
         inboundDistribution = new ConcurrentHashMap<>();
         outboundDistribution = new ConcurrentHashMap<>();
     }
 
     private void countInbound(int requestCode) {
+        CodeAdderPair pair = lastIn;
+        if (requestCode == pair.code && pair.adder != null) {
+            pair.adder.increment();
+            return;
+        }
         LongAdder item = inboundDistribution.computeIfAbsent(requestCode, k -> new LongAdder());
+        lastIn = new CodeAdderPair(requestCode, item);
         item.increment();
     }
 
     private void countOutbound(int responseCode) {
+        CodeAdderPair pair = lastOut;
+        if (responseCode == pair.code && pair.adder != null) {
+            pair.adder.increment();
+            return;
+        }
         LongAdder item = outboundDistribution.computeIfAbsent(responseCode, k -> new LongAdder());
+        lastOut = new CodeAdderPair(responseCode, item);
         item.increment();
     }
 
