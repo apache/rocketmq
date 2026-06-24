@@ -243,13 +243,17 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 }
 
                 // opOffset list for which:
-                // - message body is null
+                // - message body is null or empty
                 // - prepare offset < miniOffset
-                // - has been committed/rolled back
+                // - all corresponding prepareOffsets have been committed/rolled back
                 List<Long> doneOpOffset = new ArrayList<>();
+                // the relation between:
+                // - prepareOffset : opOffset = N:1
+                // - prepareOffset : prepareMessage = 1:1
                 // Map<prepareOffset,opOffset>
                 HashMap<Long, Long> removeMap = new HashMap<>();
                 // Map<opOffset, HashSet<prepareOffset>>
+                // This match the storage format of the OP topic queue
                 HashMap<Long, HashSet<Long>> opMsgMap = new HashMap<Long, HashSet<Long>>();
 
                 // load op message to removeMap
@@ -476,6 +480,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
      */
     private PullResult fillOpRemoveMap(HashMap<Long, Long> removeMap, MessageQueue opQueue,
                                        long pullOffsetOfOp, long miniOffset, Map<Long, HashSet<Long>> opMsgMap, List<Long> doneOpOffset) {
+        // pull op messages(32 by default)
         PullResult pullResult = pullOpMsg(opQueue, pullOffsetOfOp, OP_MSG_PULL_NUMS);
         if (null == pullResult) {
             return null;
@@ -496,18 +501,23 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             log.warn("The miss op offset={} in queue={} is empty, pullResult={}", pullOffsetOfOp, opQueue, pullResult);
             return pullResult;
         }
+
         for (MessageExt opMessageExt : opMsg) {
+            // add opOffset to doneOpOffset if body is null
             if (opMessageExt.getBody() == null) {
                 log.error("op message body is null. queueId={}, offset={}", opMessageExt.getQueueId(),
                         opMessageExt.getQueueOffset());
                 doneOpOffset.add(opMessageExt.getQueueOffset());
                 continue;
             }
+
             HashSet<Long> set = new HashSet<Long>();
             String queueOffsetBody = new String(opMessageExt.getBody(), TransactionalMessageUtil.CHARSET);
 
             log.debug("Topic: {} tags: {}, OpOffset: {}, HalfOffset: {}", opMessageExt.getTopic(),
                     opMessageExt.getTags(), opMessageExt.getQueueOffset(), queueOffsetBody);
+
+            // valid opMessage has tag: REMOVE_TAG
             if (TransactionalMessageUtil.REMOVE_TAG.equals(opMessageExt.getTags())) {
                 String[] offsetArray = queueOffsetBody.split(TransactionalMessageUtil.OFFSET_SEPARATOR);
                 for (String offset : offsetArray) {
@@ -516,6 +526,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         continue;
                     }
 
+                    // put prepareOffset, opOffset to removeMap
                     removeMap.put(offsetValue, opMessageExt.getQueueOffset());
                     set.add(offsetValue);
                 }
