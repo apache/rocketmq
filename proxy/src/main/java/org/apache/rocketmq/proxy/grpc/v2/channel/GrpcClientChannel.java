@@ -65,7 +65,9 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     private final GrpcChannelManager grpcChannelManager;
     private final GrpcClientSettingsManager grpcClientSettingsManager;
 
-    // gRPC Telemetry bidirectional stream observer for server-to-client push commands
+    // gRPC Telemetry bidirectional stream observer for server-to-client push commands.
+    // Set by setClientObserver() on Telemetry connection establishment, cleared by clearClientObserver()
+    // on write failure. isOpen/isActive/isWritable all delegate to this ref being non-null.
     private final AtomicReference<StreamObserver<TelemetryCommand>> telemetryCommandRef = new AtomicReference<>();
     private final Object telemetryWriteLock = new Object();
     private final String clientId;
