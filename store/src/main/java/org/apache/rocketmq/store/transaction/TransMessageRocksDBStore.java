@@ -132,6 +132,7 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
      * {@code PROPERTY_TRANS_OFFSET}.
      */
     public void buildTransIndex(DispatchRequest dispatchRequest) {
+        // validate request and init context params
         if (null == dispatchRequest || dispatchRequest.getCommitLogOffset() < 0L || dispatchRequest.getMsgSize() <= 0 || state != RUNNING || null == this.originTransMsgQueue) {
             logError.error("TransMessageRocksDBStore buildTransIndex error, dispatchRequest: {}, state: {}, originTransMsgQueue: {}", dispatchRequest, state, originTransMsgQueue);
             return;
@@ -147,6 +148,8 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
         int reqMsgSize = dispatchRequest.getMsgSize();
         try {
             MessageExt msgInner = getMessage(reqOffsetPy, reqMsgSize);
+
+            // parse and validate msgInner
             if (null == msgInner) {
                 logError.error("TransMessageRocksDBStore buildTransIndex error, msgInner is not found, reqOffsetPy: {}, reqMsgSize: {}", reqOffsetPy, reqMsgSize);
                 return;
@@ -159,6 +162,7 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
             }
             TransRocksDBRecord transRocksDBRecord = null;
             String reqTopic = dispatchRequest.getTopic();
+
             if (TopicValidator.RMQ_SYS_ROCKSDB_TRANS_HALF_TOPIC.equals(reqTopic)) {
                 transRocksDBRecord = new TransRocksDBRecord(reqOffsetPy, topic, uniqKey, reqMsgSize, 0);
             } else if (TopicValidator.RMQ_SYS_ROCKSDB_TRANS_OP_HALF_TOPIC.equals(reqTopic)) {
@@ -176,6 +180,7 @@ public class TransMessageRocksDBStore implements CommitLogDispatchStore {
                     logError.error("TransMessageRocksDBStore buildTransIndex error, transOffsetPy: {}, error: {}", transOffsetPy, e.getMessage());
                 }
             }
+
             if (null != transRocksDBRecord) {
                 while (!originTransMsgQueue.offer(transRocksDBRecord, 3, TimeUnit.SECONDS)) {
                     if (System.currentTimeMillis() % 1000 == 0) {

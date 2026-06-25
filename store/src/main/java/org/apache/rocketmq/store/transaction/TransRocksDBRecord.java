@@ -29,6 +29,7 @@ public class TransRocksDBRecord {
     private static final String KEY_SPLIT = "@";
     protected long offsetPy;
     private String topic;
+    // transactionId in messageExt
     private String uniqKey;
     private int checkTimes = 0;
     private int sizePy;
@@ -53,6 +54,12 @@ public class TransRocksDBRecord {
 
     public TransRocksDBRecord() {}
 
+    /**
+     * get rocksDB record key:
+     * offsetPy + KEY_SPLIT + topic + KEY_SPLIT + uniqKey(transactionId)
+     *
+     * @return get key bytes
+     */
     public byte[] getKeyBytes() {
         if (offsetPy < 0L || StringUtils.isEmpty(topic) || StringUtils.isEmpty(uniqKey)) {
             return null;
