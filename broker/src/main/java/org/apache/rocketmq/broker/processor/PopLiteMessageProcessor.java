@@ -97,11 +97,6 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
     }
 
     @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
-    @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
 

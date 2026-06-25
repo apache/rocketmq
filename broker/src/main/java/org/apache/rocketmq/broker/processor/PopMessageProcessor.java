@@ -174,11 +174,6 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             + PopAckConstants.SPLIT + PopAckConstants.CK_TAG;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     public Cache<String, ConcurrentSkipListSet<PopRequest>> getPollingMap() {
         return popLongPollingService.getPollingMap();
     }

@@ -542,11 +542,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     private synchronized RemotingCommand updateAndCreateTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         long startTime = System.currentTimeMillis();

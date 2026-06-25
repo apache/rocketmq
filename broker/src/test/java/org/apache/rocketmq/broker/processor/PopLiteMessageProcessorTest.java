@@ -56,7 +56,6 @@ import java.util.Iterator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -120,11 +119,6 @@ public class PopLiteMessageProcessorTest {
         FieldUtils.writeDeclaredField(testObject, "lockService", lockService, true);
         FieldUtils.writeDeclaredField(testObject, "consumerOrderInfoManager", consumerOrderInfoManager, true);
         popLiteMessageProcessor = Mockito.spy(testObject);
-    }
-
-    @Test
-    public void testRejectRequest() {
-        assertFalse(popLiteMessageProcessor.rejectRequest());
     }
 
     @Test

@@ -326,10 +326,6 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
     private boolean validateBlackListConfigExist(Properties properties) {
         for (String blackConfig : configBlackList) {
             if (properties.containsKey(blackConfig)) {
