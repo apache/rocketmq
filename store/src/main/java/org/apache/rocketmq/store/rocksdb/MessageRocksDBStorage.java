@@ -57,19 +57,37 @@ import static org.apache.rocketmq.store.timer.rocksdb.TimerRocksDBRecord.TIMER_R
 import static org.apache.rocketmq.store.timer.rocksdb.TimerRocksDBRecord.TIMER_ROCKSDB_PUT;
 import static org.apache.rocketmq.store.timer.rocksdb.TimerRocksDBRecord.TIMER_ROCKSDB_UPDATE;
 
+/**
+ * RocksDB-based storage engine for index, timer, and transaction data.
+ *
+ * <p>Manages three column families:
+ * <ul>
+ *   <li>{@code default} — message index for topic-key-time queries</li>
+ *   <li>{@code timer} — delayed/timer messages</li>
+ *   <li>{@code trans} — transactional half-message index</li>
+ * </ul>
+ * The database directory is {@code ${storePathRootDir}/rocksdbstore}.
+ */
 public class MessageRocksDBStorage extends AbstractRocksDBStorage {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger logError = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final String ROCKSDB_MESSAGE_DIRECTORY = "rocksdbstore";
 
+    // Column family identifiers
     public static final byte[] TIMER_COLUMN_FAMILY = "timer".getBytes(StandardCharsets.UTF_8);
     public static final byte[] TRANS_COLUMN_FAMILY = "trans".getBytes(StandardCharsets.UTF_8);
+
+    // Metadata keys stored inside each column family
     private static final byte[] LAST_OFFSET_PY = "lastOffsetPy".getBytes(StandardCharsets.UTF_8);
     private static final byte[] LAST_STORE_TIMESTAMP = "lastStoreTimeStamp".getBytes(StandardCharsets.UTF_8);
+
+    // Suffix filled with 0xFF for range-delete upper bound
     private static final byte[] END_SUFFIX_BYTES = new byte[512];
     static {
         Arrays.fill(END_SUFFIX_BYTES, (byte) 0xFF);
     }
+
+    // Allowed checkpoint keys for the timer column family
     private static final Set<byte[]> COMMON_CHECK_POINT_KEY_SET_FOR_TIMER = new HashSet<>();
     public static final byte[] SYS_TOPIC_SCAN_OFFSET_CHECK_POINT = "sys_topic_scan_offset_checkpoint".getBytes(StandardCharsets.UTF_8);
     public static final byte[] TIMELINE_CHECK_POINT = "timeline_checkpoint".getBytes(StandardCharsets.UTF_8);
@@ -77,13 +95,18 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         COMMON_CHECK_POINT_KEY_SET_FOR_TIMER.add(SYS_TOPIC_SCAN_OFFSET_CHECK_POINT);
         COMMON_CHECK_POINT_KEY_SET_FOR_TIMER.add(TIMELINE_CHECK_POINT);
     }
+
     private static final byte[] DELETE_VAL_FLAG = new byte[] {(byte)0xFF};
     private static final int LAST_OFFSET_PY_LENGTH = LAST_OFFSET_PY.length;
 
     private volatile ColumnFamilyHandle timerCFHandle;
     private volatile ColumnFamilyHandle transCFHandle;
 
+    // Periodically flush the timer WAL to keep recovery time bounded
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+    // Cache of recently deleted timer keys to prevent stale writes on update
+    // after a delete has been issued but not yet flushed
     private static final Cache<String, byte[]> DELETE_KEY_CACHE_FOR_TIMER = CacheBuilder.newBuilder()
         .maximumSize(10000)
         .expireAfterWrite(60, TimeUnit.MINUTES)
@@ -99,6 +122,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         try {
             UtilAll.ensureDirOK(this.dbPath);
             initOptions();
+            // Per-column-family options for different access patterns
             ColumnFamilyOptions indexCFOptions = RocksDBOptionsFactory.createIndexCFOptions();
             ColumnFamilyOptions timerCFOptions = RocksDBOptionsFactory.createTimerCFOptions();
             ColumnFamilyOptions transCFOptions = RocksDBOptionsFactory.createTransCFOptions();
@@ -114,6 +138,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
             this.defaultCFHandle = cfHandles.get(0);
             this.timerCFHandle = cfHandles.get(1);
             this.transCFHandle = cfHandles.get(2);
+            // Periodically flush the timer WAL to cap recovery time
             scheduler.scheduleAtFixedRate(() -> {
                 try {
                     db.flush(flushOptions, timerCFHandle);
@@ -145,6 +170,16 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         log.info("MessageRocksDBStorage pre shutdown success, dbPath: {}", this.dbPath);
     }
 
+    /**
+     * Query physical offsets by topic, index type, key, and time range.
+     *
+     * <p>The index key is structured as {@code hour | KEY_SPLIT | topic | KEY_SPLIT |
+     * indexType | KEY_SPLIT | key | KEY_SPLIT | offsetPy}.
+     * Iterates hour-by-hour within {@code [beginTime, endTime]}, extracting
+     * the trailing offset bytes from each matching key.
+     *
+     * @param lastKey cursor for pagination, format "hour|topic|indexType|key|offsetPy"
+     */
     public List<Long> queryOffsetForIndex(byte[] columnFamily, String topic, String indexType, String key, long beginTime, long endTime, int maxNum, String lastKey) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
         if (null == cfHandle || StringUtils.isEmpty(topic) || StringUtils.isEmpty(indexType) || StringUtils.isEmpty(key) || beginTime < 0L || endTime <= 0L || beginTime > endTime || maxNum <= 0) {
@@ -261,6 +296,10 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         }
     }
 
+    /**
+     * Batch-write index records and update the lastOffsetPy / lastStoreTimestamp
+     * metadata if the last record in the batch advances them.
+     */
     public void writeRecordsForIndex(byte[] columnFamily, List<IndexRocksDBRecord> recordList) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
         if (null == cfHandle || CollectionUtils.isEmpty(recordList)) {
@@ -332,6 +371,13 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         return null;
     }
 
+    /**
+     * Batch-write timer records supporting put, delete, and conditional update.
+     *
+     * <p>For {@code TIMER_ROCKSDB_UPDATE}, the write is skipped if the key was
+     * recently deleted (tracked in {@link #DELETE_KEY_CACHE_FOR_TIMER}) to
+     * avoid resurrecting a stale timer entry.
+     */
     public void writeRecordsForTimer(byte[] columnFamily, List<TimerRocksDBRecord> recordList) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
         if (null == cfHandle || CollectionUtils.isEmpty(recordList)) {
@@ -377,6 +423,12 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         return delayTime + ":" + uniqKey;
     }
 
+    /**
+     * Scan timer records in a time range {@code [lowerTime, upperTime)} using
+     * RocksDB iterate lower/upper bound for efficient range scan.
+     *
+     * @param startKey resume cursor from a previous scan; if null, scan from lowerTime
+     */
     public List<TimerRocksDBRecord> scanRecordsForTimer(byte[] columnFamily, long lowerTime, long upperTime, int size, byte[] startKey) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
         if (null == cfHandle || lowerTime <= 0L || upperTime <= 0L || lowerTime > upperTime || size <= 0) {
@@ -482,6 +534,14 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         }
     }
 
+    /**
+     * Batch-write or delete transaction records.
+     *
+     * <p>Half-message records are put and track the maximum offsetPy for
+     * {@code LAST_OFFSET_PY}. OP (commit/rollback) records are deleted from
+     * the column family. The metadata key {@code LAST_OFFSET_PY} is updated
+     * atomically in the same write batch.
+     */
     public void writeRecordsForTrans(byte[] columnFamily, List<TransRocksDBRecord> recordList) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
         if (null == cfHandle || CollectionUtils.isEmpty(recordList)) {
@@ -523,6 +583,10 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         }
     }
 
+    /**
+     * Update existing transaction records (e.g. increment check count).
+     * Entry deletion is also supported via {@link TransRocksDBRecord#isDelete()}.
+     */
     public void updateRecordsForTrans(byte[] columnFamily, List<TransRocksDBRecord> recordList) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
         if (null == cfHandle || CollectionUtils.isEmpty(recordList)) {
@@ -552,6 +616,12 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         }
     }
 
+    /**
+     * Scan transaction records from the column family. Skips the
+     * {@code LAST_OFFSET_PY} metadata key.
+     *
+     * @param startKey resume cursor; if null, scan from the first entry
+     */
     public List<TransRocksDBRecord> scanRecordsForTrans(byte[] columnFamily, int size, byte[] startKey) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
         if (null == cfHandle || size <= 0) {
@@ -596,6 +666,10 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         return null;
     }
 
+    /**
+     * Look up a single transaction record by key. Returns null if not found
+     * or if the value length does not match {@link TransRocksDBRecord#VALUE_LENGTH}.
+     */
     public TransRocksDBRecord getRecordForTrans(byte[] columnFamily, TransRocksDBRecord transRocksDBRecord) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
         if (null == cfHandle || null == transRocksDBRecord) {
