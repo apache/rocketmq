@@ -27,6 +27,7 @@ import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.pop.PopConsumerLockService;
 import org.apache.rocketmq.broker.pop.PopConsumerService;
+import org.apache.rocketmq.broker.pop.PopConsumerService;
 import org.apache.rocketmq.broker.pop.orderly.ConsumerOrderInfoManager;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
@@ -136,11 +137,6 @@ public class AckMessageProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         return this.processRequest(ctx.channel(), request, true);
-    }
-
-    @Override
-    public boolean rejectRequest() {
-        return false;
     }
 
     /**

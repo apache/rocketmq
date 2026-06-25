@@ -128,9 +128,4 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
             .collect(Collectors.toSet());
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
 }

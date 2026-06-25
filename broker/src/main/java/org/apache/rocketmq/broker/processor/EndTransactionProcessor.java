@@ -285,11 +285,6 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     private RemotingCommand checkPrepareMessage(MessageExt msgExt, EndTransactionRequestHeader requestHeader) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         if (msgExt != null) {

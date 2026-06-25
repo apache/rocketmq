@@ -82,11 +82,6 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     protected synchronized RemotingCommand addBroker(ChannelHandlerContext ctx,
         RemotingCommand request) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);

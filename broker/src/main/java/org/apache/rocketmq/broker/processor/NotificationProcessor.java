@@ -70,11 +70,6 @@ public class NotificationProcessor implements NettyRequestProcessor {
         this.popLongPollingService.shutdown();
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     // When a new message is written to CommitLog, this method would be called.
     // Suspended long polling will receive notification and be wakeup.
     public void notifyMessageArriving(final String topic, final int queueId, long offset,

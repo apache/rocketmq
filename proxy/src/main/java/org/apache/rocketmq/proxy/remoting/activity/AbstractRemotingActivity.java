@@ -106,11 +106,6 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
         }
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
-    }
-
     protected abstract RemotingCommand processRequest0(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception;
 
