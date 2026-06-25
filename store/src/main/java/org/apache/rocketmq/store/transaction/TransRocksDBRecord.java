@@ -69,6 +69,12 @@ public class TransRocksDBRecord {
         return ByteBuffer.allocate(keyLength).putLong(offsetPy).put(keySuffixBytes).array();
     }
 
+    /**
+     * Serialize value as {@code [checkTimes (4 bytes) | sizePy (4 bytes)]}.
+     * Total encoded length is {@link #VALUE_LENGTH} (8 bytes).
+     *
+     * @return encoded value bytes, or null if checkTimes or sizePy is invalid
+     */
     public byte[] getValueBytes() {
         if (checkTimes < 0 || sizePy <= 0) {
             logError.error("TransRocksDBRecord getValueBytes error, checkTimes: {}, sizePy: {}", checkTimes, sizePy);
