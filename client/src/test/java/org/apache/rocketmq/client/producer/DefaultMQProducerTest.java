@@ -32,11 +32,13 @@ import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.compression.CompressionType;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
+import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
@@ -50,6 +52,7 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -63,6 +66,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
@@ -77,6 +81,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -775,6 +780,148 @@ public class DefaultMQProducerTest {
     public void assertSendMessageInTransaction() throws MQClientException {
         TransactionSendResult result = producer.sendMessageInTransaction(message, 1);
         assertNull(result);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void assertSendMessageInTransactionByQueueSelector() throws MQClientException {
+        MessageQueueSelector selector = mock(MessageQueueSelector.class);
+        TransactionSendResult result = producer.sendMessageInTransaction(message, selector, 1, 2);
+        assertNull(result);
+    }
+
+    @Test
+    public void testSendMessageInTransactionByQueueSelector() throws Exception {
+        final String transactionGroup = producerGroupPrefix + "_transaction_" + System.nanoTime();
+        TransactionMQProducer transactionProducer = new TransactionMQProducer(transactionGroup);
+        final AtomicReference<Object> actualTransactionArg = new AtomicReference<>();
+        transactionProducer.setTransactionListener(new TransactionListener() {
+            @Override
+            public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
+                actualTransactionArg.set(arg);
+                return LocalTransactionState.COMMIT_MESSAGE;
+            }
+
+            @Override
+            public LocalTransactionState checkLocalTransaction(MessageExt msg) {
+                return LocalTransactionState.COMMIT_MESSAGE;
+            }
+        });
+        transactionProducer.setNamesrvAddr("127.0.0.1:9876");
+        transactionProducer.start();
+
+        try {
+            Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
+            field.setAccessible(true);
+            field.set(transactionProducer.getDefaultMQProducerImpl(), mQClientFactory);
+            transactionProducer.getDefaultMQProducerImpl().getMqClientFactory()
+                .registerProducer(transactionGroup, transactionProducer.getDefaultMQProducerImpl());
+
+            when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+
+            final AtomicReference<SendMessageRequestHeader> requestHeaderRef = new AtomicReference<>();
+            doAnswer(invocation -> {
+                SendMessageRequestHeader requestHeader = invocation.getArgument(3);
+                requestHeaderRef.set(requestHeader);
+                SendResult sendResult = createSendResult(SendStatus.SEND_OK);
+                sendResult.setOffsetMsgId(MessageDecoder.createMessageId(new InetSocketAddress("127.0.0.1", 12), 1));
+                sendResult.setMessageQueue(new MessageQueue(topic, "BrokerA", requestHeader.getQueueId()));
+                return sendResult;
+            }).when(mQClientAPIImpl).sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class),
+                anyLong(), any(CommunicationMode.class), nullable(SendCallback.class), nullable(TopicPublishInfo.class),
+                nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class));
+
+            final AtomicReference<String> endTransactionBrokerAddr = new AtomicReference<>();
+            final AtomicReference<EndTransactionRequestHeader> endTransactionRequestHeader = new AtomicReference<>();
+            doAnswer(invocation -> {
+                endTransactionBrokerAddr.set(invocation.getArgument(0));
+                endTransactionRequestHeader.set(invocation.getArgument(1));
+                return null;
+            }).when(mQClientAPIImpl).endTransactionOneway(anyString(), any(EndTransactionRequestHeader.class),
+                nullable(String.class), anyLong());
+
+            final AtomicReference<Object> actualSelectorArg = new AtomicReference<>();
+            TransactionSendResult result = transactionProducer.sendMessageInTransaction(message, new MessageQueueSelector() {
+                @Override
+                public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+                    actualSelectorArg.set(arg);
+                    return mqs.get(2);
+                }
+            }, "selectorArg", "transactionArg");
+
+            assertThat(actualSelectorArg.get()).isEqualTo("selectorArg");
+            assertThat(actualTransactionArg.get()).isEqualTo("transactionArg");
+            assertThat(requestHeaderRef.get().getQueueId()).isEqualTo(2);
+            assertThat(result.getMessageQueue()).isEqualTo(new MessageQueue(topic, "BrokerA", 2));
+            assertThat(endTransactionBrokerAddr.get()).isEqualTo("127.0.0.1:10911");
+            assertThat(endTransactionRequestHeader.get().getBrokerName()).isEqualTo("BrokerA");
+        } finally {
+            transactionProducer.shutdown();
+        }
+    }
+
+    @Test
+    public void testSendMessageInTransactionByNullQueueSelector() {
+        TransactionMQProducer transactionProducer = new TransactionMQProducer(producerGroupPrefix + "_transaction_" + System.nanoTime());
+        transactionProducer.setTransactionListener(new TransactionListener() {
+            @Override
+            public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
+                return LocalTransactionState.COMMIT_MESSAGE;
+            }
+
+            @Override
+            public LocalTransactionState checkLocalTransaction(MessageExt msg) {
+                return LocalTransactionState.COMMIT_MESSAGE;
+            }
+        });
+
+        try {
+            transactionProducer.sendMessageInTransaction(message, null, "selectorArg", "transactionArg");
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("MessageQueueSelector is null");
+        }
+    }
+
+    @Test
+    public void testSendMessageInTransactionBySelectorWithDifferentTopicQueue() throws Exception {
+        final String transactionGroup = producerGroupPrefix + "_transaction_" + System.nanoTime();
+        TransactionMQProducer transactionProducer = new TransactionMQProducer(transactionGroup);
+        transactionProducer.setTransactionListener(new TransactionListener() {
+            @Override
+            public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
+                return LocalTransactionState.COMMIT_MESSAGE;
+            }
+
+            @Override
+            public LocalTransactionState checkLocalTransaction(MessageExt msg) {
+                return LocalTransactionState.COMMIT_MESSAGE;
+            }
+        });
+        transactionProducer.setNamesrvAddr("127.0.0.1:9876");
+        transactionProducer.start();
+
+        try {
+            Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
+            field.setAccessible(true);
+            field.set(transactionProducer.getDefaultMQProducerImpl(), mQClientFactory);
+            transactionProducer.getDefaultMQProducerImpl().getMqClientFactory()
+                .registerProducer(transactionGroup, transactionProducer.getDefaultMQProducerImpl());
+
+            when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+
+            transactionProducer.sendMessageInTransaction(message, new MessageQueueSelector() {
+                @Override
+                public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+                    return new MessageQueue("OtherTopic", mqs.get(0).getBrokerName(), mqs.get(0).getQueueId());
+                }
+            }, "selectorArg", "transactionArg");
+            failBecauseExceptionWasNotThrown(MQClientException.class);
+        } catch (MQClientException e) {
+            assertThat(e).hasMessageContaining("send message Exception");
+            assertThat(e.getCause()).hasMessageContaining("message's topic not equal mq's topic");
+        } finally {
+            transactionProducer.shutdown();
+        }
     }
 
     @Test
