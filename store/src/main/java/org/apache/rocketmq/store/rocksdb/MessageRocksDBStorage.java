@@ -550,6 +550,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         long lastOffsetPy = 0L;
         try (WriteBatch writeBatch = new WriteBatch()) {
             for (TransRocksDBRecord record : recordList) {
+                // validate record
                 if (null == record) {
                     logError.error("MessageRocksDBStorage writeRecordsForTrans error, record is null");
                     continue;
@@ -559,9 +560,10 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
                     logError.error("MessageRocksDBStorage writeRecordsForTrans param error, keyBytes: {}", keyBytes);
                     continue;
                 }
-                if (record.isOp()) {
+
+                if (record.isOp()) { // delete if commit/rollback message
                     writeBatch.delete(cfHandle, record.getKeyBytes());
-                } else {
+                } else { // put if prepare message
                     byte[] valueBytes = record.getValueBytes();
                     if (null == valueBytes || valueBytes.length == 0) {
                         logError.error("MessageRocksDBStorage writeRecordsForTrans param error, valueBytes: {}", valueBytes);
@@ -571,12 +573,15 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
                     lastOffsetPy = Math.max(lastOffsetPy, record.getOffsetPy());
                 }
             }
+
+            // update last offsetPy
             if (lastOffsetPy > 0L) {
                 Long lastOffsetPyStore = getLastOffsetPy(columnFamily);
                 if (null == lastOffsetPyStore || lastOffsetPy > lastOffsetPyStore) {
                     writeBatch.put(cfHandle, LAST_OFFSET_PY, ByteBuffer.allocate(Long.BYTES).putLong(lastOffsetPy).array());
                 }
             }
+
             batchPut(ableWalWriteOptions, writeBatch);
         } catch (Exception e) {
             logError.error("MessageRocksDBStorage writeRecordsForTrans error: {}", e.getMessage());
@@ -629,6 +634,7 @@ public class MessageRocksDBStorage extends AbstractRocksDBStorage {
         }
         RocksIterator iterator = null;
         try {
+            // init iterator
             iterator = db.newIterator(cfHandle);
             if (null == startKey || startKey.length == 0) {
                 iterator.seekToFirst();
