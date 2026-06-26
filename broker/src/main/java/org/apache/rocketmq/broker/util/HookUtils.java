@@ -153,6 +153,22 @@ public class HookUtils {
         return null;
     }
 
+    /**
+     * Route timer or delay-level messages to the appropriate system topic.
+     *
+     * <p>For non-transaction or committed messages, two checks run in order:
+     * <ol>
+     *   <li><b>Timer wheel</b> — if the message carries timer properties
+     *   ({@code PROPERTY_TIMER_DELIVER_MS}, etc.), it is transformed and
+     *   redirected to {@code TIMER_TOPIC}. The TimerWheel must be enabled,
+     *   otherwise the message is rejected.</li>
+     *   <li><b>Delay level</b> — if {@code delayTimeLevel > 0}, the message
+     *   is redirected to {@code SCHEDULE_TOPIC_XXXX}. Both checks can apply
+     *   to the same message (legacy bridge).</li>
+     * </ol>
+     *
+     * @return non-null {@link PutMessageResult} if the message was rejected
+     */
     public static PutMessageResult handleScheduleMessage(BrokerController brokerController,
         final MessageExtBrokerInner msg) {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
