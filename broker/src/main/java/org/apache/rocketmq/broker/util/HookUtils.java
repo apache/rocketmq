@@ -318,6 +318,14 @@ public class HookUtils {
         msg.setQueueId(ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel()));
     }
 
+    /**
+     * Forward messages to another broker (typically the retry / dead-letter
+     * queue destination). Used as the {@link SendMessageBackHook} implementation.
+     *
+     * <p>Each message is sent with {@code waitStoreMsgOK=false} and a 3s timeout.
+     * Messages are removed from the list on success; on any failure the entire
+     * batch is aborted and {@code false} is returned.
+     */
     public static boolean sendMessageBack(BrokerController brokerController, List<MessageExt> msgList,
         String brokerName, String brokerAddr) {
         try {
