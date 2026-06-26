@@ -55,22 +55,16 @@ public interface ConsumerOrderInfoManager {
         StringBuilder orderInfoBuilder, GetMessageResult getMessageResult);
 
     /**
-     * Check whether the current POP request must be blocked due to an
-     * in-flight ordered consumption on the same queue.
+     * Check whether the current POP request needs to be blocked
+     * Used to ensure ordered consumption of ordered messages
+     * Called when consumer POPs messages
      *
-     * <p>For queue-level ordering, only one consumer at a time may hold
-     * messages from a given queue. If a prior Pop request has not yet been
-     * ACKed and its invisible time has not expired, the new request must
-     * wait. The check is performed via
-     * {@link QueueLevelConsumerManager.OrderInfo#needBlock}, which
-     * determines whether the existing lock is still valid.
-     *
-     * @param attemptId     identifies this Pop request
-     * @param topic         topic name
-     * @param group         consumer group name
-     * @param queueId       queue ID
-     * @param invisibleTime lock hold duration from the current request
-     * @return {@code true} if the request must wait, {@code false} to proceed
+     * @param attemptId     Attempt ID
+     * @param topic         Topic name
+     * @param group         Consumer group name
+     * @param queueId       Queue ID
+     * @param invisibleTime Invisible time
+     * @return true indicates blocking is needed, false indicates can proceed
      */
     boolean checkBlock(String attemptId, String topic, String group, int queueId, long invisibleTime);
 
