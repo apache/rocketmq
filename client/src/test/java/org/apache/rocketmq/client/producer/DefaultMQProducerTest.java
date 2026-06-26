@@ -29,6 +29,7 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.latency.MQFaultStrategy;
+import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.compression.CompressionType;
 import org.apache.rocketmq.common.message.Message;
@@ -82,6 +83,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -807,17 +809,9 @@ public class DefaultMQProducerTest {
             }
         });
         transactionProducer.setNamesrvAddr("127.0.0.1:9876");
-        transactionProducer.start();
+        prepareTransactionProducer(transactionProducer);
 
         try {
-            Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
-            field.setAccessible(true);
-            field.set(transactionProducer.getDefaultMQProducerImpl(), mQClientFactory);
-            transactionProducer.getDefaultMQProducerImpl().getMqClientFactory()
-                .registerProducer(transactionGroup, transactionProducer.getDefaultMQProducerImpl());
-
-            when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-
             final AtomicReference<SendMessageRequestHeader> requestHeaderRef = new AtomicReference<>();
             doAnswer(invocation -> {
                 SendMessageRequestHeader requestHeader = invocation.getArgument(3);
@@ -855,7 +849,7 @@ public class DefaultMQProducerTest {
             assertThat(endTransactionBrokerAddr.get()).isEqualTo("127.0.0.1:10911");
             assertThat(endTransactionRequestHeader.get().getBrokerName()).isEqualTo("BrokerA");
         } finally {
-            transactionProducer.shutdown();
+            transactionProducer.getDefaultMQProducerImpl().destroyTransactionEnv();
         }
     }
 
@@ -898,17 +892,9 @@ public class DefaultMQProducerTest {
             }
         });
         transactionProducer.setNamesrvAddr("127.0.0.1:9876");
-        transactionProducer.start();
+        prepareTransactionProducer(transactionProducer);
 
         try {
-            Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
-            field.setAccessible(true);
-            field.set(transactionProducer.getDefaultMQProducerImpl(), mQClientFactory);
-            transactionProducer.getDefaultMQProducerImpl().getMqClientFactory()
-                .registerProducer(transactionGroup, transactionProducer.getDefaultMQProducerImpl());
-
-            when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-
             transactionProducer.sendMessageInTransaction(message, new MessageQueueSelector() {
                 @Override
                 public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
@@ -920,8 +906,21 @@ public class DefaultMQProducerTest {
             assertThat(e).hasMessageContaining("send message Exception");
             assertThat(e.getCause()).hasMessageContaining("message's topic not equal mq's topic");
         } finally {
-            transactionProducer.shutdown();
+            transactionProducer.getDefaultMQProducerImpl().destroyTransactionEnv();
         }
+    }
+
+    private void prepareTransactionProducer(TransactionMQProducer transactionProducer) throws Exception {
+        transactionProducer.getDefaultMQProducerImpl().initTransactionEnv();
+        mQClientFactory.getClientConfig().setNamesrvAddr(transactionProducer.getNamesrvAddr());
+        TopicPublishInfo topicPublishInfo = MQClientInstance.topicRouteData2TopicPublishInfo(topic, createTopicRoute());
+        topicPublishInfo.setHaveTopicRouterInfo(true);
+        transactionProducer.getDefaultMQProducerImpl().updateTopicPublishInfo(topic, topicPublishInfo);
+        doReturn("127.0.0.1:10911").when(mQClientFactory).findBrokerAddressInPublish(anyString());
+        Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
+        field.setAccessible(true);
+        field.set(transactionProducer.getDefaultMQProducerImpl(), mQClientFactory);
+        transactionProducer.getDefaultMQProducerImpl().setServiceState(ServiceState.RUNNING);
     }
 
     @Test
