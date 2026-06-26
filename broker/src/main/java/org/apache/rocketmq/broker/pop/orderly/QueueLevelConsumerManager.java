@@ -151,6 +151,16 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         update(attemptId, isRetry, topic, group, queueId, popTime, invisibleTime, msgQueueOffsetList, orderInfoBuilder);
     }
 
+    /**
+     * Check whether a new Pop request on this queue must be blocked due to an
+     * in-flight ordered-consumption lock.
+     *
+     * <p>Looks up the {@link OrderInfo} for the given topic-group-queue triple.
+     * Delegates to {@link OrderInfo#needBlock} which returns {@code true} if
+     * any message in the current batch is still within its invisible window
+     * and has not yet been ACKed — meaning another consumer is already
+     * working on this queue's ordered batch.
+     */
     @Override
     public boolean checkBlock(String attemptId, String topic, String group, int queueId, long invisibleTime) {
         String key = buildKey(topic, group);
