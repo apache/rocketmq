@@ -76,6 +76,13 @@ public class HookUtils {
      */
     private static final Integer MAX_TOPIC_LENGTH = 255;
 
+    /**
+     * Pre-put message validation: guards against writes when the store is
+     * shut down, in slave mode (non-duplication), not writable, topic too long,
+     * body null, or OS page cache busy.
+     *
+     * @return null if the check passes, or a rejection {@link PutMessageResult}
+     */
     public static PutMessageResult checkBeforePutMessage(BrokerController brokerController, final MessageExt msg) {
         if (brokerController.getMessageStore().isShutdown()) {
             LOG.warn("message store has shutdown, so putMessage is forbidden");
