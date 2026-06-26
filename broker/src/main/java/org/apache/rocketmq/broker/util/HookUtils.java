@@ -126,6 +126,14 @@ public class HookUtils {
         return null;
     }
 
+    /**
+     * Check inner-batch sysFlag consistency
+     * There is no inner-batch after v5.0.0
+     *
+     * @param brokerController brokerController(object container)
+     * @param msg msg
+     * @return putMessageResult
+     */
     public static PutMessageResult checkInnerBatch(BrokerController brokerController, final MessageExt msg) {
         if (msg.getProperties().containsKey(MessageConst.PROPERTY_INNER_NUM)
             && !MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {

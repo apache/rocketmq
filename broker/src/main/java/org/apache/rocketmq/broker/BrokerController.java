@@ -1027,6 +1027,17 @@ public class BrokerController {
         return result;
     }
 
+    /**
+     * Register pre-put hooks and the send-message-back hook into the message
+     * store. The hooks are executed in order before every {@code putMessage}:
+     * <ol>
+     *   <li>{@code checkBeforePutMessage} — validate topic, body, and queue</li>
+     *   <li>{@code innerBatchChecker} — process inner-batch envelope messages</li>
+     *   <li>{@code handleScheduleMessage} — convert delayed messages into
+     *   timer-queue entries</li>
+     *   <li>{@code handleLmqQuota} — enforce light message queue quota</li>
+     * </ol>
+     */
     public void registerMessageStoreHook() {
         List<PutMessageHook> putMessageHookList = messageStore.getPutMessageHookList();
 
