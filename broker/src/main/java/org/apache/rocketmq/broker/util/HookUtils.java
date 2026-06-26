@@ -204,6 +204,13 @@ public class HookUtils {
         return null;
     }
 
+    /**
+     * Enforce Light Message Queue (LMQ) quota: reject the message if the
+     * number of LMQ consume queues would exceed the configured maximum and
+     * the target queue does not already exist.
+     *
+     * @return null if the check passes, or a rejection {@link PutMessageResult}
+     */
     public static PutMessageResult handleLmqQuota(BrokerController brokerController, final MessageExtBrokerInner msg) {
         if (!brokerController.getMessageStoreConfig().isEnableLmqQuota()
             || !brokerController.getMessageStoreConfig().isEnableLmq()
