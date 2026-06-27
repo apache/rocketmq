@@ -85,6 +85,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     /**
      * update the message list received
      *
+     * @param attemptId attemptId
      * @param isRetry is retry topic or not
      * @param topic topic
      * @param group group
@@ -97,6 +98,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     public void update(String attemptId, boolean isRetry, String topic, String group, int queueId, long popTime,
         long invisibleTime,
         List<Long> msgQueueOffsetList, StringBuilder orderInfoBuilder) {
+        // init orderInfo map
         String key = buildKey(topic, group);
         ConcurrentHashMap<Integer/*queueId*/, OrderInfo> qs = table.get(key);
         if (qs == null) {
@@ -107,18 +109,20 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
             }
         }
 
+        // create or merge orderInfo
         OrderInfo orderInfo = qs.get(queueId);
 
-        if (orderInfo != null) {
+        if (orderInfo != null) { // merge order info
             OrderInfo newOrderInfo = new OrderInfo(attemptId, popTime, invisibleTime, msgQueueOffsetList, System.currentTimeMillis(), 0);
             newOrderInfo.mergeOffsetConsumedCount(orderInfo.attemptId, orderInfo.offsetList, orderInfo.offsetConsumedCount);
 
             orderInfo = newOrderInfo;
-        } else {
+        } else { // create order info
             orderInfo = new OrderInfo(attemptId, popTime, invisibleTime, msgQueueOffsetList, System.currentTimeMillis(), 0);
         }
         qs.put(queueId, orderInfo);
 
+        // calculate minConsumedTimes and build orderCountInfo
         Map<Long, Integer> offsetConsumedCount = orderInfo.offsetConsumedCount;
         int minConsumedTimes = Integer.MAX_VALUE;
         if (offsetConsumedCount != null) {
