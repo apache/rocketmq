@@ -494,6 +494,27 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(topic, consumeGroup, popTime, qId, ackCount);
     }
 
+    /**
+     * Handle an ack for an ordered Pop message in the file-based path.
+     *
+     * <p>The flow is:
+     * <ol>
+     *   <li>Fast-reject if the ack offset is older than the committed
+     *   consumer offset.</li>
+     *   <li>Spin-lock on the per-queue key to serialize concurrent ACKs.</li>
+     *   <li>Double-check the offset after acquiring the lock.</li>
+     *   <li>Call {@code commitAndNext} to advance the {@link OrderInfo}'s
+     *   commit bit and compute the next offset.</li>
+     *   <li>If the next offset is valid and the queue is no longer blocked,
+     *   persist the new consumer offset and notify the long-polling requester
+     *   that a new message is available.</li>
+     * </ol>
+     *
+     * <p>If {@code commitAndNext} returns {@code -1}, the response is set to
+     * {@code MESSAGE_ILLEGAL} since the offset was not found in the in-flight
+     * order batch. A return value of {@code -2} (popTime mismatch) is
+     * silently ignored — the batch has already been superseded.
+     */
     protected void ackOrderly(String topic, String consumeGroup, int qId, long ackOffset, long popTime,
         long invisibleTime, Channel channel, RemotingCommand response) {
         String lockKey = topic + PopAckConstants.SPLIT + consumeGroup + PopAckConstants.SPLIT + qId;
