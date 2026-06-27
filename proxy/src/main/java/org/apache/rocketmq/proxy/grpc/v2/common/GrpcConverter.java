@@ -102,8 +102,10 @@ public class GrpcConverter {
                 .setTopic(topic)
                 .putAllUserProperties(userProperties)
                 .setSystemProperties(systemProperties)
-                // Safe: body is a dedicated byte[] allocated during deserialization
-                // and is not mutated after this point.
+                // Safety: unsafeWrap() aliases the decoded body byte[].
+                // The decoded body array must not be mutated or reused while the
+                // returned protobuf Message (or any serialized form of it) may still
+                // be referenced.
                 .setBody(UnsafeByteOperations.unsafeWrap(messageExt.getBody()))
                 .build();
     }
