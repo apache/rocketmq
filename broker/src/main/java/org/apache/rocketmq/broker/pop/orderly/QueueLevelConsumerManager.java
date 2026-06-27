@@ -425,8 +425,12 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         @JSONField(name = "o")
         private List<Long> offsetList;
         /**
-         * next visible timestamp for message
-         * key: message queue offset
+         * Per-message override of the next visible timestamp (epoch millis).
+         * Key: message queue offset. Value: timestamp when the message becomes
+         * visible again, set by {@code ChangeInvisibleTimeProcessor} to delay
+         * a specific message beyond the batch default {@link #invisibleTime}.
+         * Used by {@link #needBlock}, {@link #getLockFreeTimestamp}, and
+         * {@link #getMaxLockFreeTimestamp} when present.
          */
         @JSONField(name = "ot")
         private Map<Long, Long> offsetNextVisibleTime;
