@@ -558,20 +558,26 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
      */
     @JSONField(serialize = false, deserialize = false)
     public boolean needBlock(String attemptId, long currentInvisibleTime) {
+            // all offsets are not consumed, do not block
             if (offsetList == null || offsetList.isEmpty()) {
                 return false;
             }
+
+            // same request, do not block
             if (this.attemptId != null && this.attemptId.equals(attemptId)) {
                 return false;
             }
+
             int num = offsetList.size();
             int i = 0;
             if (this.invisibleTime == null || this.invisibleTime <= 0) {
                 this.invisibleTime = currentInvisibleTime;
             }
             long currentTime = System.currentTimeMillis();
+
             for (; i < num; i++) {
                 if (isNotAck(i)) {
+                    // calculate nextVisibleTime
                     long nextVisibleTime = popTime + invisibleTime;
                     if (offsetNextVisibleTime != null) {
                         Long time = offsetNextVisibleTime.get(this.getQueueOffset(i));
@@ -579,10 +585,14 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
                             nextVisibleTime = time;
                         }
                     }
+
+                    // if offset is not expired, block
                     if (currentTime < nextVisibleTime) {
                         return true;
                     }
                 }
+
+                // if acked, do nothing
             }
             return false;
         }
