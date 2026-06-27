@@ -553,6 +553,19 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(topic, consumeGroup, popTime, qId, 1);
     }
 
+    /**
+     * Handle an ack for an ordered Pop message in the KVStore path.
+     *
+     * <p>Mirror of {@link #ackOrderly} but uses the {@link PopConsumerService}
+     * infrastructure: lock service is {@link PopConsumerLockService} keyed by
+     * {@code group@topic} (coarser than the per-queue lock in the file-based
+     * path), and the result of {@code commitAndNext} may be logged when
+     * {@code popConsumerKVServiceLog} is enabled.
+     *
+     * <p>Behavior is otherwise identical: fast-reject, spin-lock, double-check,
+     * advance {@code OrderInfo} commit bit, persist offset, and notify the
+     * long-polling requester when the queue is no longer blocked.
+     */
     protected void ackOrderlyNew(String topic, String consumeGroup, int qId, long ackOffset, long popTime,
         long invisibleTime, Channel channel, RemotingCommand response) {
 
