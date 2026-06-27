@@ -414,6 +414,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         private long popTime;
         /**
          * the invisibleTime when pop message
+         * it was set the first time when message pop
          */
         @JSONField(name = "i")
         private Long invisibleTime;
