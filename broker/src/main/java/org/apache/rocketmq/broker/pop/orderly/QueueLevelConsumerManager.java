@@ -541,8 +541,23 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
             return simple;
         }
 
-        @JSONField(serialize = false, deserialize = false)
-        public boolean needBlock(String attemptId, long currentInvisibleTime) {
+    /**
+     * Determine whether a new Pop request must be blocked by this in-flight
+     * ordered batch.
+     *
+     * <p>Returns {@code true} (must block) only if all of the following hold:
+     * <ul>
+     *   <li>The current attemptId is different from the in-flight one (same
+     *   request retrying is not blocked)</li>
+     *   <li>At least one message in the batch is not yet ACKed
+     *   ({@link #isNotAck})</li>
+     *   <li>That message's invisible window has not yet expired — either
+     *   {@code popTime + invisibleTime} or its individually updated
+     *   {@code offsetNextVisibleTime} is still in the future</li>
+     * </ul>
+     */
+    @JSONField(serialize = false, deserialize = false)
+    public boolean needBlock(String attemptId, long currentInvisibleTime) {
             if (offsetList == null || offsetList.isEmpty()) {
                 return false;
             }
