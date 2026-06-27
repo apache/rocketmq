@@ -685,6 +685,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
         @JSONField(serialize = false, deserialize = false)
         public void mergeOffsetConsumedCount(String preAttemptId, List<Long> preOffsetList,
             Map<Long, Integer> prevOffsetConsumedCount) {
+            // validate input
             Map<Long, Integer> offsetConsumedCount = new HashMap<>();
             if (prevOffsetConsumedCount == null) {
                 prevOffsetConsumedCount = new HashMap<>();
@@ -693,16 +694,20 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
                 this.offsetConsumedCount = prevOffsetConsumedCount;
                 return;
             }
+
+            // get pre offset set
             Set<Long> preQueueOffsetSet = new HashSet<>();
             for (int i = 0; i < preOffsetList.size(); i++) {
                 preQueueOffsetSet.add(getQueueOffset(preOffsetList, i));
             }
+
+            // merge offsetConsumedCount
             for (int i = 0; i < offsetList.size(); i++) {
                 long queueOffset = this.getQueueOffset(i);
-                if (preQueueOffsetSet.contains(queueOffset)) {
+                if (preQueueOffsetSet.contains(queueOffset)) { // offset has be consumed
                     int count = 1;
                     Integer preCount = prevOffsetConsumedCount.get(queueOffset);
-                    if (preCount != null) {
+                    if (preCount != null) { // consumeTimes +1
                         count = preCount + 1;
                     }
                     offsetConsumedCount.put(queueOffset, count);
