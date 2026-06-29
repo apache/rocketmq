@@ -85,6 +85,7 @@ import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -911,15 +912,21 @@ public class DefaultMQProducerTest {
     }
 
     private void prepareTransactionProducer(TransactionMQProducer transactionProducer) throws Exception {
+        MQClientInstance transactionMQClientFactory = spy(new MQClientInstance(new ClientConfig(), 0,
+            transactionProducer.getProducerGroup() + "_client"));
+        Field apiField = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        apiField.setAccessible(true);
+        apiField.set(transactionMQClientFactory, mQClientAPIImpl);
+
         transactionProducer.getDefaultMQProducerImpl().initTransactionEnv();
-        mQClientFactory.getClientConfig().setNamesrvAddr(transactionProducer.getNamesrvAddr());
+        transactionMQClientFactory.getClientConfig().setNamesrvAddr(transactionProducer.getNamesrvAddr());
         TopicPublishInfo topicPublishInfo = MQClientInstance.topicRouteData2TopicPublishInfo(topic, createTopicRoute());
         topicPublishInfo.setHaveTopicRouterInfo(true);
         transactionProducer.getDefaultMQProducerImpl().updateTopicPublishInfo(topic, topicPublishInfo);
-        doReturn("127.0.0.1:10911").when(mQClientFactory).findBrokerAddressInPublish(anyString());
+        doReturn("127.0.0.1:10911").when(transactionMQClientFactory).findBrokerAddressInPublish(anyString());
         Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
         field.setAccessible(true);
-        field.set(transactionProducer.getDefaultMQProducerImpl(), mQClientFactory);
+        field.set(transactionProducer.getDefaultMQProducerImpl(), transactionMQClientFactory);
         transactionProducer.getDefaultMQProducerImpl().setServiceState(ServiceState.RUNNING);
     }
 
