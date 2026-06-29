@@ -235,7 +235,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         }
         List<CompletableFuture<Void>> futures = new ArrayList<>();
 
-        if (!validateBatchRequestEntries(batchRequestHeader, requestEntries)) {
+        if (!normalizeAndValidateBatchRequestEntries(batchRequestHeader, requestEntries)) {
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             response.setRemark("batch change invisible time entries must use the same topic and consumerGroup as request header");
             return CompletableFuture.completedFuture(response);
@@ -283,7 +283,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         });
     }
 
-    protected boolean validateBatchRequestEntries(BatchChangeInvisibleTimeRequestHeader batchRequestHeader,
+    protected boolean normalizeAndValidateBatchRequestEntries(BatchChangeInvisibleTimeRequestHeader batchRequestHeader,
         List<ChangeInvisibleTimeRequestEntry> requestEntries) {
         if (batchRequestHeader == null ||
             StringUtils.isBlank(batchRequestHeader.getConsumerGroup()) ||

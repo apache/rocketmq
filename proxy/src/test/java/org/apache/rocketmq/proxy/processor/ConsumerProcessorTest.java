@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
 import org.apache.rocketmq.client.consumer.PopResult;
@@ -52,6 +53,7 @@ import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
@@ -581,6 +583,54 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     }
 
     @Test
+    public void testBatchChangeInvisibleTimeFallbackOnlyWhenRequestCodeNotSupported() throws Throwable {
+        List<ReceiptHandleMessage> receiptHandleMessageList = buildReceiptHandleMessages("brokerName1", 2);
+        when(this.messageService.batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean()))
+            .thenReturn(FutureUtils.completeExceptionally(
+                new MQBrokerException(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, "not supported")));
+
+        AckResult singleAckResult = new AckResult();
+        singleAckResult.setStatus(AckStatus.OK);
+        when(this.messageService.changeInvisibleTime(any(), any(), anyString(), any(), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(singleAckResult));
+
+        List<BatchChangeInvisibleTimeResult> resultList = this.consumerProcessor.batchChangeInvisibleTime(
+            createContext(), receiptHandleMessageList, CONSUMER_GROUP, TOPIC, 3000, 3000, true).get();
+
+        assertEquals(receiptHandleMessageList.size(), resultList.size());
+        for (BatchChangeInvisibleTimeResult result : resultList) {
+            assertEquals(AckStatus.OK, result.getAckResult().getStatus());
+            assertNull(result.getProxyException());
+        }
+        verify(this.messageService).batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+        verify(this.messageService, times(receiptHandleMessageList.size()))
+            .changeInvisibleTime(any(), any(), anyString(), any(), anyLong());
+    }
+
+    @Test
+    public void testBatchChangeInvisibleTimeDoesNotFallbackOnAmbiguousFailure() throws Throwable {
+        List<ReceiptHandleMessage> receiptHandleMessageList = buildReceiptHandleMessages("brokerName1", 2);
+        when(this.messageService.batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean()))
+            .thenReturn(FutureUtils.completeExceptionally(new TimeoutException("timeout after broker may apply batch")));
+
+        List<BatchChangeInvisibleTimeResult> resultList = this.consumerProcessor.batchChangeInvisibleTime(
+            createContext(), receiptHandleMessageList, CONSUMER_GROUP, TOPIC, 3000, 3000, true).get();
+
+        assertEquals(receiptHandleMessageList.size(), resultList.size());
+        for (int i = 0; i < receiptHandleMessageList.size(); i++) {
+            assertSame(receiptHandleMessageList.get(i), resultList.get(i).getReceiptHandleMessage());
+            assertNull(resultList.get(i).getAckResult());
+            assertEquals(ProxyExceptionCode.INTERNAL_SERVER_ERROR, resultList.get(i).getProxyException().getCode());
+        }
+        verify(this.messageService).batchChangeInvisibleTime(
+            any(), anyList(), anyString(), anyString(), anyLong(), anyLong(), anyBoolean());
+        verify(this.messageService, never()).changeInvisibleTime(any(), any(), anyString(), any(), anyLong());
+    }
+
+    @Test
     public void testChangeInvisibleTime() throws Throwable {
         ReceiptHandle handle = create(createMessageExt(MixAll.RETRY_GROUP_TOPIC_PREFIX + TOPIC, "", 0, 3000));
         assertNotNull(handle);
@@ -861,6 +911,17 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         assertEquals(1000, requestHeaderArgumentCaptor.getValue().getInvisibleTime().longValue());
         assertEquals(handle.getReceiptHandle(), requestHeaderArgumentCaptor.getValue().getExtraInfo());
         assertFalse("Suspend should be false", requestHeaderArgumentCaptor.getValue().isSuspend());
+    }
+
+    private List<ReceiptHandleMessage> buildReceiptHandleMessages(String brokerName, int count) {
+        List<ReceiptHandleMessage> receiptHandleMessageList = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        for (int i = 0; i < count; i++) {
+            MessageExt messageExt = createMessageExt(TOPIC, "", 0, 3000, now,
+                0, 0, 0, i + 1, brokerName);
+            receiptHandleMessageList.add(new ReceiptHandleMessage(create(messageExt), messageExt.getMsgId()));
+        }
+        return receiptHandleMessageList;
     }
 
     @Test

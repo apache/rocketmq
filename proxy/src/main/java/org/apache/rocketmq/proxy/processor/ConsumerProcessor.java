@@ -33,6 +33,7 @@ import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
 import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -41,6 +42,7 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -54,6 +56,7 @@ import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
@@ -546,7 +549,13 @@ public class ConsumerProcessor extends AbstractProcessor {
                     future.complete(buildBatchChangeInvisibleTimeResults(handleMessageList, ackResults));
                     return;
                 }
-                log.warn("batch change invisible time failed, fallback to single requests. topic={}, group={}, size={}",
+                if (!isBatchChangeInvisibleTimeNotSupported(throwable)) {
+                    log.warn("batch change invisible time failed, skip fallback to avoid duplicate CK. topic={}, group={}, size={}",
+                        topic, consumerGroup, handleMessageList.size(), throwable);
+                    future.complete(buildBatchChangeInvisibleTimeExceptionResults(handleMessageList, throwable));
+                    return;
+                }
+                log.warn("batch change invisible time request is not supported, fallback to single requests. topic={}, group={}, size={}",
                     topic, consumerGroup, handleMessageList.size(), throwable);
                 fallbackChangeInvisibleTime(ctx, consumerGroup, topic, handleMessageList, invisibleTime, timeoutMillis, suspend)
                     .whenComplete((fallbackResults, fallbackThrowable) -> {
@@ -558,6 +567,23 @@ public class ConsumerProcessor extends AbstractProcessor {
                     });
             });
         return future;
+    }
+
+    protected boolean isBatchChangeInvisibleTimeNotSupported(Throwable throwable) {
+        Throwable realException = ExceptionUtils.getRealException(throwable);
+        return realException instanceof MQBrokerException
+            && ((MQBrokerException) realException).getResponseCode() == ResponseCode.REQUEST_CODE_NOT_SUPPORTED;
+    }
+
+    protected List<BatchChangeInvisibleTimeResult> buildBatchChangeInvisibleTimeExceptionResults(
+        List<ReceiptHandleMessage> handleMessageList, Throwable throwable) {
+        List<BatchChangeInvisibleTimeResult> results = new ArrayList<>(handleMessageList.size());
+        String message = throwable == null ? "batch change invisible time failed" : throwable.getMessage();
+        for (ReceiptHandleMessage handleMessage : handleMessageList) {
+            results.add(new BatchChangeInvisibleTimeResult(handleMessage,
+                new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, message, throwable)));
+        }
+        return results;
     }
 
     protected List<BatchChangeInvisibleTimeResult> buildBatchChangeInvisibleTimeResults(
