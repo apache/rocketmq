@@ -245,23 +245,20 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
     }
 
     private long getConsumeTimeoutInvisibleTime(ProxyContext ctx, String group, ProxyConfig proxyConfig) {
-        long invisibleTime;
+        // Use default consumeTimeoutMinute as fallback when config is null or invalid.
+        // This is intentionally NOT defaultInvisibleTimeMills (60s) because without renewal,
+        // 60s is too short and would cause duplicate consumption.
+        long invisibleTime = DEFAULT_CONSUME_TIMEOUT_INVISIBLE_TIME_MILLIS;
         try {
             SubscriptionGroupConfig groupConfig = this.messagingProcessor.getSubscriptionGroupConfig(ctx, group);
             if (groupConfig != null && groupConfig.getConsumeTimeoutMinute() > 0) {
                 invisibleTime = TimeUnit.MINUTES.toMillis(groupConfig.getConsumeTimeoutMinute());
-            } else {
-                // Use default consumeTimeoutMinute as fallback when config is null or invalid.
-                // This is intentionally NOT defaultInvisibleTimeMills (60s) because without renewal,
-                // 60s is too short and would cause duplicate consumption.
-                invisibleTime = DEFAULT_CONSUME_TIMEOUT_INVISIBLE_TIME_MILLIS;
             }
         } catch (Exception e) {
             log.warn("Failed to get SubscriptionGroupConfig for group: {}, using default consumeTimeoutMinute (15min) "
                 + "as invisibleTime.", group, e);
             // Safe fallback: use default consumeTimeoutMinute instead of defaultInvisibleTimeMills (60s).
             // Since renewal is disabled, the handle must live long enough for the client to process it.
-            invisibleTime = DEFAULT_CONSUME_TIMEOUT_INVISIBLE_TIME_MILLIS;
         }
         // Clamp to maxInvisibleTimeMills to avoid exceeding broker's allowed range
         long maxInvisibleTime = proxyConfig.getMaxInvisibleTimeMills();
