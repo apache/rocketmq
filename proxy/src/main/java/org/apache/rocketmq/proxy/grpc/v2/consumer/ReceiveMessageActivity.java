@@ -25,6 +25,9 @@ import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.StreamObserver;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
@@ -49,10 +52,6 @@ import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
-
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 public class ReceiveMessageActivity extends AbstractMessagingActivity {
     private static final String ILLEGAL_POLLING_TIME_INTRODUCED_CLIENT_VERSION = "5.0.3";
@@ -114,8 +113,12 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
 
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-            if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
-                if (proxyConfig.isEnableGrpcChannelReceiptHandleRenew()) {
+            final boolean autoRenew = proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew();
+            // The handle renewal mode must match the invisible time used for this pop request.
+            // Do not re-read dynamic config after pop completes.
+            final boolean needRenew = autoRenew && proxyConfig.isEnableGrpcChannelReceiptHandleRenew();
+            if (autoRenew) {
+                if (needRenew) {
                     actualInvisibleTime = proxyConfig.getDefaultInvisibleTimeMills();
                 } else {
                     actualInvisibleTime = getConsumeTimeoutInvisibleTime(ctx, group, proxyConfig);
@@ -188,11 +191,10 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                 );
             }
 
-            final boolean autoRenew = proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew();
             popFuture.thenAccept(popResult -> {
                 Runnable doAfterWrite = null;
                 if (autoRenew) {
-                    doAfterWrite = handleAutoRenew(ctx, request, group, topic, popResult, writer);
+                    doAfterWrite = handleAutoRenew(ctx, request, group, topic, popResult, writer, needRenew);
                 }
                 writer.writeAndComplete(ctx, request, popResult, doAfterWrite);
             }).exceptionally(t -> {
@@ -205,7 +207,7 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
     }
 
     private Runnable handleAutoRenew(ProxyContext ctx, ReceiveMessageRequest request,
-        String group, String topic, PopResult popResult, ReceiveMessageResponseStreamWriter writer
+        String group, String topic, PopResult popResult, ReceiveMessageResponseStreamWriter writer, boolean needRenew
     ) {
         if (!PopStatus.FOUND.equals(popResult.getPopStatus())) {
             return null;
@@ -219,10 +221,6 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                 writer.processThrowableWhenWriteMessage(e, ctx, request, messageExt));
             throw e;
         }
-        // Capture the renew mode at pop time. This ensures that when the config switches dynamically,
-        // handles already created continue to be handled correctly (renewed or not) regardless of
-        // the current config state.
-        final boolean needRenew = ConfigurationManager.getProxyConfig().isEnableGrpcChannelReceiptHandleRenew();
         return () -> {
             List<MessageExt> messageExtList = popResult.getMsgFoundList();
             for (MessageExt messageExt : messageExtList) {

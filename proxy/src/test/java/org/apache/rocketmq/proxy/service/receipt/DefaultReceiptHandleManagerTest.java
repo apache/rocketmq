@@ -60,6 +60,7 @@ import org.mockito.stubbing.Answer;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
@@ -467,7 +468,6 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     @Test
     public void testNoRenewHandleSkipsRenewalAndCleansExpired() {
         // Create a handle with needRenew=false (simulating enableGrpcChannelReceiptHandleRenew=false at pop time)
-        ProxyConfig config = ConfigurationManager.getProxyConfig();
         long invisibleTime = 900000L; // 15min
         String noRenewReceiptHandle = ReceiptHandle.builder()
             .startOffset(0L)
@@ -536,14 +536,13 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
 
         // Handle should still be in memory (not expired, kept for nack on disconnect)
         ReceiptHandleGroup receiptHandleGroup = receiptHandleManager.receiptHandleGroupMap.values().stream().findFirst().get();
-        assertEquals(false, receiptHandleGroup.isEmpty());
+        assertFalse(receiptHandleGroup.isEmpty());
     }
 
     @Test
     public void testTransitionNeedRenewTrueHandleStillRenewed() {
         // Simulate a handle created when enableGrpcChannelReceiptHandleRenew=true (needRenew=true)
         // Even if config later changes to false, this handle should still be renewed
-        ProxyConfig config = ConfigurationManager.getProxyConfig();
         Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
 
         // Create handle with needRenew=true (default)
