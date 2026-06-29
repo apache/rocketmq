@@ -99,10 +99,8 @@ public interface MQProducer extends MQAdmin {
      * @return transaction result.
      * @throws MQClientException if the message cannot be sent.
      */
-    default TransactionSendResult sendMessageInTransaction(final Message msg,
-        final MessageQueueSelector selector, final Object selectorArg, final Object transactionArg) throws MQClientException {
-        throw new RuntimeException("sendMessageInTransaction not implement, please use TransactionMQProducer class");
-    }
+    TransactionSendResult sendMessageInTransaction(final Message msg,
+                                                   final MessageQueueSelector selector, final Object selectorArg, final Object transactionArg) throws MQClientException;
 
     //for batch
     SendResult send(final Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException,
