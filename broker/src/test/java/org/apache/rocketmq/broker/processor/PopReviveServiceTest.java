@@ -258,7 +258,7 @@ public class PopReviveServiceTest {
         });
 
         popReviveService.mergeAndRevive(reviveObj);
-        Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, false), actualRetryTopic.toString());
+        Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, brokerConfig.isEnableRetryTopicV2()), actualRetryTopic.toString());
         verify(escapeBridge, times(1)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
         verify(messageStore, times(0)).putMessage(any(MessageExtBrokerInner.class)); // rewrite CK
     }
@@ -293,7 +293,7 @@ public class PopReviveServiceTest {
         // Wait for async operations to complete
         Thread.sleep(1000);
         
-        Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, false), actualRetryTopic.toString());
+        Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, brokerConfig.isEnableRetryTopicV2()), actualRetryTopic.toString());
         Assert.assertEquals(REVIVE_TOPIC, actualReviveTopic.toString());
         Assert.assertEquals(INVISIBLE_TIME + 10 * 1000L, actualInvisibleTime.get()); // first interval is 10s
         verify(escapeBridge, times(1)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
@@ -319,7 +319,7 @@ public class PopReviveServiceTest {
         });
 
         popReviveService.mergeAndRevive(reviveObj);
-        Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, false), actualRetryTopic.toString());
+        Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, brokerConfig.isEnableRetryTopicV2()), actualRetryTopic.toString());
         verify(escapeBridge, times(1)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
         verify(messageStore, times(0)).putMessage(any(MessageExtBrokerInner.class)); // rewrite CK
     }
@@ -343,7 +343,7 @@ public class PopReviveServiceTest {
         });
 
         popReviveService.mergeAndRevive(reviveObj);
-        Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, false), actualRetryTopic.toString());
+        Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, brokerConfig.isEnableRetryTopicV2()), actualRetryTopic.toString());
         verify(escapeBridge, times(1)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
         verify(messageStore, times(1)).putMessage(any(MessageExtBrokerInner.class)); // rewrite CK
     }
