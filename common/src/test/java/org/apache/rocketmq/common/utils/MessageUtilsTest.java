@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.common.utils;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -37,7 +36,7 @@ public class MessageUtilsTest {
     }
 
     @Test
-    public void testGetShardingKeyIndex_EmptyKey() {
+    public void testGetShardingKeyIndexWithEmptyKey() {
         String shardingKey = "";
         int indexSize = 5;
         int index = MessageUtils.getShardingKeyIndex(shardingKey, indexSize);
@@ -45,7 +44,7 @@ public class MessageUtilsTest {
     }
 
     @Test
-    public void testGetShardingKeyIndex_ChineseKey() {
+    public void testGetShardingKeyIndexWithChineseKey() {
         String shardingKey = "测试分片键";
         int indexSize = 100;
         int index = MessageUtils.getShardingKeyIndex(shardingKey, indexSize);
@@ -53,12 +52,13 @@ public class MessageUtilsTest {
     }
 
     @Test
-    public void testGetShardingKeyIndex_DifferentKeys() {
+    public void testGetShardingKeyIndexConsistency() {
+        // Verify same input produces same output (deterministic)
+        String shardingKey = "test-key";
         int indexSize = 10;
-        int index1 = MessageUtils.getShardingKeyIndex("user-1", indexSize);
-        int index2 = MessageUtils.getShardingKeyIndex("user-2", indexSize);
-        assertThat(index1).isBetween(0, indexSize - 1);
-        assertThat(index2).isBetween(0, indexSize - 1);
+        int index1 = MessageUtils.getShardingKeyIndex(shardingKey, indexSize);
+        int index2 = MessageUtils.getShardingKeyIndex(shardingKey, indexSize);
+        assertThat(index1).isEqualTo(index2);
     }
 
     @Test
@@ -70,7 +70,8 @@ public class MessageUtilsTest {
     }
 
     @Test
-    public void testGetShardingKeyIndexByMsg_NullShardingKey() {
+    public void testGetShardingKeyIndexByMsgWithNoShardingKey() {
+        // Verify fallback to empty string when no sharding key property is set
         MessageExt msg = new MessageExt();
         int index = MessageUtils.getShardingKeyIndexByMsg(msg, 10);
         assertThat(index).isBetween(0, 9);
@@ -90,13 +91,13 @@ public class MessageUtilsTest {
     }
 
     @Test
-    public void testGetShardingKeyIndexes_EmptyCollection() {
+    public void testGetShardingKeyIndexesWithEmptyCollection() {
         Set<Integer> indexes = MessageUtils.getShardingKeyIndexes(Arrays.asList(), 10);
         assertThat(indexes).isEmpty();
     }
 
     @Test
-    public void testDeleteProperty_FromSimpleString() {
+    public void testDeletePropertyFromSimpleString() {
         String properties = "key1=value1;key2=value2;key3=value3";
         String result = MessageUtils.deleteProperty(properties, "key2");
         assertThat(result).isEqualTo("key1=value1;key3=value3");
@@ -104,20 +105,20 @@ public class MessageUtilsTest {
     }
 
     @Test
-    public void testDeleteProperty_FromNullString() {
+    public void testDeletePropertyFromNullString() {
         String result = MessageUtils.deleteProperty(null, "key1");
         assertThat(result).isNull();
     }
 
     @Test
-    public void testDeleteProperty_KeyNotFound() {
+    public void testDeletePropertyKeyNotFound() {
         String properties = "key1=value1;key2=value2";
         String result = MessageUtils.deleteProperty(properties, "key3");
         assertThat(result).isEqualTo("key1=value1;key2=value2");
     }
 
     @Test
-    public void testDeleteProperty_DeleteFirstKey() {
+    public void testDeletePropertyDeleteFirstKey() {
         String properties = "first=value1;second=value2";
         String result = MessageUtils.deleteProperty(properties, "first");
         assertThat(result).isEqualTo("second=value2");
@@ -125,7 +126,7 @@ public class MessageUtilsTest {
     }
 
     @Test
-    public void testDeleteProperty_DeleteLastKey() {
+    public void testDeletePropertyDeleteLastKey() {
         String properties = "first=value1;last=value2";
         String result = MessageUtils.deleteProperty(properties, "last");
         assertThat(result).isEqualTo("first=value1");
@@ -133,7 +134,7 @@ public class MessageUtilsTest {
     }
 
     @Test
-    public void testDeleteProperty_MultipleSameKeys() {
+    public void testDeletePropertyMultipleSameKeys() {
         String properties = "key=value1;other=value2;key=value3";
         String result = MessageUtils.deleteProperty(properties, "key");
         assertThat(result).isEqualTo("other=value2");
@@ -141,7 +142,8 @@ public class MessageUtilsTest {
     }
 
     @Test
-    public void testDeleteProperty_SubstringKeyMatch() {
+    public void testDeletePropertySubstringKeyMatch() {
+        // Deleting "key" should not affect "mykey"
         String properties = "mykey=value1;key=value2;other=value3";
         String result = MessageUtils.deleteProperty(properties, "key");
         assertThat(result).contains("mykey=value1");
@@ -149,7 +151,7 @@ public class MessageUtilsTest {
     }
 
     @Test
-    public void testDeleteProperty_ValueContainsKeyName() {
+    public void testDeletePropertyValueContainsKeyName() {
         String properties = "topic=my-topic;msgId=abc123";
         String result = MessageUtils.deleteProperty(properties, "msgId");
         assertThat(result).isEqualTo("topic=my-topic");
