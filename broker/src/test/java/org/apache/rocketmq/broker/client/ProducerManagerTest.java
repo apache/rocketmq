@@ -225,4 +225,44 @@ public class ProducerManagerTest {
         assertThat(c).isNull();
     }
 
+    @Test
+    public void testGetAvailableChannelWithPreferredClientId() {
+        producerManager.registerProducer(group, clientInfo);
+        when(channel.isActive()).thenReturn(true);
+        when(channel.isWritable()).thenReturn(true);
+
+        // Match: preferred clientId matches registered producer
+        Channel c = producerManager.getAvailableChannel(group, "clientId");
+        assertThat(c).isSameAs(channel);
+    }
+
+    @Test
+    public void testGetAvailableChannelWithPreferredClientIdNotFound() {
+        producerManager.registerProducer(group, clientInfo);
+        when(channel.isActive()).thenReturn(true);
+        when(channel.isWritable()).thenReturn(true);
+
+        // No match: falls back to round-robin (returns some channel from group)
+        Channel c = producerManager.getAvailableChannel(group, "nonExistentClientId");
+        assertThat(c).isNotNull(); // should fall back to round-robin
+    }
+
+    @Test
+    public void testGetAvailableChannelWithNullPreferredClientId() {
+        producerManager.registerProducer(group, clientInfo);
+        when(channel.isActive()).thenReturn(true);
+        when(channel.isWritable()).thenReturn(true);
+
+        // null clientId: should behave exactly like original getAvailableChannel
+        Channel c = producerManager.getAvailableChannel(group, null);
+        assertThat(c).isNotNull();
+    }
+
+    @Test
+    public void testGetAvailableChannelWithNullGroupId() {
+        // null groupId with non-null preferredClientId should return null (no NPE)
+        Channel c = producerManager.getAvailableChannel(null, "someClientId");
+        assertThat(c).isNull();
+    }
+
 }

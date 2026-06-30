@@ -56,6 +56,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -85,7 +86,7 @@ public class ProxyClientRemotingProcessorTest {
 
         GrpcClientChannel grpcClientChannel = new GrpcClientChannel(proxyRelayService, grpcClientSettingsManager, null,
             ProxyContext.create().setRemoteAddress("127.0.0.1:8888").setLocalAddress("127.0.0.1:10911"), "clientId");
-        when(producerManager.getAvailableChannel(anyString()))
+        when(producerManager.getAvailableChannel(anyString(), nullable(String.class)))
             .thenReturn(grpcClientChannel);
 
         ProxyClientRemotingProcessor processor = new ProxyClientRemotingProcessor(producerManager, null);

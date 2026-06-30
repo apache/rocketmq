@@ -52,6 +52,7 @@ public class MessageConst {
     public static final String PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET = "TRAN_PREPARED_QUEUE_OFFSET";
     public static final String PROPERTY_TRANSACTION_ID = "__transactionId__";
     public static final String PROPERTY_TRANSACTION_CHECK_TIMES = "TRANSACTION_CHECK_TIMES";
+    public static final String PROPERTY_TRANSACTION_PRODUCER_CLIENT_ID = "__TXN_PRODUCER_CID__";
     public static final String PROPERTY_INSTANCE_ID = "INSTANCE_ID";
     public static final String PROPERTY_CORRELATION_ID = "CORRELATION_ID";
     public static final String PROPERTY_MESSAGE_REPLY_TO_CLIENT = "REPLY_TO_CLIENT";
@@ -173,5 +174,6 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_CRC32);
         STRING_HASH_SET.add(PROPERTY_PRIORITY);
         STRING_HASH_SET.add(PROPERTY_LITE_TOPIC);
+        STRING_HASH_SET.add(PROPERTY_TRANSACTION_PRODUCER_CLIENT_ID);
     }
 }

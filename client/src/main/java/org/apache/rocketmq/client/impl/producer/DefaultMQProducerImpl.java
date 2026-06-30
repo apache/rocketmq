@@ -1433,6 +1433,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public TransactionSendResult sendMessageInTransaction(final Message msg,
         final TransactionListener localTransactionListener, final Object arg)
         throws MQClientException {
+        this.makeSureStateOK();
         TransactionListener transactionListener = getCheckListener();
         if (null == localTransactionListener && null == transactionListener) {
             throw new MQClientException("tranExecutor is null", null);
@@ -1444,6 +1445,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         SendResult sendResult = null;
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_PRODUCER_GROUP, this.defaultMQProducer.getProducerGroup());
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TRANSACTION_PRODUCER_CLIENT_ID, this.mQClientFactory.getClientId());
         try {
             sendResult = this.send(msg);
         } catch (Exception e) {
