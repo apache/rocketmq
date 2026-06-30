@@ -466,8 +466,21 @@ public class ConsumerOffsetManager extends ConfigManager {
         ConcurrentMap<Integer, Long> map = resetOffsetTable.get(key);
         if (null == map) {
             return null;
-        } else {
-            return map.remove(queueId);
         }
+        Long offset = map.remove(queueId);
+        if (map.isEmpty()) {
+            resetOffsetTable.computeIfPresent(key, (k, _map) ->
+                _map.isEmpty() ? null : _map
+            );
+        }
+        return offset;
+    }
+
+    public void eraseResetOffset(String topic, String group, int queueId) {
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        resetOffsetTable.computeIfPresent(key, (k, map) -> {
+            map.remove(queueId);
+            return map.isEmpty() ? null : map;
+        });
     }
 }

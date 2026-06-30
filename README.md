@@ -11,7 +11,6 @@
 
 **[Apache RocketMQ](https://rocketmq.apache.org) is a distributed messaging and streaming platform with low latency, high performance and reliability, trillion-level capacity and flexible scalability.**
 
-
 It offers a variety of features:
 
 * Messaging patterns including publish/subscribe, request/reply and streaming
@@ -32,8 +31,8 @@ It offers a variety of features:
 * Authentication and authorization
 * Free open source connectors, for both sources and sinks
 * Lightweight real-time computing
-----------
 
+---
 
 ## Quick Start
 
@@ -44,6 +43,7 @@ For local development and testing, only one instance will be created for each co
 
 RocketMQ runs on all major operating systems and requires only a Java JDK version 8 or higher to be installed.
 To check, run `java -version`:
+
 ```shell
 $ java -version
 java version "1.8.0_121"
@@ -62,6 +62,7 @@ $ unzip rocketmq-all-5.5.0-bin-release.zip
 ```
 
 Prepare a terminal and change to the extracted `bin` directory:
+
 ```shell
 $ cd rocketmq-all-5.5.0-bin-release/bin
 ```
@@ -71,6 +72,7 @@ $ cd rocketmq-all-5.5.0-bin-release/bin
 NameServer will be listening at `0.0.0.0:9876`, make sure that the port is not used by others on the local machine, and then do as follows.
 
 For macOS and Linux users:
+
 ```shell
 ### start Name Server
 $ nohup sh mqnamesrv &
@@ -81,13 +83,15 @@ The Name Server boot success...
 ```
 
 For Windows users, you need to set environment variables first:
-- From the desktop, right click the Computer icon.
-- Choose Properties from the context menu.
-- Click the Advanced system settings link.
-- Click Environment Variables.
-- Add Environment `ROCKETMQ_HOME="D:\rocketmq"`. 
+
+* From the desktop, right click the Computer icon.
+* Choose Properties from the context menu.
+* Click the Advanced system settings link.
+* Click Environment Variables.
+* Add Environment `ROCKETMQ_HOME="D:\rocketmq"`.
 
 Then change directory to rocketmq, type and run:
+
 ```shell
 $ mqnamesrv.cmd
 The Name Server boot success...
@@ -96,6 +100,7 @@ The Name Server boot success...
 **2) Start Broker**
 
 For macOS and Linux users:
+
 ```shell
 ### start Broker
 $ nohup sh mqbroker -n localhost:9876 &
@@ -106,6 +111,7 @@ The broker[broker-a, 192.168.1.2:10911] boot success...
 ```
 
 For Windows users:
+
 ```shell
 $ mqbroker.cmd -n localhost:9876
 The broker[broker-a, 192.168.1.2:10911] boot success...
@@ -134,6 +140,7 @@ You can also run a RocketMQ cluster within a Kubernetes cluster using [RocketMQ 
 Before your operations, make sure that `kubectl` and related kubeconfig file installed on your machine.
 
 **1) Install CRDs**
+
 ```shell
 ### install CRDs
 $ git clone https://github.com/apache/rocketmq-operator
@@ -152,6 +159,7 @@ rocketmq-operator-6f65c77c49-8hwmj   1/1     Running   0          93s
 ```
 
 **2) Create Cluster Instance**
+
 ```shell
 ### create RocketMQ cluster resource
 $ cd example && kubectl create -f rocketmq_v1alpha1_rocketmq_cluster.yaml
@@ -165,16 +173,18 @@ name-service         1/1     107m
 ```
 
 ---
+
 ## Apache RocketMQ Community
+
 * [RocketMQ Streams](https://github.com/apache/rocketmq-streams): A lightweight stream computing engine based on Apache RocketMQ.
 * [RocketMQ Flink](https://github.com/apache/rocketmq-flink): The Apache RocketMQ connector of Apache Flink that supports source and sink connector in data stream and Table.
 * [RocketMQ APIs](https://github.com/apache/rocketmq-apis): RocketMQ protobuf protocol.
 * [RocketMQ Clients](https://github.com/apache/rocketmq-clients): gRPC/protobuf-based RocketMQ clients.
 * RocketMQ Remoting-based Clients
-	 - [RocketMQ Client CPP](https://github.com/apache/rocketmq-client-cpp)
-	 - [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
-	 - [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
-	 - [RocketMQ Client Nodejs](https://github.com/apache/rocketmq-client-nodejs)
+  * [RocketMQ Client CPP](https://github.com/apache/rocketmq-client-cpp)
+  * [RocketMQ Client Go](https://github.com/apache/rocketmq-client-go)
+  * [RocketMQ Client Python](https://github.com/apache/rocketmq-client-python)
+  * [RocketMQ Client Nodejs](https://github.com/apache/rocketmq-client-nodejs)
 * [RocketMQ Spring](https://github.com/apache/rocketmq-spring): A project which helps developers quickly integrate Apache RocketMQ with Spring Boot.
 * [RocketMQ Exporter](https://github.com/apache/rocketmq-exporter): An Apache RocketMQ exporter for Prometheus.
 * [RocketMQ Operator](https://github.com/apache/rocketmq-operator): Providing a way to run an Apache RocketMQ cluster on Kubernetes.
@@ -187,9 +197,10 @@ name-service         1/1     107m
 * [RocketMQ Site](https://github.com/apache/rocketmq-site): The repository for Apache RocketMQ website.
 * [RocketMQ E2E](https://github.com/apache/rocketmq-e2e): A project for testing Apache RocketMQ, including end-to-end, performance, compatibility tests.
 
+---
 
-----------
 ## Learn it & Contact us
+
 * Mailing Lists: <https://rocketmq.apache.org/about/contact/>
 * Home: <https://rocketmq.apache.org>
 * Docs: <https://rocketmq.apache.org/docs/quick-start/>
@@ -197,21 +208,22 @@ name-service         1/1     107m
 * Rips: <https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal>
 * Ask: <https://stackoverflow.com/questions/tagged/rocketmq>
 
-
-----------
-
-
+---
 
 ## Contributing
+
 We always welcome new contributions, whether for trivial cleanups, [big new features](https://github.com/apache/rocketmq/wiki/RocketMQ-Improvement-Proposal) or other material rewards, more details see [here](http://rocketmq.apache.org/docs/how-to-contribute/).
 
-----------
+---
+
 ## License
+
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html) Copyright (C) Apache Software Foundation
 
+---
 
-----------
 ## Export Control Notice
+
 This distribution includes cryptographic software. The country in which you currently reside may have
 restrictions on the import, possession, use, and/or re-export to another country, of encryption software.
 BEFORE using any encryption software, please check your country's laws, regulations and policies concerning

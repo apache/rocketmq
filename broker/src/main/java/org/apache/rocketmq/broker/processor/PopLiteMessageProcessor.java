@@ -311,6 +311,10 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
     }
 
     public boolean isFifoBlocked(String attemptId, String group, String lmqName, long invisibleTime) {
+        if (brokerController.getBrokerConfig().isUseServerSideResetOffset() &&
+            this.brokerController.getConsumerOffsetManager().hasOffsetReset(lmqName, group, 0)) {
+            return false;
+        }
         return consumerOrderInfoManager.checkBlock(attemptId, lmqName, group, 0, invisibleTime);
     }
 
