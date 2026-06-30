@@ -603,7 +603,8 @@ public class PopConsumerService extends ServiceThread {
                         long nextInvisibleTime = record.getInvisibleTime() + backoffInterval;
                         PopConsumerRecord retryRecord = new PopConsumerRecord(System.currentTimeMillis(),
                             record.getGroupId(), record.getTopicId(), record.getQueueId(),
-                            record.getRetryFlag(), nextInvisibleTime, record.getOffset(), record.getAttemptId());
+                            record.getRetryFlag(), nextInvisibleTime, record.getOffset(), record.getAttemptId(),
+                            record.isSuspend());
                         retryRecord.setAttemptTimes(record.getAttemptTimes() + 1);
                         failureList.add(retryRecord);
                         log.warn("PopConsumerService revive backoff retry, record={}", retryRecord);
@@ -768,6 +769,7 @@ public class PopConsumerService extends ServiceThread {
                     ck.setBrokerName(brokerConfig.getBrokerName());
                     ck.addDiff(0);
                     ck.setRePutTimes(String.valueOf(record.getAttemptTimes()));
+                    ck.setSuspend(record.isSuspend());
                     int reviveQueueId = (int) record.getOffset() % brokerConfig.getReviveQueueNum();
                     MessageExtBrokerInner ckMsg =
                         brokerController.getPopMessageProcessor().buildCkMsg(ck, reviveQueueId);

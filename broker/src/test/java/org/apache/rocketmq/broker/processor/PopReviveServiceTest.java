@@ -266,12 +266,14 @@ public class PopReviveServiceTest {
     @Test
     public void testReviveMsgFromCk_messageFound_writeRetryFailed_rewriteCK() throws Throwable {
         PopCheckPoint ck = buildPopCheckPoint(0, 0, 0);
+        ck.setSuspend(true);
         PopReviveService.ConsumeReviveObj reviveObj = new PopReviveService.ConsumeReviveObj();
         reviveObj.map.put("", ck);
         reviveObj.endTime = System.currentTimeMillis();
         StringBuilder actualRetryTopic = new StringBuilder();
         StringBuilder actualReviveTopic = new StringBuilder();
         AtomicLong actualInvisibleTime = new AtomicLong(0L);
+        List<Boolean> actualSuspend = new ArrayList<>();
 
         when(escapeBridge.getMessageAsync(anyString(), anyLong(), anyInt(), anyString(), anyBoolean()))
             .thenReturn(CompletableFuture.completedFuture(Triple.of(new MessageExt(), "", false)));
@@ -285,6 +287,7 @@ public class PopReviveServiceTest {
             actualReviveTopic.append(msg.getTopic());
             PopCheckPoint rewriteCK = JSON.parseObject(msg.getBody(), PopCheckPoint.class);
             actualInvisibleTime.set(rewriteCK.getReviveTime());
+            actualSuspend.add(rewriteCK.isSuspend());
             return new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK));
         });
 
@@ -296,6 +299,7 @@ public class PopReviveServiceTest {
         Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, false), actualRetryTopic.toString());
         Assert.assertEquals(REVIVE_TOPIC, actualReviveTopic.toString());
         Assert.assertEquals(INVISIBLE_TIME + 10 * 1000L, actualInvisibleTime.get()); // first interval is 10s
+        Assert.assertEquals(Arrays.asList(true), actualSuspend);
         verify(escapeBridge, times(1)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
         verify(messageStore, times(1)).putMessage(any(MessageExtBrokerInner.class)); // rewrite CK
     }
