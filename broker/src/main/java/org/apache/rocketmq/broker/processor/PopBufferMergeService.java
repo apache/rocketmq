@@ -445,6 +445,11 @@ public class PopBufferMergeService extends ServiceThread {
      */
     public boolean addCkJustOffset(PopCheckPoint point, int reviveQueueId, long reviveQueueOffset,
         long nextBeginOffset) {
+        if (this.counter.get() > brokerController.getBrokerConfig().getPopCkMaxBufferSize()) {
+            POP_LOGGER.warn("[PopBuffer]add ck just offset, max size, {}, {}", point, this.counter.get());
+            return false;
+        }
+
         PopCheckPointWrapper pointWrapper = new PopCheckPointWrapper(reviveQueueId, reviveQueueOffset, point, nextBeginOffset, true);
 
         if (this.buffer.containsKey(pointWrapper.getMergeKey())) {
