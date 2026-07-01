@@ -464,10 +464,10 @@ public class PopConsumerServiceTest {
             .thenReturn(CompletableFuture.completedFuture(
                 new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
 
-        consumerService.start();
+        consumerService.getPopConsumerStore().start();
         consumerService.getPopConsumerStore().writeRecords(consumerRecordList);
         consumerService.transferToFsStore();
-        consumerService.shutdown();
+        consumerService.getPopConsumerStore().shutdown();
     }
 
     @Test
