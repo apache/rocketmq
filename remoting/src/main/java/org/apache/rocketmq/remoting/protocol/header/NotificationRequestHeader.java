@@ -43,6 +43,9 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
 
     private Boolean order = Boolean.FALSE;
     private String attemptId;
+    // for lite topic
+    private boolean isLiteConsumer = false;
+    private String clientId;
 
     private String expType;
     private String exp;
@@ -127,6 +130,22 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
         this.exp = exp;
     }
 
+    public boolean isLiteConsumer() {
+        return isLiteConsumer;
+    }
+
+    public void setLiteConsumer(boolean liteConsumer) {
+        isLiteConsumer = liteConsumer;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -137,6 +156,10 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
             .add("bornTime", bornTime)
             .add("order", order)
             .add("attemptId", attemptId)
+            // print isLiteConsumer only when true
+            .add("isLiteConsumer", isLiteConsumer ? true : null)
+            .add("clientId", clientId)
+            .omitNullValues()
             .toString();
     }
 }

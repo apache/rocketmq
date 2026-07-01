@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.lite;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.processor.NotificationProcessor;
 import org.apache.rocketmq.broker.processor.PopLiteMessageProcessor;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -95,7 +96,9 @@ public class LiteEventDispatcherTest {
 
         liteEventDispatcher = new LiteEventDispatcher(brokerController, liteSubscriptionRegistry, liteLifecycleManager);
         PopLiteMessageProcessor popLiteMessageProcessor = new PopLiteMessageProcessor(brokerController, liteEventDispatcher);
+        NotificationProcessor notificationProcessor = new NotificationProcessor(brokerController);
         when(brokerController.getPopLiteMessageProcessor()).thenReturn(popLiteMessageProcessor);
+        when(brokerController.getNotificationProcessor()).thenReturn(notificationProcessor);
     }
 
     @Test
