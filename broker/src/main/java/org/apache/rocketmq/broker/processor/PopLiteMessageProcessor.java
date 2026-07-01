@@ -287,10 +287,6 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
     @VisibleForTesting
     public Pair<StringBuilder, GetMessageResult> popLiteTopic(String parentTopic, String clientHost, String group,
         String lmqName, long maxNum, long popTime, long invisibleTime, String attemptId) {
-        if (!brokerController.getBrokerConfig().isEnableLiteEventMode()
-            && !brokerController.getLiteLifecycleManager().isLmqExist(lmqName)) {
-            return null;
-        }
         String lockKey = KeyBuilder.buildPopLiteLockKey(group, lmqName);
         if (!lockService.tryLock(lockKey)) {
             return null;

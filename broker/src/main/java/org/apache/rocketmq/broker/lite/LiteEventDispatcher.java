@@ -34,7 +34,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -87,18 +86,13 @@ public class LiteEventDispatcher extends ServiceThread {
     }
 
     /**
-     * If event mode is enabled, try to dispatch event to one client when message arriving or available.
+     * Try to dispatch event to one client when message arriving or available.
      * In most cases, there is only one subscriber for a LMQ under a consumer group,
      * but also supports multiple clients consuming in share mode.
      * When group is null, dispatch to all subscribers regardless of their group,
      * when group is specified, only dispatch to subscribers belonging to this group.
-     * <p>
-     * If the expected number of subscriptions by each client is small, disabling event mode can be a choice.
      */
     public void dispatch(String group, String lmqName, int queueId, long offset, long msgStoreTime) {
-        if (!this.brokerController.getBrokerConfig().isEnableLiteEventMode()) {
-            return;
-        }
         if (queueId != 0 || !LiteUtil.isLiteTopicQueue(lmqName)) {
             return;
         }
@@ -106,9 +100,6 @@ public class LiteEventDispatcher extends ServiceThread {
     }
 
     protected void doDispatch(String group, String lmqName, String excludeClientId) {
-        if (!this.brokerController.getBrokerConfig().isEnableLiteEventMode()) {
-            return;
-        }
         SubscriberWrapper wrapper = liteSubscriptionRegistry.getAllSubscriber(group, lmqName);
         if (null == wrapper) {
             return;
@@ -134,9 +125,6 @@ public class LiteEventDispatcher extends ServiceThread {
      */
     @VisibleForTesting
     public boolean selectAndDispatch(String lmqName, List<ClientGroup> clients, String excludeClientId) {
-        if (!this.brokerController.getBrokerConfig().isEnableLiteEventMode()) {
-            return true;
-        }
         if (CollectionUtils.isEmpty(clients)) {
             return true;
         }
@@ -203,18 +191,10 @@ public class LiteEventDispatcher extends ServiceThread {
 
     /**
      * Get an iterator for iterating over events for a specific client.
-     * In lite event mode, returns events from the client's event queue,
-     * or else returns topics from the client's subscription.
+     * Returns events from the client's event queue.
      */
     public Iterator<String> getEventIterator(String clientId) {
-        if (this.brokerController.getBrokerConfig().isEnableLiteEventMode()) {
-            return new EventSetIterator(clientEventMap.get(clientId));
-        } else {
-            LiteSubscription liteSubscription = liteSubscriptionRegistry.getLiteSubscription(clientId);
-            return liteSubscription != null && liteSubscription.getLiteTopicSet() != null ?
-                new LiteSubscriptionIterator(liteSubscription.getTopic(), liteSubscription.getLiteTopicSet().iterator())
-                    : Collections.emptyIterator();
-        }
+        return new EventSetIterator(clientEventMap.get(clientId));
     }
 
     /**
@@ -224,9 +204,6 @@ public class LiteEventDispatcher extends ServiceThread {
      * with available messages.
      */
     public void doFullDispatchForClient(String clientId, String group) {
-        if (!this.brokerController.getBrokerConfig().isEnableLiteEventMode()) {
-            return;
-        }
         LiteSubscription subscription = liteSubscriptionRegistry.getLiteSubscription(clientId);
         if (null == subscription || CollectionUtils.isEmpty(subscription.getLiteTopicSet())) {
             LOGGER.info("client full dispatch, but no subscription. {}", clientId);
@@ -279,9 +256,6 @@ public class LiteEventDispatcher extends ServiceThread {
      * It iterates through all LMQ topics in CQ table, so it may be a heavy work.
      */
     public void doFullDispatchForWildcardGroup(String group) {
-        if (!this.brokerController.getBrokerConfig().isEnableLiteEventMode()) {
-            return;
-        }
         String parentTopic = LiteMetadataUtil.getLiteBindTopic(group, brokerController);
         if (null == parentTopic || !LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
             return;
@@ -570,26 +544,6 @@ public class LiteEventDispatcher extends ServiceThread {
         @Override
         public String next() {
             return eventSet.poll();
-        }
-    }
-
-    static class LiteSubscriptionIterator implements Iterator<String> {
-        private final Iterator<String> iterator;
-        private final String parentTopic;
-
-        public LiteSubscriptionIterator(String parentTopic, Iterator<String> iterator) {
-            this.parentTopic = parentTopic;
-            this.iterator = iterator;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return iterator.hasNext();
-        }
-
-        @Override
-        public String next() {
-            return iterator.next();
         }
     }
 

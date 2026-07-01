@@ -112,7 +112,6 @@ public class PopLiteMessageProcessorTest {
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
-        when(brokerController.getLiteLifecycleManager()).thenReturn(liteLifecycleManager);
         when(brokerController.getLiteSubscriptionRegistry()).thenReturn(liteSubscriptionRegistry);
 
         PopLiteMessageProcessor testObject = new PopLiteMessageProcessor(brokerController, liteEventDispatcher);
@@ -381,18 +380,6 @@ public class PopLiteMessageProcessorTest {
         assertThat(result).isNull();
         verify(lockService).tryLock(anyString());
         verify(lockService).unlock(anyString());
-    }
-
-    @Test
-    public void testPopLiteTopic_lmqNotExist() {
-        when(liteLifecycleManager.isLmqExist("lmqName")).thenReturn(false);
-        brokerConfig.setEnableLiteEventMode(false);
-
-        Pair<StringBuilder, GetMessageResult> result = popLiteMessageProcessor.popLiteTopic("parentTopic",
-            "clientHost", "group", "lmqName", 32L, System.currentTimeMillis(), 6000L, "attemptId");
-
-        assertThat(result).isNull();
-        verify(lockService, never()).tryLock(anyString());
     }
 
     @Test
