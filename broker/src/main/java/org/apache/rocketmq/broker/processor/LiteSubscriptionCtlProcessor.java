@@ -76,6 +76,7 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
      */
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        // decode and validate request
         if (request.getBody() == null) {
             return RemotingCommand.createResponseCommand(ResponseCode.ILLEGAL_OPERATION,
                 "Request body is null.");
@@ -92,6 +93,7 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
 
         try {
             for (LiteSubscriptionDTO entry : entrySet) {
+                // validate LiteSubscriptionDTO
                 final String clientId = entry.getClientId();
                 final String group = entry.getGroup();
                 final String topic = entry.getTopic();
@@ -108,6 +110,7 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
                     continue;
                 }
                 final Set<String> lmqNameSet = toLmqNameSet(entry);
+
                 switch (entry.getAction()) {
                     case PARTIAL_ADD:
                         checkConsumeEnable(group);

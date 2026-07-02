@@ -47,6 +47,28 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.header.NotifyUnsubscribeLiteRequestHeader;
 
+/**
+ * Maintains the client → LMQ subscription mapping for Lite Topics.
+ *
+ * <p>Two main indexes are kept in sync:
+ * <ul>
+ *   <li>{@link #client2Subscription} — clientId → {@link LiteSubscription}
+ *   (group, topic, lmqName set) for COMPLETE-mode reconciliation</li>
+ *   <li>{@link #liteTopic2Group} — lmqName → set of {@link ClientGroup}
+ *   for fast subscription lookup during Pop dispatch</li>
+ * </ul>
+ *
+ * <p>Supports four subscription actions: PARTIAL_ADD, PARTIAL_REMOVE,
+ * COMPLETE_ADD, COMPLETE_REMOVE. When a group is configured for
+ * exclusive subscription ({@code isSubLiteExclusive}), subscribing a
+ * different client to the same lmqName evicts the previous client
+ * (tracked via {@link ExclusiveEvictionTombstones} for re-send
+ * convergence). Wildcard groups are supported by mapping them to a
+ * synthetic mock lmqName ({@code topic@group}).
+ *
+ * <p>A background thread ({@link #run}) periodically removes
+ * subscriptions whose last update exceeds the configured timeout.
+ */
 public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteSubscriptionRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
 
