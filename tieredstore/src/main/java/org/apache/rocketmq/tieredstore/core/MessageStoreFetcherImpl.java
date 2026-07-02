@@ -18,7 +18,9 @@ package org.apache.rocketmq.tieredstore.core;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 import com.github.benmanes.caffeine.cache.Scheduler;
+import com.github.benmanes.caffeine.cache.Ticker;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,7 +64,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     private final IndexService indexService;
     private final FlatFileStore flatFileStore;
     private final MessageStoreFilter topicFilter;
-    private final long memoryMaxSize;
+    protected final long memoryMaxSize;
     private final Cache<String /* topic@queueId@offset */, SelectBufferResult> fetcherCache;
 
     public MessageStoreFetcherImpl(TieredMessageStore messageStore) {
@@ -86,19 +88,105 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
         log.info("MessageStoreFetcher init success, brokerName={}", storeConfig.getBrokerName());
     }
 
-    private Cache<String, SelectBufferResult> initCache(MessageStoreConfig storeConfig) {
+    /**
+     * Build the read-ahead cache. Called from the constructor via virtual dispatch
+     * (see {@link #MessageStoreFetcherImpl(TieredMessageStore, MessageStoreConfig, FlatFileStore, IndexService)}),
+     * so subclass overrides MUST NOT read subclass instance fields — those are not yet
+     * initialized. The {@code storeConfig} parameter and the parent class field
+     * {@link #memoryMaxSize} are safe to use because they are set before this method runs.
+     */
+    protected Cache<String, SelectBufferResult> initCache(MessageStoreConfig storeConfig) {
 
+        ReadAheadCacheTtl ttl = resolveReadAheadCacheTtl(storeConfig);
+        if (ttl == null) {
+            return buildLegacyCache(storeConfig.getReadAheadCacheExpireDuration(), memoryMaxSize, Ticker.systemTicker());
+        }
+        if (ttl.isAfterReadNotShorter()) {
+            log.warn("MessageStoreFetcher read-ahead cache afterReadTtl ({}ms) >= createTtl ({}ms); "
+                + "reads will extend rather than shorten entry lifetime", ttl.afterReadMs, ttl.createMs);
+        }
+        return buildDualTtlCache(ttl.createMs, ttl.afterReadMs, memoryMaxSize, Ticker.systemTicker());
+    }
+
+    static ReadAheadCacheTtl resolveReadAheadCacheTtl(MessageStoreConfig storeConfig) {
+        long createTtl = storeConfig.getReadAheadCacheCreateExpireDuration();
+        long afterReadTtl = storeConfig.getReadAheadCacheAfterReadExpireDuration();
+        if (createTtl <= 0 && afterReadTtl <= 0) {
+            return null;
+        }
+        long fallback = storeConfig.getReadAheadCacheExpireDuration();
+        long createMs = createTtl > 0 ? createTtl : fallback;
+        long afterReadMs = afterReadTtl > 0 ? afterReadTtl : fallback;
+        if (createMs <= 0 || afterReadMs <= 0) {
+            return null;
+        }
+        return new ReadAheadCacheTtl(createMs, afterReadMs);
+    }
+
+    static Cache<String, SelectBufferResult> buildLegacyCache(long expireMs, long memoryMaxSize, Ticker ticker) {
         return Caffeine.newBuilder()
+            .ticker(ticker)
             .scheduler(Scheduler.systemScheduler())
             // Clients may repeatedly request messages at the same offset in tiered storage,
             // causing the request queue to become full. Using expire after read or write policy
             // to refresh the cache expiration time.
-            .expireAfterAccess(storeConfig.getReadAheadCacheExpireDuration(), TimeUnit.MILLISECONDS)
+            .expireAfterAccess(expireMs, TimeUnit.MILLISECONDS)
             .maximumWeight(memoryMaxSize)
             // Using the buffer size of messages to calculate memory usage
             .weigher((String key, SelectBufferResult buffer) -> buffer.getSize())
             .recordStats()
             .build();
+    }
+
+    static Cache<String, SelectBufferResult> buildDualTtlCache(
+        long createMs, long afterReadMs, long memoryMaxSize, Ticker ticker) {
+        return Caffeine.newBuilder()
+            .ticker(ticker)
+            .scheduler(Scheduler.systemScheduler())
+            .expireAfter(new DualTtlExpiry(createMs, afterReadMs))
+            .maximumWeight(memoryMaxSize)
+            .weigher((String key, SelectBufferResult buffer) -> buffer.getSize())
+            .recordStats()
+            .build();
+    }
+
+    static final class ReadAheadCacheTtl {
+        final long createMs;
+        final long afterReadMs;
+
+        ReadAheadCacheTtl(long createMs, long afterReadMs) {
+            this.createMs = createMs;
+            this.afterReadMs = afterReadMs;
+        }
+
+        boolean isAfterReadNotShorter() {
+            return afterReadMs >= createMs;
+        }
+    }
+
+    static final class DualTtlExpiry implements Expiry<String, SelectBufferResult> {
+        private final long createNanos;
+        private final long afterReadNanos;
+
+        DualTtlExpiry(long createMs, long afterReadMs) {
+            this.createNanos = TimeUnit.MILLISECONDS.toNanos(createMs);
+            this.afterReadNanos = TimeUnit.MILLISECONDS.toNanos(afterReadMs);
+        }
+
+        @Override
+        public long expireAfterCreate(String key, SelectBufferResult value, long currentTime) {
+            return createNanos;
+        }
+
+        @Override
+        public long expireAfterUpdate(String key, SelectBufferResult value, long currentTime, long currentDuration) {
+            return createNanos;
+        }
+
+        @Override
+        public long expireAfterRead(String key, SelectBufferResult value, long currentTime, long currentDuration) {
+            return afterReadNanos;
+        }
     }
 
     public Cache<String, SelectBufferResult> getFetcherCache() {
