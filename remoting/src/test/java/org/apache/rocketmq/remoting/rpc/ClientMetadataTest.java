@@ -17,6 +17,7 @@
 package org.apache.rocketmq.remoting.rpc;
 
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
@@ -163,6 +164,26 @@ public class ClientMetadataTest {
         MessageQueue staleQueue = new MessageQueue(defaultTopic, TopicQueueMappingUtils.getMockBrokerName(scope), 1);
         assertEquals(1, actual.size());
         assertFalse(actual.containsKey(staleQueue));
+    }
+
+    @Test
+    public void testTopicRouteData2EndpointsForStaticTopicUsesMaxTotalQueuesInSameEpoch() {
+        String scope = "scope";
+        String brokerA = "brokerA";
+        String brokerB = "brokerB";
+        long epoch = (long) Integer.MAX_VALUE + 1L;
+        TopicRouteData topicRouteData = new TopicRouteData();
+        Map<String, TopicQueueMappingInfo> mappingInfos = new LinkedHashMap<>();
+        mappingInfos.put(brokerA, buildMappingInfo(scope, brokerA, epoch, 1));
+        mappingInfos.put(brokerB, buildMappingInfo(scope, brokerB, epoch, 2));
+        topicRouteData.setTopicQueueMappingByBroker(mappingInfos);
+
+        ConcurrentMap<MessageQueue, String> actual =
+            ClientMetadata.topicRouteData2EndpointsForStaticTopic(defaultTopic, topicRouteData);
+
+        MessageQueue missingQueue = new MessageQueue(defaultTopic, TopicQueueMappingUtils.getMockBrokerName(scope), 1);
+        assertEquals(2, actual.size());
+        assertEquals(MixAll.LOGICAL_QUEUE_MOCK_BROKER_NAME_NOT_EXIST, actual.get(missingQueue));
     }
 
     private TopicQueueMappingInfo buildMappingInfo(String scope, String brokerName, long epoch) {
