@@ -442,6 +442,20 @@ public class PopReviveServiceTest {
         assertEquals(1, commitOffsetCaptor.getValue().longValue());
     }
 
+    @Test
+    public void testGenSortListShouldSortLargeReviveOffsets() {
+        PopReviveService.ConsumeReviveObj consumeReviveObj = new PopReviveService.ConsumeReviveObj();
+        PopCheckPoint lowOffsetCk = buildPopCheckPoint(0, 0, 1);
+        PopCheckPoint highOffsetCk = buildPopCheckPoint(1, 0, (long) Integer.MAX_VALUE + 2);
+        consumeReviveObj.map.put("high", highOffsetCk);
+        consumeReviveObj.map.put("low", lowOffsetCk);
+
+        List<PopCheckPoint> sortList = consumeReviveObj.genSortList();
+
+        assertEquals(lowOffsetCk, sortList.get(0));
+        assertEquals(highOffsetCk, sortList.get(1));
+    }
+
     public static MessageExtBrokerInner buildBatchAckMsg(BatchAckMsg batchAckMsg, long deliverMs, long reviveOffset, long deliverTime) {
         MessageExtBrokerInner result = buildBatchAckInnerMessage(REVIVE_TOPIC, batchAckMsg, REVIVE_QUEUE_ID, STORE_HOST, deliverMs, PopMessageProcessor.genAckUniqueId(batchAckMsg));
         result.setQueueOffset(reviveOffset);
