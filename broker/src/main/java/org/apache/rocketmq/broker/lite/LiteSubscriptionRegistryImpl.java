@@ -72,10 +72,19 @@ import org.apache.rocketmq.remoting.protocol.header.NotifyUnsubscribeLiteRequest
 public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteSubscriptionRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
 
+    /** Active clientId → Netty channel, used to push unsubscribe notifications. */
     protected final ConcurrentMap<String/*clientId*/, Channel> clientChannels = new ConcurrentHashMap<>();
+
+    /** Primary forward index: clientId → its full subscription (group, topic, lmq set). */
     protected final ConcurrentMap<String/*clientId*/, LiteSubscription> client2Subscription = new ConcurrentHashMap<>();
+
+    /** Reverse index: lmqName → clients subscribed to it, for Pop dispatch lookup. */
     protected final ConcurrentMap<String/*lmqName*/, Set<ClientGroup>> liteTopic2Group = new ConcurrentHashMap<>();
+
+    /** Tracks which groups are wildcard-mode for each parent topic. */
     protected final ConcurrentMap<String/*topic*/, Set<String/*group*/>> wildcardGroupMap = new ConcurrentHashMap<>();
+
+    /** Cached expansion of wildcard group clients per group, 30s TTL. */
     private final Cache<String/*group*/, List<ClientGroup>> wildcardClientCache =
         CacheBuilder.newBuilder().maximumSize(2000).expireAfterWrite(30, TimeUnit.SECONDS).build();
 
