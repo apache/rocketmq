@@ -105,22 +105,13 @@ public class LiteEventDispatcherTest {
     }
 
     @Test
-    public void testDispatchWhenEventModeDisabled() {
-        brokerConfig.setEnableLiteEventMode(false);
-        liteEventDispatcher.dispatch("group", "lmqName", 0, 0L, 0L);
-        verify(liteSubscriptionRegistry, never()).getAllSubscriber(anyString(), anyString());
-    }
-
-    @Test
     public void testDispatchWhenQueueIdNotZero() {
-        brokerConfig.setEnableLiteEventMode(true);
         liteEventDispatcher.dispatch("group", "lmqName", 1, 0L, 0L);
         verify(liteSubscriptionRegistry, never()).getAllSubscriber(anyString(), anyString());
     }
 
     @Test
     public void testDispatchCallsDoDispatch() {
-        brokerConfig.setEnableLiteEventMode(true);
         String lmqName = LiteUtil.toLmqName("parentTopic", "lmqName");
         LiteEventDispatcher spyDispatcher = Mockito.spy(liteEventDispatcher);
         spyDispatcher.dispatch("group", lmqName, 0, 0L, 0L);
@@ -129,7 +120,6 @@ public class LiteEventDispatcherTest {
 
     @Test
     public void testDoDispatchWhenWrapperIsNull() {
-        brokerConfig.setEnableLiteEventMode(true);
         when(liteSubscriptionRegistry.getAllSubscriber("group", "lmqName")).thenReturn(null);
 
         // Use reflection to access private method
@@ -147,8 +137,6 @@ public class LiteEventDispatcherTest {
 
     @Test
     public void testDoDispatchWithListWrapper() {
-        brokerConfig.setEnableLiteEventMode(true);
-
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         subscriptionGroupConfig.setWildcardLiteGroup(false);
         when(subscriptionGroupManager.findSubscriptionGroupConfig("group")).thenReturn(subscriptionGroupConfig);
@@ -166,8 +154,6 @@ public class LiteEventDispatcherTest {
 
     @Test
     public void testDoDispatchWithMapWrapper() {
-        brokerConfig.setEnableLiteEventMode(true);
-
         SubscriberWrapper.MapWrapper mapWrapper = mock(SubscriberWrapper.MapWrapper.class);
         Map<String, List<ClientGroup>> groupMap = new HashMap<>();
         groupMap.put("key", Collections.singletonList(new ClientGroup("clientId", "group")));
@@ -190,16 +176,7 @@ public class LiteEventDispatcherTest {
     }
 
     @Test
-    public void testSelectAndDispatchWhenEventModeDisabled() {
-        brokerConfig.setEnableLiteEventMode(false);
-        List<ClientGroup> clients = Collections.singletonList(new ClientGroup("clientId", "group"));
-        boolean result = liteEventDispatcher.selectAndDispatch("lmqName", clients, null);
-        assertTrue(result);
-    }
-
-    @Test
     public void testSelectAndDispatchSelectsClientAndDispatches() {
-        brokerConfig.setEnableLiteEventMode(true);
         List<ClientGroup> clients = Collections.singletonList(new ClientGroup("clientId", "group"));
 
         LiteEventDispatcher spyDispatcher = Mockito.spy(liteEventDispatcher);
@@ -212,7 +189,6 @@ public class LiteEventDispatcherTest {
 
     @Test
     public void testSelectAndDispatchExcludesSpecifiedClient() {
-        brokerConfig.setEnableLiteEventMode(true);
         List<ClientGroup> clients = Arrays.asList(
             new ClientGroup("excludeId", "group"),
             new ClientGroup("clientId", "group")
@@ -263,7 +239,6 @@ public class LiteEventDispatcherTest {
 
     @Test
     public void testGetEventIteratorInEventMode() {
-        brokerConfig.setEnableLiteEventMode(true);
         String clientId = "clientId";
         String group = "group";
 
@@ -276,24 +251,7 @@ public class LiteEventDispatcherTest {
     }
 
     @Test
-    public void testGetEventIteratorWhenNotInEventMode() {
-        brokerConfig.setEnableLiteEventMode(false);
-        String clientId = "clientId";
-        LiteSubscription subscription = mock(LiteSubscription.class);
-        Set<String> topicSet = new HashSet<>();
-        topicSet.add("topic1");
-        when(subscription.getLiteTopicSet()).thenReturn(topicSet);
-        when(liteSubscriptionRegistry.getLiteSubscription(clientId)).thenReturn(subscription);
-
-        Iterator<String> iterator = liteEventDispatcher.getEventIterator(clientId);
-        assertNotNull(iterator);
-        assertTrue(iterator.hasNext());
-        assertEquals("topic1", iterator.next());
-    }
-
-    @Test
     public void testDoFullDispatchForClientWhenSubscriptionIsNull() {
-        brokerConfig.setEnableLiteEventMode(true);
         String clientId = "clientId";
         String group = "group";
 
@@ -305,7 +263,6 @@ public class LiteEventDispatcherTest {
 
     @Test
     public void testDoFullDispatchForClientWhenSubscriptionHasNoTopics() {
-        brokerConfig.setEnableLiteEventMode(true);
         String clientId = "clientId";
         String group = "group";
 
@@ -457,23 +414,6 @@ public class LiteEventDispatcherTest {
     }
 
     @Test
-    public void testLiteSubscriptionIteratorHasNextAndNext() {
-        Set<String> topics = new HashSet<>();
-        topics.add("topic1");
-        topics.add("topic2");
-        Iterator<String> topicIterator = topics.iterator();
-
-        LiteEventDispatcher.LiteSubscriptionIterator iterator =
-            new LiteEventDispatcher.LiteSubscriptionIterator("parentTopic", topicIterator);
-
-        assertTrue(iterator.hasNext());
-        assertNotNull(iterator.next());
-        assertTrue(iterator.hasNext());
-        assertNotNull(iterator.next());
-        assertFalse(iterator.hasNext());
-    }
-
-    @Test
     public void testComparatorComparesTimestampsCorrectly() {
         String clientId1 = "clientId1";
         String clientId2 = "clientId2";
@@ -568,7 +508,6 @@ public class LiteEventDispatcherTest {
         String clientId = "testClientId";
         String group = "testGroup";
         String lmqName = "testLmq";
-        brokerConfig.setEnableLiteEventMode(true);
 
         LiteSubscription subscription = new LiteSubscription();
         Set<String> topics = new HashSet<>();

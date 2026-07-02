@@ -542,7 +542,6 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean enableCreateSysGroup = true;
 
-    private boolean enableLiteEventMode = true;
 
     private long liteEventCheckInterval = 10 * 1000;
 
@@ -2372,13 +2371,6 @@ public class BrokerConfig extends BrokerIdentity {
         this.useSeparateRetryQueue = useSeparateRetryQueue;
     }
 
-    public boolean isEnableLiteEventMode() {
-        return enableLiteEventMode;
-    }
-
-    public void setEnableLiteEventMode(boolean enableLiteEventMode) {
-        this.enableLiteEventMode = enableLiteEventMode;
-    }
 
     public long getLiteEventCheckInterval() {
         return liteEventCheckInterval;
