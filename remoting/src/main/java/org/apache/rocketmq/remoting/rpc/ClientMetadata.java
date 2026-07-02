@@ -17,6 +17,7 @@
 package org.apache.rocketmq.remoting.rpc;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +120,8 @@ public class ClientMetadata {
             Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap =  mapEntry.getValue();
             ConcurrentMap<MessageQueue, TopicQueueMappingInfo> mqEndPoints = new ConcurrentHashMap<>();
             List<Map.Entry<String, TopicQueueMappingInfo>> mappingInfos = new ArrayList<>(topicQueueMappingInfoMap.entrySet());
-            mappingInfos.sort((o1, o2) -> Long.compare(o2.getValue().getEpoch(), o1.getValue().getEpoch()));
+            mappingInfos.sort(Comparator.comparingLong(
+                (Map.Entry<String, TopicQueueMappingInfo> entry) -> entry.getValue().getEpoch()).reversed());
             int maxTotalNums = 0;
             long maxTotalNumOfEpoch = -1;
             for (Map.Entry<String, TopicQueueMappingInfo> entry : mappingInfos) {
