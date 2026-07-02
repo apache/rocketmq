@@ -78,10 +78,17 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     /** Primary forward index: clientId → its full subscription (group, topic, lmq set). */
     protected final ConcurrentMap<String/*clientId*/, LiteSubscription> client2Subscription = new ConcurrentHashMap<>();
 
-    /** Reverse index: lmqName → clients subscribed to it, for Pop dispatch lookup. */
+    /**
+     * Reverse index: lmqName → clients subscribed to it, for Pop dispatch lookup.
+     * lmqName -> {clientId, group}
+     */
     protected final ConcurrentMap<String/*lmqName*/, Set<ClientGroup>> liteTopic2Group = new ConcurrentHashMap<>();
 
-    /** Tracks which groups are wildcard-mode for each parent topic. */
+    /**
+     * Tracks which groups are wildcard-mode for each parent topic.
+     * Wildcard Group is a special subscription mode in Lite Topic
+     * where a single group receives messages from all LMQs under its parent topic
+     */
     protected final ConcurrentMap<String/*topic*/, Set<String/*group*/>> wildcardGroupMap = new ConcurrentHashMap<>();
 
     /** Cached expansion of wildcard group clients per group, 30s TTL. */
@@ -109,6 +116,27 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         clientChannels.put(clientId, channel);
     }
 
+    /**
+     * Add a partial subscription for {@code lmqNameSet} to the given client,
+     * unioning with whatever the client already subscribes to.
+     *
+     * <p>Rejects the call with {@link LiteQuotaException} if the total active
+     * (client, liteTopic) reference count would exceed
+     * {@code maxLiteSubscriptionCount}, and with {@link IllegalStateException}
+     * if the group is a wildcard group (use {@link #addCompleteSubscription}
+     * instead).
+     *
+     * <p>For each lmqName that is still subscription-active, the call:
+     * <ol>
+     *   <li>Adds the lmqName to the client's {@link LiteSubscription};</li>
+     *   <li>In exclusive mode, evicts the previous holder of the same
+     *   (group, lmqName) pair and clears any stale tombstone for the
+     *   caller;</li>
+     *   <li>Applies {@code offsetOption} via {@link #resetOffset};</li>
+     *   <li>Registers the (clientId, group) in
+     *   {@link #liteTopic2Group}.</li>
+     * </ol>
+     */
     @Override
     public void addPartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet,
         OffsetOption offsetOption) {
