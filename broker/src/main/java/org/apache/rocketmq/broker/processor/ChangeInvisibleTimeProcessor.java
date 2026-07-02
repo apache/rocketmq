@@ -343,15 +343,18 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
                     this.brokerController.getBrokerStatsManager().incBrokerCkNums(1);
                     this.brokerController.getBrokerStatsManager().incGroupCkNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
                 }
-            }
-            if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
-                && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
-                && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
-                && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
-                POP_LOGGER.error("change invisible, put new ck error: {}", putMessageResult);
-                return CompletableFuture.completedFuture(false);
+                if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
+                    && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_DISK_TIMEOUT
+                    && putMessageResult.getPutMessageStatus() != PutMessageStatus.FLUSH_SLAVE_TIMEOUT
+                    && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
+                    POP_LOGGER.error("change invisible, put new ck error: {}", putMessageResult);
+                    return CompletableFuture.completedFuture(false);
+                } else {
+                    return ackOrigin(requestHeader, extraInfo);
+                }
             } else {
-                return ackOrigin(requestHeader, extraInfo);
+                POP_LOGGER.error("change invisible, put new ck error: putMessageResult is null");
+                return CompletableFuture.completedFuture(false);
             }
         }).exceptionally(throwable -> {
             POP_LOGGER.error("change invisible, put new ck error", throwable);
