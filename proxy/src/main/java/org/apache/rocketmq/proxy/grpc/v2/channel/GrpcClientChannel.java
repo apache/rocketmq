@@ -155,6 +155,23 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
 
             return asLongText().compareTo(o.asLongText());
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof GrpcChannelId)) {
+                return false;
+            }
+            GrpcChannelId that = (GrpcChannelId) o;
+            return this.clientId == null ? that.clientId == null : this.clientId.equals(that.clientId);
+        }
+
+        @Override
+        public int hashCode() {
+            return this.clientId == null ? 0 : this.clientId.hashCode();
+        }
     }
 
     public void setClientObserver(StreamObserver<TelemetryCommand> future) {

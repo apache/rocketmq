@@ -252,5 +252,29 @@ public class PrintMessageByQueueCommand implements SubCommand {
         public int compareTo(final TagCountBean o) {
             return (int) (o.getCount().get() - this.count.get());
         }
+
+        // Note: compareTo orders by count for display sorting, but the identity of a
+        // TagCountBean is its tag. equals/hashCode are intentionally based on tag so that
+        // two beans with the same tag but different counts are treated as equal, and beans
+        // with different tags are never collapsed even if their counts happen to match.
+        // This means compareTo is inconsistent with equals by design (allowed by the
+        // Comparable contract when the ordering is "not consistent with equals"); the class
+        // is only used with Collections.sort on a List, never in a sorted set/map.
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof TagCountBean)) {
+                return false;
+            }
+            TagCountBean that = (TagCountBean) o;
+            return this.tag == null ? that.tag == null : this.tag.equals(that.tag);
+        }
+
+        @Override
+        public int hashCode() {
+            return tag == null ? 0 : tag.hashCode();
+        }
     }
 }

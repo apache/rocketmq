@@ -77,6 +77,23 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
         return Long.compare(this.baseOffset, o.baseOffset);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof FileSegment)) {
+            return false;
+        }
+        FileSegment that = (FileSegment) o;
+        return this.baseOffset == that.baseOffset;
+    }
+
+    @Override
+    public int hashCode() {
+        return Long.hashCode(baseOffset);
+    }
+
     public long getBaseOffset() {
         return baseOffset;
     }
