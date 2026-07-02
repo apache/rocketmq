@@ -126,7 +126,10 @@ public class ClientMetadata {
             long maxTotalNumOfEpoch = -1;
             for (Map.Entry<String, TopicQueueMappingInfo> entry : mappingInfos) {
                 TopicQueueMappingInfo info = entry.getValue();
-                if (info.getEpoch() >= maxTotalNumOfEpoch && info.getTotalQueues() > maxTotalNums) {
+                if (info.getEpoch() > maxTotalNumOfEpoch) {
+                    maxTotalNumOfEpoch = info.getEpoch();
+                    maxTotalNums = info.getTotalQueues();
+                } else if (info.getEpoch() == maxTotalNumOfEpoch && info.getTotalQueues() > maxTotalNums) {
                     maxTotalNums = info.getTotalQueues();
                 }
                 for (Map.Entry<Integer, Integer> idEntry : entry.getValue().getCurrIdMap().entrySet()) {

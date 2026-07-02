@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -143,12 +144,37 @@ public class ClientMetadataTest {
         assertEquals(newBroker, actual.get(mq));
     }
 
+    @Test
+    public void testTopicRouteData2EndpointsForStaticTopicUsesLatestEpochTotalQueues() {
+        String scope = "scope";
+        String oldBroker = "oldBroker";
+        String newBroker = "newBroker";
+        long oldEpoch = 0L;
+        long newEpoch = (long) Integer.MAX_VALUE + 1L;
+        TopicRouteData topicRouteData = new TopicRouteData();
+        Map<String, TopicQueueMappingInfo> mappingInfos = new LinkedHashMap<>();
+        mappingInfos.put(oldBroker, buildMappingInfo(scope, oldBroker, oldEpoch, 2));
+        mappingInfos.put(newBroker, buildMappingInfo(scope, newBroker, newEpoch, 1));
+        topicRouteData.setTopicQueueMappingByBroker(mappingInfos);
+
+        ConcurrentMap<MessageQueue, String> actual =
+            ClientMetadata.topicRouteData2EndpointsForStaticTopic(defaultTopic, topicRouteData);
+
+        MessageQueue staleQueue = new MessageQueue(defaultTopic, TopicQueueMappingUtils.getMockBrokerName(scope), 1);
+        assertEquals(1, actual.size());
+        assertFalse(actual.containsKey(staleQueue));
+    }
+
     private TopicQueueMappingInfo buildMappingInfo(String scope, String brokerName, long epoch) {
+        return buildMappingInfo(scope, brokerName, epoch, 1);
+    }
+
+    private TopicQueueMappingInfo buildMappingInfo(String scope, String brokerName, long epoch, int totalQueues) {
         TopicQueueMappingInfo info = new TopicQueueMappingInfo();
         info.setScope(scope);
         info.setCurrIdMap(new ConcurrentHashMap<>());
         info.getCurrIdMap().put(0, 0);
-        info.setTotalQueues(1);
+        info.setTotalQueues(totalQueues);
         info.setBname(brokerName);
         info.setEpoch(epoch);
         return info;
