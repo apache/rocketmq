@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -130,7 +131,7 @@ public class ClientMetadataTest {
         long oldEpoch = 0L;
         long newEpoch = (long) Integer.MAX_VALUE + 1L;
         TopicRouteData topicRouteData = new TopicRouteData();
-        Map<String, TopicQueueMappingInfo> mappingInfos = new HashMap<>();
+        Map<String, TopicQueueMappingInfo> mappingInfos = new LinkedHashMap<>();
         mappingInfos.put(oldBroker, buildMappingInfo(scope, oldBroker, oldEpoch));
         mappingInfos.put(newBroker, buildMappingInfo(scope, newBroker, newEpoch));
         topicRouteData.setTopicQueueMappingByBroker(mappingInfos);
