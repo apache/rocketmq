@@ -338,7 +338,7 @@ public class TopicQueueMappingUtils {
 
 
     public static Map<Integer, TopicQueueMappingOne> checkAndBuildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
-        mappingDetailList.sort((o1, o2) -> (int) (o2.getEpoch() - o1.getEpoch()));
+        mappingDetailList.sort((o1, o2) -> Long.compare(o2.getEpoch(), o1.getEpoch()));
 
         int maxNum = 0;
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<>();

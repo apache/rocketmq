@@ -20,6 +20,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -119,5 +120,36 @@ public class ClientMetadataTest {
 
         ConcurrentMap<MessageQueue, String> actual = ClientMetadata.topicRouteData2EndpointsForStaticTopic(defaultTopic, topicRouteData);
         assertEquals(1, actual.size());
+    }
+
+    @Test
+    public void testTopicRouteData2EndpointsForStaticTopicUsesLatestEpoch() {
+        String scope = "scope";
+        String oldBroker = "oldBroker";
+        String newBroker = "newBroker";
+        long oldEpoch = 0L;
+        long newEpoch = (long) Integer.MAX_VALUE + 1L;
+        TopicRouteData topicRouteData = new TopicRouteData();
+        Map<String, TopicQueueMappingInfo> mappingInfos = new HashMap<>();
+        mappingInfos.put(oldBroker, buildMappingInfo(scope, oldBroker, oldEpoch));
+        mappingInfos.put(newBroker, buildMappingInfo(scope, newBroker, newEpoch));
+        topicRouteData.setTopicQueueMappingByBroker(mappingInfos);
+
+        ConcurrentMap<MessageQueue, String> actual =
+            ClientMetadata.topicRouteData2EndpointsForStaticTopic(defaultTopic, topicRouteData);
+
+        MessageQueue mq = new MessageQueue(defaultTopic, TopicQueueMappingUtils.getMockBrokerName(scope), 0);
+        assertEquals(newBroker, actual.get(mq));
+    }
+
+    private TopicQueueMappingInfo buildMappingInfo(String scope, String brokerName, long epoch) {
+        TopicQueueMappingInfo info = new TopicQueueMappingInfo();
+        info.setScope(scope);
+        info.setCurrIdMap(new ConcurrentHashMap<>());
+        info.getCurrIdMap().put(0, 0);
+        info.setTotalQueues(1);
+        info.setBname(brokerName);
+        info.setEpoch(epoch);
+        return info;
     }
 }
