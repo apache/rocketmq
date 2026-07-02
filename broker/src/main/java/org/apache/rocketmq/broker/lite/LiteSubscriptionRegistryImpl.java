@@ -118,7 +118,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
 
     /**
      * Add a partial subscription for {@code lmqNameSet} to the given client,
-     * unioning with whatever the client already subscribes to.
+     * union with whatever the client already subscribes to.
      *
      * <p>Rejects the call with {@link LiteQuotaException} if the total active
      * (client, liteTopic) reference count would exceed
