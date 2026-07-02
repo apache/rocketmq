@@ -467,11 +467,9 @@ public abstract class NettyRemotingAbstract {
      */
     public void processResponseCommand(ChannelHandlerContext ctx, RemotingCommand cmd) {
         final int opaque = cmd.getOpaque();
-        final ResponseFuture responseFuture = responseTable.get(opaque);
+        final ResponseFuture responseFuture = responseTable.remove(opaque);
         if (responseFuture != null) {
             responseFuture.setResponseCommand(cmd);
-
-            responseTable.remove(opaque);
 
             if (responseFuture.getInvokeCallback() != null) {
                 executeInvokeCallback(responseFuture);
@@ -564,10 +562,12 @@ public abstract class NettyRemotingAbstract {
             ResponseFuture rep = next.getValue();
 
             if ((rep.getBeginTimestamp() + rep.getTimeoutMillis() + 1000) <= System.currentTimeMillis()) {
-                rep.release();
-                it.remove();
-                rfList.add(rep);
-                log.warn("remove timeout request, " + rep);
+                ResponseFuture removed = responseTable.remove(next.getKey());
+                if (removed != null) {
+                    removed.release();
+                    rfList.add(removed);
+                    log.warn("remove timeout request, " + removed);
+                }
             }
         }
 
