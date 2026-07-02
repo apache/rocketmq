@@ -140,6 +140,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     @Override
     public void addPartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet,
         OffsetOption offsetOption) {
+        // default value is 100000
         long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
         if (getActiveSubscriptionNum() >= maxCount) {
             // No need to check existence, if reach here, it must be new.
@@ -181,6 +182,20 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
     }
 
+    /**
+     * Replace the client's full subscription set with {@code lmqNameAll}
+     * (filtered to active lmqNames). For wildcard groups, the new set is
+     * reduced to a single synthetic lmqName and the wildcard marker is
+     * registered.
+     *
+     * <p>The implementation diffs the previous set against the new one:
+     * lmqNames no longer in the new set are removed from the forward and
+     * reverse indexes; lmqNames added are registered. In exclusive groups,
+     * any leftover eviction tombstones for the client are either re-notified
+     * (if the lmqName is still in the new set, indicating the previous
+     * unsubscribe notification was lost) or cleaned up (if the lmqName is no
+     * longer subscribed).
+     */
     @Override
     public void addCompleteSubscription(String clientId, String group, String topic, Set<String> lmqNameAll, long version) {
         Set<String> lmqNameNew;
