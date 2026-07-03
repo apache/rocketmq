@@ -26,6 +26,7 @@ public class NettyServerConfig implements Cloneable {
     private int listenPort = 0;
     private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 0;
+    private int serverCallbackExecutorQueueCapacity = 10000;
     private int serverSelectorThreads = 3;
     private int serverOnewaySemaphoreValue = 256;
     private int serverAsyncSemaphoreValue = 64;
@@ -97,6 +98,14 @@ public class NettyServerConfig implements Cloneable {
 
     public void setServerCallbackExecutorThreads(int serverCallbackExecutorThreads) {
         this.serverCallbackExecutorThreads = serverCallbackExecutorThreads;
+    }
+
+    public int getServerCallbackExecutorQueueCapacity() {
+        return serverCallbackExecutorQueueCapacity;
+    }
+
+    public void setServerCallbackExecutorQueueCapacity(int serverCallbackExecutorQueueCapacity) {
+        this.serverCallbackExecutorQueueCapacity = serverCallbackExecutorQueueCapacity;
     }
 
     public int getServerAsyncSemaphoreValue() {

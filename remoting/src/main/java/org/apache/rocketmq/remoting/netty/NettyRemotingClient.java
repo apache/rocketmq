@@ -84,7 +84,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -153,8 +153,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (publicThreadNums <= 0) {
             publicThreadNums = 4;
         }
+        int queueCapacity = nettyClientConfig.getClientCallbackExecutorQueueCapacity();
+        if (queueCapacity <= 0) {
+            queueCapacity = 10000;
+        }
 
-        this.publicExecutor = Executors.newFixedThreadPool(publicThreadNums, new ThreadFactoryImpl("NettyClientPublicExecutor_"));
+        this.publicExecutor = ThreadUtils.newThreadPoolExecutor(publicThreadNums, publicThreadNums, 0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>(queueCapacity), new ThreadFactoryImpl("NettyClientPublicExecutor_"));
 
         this.scanExecutor = ThreadUtils.newThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("NettyClientScan_thread_"));

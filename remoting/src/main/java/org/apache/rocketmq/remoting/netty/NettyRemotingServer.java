@@ -86,7 +86,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -169,8 +169,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         if (publicThreadNums <= 0) {
             publicThreadNums = 4;
         }
+        int queueCapacity = nettyServerConfig.getServerCallbackExecutorQueueCapacity();
+        if (queueCapacity <= 0) {
+            queueCapacity = 10000;
+        }
 
-        return Executors.newFixedThreadPool(publicThreadNums, new ThreadFactoryImpl("NettyServerPublicExecutor_"));
+        return ThreadUtils.newThreadPoolExecutor(publicThreadNums, publicThreadNums, 0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>(queueCapacity), new ThreadFactoryImpl("NettyServerPublicExecutor_"));
     }
 
     private ScheduledExecutorService buildScheduleExecutor() {
