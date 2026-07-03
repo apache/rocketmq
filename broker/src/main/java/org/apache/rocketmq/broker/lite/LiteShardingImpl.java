@@ -51,9 +51,11 @@ public class LiteShardingImpl implements LiteSharding {
 
     /**
      * Compute the broker that owns the given LMQ via consistent hashing of
-     * the lite topic segment over the parent's write queues. Falls back to
-     * the current broker name when the parent route is missing, has no
-     * queues, or the LMQ name is not a valid lite topic.
+     * the lite topic segment over the parent's write queues.
+     * Falls back to the current broker name when
+     *  - the parent route is missing,
+     *  - or has no queues,
+     *  - or the LMQ name is not a valid lite topic.
      */
     @Override
     public String shardingByLmqName(String parentTopic, String lmqName) {
@@ -70,6 +72,7 @@ public class LiteShardingImpl implements LiteSharding {
         if (StringUtils.isEmpty(liteTopic)) {
             return brokerController.getBrokerConfig().getBrokerName();
         }
+
         int bucket = Hashing.consistentHash(liteTopic.hashCode(), writeQueues.size());
         MessageQueue targetQueue = writeQueues.get(bucket);
         return targetQueue.getBrokerName();
