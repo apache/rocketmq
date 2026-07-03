@@ -20,9 +20,12 @@ import apache.rocketmq.v2.ClientType;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.DoubleGaugeBuilder;
+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.LongCounterBuilder;
 import io.opentelemetry.api.metrics.LongGaugeBuilder;
+import io.opentelemetry.api.metrics.LongHistogram;
+import io.opentelemetry.api.metrics.LongHistogramBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.api.metrics.ObservableLongMeasurement;
@@ -31,9 +34,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
+import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceStats;
@@ -42,16 +48,19 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_INDEX_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_TYPE_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_UP;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_GROUP;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_TOPIC;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_CLIENT_TYPE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_INDEX_TYPE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_OPERATION;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -64,6 +73,8 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
     @Before
     public void setUp() {
         ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(null);
+        ProxyMetricsManager.proxyClientAdminRequestsTotal = new NopLongCounter();
+        ProxyMetricsManager.proxyClientAdminRequestLatency = new NopLongHistogram();
         ProxyMetricsManager.proxyClientReadModelOperationsTotal = new NopLongCounter();
     }
 
@@ -78,6 +89,8 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
         ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientIndexCallback =
             mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
         mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
         Map<ClientType, Long> clientTypeCounts = new HashMap<>();
         clientTypeCounts.put(ClientType.PRODUCER, 1L);
         clientTypeCounts.put(ClientType.PUSH_CONSUMER, 2L);
@@ -117,6 +130,8 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
         mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
         mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
         LongCounter operationCounter = mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
 
         ProxyMetricsManager.initMetrics(
             meter,
@@ -132,6 +147,41 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
     }
 
     @Test
+    public void initMetricsRecordsProxyClientAdminRequestMetrics() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        LongCounter requestCounter = mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        LongHistogram requestLatency = mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+
+        ProxyMetricsManager.initMetrics(
+            meter,
+            Attributes::builder,
+            () -> new ProxyClientReadServiceStats(0L, 0L, 0L, Collections.emptyMap())
+        );
+
+        ProxyMetricsManager.recordProxyClientAdminRequest(
+            ClientAdminOperation.DESCRIBE_CLIENT,
+            ClientAdminMetricsResult.NOT_FOUND,
+            12L
+        );
+
+        verify(requestCounter).add(eq(1L), argThat(attributes ->
+            ClientAdminOperation.DESCRIBE_CLIENT.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
+                && ClientAdminMetricsResult.NOT_FOUND.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_RESULT)))));
+        verify(requestLatency).record(eq(12L), argThat(attributes ->
+            ClientAdminOperation.DESCRIBE_CLIENT.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
+                && ClientAdminMetricsResult.NOT_FOUND.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_RESULT)))));
+    }
+
+    @Test
     public void defaultGrpcMessagingActivityRegistersProxyClientStatsSupplier() throws Exception {
         Meter meter = mock(Meter.class);
         mockLongGauge(meter, GAUGE_PROXY_UP);
@@ -140,6 +190,8 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
         mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
         mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
         mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
         MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
         ProxyRelayService proxyRelayService = mock(ProxyRelayService.class);
         when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
@@ -181,6 +233,19 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
         when(longCounterBuilder.setDescription(any(String.class))).thenReturn(longCounterBuilder);
         when(longCounterBuilder.build()).thenReturn(longCounter);
         return longCounter;
+    }
+
+    private static LongHistogram mockLongHistogram(Meter meter, String name) {
+        DoubleHistogramBuilder doubleHistogramBuilder = mock(DoubleHistogramBuilder.class);
+        LongHistogramBuilder longHistogramBuilder = mock(LongHistogramBuilder.class);
+        LongHistogram longHistogram = mock(LongHistogram.class);
+
+        when(meter.histogramBuilder(name)).thenReturn(doubleHistogramBuilder);
+        when(doubleHistogramBuilder.setDescription(any(String.class))).thenReturn(doubleHistogramBuilder);
+        when(doubleHistogramBuilder.setUnit(any(String.class))).thenReturn(doubleHistogramBuilder);
+        when(doubleHistogramBuilder.ofLongs()).thenReturn(longHistogramBuilder);
+        when(longHistogramBuilder.build()).thenReturn(longHistogram);
+        return longHistogram;
     }
 
     private static ProxyClientInfo client(String clientId) {

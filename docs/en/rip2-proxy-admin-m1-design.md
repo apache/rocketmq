@@ -225,13 +225,13 @@ The current internal implementation exposes read-model gauges for:
 
 It also records read-model upsert/remove mutation counters.
 
-Planned follow-up metrics are:
+The current internal admin service wrapper records:
 
 - admin query counters by operation and result code.
 - admin query latency histograms.
 
-Admin-query metrics should be added after the public adapter is stable so label
-cardinality is controlled.
+The public adapter should reuse these low-cardinality operation and result labels
+when the API surface is finalized.
 
 ## Error Semantics
 
@@ -295,5 +295,5 @@ Follow-up lifecycle tests should cover:
 7. Add the public admin gRPC/protobuf adapter.
 8. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy
    and service are already in place.
-9. Extend metrics with admin query counters and latency histograms.
+9. Extend metrics with admin query counters and latency histograms. Done.
 10. Add a synthetic 1M-client benchmark or simulation.

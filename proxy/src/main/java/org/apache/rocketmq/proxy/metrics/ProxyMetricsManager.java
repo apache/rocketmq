@@ -21,6 +21,7 @@ import com.google.common.base.Splitter;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.LongHistogram;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.api.metrics.ObservableLongMeasurement;
@@ -47,10 +48,13 @@ import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
+import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceStats;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -61,17 +65,20 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLU
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_ID;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_TYPE;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.OPEN_TELEMETRY_METER_NAME;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_INDEX_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_TYPE_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_UP;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_GROUP;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_TOPIC;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_CLIENT_TYPE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_INDEX_TYPE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_OPERATION;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PROXY_MODE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.NODE_TYPE_PROXY;
 
 public class ProxyMetricsManager implements StartAndShutdown {
@@ -94,6 +101,8 @@ public class ProxyMetricsManager implements StartAndShutdown {
     public static ObservableLongGauge proxyClientTotal = null;
     public static ObservableLongGauge proxyClientTypeTotal = null;
     public static ObservableLongGauge proxyClientIndexTotal = null;
+    public static LongCounter proxyClientAdminRequestsTotal = new NopLongCounter();
+    public static LongHistogram proxyClientAdminRequestLatency = new NopLongHistogram();
     public static LongCounter proxyClientReadModelOperationsTotal = new NopLongCounter();
 
     public static void initLocalMode(BrokerMetricsManager brokerMetricsManager, ProxyConfig proxyConfig) {
@@ -168,6 +177,29 @@ public class ProxyMetricsManager implements StartAndShutdown {
         proxyClientReadModelOperationsTotal = meter.counterBuilder(COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL)
             .setDescription("proxy client read model operation count")
             .build();
+
+        proxyClientAdminRequestsTotal = meter.counterBuilder(COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL)
+            .setDescription("proxy client admin request count")
+            .build();
+
+        proxyClientAdminRequestLatency = meter.histogramBuilder(HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY)
+            .setDescription("proxy client admin request latency")
+            .setUnit("milliseconds")
+            .ofLongs()
+            .build();
+    }
+
+    public static void recordProxyClientAdminRequest(ClientAdminOperation operation,
+        ClientAdminMetricsResult result, long latencyMillis) {
+        if (operation == null || result == null) {
+            return;
+        }
+        Attributes attributes = newAttributesBuilder()
+            .put(LABEL_OPERATION, operation.name().toLowerCase())
+            .put(LABEL_RESULT, result.name().toLowerCase())
+            .build();
+        proxyClientAdminRequestsTotal.add(1L, attributes);
+        proxyClientAdminRequestLatency.record(Math.max(0L, latencyMillis), attributes);
     }
 
     public static void recordProxyClientReadModelOperation(ProxyClientReadServiceOperation operation) {
