@@ -24,10 +24,17 @@ import io.opentelemetry.api.metrics.LongGaugeBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.api.metrics.ObservableLongMeasurement;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
+import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceStats;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -46,7 +53,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ProxyMetricsManagerTest {
+public class ProxyMetricsManagerTest extends InitConfigTest {
+
+    @Before
+    public void setUp() {
+        ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(null);
+    }
 
     @Test
     public void initMetricsRecordsProxyClientReadModelStats() {
@@ -89,6 +101,32 @@ public class ProxyMetricsManagerTest {
             INDEX_TYPE_TOPIC.equals(attributes.get(AttributeKey.stringKey(LABEL_INDEX_TYPE)))));
     }
 
+    @Test
+    public void defaultGrpcMessagingActivityRegistersProxyClientStatsSupplier() throws Exception {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTotalCallback =
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        ProxyRelayService proxyRelayService = mock(ProxyRelayService.class);
+        when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
+        TestDefaultGrpcMessagingActivity activity = new TestDefaultGrpcMessagingActivity(messagingProcessor);
+        try {
+            activity.upsertClient(client("client-a"));
+
+            ProxyMetricsManager.initMetrics(meter, Attributes::builder);
+
+            ObservableLongMeasurement clientTotalMeasurement = mock(ObservableLongMeasurement.class);
+            clientTotalCallback.getValue().accept(clientTotalMeasurement);
+            verify(clientTotalMeasurement).record(eq(1L), any(Attributes.class));
+        } finally {
+            activity.shutdownForTest();
+            ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(null);
+        }
+    }
+
     private static ArgumentCaptor<Consumer<ObservableLongMeasurement>> mockLongGauge(Meter meter, String name) {
         DoubleGaugeBuilder doubleGaugeBuilder = mock(DoubleGaugeBuilder.class);
         LongGaugeBuilder longGaugeBuilder = mock(LongGaugeBuilder.class);
@@ -102,5 +140,34 @@ public class ProxyMetricsManagerTest {
         when(doubleGaugeBuilder.ofLongs()).thenReturn(longGaugeBuilder);
         when(longGaugeBuilder.buildWithCallback(callbackCaptor.capture())).thenReturn(observableLongGauge);
         return callbackCaptor;
+    }
+
+    private static ProxyClientInfo client(String clientId) {
+        return new ProxyClientInfo(
+            clientId,
+            ClientType.PRODUCER,
+            Collections.singleton("group-a"),
+            Collections.singleton("topic-a"),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        );
+    }
+
+    private static class TestDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        protected TestDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        private void upsertClient(ProxyClientInfo clientInfo) {
+            this.proxyClientReadService.upsertClient(clientInfo);
+        }
+
+        private void shutdownForTest() throws Exception {
+            this.grpcChannelManager.shutdown();
+        }
     }
 }

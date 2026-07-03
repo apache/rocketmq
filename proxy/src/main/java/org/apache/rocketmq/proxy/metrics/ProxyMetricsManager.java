@@ -128,7 +128,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         ProxyMetricsManager.proxyClientReadServiceStatsSupplier = proxyClientReadServiceStatsSupplier;
     }
 
-    private static void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
+    static void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
         initMetrics(meter, attributesBuilderSupplier, proxyClientReadServiceStatsSupplier);
     }
 
