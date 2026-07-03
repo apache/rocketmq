@@ -60,6 +60,8 @@ import org.apache.rocketmq.proxy.grpc.v2.producer.SendMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.route.RouteActivity;
 import org.apache.rocketmq.proxy.grpc.v2.transaction.EndTransactionActivity;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
+import org.apache.rocketmq.proxy.service.admin.client.DefaultClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
 
 public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown implements GrpcMessagingActivity {
@@ -77,6 +79,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected RouteActivity routeActivity;
     protected ClientActivity clientActivity;
     protected ProxyClientReadService proxyClientReadService;
+    protected ClientAdminService clientAdminService;
 
     protected DefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
         this.init(messagingProcessor);
@@ -86,6 +89,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
         this.grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService(), this.grpcClientSettingsManager);
         this.proxyClientReadService = new ProxyClientReadService();
+        this.clientAdminService = new DefaultClientAdminService(this.proxyClientReadService);
 
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.ackMessageActivity = new AckMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
@@ -103,6 +107,10 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         );
 
         this.appendStartAndShutdown(this.grpcClientSettingsManager);
+    }
+
+    protected ClientAdminService getClientAdminService() {
+        return this.clientAdminService;
     }
 
     @Override
