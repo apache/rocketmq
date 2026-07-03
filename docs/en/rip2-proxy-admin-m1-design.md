@@ -209,9 +209,12 @@ M1 should reuse existing cluster-level admin permissions:
 - describe operations require cluster-level `GET`.
 
 The current internal implementation provides `ClientAdminAuthPolicy`,
-`DefaultClientAdminAuthorizationService`, and `AuthorizingClientAdminService` so
-the future public adapter can authorize before delegating to read-model queries.
-This keeps the first admin surface consistent with existing management actions.
+`DefaultClientAdminAuthorizationService`, and `AuthorizingClientAdminService`.
+The gRPC request pipeline also copies the authenticated access key into
+`ProxyContext` as a `Subject`, and `ClientAdminRequestContext.from` derives the
+admin request context from `ProxyContext`. This lets the future public adapter
+authorize before delegating to read-model queries while keeping the first admin
+surface consistent with existing management actions.
 Topic-level or group-level ACL can be discussed later if the community wants
 more granular visibility controls.
 
@@ -293,7 +296,7 @@ Follow-up lifecycle tests should cover:
    termination, and unregister listeners. Done.
 6. Discuss public protobuf ownership before changing `rocketmq-apis`.
 7. Add the public admin gRPC/protobuf adapter.
-8. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy
-   and service are already in place.
+8. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy,
+   request context propagation, and service are already in place.
 9. Extend metrics with admin query counters and latency histograms. Done.
 10. Add a synthetic 1M-client benchmark or simulation.

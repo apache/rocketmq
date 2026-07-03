@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.service.admin.client;
 
 import org.apache.rocketmq.auth.authentication.model.Subject;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 
 public class ClientAdminRequestContext {
     private final Subject subject;
@@ -29,6 +30,13 @@ public class ClientAdminRequestContext {
 
     public static ClientAdminRequestContext of(Subject subject, String sourceIp) {
         return new ClientAdminRequestContext(subject, sourceIp);
+    }
+
+    public static ClientAdminRequestContext from(ProxyContext proxyContext) {
+        if (proxyContext == null) {
+            throw new IllegalArgumentException("proxyContext is required");
+        }
+        return of(proxyContext.getSubject(), proxyContext.getRemoteAddress());
     }
 
     public Subject getSubject() {

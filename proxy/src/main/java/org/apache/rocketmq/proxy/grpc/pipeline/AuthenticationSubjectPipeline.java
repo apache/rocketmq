@@ -14,19 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.proxy.grpc.pipeline;
 
-package org.apache.rocketmq.proxy.common;
+import com.google.protobuf.GeneratedMessageV3;
+import io.grpc.Metadata;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.auth.authentication.model.User;
+import org.apache.rocketmq.common.constant.GrpcConstants;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 
-public class ContextVariable {
-    public static final String REMOTE_ADDRESS = "remote-address";
-    public static final String LOCAL_ADDRESS = "local-address";
-    public static final String CLIENT_ID = "client-id";
-    public static final String CHANNEL = "channel";
-    public static final String LANGUAGE = "language";
-    public static final String CLIENT_VERSION = "client-version";
-    public static final String REMAINING_MS = "remaining-ms";
-    public static final String ACTION = "action";
-    public static final String PROTOCOL_TYPE = "protocol-type";
-    public static final String NAMESPACE = "namespace";
-    public static final String SUBJECT = "subject";
+public class AuthenticationSubjectPipeline implements RequestPipeline {
+
+    @Override
+    public void execute(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {
+        if (context == null || headers == null) {
+            return;
+        }
+        String username = headers.get(GrpcConstants.AUTHORIZATION_AK);
+        if (StringUtils.isBlank(username)) {
+            return;
+        }
+        context.setSubject(User.of(username));
+    }
 }

@@ -65,6 +65,7 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.pipeline.AuthenticationPipeline;
+import org.apache.rocketmq.proxy.grpc.pipeline.AuthenticationSubjectPipeline;
 import org.apache.rocketmq.proxy.grpc.pipeline.AuthorizationPipeline;
 import org.apache.rocketmq.proxy.grpc.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
@@ -154,6 +155,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         if (authConfig != null) {
             pipeline = pipeline
                 .pipe(new AuthorizationPipeline(authConfig, messagingProcessor))
+                .pipe(new AuthenticationSubjectPipeline())
                 .pipe(new AuthenticationPipeline(authConfig, messagingProcessor));
         }
         pipeline = pipeline.pipe(new ContextInitPipeline());

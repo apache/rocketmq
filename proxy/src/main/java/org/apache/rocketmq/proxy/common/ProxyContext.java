@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.common;
 import io.netty.channel.Channel;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.rocketmq.auth.authentication.model.Subject;
 
 public class ProxyContext {
     public static final String INNER_ACTION_PREFIX = "Inner";
@@ -141,4 +142,12 @@ public class ProxyContext {
         return this.getVal(ContextVariable.NAMESPACE);
     }
 
+    public ProxyContext setSubject(Subject subject) {
+        this.withVal(ContextVariable.SUBJECT, subject);
+        return this;
+    }
+
+    public Subject getSubject() {
+        return this.getVal(ContextVariable.SUBJECT);
+    }
 }
