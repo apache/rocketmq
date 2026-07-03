@@ -1961,8 +1961,8 @@ public class CommitLog implements Swappable {
         }
 
         /**
-         * For LMQ multi-dispatch messages, finalize the pre-encoded buffer by
-         * appending the property section.
+         *  assign lmq offset and finalize the pre-encoded buffer
+         *  For LMQ multi-dispatch messages.
          *
          * <p>Steps:
          * <ol>
@@ -2052,7 +2052,7 @@ public class CommitLog implements Swappable {
             // enableLmq and has multi-dispatch property and not system topic
             boolean isMultiDispatchMsg = messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ();
             if (isMultiDispatchMsg) {
-                // fill preEncodeBuffer for lmq msg
+                // assign lmq offsets and fill preEncodeBuffer for lmq msg
                 AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
                 if (appendMessageResult != null) {
                     return appendMessageResult;
