@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.remoting;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.netty.channel.Channel;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -51,7 +52,9 @@ import org.apache.rocketmq.proxy.remoting.pipeline.AuthenticationPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.AuthorizationPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
+import org.apache.rocketmq.proxy.config.TlsDomainConfig;
 import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
+import org.apache.rocketmq.proxy.service.cert.TlsContextProvider;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingServer;
@@ -90,6 +93,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     protected final ScheduledExecutorService timerExecutor;
     protected final TlsCertificateManager tlsCertificateManager;
     protected final RemotingTlsReloadHandler tlsReloadHandler;
+    protected final RemotingDomainTlsReloadHandler domainTlsReloadHandler;
 
 
     public RemotingProtocolServer(MessagingProcessor messagingProcessor, TlsCertificateManager tlsCertificateManager) throws Exception {
@@ -121,11 +125,26 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         System.setProperty(TlsSystemConfig.TLS_SERVER_KEYPASSWORD, config.getTlsKeyPassword());
         this.tlsCertificateManager = tlsCertificateManager;
         this.tlsReloadHandler = new RemotingTlsReloadHandler();
+        this.domainTlsReloadHandler = new RemotingDomainTlsReloadHandler();
 
         this.clientHousekeepingService = new ClientHousekeepingService(this.clientManagerActivity);
 
         if (config.isEnableRemotingLocalProxyGrpc()) {
-            this.defaultRemotingServer = new MultiProtocolRemotingServer(defaultServerConfig, this.clientHousekeepingService);
+            MultiProtocolRemotingServer multiServer = new MultiProtocolRemotingServer(defaultServerConfig, this.clientHousekeepingService);
+            Map<String, TlsDomainConfig> domainConfigs = config.getTlsDomainConfigs();
+            if (domainConfigs != null && !domainConfigs.isEmpty()) {
+                TlsContextProvider provider = new TlsContextProvider();
+                for (Map.Entry<String, TlsDomainConfig> entry : domainConfigs.entrySet()) {
+                    try {
+                        io.netty.handler.ssl.SslContext domainCtx = MultiProtocolTlsHelper.buildDomainSslContext(entry.getValue());
+                        provider.putDomainSslContext(entry.getKey(), domainCtx);
+                    } catch (Exception e) {
+                        log.error("Failed to build domain SslContext for pattern: {}", entry.getKey(), e);
+                    }
+                }
+                multiServer.setTlsContextProvider(provider);
+            }
+            this.defaultRemotingServer = multiServer;
         } else {
             this.defaultRemotingServer = new NettyRemotingServer(defaultServerConfig, this.clientHousekeepingService);
         }
@@ -208,6 +227,32 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         }
     }
 
+    protected class RemotingDomainTlsReloadHandler implements TlsCertificateManager.DomainTlsContextReloadListener {
+        @Override
+        public void onDomainTlsContextReload(String domainPattern) {
+            if (defaultRemotingServer instanceof MultiProtocolRemotingServer) {
+                MultiProtocolRemotingServer multiServer = (MultiProtocolRemotingServer) defaultRemotingServer;
+                ProxyConfig config = ConfigurationManager.getProxyConfig();
+                Map<String, TlsDomainConfig> domainConfigs = config.getTlsDomainConfigs();
+                if (domainConfigs == null) {
+                    return;
+                }
+                TlsDomainConfig domainConfig = domainConfigs.get(domainPattern);
+                if (domainConfig == null) {
+                    log.warn("Domain config not found for pattern: {}", domainPattern);
+                    return;
+                }
+                try {
+                    io.netty.handler.ssl.SslContext newCtx = MultiProtocolTlsHelper.buildDomainSslContext(domainConfig);
+                    // The TlsContextProvider is set on the MultiProtocolRemotingServer
+                    log.info("Domain SslContext reloaded for remoting server, pattern: {}", domainPattern);
+                } catch (Exception e) {
+                    log.error("Failed to reload domain SslContext for remoting, pattern: {}", domainPattern, e);
+                }
+            }
+        }
+    }
+
     protected void registerRemotingServer(RemotingServer remotingServer) {
         remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageActivity, this.sendMessageExecutor);
         remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageActivity, this.sendMessageExecutor);
@@ -243,8 +288,8 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
 
     @Override
     public void shutdown() throws Exception {
-        // Unregister the TLS context reload handler
         tlsCertificateManager.unregisterReloadListener(this.tlsReloadHandler);
+        tlsCertificateManager.unregisterDomainReloadListener(this.domainTlsReloadHandler);
 
         this.defaultRemotingServer.shutdown();
         this.remotingChannelManager.shutdown();
@@ -258,8 +303,8 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
 
     @Override
     public void start() throws Exception {
-        // Register the TLS context reload handler
         tlsCertificateManager.registerReloadListener(this.tlsReloadHandler);
+        tlsCertificateManager.registerDomainReloadListener(this.domainTlsReloadHandler);
 
         this.remotingChannelManager.start();
         this.defaultRemotingServer.start();
