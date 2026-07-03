@@ -48,6 +48,7 @@ public class LmqDispatch {
         String lmqNames = msgInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String[] queueNames = lmqNames.split(MixAll.LMQ_DISPATCH_SEPARATOR);
         for (String queueName : queueNames) {
+            // enableLmq and not system topic
             if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
                 messageStore.getQueueStore().increaseLmqOffset(queueName, MixAll.LMQ_QUEUE_ID, VALUE_OF_EACH_INCREMENT);
             }

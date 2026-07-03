@@ -1960,6 +1960,26 @@ public class CommitLog implements Swappable {
             this.crc32ReservedLength = messageStoreConfig.isEnabledAppendPropCRC() ? CommitLog.CRC32_RESERVED_LEN : 0;
         }
 
+        /**
+         * For LMQ multi-dispatch messages, finalize the pre-encoded buffer by
+         * appending the property section.
+         *
+         * <p>Steps:
+         * <ol>
+         *   <li>{@link LmqDispatch#wrapLmqDispatch} — record per-lmq offsets in
+         *   {@code INNER_MULTI_QUEUE_OFFSET} (no CommitLog write yet)</li>
+         *   <li>Serialize properties to bytes and append the properties
+         *   section (length, payload, optional separator, optional CRC32
+         *   reservation) to the pre-encoded buffer</li>
+         *   <li>Patch the total message length in the buffer's first 4 bytes</li>
+         * </ol>
+         *
+         * <p>Returns {@code null} if the message was already encoded (e.g. on
+         * the async retry path). Returns a non-null
+         * {@link AppendMessageResult} with the appropriate failure status on
+         * errors ({@code ROCKSDB_ERROR}, {@code UNKNOWN_ERROR},
+         * {@code PROPERTIES_SIZE_EXCEEDED}, {@code MESSAGE_SIZE_EXCEEDED}).
+         */
         public AppendMessageResult handlePropertiesForLmqMsg(ByteBuffer preEncodeBuffer,
             final MessageExtBrokerInner msgInner) {
             if (msgInner.isEncodeCompleted()) {
@@ -2029,6 +2049,7 @@ public class CommitLog implements Swappable {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
+            // enableLmq and has multi-dispatch property and not system topic
             boolean isMultiDispatchMsg = messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ();
             if (isMultiDispatchMsg) {
                 AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
