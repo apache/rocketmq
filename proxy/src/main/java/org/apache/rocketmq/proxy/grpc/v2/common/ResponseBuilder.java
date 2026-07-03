@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
@@ -87,6 +88,12 @@ public class ResponseBuilder {
         }
         if (t instanceof RemotingTimeoutException) {
             return buildStatus(Code.PROXY_TIMEOUT, t.getMessage());
+        }
+        if (t instanceof IllegalArgumentException) {
+            return buildStatus(Code.BAD_REQUEST, t.getMessage());
+        }
+        if (t instanceof NoSuchElementException) {
+            return buildStatus(Code.NOT_FOUND, t.getMessage());
         }
         if (t instanceof AuthenticationException || t instanceof AuthorizationException) {
             return buildStatus(Code.UNAUTHORIZED, t.getMessage());
