@@ -99,6 +99,31 @@ public class ProxyClientReadServiceTest {
             .hasMessageContaining("Invalid page token");
     }
 
+    @Test
+    public void snapshotStatsReflectsCurrentReadModel() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a", "topic-b")));
+        service.upsertClient(client("client-b", ClientType.PUSH_CONSUMER, set("group-a", "group-b"), set("topic-a")));
+
+        ProxyClientReadServiceStats stats = service.snapshotStats();
+
+        assertThat(stats.getTotalClientCount()).isEqualTo(2L);
+        assertThat(stats.getGroupIndexCount()).isEqualTo(2L);
+        assertThat(stats.getTopicIndexCount()).isEqualTo(2L);
+        assertThat(stats.getClientTypeCounts())
+            .containsEntry(ClientType.PRODUCER, 1L)
+            .containsEntry(ClientType.PUSH_CONSUMER, 1L);
+
+        service.removeClient("client-a");
+        stats = service.snapshotStats();
+
+        assertThat(stats.getTotalClientCount()).isEqualTo(1L);
+        assertThat(stats.getGroupIndexCount()).isEqualTo(2L);
+        assertThat(stats.getTopicIndexCount()).isEqualTo(1L);
+        assertThat(stats.getClientTypeCount(ClientType.PRODUCER)).isEqualTo(0L);
+        assertThat(stats.getClientTypeCount(ClientType.PUSH_CONSUMER)).isEqualTo(1L);
+    }
+
     private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics) {
         return new ProxyClientInfo(
             clientId,

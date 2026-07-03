@@ -57,6 +57,19 @@ public class ProxyClientReadService {
         return this.clientIdTable.get(clientId);
     }
 
+    public synchronized ProxyClientReadServiceStats snapshotStats() {
+        Map<ClientType, Long> clientTypeCounts = new HashMap<>();
+        for (Map.Entry<ClientType, NavigableSet<String>> entry : this.clientTypeIndex.entrySet()) {
+            clientTypeCounts.put(entry.getKey(), (long) entry.getValue().size());
+        }
+        return new ProxyClientReadServiceStats(
+            this.clientIdTable.size(),
+            this.groupIndex.size(),
+            this.topicIndex.size(),
+            clientTypeCounts
+        );
+    }
+
     public synchronized ProxyClientPage listClients(ProxyClientQuery query) {
         ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
         NavigableSet<String> clientIds = this.getCandidateClientIds(effectiveQuery);
