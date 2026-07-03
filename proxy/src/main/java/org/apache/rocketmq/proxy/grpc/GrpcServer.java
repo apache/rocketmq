@@ -43,6 +43,7 @@ public class GrpcServer implements StartAndShutdown {
 
     private final TlsCertificateManager tlsCertificateManager;
     @VisibleForTesting final GrpcTlsReloadHandler tlsReloadHandler;
+    @VisibleForTesting final GrpcDomainTlsReloadHandler domainTlsReloadHandler;
 
     protected GrpcServer(Server server, long timeout, TimeUnit unit,
         TlsCertificateManager tlsCertificateManager) throws Exception {
@@ -58,12 +59,14 @@ public class GrpcServer implements StartAndShutdown {
         this.unit = unit;
         this.tlsCertificateManager = tlsCertificateManager;
         this.tlsReloadHandler = new GrpcTlsReloadHandler();
+        this.domainTlsReloadHandler = new GrpcDomainTlsReloadHandler();
     }
 
     public void start() throws Exception {
         try {
             // Register the TLS context reload handler
             tlsCertificateManager.registerReloadListener(this.tlsReloadHandler);
+            tlsCertificateManager.registerDomainReloadListener(this.domainTlsReloadHandler);
             this.server.start();
             log.info("grpc server start successfully.");
         } catch (Exception | Error e) {
@@ -74,8 +77,8 @@ public class GrpcServer implements StartAndShutdown {
 
     public void shutdown() {
         try {
-            // Unregister the TLS context reload handler
             tlsCertificateManager.unregisterReloadListener(this.tlsReloadHandler);
+            tlsCertificateManager.unregisterDomainReloadListener(this.domainTlsReloadHandler);
 
             if (!this.server.shutdown().awaitTermination(timeout, unit)) {
                 this.server.shutdownNow().awaitTermination(timeout, unit);
@@ -109,6 +112,15 @@ public class GrpcServer implements StartAndShutdown {
             } catch (CertificateException | IOException e) {
                 log.error("Failed to reload SslContext for server", e);
             }
+        }
+    }
+
+    @VisibleForTesting
+    class GrpcDomainTlsReloadHandler implements TlsCertificateManager.DomainTlsContextReloadListener {
+        @Override
+        public void onDomainTlsContextReload(String domainPattern) {
+            ProxyAndTlsProtocolNegotiator.reloadDomainSslContext(domainPattern);
+            log.info("Domain SslContext reloaded for grpc server, pattern: {}", domainPattern);
         }
     }
 }

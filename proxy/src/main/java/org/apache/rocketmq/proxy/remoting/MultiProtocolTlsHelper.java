@@ -29,6 +29,7 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.cert.CertificateException;
@@ -36,6 +37,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.config.TlsDomainConfig;
 import org.apache.rocketmq.remoting.netty.TlsHelper;
 
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.tlsServerAuthClient;
@@ -96,6 +98,30 @@ public class MultiProtocolTlsHelper extends TlsHelper {
 
         moreTlsConfig(sslContextBuilder);
         return sslContextBuilder.build();
+    }
+
+    public static SslContext buildDomainSslContext(TlsDomainConfig config) throws IOException, CertificateException {
+        SslProvider provider;
+        if (OpenSsl.isAvailable()) {
+            provider = SslProvider.OPENSSL;
+        } else {
+            provider = SslProvider.JDK;
+        }
+        try (InputStream keyInput = Files.newInputStream(Paths.get(config.getKeyPath()));
+             InputStream certInput = Files.newInputStream(Paths.get(config.getCertPath()))) {
+            SslContextBuilder builder = SslContextBuilder.forServer(certInput, keyInput,
+                    StringUtils.isNotBlank(config.getKeyPassword()) ? config.getKeyPassword() : null)
+                .sslProvider(provider)
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .clientAuth(ClientAuth.NONE)
+                .applicationProtocolConfig(new ApplicationProtocolConfig(
+                    ApplicationProtocolConfig.Protocol.ALPN,
+                    ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+                    ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+                    ApplicationProtocolNames.HTTP_2));
+            moreTlsConfig(builder);
+            return builder.build();
+        }
     }
 
     private static ClientAuth parseClientAuthMode(String authMode) {
