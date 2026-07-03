@@ -21,9 +21,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class MessageEncodeDecodeTest {
@@ -70,6 +72,44 @@ public class MessageEncodeDecodeTest {
             assertTrue(newMessage.getProperty("key").equals(newMessage.getProperty("key")));
             assertTrue(Arrays.equals(newMessage.getBody(), message.getBody()));
 
+        }
+    }
+
+    @Test
+    public void testMessageBatchEncodePreservesInnerMessageUserProperty() throws Exception {
+        List<Message> messages = new ArrayList<>(2);
+        for (int i = 0; i < 2; i++) {
+            Message message = new Message("topic", ("body" + i).getBytes());
+            message.putUserProperty("name", "value");
+            messages.add(message);
+        }
+        MessageBatch messageBatch = MessageBatch.generateFromList(messages);
+
+        ByteBuffer buffer = ByteBuffer.wrap(messageBatch.encode());
+        List<Message> decodedMessages = MessageDecoder.decodeMessages(buffer);
+
+        assertEquals(messages.size(), decodedMessages.size());
+        for (Message decodedMessage : decodedMessages) {
+            assertEquals("value", decodedMessage.getUserProperty("name"));
+        }
+    }
+
+    @Test
+    public void testMessageBatchUserPropertyPropagatesToInnerMessages() throws Exception {
+        List<Message> messages = new ArrayList<>(2);
+        for (int i = 0; i < 2; i++) {
+            messages.add(new Message("topic", ("body" + i).getBytes()));
+        }
+        MessageBatch messageBatch = MessageBatch.generateFromList(messages);
+
+        messageBatch.putUserProperty("name", "value");
+
+        ByteBuffer buffer = ByteBuffer.wrap(messageBatch.encode());
+        List<Message> decodedMessages = MessageDecoder.decodeMessages(buffer);
+
+        assertEquals(messages.size(), decodedMessages.size());
+        for (Message decodedMessage : decodedMessages) {
+            assertEquals("value", decodedMessage.getUserProperty("name"));
         }
     }
 }
