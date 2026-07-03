@@ -79,6 +79,11 @@ public class AbstractRemotingActivityTest extends InitConfigTest {
                 ProxyContext context) throws Exception {
                 return null;
             }
+
+            @Override
+            public boolean rejectRequest() {
+                return false;
+            }
         };
         Channel channel = ctx.channel();
         RemotingHelper.setPropertyToAttr(channel, AttributeKeys.CLIENT_ID_KEY, CLIENT_ID);

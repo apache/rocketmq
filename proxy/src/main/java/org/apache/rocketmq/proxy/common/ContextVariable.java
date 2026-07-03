@@ -28,4 +28,6 @@ public class ContextVariable {
     public static final String ACTION = "action";
     public static final String PROTOCOL_TYPE = "protocol-type";
     public static final String NAMESPACE = "namespace";
+    public static final String SSL_ENABLED = "ssl-enabled";
+    public static final String AUTH_USERNAME = "auth-username";
 }

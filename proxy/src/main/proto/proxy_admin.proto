@@ -1,0 +1,216 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package apache.rocketmq.proxy.admin.v1;
+
+option java_multiple_files = true;
+option java_package = "apache.rocketmq.proxy.admin.v1";
+option java_outer_classname = "ProxyAdminProto";
+
+// Client language enum
+enum ClientLanguage {
+  CLIENT_LANGUAGE_UNSPECIFIED = 0;
+  CLIENT_LANGUAGE_JAVA = 1;
+  CLIENT_LANGUAGE_GOLANG = 2;
+  CLIENT_LANGUAGE_CPP = 3;
+  CLIENT_LANGUAGE_RUST = 4;
+  CLIENT_LANGUAGE_PYTHON = 5;
+  CLIENT_LANGUAGE_NODEJS = 6;
+  CLIENT_LANGUAGE_CSHARP = 7;
+  CLIENT_LANGUAGE_PHP = 8;
+}
+
+// Client protocol enum
+enum ClientProtocol {
+  CLIENT_PROTOCOL_UNSPECIFIED = 0;
+  CLIENT_PROTOCOL_GRPC = 1;
+  CLIENT_PROTOCOL_REMOTING = 2;
+}
+
+// Client role enum
+enum ClientRole {
+  CLIENT_ROLE_UNSPECIFIED = 0;
+  CLIENT_ROLE_PRODUCER = 1;
+  CLIENT_ROLE_PUSH_CONSUMER = 2;
+  CLIENT_ROLE_SIMPLE_CONSUMER = 3;
+}
+
+// Status code for admin responses
+enum AdminCode {
+  ADMIN_CODE_UNSPECIFIED = 0;
+  ADMIN_CODE_OK = 1;
+  ADMIN_CODE_INTERNAL_ERROR = 2;
+  ADMIN_CODE_BAD_REQUEST = 3;
+  ADMIN_CODE_UNAUTHORIZED = 4;
+  ADMIN_CODE_FORBIDDEN = 5;
+  ADMIN_CODE_NOT_FOUND = 6;
+  ADMIN_CODE_TOO_MANY_REQUESTS = 7;
+}
+
+// Client instance basic information
+message ClientInstance {
+  string client_id = 1;
+  ClientLanguage language = 2;
+  string client_version = 3;
+  ClientProtocol protocol = 4;
+  string access_point = 5;
+  int64 connect_at = 6;
+  int64 last_active_at = 7;
+  ClientRole role = 8;
+  string group = 9;
+  repeated string topics = 10;
+}
+
+// Client detail information (extends ClientInstance)
+message ClientDetail {
+  ClientInstance client_instance = 1;
+  ClientSettings settings = 2;
+  repeated HeartbeatRecord heartbeat_history = 3;
+  AuthStatus auth_status = 4;
+  ConsumeProgress consume_progress = 5;
+  NetworkInfo network_info = 6;
+}
+
+// Client settings
+message ClientSettings {
+  string subscription_mode = 1;
+  int32 receive_batch_size = 2;
+  int64 long_polling_timeout_ms = 3;
+  bool fifo = 4;
+  repeated string subscription_topics = 5;
+  repeated string publishing_topics = 6;
+}
+
+// Heartbeat record
+message HeartbeatRecord {
+  int64 timestamp = 1;
+  bool success = 2;
+  string remark = 3;
+}
+
+// Auth status
+message AuthStatus {
+  bool authenticated = 1;
+  string username = 2;
+  int64 last_auth_time = 3;
+  string failure_reason = 4;
+}
+
+// Consume progress
+message ConsumeProgress {
+  int64 lag = 1;
+  int64 latency_ms = 2;
+  repeated TopicConsumeProgress topic_progress = 3;
+}
+
+// Topic consume progress
+message TopicConsumeProgress {
+  string topic = 1;
+  int64 lag = 2;
+  int64 latency_ms = 3;
+}
+
+// Network info
+message NetworkInfo {
+  string local_address = 1;
+  string remote_address = 2;
+  int64 rtt_ms = 3;
+  string ssl_enabled = 4;
+}
+
+// Pagination metadata
+message Pagination {
+  int64 total = 1;
+  int32 page_num = 2;
+  int32 page_size = 3;
+}
+
+// ListClients request
+message ListClientsRequest {
+  string group = 1;
+  string topic = 2;
+  string client_id_prefix = 3;
+  ClientLanguage language = 4;
+  int64 connect_time_start = 5;
+  int64 connect_time_end = 6;
+  int32 page_num = 7;
+  int32 page_size = 8;
+}
+
+// ListClients response
+message ListClientsResponse {
+  AdminCode code = 1;
+  string message = 2;
+  Pagination pagination = 3;
+  repeated ClientInstance list = 4;
+}
+
+// DescribeClient request
+message DescribeClientRequest {
+  string client_id = 1;
+}
+
+// DescribeClient response
+message DescribeClientResponse {
+  AdminCode code = 1;
+  string message = 2;
+  ClientDetail client_detail = 3;
+}
+
+// ListClientsByGroup request
+message ListClientsByGroupRequest {
+  string group = 1;
+  int32 page_num = 2;
+  int32 page_size = 3;
+}
+
+// ListClientsByGroup response
+message ListClientsByGroupResponse {
+  AdminCode code = 1;
+  string message = 2;
+  Pagination pagination = 3;
+  repeated ClientInstance list = 4;
+}
+
+// ListClientsByTopic request
+message ListClientsByTopicRequest {
+  string topic = 1;
+  int32 page_num = 2;
+  int32 page_size = 3;
+}
+
+// ListClientsByTopic response
+message ListClientsByTopicResponse {
+  AdminCode code = 1;
+  string message = 2;
+  Pagination pagination = 3;
+  repeated ClientInstance list = 4;
+}
+
+// ProxyClientAdminService - Admin service for online client queries
+service ProxyClientAdminService {
+  // List online gRPC clients with filtering and pagination
+  rpc ListClients(ListClientsRequest) returns (ListClientsResponse) {}
+  // Describe a single client's detailed information
+  rpc DescribeClient(DescribeClientRequest) returns (DescribeClientResponse) {}
+  // List online clients by consumer group
+  rpc ListClientsByGroup(ListClientsByGroupRequest) returns (ListClientsByGroupResponse) {}
+  // List online clients by topic
+  rpc ListClientsByTopic(ListClientsByTopicRequest) returns (ListClientsByTopicResponse) {}
+}

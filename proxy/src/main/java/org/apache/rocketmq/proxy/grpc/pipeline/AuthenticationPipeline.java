@@ -75,6 +75,8 @@ public class AuthenticationPipeline implements RequestPipeline {
             DefaultAuthenticationContext defaultAuthenticationContext = (DefaultAuthenticationContext) result;
             if (StringUtils.isNotBlank(defaultAuthenticationContext.getUsername())) {
                 GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.AUTHORIZATION_AK, defaultAuthenticationContext.getUsername());
+                // Also store in ProxyContext for per-connection tracking (RIP-2 §5.2.2)
+                context.setAuthUsername(defaultAuthenticationContext.getUsername());
             }
         }
         return result;

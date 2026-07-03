@@ -34,6 +34,7 @@ import io.netty.channel.ChannelId;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -68,6 +69,31 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     private final AtomicReference<StreamObserver<TelemetryCommand>> telemetryCommandRef = new AtomicReference<>();
     private final Object telemetryWriteLock = new Object();
     private final String clientId;
+    private final long createTime;
+
+    /**
+     * Last measured RTT in milliseconds, estimated from telemetry command round-trip.
+     * A value of -1 means no RTT measurement is available yet.
+     */
+    private volatile long lastRttMs = -1;
+
+    /**
+     * Timestamp (millis) when the proxy last sent a telemetry command to this client.
+     * Used to estimate RTT when the next telemetry command is received.
+     */
+    private volatile long lastTelemetrySendTimeMs = 0;
+
+    /**
+     * Whether this client connection uses SSL/TLS.
+     * Detected from gRPC transport security level at channel creation time.
+     */
+    private volatile boolean sslEnabled = false;
+
+    /**
+     * Authenticated username for this client connection.
+     * Extracted from auth metadata (AUTHORIZATION_AK) at channel creation time.
+     */
+    private volatile String authUsername = null;
 
     public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcClientSettingsManager grpcClientSettingsManager,
         GrpcChannelManager grpcChannelManager, ProxyContext ctx, String clientId) {
@@ -77,6 +103,68 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         this.grpcChannelManager = grpcChannelManager;
         this.grpcClientSettingsManager = grpcClientSettingsManager;
         this.clientId = clientId;
+        this.createTime = System.currentTimeMillis();
+        // Detect per-connection SSL state from ProxyContext (RIP-2 §5.2.1)
+        Boolean ssl = ctx.isSslEnabled();
+        if (ssl != null) {
+            this.sslEnabled = ssl;
+        }
+        // Store authenticated username from ProxyContext (RIP-2 §5.2.2)
+        String username = ctx.getAuthUsername();
+        if (StringUtils.isNotBlank(username)) {
+            this.authUsername = username;
+        }
+    }
+
+    public long getCreateTime() {
+        return this.createTime;
+    }
+
+    /**
+     * Get the last measured RTT in milliseconds.
+     * @return RTT in ms, or -1 if no measurement is available
+     */
+    public long getLastRttMs() {
+        return this.lastRttMs;
+    }
+
+    /**
+     * Check whether this client connection uses SSL/TLS.
+     * @return true if SSL/TLS is enabled for this connection
+     */
+    public boolean isSslEnabled() {
+        return this.sslEnabled;
+    }
+
+    /**
+     * Get the authenticated username for this client connection.
+     * @return the username, or null if not available
+     */
+    public String getAuthUsername() {
+        return this.authUsername;
+    }
+
+    /**
+     * Update RTT measurement based on telemetry command round-trip.
+     * Called when a telemetry command is received from the client after
+     * the proxy sent a telemetry command.
+     */
+    public void updateRttMeasurement() {
+        long sendTime = this.lastTelemetrySendTimeMs;
+        if (sendTime > 0) {
+            long now = System.currentTimeMillis();
+            long rtt = now - sendTime;
+            if (rtt > 0) {
+                this.lastRttMs = rtt;
+            }
+        }
+    }
+
+    /**
+     * Record the timestamp when the proxy sends a telemetry command.
+     */
+    public void recordTelemetrySendTime() {
+        this.lastTelemetrySendTimeMs = System.currentTimeMillis();
     }
 
     @Override
@@ -274,6 +362,8 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
             }
             try {
                 observer.onNext(command);
+                // Record send time for RTT measurement (RIP-2 §5.2.1)
+                recordTelemetrySendTime();
             } catch (StatusRuntimeException | IllegalStateException exception) {
                 log.warn("write telemetry failed. command:{}", command, exception);
                 this.clearClientObserver(observer);

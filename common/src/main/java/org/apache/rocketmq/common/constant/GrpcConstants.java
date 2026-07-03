@@ -73,4 +73,11 @@ public class GrpcConstants {
 
     public static final Metadata.Key<String> CHANNEL_ID
         = Metadata.Key.of("x-mq-channel-id", Metadata.ASCII_STRING_MARSHALLER);
+
+    /**
+     * SSL/TLS state key in gRPC metadata, indicating whether the connection uses SSL.
+     * Value is "true" or "false".
+     */
+    public static final Metadata.Key<String> SSL_ENABLED
+        = Metadata.Key.of("x-mq-ssl-enabled", Metadata.ASCII_STRING_MARSHALLER);
 }

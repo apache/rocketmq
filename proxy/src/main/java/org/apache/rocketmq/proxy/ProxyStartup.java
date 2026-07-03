@@ -34,16 +34,25 @@ import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.proxy.config.Configuration;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminAuthInterceptor;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminBindableService;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminGrpcService;
+import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminMetricsManager;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.remoting.RemotingProtocolServer;
+import org.apache.rocketmq.proxy.service.admin.DefaultProxyAdminClientService;
+import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService;
 import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -82,15 +91,23 @@ public class ProxyStartup {
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
 
             // create grpcServer
+            GrpcMessagingApplication grpcMessagingApplication = createServiceProcessor(messagingProcessor);
+
             GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
                     ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
-                .addService(createServiceProcessor(messagingProcessor))
+                .addService(grpcMessagingApplication)
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
                 .configInterceptor()
                 .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
+
+            // create admin grpc server (RIP-2)
+            GrpcServer adminGrpcServer = createAdminGrpcServer(executor, grpcMessagingApplication, messagingProcessor, tlsCertificateManager);
+            if (adminGrpcServer != null) {
+                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(adminGrpcServer);
+            }
 
             RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor, tlsCertificateManager);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);
@@ -211,6 +228,83 @@ public class ProxyStartup {
         GrpcMessagingApplication application = GrpcMessagingApplication.create(messagingProcessor);
         PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(application);
         return application;
+    }
+
+    /**
+     * Create the Admin gRPC Server for RIP-2 Proxy Admin interface.
+     * <p>
+     * The admin server runs on an independent port (default 8082) to isolate
+     * control plane traffic from data plane traffic. It provides:
+     * - ListClients: paginated listing of online clients
+     * - DescribeClient: detailed client information
+     * - ListClientsByGroup: clients filtered by consumer group
+     * - ListClientsByTopic: clients filtered by subscribed topic
+     * <p>
+     * All admin RPCs are protected by ACL 2.0 authentication and authorization.
+     *
+     * @return GrpcServer for admin, or null if admin is disabled
+     */
+    private static GrpcServer createAdminGrpcServer(ThreadPoolExecutor executor,
+        GrpcMessagingApplication grpcMessagingApplication,
+        MessagingProcessor messagingProcessor, TlsCertificateManager tlsCertificateManager) {
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        if (!config.isProxyAdminEnabled()) {
+            log.info("Proxy admin gRPC server is disabled by configuration");
+            return null;
+        }
+
+        try {
+            // Get channel manager and settings manager from the data plane
+            GrpcChannelManager grpcChannelManager = grpcMessagingApplication.getGrpcChannelManager();
+            GrpcClientSettingsManager grpcClientSettingsManager = grpcMessagingApplication.getGrpcClientSettingsManager();
+
+            // Initialize admin OTel metrics (RIP-2 §5.4.5 / §8.6)
+            ProxyAdminMetricsManager.init(ProxyMetricsManager.getMeter());
+
+            // Create admin service layer
+            ProxyAdminClientService adminClientService = new DefaultProxyAdminClientService(
+                grpcChannelManager, grpcClientSettingsManager);
+
+            // Wire admin service into telemetry pipeline for heartbeat recording (RIP-2 §5.2.2)
+            grpcMessagingApplication.setProxyAdminClientService(adminClientService);
+
+            // Create gRPC service with isolated thread pool
+            ProxyAdminGrpcService adminGrpcService = new ProxyAdminGrpcService(
+                adminClientService, config.getProxyAdminThreadPoolNums());
+
+            // Create bindable service wrapper
+            ProxyAdminBindableService adminBindableService = new ProxyAdminBindableService(adminGrpcService);
+
+            // Build admin gRPC server on independent port
+            int adminPort = config.getProxyAdminServerPort();
+            GrpcServerBuilder adminServerBuilder = GrpcServerBuilder.newBuilder(
+                    executor, adminPort, tlsCertificateManager)
+                .addService(adminBindableService)
+                .shutdownTime(config.getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS);
+
+            // Add ACL 2.0 auth interceptor if auth is configured
+            AuthConfig authConfig = ConfigurationManager.getAuthConfig();
+            if (authConfig != null && (authConfig.isAuthenticationEnabled() || authConfig.isAuthorizationEnabled())) {
+                ProxyAdminAuthInterceptor authInterceptor = new ProxyAdminAuthInterceptor(authConfig, messagingProcessor);
+                adminServerBuilder.appendInterceptor(authInterceptor);
+                log.info("Proxy admin gRPC server: ACL 2.0 authentication/authorization enabled");
+            }
+
+            // Add standard interceptors
+            adminServerBuilder.configInterceptor();
+
+            GrpcServer adminGrpcServer = adminServerBuilder.build();
+            log.info("Proxy admin gRPC server configured on port: {}, threadPoolNums: {}, maxPageSize: {}",
+                adminPort, config.getProxyAdminThreadPoolNums(), config.getProxyAdminMaxPageSize());
+
+            // Register admin service shutdown
+            PROXY_START_AND_SHUTDOWN.appendShutdown(adminGrpcService::shutdown);
+
+            return adminGrpcServer;
+        } catch (Exception e) {
+            log.error("Failed to create proxy admin gRPC server", e);
+            return null;
+        }
     }
 
     protected static BrokerController createBrokerController() {

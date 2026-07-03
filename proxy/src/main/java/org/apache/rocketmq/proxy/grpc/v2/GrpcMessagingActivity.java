@@ -46,8 +46,14 @@ import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 
 public interface GrpcMessagingActivity extends StartAndShutdown {
+
+    GrpcChannelManager getGrpcChannelManager();
+
+    GrpcClientSettingsManager getGrpcClientSettingsManager();
 
     CompletableFuture<QueryRouteResponse> queryRoute(ProxyContext ctx, QueryRouteRequest request);
 
