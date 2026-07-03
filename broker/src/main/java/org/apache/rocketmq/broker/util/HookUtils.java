@@ -228,6 +228,8 @@ public class HookUtils {
             if (!MixAll.isLmq(queueName)) {
                 continue;
             }
+
+            // default maxLmqConsumeQueueNum is 20000
             if (cqStore.getLmqNum() >= brokerController.getMessageStoreConfig().getMaxLmqConsumeQueueNum()) {
                 if (!cqStore.isLmqExist(queueName)) {
                     return new PutMessageResult(PutMessageStatus.LMQ_CONSUME_QUEUE_NUM_EXCEEDED, null);
