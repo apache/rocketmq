@@ -53,6 +53,7 @@ import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcValidator;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
@@ -238,6 +239,93 @@ public class ClientActivityTest extends BaseActivityTest {
         assertThat(clientInfo.getLocalAddress()).isEqualTo(LOCAL_ADDR);
         assertThat(clientInfo.getConnectTimeMillis()).isGreaterThan(0L);
         assertThat(clientInfo.getLastActiveTimeMillis()).isGreaterThanOrEqualTo(clientInfo.getConnectTimeMillis());
+    }
+
+    @Test
+    public void testProducerTelemetryUpdatesProxyClientReadService() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+
+        this.sendProducerTelemetry(context);
+
+        ProxyClientInfo clientInfo = proxyClientReadService.getClient(CLIENT_ID);
+        assertThat(clientInfo).isNotNull();
+        assertThat(clientInfo.getClientId()).isEqualTo(CLIENT_ID);
+        assertThat(clientInfo.getClientType()).isEqualTo(ClientType.PRODUCER);
+        assertThat(clientInfo.getGroups()).isEmpty();
+        assertThat(clientInfo.getTopics()).containsExactly(TOPIC);
+        assertThat(clientInfo.getLanguage()).isEqualTo(JAVA);
+        assertThat(clientInfo.getRemoteAddress()).isEqualTo(REMOTE_ADDR);
+        assertThat(clientInfo.getLocalAddress()).isEqualTo(LOCAL_ADDR);
+        assertThat(clientInfo.getConnectTimeMillis()).isGreaterThan(0L);
+        assertThat(clientInfo.getLastActiveTimeMillis()).isGreaterThanOrEqualTo(clientInfo.getConnectTimeMillis());
+    }
+
+    @Test
+    public void testHeartbeatPreservesConnectTimeAndUpdatesLastActiveTime() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        ProxyClientInfo firstClientInfo = proxyClientReadService.getClient(CLIENT_ID);
+
+        Thread.sleep(5L);
+        HeartbeatResponse response = this.sendProducerHeartbeat(context);
+
+        ProxyClientInfo secondClientInfo = proxyClientReadService.getClient(CLIENT_ID);
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertThat(secondClientInfo.getConnectTimeMillis()).isEqualTo(firstClientInfo.getConnectTimeMillis());
+        assertThat(secondClientInfo.getLastActiveTimeMillis()).isGreaterThan(firstClientInfo.getLastActiveTimeMillis());
+        assertThat(secondClientInfo.getTopics()).containsExactly(TOPIC);
+    }
+
+    @Test
+    public void testNotifyClientTerminationRemovesProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any())).thenReturn(producerSettings);
+        when(this.metadataService.getTopicMessageType(any(), anyString())).thenReturn(TopicMessageType.NORMAL);
+
+        this.sendProducerTelemetry(context);
+        this.sendProducerHeartbeat(context);
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        NotifyClientTerminationResponse response = this.clientActivity.notifyClientTermination(
+            context,
+            NotifyClientTerminationRequest.newBuilder().build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
     }
 
     protected void assertClientChannelInfo(ClientChannelInfo clientChannelInfo, String group) {
