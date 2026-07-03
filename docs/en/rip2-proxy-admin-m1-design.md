@@ -19,10 +19,10 @@ M1 should support:
 ## Non-Goals
 
 M1 does not change `rocketmq-apis`, generate new public protobuf stubs, or define
-the final cross-proxy protocol. It does not add a new public admin endpoint, ACL
-integration, metrics emission, persistence, or a distributed client registry.
-Those pieces are intentionally staged after the internal service contract is
-validated.
+the final cross-proxy protocol. It does not add a new public admin endpoint,
+persistence, or a distributed client registry. The current branch includes
+internal ACL and read-model metric hooks, but those hooks are not exposed as a
+new public admin API until the adapter and protobuf ownership are resolved.
 
 ## Current Proxy and gRPC Structure
 
@@ -203,28 +203,33 @@ semantics can be added without changing the local index contract.
 
 ## ACL Plan
 
-M1 should reuse existing cluster-level admin permissions when the public adapter
-is added:
+M1 should reuse existing cluster-level admin permissions:
 
 - list operations require cluster-level `LIST`.
 - describe operations require cluster-level `GET`.
 
+The current internal implementation provides `ClientAdminAuthPolicy`,
+`DefaultClientAdminAuthorizationService`, and `AuthorizingClientAdminService` so
+the future public adapter can authorize before delegating to read-model queries.
 This keeps the first admin surface consistent with existing management actions.
 Topic-level or group-level ACL can be discussed later if the community wants
 more granular visibility controls.
 
 ## Metrics Plan
 
-M1 does not emit metrics yet. The planned metrics are:
+The current internal implementation exposes read-model gauges for:
 
 - current local online client count.
 - current local online client count by `clientType`.
+
+Planned follow-up metrics are:
+
 - read model upsert/remove counters.
 - admin query counters by operation and result code.
 - admin query latency histograms.
 
-Metrics should be added after the internal service API and public adapter are
-stable so label cardinality is controlled.
+Admin-query metrics should be added after the public adapter is stable so label
+cardinality is controlled.
 
 ## Error Semantics
 
@@ -275,17 +280,18 @@ Follow-up lifecycle tests should cover:
 
 ## Implementation Order
 
-1. Add the internal read model and focused unit tests.
-2. Wire the read model into gRPC client lifecycle paths.
-3. Add the internal admin service API:
+1. Add the internal read model and focused unit tests. Done.
+2. Wire the read model into gRPC client lifecycle paths. Done.
+3. Add the internal admin service API. Done:
    `listClients`, `describeClient`, `listClientsByGroup`,
    `listClientsByTopic`.
 4. Add admin service error mapping for missing ids, not found, and invalid page
-   tokens.
+   tokens. Done.
 5. Add more lifecycle tests around producer telemetry, heartbeat timestamps,
-   termination, and unregister listeners.
+   termination, and unregister listeners. Done.
 6. Discuss public protobuf ownership before changing `rocketmq-apis`.
 7. Add the public admin gRPC/protobuf adapter.
-8. Add ACL checks.
-9. Add metrics.
+8. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy
+   and service are already in place.
+9. Extend metrics with admin query counters and latency histograms.
 10. Add a synthetic 1M-client benchmark or simulation.
