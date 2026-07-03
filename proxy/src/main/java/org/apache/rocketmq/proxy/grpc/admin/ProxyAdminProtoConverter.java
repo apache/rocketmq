@@ -67,7 +67,7 @@ public class ProxyAdminProtoConverter {
         filter.setTopic(request.getTopic());
         filter.setClientIdPrefix(request.getClientIdPrefix());
         if (request.getLanguage() != null && request.getLanguage() != ClientLanguage.CLIENT_LANGUAGE_UNSPECIFIED) {
-            filter.setLanguage(request.getLanguage().name());
+            filter.setLanguage(fromClientLanguage(request.getLanguage()));
         }
         if (request.getConnectTimeStart() > 0) {
             filter.setConnectTimeStart(request.getConnectTimeStart());
@@ -332,6 +332,38 @@ public class ProxyAdminProtoConverter {
     }
 
     // ==================== Enum Converters ====================
+
+    /**
+     * Convert ClientLanguage proto enum to internal string format.
+     * This is the reverse of toClientLanguage(), converting proto enum values
+     * like CLIENT_LANGUAGE_JAVA to the internal format "JAVA" used by
+     * FilterContext.matchesLanguage().
+     */
+    public static String fromClientLanguage(ClientLanguage language) {
+        if (language == null || language == ClientLanguage.CLIENT_LANGUAGE_UNSPECIFIED) {
+            return null;
+        }
+        switch (language) {
+            case CLIENT_LANGUAGE_JAVA:
+                return "JAVA";
+            case CLIENT_LANGUAGE_GOLANG:
+                return "GOLANG";
+            case CLIENT_LANGUAGE_CPP:
+                return "CPP";
+            case CLIENT_LANGUAGE_RUST:
+                return "RUST";
+            case CLIENT_LANGUAGE_PYTHON:
+                return "PYTHON";
+            case CLIENT_LANGUAGE_NODEJS:
+                return "NODE_JS";
+            case CLIENT_LANGUAGE_CSHARP:
+                return "DOTNET";
+            case CLIENT_LANGUAGE_PHP:
+                return "PHP";
+            default:
+                return language.name().replace("CLIENT_LANGUAGE_", "");
+        }
+    }
 
     /**
      * Convert string language to ClientLanguage proto enum.

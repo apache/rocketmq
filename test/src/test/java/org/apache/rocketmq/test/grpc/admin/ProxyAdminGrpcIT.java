@@ -28,12 +28,14 @@ import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
 import apache.rocketmq.proxy.admin.v1.ListClientsRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsResponse;
 import apache.rocketmq.v2.ClientType;
+import apache.rocketmq.v2.Language;
 import apache.rocketmq.v2.MessagingServiceGrpc;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.UA;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.Metadata;
@@ -287,6 +289,10 @@ public class ProxyAdminGrpcIT extends BaseConf {
             .collect(Collectors.toList());
         return Settings.newBuilder()
             .setClientType(ClientType.PRODUCER)
+            .setUserAgent(UA.newBuilder()
+                .setLanguage(Language.JAVA)
+                .setVersion("5.0.0")
+                .build())
             .setPublishing(Publishing.newBuilder()
                 .addAllTopics(topicResources)
                 .build())
@@ -296,6 +302,10 @@ public class ProxyAdminGrpcIT extends BaseConf {
     private Settings buildPushConsumerClientSettings(String group) {
         return Settings.newBuilder()
             .setClientType(ClientType.PUSH_CONSUMER)
+            .setUserAgent(UA.newBuilder()
+                .setLanguage(Language.JAVA)
+                .setVersion("5.0.0")
+                .build())
             .setSubscription(Subscription.newBuilder()
                 .setGroup(Resource.newBuilder().setName(group).build())
                 .build())
