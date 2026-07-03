@@ -91,6 +91,28 @@ public class MeteredClientAdminServiceTest {
         ));
     }
 
+    @Test
+    public void listClientsByTopicRecordsInternalErrorAndRethrows() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        when(delegate.listClientsByTopic("topic-a", query)).thenThrow(new IllegalStateException("boom"));
+        List<Record> records = new ArrayList<>();
+
+        MeteredClientAdminService service = new MeteredClientAdminService(
+            delegate,
+            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            clock()
+        );
+
+        assertThatThrownBy(() -> service.listClientsByTopic("topic-a", query))
+            .isInstanceOf(IllegalStateException.class);
+        assertThat(records).containsExactly(new Record(
+            ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
+            ClientAdminMetricsResult.INTERNAL_ERROR,
+            1L
+        ));
+    }
+
     private static java.util.function.LongSupplier clock() {
         AtomicLong clock = new AtomicLong(0L);
         return () -> clock.getAndAdd(1_000_000L);
