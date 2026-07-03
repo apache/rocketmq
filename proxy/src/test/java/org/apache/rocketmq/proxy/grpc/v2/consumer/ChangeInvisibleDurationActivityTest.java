@@ -22,6 +22,7 @@ import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Resource;
 import com.google.protobuf.util.Durations;
+import io.netty.channel.Channel;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +41,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
@@ -160,6 +164,132 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
 
         assertEquals(Code.INTERNAL_SERVER_ERROR, response.getStatus().getCode());
         assertEquals(TimeUnit.SECONDS.toMillis(3), invisibleTimeArgumentCaptor.getValue().longValue());
+    }
+
+    @Test
+    public void testChangeInvisibleDurationReRegistersNewHandleWhenOldHandleIsManaged() throws Throwable {
+        String oldHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000);
+        String newHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 5000);
+        String msgId = "msgId";
+        grpcChannelManager.createChannel(createContext(), CLIENT_ID);
+        MessageReceiptHandle messageReceiptHandle =
+            new MessageReceiptHandle(CONSUMER_GROUP, TOPIC, 0, oldHandle, msgId, 1, 2);
+        AckResult ackResult = new AckResult();
+        ackResult.setExtraInfo(newHandle);
+        ackResult.setStatus(AckStatus.OK);
+        when(this.messagingProcessor.changeInvisibleTime(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyString(),
+            anyLong(),
+            anyString(),
+            anyLong(),
+            anyBoolean()
+        )).thenReturn(CompletableFuture.completedFuture(ackResult));
+        when(messagingProcessor.removeReceiptHandle(any(), any(), anyString(), anyString(), anyString()))
+            .thenReturn(messageReceiptHandle);
+
+        ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(
+            createContext(),
+            ChangeInvisibleDurationRequest.newBuilder()
+                .setInvisibleDuration(Durations.fromSeconds(5))
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageId(msgId)
+                .setReceiptHandle(oldHandle)
+                .build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertEquals(newHandle, response.getReceiptHandle());
+        assertEquals(newHandle, messageReceiptHandle.getReceiptHandleStr());
+        verify(messagingProcessor).addReceiptHandle(any(), any(), eq(CONSUMER_GROUP), eq(msgId),
+            eq(messageReceiptHandle));
+    }
+
+    @Test
+    public void testChangeInvisibleDurationReusesOriginalChannelWhenClientDisconnectsBeforeCallback() throws Throwable {
+        String oldHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000);
+        String newHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 5000);
+        String msgId = "msgId";
+        Channel channel = grpcChannelManager.createChannel(createContext(), CLIENT_ID);
+        MessageReceiptHandle messageReceiptHandle =
+            new MessageReceiptHandle(CONSUMER_GROUP, TOPIC, 0, oldHandle, msgId, 1, 2);
+        CompletableFuture<AckResult> ackResultFuture = new CompletableFuture<>();
+        when(this.messagingProcessor.changeInvisibleTime(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyString(),
+            anyLong(),
+            anyString(),
+            anyLong(),
+            anyBoolean()
+        )).thenReturn(ackResultFuture);
+        when(messagingProcessor.removeReceiptHandle(any(), eq(channel), anyString(), anyString(), anyString()))
+            .thenReturn(messageReceiptHandle);
+
+        CompletableFuture<ChangeInvisibleDurationResponse> responseFuture =
+            this.changeInvisibleDurationActivity.changeInvisibleDuration(
+                createContext(),
+                ChangeInvisibleDurationRequest.newBuilder()
+                    .setInvisibleDuration(Durations.fromSeconds(5))
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                    .setMessageId(msgId)
+                    .setReceiptHandle(oldHandle)
+                    .build()
+            );
+
+        grpcChannelManager.removeChannel(CLIENT_ID);
+        AckResult ackResult = new AckResult();
+        ackResult.setExtraInfo(newHandle);
+        ackResult.setStatus(AckStatus.OK);
+        ackResultFuture.complete(ackResult);
+
+        assertEquals(Code.OK, responseFuture.get().getStatus().getCode());
+        verify(messagingProcessor).addReceiptHandle(any(), eq(channel), eq(CONSUMER_GROUP), eq(msgId),
+            eq(messageReceiptHandle));
+    }
+
+    @Test
+    public void testChangeInvisibleDurationDoesNotRegisterNewHandleWhenOldHandleIsNotManaged() throws Throwable {
+        String newHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 5000);
+        AckResult ackResult = new AckResult();
+        ackResult.setExtraInfo(newHandle);
+        ackResult.setStatus(AckStatus.OK);
+        when(this.messagingProcessor.changeInvisibleTime(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyString(),
+            anyLong(),
+            anyString(),
+            anyLong(),
+            anyBoolean()
+        )).thenReturn(CompletableFuture.completedFuture(ackResult));
+        when(messagingProcessor.removeReceiptHandle(any(), any(), anyString(), anyString(), anyString()))
+            .thenReturn(null);
+
+        ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(
+            createContext(),
+            ChangeInvisibleDurationRequest.newBuilder()
+                .setInvisibleDuration(Durations.fromSeconds(5))
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageId("msgId")
+                .setReceiptHandle(buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000))
+                .build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertEquals(newHandle, response.getReceiptHandle());
+        verify(messagingProcessor, never()).addReceiptHandle(any(), any(), anyString(), anyString(),
+            any(MessageReceiptHandle.class));
     }
 
     @Test

@@ -20,6 +20,7 @@ import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
 import apache.rocketmq.v2.ChangeInvisibleDurationResponse;
 import apache.rocketmq.v2.Code;
 import com.google.protobuf.util.Durations;
+import io.netty.channel.Channel;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 import org.apache.rocketmq.client.consumer.AckStatus;
@@ -49,8 +50,9 @@ public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
 
             ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
             String group = request.getGroup().getName();
+            Channel channel = grpcChannelManager.getChannel(ctx.getClientID());
 
-            MessageReceiptHandle messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, grpcChannelManager.getChannel(ctx.getClientID()), group, request.getMessageId(), receiptHandle.getReceiptHandle());
+            MessageReceiptHandle messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, channel, group, request.getMessageId(), receiptHandle.getReceiptHandle());
             if (messageReceiptHandle != null) {
                 receiptHandle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
             }
@@ -65,7 +67,7 @@ public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
                 MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
                 request.getSuspend()
             ).thenApply(
-                ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult));
+                ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult, messageReceiptHandle, channel));
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -73,11 +75,18 @@ public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
     }
 
     protected ChangeInvisibleDurationResponse convertToChangeInvisibleDurationResponse(ProxyContext ctx,
-        ChangeInvisibleDurationRequest request, AckResult ackResult) {
+        ChangeInvisibleDurationRequest request, AckResult ackResult, MessageReceiptHandle messageReceiptHandle,
+        Channel channel) {
         if (AckStatus.OK.equals(ackResult.getStatus())) {
+            String receiptHandle = ackResult.getExtraInfo();
+            if (messageReceiptHandle != null && channel != null) {
+                messageReceiptHandle.updateReceiptHandle(receiptHandle);
+                messagingProcessor.addReceiptHandle(ctx, channel,
+                    request.getGroup().getName(), request.getMessageId(), messageReceiptHandle);
+            }
             return ChangeInvisibleDurationResponse.newBuilder()
                 .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
-                .setReceiptHandle(ackResult.getExtraInfo())
+                .setReceiptHandle(receiptHandle)
                 .build();
         }
         return ChangeInvisibleDurationResponse.newBuilder()
