@@ -288,6 +288,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         String liteTopic = oriProps.get(MessageConst.PROPERTY_LITE_TOPIC);
         if (StringUtils.isNotEmpty(liteTopic)) {
             String lmqName = LiteUtil.toLmqName(requestHeader.getTopic(), liteTopic);
+            // toLmqName: "%LMQ%$" + parentTopic + "$" + liteTopic
+            // Result: "%LMQ%$OrderTopic$shop_001"
             oriProps.put(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, lmqName);
         }
 

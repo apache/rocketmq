@@ -290,6 +290,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public ConsumeQueueStoreInterface createConsumeQueueStore() {
+        // default value of rocksdbCQDoubleWriteEnable is false
         if (messageStoreConfig.isRocksdbCQDoubleWriteEnable()) {
             return new CombineConsumeQueueStore(this);
         }

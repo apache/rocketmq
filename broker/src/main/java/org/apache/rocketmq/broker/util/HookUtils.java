@@ -205,9 +205,10 @@ public class HookUtils {
     }
 
     /**
-     * Enforce Light Message Queue (LMQ) quota: reject the message if the
-     * number of LMQ consume queues would exceed the configured maximum and
-     * the target queue does not already exist.
+     * Enforce Light Message Queue (LMQ) quota.
+     * reject the message if:
+     *  - the number of LMQ consume queues would exceed the configured maximum
+     *  - and the target queue does not already exist.
      *
      * @return null if the check passes, or a rejection {@link PutMessageResult}
      */
@@ -223,6 +224,7 @@ public class HookUtils {
         String[] queueNames =
             msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH).split(MixAll.LMQ_DISPATCH_SEPARATOR);
         for (String queueName : queueNames) {
+            // starts with LMQ_PREFIX(%LMQ%)
             if (!MixAll.isLmq(queueName)) {
                 continue;
             }
