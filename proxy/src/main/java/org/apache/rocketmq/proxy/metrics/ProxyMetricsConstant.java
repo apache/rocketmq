@@ -17,6 +17,8 @@
 package org.apache.rocketmq.proxy.metrics;
 
 public class ProxyMetricsConstant {
+    public static final String COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL =
+        "rocketmq_proxy_client_read_model_operations_total";
     public static final String GAUGE_PROXY_UP = "rocketmq_proxy_up";
     public static final String GAUGE_PROXY_CLIENT_TOTAL = "rocketmq_proxy_client_total";
     public static final String GAUGE_PROXY_CLIENT_TYPE_TOTAL = "rocketmq_proxy_client_type_total";
@@ -24,6 +26,7 @@ public class ProxyMetricsConstant {
 
     public static final String LABEL_CLIENT_TYPE = "client_type";
     public static final String LABEL_INDEX_TYPE = "index_type";
+    public static final String LABEL_OPERATION = "operation";
     public static final String LABEL_PROXY_MODE = "proxy_mode";
 
     public static final String INDEX_TYPE_GROUP = "group";

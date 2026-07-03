@@ -221,10 +221,12 @@ The current internal implementation exposes read-model gauges for:
 
 - current local online client count.
 - current local online client count by `clientType`.
+- current local group/topic index count.
+
+It also records read-model upsert/remove mutation counters.
 
 Planned follow-up metrics are:
 
-- read model upsert/remove counters.
 - admin query counters by operation and result code.
 - admin query latency histograms.
 

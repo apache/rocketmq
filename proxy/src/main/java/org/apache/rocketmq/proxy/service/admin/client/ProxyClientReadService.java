@@ -24,13 +24,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientReadService {
+    private static final Consumer<ProxyClientReadServiceOperation> NOOP_OPERATION_RECORDER = operation -> {
+    };
+
     private final Map<String, ProxyClientInfo> clientIdTable = new HashMap<>();
     private final Map<String, NavigableSet<String>> groupIndex = new HashMap<>();
     private final Map<String, NavigableSet<String>> topicIndex = new HashMap<>();
     private final Map<ClientType, NavigableSet<String>> clientTypeIndex = new HashMap<>();
+    private final Consumer<ProxyClientReadServiceOperation> operationRecorder;
+
+    public ProxyClientReadService() {
+        this(NOOP_OPERATION_RECORDER);
+    }
+
+    public ProxyClientReadService(Consumer<ProxyClientReadServiceOperation> operationRecorder) {
+        this.operationRecorder = operationRecorder == null ? NOOP_OPERATION_RECORDER : operationRecorder;
+    }
 
     public synchronized void upsertClient(ProxyClientInfo clientInfo) {
         if (clientInfo == null || StringUtils.isBlank(clientInfo.getClientId())) {
@@ -41,6 +54,7 @@ public class ProxyClientReadService {
             this.removeIndexes(oldClientInfo);
         }
         this.addIndexes(clientInfo);
+        this.operationRecorder.accept(ProxyClientReadServiceOperation.UPSERT);
     }
 
     public synchronized void removeClient(String clientId) {
@@ -50,6 +64,7 @@ public class ProxyClientReadService {
         ProxyClientInfo oldClientInfo = this.clientIdTable.remove(clientId);
         if (oldClientInfo != null) {
             this.removeIndexes(oldClientInfo);
+            this.operationRecorder.accept(ProxyClientReadServiceOperation.REMOVE);
         }
     }
 

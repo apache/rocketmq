@@ -94,7 +94,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected void init(MessagingProcessor messagingProcessor) {
         this.grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
         this.grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService(), this.grpcClientSettingsManager);
-        this.proxyClientReadService = new ProxyClientReadService();
+        this.proxyClientReadService = new ProxyClientReadService(ProxyMetricsManager::recordProxyClientReadModelOperation);
         this.clientAdminService = new DefaultClientAdminService(this.proxyClientReadService);
         ClientAdminAuthorizationService clientAdminAuthorizationService = new DefaultClientAdminAuthorizationService(
             ConfigurationManager.getAuthConfig(),

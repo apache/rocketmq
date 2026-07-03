@@ -20,9 +20,10 @@ import apache.rocketmq.v2.ClientType;
 import com.google.common.base.Splitter;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
+import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 import io.opentelemetry.exporter.logging.otlp.OtlpJsonLoggingMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
@@ -45,10 +46,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
+import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceStats;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
@@ -58,6 +61,7 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLU
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_ID;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_TYPE;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.OPEN_TELEMETRY_METER_NAME;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_INDEX_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_TYPE_TOTAL;
@@ -66,6 +70,7 @@ import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_TOPIC;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_CLIENT_TYPE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_INDEX_TYPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_OPERATION;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PROXY_MODE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.NODE_TYPE_PROXY;
 
@@ -89,6 +94,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
     public static ObservableLongGauge proxyClientTotal = null;
     public static ObservableLongGauge proxyClientTypeTotal = null;
     public static ObservableLongGauge proxyClientIndexTotal = null;
+    public static LongCounter proxyClientReadModelOperationsTotal = new NopLongCounter();
 
     public static void initLocalMode(BrokerMetricsManager brokerMetricsManager, ProxyConfig proxyConfig) {
         if (proxyConfig.getMetricsExporterType() == MetricsExporterType.DISABLE) {
@@ -158,6 +164,22 @@ public class ProxyMetricsManager implements StartAndShutdown {
             .setDescription("proxy client read model index count")
             .ofLongs()
             .buildWithCallback(ProxyMetricsManager::recordProxyClientIndexTotal);
+
+        proxyClientReadModelOperationsTotal = meter.counterBuilder(COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL)
+            .setDescription("proxy client read model operation count")
+            .build();
+    }
+
+    public static void recordProxyClientReadModelOperation(ProxyClientReadServiceOperation operation) {
+        if (operation == null) {
+            return;
+        }
+        proxyClientReadModelOperationsTotal.add(
+            1L,
+            newAttributesBuilder()
+                .put(LABEL_OPERATION, operation.name().toLowerCase())
+                .build()
+        );
     }
 
     private static ProxyClientReadServiceStats snapshotProxyClientStats() {

@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.service.admin.client;
 
 import apache.rocketmq.v2.ClientType;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -122,6 +123,24 @@ public class ProxyClientReadServiceTest {
         assertThat(stats.getTopicIndexCount()).isEqualTo(1L);
         assertThat(stats.getClientTypeCount(ClientType.PRODUCER)).isEqualTo(0L);
         assertThat(stats.getClientTypeCount(ClientType.PUSH_CONSUMER)).isEqualTo(1L);
+    }
+
+    @Test
+    public void recordsSuccessfulUpsertAndRemoveOperations() {
+        List<ProxyClientReadServiceOperation> operations = new ArrayList<>();
+        ProxyClientReadService service = new ProxyClientReadService(operations::add);
+
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-b"), set("topic-b")));
+        service.removeClient("missing-client");
+        service.removeClient("");
+        service.removeClient("client-a");
+
+        assertThat(operations).containsExactly(
+            ProxyClientReadServiceOperation.UPSERT,
+            ProxyClientReadServiceOperation.UPSERT,
+            ProxyClientReadServiceOperation.REMOVE
+        );
     }
 
     private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics) {
