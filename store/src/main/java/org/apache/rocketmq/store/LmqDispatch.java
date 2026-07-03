@@ -23,9 +23,35 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
+/**
+ * Per-lmq offset coordination helpers for LMQ multi-dispatch.
+ *
+ * <p>An LMQ message is sent with the {@code INNER_MULTI_DISPATCH} property
+ * listing the LMQ destinations. The two methods here are called at two
+ * distinct phases around the single CommitLog write:
+ * <ol>
+ *   <li>{@link #wrapLmqDispatch} — invoked BEFORE the CommitLog append;
+ *   it queries each destination's current max offset and records the
+ *   assigned offsets back into the message via
+ *   {@code INNER_MULTI_QUEUE_OFFSET}. These offsets are also the ones that
+ *   end up in each destination's ConsumeQueue entry.</li>
+ *   <li>{@link #updateLmqOffsets} — invoked AFTER the CommitLog append;
+ *   it increments each destination's max offset by one so the next
+ *   message lands at the following slot.</li>
+ * </ol>
+ *
+ * <p>Both methods are no-ops when {@code enableLmq} is false, and ignore
+ * any non-LMQ entries that may appear in the dispatch list.
+ */
 public class LmqDispatch {
     private static final short VALUE_OF_EACH_INCREMENT = 1;
 
+    /**
+     * Pre-CommitLog hook: look up each destination's current max offset
+     * and write the per-lmq offsets back into
+     * {@code INNER_MULTI_QUEUE_OFFSET} so the subsequent ConsumeQueue
+     * entries use the correct slot index.
+     */
     public static void wrapLmqDispatch(MessageStore messageStore, final MessageExtBrokerInner msg)
         throws ConsumeQueueException {
         String lmqNames = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
@@ -43,6 +69,11 @@ public class LmqDispatch {
         msg.removeWaitStorePropertyString();
     }
 
+    /**
+     * Post-CommitLog hook: advance each destination's max offset by one so
+     * the next dispatched message lands at the following slot. Skips
+     * non-LMQ entries defensively.
+     */
     public static void updateLmqOffsets(MessageStore messageStore, final MessageExtBrokerInner msgInner)
         throws ConsumeQueueException {
         String lmqNames = msgInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);

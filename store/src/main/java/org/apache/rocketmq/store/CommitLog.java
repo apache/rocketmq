@@ -2052,6 +2052,7 @@ public class CommitLog implements Swappable {
             // enableLmq and has multi-dispatch property and not system topic
             boolean isMultiDispatchMsg = messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ();
             if (isMultiDispatchMsg) {
+                // fill preEncodeBuffer for lmq msg
                 AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
                 if (appendMessageResult != null) {
                     return appendMessageResult;
