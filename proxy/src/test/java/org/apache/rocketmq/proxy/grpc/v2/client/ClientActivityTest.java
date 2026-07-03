@@ -52,6 +52,8 @@ import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcValidator;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -210,6 +212,32 @@ public class ClientActivityTest extends BaseActivityTest {
         SubscriptionData data = subscriptionDatasArgumentCaptor.getValue().stream().findAny().get();
         assertEquals("TAG", data.getExpressionType());
         assertEquals("tag", data.getSubString());
+    }
+
+    @Test
+    public void testConsumerTelemetryUpdatesProxyClientReadService() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+
+        this.sendConsumerTelemetry(context);
+
+        ProxyClientInfo clientInfo = proxyClientReadService.getClient(CLIENT_ID);
+        assertThat(clientInfo).isNotNull();
+        assertThat(clientInfo.getClientId()).isEqualTo(CLIENT_ID);
+        assertThat(clientInfo.getClientType()).isEqualTo(ClientType.PUSH_CONSUMER);
+        assertThat(clientInfo.getGroups()).containsExactly("Group");
+        assertThat(clientInfo.getTopics()).containsExactly(TOPIC);
+        assertThat(clientInfo.getLanguage()).isEqualTo(JAVA);
+        assertThat(clientInfo.getRemoteAddress()).isEqualTo(REMOTE_ADDR);
+        assertThat(clientInfo.getLocalAddress()).isEqualTo(LOCAL_ADDR);
+        assertThat(clientInfo.getConnectTimeMillis()).isGreaterThan(0L);
+        assertThat(clientInfo.getLastActiveTimeMillis()).isGreaterThanOrEqualTo(clientInfo.getConnectTimeMillis());
     }
 
     protected void assertClientChannelInfo(ClientChannelInfo clientChannelInfo, String group) {

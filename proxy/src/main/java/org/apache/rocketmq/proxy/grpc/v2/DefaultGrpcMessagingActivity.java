@@ -60,6 +60,7 @@ import org.apache.rocketmq.proxy.grpc.v2.producer.SendMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.route.RouteActivity;
 import org.apache.rocketmq.proxy.grpc.v2.transaction.EndTransactionActivity;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
 
 public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown implements GrpcMessagingActivity {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -75,6 +76,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected EndTransactionActivity endTransactionActivity;
     protected RouteActivity routeActivity;
     protected ClientActivity clientActivity;
+    protected ProxyClientReadService proxyClientReadService;
 
     protected DefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
         this.init(messagingProcessor);
@@ -83,6 +85,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected void init(MessagingProcessor messagingProcessor) {
         this.grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
         this.grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService(), this.grpcClientSettingsManager);
+        this.proxyClientReadService = new ProxyClientReadService();
 
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.ackMessageActivity = new AckMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
@@ -92,7 +95,12 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.endTransactionActivity = new EndTransactionActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.routeActivity = new RouteActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
-        this.clientActivity = new ClientActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.clientActivity = new ClientActivity(
+            messagingProcessor,
+            grpcClientSettingsManager,
+            grpcChannelManager,
+            proxyClientReadService
+        );
 
         this.appendStartAndShutdown(this.grpcClientSettingsManager);
     }

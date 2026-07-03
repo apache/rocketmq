@@ -38,6 +38,7 @@ import io.grpc.stub.StreamObserver;
 import io.netty.channel.Channel;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -68,6 +69,8 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -82,11 +85,20 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 public class ClientActivity extends AbstractMessagingActivity {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    protected final ProxyClientReadService proxyClientReadService;
 
     public ClientActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager,
         GrpcChannelManager grpcChannelManager) {
+        this(messagingProcessor, grpcClientSettingsManager, grpcChannelManager, new ProxyClientReadService());
+    }
+
+    public ClientActivity(MessagingProcessor messagingProcessor,
+        GrpcClientSettingsManager grpcClientSettingsManager,
+        GrpcChannelManager grpcChannelManager,
+        ProxyClientReadService proxyClientReadService) {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.proxyClientReadService = proxyClientReadService;
         this.init();
     }
 
@@ -106,6 +118,7 @@ public class ClientActivity extends AbstractMessagingActivity {
                     .build());
                 return future;
             }
+            String heartbeatGroup = null;
             switch (clientSettings.getClientType()) {
                 case PRODUCER: {
                     for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
@@ -119,6 +132,7 @@ public class ClientActivity extends AbstractMessagingActivity {
                 case SIMPLE_CONSUMER: {
                     validateConsumerGroup(request.getGroup());
                     String consumerGroup = request.getGroup().getName();
+                    heartbeatGroup = consumerGroup;
                     this.registerConsumer(ctx, consumerGroup, clientSettings.getClientType(), clientSettings.getSubscription().getSubscriptionsList(), false);
                     break;
                 }
@@ -129,6 +143,7 @@ public class ClientActivity extends AbstractMessagingActivity {
                     return future;
                 }
             }
+            this.refreshProxyClientReadModel(ctx, clientSettings, heartbeatGroup);
             future.complete(HeartbeatResponse.newBuilder()
                 .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                 .build());
@@ -148,6 +163,7 @@ public class ClientActivity extends AbstractMessagingActivity {
             LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
             Settings clientSettings = grpcClientSettingsManager.removeAndGetClientSettings(ctx);
             if (clientSettings == null) {
+                this.proxyClientReadService.removeClient(clientId);
                 future.complete(NotifyClientTerminationResponse.newBuilder()
                     .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, "cannot find client settings for this client"))
                     .build());
@@ -186,6 +202,7 @@ public class ClientActivity extends AbstractMessagingActivity {
             future.complete(NotifyClientTerminationResponse.newBuilder()
                 .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                 .build());
+            this.proxyClientReadService.removeClient(clientId);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -393,6 +410,7 @@ public class ClientActivity extends AbstractMessagingActivity {
             return;
         }
         TelemetryCommand command = processClientSettings(ctx, request);
+        this.refreshProxyClientReadModel(ctx, settings, null);
         if (grpcClientChannel != null) {
             grpcClientChannel.writeTelemetryCommand(command);
         } else {
@@ -408,6 +426,54 @@ public class ClientActivity extends AbstractMessagingActivity {
             .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
             .setSettings(settings)
             .build();
+    }
+
+    protected void refreshProxyClientReadModel(ProxyContext ctx, Settings settings, String heartbeatGroup) {
+        if (ctx == null || settings == null || StringUtils.isBlank(ctx.getClientID())) {
+            return;
+        }
+        String clientId = ctx.getClientID();
+        long now = System.currentTimeMillis();
+        ProxyClientInfo oldClientInfo = this.proxyClientReadService.getClient(clientId);
+        long connectTimeMillis = oldClientInfo == null ? now : oldClientInfo.getConnectTimeMillis();
+        this.proxyClientReadService.upsertClient(new ProxyClientInfo(
+            clientId,
+            settings.getClientType(),
+            this.buildClientGroups(settings, heartbeatGroup),
+            this.buildClientTopics(settings),
+            ctx.getLanguage(),
+            ctx.getRemoteAddress(),
+            ctx.getLocalAddress(),
+            ctx.getClientVersion(),
+            connectTimeMillis,
+            now
+        ));
+    }
+
+    protected Set<String> buildClientGroups(Settings settings, String heartbeatGroup) {
+        if (StringUtils.isNotBlank(heartbeatGroup)) {
+            return Collections.singleton(heartbeatGroup);
+        }
+        Set<String> groups = new HashSet<>();
+        if (settings.hasSubscription() && settings.getSubscription().hasGroup()) {
+            groups.add(settings.getSubscription().getGroup().getName());
+        }
+        return groups;
+    }
+
+    protected Set<String> buildClientTopics(Settings settings) {
+        Set<String> topics = new HashSet<>();
+        if (settings.hasPublishing()) {
+            for (Resource topic : settings.getPublishing().getTopicsList()) {
+                topics.add(topic.getName());
+            }
+        }
+        if (settings.hasSubscription()) {
+            for (SubscriptionEntry subscriptionEntry : settings.getSubscription().getSubscriptionsList()) {
+                topics.add(subscriptionEntry.getTopic().getName());
+            }
+        }
+        return topics;
     }
 
     protected GrpcClientChannel registerProducer(ProxyContext ctx, String topicName) {
@@ -580,6 +646,7 @@ public class ClientActivity extends AbstractMessagingActivity {
                 GrpcClientChannel removedChannel = grpcChannelManager.removeChannel(clientChannelInfo.getClientId());
                 log.info("remove grpc channel when client unregister. group:{}, clientChannelInfo:{}, removed:{}",
                     group, clientChannelInfo, removedChannel != null);
+                proxyClientReadService.removeClient(clientChannelInfo.getClientId());
             }
         }
 
@@ -619,6 +686,7 @@ public class ClientActivity extends AbstractMessagingActivity {
             if (event == ProducerGroupEvent.CLIENT_UNREGISTER) {
                 grpcChannelManager.removeChannel(clientChannelInfo.getClientId());
                 grpcClientSettingsManager.removeAndGetRawClientSettings(clientChannelInfo.getClientId());
+                proxyClientReadService.removeClient(clientChannelInfo.getClientId());
             }
         }
     }
