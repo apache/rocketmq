@@ -51,6 +51,30 @@ the registration contract.
 The public API shape is intentionally a draft because the protobuf ownership and
 compatibility process should be discussed before changing `rocketmq-apis`.
 
+## Public API Decision Record
+
+The recommended public API direction is to add a standalone
+`ProxyAdminService` instead of extending the existing `MessagingService`. Client
+query is an administrative capability with different authorization, error, and
+operational expectations from normal messaging traffic. Keeping it in a
+separate service also lets Proxy register or gate admin endpoints independently
+from client-facing messaging RPCs.
+
+M1 should accept only `LOCAL_PROXY`. Requests for future scopes such as
+`ALL_PROXIES` or `PROXY_ID` should return `BAD_REQUEST` until cross-proxy
+semantics are designed and implemented.
+
+Pagination tokens should be treated as opaque by public clients. The current
+local implementation can continue using the last returned client id as the token
+because all M1 results are sorted by client id, but the protobuf contract should
+not promise that representation.
+
+This fork should not directly modify `rocketmq-apis` for M1. The branch should
+first carry the internal read model, authorization, metrics, and adapter seams,
+plus this API proposal, so the final protobuf ownership and compatibility
+decision can be discussed with the community before generated public stubs are
+introduced.
+
 ### ListClients
 
 Request:
