@@ -312,6 +312,10 @@ The current internal admin service wrapper records:
 - admin query counters by operation and result code.
 - admin query latency histograms.
 
+Metric recording is best effort. Read-model mutation recorder failures and
+admin query metrics recorder failures are logged but do not mask successful
+lifecycle/admin operations or the original service exception.
+
 The public adapter should reuse these low-cardinality operation and result labels
 when the API surface is finalized.
 

@@ -26,10 +26,14 @@ import java.util.NavigableSet;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ProxyClientReadService {
     private static final Consumer<ProxyClientReadServiceOperation> NOOP_OPERATION_RECORDER = operation -> {
     };
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final Map<String, ProxyClientInfo> clientIdTable = new HashMap<>();
     private final Map<String, NavigableSet<String>> groupIndex = new HashMap<>();
@@ -54,7 +58,7 @@ public class ProxyClientReadService {
             this.removeIndexes(oldClientInfo);
         }
         this.addIndexes(clientInfo);
-        this.operationRecorder.accept(ProxyClientReadServiceOperation.UPSERT);
+        this.recordOperation(ProxyClientReadServiceOperation.UPSERT);
     }
 
     public synchronized void removeClient(String clientId) {
@@ -64,7 +68,7 @@ public class ProxyClientReadService {
         ProxyClientInfo oldClientInfo = this.clientIdTable.remove(clientId);
         if (oldClientInfo != null) {
             this.removeIndexes(oldClientInfo);
-            this.operationRecorder.accept(ProxyClientReadServiceOperation.REMOVE);
+            this.recordOperation(ProxyClientReadServiceOperation.REMOVE);
         }
     }
 
@@ -175,6 +179,14 @@ public class ProxyClientReadService {
         clientIds.remove(clientId);
         if (clientIds.isEmpty()) {
             index.remove(key);
+        }
+    }
+
+    private void recordOperation(ProxyClientReadServiceOperation operation) {
+        try {
+            this.operationRecorder.accept(operation);
+        } catch (RuntimeException e) {
+            log.warn("record proxy client read model operation failed. operation:{}", operation, e);
         }
     }
 }
