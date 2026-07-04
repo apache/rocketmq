@@ -22,10 +22,12 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 public class ProxyClientAdminDescribeClientRequest {
     private final String clientId;
     private final ProxyClientScope scope;
+    private final String proxyId;
 
     private ProxyClientAdminDescribeClientRequest(Builder builder) {
         this.clientId = builder.clientId;
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
+        this.proxyId = builder.proxyId;
     }
 
     public static Builder newBuilder() {
@@ -40,9 +42,14 @@ public class ProxyClientAdminDescribeClientRequest {
         return scope;
     }
 
+    public String getProxyId() {
+        return proxyId;
+    }
+
     public static class Builder {
         private String clientId;
         private ProxyClientScope scope = ProxyClientScope.LOCAL_PROXY;
+        private String proxyId;
 
         public Builder setClientId(String clientId) {
             this.clientId = clientId;
@@ -51,6 +58,11 @@ public class ProxyClientAdminDescribeClientRequest {
 
         public Builder setScope(ProxyClientScope scope) {
             this.scope = scope;
+            return this;
+        }
+
+        public Builder setProxyId(String proxyId) {
+            this.proxyId = proxyId;
             return this;
         }
 

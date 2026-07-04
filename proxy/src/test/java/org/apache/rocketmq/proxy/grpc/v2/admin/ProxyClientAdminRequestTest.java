@@ -48,19 +48,23 @@ public class ProxyClientAdminRequestTest {
     public void listClientsRequestPreservesUnsupportedScopeForServiceValidation() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setScope(ProxyClientScope.ALL_PROXIES)
+            .setProxyId("proxy-a")
             .build();
 
         assertThat(request.toQuery().getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
+        assertThat(request.getProxyId()).isEqualTo("proxy-a");
     }
 
     @Test
     public void describeClientRequestCarriesClientIdAndDefaultsScope() {
         ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
             .setClientId("client-a")
+            .setProxyId("proxy-a")
             .build();
 
         assertThat(request.getClientId()).isEqualTo("client-a");
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(request.getProxyId()).isEqualTo("proxy-a");
     }
 
     @Test
@@ -70,6 +74,7 @@ public class ProxyClientAdminRequestTest {
             .setClientType(ClientType.PUSH_CONSUMER)
             .setPageSize(20)
             .setPageToken("client-b")
+            .setProxyId("proxy-a")
             .build();
 
         ProxyClientQuery query = request.toQuery();
@@ -80,6 +85,7 @@ public class ProxyClientAdminRequestTest {
         assertThat(query.getPageSize()).isEqualTo(20);
         assertThat(query.getPageToken()).isEqualTo("client-b");
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(request.getProxyId()).isEqualTo("proxy-a");
     }
 
     @Test
@@ -89,6 +95,7 @@ public class ProxyClientAdminRequestTest {
             .setPageSize(30)
             .setPageToken("opaque-token")
             .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
             .build();
 
         ProxyClientQuery query = request.toQuery();
@@ -98,5 +105,6 @@ public class ProxyClientAdminRequestTest {
         assertThat(query.getPageSize()).isEqualTo(30);
         assertThat(query.getPageToken()).isEqualTo("opaque-token");
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
+        assertThat(request.getProxyId()).isEqualTo("proxy-a");
     }
 }

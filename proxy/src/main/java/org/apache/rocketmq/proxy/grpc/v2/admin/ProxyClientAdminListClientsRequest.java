@@ -26,12 +26,14 @@ public class ProxyClientAdminListClientsRequest {
     private final int pageSize;
     private final String pageToken;
     private final ProxyClientScope scope;
+    private final String proxyId;
 
     protected ProxyClientAdminListClientsRequest(Builder<?> builder) {
         this.clientType = builder.clientType;
         this.pageSize = builder.pageSize;
         this.pageToken = builder.pageToken;
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
+        this.proxyId = builder.proxyId;
     }
 
     public static Builder<?> newBuilder() {
@@ -54,6 +56,10 @@ public class ProxyClientAdminListClientsRequest {
         return scope;
     }
 
+    public String getProxyId() {
+        return proxyId;
+    }
+
     public ProxyClientQuery toQuery() {
         return this.populateQueryBuilder(ProxyClientQuery.newBuilder()).build();
     }
@@ -71,6 +77,7 @@ public class ProxyClientAdminListClientsRequest {
         private int pageSize = ProxyClientQuery.DEFAULT_PAGE_SIZE;
         private String pageToken;
         private ProxyClientScope scope = ProxyClientScope.LOCAL_PROXY;
+        private String proxyId;
 
         public T setClientType(ClientType clientType) {
             this.clientType = clientType;
@@ -89,6 +96,11 @@ public class ProxyClientAdminListClientsRequest {
 
         public T setScope(ProxyClientScope scope) {
             this.scope = scope;
+            return this.self();
+        }
+
+        public T setProxyId(String proxyId) {
+            this.proxyId = proxyId;
             return this.self();
         }
 
