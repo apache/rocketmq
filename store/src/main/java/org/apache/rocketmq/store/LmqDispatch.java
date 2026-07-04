@@ -47,6 +47,7 @@ public class LmqDispatch {
     private static final short VALUE_OF_EACH_INCREMENT = 1;
 
     /**
+     * Assign lmq offsets to message.
      * Pre-CommitLog hook: look up each destination's current max offset
      * and write the per-lmq offsets back into
      * {@code INNER_MULTI_QUEUE_OFFSET} so the subsequent ConsumeQueue
@@ -57,6 +58,7 @@ public class LmqDispatch {
         String lmqNames = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String[] queueNames = lmqNames.split(MixAll.LMQ_DISPATCH_SEPARATOR);
         Long[] queueOffsets = new Long[queueNames.length];
+
         if (messageStore.getMessageStoreConfig().isEnableLmq()) {
             for (int i = 0; i < queueNames.length; i++) {
                 if (MixAll.isLmq(queueNames[i])) {
@@ -64,12 +66,14 @@ public class LmqDispatch {
                 }
             }
         }
+
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
             StringUtils.join(queueOffsets, MixAll.LMQ_DISPATCH_SEPARATOR));
         msg.removeWaitStorePropertyString();
     }
 
     /**
+     * Increase lmq offsets.
      * Post-CommitLog hook: advance each destination's max offset by one so
      * the next dispatched message lands at the following slot. Skips
      * non-LMQ entries defensively.
