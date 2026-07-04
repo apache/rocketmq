@@ -111,6 +111,42 @@ public class DefaultClientAdminServiceTest {
             .hasMessageContaining("Invalid page token");
     }
 
+    @Test
+    public void listClientsRejectsUnsupportedScope() {
+        ClientAdminService adminService = new DefaultClientAdminService(new ProxyClientReadService());
+
+        assertThatThrownBy(() -> adminService.listClients(ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported proxy scope")
+            .hasMessageContaining("ALL_PROXIES");
+    }
+
+    @Test
+    public void listClientsByGroupRejectsUnsupportedScope() {
+        ClientAdminService adminService = new DefaultClientAdminService(new ProxyClientReadService());
+
+        assertThatThrownBy(() -> adminService.listClientsByGroup("group-a", ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported proxy scope")
+            .hasMessageContaining("ALL_PROXIES");
+    }
+
+    @Test
+    public void listClientsByTopicRejectsUnsupportedScope() {
+        ClientAdminService adminService = new DefaultClientAdminService(new ProxyClientReadService());
+
+        assertThatThrownBy(() -> adminService.listClientsByTopic("topic-a", ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .build()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported proxy scope")
+            .hasMessageContaining("PROXY_ID");
+    }
+
     private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics) {
         return new ProxyClientInfo(
             clientId,

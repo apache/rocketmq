@@ -26,6 +26,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ClientAdminRequestContext;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public class ProxyClientAdminActivity {
     private final AuthorizingClientAdminService clientAdminService;
@@ -42,7 +43,15 @@ public class ProxyClientAdminActivity {
     }
 
     public ProxyClientAdminResult<ProxyClientInfo> describeClient(ProxyContext ctx, String clientId) {
-        return this.execute(() -> this.clientAdminService.describeClient(ClientAdminRequestContext.from(ctx), clientId));
+        return this.describeClient(ctx, clientId, ProxyClientScope.LOCAL_PROXY);
+    }
+
+    public ProxyClientAdminResult<ProxyClientInfo> describeClient(ProxyContext ctx, String clientId,
+        ProxyClientScope scope) {
+        return this.execute(() -> {
+            this.validateLocalProxyScope(scope);
+            return this.clientAdminService.describeClient(ClientAdminRequestContext.from(ctx), clientId);
+        });
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClientsByGroup(ProxyContext ctx, String group,
@@ -71,6 +80,13 @@ public class ProxyClientAdminActivity {
             );
         } catch (Throwable t) {
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
+        }
+    }
+
+    private void validateLocalProxyScope(ProxyClientScope scope) {
+        ProxyClientScope effectiveScope = scope == null ? ProxyClientScope.LOCAL_PROXY : scope;
+        if (effectiveScope != ProxyClientScope.LOCAL_PROXY) {
+            throw new IllegalArgumentException("Unsupported proxy scope: " + effectiveScope);
         }
     }
 }

@@ -31,7 +31,9 @@ public class DefaultClientAdminService implements ClientAdminService {
 
     @Override
     public ProxyClientPage listClients(ProxyClientQuery query) {
-        return this.proxyClientReadService.listClients(query);
+        ProxyClientQuery effectiveQuery = this.effectiveQuery(query);
+        this.validateLocalProxyScope(effectiveQuery.getScope());
+        return this.proxyClientReadService.listClients(effectiveQuery);
     }
 
     @Override
@@ -51,7 +53,7 @@ public class DefaultClientAdminService implements ClientAdminService {
         if (StringUtils.isBlank(group)) {
             throw new IllegalArgumentException("group is required");
         }
-        return this.proxyClientReadService.listClients(this.mergeQuery(query, group, null));
+        return this.listClients(this.mergeQuery(query, group, null));
     }
 
     @Override
@@ -59,17 +61,25 @@ public class DefaultClientAdminService implements ClientAdminService {
         if (StringUtils.isBlank(topic)) {
             throw new IllegalArgumentException("topic is required");
         }
-        return this.proxyClientReadService.listClients(this.mergeQuery(query, null, topic));
+        return this.listClients(this.mergeQuery(query, null, topic));
+    }
+
+    static void validateLocalProxyScope(ProxyClientScope scope) {
+        ProxyClientScope effectiveScope = scope == null ? ProxyClientScope.LOCAL_PROXY : scope;
+        if (effectiveScope != ProxyClientScope.LOCAL_PROXY) {
+            throw new IllegalArgumentException("Unsupported proxy scope: " + effectiveScope);
+        }
     }
 
     private ProxyClientQuery mergeQuery(ProxyClientQuery query, String group, String topic) {
-        ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
+        ProxyClientQuery effectiveQuery = this.effectiveQuery(query);
         ProxyClientQuery.Builder builder = ProxyClientQuery.newBuilder()
             .setGroup(effectiveQuery.getGroup())
             .setTopic(effectiveQuery.getTopic())
             .setClientType(effectiveQuery.getClientType())
             .setPageSize(effectiveQuery.getPageSize())
-            .setPageToken(effectiveQuery.getPageToken());
+            .setPageToken(effectiveQuery.getPageToken())
+            .setScope(effectiveQuery.getScope());
         if (group != null) {
             builder.setGroup(group);
         }
@@ -77,5 +87,9 @@ public class DefaultClientAdminService implements ClientAdminService {
             builder.setTopic(topic);
         }
         return builder.build();
+    }
+
+    private ProxyClientQuery effectiveQuery(ProxyClientQuery query) {
+        return query == null ? ProxyClientQuery.newBuilder().build() : query;
     }
 }

@@ -32,6 +32,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -133,6 +134,34 @@ public class ProxyClientAdminActivityTest {
 
         assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(result.getStatus().getMessage()).contains("Invalid page token");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void listClientsMapsUnsupportedScopeToBadRequest() {
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(authorizingService(new ProxyClientReadService()));
+
+        ProxyClientAdminResult<ProxyClientPage> result = activity.listClients(
+            proxyContext(),
+            ProxyClientQuery.newBuilder().setScope(ProxyClientScope.ALL_PROXIES).build()
+        );
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Unsupported proxy scope");
+        assertThat(result.getStatus().getMessage()).contains("ALL_PROXIES");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void describeClientMapsUnsupportedScopeToBadRequest() {
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(authorizingService(new ProxyClientReadService()));
+
+        ProxyClientAdminResult<ProxyClientInfo> result =
+            activity.describeClient(proxyContext(), "client-a", ProxyClientScope.PROXY_ID);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Unsupported proxy scope");
+        assertThat(result.getStatus().getMessage()).contains("PROXY_ID");
         assertThat(result.getBody()).isNull();
     }
 

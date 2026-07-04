@@ -27,6 +27,7 @@ public class ProxyClientQuery {
     private final ClientType clientType;
     private final int pageSize;
     private final String pageToken;
+    private final ProxyClientScope scope;
 
     private ProxyClientQuery(Builder builder) {
         this.group = builder.group;
@@ -34,6 +35,7 @@ public class ProxyClientQuery {
         this.clientType = builder.clientType;
         this.pageSize = builder.pageSize;
         this.pageToken = builder.pageToken;
+        this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
     }
 
     public static Builder newBuilder() {
@@ -60,6 +62,10 @@ public class ProxyClientQuery {
         return pageToken;
     }
 
+    public ProxyClientScope getScope() {
+        return scope;
+    }
+
     public int getBoundedPageSize() {
         if (pageSize <= 0) {
             return DEFAULT_PAGE_SIZE;
@@ -73,6 +79,7 @@ public class ProxyClientQuery {
         private ClientType clientType;
         private int pageSize = DEFAULT_PAGE_SIZE;
         private String pageToken;
+        private ProxyClientScope scope = ProxyClientScope.LOCAL_PROXY;
 
         public Builder setGroup(String group) {
             this.group = group;
@@ -96,6 +103,11 @@ public class ProxyClientQuery {
 
         public Builder setPageToken(String pageToken) {
             this.pageToken = pageToken;
+            return this;
+        }
+
+        public Builder setScope(ProxyClientScope scope) {
+            this.scope = scope;
             return this;
         }
 
