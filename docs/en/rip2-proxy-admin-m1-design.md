@@ -105,6 +105,11 @@ small and tested boundary to call:
   response flow: execute an activity action, convert thrown exceptions through
   `ResponseBuilder`, build a response from `Status` and optional body, and write
   it through `ResponseWriter`.
+- `ProxyClientAdminEndpointExecutor` is a proto-independent shell for generated
+  unary admin methods. It builds the `ProxyContext`, adapts the proto request to
+  the internal request DTO, delegates to `ProxyClientAdminEndpointHandler`, and
+  routes context or request-adapter failures through the same status conversion
+  path.
 - `ProxyClientAdminContextFactory` runs the shared gRPC request pipeline and
   builds a `ProxyContext` for future admin RPCs without applying the messaging
   RPC client-id requirement. Admin authorization is based on the authenticated
@@ -119,7 +124,10 @@ small and tested boundary to call:
 - `GrpcMessagingApplication.createDefaultActivity` and the shared-activity
   `create` overload make it possible for startup code to instantiate one
   `DefaultGrpcMessagingActivity`, register the existing messaging service, and
-  pass the same activity/admin adapter to a future proxy admin service.
+  pass the same activity/admin adapter to a future proxy admin service. The
+  default activity also exposes the shared `ProxyClientAdminEndpointExecutor`
+  that future generated admin service methods should call after proto classes
+  are available.
 
 The request DTOs convert pagination, client type, scope, and optional proxy id
 into `ProxyClientQuery`. Page tokens are preserved as opaque strings at this
@@ -430,8 +438,9 @@ The endpoint adapter should stay thin:
   `GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(...)`.
   Admin RPCs should use `ProxyClientAdminContextFactory` instead of the
   messaging application's client-id validation path.
-- translate proto requests to the internal request DTOs.
-- call `ProxyClientAdminActivity`.
+- translate proto requests to the internal request DTOs through
+  `ProxyClientAdminEndpointExecutor`.
+- call `ProxyClientAdminActivity` through the shared endpoint handler.
 - translate `ProxyClientAdminPageView` and `ProxyClientAdminClientView` into
   proto responses.
 - use `ProxyClientAdminEndpointHandler` to copy the `Status` from

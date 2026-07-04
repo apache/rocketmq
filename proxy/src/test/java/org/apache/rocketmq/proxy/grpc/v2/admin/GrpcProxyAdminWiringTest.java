@@ -70,6 +70,18 @@ public class GrpcProxyAdminWiringTest extends InitConfigTest {
     }
 
     @Test
+    public void createDefaultActivityExposesAdminEndpointExecutorUsingSharedHandler() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+
+        ProxyClientAdminEndpointExecutor endpointExecutor = activity.getProxyClientAdminEndpointExecutor();
+
+        Field endpointHandlerField = ProxyClientAdminEndpointExecutor.class.getDeclaredField("endpointHandler");
+        endpointHandlerField.setAccessible(true);
+        assertThat(endpointExecutor).isNotNull();
+        assertThat(endpointHandlerField.get(endpointExecutor)).isSameAs(activity.getProxyClientAdminEndpointHandler());
+    }
+
+    @Test
     public void createMessagingApplicationUsesSuppliedSharedActivity() throws Exception {
         GrpcMessagingApplication application = GrpcMessagingApplication.create(
             this.messagingProcessor,

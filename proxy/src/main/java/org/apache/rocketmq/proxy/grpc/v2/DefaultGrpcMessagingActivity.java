@@ -51,6 +51,8 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminContextFactory;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointHandler;
 import org.apache.rocketmq.proxy.grpc.v2.client.ClientActivity;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -90,7 +92,9 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected ClientAdminService clientAdminService;
     protected AuthorizingClientAdminService authorizingClientAdminService;
     protected ProxyClientAdminActivity proxyClientAdminActivity;
+    protected ProxyClientAdminContextFactory proxyClientAdminContextFactory;
     protected ProxyClientAdminEndpointHandler proxyClientAdminEndpointHandler;
+    protected ProxyClientAdminEndpointExecutor proxyClientAdminEndpointExecutor;
 
     protected DefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
         this.init(messagingProcessor);
@@ -113,7 +117,13 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             clientAdminAuthorizationService
         );
         this.proxyClientAdminActivity = new ProxyClientAdminActivity(this.authorizingClientAdminService);
+        this.proxyClientAdminContextFactory =
+            GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(messagingProcessor);
         this.proxyClientAdminEndpointHandler = new ProxyClientAdminEndpointHandler(this.proxyClientAdminActivity);
+        this.proxyClientAdminEndpointExecutor = new ProxyClientAdminEndpointExecutor(
+            this.proxyClientAdminContextFactory,
+            this.proxyClientAdminEndpointHandler
+        );
         ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(this.proxyClientReadService::snapshotStats);
 
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
@@ -148,6 +158,10 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
 
     public ProxyClientAdminEndpointHandler getProxyClientAdminEndpointHandler() {
         return this.proxyClientAdminEndpointHandler;
+    }
+
+    public ProxyClientAdminEndpointExecutor getProxyClientAdminEndpointExecutor() {
+        return this.proxyClientAdminEndpointExecutor;
     }
 
     @Override
