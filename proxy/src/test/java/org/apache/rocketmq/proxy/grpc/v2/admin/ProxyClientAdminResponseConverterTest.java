@@ -99,6 +99,29 @@ public class ProxyClientAdminResponseConverterTest {
             .isInstanceOf(UnsupportedOperationException.class);
     }
 
+    @Test
+    public void convertsNullStringFieldsToEmptyPublicViewValues() {
+        ProxyClientInfo clientInfo = new ProxyClientInfo(
+            "client-a",
+            ClientType.PRODUCER,
+            Collections.emptySet(),
+            Collections.emptySet(),
+            null,
+            null,
+            null,
+            null,
+            100L,
+            200L
+        );
+
+        ProxyClientAdminClientView view = ProxyClientAdminResponseConverter.toClientView(clientInfo);
+
+        assertThat(view.getLanguage()).isEmpty();
+        assertThat(view.getRemoteAddress()).isEmpty();
+        assertThat(view.getLocalAddress()).isEmpty();
+        assertThat(view.getClientVersion()).isEmpty();
+    }
+
     private static ProxyClientInfo client(String clientId) {
         return new ProxyClientInfo(
             clientId,

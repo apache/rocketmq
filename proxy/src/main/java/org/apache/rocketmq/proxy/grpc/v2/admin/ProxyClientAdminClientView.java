@@ -41,10 +41,10 @@ public class ProxyClientAdminClientView {
         this.clientType = clientType;
         this.groups = immutableCopy(groups);
         this.topics = immutableCopy(topics);
-        this.language = language;
-        this.remoteAddress = remoteAddress;
-        this.localAddress = localAddress;
-        this.clientVersion = clientVersion;
+        this.language = nullToEmpty(language);
+        this.remoteAddress = nullToEmpty(remoteAddress);
+        this.localAddress = nullToEmpty(localAddress);
+        this.clientVersion = nullToEmpty(clientVersion);
         this.connectTimeMillis = connectTimeMillis;
         this.lastActiveTimeMillis = lastActiveTimeMillis;
     }
@@ -54,6 +54,10 @@ public class ProxyClientAdminClientView {
             return Collections.emptyList();
         }
         return Collections.unmodifiableList(new ArrayList<>(values));
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     public String getClientId() {
