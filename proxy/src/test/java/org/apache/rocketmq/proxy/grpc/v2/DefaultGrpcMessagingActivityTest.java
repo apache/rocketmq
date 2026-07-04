@@ -18,10 +18,14 @@
 package org.apache.rocketmq.proxy.grpc.v2;
 
 import apache.rocketmq.v2.ClientType;
+import apache.rocketmq.v2.Code;
 import java.util.Collections;
 import org.apache.rocketmq.auth.authentication.model.User;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminResult;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminRequestContext;
@@ -96,5 +100,36 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
             ClientAdminRequestContext.of(User.of("admin"), "127.0.0.1"),
             "client-a"
         )).isSameAs(clientInfo);
+    }
+
+    @Test
+    public void initCreatesProxyClientAdminActivityWithSharedReadModel() {
+        DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+        ProxyClientInfo clientInfo = new ProxyClientInfo(
+            "client-a",
+            ClientType.PRODUCER,
+            Collections.emptySet(),
+            Collections.singleton("topic-a"),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        );
+
+        activity.proxyClientReadService.upsertClient(clientInfo);
+
+        ProxyClientAdminActivity proxyClientAdminActivity = activity.getProxyClientAdminActivity();
+        ProxyClientAdminResult<ProxyClientInfo> result = proxyClientAdminActivity.describeClient(
+            ProxyContext.create()
+                .setSubject(User.of("admin"))
+                .setRemoteAddress("127.0.0.1"),
+            "client-a"
+        );
+
+        assertThat(proxyClientAdminActivity).isNotNull();
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody()).isSameAs(clientInfo);
     }
 }
