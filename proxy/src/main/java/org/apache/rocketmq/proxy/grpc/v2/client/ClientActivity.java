@@ -684,6 +684,9 @@ public class ClientActivity extends AbstractMessagingActivity {
         @Override
         public void handle(ProducerGroupEvent event, String group, ClientChannelInfo clientChannelInfo) {
             if (event == ProducerGroupEvent.CLIENT_UNREGISTER) {
+                if (clientChannelInfo == null || ChannelHelper.isRemote(clientChannelInfo.getChannel())) {
+                    return;
+                }
                 grpcChannelManager.removeChannel(clientChannelInfo.getClientId());
                 grpcClientSettingsManager.removeAndGetRawClientSettings(clientChannelInfo.getClientId());
                 proxyClientReadService.removeClient(clientChannelInfo.getClientId());

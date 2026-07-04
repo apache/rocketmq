@@ -43,6 +43,10 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
+import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
+import org.apache.rocketmq.broker.client.ProducerChangeListener;
+import org.apache.rocketmq.broker.client.ProducerGroupEvent;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -52,6 +56,8 @@ import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcValidator;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
+import org.apache.rocketmq.proxy.processor.channel.RemoteChannel;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
@@ -328,6 +334,86 @@ public class ClientActivityTest extends BaseActivityTest {
             .build()).getClients()).isEmpty();
     }
 
+    @Test
+    public void testProducerUnregisterListenerRemovesProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        ProducerChangeListener listener = latestProducerChangeListener();
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+
+        listener.handle(
+            ProducerGroupEvent.CLIENT_UNREGISTER,
+            TOPIC,
+            new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testConsumerUnregisterListenerRemovesProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendConsumerTelemetry(context);
+        ConsumerIdsChangeListener listener = latestConsumerIdsChangeListener();
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+
+        listener.handle(
+            ConsumerGroupEvent.CLIENT_UNREGISTER,
+            "Group",
+            new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("Group")
+            .build()).getClients()).isEmpty();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testProducerUnregisterListenerIgnoresRemoteChannel() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        ProducerChangeListener listener = latestProducerChangeListener();
+
+        listener.handle(
+            ProducerGroupEvent.CLIENT_UNREGISTER,
+            TOPIC,
+            new ClientChannelInfo(remoteGrpcChannel(), CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+    }
+
     protected void assertClientChannelInfo(ClientChannelInfo clientChannelInfo, String group) {
         assertEquals(LanguageCode.JAVA, clientChannelInfo.getLanguage());
         assertEquals(CLIENT_ID, clientChannelInfo.getClientId());
@@ -550,6 +636,29 @@ public class ClientActivityTest extends BaseActivityTest {
             .setSettings(settings)
             .build());
         return future;
+    }
+
+    private ProducerChangeListener latestProducerChangeListener() {
+        ArgumentCaptor<ProducerChangeListener> listenerCaptor = ArgumentCaptor.forClass(ProducerChangeListener.class);
+        verify(this.messagingProcessor, times(2)).registerProducerListener(listenerCaptor.capture());
+        return listenerCaptor.getAllValues().get(1);
+    }
+
+    private ConsumerIdsChangeListener latestConsumerIdsChangeListener() {
+        ArgumentCaptor<ConsumerIdsChangeListener> listenerCaptor =
+            ArgumentCaptor.forClass(ConsumerIdsChangeListener.class);
+        verify(this.messagingProcessor, times(2)).registerConsumerListener(listenerCaptor.capture());
+        return listenerCaptor.getAllValues().get(1);
+    }
+
+    private RemoteChannel remoteGrpcChannel() {
+        return new RemoteChannel(
+            "remote-proxy",
+            REMOTE_ADDR,
+            LOCAL_ADDR,
+            ChannelProtocolType.GRPC_V2,
+            null
+        );
     }
 
     @Test
