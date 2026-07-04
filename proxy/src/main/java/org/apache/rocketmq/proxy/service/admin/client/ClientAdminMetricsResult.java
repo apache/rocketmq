@@ -20,5 +20,6 @@ public enum ClientAdminMetricsResult {
     OK,
     BAD_REQUEST,
     NOT_FOUND,
+    UNAUTHORIZED,
     INTERNAL_ERROR
 }

@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -109,6 +110,28 @@ public class MeteredClientAdminServiceTest {
         assertThat(records).containsExactly(new Record(
             ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
             ClientAdminMetricsResult.INTERNAL_ERROR,
+            1L
+        ));
+    }
+
+    @Test
+    public void listClientsRecordsUnauthorizedAndRethrows() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        when(delegate.listClients(query)).thenThrow(new AuthorizationException("denied"));
+        List<Record> records = new ArrayList<>();
+
+        MeteredClientAdminService service = new MeteredClientAdminService(
+            delegate,
+            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            clock()
+        );
+
+        assertThatThrownBy(() -> service.listClients(query))
+            .isInstanceOf(AuthorizationException.class);
+        assertThat(records).containsExactly(new Record(
+            ClientAdminOperation.LIST_CLIENTS,
+            ClientAdminMetricsResult.UNAUTHORIZED,
             1L
         ));
     }

@@ -20,6 +20,8 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -106,6 +108,9 @@ public class MeteredClientAdminService implements ClientAdminService {
         }
         if (exception instanceof NoSuchElementException) {
             return ClientAdminMetricsResult.NOT_FOUND;
+        }
+        if (exception instanceof AuthenticationException || exception instanceof AuthorizationException) {
+            return ClientAdminMetricsResult.UNAUTHORIZED;
         }
         return ClientAdminMetricsResult.INTERNAL_ERROR;
     }
