@@ -142,8 +142,17 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     }
 
     public static GrpcMessagingApplication create(MessagingProcessor messagingProcessor) {
+        return create(messagingProcessor, createDefaultActivity(messagingProcessor));
+    }
+
+    public static DefaultGrpcMessagingActivity createDefaultActivity(MessagingProcessor messagingProcessor) {
+        return new DefaultGrpcMessagingActivity(messagingProcessor);
+    }
+
+    public static GrpcMessagingApplication create(MessagingProcessor messagingProcessor,
+        GrpcMessagingActivity grpcMessagingActivity) {
         RequestPipeline pipeline = GrpcRequestPipelineFactory.create(messagingProcessor);
-        return new GrpcMessagingApplication(new DefaultGrpcMessagingActivity(messagingProcessor), pipeline);
+        return new GrpcMessagingApplication(grpcMessagingActivity, pipeline);
     }
 
     protected Status flowLimitStatus() {

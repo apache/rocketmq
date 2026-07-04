@@ -139,7 +139,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         return this.authorizingClientAdminService;
     }
 
-    protected ProxyClientAdminActivity getProxyClientAdminActivity() {
+    public ProxyClientAdminActivity getProxyClientAdminActivity() {
         return this.proxyClientAdminActivity;
     }
 
