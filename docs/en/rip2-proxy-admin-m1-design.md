@@ -349,7 +349,7 @@ M1 is additive. It does not change existing gRPC client behavior, public protobu
 definitions, broker registration, or client settings semantics. The original
 three-argument `ClientActivity` constructor remains available. The new
 four-argument constructor only allows tests and the default gRPC activity to
-share a read model instance.
+share a non-null read model instance.
 
 The read model is process-local and in-memory; restart behavior is unchanged.
 After a proxy restart, clients repopulate the model through telemetry and

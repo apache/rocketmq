@@ -98,6 +98,9 @@ public class ClientActivity extends AbstractMessagingActivity {
         GrpcChannelManager grpcChannelManager,
         ProxyClientReadService proxyClientReadService) {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        if (proxyClientReadService == null) {
+            throw new IllegalArgumentException("proxyClientReadService is required");
+        }
         this.proxyClientReadService = proxyClientReadService;
         this.init();
     }
