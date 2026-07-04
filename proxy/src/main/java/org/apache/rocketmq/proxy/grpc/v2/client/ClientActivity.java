@@ -344,6 +344,9 @@ public class ClientActivity extends AbstractMessagingActivity {
     }
 
     private void handleGrpcCancel(ProxyContext ctx, Throwable t) {
+        if (ctx == null) {
+            return;
+        }
         final String clientId = ctx.getClientID();
         if (StringUtils.isBlank(clientId)) {
             return;
@@ -356,6 +359,7 @@ public class ClientActivity extends AbstractMessagingActivity {
         if (io.grpc.Status.CANCELLED.getCode() == statusException.getStatus().getCode() ||
             io.grpc.Status.UNAVAILABLE.getCode() == statusException.getStatus().getCode()) {
             this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, null);
+            this.proxyClientReadService.removeClient(clientId);
         }
     }
 
