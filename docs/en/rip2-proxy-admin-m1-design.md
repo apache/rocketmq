@@ -134,7 +134,8 @@ read-model queries should remain behind the existing activity/service boundary.
 The generated unary methods should use `ProxyClientAdminEndpointHandler` for
 the common result-to-`StreamObserver` flow. Response factories must return a
 non-null response; a null response is treated as an internal adapter error and
-mapped through the same status response path.
+mapped through the same status response path. Missing response observers are
+rejected before executing the admin action.
 
 ### ListClients
 

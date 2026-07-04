@@ -79,10 +79,11 @@ public class ProxyClientAdminEndpointHandler {
     public <T, R> void handle(StreamObserver<R> responseObserver,
         Supplier<ProxyClientAdminResult<T>> action,
         BiFunction<Status, T, R> responseFactory) {
+        StreamObserver<R> requiredResponseObserver = this.requireResponseObserver(responseObserver);
         BiFunction<Status, T, R> requiredResponseFactory = this.requireResponseFactory(responseFactory);
         ProxyClientAdminResult<T> result = this.execute(action);
         R response = this.applyResponseFactory(requiredResponseFactory, result);
-        ResponseWriter.getInstance().write(responseObserver, response);
+        ResponseWriter.getInstance().write(requiredResponseObserver, response);
     }
 
     private <T, R> R applyResponseFactory(BiFunction<Status, T, R> responseFactory,
@@ -118,6 +119,13 @@ public class ProxyClientAdminEndpointHandler {
             throw new IllegalArgumentException("responseFactory is required");
         }
         return responseFactory;
+    }
+
+    private <R> StreamObserver<R> requireResponseObserver(StreamObserver<R> responseObserver) {
+        if (responseObserver == null) {
+            throw new IllegalArgumentException("responseObserver is required");
+        }
+        return responseObserver;
     }
 
     private <R> R requireResponse(R response) {

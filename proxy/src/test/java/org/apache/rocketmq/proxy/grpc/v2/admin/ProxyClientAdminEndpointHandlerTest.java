@@ -21,12 +21,14 @@ import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
 import io.grpc.stub.StreamObserver;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -177,6 +179,24 @@ public class ProxyClientAdminEndpointHandlerTest {
         assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("request is required");
         assertThat(responseCaptor.getValue().getBody()).isNull();
+    }
+
+    @Test
+    public void handleRejectsMissingResponseObserverBeforeExecutingAction() {
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
+        AtomicBoolean actionInvoked = new AtomicBoolean(false);
+
+        assertThatThrownBy(() -> handler.handle(
+            null,
+            () -> {
+                actionInvoked.set(true);
+                return okResult("client-a");
+            },
+            TestAdminResponse::new
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("responseObserver is required");
+        assertThat(actionInvoked).isFalse();
     }
 
     @Test
