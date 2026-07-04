@@ -194,6 +194,23 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void listClientViewsMapsNullSuccessBodyToInternalServerError() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        when(delegate.listClients(query)).thenReturn(null);
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.listClientViews(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("result body is required");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void listClientViewsAcceptsRequestDto() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);

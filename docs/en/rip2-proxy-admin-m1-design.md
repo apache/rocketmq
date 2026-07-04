@@ -335,6 +335,8 @@ Draft public adapter mapping:
 - unknown client id for `DescribeClient`: `NOT_FOUND`.
 - unsupported scope: `BAD_REQUEST` until multi-proxy scopes are implemented.
 - authorization failure: `UNAUTHORIZED`.
+- unexpected successful query result without a response body:
+  `INTERNAL_SERVER_ERROR`.
 - internal failures: `INTERNAL_SERVER_ERROR`.
 
 ## Compatibility

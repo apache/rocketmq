@@ -178,9 +178,13 @@ public class ProxyClientAdminActivity {
 
     private <T> ProxyClientAdminResult<T> execute(Supplier<T> supplier) {
         try {
+            T body = supplier.get();
+            if (body == null) {
+                throw new IllegalStateException("result body is required");
+            }
             return new ProxyClientAdminResult<>(
                 ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),
-                supplier.get()
+                body
             );
         } catch (Throwable t) {
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
