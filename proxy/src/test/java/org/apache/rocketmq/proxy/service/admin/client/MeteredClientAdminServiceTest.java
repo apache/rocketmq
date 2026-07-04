@@ -113,6 +113,34 @@ public class MeteredClientAdminServiceTest {
         ));
     }
 
+    @Test
+    public void metricsRecorderFailureDoesNotMaskSuccessfulResult() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), "");
+        when(delegate.listClients(query)).thenReturn(page);
+        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
+            throw new IllegalStateException("metrics down");
+        };
+        MeteredClientAdminService service = new MeteredClientAdminService(delegate, failingRecorder, clock());
+
+        assertThat(service.listClients(query)).isSameAs(page);
+    }
+
+    @Test
+    public void metricsRecorderFailureDoesNotMaskDelegateException() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        when(delegate.describeClient("missing-client")).thenThrow(new NoSuchElementException("missing"));
+        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
+            throw new IllegalStateException("metrics down");
+        };
+        MeteredClientAdminService service = new MeteredClientAdminService(delegate, failingRecorder, clock());
+
+        assertThatThrownBy(() -> service.describeClient("missing-client"))
+            .isInstanceOf(NoSuchElementException.class)
+            .hasMessageContaining("missing");
+    }
+
     private static java.util.function.LongSupplier clock() {
         AtomicLong clock = new AtomicLong(0L);
         return () -> clock.getAndAdd(1_000_000L);

@@ -20,10 +20,14 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class MeteredClientAdminService implements ClientAdminService {
     private static final ClientAdminMetricsRecorder NOOP_METRICS_RECORDER = (operation, result, latencyMillis) -> {
     };
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final ClientAdminService delegate;
     private final ClientAdminMetricsRecorder metricsRecorder;
@@ -84,7 +88,15 @@ public class MeteredClientAdminService implements ClientAdminService {
             result = this.classify(e);
             throw e;
         } finally {
-            this.metricsRecorder.record(operation, result, this.elapsedMillis(startNanos));
+            this.recordMetrics(operation, result, this.elapsedMillis(startNanos));
+        }
+    }
+
+    private void recordMetrics(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis) {
+        try {
+            this.metricsRecorder.record(operation, result, latencyMillis);
+        } catch (RuntimeException e) {
+            log.warn("record client admin metrics failed. operation:{}, result:{}", operation, result, e);
         }
     }
 
