@@ -34,7 +34,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -202,6 +204,22 @@ public class ProxyClientAdminEndpointExecutorTest {
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("request headers are invalid");
         assertThat(responseCaptor.getValue().getBody()).isNull();
         assertThat(requestAdapterInvoked).isFalse();
+    }
+
+    @Test
+    public void listClientsRejectsMissingRequestAdapterBeforeCreatingContext() {
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        assertThatThrownBy(() -> executor.listClients(
+            headers,
+            protoRequest,
+            null,
+            responseObserver,
+            responseFactory
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("requestAdapter is required");
+        verify(contextFactory, never()).create(any(), any());
     }
 
     @Test
