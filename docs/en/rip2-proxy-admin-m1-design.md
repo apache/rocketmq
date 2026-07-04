@@ -75,6 +75,10 @@ plus this API proposal, so the final protobuf ownership and compatibility
 decision can be discussed with the community before generated public stubs are
 introduced.
 
+The documentation-only API sketch is captured in
+`docs/en/rip2-proxy-admin-m1-public-api-draft.proto`; it is not part of Maven or
+protobuf generation.
+
 ## Implemented Internal Adapter Preparation
 
 The branch now includes a proto-independent internal admin adapter surface. It
