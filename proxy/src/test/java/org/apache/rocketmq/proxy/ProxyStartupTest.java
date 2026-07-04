@@ -25,6 +25,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,7 +38,10 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.proxy.config.Configuration;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -291,5 +295,21 @@ public class ProxyStartupTest {
 
             assertSame(processor, ProxyStartup.createMessagingProcessor());
         }
+    }
+
+    @Test
+    public void testCreateServiceProcessorUsesSuppliedSharedActivity() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+
+        GrpcMessagingApplication application = ProxyStartup.createServiceProcessor(messagingProcessor, sharedActivity);
+
+        Field activityField = GrpcMessagingApplication.class.getDeclaredField("grpcMessagingActivity");
+        activityField.setAccessible(true);
+        assertSame(sharedActivity, activityField.get(application));
     }
 }

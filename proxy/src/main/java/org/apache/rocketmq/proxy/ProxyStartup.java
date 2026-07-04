@@ -39,6 +39,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
+import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
@@ -208,7 +209,14 @@ public class ProxyStartup {
     }
 
     private static GrpcMessagingApplication createServiceProcessor(MessagingProcessor messagingProcessor) {
-        GrpcMessagingApplication application = GrpcMessagingApplication.create(messagingProcessor);
+        DefaultGrpcMessagingActivity grpcMessagingActivity =
+            GrpcMessagingApplication.createDefaultActivity(messagingProcessor);
+        return createServiceProcessor(messagingProcessor, grpcMessagingActivity);
+    }
+
+    static GrpcMessagingApplication createServiceProcessor(MessagingProcessor messagingProcessor,
+        DefaultGrpcMessagingActivity grpcMessagingActivity) {
+        GrpcMessagingApplication application = GrpcMessagingApplication.create(messagingProcessor, grpcMessagingActivity);
         PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(application);
         return application;
     }
