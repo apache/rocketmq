@@ -100,6 +100,99 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void listClientViewsReturnsConvertedPage() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        ProxyClientPage page = new ProxyClientPage(Collections.singletonList(client("client-a")), "client-a");
+        when(delegate.listClients(query)).thenReturn(page);
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.listClientViews(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getNextPageToken()).isEqualTo("client-a");
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientAdminClientView::getClientId)
+            .containsExactly("client-a");
+    }
+
+    @Test
+    public void describeClientViewReturnsConvertedClient() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        when(delegate.describeClient("client-a")).thenReturn(client("client-a"));
+
+        ProxyClientAdminResult<ProxyClientAdminClientView> result =
+            activity.describeClientView(proxyContext(), "client-a");
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClientId()).isEqualTo("client-a");
+        assertThat(result.getBody().getTopics()).containsExactly("topic-a");
+    }
+
+    @Test
+    public void listClientViewsByGroupReturnsConvertedPage() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        ProxyClientPage page = new ProxyClientPage(Collections.singletonList(client("client-a")), "");
+        when(delegate.listClientsByGroup("group-a", query)).thenReturn(page);
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByGroup(proxyContext(), "group-a", query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientAdminClientView::getClientId)
+            .containsExactly("client-a");
+    }
+
+    @Test
+    public void listClientViewsByTopicReturnsConvertedPage() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        ProxyClientPage page = new ProxyClientPage(Collections.singletonList(client("client-a")), "");
+        when(delegate.listClientsByTopic("topic-a", query)).thenReturn(page);
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByTopic(proxyContext(), "topic-a", query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientAdminClientView::getClientId)
+            .containsExactly("client-a");
+    }
+
+    @Test
+    public void listClientViewsPropagatesErrorStatusWithoutBody() {
+        ProxyClientReadService readService = new ProxyClientReadService();
+        readService.upsertClient(client("client-a"));
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(authorizingService(readService));
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.listClientViews(
+            proxyContext(),
+            ProxyClientQuery.newBuilder().setPageToken("missing-client").build()
+        );
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Invalid page token");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void describeClientMapsMissingClientIdToBadRequest() {
         ProxyClientAdminActivity activity = new ProxyClientAdminActivity(authorizingService(new ProxyClientReadService()));
 

@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.Code;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
@@ -42,6 +43,11 @@ public class ProxyClientAdminActivity {
         return this.execute(() -> this.clientAdminService.listClients(ClientAdminRequestContext.from(ctx), query));
     }
 
+    public ProxyClientAdminResult<ProxyClientAdminPageView> listClientViews(ProxyContext ctx,
+        ProxyClientQuery query) {
+        return this.convertResult(this.listClients(ctx, query), ProxyClientAdminResponseConverter::toPageView);
+    }
+
     public ProxyClientAdminResult<ProxyClientInfo> describeClient(ProxyContext ctx, String clientId) {
         return this.describeClient(ctx, clientId, ProxyClientScope.LOCAL_PROXY);
     }
@@ -54,6 +60,18 @@ public class ProxyClientAdminActivity {
         });
     }
 
+    public ProxyClientAdminResult<ProxyClientAdminClientView> describeClientView(ProxyContext ctx, String clientId) {
+        return this.describeClientView(ctx, clientId, ProxyClientScope.LOCAL_PROXY);
+    }
+
+    public ProxyClientAdminResult<ProxyClientAdminClientView> describeClientView(ProxyContext ctx, String clientId,
+        ProxyClientScope scope) {
+        return this.convertResult(
+            this.describeClient(ctx, clientId, scope),
+            ProxyClientAdminResponseConverter::toClientView
+        );
+    }
+
     public ProxyClientAdminResult<ProxyClientPage> listClientsByGroup(ProxyContext ctx, String group,
         ProxyClientQuery query) {
         return this.execute(() -> this.clientAdminService.listClientsByGroup(
@@ -61,6 +79,14 @@ public class ProxyClientAdminActivity {
             group,
             query
         ));
+    }
+
+    public ProxyClientAdminResult<ProxyClientAdminPageView> listClientViewsByGroup(ProxyContext ctx, String group,
+        ProxyClientQuery query) {
+        return this.convertResult(
+            this.listClientsByGroup(ctx, group, query),
+            ProxyClientAdminResponseConverter::toPageView
+        );
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClientsByTopic(ProxyContext ctx, String topic,
@@ -72,12 +98,32 @@ public class ProxyClientAdminActivity {
         ));
     }
 
+    public ProxyClientAdminResult<ProxyClientAdminPageView> listClientViewsByTopic(ProxyContext ctx, String topic,
+        ProxyClientQuery query) {
+        return this.convertResult(
+            this.listClientsByTopic(ctx, topic, query),
+            ProxyClientAdminResponseConverter::toPageView
+        );
+    }
+
     private <T> ProxyClientAdminResult<T> execute(Supplier<T> supplier) {
         try {
             return new ProxyClientAdminResult<>(
                 ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),
                 supplier.get()
             );
+        } catch (Throwable t) {
+            return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
+        }
+    }
+
+    private <T, R> ProxyClientAdminResult<R> convertResult(ProxyClientAdminResult<T> result,
+        Function<T, R> converter) {
+        if (result.getStatus().getCode() != Code.OK || result.getBody() == null) {
+            return new ProxyClientAdminResult<>(result.getStatus(), null);
+        }
+        try {
+            return new ProxyClientAdminResult<>(result.getStatus(), converter.apply(result.getBody()));
         } catch (Throwable t) {
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
