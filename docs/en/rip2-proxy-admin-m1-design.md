@@ -112,11 +112,12 @@ small and tested boundary to call:
   `DefaultGrpcMessagingActivity`, register the existing messaging service, and
   pass the same activity/admin adapter to a future proxy admin service.
 
-The request DTOs convert pagination, client type, and scope into
-`ProxyClientQuery`. Page tokens are preserved as opaque strings at this layer.
-The default scope is `LOCAL_PROXY`; unsupported future scopes are intentionally
-carried through to the activity/service validation path so they produce the same
-`BAD_REQUEST` semantics as direct internal calls.
+The request DTOs convert pagination, client type, scope, and optional proxy id
+into `ProxyClientQuery`. Page tokens are preserved as opaque strings at this
+layer. The default scope is `LOCAL_PROXY`; unsupported future scopes and their
+proxy id are intentionally carried through to the activity/service validation
+path so they produce the same `BAD_REQUEST` semantics as direct internal calls
+and keep the adapter contract ready for future `PROXY_ID` support.
 
 The future generated endpoint should only translate protobuf messages to these
 DTOs, call `ProxyClientAdminActivity`, and translate the result view back to a
@@ -226,9 +227,13 @@ The internal model uses `ProxyClientInfo`:
 - `connectTimeMillis`: first observed local connection time.
 - `lastActiveTimeMillis`: most recent successful telemetry or heartbeat time.
 
+The internal public-view adapter normalizes nullable string metadata such as
+language, addresses, and client version to empty strings before a future
+protobuf adapter writes response fields.
+
 `ProxyClientPage` returns a list of `ProxyClientInfo` plus a `nextPageToken`.
-`ProxyClientQuery` carries optional group, topic, client type, page size, and
-page token filters.
+`ProxyClientQuery` carries optional group, topic, client type, page size, page
+token, scope, and proxy id filters.
 
 ## Read Model and Indexes
 
@@ -362,9 +367,11 @@ Follow-up lifecycle tests should cover:
 Internal adapter tests cover:
 
 - request DTO conversion to `ProxyClientQuery`.
-- default `LOCAL_PROXY` scope and opaque page-token pass-through.
+- default `LOCAL_PROXY` scope, opaque page-token pass-through, and proxy id
+  pass-through for future scoped queries.
 - activity overloads for request DTOs.
-- response view conversion.
+- response view conversion, stable collection snapshots, and null-safe string
+  metadata normalization.
 - endpoint handler success response writing, error response writing, and thrown
   action error mapping.
 - cross-package shared wiring for future admin gRPC application access to
