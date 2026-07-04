@@ -223,6 +223,30 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void mapsNullAdaptedRequestToInternalServerError() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> null,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(responseCaptor.getValue().getStatus().getMessage())
+            .contains("requestAdapter result is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+    }
+
+    @Test
     public void constructorRejectsMissingDependencies() {
         assertThatThrownBy(() -> new ProxyClientAdminEndpointExecutor(null, endpointHandler))
             .isInstanceOf(IllegalArgumentException.class)

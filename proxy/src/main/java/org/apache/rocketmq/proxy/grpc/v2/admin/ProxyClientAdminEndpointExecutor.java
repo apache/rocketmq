@@ -107,7 +107,7 @@ public class ProxyClientAdminEndpointExecutor {
         Function<P, D> requiredRequestAdapter = this.requireRequestAdapter(requestAdapter);
         try {
             ProxyContext ctx = this.contextFactory.create(headers, protoRequest);
-            D request = requiredRequestAdapter.apply(protoRequest);
+            D request = this.requireAdaptedRequest(requiredRequestAdapter.apply(protoRequest));
             endpointCall.execute(ctx, request, requiredResponseObserver, requiredResponseFactory);
         } catch (RuntimeException | Error t) {
             this.endpointHandler.handle(requiredResponseObserver, () -> {
@@ -121,6 +121,13 @@ public class ProxyClientAdminEndpointExecutor {
             throw new IllegalArgumentException("requestAdapter is required");
         }
         return requestAdapter;
+    }
+
+    private <D> D requireAdaptedRequest(D request) {
+        if (request == null) {
+            throw new IllegalStateException("requestAdapter result is required");
+        }
+        return request;
     }
 
     private <T, R> BiFunction<Status, T, R> requireResponseFactory(BiFunction<Status, T, R> responseFactory) {
