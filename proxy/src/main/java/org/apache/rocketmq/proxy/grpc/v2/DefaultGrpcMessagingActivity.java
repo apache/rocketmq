@@ -51,6 +51,7 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointHandler;
 import org.apache.rocketmq.proxy.grpc.v2.client.ClientActivity;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.AckMessageActivity;
@@ -89,6 +90,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected ClientAdminService clientAdminService;
     protected AuthorizingClientAdminService authorizingClientAdminService;
     protected ProxyClientAdminActivity proxyClientAdminActivity;
+    protected ProxyClientAdminEndpointHandler proxyClientAdminEndpointHandler;
 
     protected DefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
         this.init(messagingProcessor);
@@ -111,6 +113,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             clientAdminAuthorizationService
         );
         this.proxyClientAdminActivity = new ProxyClientAdminActivity(this.authorizingClientAdminService);
+        this.proxyClientAdminEndpointHandler = new ProxyClientAdminEndpointHandler(this.proxyClientAdminActivity);
         ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(this.proxyClientReadService::snapshotStats);
 
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
@@ -141,6 +144,10 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
 
     public ProxyClientAdminActivity getProxyClientAdminActivity() {
         return this.proxyClientAdminActivity;
+    }
+
+    public ProxyClientAdminEndpointHandler getProxyClientAdminEndpointHandler() {
+        return this.proxyClientAdminEndpointHandler;
     }
 
     @Override
