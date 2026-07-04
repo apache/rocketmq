@@ -54,6 +54,7 @@ message ListClientsRequest {
   // Opaque to public clients. M1 may internally encode the last client id.
   string page_token = 1;
   int32 page_size = 2;
+  // CLIENT_TYPE_UNSPECIFIED means no type filter.
   ClientType client_type = 3;
   ProxyScope scope = 4;
 
@@ -84,6 +85,7 @@ message ListClientsByGroupRequest {
   string group = 1;
   string page_token = 2;
   int32 page_size = 3;
+  // CLIENT_TYPE_UNSPECIFIED means no type filter.
   ClientType client_type = 4;
   ProxyScope scope = 5;
 
@@ -101,6 +103,7 @@ message ListClientsByTopicRequest {
   string topic = 1;
   string page_token = 2;
   int32 page_size = 3;
+  // CLIENT_TYPE_UNSPECIFIED means no type filter.
   ClientType client_type = 4;
   ProxyScope scope = 5;
 

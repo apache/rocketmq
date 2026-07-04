@@ -58,6 +58,15 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void listClientsRequestTreatsUnspecifiedClientTypeAsNoFilter() {
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+            .build();
+
+        assertThat(request.toQuery().getClientType()).isNull();
+    }
+
+    @Test
     public void describeClientRequestCarriesClientIdAndDefaultsScope() {
         ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
             .setClientId("client-a")

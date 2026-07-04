@@ -66,11 +66,15 @@ public class ProxyClientAdminListClientsRequest {
 
     protected ProxyClientQuery.Builder populateQueryBuilder(ProxyClientQuery.Builder builder) {
         return builder
-            .setClientType(clientType)
+            .setClientType(this.normalizeClientType(clientType))
             .setPageSize(pageSize)
             .setPageToken(pageToken)
             .setScope(scope)
             .setProxyId(proxyId);
+    }
+
+    private ClientType normalizeClientType(ClientType clientType) {
+        return clientType == ClientType.CLIENT_TYPE_UNSPECIFIED ? null : clientType;
     }
 
     public static class Builder<T extends Builder<T>> {
