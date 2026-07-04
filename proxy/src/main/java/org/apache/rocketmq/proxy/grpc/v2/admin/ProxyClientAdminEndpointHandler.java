@@ -21,10 +21,60 @@ import apache.rocketmq.v2.Status;
 import io.grpc.stub.StreamObserver;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
 
 public class ProxyClientAdminEndpointHandler {
+    private final ProxyClientAdminActivity proxyClientAdminActivity;
+
+    public ProxyClientAdminEndpointHandler() {
+        this(null);
+    }
+
+    public ProxyClientAdminEndpointHandler(ProxyClientAdminActivity proxyClientAdminActivity) {
+        this.proxyClientAdminActivity = proxyClientAdminActivity;
+    }
+
+    public <R> void listClients(ProxyContext ctx, ProxyClientAdminListClientsRequest request,
+        StreamObserver<R> responseObserver,
+        BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
+        this.handle(
+            responseObserver,
+            () -> this.requireProxyClientAdminActivity().listClientViews(ctx, request),
+            responseFactory
+        );
+    }
+
+    public <R> void describeClient(ProxyContext ctx, ProxyClientAdminDescribeClientRequest request,
+        StreamObserver<R> responseObserver,
+        BiFunction<Status, ProxyClientAdminClientView, R> responseFactory) {
+        this.handle(
+            responseObserver,
+            () -> this.requireProxyClientAdminActivity().describeClientView(ctx, request),
+            responseFactory
+        );
+    }
+
+    public <R> void listClientsByGroup(ProxyContext ctx, ProxyClientAdminListClientsByGroupRequest request,
+        StreamObserver<R> responseObserver,
+        BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
+        this.handle(
+            responseObserver,
+            () -> this.requireProxyClientAdminActivity().listClientViewsByGroup(ctx, request),
+            responseFactory
+        );
+    }
+
+    public <R> void listClientsByTopic(ProxyContext ctx, ProxyClientAdminListClientsByTopicRequest request,
+        StreamObserver<R> responseObserver,
+        BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
+        this.handle(
+            responseObserver,
+            () -> this.requireProxyClientAdminActivity().listClientViewsByTopic(ctx, request),
+            responseFactory
+        );
+    }
 
     public <T, R> void handle(StreamObserver<R> responseObserver,
         Supplier<ProxyClientAdminResult<T>> action,
@@ -58,5 +108,12 @@ public class ProxyClientAdminEndpointHandler {
             throw new IllegalArgumentException("responseFactory is required");
         }
         return responseFactory;
+    }
+
+    private ProxyClientAdminActivity requireProxyClientAdminActivity() {
+        if (this.proxyClientAdminActivity == null) {
+            throw new IllegalArgumentException("proxyClientAdminActivity is required");
+        }
+        return this.proxyClientAdminActivity;
     }
 }

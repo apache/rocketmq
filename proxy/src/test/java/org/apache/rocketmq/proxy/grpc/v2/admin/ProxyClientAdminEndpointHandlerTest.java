@@ -20,6 +20,8 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
 import io.grpc.stub.StreamObserver;
+import java.util.Collections;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,8 +29,91 @@ import org.mockito.ArgumentCaptor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class ProxyClientAdminEndpointHandlerTest {
+
+    @Test
+    public void listClientsDelegatesToActivityAndWritesResponse() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler(activity);
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+        ProxyContext ctx = ProxyContext.create();
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder().build();
+        ProxyClientAdminPageView pageView = new ProxyClientAdminPageView(Collections.emptyList(), "next-client");
+        when(activity.listClientViews(ctx, request)).thenReturn(okResult(pageView));
+
+        handler.listClients(ctx, request, observer, TestAdminResponse::new);
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(responseCaptor.getValue().getBody()).isSameAs(pageView);
+    }
+
+    @Test
+    public void describeClientDelegatesToActivityAndWritesResponse() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler(activity);
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+        ProxyContext ctx = ProxyContext.create();
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("client-a")
+            .build();
+        ProxyClientAdminClientView clientView = clientView("client-a");
+        when(activity.describeClientView(ctx, request)).thenReturn(okResult(clientView));
+
+        handler.describeClient(ctx, request, observer, TestAdminResponse::new);
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(responseCaptor.getValue().getBody()).isSameAs(clientView);
+    }
+
+    @Test
+    public void listClientsByGroupDelegatesToActivityAndWritesResponse() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler(activity);
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+        ProxyContext ctx = ProxyContext.create();
+        ProxyClientAdminListClientsByGroupRequest request = ProxyClientAdminListClientsByGroupRequest.newBuilder()
+            .setGroup("group-a")
+            .build();
+        ProxyClientAdminPageView pageView = new ProxyClientAdminPageView(Collections.emptyList(), "");
+        when(activity.listClientViewsByGroup(ctx, request)).thenReturn(okResult(pageView));
+
+        handler.listClientsByGroup(ctx, request, observer, TestAdminResponse::new);
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(responseCaptor.getValue().getBody()).isSameAs(pageView);
+    }
+
+    @Test
+    public void listClientsByTopicDelegatesToActivityAndWritesResponse() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler(activity);
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+        ProxyContext ctx = ProxyContext.create();
+        ProxyClientAdminListClientsByTopicRequest request = ProxyClientAdminListClientsByTopicRequest.newBuilder()
+            .setTopic("topic-a")
+            .build();
+        ProxyClientAdminPageView pageView = new ProxyClientAdminPageView(Collections.emptyList(), "");
+        when(activity.listClientViewsByTopic(ctx, request)).thenReturn(okResult(pageView));
+
+        handler.listClientsByTopic(ctx, request, observer, TestAdminResponse::new);
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(responseCaptor.getValue().getBody()).isSameAs(pageView);
+    }
 
     @Test
     public void handleWritesOkResultAndCompletesObserver() {
@@ -94,11 +179,33 @@ public class ProxyClientAdminEndpointHandlerTest {
         assertThat(responseCaptor.getValue().getBody()).isNull();
     }
 
+    private static <T> ProxyClientAdminResult<T> okResult(T body) {
+        return new ProxyClientAdminResult<>(
+            ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),
+            body
+        );
+    }
+
+    private static ProxyClientAdminClientView clientView(String clientId) {
+        return new ProxyClientAdminClientView(
+            clientId,
+            null,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            "",
+            "",
+            "",
+            "",
+            0,
+            0
+        );
+    }
+
     private static class TestAdminResponse {
         private final Status status;
-        private final String body;
+        private final Object body;
 
-        private TestAdminResponse(Status status, String body) {
+        private TestAdminResponse(Status status, Object body) {
             this.status = status;
             this.body = body;
         }
@@ -107,7 +214,7 @@ public class ProxyClientAdminEndpointHandlerTest {
             return status;
         }
 
-        private String getBody() {
+        private Object getBody() {
             return body;
         }
     }
