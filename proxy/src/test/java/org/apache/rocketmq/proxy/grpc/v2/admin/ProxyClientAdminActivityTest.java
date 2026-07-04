@@ -121,6 +121,46 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void listClientsMapsInvalidPageTokenToBadRequest() {
+        ProxyClientReadService readService = new ProxyClientReadService();
+        readService.upsertClient(client("client-a"));
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(authorizingService(readService));
+
+        ProxyClientAdminResult<ProxyClientPage> result = activity.listClients(
+            proxyContext(),
+            ProxyClientQuery.newBuilder().setPageToken("missing-client").build()
+        );
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Invalid page token");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void listClientsByGroupMapsMissingGroupToBadRequest() {
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(authorizingService(new ProxyClientReadService()));
+
+        ProxyClientAdminResult<ProxyClientPage> result =
+            activity.listClientsByGroup(proxyContext(), " ", ProxyClientQuery.newBuilder().build());
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("group is required");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void listClientsByTopicMapsMissingTopicToBadRequest() {
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(authorizingService(new ProxyClientReadService()));
+
+        ProxyClientAdminResult<ProxyClientPage> result =
+            activity.listClientsByTopic(proxyContext(), " ", ProxyClientQuery.newBuilder().build());
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("topic is required");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void listClientsMapsAuthorizationFailureToUnauthorized() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
@@ -138,6 +178,84 @@ public class ProxyClientAdminActivityTest {
         assertThat(result.getStatus().getMessage()).contains("denied");
         assertThat(result.getBody()).isNull();
         verify(delegate, never()).listClients(any(ProxyClientQuery.class));
+    }
+
+    @Test
+    public void describeClientMapsAuthorizationFailureToUnauthorized() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        doThrow(new AuthorizationException("denied"))
+            .when(authorizationService)
+            .authorize(any(), eq(ClientAdminOperation.DESCRIBE_CLIENT), any());
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+
+        ProxyClientAdminResult<ProxyClientInfo> result = activity.describeClient(proxyContext(), "client-a");
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+        assertThat(result.getStatus().getMessage()).contains("denied");
+        assertThat(result.getBody()).isNull();
+        verify(delegate, never()).describeClient("client-a");
+    }
+
+    @Test
+    public void listClientsByGroupMapsAuthorizationFailureToUnauthorized() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        doThrow(new AuthorizationException("denied"))
+            .when(authorizationService)
+            .authorize(any(), eq(ClientAdminOperation.LIST_CLIENTS_BY_GROUP), any());
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+
+        ProxyClientAdminResult<ProxyClientPage> result =
+            activity.listClientsByGroup(proxyContext(), "group-a", query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+        assertThat(result.getStatus().getMessage()).contains("denied");
+        assertThat(result.getBody()).isNull();
+        verify(delegate, never()).listClientsByGroup("group-a", query);
+    }
+
+    @Test
+    public void listClientsByTopicMapsAuthorizationFailureToUnauthorized() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        doThrow(new AuthorizationException("denied"))
+            .when(authorizationService)
+            .authorize(any(), eq(ClientAdminOperation.LIST_CLIENTS_BY_TOPIC), any());
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+
+        ProxyClientAdminResult<ProxyClientPage> result =
+            activity.listClientsByTopic(proxyContext(), "topic-a", query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+        assertThat(result.getStatus().getMessage()).contains("denied");
+        assertThat(result.getBody()).isNull();
+        verify(delegate, never()).listClientsByTopic("topic-a", query);
+    }
+
+    @Test
+    public void listClientsMapsUnexpectedRuntimeExceptionToInternalServerError() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        when(delegate.listClients(query)).thenThrow(new RuntimeException("boom"));
+
+        ProxyClientAdminResult<ProxyClientPage> result = activity.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("boom");
+        assertThat(result.getBody()).isNull();
     }
 
     private static AuthorizingClientAdminService authorizingService(ProxyClientReadService readService) {
