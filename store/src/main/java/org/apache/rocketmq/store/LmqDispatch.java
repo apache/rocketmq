@@ -47,7 +47,7 @@ public class LmqDispatch {
     private static final short VALUE_OF_EACH_INCREMENT = 1;
 
     /**
-     * Assign lmq offsets to message.
+     * Assign lmq offsets to message, called before CommitLog append.
      * Pre-CommitLog hook: look up each destination's current max offset
      * and write the per-lmq offsets back into
      * {@code INNER_MULTI_QUEUE_OFFSET} so the subsequent ConsumeQueue
@@ -73,7 +73,7 @@ public class LmqDispatch {
     }
 
     /**
-     * Increase lmq offsets.
+     * Increase lmq offsets, called after CommitLog append.
      * Post-CommitLog hook: advance each destination's max offset by one so
      * the next dispatched message lands at the following slot. Skips
      * non-LMQ entries defensively.
