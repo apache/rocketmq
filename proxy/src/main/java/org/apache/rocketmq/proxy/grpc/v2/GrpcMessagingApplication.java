@@ -54,7 +54,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -64,10 +63,6 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.grpc.pipeline.AuthenticationPipeline;
-import org.apache.rocketmq.proxy.grpc.pipeline.AuthenticationSubjectPipeline;
-import org.apache.rocketmq.proxy.grpc.pipeline.AuthorizationPipeline;
-import org.apache.rocketmq.proxy.grpc.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
@@ -147,18 +142,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     }
 
     public static GrpcMessagingApplication create(MessagingProcessor messagingProcessor) {
-        RequestPipeline pipeline = (context, headers, request) -> {
-        };
-        // add pipeline
-        // the last pipe add will execute at the first
-        AuthConfig authConfig = ConfigurationManager.getAuthConfig();
-        if (authConfig != null) {
-            pipeline = pipeline
-                .pipe(new AuthorizationPipeline(authConfig, messagingProcessor))
-                .pipe(new AuthenticationSubjectPipeline())
-                .pipe(new AuthenticationPipeline(authConfig, messagingProcessor));
-        }
-        pipeline = pipeline.pipe(new ContextInitPipeline());
+        RequestPipeline pipeline = GrpcRequestPipelineFactory.create(messagingProcessor);
         return new GrpcMessagingApplication(new DefaultGrpcMessagingActivity(messagingProcessor), pipeline);
     }
 
