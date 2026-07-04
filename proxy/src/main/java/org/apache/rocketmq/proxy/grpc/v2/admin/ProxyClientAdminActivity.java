@@ -43,13 +43,38 @@ public class ProxyClientAdminActivity {
         return this.execute(() -> this.clientAdminService.listClients(ClientAdminRequestContext.from(ctx), query));
     }
 
+    public ProxyClientAdminResult<ProxyClientPage> listClients(ProxyContext ctx,
+        ProxyClientAdminListClientsRequest request) {
+        return this.execute(() -> this.clientAdminService.listClients(
+            ClientAdminRequestContext.from(ctx),
+            this.requireRequest(request).toQuery()
+        ));
+    }
+
     public ProxyClientAdminResult<ProxyClientAdminPageView> listClientViews(ProxyContext ctx,
         ProxyClientQuery query) {
         return this.convertResult(this.listClients(ctx, query), ProxyClientAdminResponseConverter::toPageView);
     }
 
+    public ProxyClientAdminResult<ProxyClientAdminPageView> listClientViews(ProxyContext ctx,
+        ProxyClientAdminListClientsRequest request) {
+        return this.convertResult(this.listClients(ctx, request), ProxyClientAdminResponseConverter::toPageView);
+    }
+
     public ProxyClientAdminResult<ProxyClientInfo> describeClient(ProxyContext ctx, String clientId) {
         return this.describeClient(ctx, clientId, ProxyClientScope.LOCAL_PROXY);
+    }
+
+    public ProxyClientAdminResult<ProxyClientInfo> describeClient(ProxyContext ctx,
+        ProxyClientAdminDescribeClientRequest request) {
+        return this.execute(() -> {
+            ProxyClientAdminDescribeClientRequest requiredRequest = this.requireRequest(request);
+            this.validateLocalProxyScope(requiredRequest.getScope());
+            return this.clientAdminService.describeClient(
+                ClientAdminRequestContext.from(ctx),
+                requiredRequest.getClientId()
+            );
+        });
     }
 
     public ProxyClientAdminResult<ProxyClientInfo> describeClient(ProxyContext ctx, String clientId,
@@ -62,6 +87,11 @@ public class ProxyClientAdminActivity {
 
     public ProxyClientAdminResult<ProxyClientAdminClientView> describeClientView(ProxyContext ctx, String clientId) {
         return this.describeClientView(ctx, clientId, ProxyClientScope.LOCAL_PROXY);
+    }
+
+    public ProxyClientAdminResult<ProxyClientAdminClientView> describeClientView(ProxyContext ctx,
+        ProxyClientAdminDescribeClientRequest request) {
+        return this.convertResult(this.describeClient(ctx, request), ProxyClientAdminResponseConverter::toClientView);
     }
 
     public ProxyClientAdminResult<ProxyClientAdminClientView> describeClientView(ProxyContext ctx, String clientId,
@@ -81,10 +111,30 @@ public class ProxyClientAdminActivity {
         ));
     }
 
+    public ProxyClientAdminResult<ProxyClientPage> listClientsByGroup(ProxyContext ctx,
+        ProxyClientAdminListClientsByGroupRequest request) {
+        return this.execute(() -> {
+            ProxyClientAdminListClientsByGroupRequest requiredRequest = this.requireRequest(request);
+            return this.clientAdminService.listClientsByGroup(
+                ClientAdminRequestContext.from(ctx),
+                requiredRequest.getGroup(),
+                requiredRequest.toQuery()
+            );
+        });
+    }
+
     public ProxyClientAdminResult<ProxyClientAdminPageView> listClientViewsByGroup(ProxyContext ctx, String group,
         ProxyClientQuery query) {
         return this.convertResult(
             this.listClientsByGroup(ctx, group, query),
+            ProxyClientAdminResponseConverter::toPageView
+        );
+    }
+
+    public ProxyClientAdminResult<ProxyClientAdminPageView> listClientViewsByGroup(ProxyContext ctx,
+        ProxyClientAdminListClientsByGroupRequest request) {
+        return this.convertResult(
+            this.listClientsByGroup(ctx, request),
             ProxyClientAdminResponseConverter::toPageView
         );
     }
@@ -98,10 +148,30 @@ public class ProxyClientAdminActivity {
         ));
     }
 
+    public ProxyClientAdminResult<ProxyClientPage> listClientsByTopic(ProxyContext ctx,
+        ProxyClientAdminListClientsByTopicRequest request) {
+        return this.execute(() -> {
+            ProxyClientAdminListClientsByTopicRequest requiredRequest = this.requireRequest(request);
+            return this.clientAdminService.listClientsByTopic(
+                ClientAdminRequestContext.from(ctx),
+                requiredRequest.getTopic(),
+                requiredRequest.toQuery()
+            );
+        });
+    }
+
     public ProxyClientAdminResult<ProxyClientAdminPageView> listClientViewsByTopic(ProxyContext ctx, String topic,
         ProxyClientQuery query) {
         return this.convertResult(
             this.listClientsByTopic(ctx, topic, query),
+            ProxyClientAdminResponseConverter::toPageView
+        );
+    }
+
+    public ProxyClientAdminResult<ProxyClientAdminPageView> listClientViewsByTopic(ProxyContext ctx,
+        ProxyClientAdminListClientsByTopicRequest request) {
+        return this.convertResult(
+            this.listClientsByTopic(ctx, request),
             ProxyClientAdminResponseConverter::toPageView
         );
     }
@@ -127,6 +197,13 @@ public class ProxyClientAdminActivity {
         } catch (Throwable t) {
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
+    }
+
+    private <T> T requireRequest(T request) {
+        if (request == null) {
+            throw new IllegalArgumentException("request is required");
+        }
+        return request;
     }
 
     private void validateLocalProxyScope(ProxyClientScope scope) {

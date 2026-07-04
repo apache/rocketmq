@@ -34,6 +34,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -189,6 +190,121 @@ public class ProxyClientAdminActivityTest {
 
         assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(result.getStatus().getMessage()).contains("Invalid page token");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void listClientViewsAcceptsRequestDto() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientPage page = new ProxyClientPage(Collections.singletonList(client("client-a")), null);
+        when(delegate.listClients(any(ProxyClientQuery.class))).thenReturn(page);
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPageSize(10)
+            .setPageToken("client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.listClientViews(proxyContext(), request);
+
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(delegate).listClients(queryCaptor.capture());
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientAdminClientView::getClientId)
+            .containsExactly("client-a");
+        assertThat(queryCaptor.getValue().getClientType()).isEqualTo(ClientType.PRODUCER);
+        assertThat(queryCaptor.getValue().getPageSize()).isEqualTo(10);
+        assertThat(queryCaptor.getValue().getPageToken()).isEqualTo("client-a");
+        assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+    }
+
+    @Test
+    public void describeClientViewAcceptsRequestDto() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        when(delegate.describeClient("client-a")).thenReturn(client("client-a"));
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientAdminClientView> result =
+            activity.describeClientView(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClientId()).isEqualTo("client-a");
+        verify(delegate).describeClient("client-a");
+    }
+
+    @Test
+    public void listClientViewsByGroupAcceptsRequestDto() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientPage page = new ProxyClientPage(Collections.singletonList(client("client-a")), null);
+        when(delegate.listClientsByGroup(eq("group-a"), any(ProxyClientQuery.class))).thenReturn(page);
+        ProxyClientAdminListClientsByGroupRequest request =
+            ProxyClientAdminListClientsByGroupRequest.newBuilder()
+                .setGroup("group-a")
+                .setClientType(ClientType.PUSH_CONSUMER)
+                .setPageSize(10)
+                .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByGroup(proxyContext(), request);
+
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(delegate).listClientsByGroup(eq("group-a"), queryCaptor.capture());
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(queryCaptor.getValue().getGroup()).isEqualTo("group-a");
+        assertThat(queryCaptor.getValue().getClientType()).isEqualTo(ClientType.PUSH_CONSUMER);
+        assertThat(queryCaptor.getValue().getPageSize()).isEqualTo(10);
+    }
+
+    @Test
+    public void listClientViewsByTopicAcceptsRequestDto() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientPage page = new ProxyClientPage(Collections.singletonList(client("client-a")), null);
+        when(delegate.listClientsByTopic(eq("topic-a"), any(ProxyClientQuery.class))).thenReturn(page);
+        ProxyClientAdminListClientsByTopicRequest request =
+            ProxyClientAdminListClientsByTopicRequest.newBuilder()
+                .setTopic("topic-a")
+                .setClientType(ClientType.PRODUCER)
+                .setPageToken("client-a")
+                .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByTopic(proxyContext(), request);
+
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(delegate).listClientsByTopic(eq("topic-a"), queryCaptor.capture());
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(queryCaptor.getValue().getTopic()).isEqualTo("topic-a");
+        assertThat(queryCaptor.getValue().getClientType()).isEqualTo(ClientType.PRODUCER);
+        assertThat(queryCaptor.getValue().getPageToken()).isEqualTo("client-a");
+    }
+
+    @Test
+    public void listClientViewsMapsMissingRequestDtoToBadRequest() {
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(authorizingService(new ProxyClientReadService()));
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViews(proxyContext(), (ProxyClientAdminListClientsRequest) null);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("request is required");
         assertThat(result.getBody()).isNull();
     }
 
