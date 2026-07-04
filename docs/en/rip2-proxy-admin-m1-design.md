@@ -95,6 +95,18 @@ small and tested boundary to call:
   `ProxyClientAdminListClientsByGroupRequest`, and
   `ProxyClientAdminListClientsByTopicRequest` mirror the proposed public request
   fields without importing generated admin protobuf classes.
+- `ProxyClientAdminEndpointHandler` centralizes the future unary endpoint
+  response flow: execute an activity action, convert thrown exceptions through
+  `ResponseBuilder`, build a response from `Status` and optional body, and write
+  it through `ResponseWriter`.
+- `GrpcRequestPipelineFactory` extracts the existing gRPC context,
+  authentication, authorization, and subject pipeline so a future standalone
+  admin service can share the same request initialization behavior as
+  `GrpcMessagingApplication`.
+- `GrpcMessagingApplication.createDefaultActivity` and the shared-activity
+  `create` overload make it possible for startup code to instantiate one
+  `DefaultGrpcMessagingActivity`, register the existing messaging service, and
+  pass the same activity/admin adapter to a future proxy admin service.
 
 The request DTOs convert pagination, client type, and scope into
 `ProxyClientQuery`. Page tokens are preserved as opaque strings at this layer.
@@ -106,6 +118,8 @@ The future generated endpoint should only translate protobuf messages to these
 DTOs, call `ProxyClientAdminActivity`, and translate the result view back to a
 protobuf response. Authorization, error mapping, metrics, pagination bounds, and
 read-model queries should remain behind the existing activity/service boundary.
+The generated unary methods should use `ProxyClientAdminEndpointHandler` for
+the common result-to-`StreamObserver` flow.
 
 ### ListClients
 
@@ -347,6 +361,10 @@ Internal adapter tests cover:
 - default `LOCAL_PROXY` scope and opaque page-token pass-through.
 - activity overloads for request DTOs.
 - response view conversion.
+- endpoint handler success response writing, error response writing, and thrown
+  action error mapping.
+- cross-package shared wiring for future admin gRPC application access to
+  `ProxyClientAdminActivity`.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 
@@ -378,7 +396,9 @@ The endpoint adapter should stay thin:
 - call `ProxyClientAdminActivity`.
 - translate `ProxyClientAdminPageView` and `ProxyClientAdminClientView` into
   proto responses.
-- copy the `Status` from `ProxyClientAdminResult`.
+- use `ProxyClientAdminEndpointHandler` to copy the `Status` from
+  `ProxyClientAdminResult`, write the response, and keep exception-to-status
+  behavior consistent with the internal adapter.
 
 Cross-proxy fan-out, new ACL granularity, and new metrics labels should be added
 behind the same service/activity boundary instead of being embedded into the
@@ -397,9 +417,11 @@ generated gRPC application.
    termination, and unregister listeners. Done.
 6. Add the proto-independent internal admin activity, response views, request
    DTOs, and activity overloads. Done.
-7. Discuss public protobuf ownership before changing `rocketmq-apis`.
-8. Add the public admin gRPC/protobuf adapter.
-9. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy,
+7. Add shared gRPC request-pipeline, activity wiring, and endpoint-handler seams
+   for the future standalone admin gRPC application. Done.
+8. Discuss public protobuf ownership before changing `rocketmq-apis`.
+9. Add the public admin gRPC/protobuf adapter.
+10. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy,
    request context propagation, and service are already in place.
-10. Extend metrics with admin query counters and latency histograms. Done.
-11. Add a synthetic 1M-client benchmark or simulation. Done.
+11. Extend metrics with admin query counters and latency histograms. Done.
+12. Add a synthetic 1M-client benchmark or simulation. Done.
