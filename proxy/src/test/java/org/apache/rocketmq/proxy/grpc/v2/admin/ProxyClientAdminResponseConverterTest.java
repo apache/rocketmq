@@ -122,6 +122,26 @@ public class ProxyClientAdminResponseConverterTest {
         assertThat(view.getClientVersion()).isEmpty();
     }
 
+    @Test
+    public void convertsNullClientTypeToUnspecifiedPublicViewValue() {
+        ProxyClientInfo clientInfo = new ProxyClientInfo(
+            "client-a",
+            null,
+            Collections.emptySet(),
+            Collections.emptySet(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        );
+
+        ProxyClientAdminClientView view = ProxyClientAdminResponseConverter.toClientView(clientInfo);
+
+        assertThat(view.getClientType()).isEqualTo(ClientType.CLIENT_TYPE_UNSPECIFIED);
+    }
+
     private static ProxyClientInfo client(String clientId) {
         return new ProxyClientInfo(
             clientId,

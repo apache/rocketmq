@@ -235,7 +235,9 @@ The internal model uses `ProxyClientInfo`:
 
 The internal public-view adapter normalizes nullable string metadata such as
 language, addresses, and client version to empty strings before a future
-protobuf adapter writes response fields.
+protobuf adapter writes response fields. A missing internal client type is
+normalized to `CLIENT_TYPE_UNSPECIFIED` so generated protobuf responses never
+need to write a null enum value.
 
 `ProxyClientPage` returns a list of `ProxyClientInfo` plus a `nextPageToken`.
 `ProxyClientQuery` carries optional group, topic, client type, page size, page

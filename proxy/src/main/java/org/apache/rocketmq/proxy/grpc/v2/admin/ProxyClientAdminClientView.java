@@ -38,7 +38,7 @@ public class ProxyClientAdminClientView {
         List<String> topics, String language, String remoteAddress, String localAddress, String clientVersion,
         long connectTimeMillis, long lastActiveTimeMillis) {
         this.clientId = clientId;
-        this.clientType = clientType;
+        this.clientType = clientType == null ? ClientType.CLIENT_TYPE_UNSPECIFIED : clientType;
         this.groups = immutableCopy(groups);
         this.topics = immutableCopy(topics);
         this.language = nullToEmpty(language);
