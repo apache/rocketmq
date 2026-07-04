@@ -326,6 +326,26 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void listClientViewsMapsUnrecognizedClientTypeToBadRequest() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setClientType(ClientType.UNRECOGNIZED)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.listClientViews(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Unsupported client type");
+        assertThat(result.getStatus().getMessage()).contains("UNRECOGNIZED");
+        assertThat(result.getBody()).isNull();
+        verify(delegate, never()).listClients(any(ProxyClientQuery.class));
+    }
+
+    @Test
     public void describeClientMapsMissingClientIdToBadRequest() {
         ProxyClientAdminActivity activity = new ProxyClientAdminActivity(authorizingService(new ProxyClientReadService()));
 

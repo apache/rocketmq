@@ -74,7 +74,13 @@ public class ProxyClientAdminListClientsRequest {
     }
 
     private ClientType normalizeClientType(ClientType clientType) {
-        return clientType == ClientType.CLIENT_TYPE_UNSPECIFIED ? null : clientType;
+        if (clientType == ClientType.CLIENT_TYPE_UNSPECIFIED) {
+            return null;
+        }
+        if (clientType == ClientType.UNRECOGNIZED) {
+            throw new IllegalArgumentException("Unsupported client type: " + clientType);
+        }
+        return clientType;
     }
 
     public static class Builder<T extends Builder<T>> {

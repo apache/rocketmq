@@ -118,7 +118,8 @@ layer. The default scope is `LOCAL_PROXY`; unsupported future scopes and their
 proxy id are intentionally carried through to the activity/service validation
 path so they produce the same `BAD_REQUEST` semantics as direct internal calls
 and keep the adapter contract ready for future `PROXY_ID` support. The protobuf
-default `CLIENT_TYPE_UNSPECIFIED` is normalized to no client type filter.
+default `CLIENT_TYPE_UNSPECIFIED` is normalized to no client type filter, while
+`UNRECOGNIZED` client type values are rejected as `BAD_REQUEST`.
 
 The future generated endpoint should only translate protobuf messages to these
 DTOs, call `ProxyClientAdminActivity`, and translate the result view back to a
@@ -135,7 +136,7 @@ Request:
 ListClientsRequest {
   string page_token;
   int32 page_size;
-  ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter.
+  ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter; UNRECOGNIZED is rejected.
   ProxyScope scope; // M1: LOCAL_PROXY only
 }
 ```
@@ -177,7 +178,7 @@ ListClientsByGroupRequest {
   string group;
   string page_token;
   int32 page_size;
-  ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter.
+  ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter; UNRECOGNIZED is rejected.
   ProxyScope scope; // M1: LOCAL_PROXY only
 }
 ```
@@ -200,7 +201,7 @@ ListClientsByTopicRequest {
   string topic;
   string page_token;
   int32 page_size;
-  ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter.
+  ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter; UNRECOGNIZED is rejected.
   ProxyScope scope; // M1: LOCAL_PROXY only
 }
 ```

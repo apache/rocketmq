@@ -23,6 +23,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ProxyClientAdminRequestTest {
 
@@ -64,6 +65,18 @@ public class ProxyClientAdminRequestTest {
             .build();
 
         assertThat(request.toQuery().getClientType()).isNull();
+    }
+
+    @Test
+    public void listClientsRequestRejectsUnrecognizedClientType() {
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setClientType(ClientType.UNRECOGNIZED)
+            .build();
+
+        assertThatThrownBy(request::toQuery)
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported client type")
+            .hasMessageContaining("UNRECOGNIZED");
     }
 
     @Test
