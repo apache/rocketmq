@@ -105,6 +105,10 @@ small and tested boundary to call:
   response flow: execute an activity action, convert thrown exceptions through
   `ResponseBuilder`, build a response from `Status` and optional body, and write
   it through `ResponseWriter`.
+- `ProxyClientAdminContextFactory` runs the shared gRPC request pipeline and
+  builds a `ProxyContext` for future admin RPCs without applying the messaging
+  RPC client-id requirement. Admin authorization is based on the authenticated
+  subject carried in the context.
 - `GrpcRequestPipelineFactory` extracts the existing gRPC context,
   authentication, authorization, and subject pipeline so a future standalone
   admin service can share the same request initialization behavior as
@@ -418,6 +422,8 @@ GrpcServerBuilder.newBuilder(...)
 The endpoint adapter should stay thin:
 
 - read headers and build `ProxyContext` through the existing request pipeline.
+  Admin RPCs should use `ProxyClientAdminContextFactory` instead of the
+  messaging application's client-id validation path.
 - translate proto requests to the internal request DTOs.
 - call `ProxyClientAdminActivity`.
 - translate `ProxyClientAdminPageView` and `ProxyClientAdminClientView` into
