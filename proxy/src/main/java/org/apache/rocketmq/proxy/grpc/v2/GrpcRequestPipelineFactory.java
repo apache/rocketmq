@@ -24,6 +24,7 @@ import org.apache.rocketmq.proxy.grpc.pipeline.AuthenticationSubjectPipeline;
 import org.apache.rocketmq.proxy.grpc.pipeline.AuthorizationPipeline;
 import org.apache.rocketmq.proxy.grpc.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminContextFactory;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
 public final class GrpcRequestPipelineFactory {
@@ -42,5 +43,10 @@ public final class GrpcRequestPipelineFactory {
                 .pipe(new AuthenticationPipeline(authConfig, messagingProcessor));
         }
         return pipeline.pipe(new ContextInitPipeline());
+    }
+
+    public static ProxyClientAdminContextFactory createProxyClientAdminContextFactory(
+        MessagingProcessor messagingProcessor) {
+        return new ProxyClientAdminContextFactory(create(messagingProcessor));
     }
 }

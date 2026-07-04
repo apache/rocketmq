@@ -22,6 +22,7 @@ import io.grpc.Metadata;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminContextFactory;
 import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.junit.Before;
@@ -66,6 +67,30 @@ public class GrpcRequestPipelineFactoryTest extends InitConfigTest {
         pipeline.execute(context, headers, QueryRouteRequest.getDefaultInstance());
 
         assertThat(context.getClientID()).isEqualTo(CLIENT_ID);
+        assertThat(context.getRemoteAddress()).isEqualTo(REMOTE_ADDRESS);
+        assertThat(context.getLocalAddress()).isEqualTo(LOCAL_ADDRESS);
+        assertThat(context.getLanguage()).isEqualTo(LANGUAGE);
+        assertThat(context.getClientVersion()).isEqualTo(CLIENT_VERSION);
+        assertThat(context.getNamespace()).isEqualTo(NAMESPACE);
+        assertThat(context.getSubject()).isNotNull();
+        assertThat(context.getSubject().getSubjectKey()).isEqualTo("User:admin");
+    }
+
+    @Test
+    public void createProxyClientAdminContextFactoryBuildsAdminContextWithoutClientId() {
+        ProxyClientAdminContextFactory factory =
+            GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(this.messagingProcessor);
+        Metadata headers = new Metadata();
+        headers.put(GrpcConstants.REMOTE_ADDRESS, REMOTE_ADDRESS);
+        headers.put(GrpcConstants.LOCAL_ADDRESS, LOCAL_ADDRESS);
+        headers.put(GrpcConstants.LANGUAGE, LANGUAGE);
+        headers.put(GrpcConstants.CLIENT_VERSION, CLIENT_VERSION);
+        headers.put(GrpcConstants.NAMESPACE_ID, NAMESPACE);
+        headers.put(GrpcConstants.AUTHORIZATION_AK, ACCESS_KEY);
+
+        ProxyContext context = factory.create(headers, QueryRouteRequest.getDefaultInstance());
+
+        assertThat(context.getClientID()).isEmpty();
         assertThat(context.getRemoteAddress()).isEqualTo(REMOTE_ADDRESS);
         assertThat(context.getLocalAddress()).isEqualTo(LOCAL_ADDRESS);
         assertThat(context.getLanguage()).isEqualTo(LANGUAGE);

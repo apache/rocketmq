@@ -112,7 +112,10 @@ small and tested boundary to call:
 - `GrpcRequestPipelineFactory` extracts the existing gRPC context,
   authentication, authorization, and subject pipeline so a future standalone
   admin service can share the same request initialization behavior as
-  `GrpcMessagingApplication`.
+  `GrpcMessagingApplication`. It also exposes
+  `createProxyClientAdminContextFactory(...)` so the admin endpoint wiring can
+  reuse the shared pipeline without depending on messaging RPC client-id
+  validation.
 - `GrpcMessagingApplication.createDefaultActivity` and the shared-activity
   `create` overload make it possible for startup code to instantiate one
   `DefaultGrpcMessagingActivity`, register the existing messaging service, and
@@ -423,7 +426,8 @@ GrpcServerBuilder.newBuilder(...)
 
 The endpoint adapter should stay thin:
 
-- read headers and build `ProxyContext` through the existing request pipeline.
+- read headers and build `ProxyContext` through
+  `GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(...)`.
   Admin RPCs should use `ProxyClientAdminContextFactory` instead of the
   messaging application's client-id validation path.
 - translate proto requests to the internal request DTOs.
