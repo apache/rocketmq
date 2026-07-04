@@ -75,6 +75,38 @@ plus this API proposal, so the final protobuf ownership and compatibility
 decision can be discussed with the community before generated public stubs are
 introduced.
 
+## Implemented Internal Adapter Preparation
+
+The branch now includes a proto-independent internal admin adapter surface. It
+does not register a public gRPC service yet, but it gives the future endpoint a
+small and tested boundary to call:
+
+- `ProxyClientAdminActivity` owns the request execution boundary for client
+  admin queries. It accepts `ProxyContext`, calls `AuthorizingClientAdminService`,
+  and returns `ProxyClientAdminResult<T>` with an `apache.rocketmq.v2.Status`
+  plus an optional body.
+- `ProxyClientAdminResult` preserves the public status/body split expected by a
+  gRPC endpoint while keeping the internal service API simple.
+- `ProxyClientAdminClientView` and `ProxyClientAdminPageView` are public-facing
+  response views. They avoid exposing the mutable internal read-model classes as
+  the eventual protobuf adapter contract.
+- `ProxyClientAdminListClientsRequest`,
+  `ProxyClientAdminDescribeClientRequest`,
+  `ProxyClientAdminListClientsByGroupRequest`, and
+  `ProxyClientAdminListClientsByTopicRequest` mirror the proposed public request
+  fields without importing generated admin protobuf classes.
+
+The request DTOs convert pagination, client type, and scope into
+`ProxyClientQuery`. Page tokens are preserved as opaque strings at this layer.
+The default scope is `LOCAL_PROXY`; unsupported future scopes are intentionally
+carried through to the activity/service validation path so they produce the same
+`BAD_REQUEST` semantics as direct internal calls.
+
+The future generated endpoint should only translate protobuf messages to these
+DTOs, call `ProxyClientAdminActivity`, and translate the result view back to a
+protobuf response. Authorization, error mapping, metrics, pagination bounds, and
+read-model queries should remain behind the existing activity/service boundary.
+
 ### ListClients
 
 Request:
@@ -266,8 +298,8 @@ Internal M1 errors:
 
 - missing client id: `IllegalArgumentException`.
 - invalid page token: `IllegalArgumentException`.
-- client not found: empty result from the read model; the future admin service
-  should map this to a not-found admin error.
+- client not found: `NoSuchElementException` from the admin service.
+- missing internal request DTO: `IllegalArgumentException`.
 
 Draft public adapter mapping:
 
@@ -275,7 +307,8 @@ Draft public adapter mapping:
 - invalid page token: `BAD_REQUEST`.
 - unknown client id for `DescribeClient`: `NOT_FOUND`.
 - unsupported scope: `BAD_REQUEST` until multi-proxy scopes are implemented.
-- internal failures: `INTERNAL_ERROR`.
+- authorization failure: `UNAUTHORIZED`.
+- internal failures: `INTERNAL_SERVER_ERROR`.
 
 ## Compatibility
 
@@ -301,11 +334,55 @@ M1 tests cover:
 
 Follow-up lifecycle tests should cover:
 
-- producer telemetry updates.
+- producer telemetry updates. Done.
 - heartbeat preserves `connectTimeMillis` and updates `lastActiveTimeMillis`.
-- termination removes client and indexes.
-- producer unregister listener removes client and indexes.
-- consumer unregister listener removes client and indexes.
+  Done.
+- termination removes client and indexes. Done.
+- producer unregister listener removes client and indexes. Done.
+- consumer unregister listener removes client and indexes. Done.
+
+Internal adapter tests cover:
+
+- request DTO conversion to `ProxyClientQuery`.
+- default `LOCAL_PROXY` scope and opaque page-token pass-through.
+- activity overloads for request DTOs.
+- response view conversion.
+- missing request DTO, missing identifiers, not found, unsupported scope,
+  authorization failure, and unexpected runtime error mapping.
+
+## Public Endpoint Landing Route
+
+After `rocketmq-apis` ownership and compatibility are confirmed, add or consume
+generated admin protobuf classes for a standalone `ProxyAdminService`. The proxy
+implementation should then add a dedicated `GrpcProxyAdminApplication extends
+ProxyAdminServiceGrpc.ProxyAdminServiceImplBase`; it should not add admin RPCs
+to the existing messaging application.
+
+`ProxyStartup` can register the new application beside the existing messaging
+service because `GrpcServerBuilder` already supports repeated `addService(...)`
+calls for both `BindableService` and `ServerServiceDefinition`. The intended
+startup shape is:
+
+```text
+GrpcServerBuilder.newBuilder(...)
+  .addService(GrpcMessagingApplication...)
+  .addService(GrpcProxyAdminApplication...)
+  .addService(ChannelzService...)
+  .addService(ProtoReflectionService...)
+```
+
+The endpoint adapter should stay thin:
+
+- read headers and build `ProxyContext` through the existing request pipeline.
+- translate proto requests to the internal request DTOs.
+- call `ProxyClientAdminActivity`.
+- translate `ProxyClientAdminPageView` and `ProxyClientAdminClientView` into
+  proto responses.
+- copy the `Status` from `ProxyClientAdminResult`.
+
+Cross-proxy fan-out, new ACL granularity, and new metrics labels should be added
+behind the same service/activity boundary instead of being embedded into the
+generated gRPC application.
 
 ## Implementation Order
 
@@ -318,9 +395,11 @@ Follow-up lifecycle tests should cover:
    tokens. Done.
 5. Add more lifecycle tests around producer telemetry, heartbeat timestamps,
    termination, and unregister listeners. Done.
-6. Discuss public protobuf ownership before changing `rocketmq-apis`.
-7. Add the public admin gRPC/protobuf adapter.
-8. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy,
+6. Add the proto-independent internal admin activity, response views, request
+   DTOs, and activity overloads. Done.
+7. Discuss public protobuf ownership before changing `rocketmq-apis`.
+8. Add the public admin gRPC/protobuf adapter.
+9. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy,
    request context propagation, and service are already in place.
-9. Extend metrics with admin query counters and latency histograms. Done.
-10. Add a synthetic 1M-client benchmark or simulation.
+10. Extend metrics with admin query counters and latency histograms. Done.
+11. Add a synthetic 1M-client benchmark or simulation. Done.
