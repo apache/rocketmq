@@ -203,6 +203,30 @@ public class ProxyClientAdminEndpointHandlerTest {
         assertThat(responseCaptor.getValue().getBody()).isNull();
     }
 
+    @Test
+    public void handleMapsNullResponseFactoryResultToStatusResponse() {
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+
+        handler.handle(
+            observer,
+            () -> okResult("client-a"),
+            (status, body) -> {
+                if (status.getCode() == Code.OK) {
+                    return null;
+                }
+                return new TestAdminResponse(status, body);
+            }
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("response is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+    }
+
     private static <T> ProxyClientAdminResult<T> okResult(T body) {
         return new ProxyClientAdminResult<>(
             ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),

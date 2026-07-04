@@ -88,9 +88,9 @@ public class ProxyClientAdminEndpointHandler {
     private <T, R> R applyResponseFactory(BiFunction<Status, T, R> responseFactory,
         ProxyClientAdminResult<T> result) {
         try {
-            return responseFactory.apply(result.getStatus(), result.getBody());
+            return this.requireResponse(responseFactory.apply(result.getStatus(), result.getBody()));
         } catch (Throwable t) {
-            return responseFactory.apply(ResponseBuilder.getInstance().buildStatus(t), null);
+            return this.requireResponse(responseFactory.apply(ResponseBuilder.getInstance().buildStatus(t), null));
         }
     }
 
@@ -118,6 +118,13 @@ public class ProxyClientAdminEndpointHandler {
             throw new IllegalArgumentException("responseFactory is required");
         }
         return responseFactory;
+    }
+
+    private <R> R requireResponse(R response) {
+        if (response == null) {
+            throw new IllegalStateException("response is required");
+        }
+        return response;
     }
 
     private ProxyClientAdminActivity requireProxyClientAdminActivity() {
