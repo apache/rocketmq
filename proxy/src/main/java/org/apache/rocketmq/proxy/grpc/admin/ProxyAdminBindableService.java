@@ -52,7 +52,7 @@ import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
 public class ProxyAdminBindableService implements BindableService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    public static final String SERVICE_NAME = "apache.rocketmq.proxy.v2.ProxyClientAdminService";
+    public static final String SERVICE_NAME = "apache.rocketmq.proxy.admin.v1.ProxyClientAdminService";
 
     /** Method descriptor for ListClients RPC, reusable by both server and client. */
     public static final MethodDescriptor<ListClientsRequest, ListClientsResponse>
