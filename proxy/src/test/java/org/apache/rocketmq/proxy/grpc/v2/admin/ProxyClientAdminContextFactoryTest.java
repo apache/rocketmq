@@ -27,6 +27,7 @@ import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ProxyClientAdminContextFactoryTest {
 
@@ -53,5 +54,36 @@ public class ProxyClientAdminContextFactoryTest {
         assertThat(context.getClientVersion()).isEqualTo("V5_0_0");
         assertThat(context.getSubject()).isNotNull();
         assertThat(context.getSubject().getSubjectKey()).isEqualTo("User:admin");
+    }
+
+    @Test
+    public void constructorRejectsMissingRequestPipeline() {
+        assertThatThrownBy(() -> new ProxyClientAdminContextFactory(null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("requestPipeline is required");
+    }
+
+    @Test
+    public void createRejectsMissingRequest() {
+        ProxyClientAdminContextFactory factory = new ProxyClientAdminContextFactory((context, headers, request) -> {
+        });
+
+        assertThatThrownBy(() -> factory.create(new Metadata(), null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("request is required");
+    }
+
+    @Test
+    public void createTreatsMissingHeadersAsEmptyMetadata() {
+        RequestPipeline pipeline = ((RequestPipeline) (context, headers, request) -> {
+        })
+            .pipe(new ContextInitPipeline());
+        ProxyClientAdminContextFactory factory = new ProxyClientAdminContextFactory(pipeline);
+
+        ProxyContext context = factory.create(null, QueryRouteRequest.getDefaultInstance());
+
+        assertThat(context.getClientID()).isEmpty();
+        assertThat(context.getRemoteAddress()).isEmpty();
+        assertThat(context.getLocalAddress()).isEmpty();
     }
 }

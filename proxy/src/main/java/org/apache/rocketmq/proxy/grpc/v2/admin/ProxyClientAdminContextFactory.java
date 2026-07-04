@@ -26,12 +26,18 @@ public class ProxyClientAdminContextFactory {
     private final RequestPipeline requestPipeline;
 
     public ProxyClientAdminContextFactory(RequestPipeline requestPipeline) {
+        if (requestPipeline == null) {
+            throw new IllegalArgumentException("requestPipeline is required");
+        }
         this.requestPipeline = requestPipeline;
     }
 
     public ProxyContext create(Metadata headers, GeneratedMessageV3 request) {
+        if (request == null) {
+            throw new IllegalArgumentException("request is required");
+        }
         ProxyContext context = ProxyContext.create();
-        this.requestPipeline.execute(context, headers, request);
+        this.requestPipeline.execute(context, headers == null ? new Metadata() : headers, request);
         return context;
     }
 }
