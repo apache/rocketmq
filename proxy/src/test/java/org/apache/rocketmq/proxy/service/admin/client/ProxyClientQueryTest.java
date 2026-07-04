@@ -38,4 +38,14 @@ public class ProxyClientQueryTest {
 
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
     }
+
+    @Test
+    public void queryPreservesProxyId() {
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .build();
+
+        assertThat(query.getProxyId()).isEqualTo("proxy-a");
+    }
 }

@@ -79,7 +79,8 @@ public class DefaultClientAdminService implements ClientAdminService {
             .setClientType(effectiveQuery.getClientType())
             .setPageSize(effectiveQuery.getPageSize())
             .setPageToken(effectiveQuery.getPageToken())
-            .setScope(effectiveQuery.getScope());
+            .setScope(effectiveQuery.getScope())
+            .setProxyId(effectiveQuery.getProxyId());
         if (group != null) {
             builder.setGroup(group);
         }

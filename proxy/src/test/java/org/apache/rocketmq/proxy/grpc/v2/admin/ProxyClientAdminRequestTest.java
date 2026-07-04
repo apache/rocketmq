@@ -42,6 +42,7 @@ public class ProxyClientAdminRequestTest {
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
         assertThat(query.getGroup()).isNull();
         assertThat(query.getTopic()).isNull();
+        assertThat(query.getProxyId()).isNull();
     }
 
     @Test
@@ -52,6 +53,7 @@ public class ProxyClientAdminRequestTest {
             .build();
 
         assertThat(request.toQuery().getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
+        assertThat(request.toQuery().getProxyId()).isEqualTo("proxy-a");
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
     }
 
@@ -85,6 +87,7 @@ public class ProxyClientAdminRequestTest {
         assertThat(query.getPageSize()).isEqualTo(20);
         assertThat(query.getPageToken()).isEqualTo("client-b");
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(query.getProxyId()).isEqualTo("proxy-a");
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
     }
 
@@ -105,6 +108,7 @@ public class ProxyClientAdminRequestTest {
         assertThat(query.getPageSize()).isEqualTo(30);
         assertThat(query.getPageToken()).isEqualTo("opaque-token");
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
+        assertThat(query.getProxyId()).isEqualTo("proxy-a");
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
     }
 }

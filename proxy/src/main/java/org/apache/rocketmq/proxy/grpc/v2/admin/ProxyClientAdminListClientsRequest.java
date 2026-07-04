@@ -69,7 +69,8 @@ public class ProxyClientAdminListClientsRequest {
             .setClientType(clientType)
             .setPageSize(pageSize)
             .setPageToken(pageToken)
-            .setScope(scope);
+            .setScope(scope)
+            .setProxyId(proxyId);
     }
 
     public static class Builder<T extends Builder<T>> {

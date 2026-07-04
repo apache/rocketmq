@@ -147,6 +147,19 @@ public class DefaultClientAdminServiceTest {
             .hasMessageContaining("PROXY_ID");
     }
 
+    @Test
+    public void listClientsByGroupPreservesProxyIdWhenMergingQuery() {
+        CapturingReadService readService = new CapturingReadService();
+        ClientAdminService adminService = new DefaultClientAdminService(readService);
+
+        adminService.listClientsByGroup("group-a", ProxyClientQuery.newBuilder()
+            .setProxyId("proxy-a")
+            .build());
+
+        assertThat(readService.capturedQuery.getGroup()).isEqualTo("group-a");
+        assertThat(readService.capturedQuery.getProxyId()).isEqualTo("proxy-a");
+    }
+
     private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics) {
         return new ProxyClientInfo(
             clientId,
@@ -168,5 +181,15 @@ public class DefaultClientAdminServiceTest {
 
     private static List<String> clientIds(List<ProxyClientInfo> clients) {
         return clients.stream().map(ProxyClientInfo::getClientId).collect(Collectors.toList());
+    }
+
+    private static class CapturingReadService extends ProxyClientReadService {
+        private ProxyClientQuery capturedQuery;
+
+        @Override
+        public synchronized ProxyClientPage listClients(ProxyClientQuery query) {
+            this.capturedQuery = query;
+            return new ProxyClientPage(Arrays.<ProxyClientInfo>asList(), null);
+        }
     }
 }
