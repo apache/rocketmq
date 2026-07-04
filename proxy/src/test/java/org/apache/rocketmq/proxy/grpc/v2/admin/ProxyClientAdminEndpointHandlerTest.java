@@ -55,6 +55,27 @@ public class ProxyClientAdminEndpointHandlerTest {
     }
 
     @Test
+    public void listClientsWithoutActivityWritesInternalServerError() {
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+
+        handler.listClients(
+            ProxyContext.create(),
+            ProxyClientAdminListClientsRequest.newBuilder().build(),
+            observer,
+            TestAdminResponse::new
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(responseCaptor.getValue().getStatus().getMessage())
+            .contains("proxyClientAdminActivity is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+    }
+
+    @Test
     public void describeClientDelegatesToActivityAndWritesResponse() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler(activity);

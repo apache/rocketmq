@@ -137,7 +137,7 @@ public class ProxyClientAdminEndpointHandler {
 
     private ProxyClientAdminActivity requireProxyClientAdminActivity() {
         if (this.proxyClientAdminActivity == null) {
-            throw new IllegalArgumentException("proxyClientAdminActivity is required");
+            throw new IllegalStateException("proxyClientAdminActivity is required");
         }
         return this.proxyClientAdminActivity;
     }
