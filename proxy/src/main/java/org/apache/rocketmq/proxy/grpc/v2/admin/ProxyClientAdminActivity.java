@@ -51,9 +51,10 @@ public class ProxyClientAdminActivity {
         ProxyClientAdminListClientsRequest request) {
         return this.execute(() -> {
             ProxyClientAdminListClientsRequest requiredRequest = this.requireRequest(request);
+            this.validateLocalProxyScope(requiredRequest.getScope());
             return this.clientAdminService.listClients(
                 ClientAdminRequestContext.from(ctx),
-                this.validateLocalProxyScope(requiredRequest.toQuery())
+                requiredRequest.toQuery()
             );
         });
     }
@@ -128,7 +129,8 @@ public class ProxyClientAdminActivity {
         ProxyClientAdminListClientsByGroupRequest request) {
         return this.execute(() -> {
             ProxyClientAdminListClientsByGroupRequest requiredRequest = this.requireRequest(request);
-            ProxyClientQuery effectiveQuery = this.validateLocalProxyScope(requiredRequest.toQuery());
+            this.validateLocalProxyScope(requiredRequest.getScope());
+            ProxyClientQuery effectiveQuery = requiredRequest.toQuery();
             String requiredGroup = this.requireGroup(requiredRequest.getGroup());
             return this.clientAdminService.listClientsByGroup(
                 ClientAdminRequestContext.from(ctx),
@@ -171,7 +173,8 @@ public class ProxyClientAdminActivity {
         ProxyClientAdminListClientsByTopicRequest request) {
         return this.execute(() -> {
             ProxyClientAdminListClientsByTopicRequest requiredRequest = this.requireRequest(request);
-            ProxyClientQuery effectiveQuery = this.validateLocalProxyScope(requiredRequest.toQuery());
+            this.validateLocalProxyScope(requiredRequest.getScope());
+            ProxyClientQuery effectiveQuery = requiredRequest.toQuery();
             String requiredTopic = this.requireTopic(requiredRequest.getTopic());
             return this.clientAdminService.listClientsByTopic(
                 ClientAdminRequestContext.from(ctx),

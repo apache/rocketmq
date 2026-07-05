@@ -438,6 +438,28 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void listClientViewsRejectsUnsupportedScopeBeforeDecodingPageToken() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageToken("v1:not-a-valid-token")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.listClientViews(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Unsupported proxy scope");
+        assertThat(result.getStatus().getMessage()).contains("ALL_PROXIES");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(delegate, never()).listClients(any(ProxyClientQuery.class));
+    }
+
+    @Test
     public void listClientViewsByGroupRejectsUnsupportedScopeBeforeAuthorization() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
@@ -465,6 +487,32 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void listClientViewsByGroupRejectsUnsupportedScopeBeforeDecodingPageToken() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientAdminListClientsByGroupRequest request =
+            ProxyClientAdminListClientsByGroupRequest.newBuilder()
+                .setGroup("group-a")
+                .setScope(ProxyClientScope.PROXY_ID)
+                .setProxyId("proxy-a")
+                .setPageToken("v1:not-a-valid-token")
+                .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByGroup(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Unsupported proxy scope");
+        assertThat(result.getStatus().getMessage()).contains("PROXY_ID");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(delegate, never()).listClientsByGroup(anyString(), any(ProxyClientQuery.class));
+    }
+
+    @Test
     public void listClientViewsByTopicRejectsUnsupportedScopeBeforeAuthorization() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
@@ -488,6 +536,31 @@ public class ProxyClientAdminActivityTest {
         assertThat(result.getBody()).isNull();
         verify(authorizationService, never()).authorize(any(), any(), any());
         verify(delegate, never()).listClientsByTopic(eq("topic-a"), any(ProxyClientQuery.class));
+    }
+
+    @Test
+    public void listClientViewsByTopicRejectsUnsupportedScopeBeforeDecodingPageToken() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientAdminListClientsByTopicRequest request =
+            ProxyClientAdminListClientsByTopicRequest.newBuilder()
+                .setTopic("topic-a")
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setPageToken("v1:not-a-valid-token")
+                .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByTopic(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Unsupported proxy scope");
+        assertThat(result.getStatus().getMessage()).contains("ALL_PROXIES");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(delegate, never()).listClientsByTopic(anyString(), any(ProxyClientQuery.class));
     }
 
     @Test
