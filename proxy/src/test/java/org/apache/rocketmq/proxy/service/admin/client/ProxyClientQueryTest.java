@@ -48,4 +48,19 @@ public class ProxyClientQueryTest {
 
         assertThat(query.getProxyId()).isEqualTo("proxy-a");
     }
+
+    @Test
+    public void queryTrimsStringFiltersAndNormalizesBlankValues() {
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setGroup(" group-a ")
+            .setTopic("\ttopic-a\t")
+            .setPageToken(" client-a ")
+            .setProxyId(" ")
+            .build();
+
+        assertThat(query.getGroup()).isEqualTo("group-a");
+        assertThat(query.getTopic()).isEqualTo("topic-a");
+        assertThat(query.getPageToken()).isEqualTo("client-a");
+        assertThat(query.getProxyId()).isNull();
+    }
 }

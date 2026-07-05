@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.service.admin.client;
 
 import apache.rocketmq.v2.ClientType;
+import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientQuery {
     public static final int DEFAULT_PAGE_SIZE = 100;
@@ -31,13 +32,13 @@ public class ProxyClientQuery {
     private final String proxyId;
 
     private ProxyClientQuery(Builder builder) {
-        this.group = builder.group;
-        this.topic = builder.topic;
+        this.group = StringUtils.trimToNull(builder.group);
+        this.topic = StringUtils.trimToNull(builder.topic);
         this.clientType = builder.clientType;
         this.pageSize = builder.pageSize;
-        this.pageToken = builder.pageToken;
+        this.pageToken = StringUtils.trimToNull(builder.pageToken);
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
-        this.proxyId = builder.proxyId;
+        this.proxyId = StringUtils.trimToNull(builder.proxyId);
     }
 
     public static Builder newBuilder() {
