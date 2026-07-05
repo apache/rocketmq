@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,6 +88,15 @@ public class ProxyClientAdminPageTokenCodecTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid page token")
             .hasMessageContaining("v10:Y2xpZW50LWE");
+    }
+
+    @Test
+    public void codecRejectsOverlongPublicTokens() {
+        ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
+
+        assertThatThrownBy(() -> codec.decode(StringUtils.repeat("a", 5000)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid page token");
     }
 
     @Test

@@ -409,6 +409,12 @@ after group/topic/type indexes have been intersected. When a token is supplied,
 it must exist in that candidate set; otherwise `ProxyClientReadService` throws
 `IllegalArgumentException`.
 
+The public adapter treats page tokens as opaque values. The current M1 codec
+accepts canonical `v1:` tokens and legacy bare read-model tokens, rejects
+unknown or non-canonical versioned tokens, and caps incoming public page tokens
+at 4096 characters to bound decode work before the future public endpoint is
+registered.
+
 This gives stable pagination for the local snapshot and avoids offset-based
 scans. If clients connect or disconnect between pages, a token can become
 invalid for the filtered view and the caller should restart the query.

@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 public final class ProxyClientAdminPageTokenCodec {
     private static final ProxyClientAdminPageTokenCodec INSTANCE = new ProxyClientAdminPageTokenCodec();
     private static final String VERSION_1_PREFIX = "v1:";
+    private static final int MAX_PUBLIC_PAGE_TOKEN_LENGTH = 4096;
 
     private ProxyClientAdminPageTokenCodec() {
     }
@@ -36,6 +37,11 @@ public final class ProxyClientAdminPageTokenCodec {
         String normalizedPublicPageToken = StringUtils.trimToNull(publicPageToken);
         if (normalizedPublicPageToken == null) {
             return null;
+        }
+        if (normalizedPublicPageToken.length() > MAX_PUBLIC_PAGE_TOKEN_LENGTH) {
+            throw new IllegalArgumentException(
+                "Invalid page token: length exceeds " + MAX_PUBLIC_PAGE_TOKEN_LENGTH
+            );
         }
         if (!normalizedPublicPageToken.startsWith(VERSION_1_PREFIX)) {
             if (isVersionedToken(normalizedPublicPageToken)) {
