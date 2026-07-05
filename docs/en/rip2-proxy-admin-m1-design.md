@@ -101,8 +101,8 @@ small and tested boundary to call:
   the eventual protobuf adapter contract. The views require a nonblank client
   id, reject null client entries in pages, snapshot collections, normalize null
   string metadata to empty public strings, normalize repeated `groups` and
-  `topics` entries by trimming and dropping blank values, and normalize blank
-  public next-page tokens to an empty string.
+  `topics` entries by trimming, de-duplicating, and dropping blank values, and
+  normalize blank public next-page tokens to an empty string.
 - `ProxyClientAdminListClientsRequest`,
   `ProxyClientAdminDescribeClientRequest`,
   `ProxyClientAdminListClientsByGroupRequest`, and
@@ -314,7 +314,9 @@ protobuf adapter writes response fields. A missing internal client type is
 normalized to `CLIENT_TYPE_UNSPECIFIED` so generated protobuf responses never
 need to write a null enum value. Internally, `CLIENT_TYPE_UNSPECIFIED` snapshots
 are normalized to a missing client type before indexing, so read-model metrics
-do not expose an artificial unspecified client-type series.
+do not expose an artificial unspecified client-type series. Public response
+views trim group and topic values, drop blank values, and de-duplicate repeated
+values while preserving their first observed order.
 
 `ProxyClientPage` returns a list of `ProxyClientInfo` plus a `nextPageToken`.
 `ProxyClientQuery` carries optional group, topic, client type, page size, page
@@ -338,7 +340,7 @@ keeps group/topic changes from leaving stale index entries.
 
 The read model normalizes client ids by trimming surrounding whitespace before
 storing, looking up, or removing entries. Group and topic index values are also
-trimmed and blank values are ignored.
+trimmed, de-duplicated by the index sets, and blank values are ignored.
 
 The service is synchronized in M1. That keeps the implementation simple and
 consistent while lifecycle updates and admin reads are still local to one proxy
