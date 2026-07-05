@@ -101,16 +101,16 @@ public class DefaultClientAdminService implements ClientAdminService {
 
     private ProxyClientQuery effectiveQuery(ProxyClientQuery query) {
         ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
-        if (effectiveQuery.getClientType() != ClientType.CLIENT_TYPE_UNSPECIFIED) {
+        if (effectiveQuery.getScope() != ProxyClientScope.LOCAL_PROXY || effectiveQuery.getProxyId() == null) {
             return effectiveQuery;
         }
         return ProxyClientQuery.newBuilder()
             .setGroup(effectiveQuery.getGroup())
             .setTopic(effectiveQuery.getTopic())
+            .setClientType(effectiveQuery.getClientType())
             .setPageSize(effectiveQuery.getPageSize())
             .setPageToken(effectiveQuery.getPageToken())
             .setScope(effectiveQuery.getScope())
-            .setProxyId(effectiveQuery.getProxyId())
             .build();
     }
 }

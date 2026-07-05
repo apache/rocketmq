@@ -60,6 +60,19 @@ public class DefaultClientAdminServiceTest {
     }
 
     @Test
+    public void listClientsDropsProxyIdForLocalProxyScope() {
+        CapturingReadService readService = new CapturingReadService();
+        ClientAdminService adminService = new DefaultClientAdminService(readService);
+
+        adminService.listClients(ProxyClientQuery.newBuilder()
+            .setProxyId("proxy-a")
+            .build());
+
+        assertThat(readService.capturedQuery.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(readService.capturedQuery.getProxyId()).isNull();
+    }
+
+    @Test
     public void describeClientReturnsExistingClient() {
         ProxyClientReadService readService = new ProxyClientReadService();
         ClientAdminService adminService = new DefaultClientAdminService(readService);
@@ -184,7 +197,7 @@ public class DefaultClientAdminServiceTest {
     }
 
     @Test
-    public void listClientsByGroupPreservesProxyIdWhenMergingQuery() {
+    public void listClientsByGroupDropsProxyIdForLocalProxyScopeWhenMergingQuery() {
         CapturingReadService readService = new CapturingReadService();
         ClientAdminService adminService = new DefaultClientAdminService(readService);
 
@@ -193,7 +206,22 @@ public class DefaultClientAdminServiceTest {
             .build());
 
         assertThat(readService.capturedQuery.getGroup()).isEqualTo("group-a");
-        assertThat(readService.capturedQuery.getProxyId()).isEqualTo("proxy-a");
+        assertThat(readService.capturedQuery.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(readService.capturedQuery.getProxyId()).isNull();
+    }
+
+    @Test
+    public void listClientsByTopicDropsProxyIdForLocalProxyScopeWhenMergingQuery() {
+        CapturingReadService readService = new CapturingReadService();
+        ClientAdminService adminService = new DefaultClientAdminService(readService);
+
+        adminService.listClientsByTopic("topic-a", ProxyClientQuery.newBuilder()
+            .setProxyId("proxy-a")
+            .build());
+
+        assertThat(readService.capturedQuery.getTopic()).isEqualTo("topic-a");
+        assertThat(readService.capturedQuery.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(readService.capturedQuery.getProxyId()).isNull();
     }
 
     private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics) {

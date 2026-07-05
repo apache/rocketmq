@@ -113,6 +113,9 @@ small and tested boundary to call:
   request DTOs also drop `proxy_id` when converting `LOCAL_PROXY` requests to
   `ProxyClientQuery`, so direct DTO use and future protobuf conversion share the
   same M1 local-scope semantics.
+- `DefaultClientAdminService` also canonicalizes `LOCAL_PROXY` queries before
+  reading the model, dropping accidental `proxyId` filters from direct internal
+  callers while still rejecting future non-local scopes in M1.
 - `ProxyClientAdminRequestConverter` centralizes the future proto-to-internal
   DTO mapping from public scalar fields, so generated unary methods can keep
   request conversion out of the RPC method bodies once `ProxyAdminService`
@@ -565,6 +568,8 @@ Internal adapter tests cover:
   proxy id.
 - default `LOCAL_PROXY` scope, opaque page-token encode/decode, and proxy id
   pass-through for future scoped queries.
+- service-level `LOCAL_PROXY` query canonicalization that drops accidental
+  proxy-id filters before querying the local read model.
 - activity overloads for request DTOs.
 - activity-level rejection of unsupported M1 scopes before ACL or delegate
   invocation.
