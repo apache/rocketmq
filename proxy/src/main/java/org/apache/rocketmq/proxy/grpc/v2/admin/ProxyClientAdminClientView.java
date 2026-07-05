@@ -52,11 +52,11 @@ public class ProxyClientAdminClientView {
         this.clientType = clientType == null ? ClientType.CLIENT_TYPE_UNSPECIFIED : clientType;
         this.groups = immutableCopy(groups);
         this.topics = immutableCopy(topics);
-        this.language = nullToEmpty(language);
-        this.remoteAddress = nullToEmpty(remoteAddress);
-        this.localAddress = nullToEmpty(localAddress);
-        this.clientVersion = nullToEmpty(clientVersion);
-        this.proxyId = nullToEmpty(proxyId);
+        this.language = normalizeMetadata(language);
+        this.remoteAddress = normalizeMetadata(remoteAddress);
+        this.localAddress = normalizeMetadata(localAddress);
+        this.clientVersion = normalizeMetadata(clientVersion);
+        this.proxyId = normalizeMetadata(proxyId);
         this.connectTimeMillis = connectTimeMillis;
         this.lastActiveTimeMillis = lastActiveTimeMillis;
     }
@@ -86,8 +86,8 @@ public class ProxyClientAdminClientView {
         return Collections.unmodifiableList(new ArrayList<>(result));
     }
 
-    private static String nullToEmpty(String value) {
-        return value == null ? "" : value;
+    private static String normalizeMetadata(String value) {
+        return StringUtils.trimToEmpty(value);
     }
 
     public String getClientId() {

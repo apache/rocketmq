@@ -309,9 +309,10 @@ The internal model uses `ProxyClientInfo`:
 - `connectTimeMillis`: first observed local connection time.
 - `lastActiveTimeMillis`: most recent successful telemetry or heartbeat time.
 
-The internal public-view adapter normalizes nullable string metadata such as
-language, addresses, client version, and proxy id to empty strings before a future
-protobuf adapter writes response fields. A missing internal client type is
+The internal public-view adapter trims nullable string metadata such as language,
+addresses, client version, and proxy id, and normalizes missing or blank values
+to empty strings before a future protobuf adapter writes response fields. A
+missing internal client type is
 normalized to `CLIENT_TYPE_UNSPECIFIED` so generated protobuf responses never
 need to write a null enum value. Internally, `CLIENT_TYPE_UNSPECIFIED` snapshots
 and `UNRECOGNIZED` snapshots are normalized to a missing client type before

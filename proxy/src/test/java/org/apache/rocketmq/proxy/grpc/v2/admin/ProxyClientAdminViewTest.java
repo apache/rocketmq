@@ -65,6 +65,29 @@ public class ProxyClientAdminViewTest {
     }
 
     @Test
+    public void clientViewNormalizesStringMetadataFields() {
+        ProxyClientAdminClientView view = new ProxyClientAdminClientView(
+            "client-a",
+            ClientType.PRODUCER,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            " JAVA ",
+            " 127.0.0.1:8080 ",
+            " 192.168.0.1:8080 ",
+            " V5_0_0 ",
+            " proxy-a ",
+            100L,
+            200L
+        );
+
+        assertThat(view.getLanguage()).isEqualTo("JAVA");
+        assertThat(view.getRemoteAddress()).isEqualTo("127.0.0.1:8080");
+        assertThat(view.getLocalAddress()).isEqualTo("192.168.0.1:8080");
+        assertThat(view.getClientVersion()).isEqualTo("V5_0_0");
+        assertThat(view.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
     public void pageViewRejectsNullClientEntries() {
         assertThatThrownBy(() -> new ProxyClientAdminPageView(
             Arrays.asList(clientView("client-a"), null),
