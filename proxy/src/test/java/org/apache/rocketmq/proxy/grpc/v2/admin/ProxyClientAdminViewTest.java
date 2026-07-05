@@ -46,6 +46,24 @@ public class ProxyClientAdminViewTest {
     }
 
     @Test
+    public void clientViewTreatsUnrecognizedClientTypeAsUnspecified() {
+        ProxyClientAdminClientView view = new ProxyClientAdminClientView(
+            "client-a",
+            ClientType.UNRECOGNIZED,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        );
+
+        assertThat(view.getClientType()).isEqualTo(ClientType.CLIENT_TYPE_UNSPECIFIED);
+    }
+
+    @Test
     public void clientViewNormalizesGroupAndTopicEntries() {
         ProxyClientAdminClientView view = new ProxyClientAdminClientView(
             "client-a",

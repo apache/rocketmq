@@ -312,14 +312,14 @@ The internal model uses `ProxyClientInfo`:
 The internal public-view adapter trims nullable string metadata such as language,
 addresses, client version, and proxy id, and normalizes missing or blank values
 to empty strings before a future protobuf adapter writes response fields. A
-missing internal client type is
-normalized to `CLIENT_TYPE_UNSPECIFIED` so generated protobuf responses never
-need to write a null enum value. Internally, `CLIENT_TYPE_UNSPECIFIED` snapshots
-and `UNRECOGNIZED` snapshots are normalized to a missing client type before
-indexing, so read-model metrics do not expose artificial unspecified or
-unrecognized client-type series. Public response views trim group and topic
-values, drop blank values, and de-duplicate repeated values while preserving the
-adapter input order. The read-model response converter supplies those values in
+missing or `UNRECOGNIZED` public-view client type is normalized to
+`CLIENT_TYPE_UNSPECIFIED` so generated protobuf responses never need to write a
+null or unknown enum value. Internally, `CLIENT_TYPE_UNSPECIFIED` snapshots and
+`UNRECOGNIZED` snapshots are normalized to a missing client type before indexing,
+so read-model metrics do not expose artificial unspecified or unrecognized
+client-type series. Public response views trim group and topic values, drop
+blank values, and de-duplicate repeated values while preserving the adapter
+input order. The read-model response converter supplies those values in
 lexicographic order so public responses remain deterministic even though the
 internal read-model snapshots use sets.
 

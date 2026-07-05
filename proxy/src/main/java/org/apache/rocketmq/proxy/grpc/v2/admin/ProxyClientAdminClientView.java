@@ -49,7 +49,7 @@ public class ProxyClientAdminClientView {
         List<String> topics, String language, String remoteAddress, String localAddress, String clientVersion,
         String proxyId, long connectTimeMillis, long lastActiveTimeMillis) {
         this.clientId = normalizeClientId(clientId);
-        this.clientType = clientType == null ? ClientType.CLIENT_TYPE_UNSPECIFIED : clientType;
+        this.clientType = normalizeClientType(clientType);
         this.groups = immutableCopy(groups);
         this.topics = immutableCopy(topics);
         this.language = normalizeMetadata(language);
@@ -67,6 +67,14 @@ public class ProxyClientAdminClientView {
             throw new IllegalArgumentException("clientId is required");
         }
         return normalizedClientId;
+    }
+
+    private static ClientType normalizeClientType(ClientType clientType) {
+        if (clientType == null || clientType == ClientType.CLIENT_TYPE_UNSPECIFIED
+            || clientType == ClientType.UNRECOGNIZED) {
+            return ClientType.CLIENT_TYPE_UNSPECIFIED;
+        }
+        return clientType;
     }
 
     private static List<String> immutableCopy(List<String> values) {
