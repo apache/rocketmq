@@ -131,11 +131,14 @@ small and tested boundary to call:
   `ResponseBuilder`, build a response from `Status` and optional body, and write
   it through `ResponseWriter`.
 - `ProxyClientAdminEndpointExecutor` is a proto-independent shell for generated
-  unary admin methods. It builds the `ProxyContext`, adapts the proto request to
-  the internal request DTO, delegates to `ProxyClientAdminEndpointHandler`, and
-  routes context or request-adapter failures through the same status conversion
-  path. It offers explicit-header overloads for tests and adapter seams, plus
-  no-header overloads that read `GrpcConstants.METADATA` from
+  unary admin methods. It adapts the proto request to the internal request DTO
+  before creating the `ProxyContext`, so malformed public request fields such as
+  invalid page tokens fail at the adapter boundary without running the admin
+  request pipeline. Once the DTO is built, it creates the `ProxyContext`,
+  delegates to `ProxyClientAdminEndpointHandler`, and routes context or
+  request-adapter failures through the same status conversion path. It offers
+  explicit-header overloads for tests and adapter seams, plus no-header
+  overloads that read `GrpcConstants.METADATA` from
   `Context.current()` to match normal generated gRPC method bodies.
 - `ProxyClientAdminContextFactory` runs the admin gRPC context pipeline and
   builds a `ProxyContext` for future admin RPCs without applying the messaging
@@ -189,13 +192,16 @@ DTOs, call `ProxyClientAdminActivity`, and translate the result view back to a
 protobuf response. Authorization, error mapping, metrics, pagination bounds, and
 read-model queries should remain behind the existing activity/service boundary.
 The generated unary methods should use `ProxyClientAdminEndpointHandler` for
-the common result-to-`StreamObserver` flow. Response factories must return a
-non-null response; a null response is treated as an internal adapter error and
-mapped through the same status response path. Non-`OK` results are normalized to
-a status-only response with a null body so error responses cannot accidentally
-carry stale success data. Missing response observers are rejected before
-executing the admin action. A missing injected admin activity is treated as a
-server-side wiring error.
+the common result-to-`StreamObserver` flow and should use
+`ProxyClientAdminEndpointExecutor` when they need the shared request conversion
+and context-pipeline boundary. Request adapter failures are returned as status
+responses before `ProxyClientAdminContextFactory` is invoked. Response factories
+must return a non-null response; a null response is treated as an internal
+adapter error and mapped through the same status response path. Non-`OK` results
+are normalized to a status-only response with a null body so error responses
+cannot accidentally carry stale success data. Missing response observers are
+rejected before executing the admin action. A missing injected admin activity is
+treated as a server-side wiring error.
 
 ### ListClients
 

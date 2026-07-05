@@ -170,8 +170,8 @@ public class ProxyClientAdminEndpointExecutor {
             requiredResponseFactory = this.requireResponseFactory(responseFactory);
             Function<P, D> requiredRequestAdapter = this.requireRequestAdapter(requestAdapter);
             P requiredProtoRequest = this.requireProtoRequest(protoRequest);
-            ProxyContext ctx = this.contextFactory.create(this.normalizeMetadata(headers), requiredProtoRequest);
             D request = this.requireAdaptedRequest(requiredRequestAdapter.apply(requiredProtoRequest));
+            ProxyContext ctx = this.contextFactory.create(this.normalizeMetadata(headers), requiredProtoRequest);
             endpointCall.execute(ctx, request, requiredResponseObserver, requiredResponseFactory);
         } catch (RuntimeException | Error t) {
             if (requiredResponseFactory == null) {

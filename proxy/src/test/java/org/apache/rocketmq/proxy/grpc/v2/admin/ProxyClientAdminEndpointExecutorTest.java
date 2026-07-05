@@ -299,11 +299,10 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
-    public void mapsRequestAdapterFailureToStatusResponse() {
+    public void mapsRequestAdapterFailureToStatusResponseBeforeCreatingContext() {
         ProxyClientAdminEndpointExecutor executor =
             new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
         BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
-        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
 
         executor.listClients(
             headers,
@@ -321,10 +320,12 @@ public class ProxyClientAdminEndpointExecutorTest {
         assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("page token is invalid");
         assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
     }
 
     @Test
-    public void mapsContextFactoryFailureToStatusResponse() {
+    public void mapsContextFactoryFailureToStatusResponseAfterAdaptingRequest() {
         ProxyClientAdminEndpointExecutor executor =
             new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
         AtomicBoolean requestAdapterInvoked = new AtomicBoolean(false);
@@ -349,7 +350,8 @@ public class ProxyClientAdminEndpointExecutorTest {
         assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("request headers are invalid");
         assertThat(responseCaptor.getValue().getBody()).isNull();
-        assertThat(requestAdapterInvoked).isFalse();
+        assertThat(requestAdapterInvoked).isTrue();
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
     }
 
     @Test
@@ -408,7 +410,6 @@ public class ProxyClientAdminEndpointExecutorTest {
         ProxyClientAdminEndpointExecutor executor =
             new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
         BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
-        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
 
         executor.listClients(
             headers,
@@ -425,6 +426,7 @@ public class ProxyClientAdminEndpointExecutorTest {
         assertThat(responseCaptor.getValue().getStatus().getMessage())
             .contains("requestAdapter result is required");
         assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
     }
 
     @Test

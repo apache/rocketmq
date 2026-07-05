@@ -57,7 +57,7 @@ enum ProxyScope {
 
 message ListClientsRequest {
   // Opaque to public clients. M1 may internally encode the last client id.
-  // Unknown versioned tokens are rejected.
+  // Unknown or noncanonical versioned tokens are rejected.
   string page_token = 1;
   int32 page_size = 2;
   // CLIENT_TYPE_UNSPECIFIED means no type filter. UNRECOGNIZED is rejected.
@@ -91,7 +91,8 @@ message DescribeClientResponse {
 
 message ListClientsByGroupRequest {
   string group = 1;
-  // Opaque to public clients. Unknown versioned tokens are rejected.
+  // Opaque to public clients. Unknown or noncanonical versioned tokens are
+  // rejected.
   string page_token = 2;
   int32 page_size = 3;
   // CLIENT_TYPE_UNSPECIFIED means no type filter. UNRECOGNIZED is rejected.
@@ -111,7 +112,8 @@ message ListClientsByGroupResponse {
 
 message ListClientsByTopicRequest {
   string topic = 1;
-  // Opaque to public clients. Unknown versioned tokens are rejected.
+  // Opaque to public clients. Unknown or noncanonical versioned tokens are
+  // rejected.
   string page_token = 2;
   int32 page_size = 3;
   // CLIENT_TYPE_UNSPECIFIED means no type filter. UNRECOGNIZED is rejected.
