@@ -106,7 +106,10 @@ public class ProxyClientAdminEndpointHandler {
             if (result == null) {
                 throw new IllegalArgumentException("result is required");
             }
-            if (result.getStatus().getCode() == Code.OK && result.getBody() == null) {
+            if (result.getStatus().getCode() != Code.OK) {
+                return new ProxyClientAdminResult<>(result.getStatus(), null);
+            }
+            if (result.getBody() == null) {
                 throw new IllegalStateException("result body is required");
             }
             return result;

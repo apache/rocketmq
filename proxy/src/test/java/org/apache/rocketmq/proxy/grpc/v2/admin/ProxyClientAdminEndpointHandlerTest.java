@@ -206,6 +206,28 @@ public class ProxyClientAdminEndpointHandlerTest {
     }
 
     @Test
+    public void handleDropsErrorResultBody() {
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+
+        handler.handle(
+            observer,
+            () -> new ProxyClientAdminResult<>(
+                ResponseBuilder.getInstance().buildStatus(Code.NOT_FOUND, "missing client"),
+                "stale-body"
+            ),
+            TestAdminResponse::new
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.NOT_FOUND);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("missing client");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+    }
+
+    @Test
     public void handleMapsThrownActionToStatusResponse() {
         ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
         StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
