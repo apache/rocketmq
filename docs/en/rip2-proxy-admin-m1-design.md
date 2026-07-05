@@ -313,10 +313,11 @@ language, addresses, client version, and proxy id to empty strings before a futu
 protobuf adapter writes response fields. A missing internal client type is
 normalized to `CLIENT_TYPE_UNSPECIFIED` so generated protobuf responses never
 need to write a null enum value. Internally, `CLIENT_TYPE_UNSPECIFIED` snapshots
-are normalized to a missing client type before indexing, so read-model metrics
-do not expose an artificial unspecified client-type series. Public response
-views trim group and topic values, drop blank values, and de-duplicate repeated
-values while preserving their first observed order.
+and `UNRECOGNIZED` snapshots are normalized to a missing client type before
+indexing, so read-model metrics do not expose artificial unspecified or
+unrecognized client-type series. Public response views trim group and topic
+values, drop blank values, and de-duplicate repeated values while preserving
+their first observed order.
 
 `ProxyClientPage` returns a list of `ProxyClientInfo` plus a `nextPageToken`.
 `ProxyClientQuery` carries optional group, topic, client type, page size, page

@@ -67,7 +67,7 @@ public class ProxyClientInfo {
     }
 
     private static ClientType normalizeClientType(ClientType clientType) {
-        if (clientType == ClientType.CLIENT_TYPE_UNSPECIFIED) {
+        if (clientType == ClientType.CLIENT_TYPE_UNSPECIFIED || clientType == ClientType.UNRECOGNIZED) {
             return null;
         }
         return clientType;

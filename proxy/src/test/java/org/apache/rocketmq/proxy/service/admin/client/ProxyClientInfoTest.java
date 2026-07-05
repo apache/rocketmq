@@ -50,6 +50,13 @@ public class ProxyClientInfoTest {
         assertThat(clientInfo.getClientType()).isNull();
     }
 
+    @Test
+    public void constructorTreatsUnrecognizedClientTypeAsMissing() {
+        ProxyClientInfo clientInfo = client("client-a", ClientType.UNRECOGNIZED);
+
+        assertThat(clientInfo.getClientType()).isNull();
+    }
+
     private static ProxyClientInfo client(String clientId) {
         return client(clientId, ClientType.PRODUCER);
     }
