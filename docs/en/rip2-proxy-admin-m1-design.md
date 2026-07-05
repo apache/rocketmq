@@ -105,9 +105,10 @@ small and tested boundary to call:
   `ProxyClientAdminListClientsByTopicRequest` mirror the proposed public request
   fields without importing generated admin protobuf classes.
 - `ProxyClientAdminPageTokenCodec` is the adapter boundary for public pagination
-  tokens. M1 uses an identity codec from public token to internal last-client-id
-  token, while still normalizing blank public tokens to "no token" and blank
-  internal next tokens to an empty public string.
+  tokens. M1 encodes internal last-client-id tokens as versioned `v1:`
+  base64url public tokens, accepts legacy bare client-id tokens only for early
+  internal compatibility, normalizes blank public tokens to "no token", and
+  normalizes blank internal next tokens to an empty public string.
 - `ProxyClientAdminScopeMapper` is the adapter boundary for public proxy scope
   values. It maps missing or `PROXY_SCOPE_UNSPECIFIED` public scope values to
   internal `LOCAL_PROXY`, maps prefixed public values such as
@@ -183,6 +184,7 @@ ListClientsRequest {
   int32 page_size;
   ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter; UNRECOGNIZED is rejected.
   ProxyScope scope; // M1: LOCAL_PROXY only
+  string proxy_id; // Reserved for future PROXY_ID scope.
 }
 ```
 
@@ -190,6 +192,7 @@ Response:
 
 ```text
 ListClientsResponse {
+  Status status;
   repeated Client clients;
   string next_page_token;
 }
@@ -203,6 +206,7 @@ Request:
 DescribeClientRequest {
   string client_id;
   ProxyScope scope; // M1: LOCAL_PROXY only
+  string proxy_id; // Reserved for future PROXY_ID scope.
 }
 ```
 
@@ -210,6 +214,7 @@ Response:
 
 ```text
 DescribeClientResponse {
+  Status status;
   Client client;
 }
 ```
@@ -225,6 +230,7 @@ ListClientsByGroupRequest {
   int32 page_size;
   ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter; UNRECOGNIZED is rejected.
   ProxyScope scope; // M1: LOCAL_PROXY only
+  string proxy_id; // Reserved for future PROXY_ID scope.
 }
 ```
 
@@ -232,6 +238,7 @@ Response:
 
 ```text
 ListClientsByGroupResponse {
+  Status status;
   repeated Client clients;
   string next_page_token;
 }
@@ -248,6 +255,7 @@ ListClientsByTopicRequest {
   int32 page_size;
   ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter; UNRECOGNIZED is rejected.
   ProxyScope scope; // M1: LOCAL_PROXY only
+  string proxy_id; // Reserved for future PROXY_ID scope.
 }
 ```
 
@@ -255,6 +263,7 @@ Response:
 
 ```text
 ListClientsByTopicResponse {
+  Status status;
   repeated Client clients;
   string next_page_token;
 }
@@ -443,7 +452,7 @@ Follow-up lifecycle tests should cover:
 Internal adapter tests cover:
 
 - request DTO conversion to `ProxyClientQuery`.
-- default `LOCAL_PROXY` scope, opaque page-token pass-through, and proxy id
+- default `LOCAL_PROXY` scope, opaque page-token encode/decode, and proxy id
   pass-through for future scoped queries.
 - activity overloads for request DTOs.
 - activity-level rejection of unsupported M1 scopes before ACL or delegate
