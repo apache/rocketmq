@@ -544,6 +544,49 @@ public class ClientActivityTest extends BaseActivityTest {
             .build()).getClients()).isEmpty();
     }
 
+    @Test
+    public void testTelemetryCancelRemovesCachedClientSettingsBeforeOfflineHooks() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        when(grpcClientSettingsManager.removeAndGetRawClientSettings(CLIENT_ID)).thenReturn(producerSettings);
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(
+            new StreamObserver<TelemetryCommand>() {
+                @Override
+                public void onNext(TelemetryCommand value) {
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                }
+
+                @Override
+                public void onCompleted() {
+                }
+            }
+        );
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(producerSettings)
+            .build());
+
+        requestObserver.onError(Status.CANCELLED.asRuntimeException());
+
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+        verify(this.grpcClientSettingsManager).offlineClientLiteSubscription(context, CLIENT_ID, producerSettings);
+    }
+
     protected void assertClientChannelInfo(ClientChannelInfo clientChannelInfo, String group) {
         assertEquals(LanguageCode.JAVA, clientChannelInfo.getLanguage());
         assertEquals(CLIENT_ID, clientChannelInfo.getClientId());

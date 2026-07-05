@@ -361,7 +361,8 @@ public class ClientActivity extends AbstractMessagingActivity {
         StatusRuntimeException statusException = (StatusRuntimeException) t;
         if (io.grpc.Status.CANCELLED.getCode() == statusException.getStatus().getCode() ||
             io.grpc.Status.UNAVAILABLE.getCode() == statusException.getStatus().getCode()) {
-            this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, null);
+            Settings settings = this.grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
+            this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
             this.proxyClientReadService.removeClient(clientId);
         }
     }
