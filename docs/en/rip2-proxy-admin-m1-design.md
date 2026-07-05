@@ -542,9 +542,10 @@ as a narrow adapter over the internal code already in this branch:
    `PROXY_SCOPE_PROXY_ID` should continue to return `BAD_REQUEST` until the
    cross-proxy query protocol is implemented.
 7. Register `GrpcProxyAdminApplication` beside `GrpcMessagingApplication` in
-   `ProxyStartup`, using the same `DefaultGrpcMessagingActivity` instance so
-   lifecycle writes, read-model queries, ACL, metrics, and context propagation
-   share one in-process state holder.
+   `ProxyStartup.createGrpcBindableServices`, using the same
+   `DefaultGrpcMessagingActivity` instance so lifecycle writes, read-model
+   queries, ACL, metrics, and context propagation share one in-process state
+   holder.
 8. Keep endpoint methods free of business logic. They should adapt protobuf
    requests and responses only; authorization, validation, pagination, metrics,
    and error mapping should stay behind `ProxyClientAdminEndpointExecutor` and

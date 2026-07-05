@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy;
 
 import com.google.common.collect.Lists;
+import io.grpc.BindableService;
 import io.grpc.protobuf.services.ChannelzService;
 import io.grpc.protobuf.services.ProtoReflectionService;
 import org.apache.commons.cli.CommandLine;
@@ -83,9 +84,12 @@ public class ProxyStartup {
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
 
             // create grpcServer
-            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
-                    ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
-                .addService(createServiceProcessor(messagingProcessor))
+            GrpcServerBuilder grpcServerBuilder = GrpcServerBuilder.newBuilder(executor,
+                ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager);
+            for (BindableService service : createGrpcBindableServices(messagingProcessor)) {
+                grpcServerBuilder.addService(service);
+            }
+            GrpcServer grpcServer = grpcServerBuilder
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
                 .configInterceptor()
@@ -212,6 +216,17 @@ public class ProxyStartup {
         DefaultGrpcMessagingActivity grpcMessagingActivity =
             GrpcMessagingApplication.createDefaultActivity(messagingProcessor);
         return createServiceProcessor(messagingProcessor, grpcMessagingActivity);
+    }
+
+    private static List<BindableService> createGrpcBindableServices(MessagingProcessor messagingProcessor) {
+        DefaultGrpcMessagingActivity grpcMessagingActivity =
+            GrpcMessagingApplication.createDefaultActivity(messagingProcessor);
+        return createGrpcBindableServices(messagingProcessor, grpcMessagingActivity);
+    }
+
+    static List<BindableService> createGrpcBindableServices(MessagingProcessor messagingProcessor,
+        DefaultGrpcMessagingActivity grpcMessagingActivity) {
+        return Lists.newArrayList(createServiceProcessor(messagingProcessor, grpcMessagingActivity));
     }
 
     static GrpcMessagingApplication createServiceProcessor(MessagingProcessor messagingProcessor,

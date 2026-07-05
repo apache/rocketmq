@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import io.grpc.BindableService;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -30,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
@@ -311,5 +313,23 @@ public class ProxyStartupTest {
         Field activityField = GrpcMessagingApplication.class.getDeclaredField("grpcMessagingActivity");
         activityField.setAccessible(true);
         assertSame(sharedActivity, activityField.get(application));
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesUsesSuppliedSharedActivity() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+
+        List<BindableService> services = ProxyStartup.createGrpcBindableServices(messagingProcessor, sharedActivity);
+
+        assertEquals(1, services.size());
+        Assert.assertTrue(services.get(0) instanceof GrpcMessagingApplication);
+        Field activityField = GrpcMessagingApplication.class.getDeclaredField("grpcMessagingActivity");
+        activityField.setAccessible(true);
+        assertSame(sharedActivity, activityField.get(services.get(0)));
     }
 }
