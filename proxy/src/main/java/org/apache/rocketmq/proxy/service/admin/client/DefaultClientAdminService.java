@@ -40,12 +40,13 @@ public class DefaultClientAdminService implements ClientAdminService {
 
     @Override
     public ProxyClientInfo describeClient(String clientId) {
-        if (StringUtils.isBlank(clientId)) {
+        String normalizedClientId = StringUtils.trimToNull(clientId);
+        if (StringUtils.isBlank(normalizedClientId)) {
             throw new IllegalArgumentException("clientId is required");
         }
-        ProxyClientInfo clientInfo = this.proxyClientReadService.getClient(clientId);
+        ProxyClientInfo clientInfo = this.proxyClientReadService.getClient(normalizedClientId);
         if (clientInfo == null) {
-            throw new NoSuchElementException("Client not found: " + clientId);
+            throw new NoSuchElementException("Client not found: " + normalizedClientId);
         }
         return clientInfo;
     }

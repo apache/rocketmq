@@ -70,6 +70,16 @@ public class DefaultClientAdminServiceTest {
     }
 
     @Test
+    public void describeClientTrimsClientId() {
+        ProxyClientReadService readService = new ProxyClientReadService();
+        ClientAdminService adminService = new DefaultClientAdminService(readService);
+        ProxyClientInfo clientInfo = client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"));
+        readService.upsertClient(clientInfo);
+
+        assertThat(adminService.describeClient(" client-a ")).isSameAs(clientInfo);
+    }
+
+    @Test
     public void describeClientRejectsMissingClientId() {
         ClientAdminService adminService = new DefaultClientAdminService(new ProxyClientReadService());
 
