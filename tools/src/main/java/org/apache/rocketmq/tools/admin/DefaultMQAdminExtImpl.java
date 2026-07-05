@@ -1546,7 +1546,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 if (brokerData != null) {
                     String addr = NetworkUtil.convert2IpString(brokerData.getBrokerAddrs().get(MixAll.MASTER_ID));
                     if (NetworkUtil.socketAddress2String(msg.getStoreHost()).equals(addr)) {
-                        if (next.getValue().getConsumerOffset() > msg.getQueueOffset()) {
+                        if (next.getValue().getConsumerOffset() >= msg.getQueueOffset()) {
                             return true;
                         }
                     }
@@ -1576,7 +1576,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     if (brokerData != null) {
                         String addr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                         if (addr.equals(NetworkUtil.socketAddress2String(msg.getStoreHost()))) {
-                            if (next.getValue().getConsumerOffset() > msg.getQueueOffset()) {
+                            if (next.getValue().getConsumerOffset() >= msg.getQueueOffset()) {
                                 return true;
                             }
                         }
