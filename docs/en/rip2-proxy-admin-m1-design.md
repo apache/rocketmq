@@ -100,8 +100,9 @@ small and tested boundary to call:
   response views. They avoid exposing the mutable internal read-model classes as
   the eventual protobuf adapter contract. The views require a nonblank client
   id, reject null client entries in pages, snapshot collections, normalize null
-  string metadata to empty public strings, and normalize blank public next-page
-  tokens to an empty string.
+  string metadata to empty public strings, normalize repeated `groups` and
+  `topics` entries by trimming and dropping blank values, and normalize blank
+  public next-page tokens to an empty string.
 - `ProxyClientAdminListClientsRequest`,
   `ProxyClientAdminDescribeClientRequest`,
   `ProxyClientAdminListClientsByGroupRequest`, and
