@@ -55,8 +55,9 @@ public class ProxyClientInfo {
         }
         Set<String> result = new HashSet<>();
         for (String value : values) {
-            if (StringUtils.isNotBlank(value)) {
-                result.add(value);
+            String normalizedValue = StringUtils.trim(value);
+            if (StringUtils.isNotBlank(normalizedValue)) {
+                result.add(normalizedValue);
             }
         }
         return Collections.unmodifiableSet(result);

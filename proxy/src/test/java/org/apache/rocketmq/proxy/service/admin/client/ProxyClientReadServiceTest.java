@@ -147,6 +147,28 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void upsertClientTrimsGroupAndTopicIndexValues() {
+        ProxyClientReadService service = new ProxyClientReadService();
+
+        service.upsertClient(client("client-a", ClientType.PRODUCER,
+            set(" group-a ", "\tgroup-b\t"),
+            set(" topic-a ", "\ttopic-b\t")));
+
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("group-a")
+            .build()).getClients())).containsExactly("client-a");
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("group-b")
+            .build()).getClients())).containsExactly("client-a");
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setTopic("topic-a")
+            .build()).getClients())).containsExactly("client-a");
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setTopic("topic-b")
+            .build()).getClients())).containsExactly("client-a");
+    }
+
+    @Test
     public void recordsSuccessfulUpsertAndRemoveOperations() {
         List<ProxyClientReadServiceOperation> operations = new ArrayList<>();
         ProxyClientReadService service = new ProxyClientReadService(operations::add);
