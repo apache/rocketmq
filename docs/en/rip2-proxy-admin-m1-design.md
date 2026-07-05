@@ -112,7 +112,10 @@ small and tested boundary to call:
   trimmed and blank strings become missing values before validation.
 - `ProxyClientAdminRequestConverter` centralizes the future proto-to-internal
   DTO mapping from public scalar fields, so generated unary methods can keep
-  request conversion out of the RPC method bodies once `ProxyAdminService` lands.
+  request conversion out of the RPC method bodies once `ProxyAdminService`
+  lands. It drops `proxy_id` for the default or explicit public `LOCAL_PROXY`
+  scope and preserves it only with future non-local scopes, keeping public M1
+  local-scope behavior independent from the internal read-model proxy-id index.
 - `ProxyClientAdminPageTokenCodec` is the adapter boundary for public pagination
   tokens. M1 encodes internal last-client-id tokens as versioned `v1:`
   base64url public tokens, accepts legacy bare client-id tokens only for early

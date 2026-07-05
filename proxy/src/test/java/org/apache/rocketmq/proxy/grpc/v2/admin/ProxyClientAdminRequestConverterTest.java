@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ProxyClientAdminRequestConverterTest {
 
     @Test
-    public void toListClientsRequestMapsPublicFields() {
+    public void toListClientsRequestIgnoresProxyIdForLocalProxyScope() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminRequestConverter.getInstance()
             .toListClientsRequest(
                 ClientType.PRODUCER,
@@ -42,9 +42,9 @@ public class ProxyClientAdminRequestConverterTest {
         assertThat(request.getPageSize()).isEqualTo(10);
         assertThat(request.getPageToken()).isEqualTo("v1:Y2xpZW50LWE");
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
-        assertThat(request.getProxyId()).isEqualTo("proxy-a");
+        assertThat(request.getProxyId()).isNull();
         assertThat(query.getPageToken()).isEqualTo("client-a");
-        assertThat(query.getProxyId()).isEqualTo("proxy-a");
+        assertThat(query.getProxyId()).isNull();
     }
 
     @Test
@@ -103,5 +103,23 @@ public class ProxyClientAdminRequestConverterTest {
         assertThat(query.getTopic()).isEqualTo("topic-a");
         assertThat(query.getPageSize()).isEqualTo(30);
         assertThat(query.getPageToken()).isNull();
+    }
+
+    @Test
+    public void toListClientsByTopicRequestIgnoresProxyIdForUnspecifiedPublicScope() {
+        ProxyClientAdminListClientsByTopicRequest request = ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsByTopicRequest(
+                " topic-a ",
+                ClientType.SIMPLE_CONSUMER,
+                30,
+                "",
+                "PROXY_SCOPE_UNSPECIFIED",
+                " proxy-a "
+            );
+
+        ProxyClientQuery query = request.toQuery();
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(request.getProxyId()).isNull();
+        assertThat(query.getProxyId()).isNull();
     }
 }

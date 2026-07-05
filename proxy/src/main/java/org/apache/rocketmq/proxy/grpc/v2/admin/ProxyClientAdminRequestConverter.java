@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public final class ProxyClientAdminRequestConverter {
     private static final ProxyClientAdminRequestConverter INSTANCE = new ProxyClientAdminRequestConverter();
@@ -31,45 +32,60 @@ public final class ProxyClientAdminRequestConverter {
 
     public ProxyClientAdminListClientsRequest toListClientsRequest(ClientType clientType, int pageSize,
         String pageToken, String scopeName, String proxyId) {
+        ProxyClientScope scope = this.decodeScope(scopeName);
         return ProxyClientAdminListClientsRequest.newBuilder()
             .setClientType(clientType)
             .setPageSize(pageSize)
             .setPageToken(pageToken)
-            .setScopeName(scopeName)
-            .setProxyId(proxyId)
+            .setScope(scope)
+            .setProxyId(this.proxyIdForScope(scope, proxyId))
             .build();
     }
 
     public ProxyClientAdminDescribeClientRequest toDescribeClientRequest(String clientId, String scopeName,
         String proxyId) {
+        ProxyClientScope scope = this.decodeScope(scopeName);
         return ProxyClientAdminDescribeClientRequest.newBuilder()
             .setClientId(clientId)
-            .setScopeName(scopeName)
-            .setProxyId(proxyId)
+            .setScope(scope)
+            .setProxyId(this.proxyIdForScope(scope, proxyId))
             .build();
     }
 
     public ProxyClientAdminListClientsByGroupRequest toListClientsByGroupRequest(String group, ClientType clientType,
         int pageSize, String pageToken, String scopeName, String proxyId) {
+        ProxyClientScope scope = this.decodeScope(scopeName);
         return ProxyClientAdminListClientsByGroupRequest.newBuilder()
             .setGroup(group)
             .setClientType(clientType)
             .setPageSize(pageSize)
             .setPageToken(pageToken)
-            .setScopeName(scopeName)
-            .setProxyId(proxyId)
+            .setScope(scope)
+            .setProxyId(this.proxyIdForScope(scope, proxyId))
             .build();
     }
 
     public ProxyClientAdminListClientsByTopicRequest toListClientsByTopicRequest(String topic, ClientType clientType,
         int pageSize, String pageToken, String scopeName, String proxyId) {
+        ProxyClientScope scope = this.decodeScope(scopeName);
         return ProxyClientAdminListClientsByTopicRequest.newBuilder()
             .setTopic(topic)
             .setClientType(clientType)
             .setPageSize(pageSize)
             .setPageToken(pageToken)
-            .setScopeName(scopeName)
-            .setProxyId(proxyId)
+            .setScope(scope)
+            .setProxyId(this.proxyIdForScope(scope, proxyId))
             .build();
+    }
+
+    private ProxyClientScope decodeScope(String scopeName) {
+        return ProxyClientAdminScopeMapper.getInstance().decode(scopeName);
+    }
+
+    private String proxyIdForScope(ProxyClientScope scope, String proxyId) {
+        if (scope == ProxyClientScope.LOCAL_PROXY) {
+            return null;
+        }
+        return proxyId;
     }
 }
