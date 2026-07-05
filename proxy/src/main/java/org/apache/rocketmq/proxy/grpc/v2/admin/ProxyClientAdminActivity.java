@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import apache.rocketmq.v2.Code;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
@@ -76,9 +77,10 @@ public class ProxyClientAdminActivity {
         return this.execute(() -> {
             ProxyClientAdminDescribeClientRequest requiredRequest = this.requireRequest(request);
             this.validateLocalProxyScope(requiredRequest.getScope());
+            String requiredClientId = this.requireClientId(requiredRequest.getClientId());
             return this.clientAdminService.describeClient(
                 ClientAdminRequestContext.from(ctx),
-                requiredRequest.getClientId()
+                requiredClientId
             );
         });
     }
@@ -87,7 +89,8 @@ public class ProxyClientAdminActivity {
         ProxyClientScope scope) {
         return this.execute(() -> {
             this.validateLocalProxyScope(scope);
-            return this.clientAdminService.describeClient(ClientAdminRequestContext.from(ctx), clientId);
+            String requiredClientId = this.requireClientId(clientId);
+            return this.clientAdminService.describeClient(ClientAdminRequestContext.from(ctx), requiredClientId);
         });
     }
 
@@ -110,21 +113,27 @@ public class ProxyClientAdminActivity {
 
     public ProxyClientAdminResult<ProxyClientPage> listClientsByGroup(ProxyContext ctx, String group,
         ProxyClientQuery query) {
-        return this.execute(() -> this.clientAdminService.listClientsByGroup(
-            ClientAdminRequestContext.from(ctx),
-            group,
-            this.validateLocalProxyScope(query)
-        ));
+        return this.execute(() -> {
+            ProxyClientQuery effectiveQuery = this.validateLocalProxyScope(query);
+            String requiredGroup = this.requireGroup(group);
+            return this.clientAdminService.listClientsByGroup(
+                ClientAdminRequestContext.from(ctx),
+                requiredGroup,
+                effectiveQuery
+            );
+        });
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClientsByGroup(ProxyContext ctx,
         ProxyClientAdminListClientsByGroupRequest request) {
         return this.execute(() -> {
             ProxyClientAdminListClientsByGroupRequest requiredRequest = this.requireRequest(request);
+            ProxyClientQuery effectiveQuery = this.validateLocalProxyScope(requiredRequest.toQuery());
+            String requiredGroup = this.requireGroup(requiredRequest.getGroup());
             return this.clientAdminService.listClientsByGroup(
                 ClientAdminRequestContext.from(ctx),
-                requiredRequest.getGroup(),
-                this.validateLocalProxyScope(requiredRequest.toQuery())
+                requiredGroup,
+                effectiveQuery
             );
         });
     }
@@ -147,21 +156,27 @@ public class ProxyClientAdminActivity {
 
     public ProxyClientAdminResult<ProxyClientPage> listClientsByTopic(ProxyContext ctx, String topic,
         ProxyClientQuery query) {
-        return this.execute(() -> this.clientAdminService.listClientsByTopic(
-            ClientAdminRequestContext.from(ctx),
-            topic,
-            this.validateLocalProxyScope(query)
-        ));
+        return this.execute(() -> {
+            ProxyClientQuery effectiveQuery = this.validateLocalProxyScope(query);
+            String requiredTopic = this.requireTopic(topic);
+            return this.clientAdminService.listClientsByTopic(
+                ClientAdminRequestContext.from(ctx),
+                requiredTopic,
+                effectiveQuery
+            );
+        });
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClientsByTopic(ProxyContext ctx,
         ProxyClientAdminListClientsByTopicRequest request) {
         return this.execute(() -> {
             ProxyClientAdminListClientsByTopicRequest requiredRequest = this.requireRequest(request);
+            ProxyClientQuery effectiveQuery = this.validateLocalProxyScope(requiredRequest.toQuery());
+            String requiredTopic = this.requireTopic(requiredRequest.getTopic());
             return this.clientAdminService.listClientsByTopic(
                 ClientAdminRequestContext.from(ctx),
-                requiredRequest.getTopic(),
-                this.validateLocalProxyScope(requiredRequest.toQuery())
+                requiredTopic,
+                effectiveQuery
             );
         });
     }
@@ -214,6 +229,27 @@ public class ProxyClientAdminActivity {
             throw new IllegalArgumentException("request is required");
         }
         return request;
+    }
+
+    private String requireClientId(String clientId) {
+        if (StringUtils.isBlank(clientId)) {
+            throw new IllegalArgumentException("clientId is required");
+        }
+        return clientId;
+    }
+
+    private String requireGroup(String group) {
+        if (StringUtils.isBlank(group)) {
+            throw new IllegalArgumentException("group is required");
+        }
+        return group;
+    }
+
+    private String requireTopic(String topic) {
+        if (StringUtils.isBlank(topic)) {
+            throw new IllegalArgumentException("topic is required");
+        }
+        return topic;
     }
 
     private void validateLocalProxyScope(ProxyClientScope scope) {

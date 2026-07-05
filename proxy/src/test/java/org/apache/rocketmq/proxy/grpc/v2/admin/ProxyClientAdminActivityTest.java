@@ -38,6 +38,7 @@ import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -419,6 +420,71 @@ public class ProxyClientAdminActivityTest {
         assertThat(result.getBody()).isNull();
         verify(authorizationService, never()).authorize(any(), any(), any());
         verify(delegate, never()).listClientsByTopic(eq("topic-a"), any(ProxyClientQuery.class));
+    }
+
+    @Test
+    public void describeClientViewRejectsMissingRequestClientIdBeforeAuthorization() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId(" ")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientAdminClientView> result =
+            activity.describeClientView(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("clientId is required");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(delegate, never()).describeClient(anyString());
+    }
+
+    @Test
+    public void listClientViewsByGroupRejectsMissingRequestGroupBeforeAuthorization() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientAdminListClientsByGroupRequest request =
+            ProxyClientAdminListClientsByGroupRequest.newBuilder()
+                .setGroup(" ")
+                .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByGroup(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("group is required");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(delegate, never()).listClientsByGroup(anyString(), any(ProxyClientQuery.class));
+    }
+
+    @Test
+    public void listClientViewsByTopicRejectsMissingRequestTopicBeforeAuthorization() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientAdminListClientsByTopicRequest request =
+            ProxyClientAdminListClientsByTopicRequest.newBuilder()
+                .setTopic(" ")
+                .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByTopic(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("topic is required");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(delegate, never()).listClientsByTopic(anyString(), any(ProxyClientQuery.class));
     }
 
     @Test
