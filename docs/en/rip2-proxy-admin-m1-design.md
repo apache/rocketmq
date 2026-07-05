@@ -359,9 +359,11 @@ The read model also exposes an internal inactive-client cleanup helper that
 removes clients whose `lastActiveTimeMillis` is at or below a caller-provided
 cutoff. It reuses the same remove path as lifecycle close, unregister, and
 termination cleanup, so the client table, all secondary indexes, and read-model
-operation metrics remain consistent. M1 does not schedule this cleanup by
-default; it is a bounded maintenance hook for future online-client stale-entry
-guardrails.
+operation metrics remain consistent. `ProxyClientReadServiceCleaner` wraps that
+helper behind a `StartAndShutdown` maintenance component with explicit timeout,
+interval, executor, and clock dependencies. M1 does not attach it to the default
+startup path yet; that wiring should land as a separate configurable checkpoint
+so deployments can choose whether stale-entry guardrails are enabled.
 
 Unfiltered scans iterate the maintained sorted client id index directly instead
 of copying all client ids on every request. Filtered scans collect only the
