@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class ClientAdminRequestContextTest {
 
     @Test
-    public void fromProxyContextUsesSubjectAndRemoteAddress() {
+    public void fromProxyContextUsesSubjectAndRemoteIp() {
         User admin = User.of("admin");
         ProxyContext proxyContext = ProxyContext.create()
             .setSubject(admin)
@@ -35,7 +35,7 @@ public class ClientAdminRequestContextTest {
         ClientAdminRequestContext requestContext = ClientAdminRequestContext.from(proxyContext);
 
         assertThat(requestContext.getSubject()).isSameAs(admin);
-        assertThat(requestContext.getSourceIp()).isEqualTo("127.0.0.1:8080");
+        assertThat(requestContext.getSourceIp()).isEqualTo("127.0.0.1");
     }
 
     @Test
