@@ -380,9 +380,14 @@ public class ClientActivity extends AbstractMessagingActivity {
         if (StringUtils.isBlank(clientId)) {
             return;
         }
-        Settings settings = this.grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
-        this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
-        this.proxyClientReadService.removeClient(clientId);
+        try {
+            Settings settings = this.grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
+            this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
+        } catch (Throwable t) {
+            log.warn("cleanup grpc client settings failed on telemetry close. clientId:{}", clientId, t);
+        } finally {
+            this.proxyClientReadService.removeClient(clientId);
+        }
     }
 
     protected void processTelemetryException(TelemetryCommand request, Throwable t,

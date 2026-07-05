@@ -80,6 +80,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -800,6 +801,48 @@ public class ClientActivityTest extends BaseActivityTest {
             .build()).getClients()).hasSize(1);
 
         requestObserver.onCompleted();
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+        verify(this.grpcClientSettingsManager).offlineClientLiteSubscription(context, CLIENT_ID, producerSettings);
+        verify(responseObserver).onCompleted();
+    }
+
+    @Test
+    public void testTelemetryCompletedRemovesProxyClientReadServiceIndexesWhenOfflineHookFails() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        when(grpcClientSettingsManager.removeAndGetRawClientSettings(CLIENT_ID)).thenReturn(producerSettings);
+        doThrow(new RuntimeException("offline hook failed"))
+            .when(grpcClientSettingsManager)
+            .offlineClientLiteSubscription(context, CLIENT_ID, producerSettings);
+        StreamObserver<TelemetryCommand> responseObserver = mock(StreamObserver.class);
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(responseObserver);
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(producerSettings)
+            .build());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        assertThatCode(requestObserver::onCompleted).doesNotThrowAnyException();
 
         assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
         assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
