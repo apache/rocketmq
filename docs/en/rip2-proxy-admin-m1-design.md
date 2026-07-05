@@ -426,6 +426,8 @@ Follow-up lifecycle tests should cover:
   Done.
 - heartbeat with missing cached client settings removes stale client and
   indexes before returning the error status. Done.
+- heartbeat with an unrecognized cached client type removes stale client and
+  indexes before returning the error status. Done.
 - termination removes client and indexes. Done.
 - producer unregister listener removes client and indexes. Done.
 - consumer unregister listener removes client and indexes. Done.
