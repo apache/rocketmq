@@ -527,7 +527,8 @@ Follow-up lifecycle tests should cover:
 - termination removes client and indexes. Done.
 - producer unregister listener removes client and indexes. Done.
 - consumer unregister listener removes client and indexes. Done.
-- telemetry completion and gRPC status errors remove client and indexes. Done.
+- telemetry completion, gRPC status errors, and non-status stream errors remove
+  client and indexes. Done.
 - telemetry settings validation failures remove stale client and indexes before
   returning the stream error. Done.
 - termination with an unrecognized cached client type removes stale client and

@@ -965,6 +965,54 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testTelemetryNonStatusStreamErrorRemovesProxyClientReadServiceIndexes() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(
+            new StreamObserver<TelemetryCommand>() {
+                @Override
+                public void onNext(TelemetryCommand value) {
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                }
+
+                @Override
+                public void onCompleted() {
+                }
+            }
+        );
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(producerSettings)
+            .build());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        requestObserver.onError(new RuntimeException("stream closed"));
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
     public void testTelemetryCancelRemovesCachedClientSettingsBeforeOfflineHooks() {
         ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
         this.clientActivity = new ClientActivity(

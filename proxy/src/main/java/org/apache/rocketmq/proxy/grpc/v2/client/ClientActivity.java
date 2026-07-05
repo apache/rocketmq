@@ -364,11 +364,13 @@ public class ClientActivity extends AbstractMessagingActivity {
         if (StringUtils.isBlank(clientId)) {
             return;
         }
-        if (!(t instanceof StatusRuntimeException)) {
-            return;
+        if (t instanceof StatusRuntimeException) {
+            StatusRuntimeException statusException = (StatusRuntimeException) t;
+            log.warn("handle grpc stream error. clientId:{}, status:{}", clientId,
+                statusException.getStatus().getCode());
+        } else {
+            log.warn("handle grpc stream error. clientId:{}, error:{}", clientId, t == null ? null : t.getClass());
         }
-        StatusRuntimeException statusException = (StatusRuntimeException) t;
-        log.warn("handle grpc stream error. clientId:{}, status:{}", clientId, statusException.getStatus().getCode());
         this.cleanupClientOnTelemetryClose(ctx);
     }
 
