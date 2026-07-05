@@ -78,6 +78,19 @@ public class ProxyClientReadService {
         }
     }
 
+    public synchronized int removeInactiveClients(long maxLastActiveTimeMillis) {
+        List<String> inactiveClientIds = new ArrayList<>();
+        for (ProxyClientInfo clientInfo : this.clientIdTable.values()) {
+            if (clientInfo.getLastActiveTimeMillis() <= maxLastActiveTimeMillis) {
+                inactiveClientIds.add(clientInfo.getClientId());
+            }
+        }
+        for (String clientId : inactiveClientIds) {
+            this.removeClient(clientId);
+        }
+        return inactiveClientIds.size();
+    }
+
     public synchronized ProxyClientInfo getClient(String clientId) {
         return this.clientIdTable.get(normalizeClientId(clientId));
     }

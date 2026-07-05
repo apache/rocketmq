@@ -368,6 +368,45 @@ public class ProxyClientReadServiceTest {
             .getClients()).isEmpty();
     }
 
+    @Test
+    public void removeInactiveClientsDeletesClientsAndIndexes() {
+        List<ProxyClientReadServiceOperation> operations = new ArrayList<>();
+        ProxyClientReadService service = new ProxyClientReadService(operations::add);
+        service.upsertClient(client("client-old-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "proxy-a", 100L));
+        service.upsertClient(client("client-old-b", ClientType.PUSH_CONSUMER, set("group-b"), set("topic-b"),
+            "proxy-b", 200L));
+        service.upsertClient(client("client-active", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "proxy-a", 300L));
+
+        int removed = service.removeInactiveClients(200L);
+
+        assertThat(removed).isEqualTo(2);
+        assertThat(service.getClient("client-old-a")).isNull();
+        assertThat(service.getClient("client-old-b")).isNull();
+        assertThat(service.getClient("client-active")).isNotNull();
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder().build()).getClients()))
+            .containsExactly("client-active");
+        assertThat(service.listClients(ProxyClientQuery.newBuilder().setGroup("group-b").build()).getClients())
+            .isEmpty();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder().setTopic("topic-b").build()).getClients())
+            .isEmpty();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .build()).getClients()).isEmpty();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder().setProxyId("proxy-b").build()).getClients())
+            .isEmpty();
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder().setProxyId("proxy-a").build())
+            .getClients())).containsExactly("client-active");
+        assertThat(operations).containsExactly(
+            ProxyClientReadServiceOperation.UPSERT,
+            ProxyClientReadServiceOperation.UPSERT,
+            ProxyClientReadServiceOperation.UPSERT,
+            ProxyClientReadServiceOperation.REMOVE,
+            ProxyClientReadServiceOperation.REMOVE
+        );
+    }
+
     private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics) {
         return client(clientId, clientType, groups, topics, null);
     }
@@ -386,6 +425,23 @@ public class ProxyClientReadServiceTest {
             proxyId,
             100L,
             200L
+        );
+    }
+
+    private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics,
+        String proxyId, long lastActiveTimeMillis) {
+        return new ProxyClientInfo(
+            clientId,
+            clientType,
+            groups,
+            topics,
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            proxyId,
+            100L,
+            lastActiveTimeMillis
         );
     }
 

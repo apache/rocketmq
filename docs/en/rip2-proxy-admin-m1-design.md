@@ -355,6 +355,14 @@ client record, the sorted client id entry, and all secondary index entries. This
 makes repeated telemetry idempotent and keeps group/topic/proxy changes from
 leaving stale index entries.
 
+The read model also exposes an internal inactive-client cleanup helper that
+removes clients whose `lastActiveTimeMillis` is at or below a caller-provided
+cutoff. It reuses the same remove path as lifecycle close, unregister, and
+termination cleanup, so the client table, all secondary indexes, and read-model
+operation metrics remain consistent. M1 does not schedule this cleanup by
+default; it is a bounded maintenance hook for future online-client stale-entry
+guardrails.
+
 Unfiltered scans iterate the maintained sorted client id index directly instead
 of copying all client ids on every request. Filtered scans collect only the
 requested secondary indexes, copy the smallest candidate index, and intersect the
@@ -535,6 +543,8 @@ Follow-up lifecycle tests should cover:
   indexes before returning the error status. Done.
 - termination unregister failures remove stale client and indexes before
   completing the response future exceptionally. Done.
+- inactive read-model cleanup removes stale clients and all secondary indexes.
+  Done.
 
 Internal adapter tests cover:
 
