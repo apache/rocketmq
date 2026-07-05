@@ -61,7 +61,7 @@ public class ProxyClientAdminRequestTest {
     @Test
     public void listClientsRequestMapsPublicScopeNameForFutureProtoAdapter() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
-            .setScopeName("PROXY_ID")
+            .setScopeName("PROXY_SCOPE_PROXY_ID")
             .setProxyId("proxy-a")
             .build();
 

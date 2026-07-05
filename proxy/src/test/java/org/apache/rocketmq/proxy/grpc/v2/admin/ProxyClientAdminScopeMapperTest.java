@@ -45,6 +45,15 @@ public class ProxyClientAdminScopeMapperTest {
     }
 
     @Test
+    public void mapsPrefixedPublicScopeNamesToInternalScopes() {
+        ProxyClientAdminScopeMapper mapper = ProxyClientAdminScopeMapper.getInstance();
+
+        assertThat(mapper.decode("PROXY_SCOPE_LOCAL_PROXY")).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(mapper.decode("PROXY_SCOPE_ALL_PROXIES")).isEqualTo(ProxyClientScope.ALL_PROXIES);
+        assertThat(mapper.decode("PROXY_SCOPE_PROXY_ID")).isEqualTo(ProxyClientScope.PROXY_ID);
+    }
+
+    @Test
     public void rejectsUnknownPublicScopeName() {
         ProxyClientAdminScopeMapper mapper = ProxyClientAdminScopeMapper.getInstance();
 

@@ -108,9 +108,10 @@ small and tested boundary to call:
   internal next tokens to an empty public string.
 - `ProxyClientAdminScopeMapper` is the adapter boundary for public proxy scope
   values. It maps missing or `PROXY_SCOPE_UNSPECIFIED` public scope values to
-  `LOCAL_PROXY`, carries future `ALL_PROXIES` and `PROXY_ID` values into the
-  internal request model, and rejects unknown scope names before they reach the
-  service layer.
+  internal `LOCAL_PROXY`, maps prefixed public values such as
+  `PROXY_SCOPE_ALL_PROXIES` and `PROXY_SCOPE_PROXY_ID` into the internal request
+  model, keeps the shorter internal names accepted for tests and direct
+  adapters, and rejects unknown scope names before they reach the service layer.
 - `ProxyClientAdminEndpointHandler` centralizes the future unary endpoint
   response flow: execute an activity action, convert thrown exceptions through
   `ResponseBuilder`, build a response from `Status` and optional body, and write
@@ -145,15 +146,17 @@ The request DTOs convert pagination, client type, scope, and optional proxy id
 into `ProxyClientQuery`. Page tokens pass through the dedicated token codec so
 public callers can treat them as opaque even though M1 still uses the last
 returned client id internally. Public scope names pass through the scope mapper
-so future generated protobuf adapters can translate enum names without importing
-the generated admin service in this branch. The default scope is `LOCAL_PROXY`;
-unsupported future scopes and their proxy id are intentionally carried through
-the DTO and query objects so they can be validated by the activity before
-authorization. The service layer revalidates the same scope to keep direct
-internal calls consistent. This preserves `BAD_REQUEST` semantics for
-unsupported scopes while keeping the adapter contract ready for future
-`PROXY_ID` support. The protobuf default `CLIENT_TYPE_UNSPECIFIED` is normalized
-to no client type filter, while `UNRECOGNIZED` client type values are rejected
+so future generated protobuf adapters can translate prefixed enum names such as
+`PROXY_SCOPE_LOCAL_PROXY`, `PROXY_SCOPE_ALL_PROXIES`, and
+`PROXY_SCOPE_PROXY_ID` without importing the generated admin service in this
+branch. The default internal scope is `LOCAL_PROXY`; unsupported future scopes
+and their proxy id are intentionally carried through the DTO and query objects
+so they can be validated by the activity before authorization. The service layer
+revalidates the same scope to keep direct internal calls consistent. This
+preserves `BAD_REQUEST` semantics for unsupported scopes while keeping the
+adapter contract ready for future `PROXY_ID` support. The protobuf default
+`CLIENT_TYPE_UNSPECIFIED` is normalized to no client type filter, while
+`UNRECOGNIZED` client type values are rejected
 as `BAD_REQUEST`.
 
 The future generated endpoint should only translate protobuf messages to these

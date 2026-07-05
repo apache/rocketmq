@@ -22,6 +22,9 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public final class ProxyClientAdminScopeMapper {
     private static final String UNSPECIFIED_PUBLIC_SCOPE = "PROXY_SCOPE_UNSPECIFIED";
+    private static final String LOCAL_PROXY_PUBLIC_SCOPE = "PROXY_SCOPE_LOCAL_PROXY";
+    private static final String ALL_PROXIES_PUBLIC_SCOPE = "PROXY_SCOPE_ALL_PROXIES";
+    private static final String PROXY_ID_PUBLIC_SCOPE = "PROXY_SCOPE_PROXY_ID";
     private static final ProxyClientAdminScopeMapper INSTANCE = new ProxyClientAdminScopeMapper();
 
     private ProxyClientAdminScopeMapper() {
@@ -35,6 +38,15 @@ public final class ProxyClientAdminScopeMapper {
         String scopeName = StringUtils.trimToEmpty(publicScopeName);
         if (StringUtils.isBlank(scopeName) || UNSPECIFIED_PUBLIC_SCOPE.equals(scopeName)) {
             return ProxyClientScope.LOCAL_PROXY;
+        }
+        if (LOCAL_PROXY_PUBLIC_SCOPE.equals(scopeName)) {
+            return ProxyClientScope.LOCAL_PROXY;
+        }
+        if (ALL_PROXIES_PUBLIC_SCOPE.equals(scopeName)) {
+            return ProxyClientScope.ALL_PROXIES;
+        }
+        if (PROXY_ID_PUBLIC_SCOPE.equals(scopeName)) {
+            return ProxyClientScope.PROXY_ID;
         }
         try {
             return ProxyClientScope.valueOf(scopeName);
