@@ -46,6 +46,20 @@ public class DefaultClientAdminServiceTest {
     }
 
     @Test
+    public void listClientsTreatsUnspecifiedClientTypeAsNoFilter() {
+        ProxyClientReadService readService = new ProxyClientReadService();
+        ClientAdminService adminService = new DefaultClientAdminService(readService);
+        readService.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+        readService.upsertClient(client("client-b", ClientType.PUSH_CONSUMER, set("group-b"), set("topic-b")));
+
+        ProxyClientPage page = adminService.listClients(ProxyClientQuery.newBuilder()
+            .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+            .build());
+
+        assertThat(clientIds(page.getClients())).containsExactly("client-a", "client-b");
+    }
+
+    @Test
     public void describeClientReturnsExistingClient() {
         ProxyClientReadService readService = new ProxyClientReadService();
         ClientAdminService adminService = new DefaultClientAdminService(readService);
@@ -121,6 +135,18 @@ public class DefaultClientAdminServiceTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Unsupported proxy scope")
             .hasMessageContaining("ALL_PROXIES");
+    }
+
+    @Test
+    public void listClientsRejectsUnsupportedClientType() {
+        ClientAdminService adminService = new DefaultClientAdminService(new ProxyClientReadService());
+
+        assertThatThrownBy(() -> adminService.listClients(ProxyClientQuery.newBuilder()
+            .setClientType(ClientType.UNRECOGNIZED)
+            .build()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported client type")
+            .hasMessageContaining("UNRECOGNIZED");
     }
 
     @Test

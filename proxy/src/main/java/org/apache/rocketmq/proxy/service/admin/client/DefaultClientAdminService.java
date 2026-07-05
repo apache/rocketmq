@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.service.admin.client;
 
+import apache.rocketmq.v2.ClientType;
 import java.util.NoSuchElementException;
 import org.apache.commons.lang3.StringUtils;
 
@@ -33,6 +34,7 @@ public class DefaultClientAdminService implements ClientAdminService {
     public ProxyClientPage listClients(ProxyClientQuery query) {
         ProxyClientQuery effectiveQuery = this.effectiveQuery(query);
         this.validateLocalProxyScope(effectiveQuery.getScope());
+        this.validateClientType(effectiveQuery.getClientType());
         return this.proxyClientReadService.listClients(effectiveQuery);
     }
 
@@ -71,6 +73,12 @@ public class DefaultClientAdminService implements ClientAdminService {
         }
     }
 
+    private void validateClientType(ClientType clientType) {
+        if (clientType == ClientType.UNRECOGNIZED) {
+            throw new IllegalArgumentException("Unsupported client type: " + clientType);
+        }
+    }
+
     private ProxyClientQuery mergeQuery(ProxyClientQuery query, String group, String topic) {
         ProxyClientQuery effectiveQuery = this.effectiveQuery(query);
         ProxyClientQuery.Builder builder = ProxyClientQuery.newBuilder()
@@ -91,6 +99,17 @@ public class DefaultClientAdminService implements ClientAdminService {
     }
 
     private ProxyClientQuery effectiveQuery(ProxyClientQuery query) {
-        return query == null ? ProxyClientQuery.newBuilder().build() : query;
+        ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
+        if (effectiveQuery.getClientType() != ClientType.CLIENT_TYPE_UNSPECIFIED) {
+            return effectiveQuery;
+        }
+        return ProxyClientQuery.newBuilder()
+            .setGroup(effectiveQuery.getGroup())
+            .setTopic(effectiveQuery.getTopic())
+            .setPageSize(effectiveQuery.getPageSize())
+            .setPageToken(effectiveQuery.getPageToken())
+            .setScope(effectiveQuery.getScope())
+            .setProxyId(effectiveQuery.getProxyId())
+            .build();
     }
 }
