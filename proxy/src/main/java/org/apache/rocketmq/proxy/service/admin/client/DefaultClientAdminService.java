@@ -82,14 +82,7 @@ public class DefaultClientAdminService implements ClientAdminService {
 
     private ProxyClientQuery mergeQuery(ProxyClientQuery query, String group, String topic) {
         ProxyClientQuery effectiveQuery = this.effectiveQuery(query);
-        ProxyClientQuery.Builder builder = ProxyClientQuery.newBuilder()
-            .setGroup(effectiveQuery.getGroup())
-            .setTopic(effectiveQuery.getTopic())
-            .setClientType(effectiveQuery.getClientType())
-            .setPageSize(effectiveQuery.getPageSize())
-            .setPageToken(effectiveQuery.getPageToken())
-            .setScope(effectiveQuery.getScope())
-            .setProxyId(effectiveQuery.getProxyId());
+        ProxyClientQuery.Builder builder = effectiveQuery.toBuilder();
         if (group != null) {
             builder.setGroup(group);
         }
@@ -104,13 +97,6 @@ public class DefaultClientAdminService implements ClientAdminService {
         if (effectiveQuery.getScope() != ProxyClientScope.LOCAL_PROXY || effectiveQuery.getProxyId() == null) {
             return effectiveQuery;
         }
-        return ProxyClientQuery.newBuilder()
-            .setGroup(effectiveQuery.getGroup())
-            .setTopic(effectiveQuery.getTopic())
-            .setClientType(effectiveQuery.getClientType())
-            .setPageSize(effectiveQuery.getPageSize())
-            .setPageToken(effectiveQuery.getPageToken())
-            .setScope(effectiveQuery.getScope())
-            .build();
+        return effectiveQuery.toBuilder().setProxyId(null).build();
     }
 }

@@ -271,13 +271,6 @@ public class ProxyClientAdminActivity {
         if (effectiveQuery.getProxyId() == null) {
             return effectiveQuery;
         }
-        return ProxyClientQuery.newBuilder()
-            .setGroup(effectiveQuery.getGroup())
-            .setTopic(effectiveQuery.getTopic())
-            .setClientType(effectiveQuery.getClientType())
-            .setPageSize(effectiveQuery.getPageSize())
-            .setPageToken(effectiveQuery.getPageToken())
-            .setScope(effectiveQuery.getScope())
-            .build();
+        return effectiveQuery.toBuilder().setProxyId(null).build();
     }
 }

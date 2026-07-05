@@ -73,4 +73,44 @@ public class ProxyClientQueryTest {
         assertThat(query.getPageToken()).isEqualTo("client-a");
         assertThat(query.getProxyId()).isNull();
     }
+
+    @Test
+    public void toBuilderCopiesAllQueryFields() {
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setGroup("group-a")
+            .setTopic("topic-a")
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setPageSize(10)
+            .setPageToken("client-a")
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .build();
+
+        ProxyClientQuery copiedQuery = query.toBuilder().build();
+
+        assertThat(copiedQuery.getGroup()).isEqualTo("group-a");
+        assertThat(copiedQuery.getTopic()).isEqualTo("topic-a");
+        assertThat(copiedQuery.getClientType()).isEqualTo(ClientType.PUSH_CONSUMER);
+        assertThat(copiedQuery.getPageSize()).isEqualTo(10);
+        assertThat(copiedQuery.getPageToken()).isEqualTo("client-a");
+        assertThat(copiedQuery.getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
+        assertThat(copiedQuery.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
+    public void toBuilderAllowsClearingProxyId() {
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setGroup("group-a")
+            .setScope(ProxyClientScope.LOCAL_PROXY)
+            .setProxyId("proxy-a")
+            .build();
+
+        ProxyClientQuery copiedQuery = query.toBuilder()
+            .setProxyId(null)
+            .build();
+
+        assertThat(copiedQuery.getGroup()).isEqualTo("group-a");
+        assertThat(copiedQuery.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(copiedQuery.getProxyId()).isNull();
+    }
 }

@@ -45,6 +45,17 @@ public class ProxyClientQuery {
         return new Builder();
     }
 
+    public Builder toBuilder() {
+        return newBuilder()
+            .setGroup(this.group)
+            .setTopic(this.topic)
+            .setClientType(this.clientType)
+            .setPageSize(this.pageSize)
+            .setPageToken(this.pageToken)
+            .setScope(this.scope)
+            .setProxyId(this.proxyId);
+    }
+
     public String getGroup() {
         return group;
     }
