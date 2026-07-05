@@ -535,6 +535,63 @@ Internal adapter tests cover:
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 
+## Synthetic Benchmark
+
+The read model includes a JMH benchmark in
+`ProxyClientReadServiceBenchmark`. It builds synthetic in-memory client
+metadata and measures the steady-state query paths that M1 exposes:
+
+- unfiltered first-page listing.
+- unfiltered next-page listing.
+- group-filtered listing.
+- topic-filtered listing.
+- direct client lookup.
+
+The default benchmark parameters model 1,000,000 clients, 1,000 groups, and
+10,000 topics. The benchmark annotations run one fork, three one-second warmup
+iterations, five five-second measurement iterations, and four worker threads.
+
+Use the focused unit test to verify the benchmark setup and guard the synthetic
+data assumptions:
+
+```bash
+JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+  mvn -pl proxy -am \
+  -Dtest=ProxyClientReadServiceBenchmarkTest \
+  -DfailIfNoTests=false test -DskipITs
+```
+
+Use a short JMH smoke run to verify the launcher and classpath without spending
+time on the full 1M-client scenario:
+
+```bash
+export JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home
+mvn -pl proxy -am -DskipTests -DskipITs test-compile
+mvn -pl proxy -DskipTests -DskipITs dependency:build-classpath \
+  -Dmdep.includeScope=test \
+  -Dmdep.outputFile=/tmp/rocketmq-proxy-test-classpath.txt
+"$JAVA_HOME/bin/java" \
+  -cp "proxy/target/test-classes:proxy/target/classes:$(cat /tmp/rocketmq-proxy-test-classpath.txt)" \
+  org.openjdk.jmh.Main \
+  org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark \
+  -p clientCount=1000 -p groupCount=10 -p topicCount=20 \
+  -wi 0 -i 1 -r 100ms -w 100ms -f 1 -t 1
+```
+
+Use the same classpath preparation and omit the `-p`, `-wi`, `-i`, `-r`, `-w`,
+`-f`, and `-t` overrides for the full default 1M-client run:
+
+```bash
+"$JAVA_HOME/bin/java" \
+  -cp "proxy/target/test-classes:proxy/target/classes:$(cat /tmp/rocketmq-proxy-test-classpath.txt)" \
+  org.openjdk.jmh.Main \
+  org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark
+```
+
+The Maven `exec:java` path is useful for non-forked debugging, but the
+classpath-file launcher above is preferred for benchmark runs because JMH
+forked VMs inherit the complete test runtime classpath.
+
 ## Public Endpoint Landing Route
 
 After `rocketmq-apis` ownership and compatibility are confirmed, add or consume
