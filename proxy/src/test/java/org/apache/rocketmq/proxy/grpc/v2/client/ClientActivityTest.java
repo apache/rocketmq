@@ -657,6 +657,59 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testConsumerUnregisterListenerRemovesProxyClientReadServiceIndexesWhenOfflineHookFails() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings consumerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("Group").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setExpression(FilterExpression.newBuilder()
+                        .setExpression("tag")
+                        .setType(FilterType.TAG)
+                        .build())
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .build())
+                .build())
+            .build();
+        this.sendClientTelemetry(context, consumerSettings).get();
+        when(this.grpcClientSettingsManager.removeAndGetRawClientSettings(CLIENT_ID))
+            .thenReturn(consumerSettings);
+        doThrow(new RuntimeException("offline hook failed"))
+            .when(this.grpcClientSettingsManager)
+            .offlineClientLiteSubscription(any(ProxyContext.class), eq(CLIENT_ID), same(consumerSettings));
+        ConsumerIdsChangeListener listener = latestConsumerIdsChangeListener();
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+
+        assertThatCode(() -> listener.handle(
+            ConsumerGroupEvent.CLIENT_UNREGISTER,
+            "Group",
+            new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, 0)
+        )).doesNotThrowAnyException();
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("Group")
+            .build()).getClients()).isEmpty();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+        verify(this.grpcClientSettingsManager).offlineClientLiteSubscription(
+            any(ProxyContext.class),
+            eq(CLIENT_ID),
+            same(consumerSettings)
+        );
+    }
+
+    @Test
     public void testProducerUnregisterListenerIgnoresRemoteChannel() throws Throwable {
         ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
         this.clientActivity = new ClientActivity(

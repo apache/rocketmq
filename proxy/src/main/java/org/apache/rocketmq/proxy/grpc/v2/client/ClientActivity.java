@@ -704,15 +704,21 @@ public class ClientActivity extends AbstractMessagingActivity {
                 }
                 String clientId = clientChannelInfo.getClientId();
                 GrpcClientChannel removedChannel = grpcChannelManager.removeChannel(clientId);
-                Settings settings = grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
-                grpcClientSettingsManager.offlineClientLiteSubscription(
-                    ProxyContext.createForInner(ClientActivity.this.getClass()),
-                    clientId,
-                    settings
-                );
-                log.info("remove grpc channel when client unregister. group:{}, clientChannelInfo:{}, removed:{}",
-                    group, clientChannelInfo, removedChannel != null);
-                proxyClientReadService.removeClient(clientId);
+                try {
+                    Settings settings = grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
+                    grpcClientSettingsManager.offlineClientLiteSubscription(
+                        ProxyContext.createForInner(ClientActivity.this.getClass()),
+                        clientId,
+                        settings
+                    );
+                } catch (Throwable t) {
+                    log.warn("cleanup grpc client settings failed on consumer unregister. group:{}, clientId:{}",
+                        group, clientId, t);
+                } finally {
+                    log.info("remove grpc channel when client unregister. group:{}, clientChannelInfo:{}, removed:{}",
+                        group, clientChannelInfo, removedChannel != null);
+                    proxyClientReadService.removeClient(clientId);
+                }
             }
         }
 
