@@ -79,7 +79,7 @@ public class ProxyClientAdminRequestTest {
         ProxyClientQuery query = request.toQuery();
 
         assertThat(request.getPageToken()).isEqualTo("v1:Y2xpZW50LWE");
-        assertThat(request.getProxyId()).isEqualTo("proxy-a");
+        assertThat(request.getProxyId()).isNull();
         assertThat(query.getPageToken()).isEqualTo("client-a");
         assertThat(query.getProxyId()).isNull();
     }
@@ -179,7 +179,7 @@ public class ProxyClientAdminRequestTest {
         assertThat(query.getPageToken()).isEqualTo("client-b");
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
         assertThat(query.getProxyId()).isNull();
-        assertThat(request.getProxyId()).isEqualTo("proxy-a");
+        assertThat(request.getProxyId()).isNull();
     }
 
     @Test
