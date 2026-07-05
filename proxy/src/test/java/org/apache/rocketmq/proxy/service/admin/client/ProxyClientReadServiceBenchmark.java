@@ -48,10 +48,14 @@ public class ProxyClientReadServiceBenchmark {
     @Param({"10000"})
     public int topicCount;
 
+    @Param({"100"})
+    public int proxyCount;
+
     private ProxyClientReadService readService;
     private String[] clientIds;
     private String[] groups;
     private String[] topics;
+    private String[] proxyIds;
     private ProxyClientQuery firstPageQuery;
     private ProxyClientQuery nextPageQuery;
     private final AtomicInteger sequence = new AtomicInteger();
@@ -61,11 +65,13 @@ public class ProxyClientReadServiceBenchmark {
         validatePositive("clientCount", this.clientCount);
         validatePositive("groupCount", this.groupCount);
         validatePositive("topicCount", this.topicCount);
+        validatePositive("proxyCount", this.proxyCount);
 
         this.readService = new ProxyClientReadService();
         this.clientIds = new String[this.clientCount];
         this.groups = names("group", this.groupCount);
         this.topics = names("topic", this.topicCount);
+        this.proxyIds = names("proxy", this.proxyCount);
         this.firstPageQuery = ProxyClientQuery.newBuilder()
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .build();
@@ -128,6 +134,18 @@ public class ProxyClientReadServiceBenchmark {
     @Measurement(iterations = 5, time = 5)
     @Warmup(iterations = 3, time = 1)
     @Threads(4)
+    public ProxyClientPage listByProxyIdPage() {
+        return this.readService.listClients(ProxyClientQuery.newBuilder()
+            .setProxyId(this.proxyIds[nextIndex(this.proxyCount)])
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build());
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
     public ProxyClientInfo describeClient() {
         return this.readService.getClient(this.clientIds[nextIndex(this.clientCount)]);
     }
@@ -146,6 +164,7 @@ public class ProxyClientReadServiceBenchmark {
             "127.0.0.1:" + (10000 + index % 10000),
             "127.0.0.2:8080",
             "V5_0_0",
+            this.proxyIds[index % this.proxyCount],
             100L,
             200L
         );

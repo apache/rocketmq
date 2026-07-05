@@ -30,11 +30,13 @@ public class ProxyClientReadServiceBenchmarkTest {
         benchmark.clientCount = 100;
         benchmark.groupCount = 10;
         benchmark.topicCount = 20;
+        benchmark.proxyCount = 5;
         benchmark.setup();
 
         assertThat(benchmark.listFirstPage().getClients()).hasSize(100);
         assertThat(benchmark.listByGroupPage().getClients()).isNotEmpty();
         assertThat(benchmark.listByTopicPage().getClients()).isNotEmpty();
+        assertThat(benchmark.listByProxyIdPage().getClients()).isNotEmpty();
         assertThat(benchmark.describeClient()).isNotNull();
     }
 
@@ -44,6 +46,7 @@ public class ProxyClientReadServiceBenchmarkTest {
         benchmark.clientCount = 1500;
         benchmark.groupCount = 10;
         benchmark.topicCount = 20;
+        benchmark.proxyCount = 5;
         benchmark.setup();
 
         ProxyClientPage nextPage = benchmark.listNextPage();
@@ -59,6 +62,7 @@ public class ProxyClientReadServiceBenchmarkTest {
         benchmark.clientCount = 0;
         benchmark.groupCount = 10;
         benchmark.topicCount = 20;
+        benchmark.proxyCount = 5;
 
         assertThatThrownBy(benchmark::setup)
             .isInstanceOf(IllegalArgumentException.class)
@@ -71,6 +75,7 @@ public class ProxyClientReadServiceBenchmarkTest {
         benchmark.clientCount = 100;
         benchmark.groupCount = 0;
         benchmark.topicCount = 20;
+        benchmark.proxyCount = 5;
 
         assertThatThrownBy(benchmark::setup)
             .isInstanceOf(IllegalArgumentException.class)
@@ -83,9 +88,23 @@ public class ProxyClientReadServiceBenchmarkTest {
         benchmark.clientCount = 100;
         benchmark.groupCount = 10;
         benchmark.topicCount = 0;
+        benchmark.proxyCount = 5;
 
         assertThatThrownBy(benchmark::setup)
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("topicCount must be positive");
+    }
+
+    @Test
+    public void benchmarkSetupRejectsInvalidProxyCount() {
+        ProxyClientReadServiceBenchmark benchmark = new ProxyClientReadServiceBenchmark();
+        benchmark.clientCount = 100;
+        benchmark.groupCount = 10;
+        benchmark.topicCount = 20;
+        benchmark.proxyCount = 0;
+
+        assertThatThrownBy(benchmark::setup)
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyCount must be positive");
     }
 }

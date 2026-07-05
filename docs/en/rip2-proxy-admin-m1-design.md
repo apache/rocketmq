@@ -575,11 +575,13 @@ metadata and measures the steady-state query paths that M1 exposes:
 - unfiltered next-page listing.
 - group-filtered listing.
 - topic-filtered listing.
+- proxy-id-filtered listing.
 - direct client lookup.
 
-The default benchmark parameters model 1,000,000 clients, 1,000 groups, and
-10,000 topics. The benchmark annotations run one fork, three one-second warmup
-iterations, five five-second measurement iterations, and four worker threads.
+The default benchmark parameters model 1,000,000 clients, 1,000 groups, 10,000
+topics, and 100 proxy ids. The benchmark annotations run one fork, three
+one-second warmup iterations, five five-second measurement iterations, and four
+worker threads.
 
 Use the focused unit test to verify the benchmark setup and guard the synthetic
 data assumptions:
@@ -604,7 +606,7 @@ mvn -pl proxy -DskipTests -DskipITs dependency:build-classpath \
   -cp "proxy/target/test-classes:proxy/target/classes:$(cat /tmp/rocketmq-proxy-test-classpath.txt)" \
   org.openjdk.jmh.Main \
   org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark \
-  -p clientCount=1000 -p groupCount=10 -p topicCount=20 \
+  -p clientCount=1000 -p groupCount=10 -p topicCount=20 -p proxyCount=5 \
   -wi 0 -i 1 -r 100ms -w 100ms -f 1 -t 1
 ```
 
