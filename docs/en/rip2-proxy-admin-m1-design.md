@@ -103,7 +103,9 @@ small and tested boundary to call:
   `ProxyClientAdminDescribeClientRequest`,
   `ProxyClientAdminListClientsByGroupRequest`, and
   `ProxyClientAdminListClientsByTopicRequest` mirror the proposed public request
-  fields without importing generated admin protobuf classes.
+  fields without importing generated admin protobuf classes. They normalize
+  request string fields at the adapter boundary so surrounding whitespace is
+  trimmed and blank strings become missing values before validation.
 - `ProxyClientAdminPageTokenCodec` is the adapter boundary for public pagination
   tokens. M1 encodes internal last-client-id tokens as versioned `v1:`
   base64url public tokens, accepts legacy bare client-id tokens only for early
@@ -146,9 +148,12 @@ small and tested boundary to call:
   are available.
 
 The request DTOs convert pagination, client type, scope, and optional proxy id
-into `ProxyClientQuery`. Page tokens pass through the dedicated token codec,
-which encodes the read-model last-client-id token as a versioned opaque public
-token and decodes versioned or legacy bare tokens back to the internal token.
+into `ProxyClientQuery`. Required identifiers such as client id, group, and
+topic, plus optional page token and proxy id, are trimmed at this boundary; blank
+values are treated as absent and are rejected later when the operation requires
+them. Page tokens pass through the dedicated token codec, which encodes the
+read-model last-client-id token as a versioned opaque public token and decodes
+versioned or legacy bare tokens back to the internal token.
 Public scope names pass through the scope mapper so future generated protobuf
 adapters can translate prefixed enum names such as
 `PROXY_SCOPE_LOCAL_PROXY`, `PROXY_SCOPE_ALL_PROXIES`, and
@@ -452,6 +457,8 @@ Follow-up lifecycle tests should cover:
 Internal adapter tests cover:
 
 - request DTO conversion to `ProxyClientQuery`.
+- request DTO string normalization for client id, group, topic, page token, and
+  proxy id.
 - default `LOCAL_PROXY` scope, opaque page-token encode/decode, and proxy id
   pass-through for future scoped queries.
 - activity overloads for request DTOs.

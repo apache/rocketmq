@@ -29,6 +29,11 @@ option java_package = "apache.rocketmq.v2";
 
 // The final file should import or colocate the existing v2 Status and
 // ClientType definitions according to the rocketmq-apis ownership decision.
+//
+// The M1 adapter normalizes request string fields before internal validation:
+// surrounding whitespace is trimmed, and blank values are treated as absent.
+// Public clients should treat page tokens as opaque and should not rely on
+// whitespace being preserved in identifiers or tokens.
 
 service ProxyAdminService {
   rpc ListClients(ListClientsRequest) returns (ListClientsResponse);
