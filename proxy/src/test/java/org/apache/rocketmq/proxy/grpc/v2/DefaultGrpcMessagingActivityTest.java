@@ -19,12 +19,18 @@ package org.apache.rocketmq.proxy.grpc.v2;
 
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.Publishing;
+import apache.rocketmq.v2.Resource;
+import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.TelemetryCommand;
+import io.grpc.stub.StreamObserver;
 import java.util.Collections;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminResult;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
@@ -32,7 +38,10 @@ import org.apache.rocketmq.proxy.service.admin.client.ClientAdminRequestContext;
 import org.apache.rocketmq.proxy.service.admin.client.MeteredAuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.MeteredClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
+import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,6 +49,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -48,11 +59,14 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     private MessagingProcessor messagingProcessor;
     @Mock
     private ProxyRelayService proxyRelayService;
+    @Mock
+    private MetadataService metadataService;
 
     @Before
     public void setUp() throws Throwable {
         super.before();
         when(this.messagingProcessor.getProxyRelayService()).thenReturn(this.proxyRelayService);
+        when(this.messagingProcessor.getMetadataService()).thenReturn(this.metadataService);
     }
 
     @Test
@@ -136,11 +150,65 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void telemetryWriteIsVisibleThroughProxyClientAdminActivity() {
+        when(this.metadataService.getTopicMessageType(any(), eq("topic-a"))).thenReturn(TopicMessageType.NORMAL);
+        DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+        ProxyContext telemetryContext = ProxyContext.create()
+            .setClientID("client-a")
+            .setLanguage("JAVA")
+            .setRemoteAddress("127.0.0.1:8080")
+            .setLocalAddress("192.168.0.1:8080")
+            .setClientVersion("V5_0_0");
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName("topic-a").build())
+                .build())
+            .build();
+
+        ContextStreamObserver<TelemetryCommand> requestObserver = activity.telemetry(noopTelemetryObserver());
+        requestObserver.onNext(telemetryContext, TelemetryCommand.newBuilder()
+            .setSettings(settings)
+            .build());
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.getProxyClientAdminActivity()
+            .listClientViews(
+                ProxyContext.create()
+                    .setSubject(User.of("admin"))
+                    .setRemoteAddress("127.0.0.1"),
+                ProxyClientQuery.newBuilder()
+                    .setTopic("topic-a")
+                    .build()
+            );
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(client -> client.getClientId())
+            .containsExactly("client-a");
+    }
+
+    @Test
     public void initMetersClientAdminRequestsOutsideAuthorizationLayer() {
         DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
 
         assertThat(activity.getClientAdminService()).isNotInstanceOf(MeteredClientAdminService.class);
         assertThat(activity.getAuthorizingClientAdminService())
             .isInstanceOf(MeteredAuthorizingClientAdminService.class);
+    }
+
+    private static StreamObserver<TelemetryCommand> noopTelemetryObserver() {
+        return new StreamObserver<TelemetryCommand>() {
+            @Override
+            public void onNext(TelemetryCommand value) {
+            }
+
+            @Override
+            public void onError(Throwable t) {
+            }
+
+            @Override
+            public void onCompleted() {
+            }
+        };
     }
 }
