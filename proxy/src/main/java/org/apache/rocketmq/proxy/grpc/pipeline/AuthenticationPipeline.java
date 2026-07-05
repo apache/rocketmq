@@ -50,7 +50,7 @@ public class AuthenticationPipeline implements RequestPipeline {
             return;
         }
         try {
-            Metadata metadata = GrpcConstants.METADATA.get(Context.current());
+            Metadata metadata = headers == null ? GrpcConstants.METADATA.get(Context.current()) : headers;
             AuthenticationContext authenticationContext = newContext(context, metadata, request);
             authenticationEvaluator.evaluate(authenticationContext);
         } catch (AuthenticationException ex) {
