@@ -49,6 +49,26 @@ public class ClientAdminRequestContextTest {
     }
 
     @Test
+    public void fromProxyContextPreservesBareIpv6Address() {
+        ProxyContext proxyContext = ProxyContext.create()
+            .setRemoteAddress("2001:db8::1");
+
+        ClientAdminRequestContext requestContext = ClientAdminRequestContext.from(proxyContext);
+
+        assertThat(requestContext.getSourceIp()).isEqualTo("2001:db8::1");
+    }
+
+    @Test
+    public void fromProxyContextTrimsRemoteAddress() {
+        ProxyContext proxyContext = ProxyContext.create()
+            .setRemoteAddress(" 127.0.0.1:8080 ");
+
+        ClientAdminRequestContext requestContext = ClientAdminRequestContext.from(proxyContext);
+
+        assertThat(requestContext.getSourceIp()).isEqualTo("127.0.0.1");
+    }
+
+    @Test
     public void fromProxyContextRejectsNullContext() {
         assertThatThrownBy(() -> ClientAdminRequestContext.from(null))
             .isInstanceOf(IllegalArgumentException.class)

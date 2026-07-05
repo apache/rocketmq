@@ -54,10 +54,11 @@ public class ClientAdminRequestContext {
         if (StringUtils.isBlank(remoteAddress)) {
             return "";
         }
+        String trimmedRemoteAddress = StringUtils.trim(remoteAddress);
         try {
-            return HostAndPort.fromString(remoteAddress).getHost();
+            return HostAndPort.fromString(trimmedRemoteAddress).getHost();
         } catch (IllegalArgumentException ignored) {
-            return StringUtils.substringBeforeLast(remoteAddress, CommonConstants.COLON);
+            return StringUtils.substringBeforeLast(trimmedRemoteAddress, CommonConstants.COLON);
         }
     }
 }
