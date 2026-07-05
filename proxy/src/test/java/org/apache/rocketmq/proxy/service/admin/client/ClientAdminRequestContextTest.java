@@ -69,6 +69,13 @@ public class ClientAdminRequestContextTest {
     }
 
     @Test
+    public void ofTrimsSourceIp() {
+        ClientAdminRequestContext requestContext = ClientAdminRequestContext.of(User.of("admin"), " 127.0.0.1 ");
+
+        assertThat(requestContext.getSourceIp()).isEqualTo("127.0.0.1");
+    }
+
+    @Test
     public void fromProxyContextRejectsNullContext() {
         assertThatThrownBy(() -> ClientAdminRequestContext.from(null))
             .isInstanceOf(IllegalArgumentException.class)

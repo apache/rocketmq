@@ -28,7 +28,7 @@ public class ClientAdminRequestContext {
 
     private ClientAdminRequestContext(Subject subject, String sourceIp) {
         this.subject = subject;
-        this.sourceIp = sourceIp;
+        this.sourceIp = StringUtils.trimToEmpty(sourceIp);
     }
 
     public static ClientAdminRequestContext of(Subject subject, String sourceIp) {
