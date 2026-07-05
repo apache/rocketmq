@@ -185,7 +185,7 @@ public class ProxyClientReadService {
     private void recordOperation(ProxyClientReadServiceOperation operation) {
         try {
             this.operationRecorder.accept(operation);
-        } catch (RuntimeException e) {
+        } catch (Throwable e) {
             log.warn("record proxy client read model operation failed. operation:{}", operation, e);
         }
     }

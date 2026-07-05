@@ -189,6 +189,31 @@ public class ProxyClientReadServiceTest {
             .getClients()).isEmpty();
     }
 
+    @Test
+    public void operationRecorderErrorDoesNotMaskSuccessfulMutations() {
+        ProxyClientReadService service = new ProxyClientReadService(operation -> {
+            throw new LinkageError("metrics linkage down");
+        });
+        ProxyClientInfo clientInfo = client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"));
+
+        assertThatCode(() -> service.upsertClient(clientInfo)).doesNotThrowAnyException();
+
+        assertThat(service.getClient("client-a")).isSameAs(clientInfo);
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("group-a")
+            .build()).getClients())).containsExactly("client-a");
+
+        assertThatCode(() -> service.removeClient("client-a")).doesNotThrowAnyException();
+
+        assertThat(service.getClient("client-a")).isNull();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder().setGroup("group-a").build()).getClients())
+            .isEmpty();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder().setTopic("topic-a").build()).getClients())
+            .isEmpty();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder().setClientType(ClientType.PRODUCER).build())
+            .getClients()).isEmpty();
+    }
+
     private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics) {
         return new ProxyClientInfo(
             clientId,
