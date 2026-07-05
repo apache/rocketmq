@@ -759,9 +759,16 @@ public class ClientActivity extends AbstractMessagingActivity {
                 if (clientChannelInfo == null || ChannelHelper.isRemote(clientChannelInfo.getChannel())) {
                     return;
                 }
-                grpcChannelManager.removeChannel(clientChannelInfo.getClientId());
-                grpcClientSettingsManager.removeAndGetRawClientSettings(clientChannelInfo.getClientId());
-                proxyClientReadService.removeClient(clientChannelInfo.getClientId());
+                String clientId = clientChannelInfo.getClientId();
+                grpcChannelManager.removeChannel(clientId);
+                try {
+                    grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
+                } catch (Throwable t) {
+                    log.warn("cleanup grpc client settings failed on producer unregister. group:{}, clientId:{}",
+                        group, clientId, t);
+                } finally {
+                    proxyClientReadService.removeClient(clientId);
+                }
             }
         }
     }

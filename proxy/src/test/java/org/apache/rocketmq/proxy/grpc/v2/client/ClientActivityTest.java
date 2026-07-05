@@ -585,6 +585,36 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testProducerUnregisterListenerRemovesProxyClientReadServiceIndexesWhenSettingsCleanupFails() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        doThrow(new RuntimeException("settings cleanup failed"))
+            .when(this.grpcClientSettingsManager)
+            .removeAndGetRawClientSettings(CLIENT_ID);
+        ProducerChangeListener listener = latestProducerChangeListener();
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+
+        assertThatCode(() -> listener.handle(
+            ProducerGroupEvent.CLIENT_UNREGISTER,
+            TOPIC,
+            new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, 0)
+        )).doesNotThrowAnyException();
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+    }
+
+    @Test
     public void testConsumerUnregisterListenerRemovesProxyClientReadServiceIndexes() throws Throwable {
         ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
         this.clientActivity = new ClientActivity(
