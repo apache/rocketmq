@@ -111,6 +111,24 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void listClientsUsesEmptyMetadataWhenCurrentGrpcContextHasNoMetadata() {
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<Metadata> headersCaptor = ArgumentCaptor.forClass(Metadata.class);
+        verify(contextFactory).create(headersCaptor.capture(), same(protoRequest));
+        assertThat(headersCaptor.getValue()).isNotNull();
+    }
+
+    @Test
     public void describeClientBuildsContextAndDelegatesToEndpointHandler() {
         ProxyClientAdminDescribeClientRequest internalRequest =
             ProxyClientAdminDescribeClientRequest.newBuilder().setClientId("client-a").build();

@@ -152,7 +152,8 @@ public class ProxyClientAdminEndpointExecutor {
     }
 
     private Metadata currentMetadata() {
-        return GrpcConstants.METADATA.get(Context.current());
+        Metadata metadata = GrpcConstants.METADATA.get(Context.current());
+        return metadata == null ? new Metadata() : metadata;
     }
 
     private <P extends GeneratedMessageV3, D, T, R> void execute(Metadata headers, P protoRequest,
