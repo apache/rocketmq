@@ -392,6 +392,7 @@ public class ClientActivity extends AbstractMessagingActivity {
         StreamObserver<TelemetryCommand> responseObserver) {
         GrpcClientChannel grpcClientChannel = null;
         Settings settings = request.getSettings();
+        validateSettingsClientType(settings);
         switch (settings.getPubSubCase()) {
             case PUBLISHING:
                 for (Resource topic : settings.getPublishing().getTopicsList()) {
@@ -423,6 +424,32 @@ public class ClientActivity extends AbstractMessagingActivity {
         } else {
             responseObserver.onNext(command);
         }
+    }
+
+    protected void validateSettingsClientType(Settings settings) {
+        ClientType clientType = settings.getClientType();
+        switch (settings.getPubSubCase()) {
+            case PUBLISHING:
+                if (clientType != ClientType.PRODUCER) {
+                    throw new GrpcProxyException(Code.BAD_REQUEST,
+                        "publishing settings require PRODUCER client type, actual: " + clientType);
+                }
+                break;
+            case SUBSCRIPTION:
+                if (!isConsumerClientType(clientType)) {
+                    throw new GrpcProxyException(Code.BAD_REQUEST,
+                        "subscription settings require consumer client type, actual: " + clientType);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    private static boolean isConsumerClientType(ClientType clientType) {
+        return clientType == ClientType.PUSH_CONSUMER
+            || clientType == ClientType.LITE_PUSH_CONSUMER
+            || clientType == ClientType.SIMPLE_CONSUMER;
     }
 
     protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request) {

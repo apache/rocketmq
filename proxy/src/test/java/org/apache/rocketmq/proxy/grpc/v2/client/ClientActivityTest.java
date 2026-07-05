@@ -91,6 +91,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -284,6 +285,74 @@ public class ClientActivityTest extends BaseActivityTest {
         assertThat(clientInfo.getLocalAddress()).isEqualTo(LOCAL_ADDR);
         assertThat(clientInfo.getConnectTimeMillis()).isGreaterThan(0L);
         assertThat(clientInfo.getLastActiveTimeMillis()).isGreaterThanOrEqualTo(clientInfo.getConnectTimeMillis());
+    }
+
+    @Test
+    public void testProducerTelemetryRejectsNonProducerClientTypeBeforeReadModelUpdate() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+
+        assertThatThrownBy(() -> this.sendClientTelemetry(context, settings).get())
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(StatusRuntimeException.class)
+            .satisfies(throwable -> assertThat(((StatusRuntimeException) throwable.getCause()).getStatus().getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT));
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        verify(this.messagingProcessor, never()).registerProducer(any(), anyString(), any());
+    }
+
+    @Test
+    public void testConsumerTelemetryRejectsNonConsumerClientTypeBeforeReadModelUpdate() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("Group").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setExpression(FilterExpression.newBuilder()
+                        .setExpression("tag")
+                        .setType(FilterType.TAG)
+                        .build())
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .build())
+                .build())
+            .build();
+
+        assertThatThrownBy(() -> this.sendClientTelemetry(context, settings).get())
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(StatusRuntimeException.class)
+            .satisfies(throwable -> assertThat(((StatusRuntimeException) throwable.getCause()).getStatus().getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT));
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        verify(this.messagingProcessor, never()).registerConsumer(
+            any(),
+            anyString(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyBoolean()
+        );
     }
 
     @Test
