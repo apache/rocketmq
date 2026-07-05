@@ -67,6 +67,15 @@ public class ProxyClientAdminPageTokenCodecTest {
     }
 
     @Test
+    public void codecRejectsNonCanonicalVersionedPublicTokens() {
+        ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
+
+        assertThatThrownBy(() -> codec.decode("v1:Y2xpZW50LWE="))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid page token");
+    }
+
+    @Test
     public void codecRejectsUnknownVersionedTokens() {
         ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
 

@@ -59,6 +59,10 @@ public final class ProxyClientAdminPageTokenCodec {
             if (!normalizedReadModelPageToken.equals(readModelPageToken)) {
                 throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
             }
+            String canonicalPublicPageToken = VERSION_1_PREFIX + encodeReadModelPageToken(readModelPageToken);
+            if (!canonicalPublicPageToken.equals(normalizedPublicPageToken)) {
+                throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
+            }
             return normalizedReadModelPageToken;
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken, e);
@@ -70,9 +74,13 @@ public final class ProxyClientAdminPageTokenCodec {
         if (normalizedReadModelPageToken == null) {
             return "";
         }
-        return VERSION_1_PREFIX + Base64.getUrlEncoder()
+        return VERSION_1_PREFIX + encodeReadModelPageToken(normalizedReadModelPageToken);
+    }
+
+    private static String encodeReadModelPageToken(String readModelPageToken) {
+        return Base64.getUrlEncoder()
             .withoutPadding()
-            .encodeToString(normalizedReadModelPageToken.getBytes(StandardCharsets.UTF_8));
+            .encodeToString(readModelPageToken.getBytes(StandardCharsets.UTF_8));
     }
 
     private static boolean isVersionedToken(String publicPageToken) {
