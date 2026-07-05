@@ -490,6 +490,36 @@ The endpoint adapter should stay thin:
   `ProxyClientAdminResult`, write the response, and keep exception-to-status
   behavior consistent with the internal adapter.
 
+### Public Endpoint Rollout Checklist
+
+The remaining public endpoint work should start only after the community agrees
+where the protobuf API lives. Once that is settled, the implementation can land
+as a narrow adapter over the internal code already in this branch:
+
+1. Decide the `rocketmq-apis` file location and whether the service should live
+   beside the existing v2 messaging APIs or in a dedicated admin file.
+2. Confirm the standalone service name `ProxyAdminService` and the four unary
+   methods from the draft: `ListClients`, `DescribeClient`,
+   `ListClientsByGroup`, and `ListClientsByTopic`.
+3. Confirm field numbers in `rip2-proxy-admin-m1-public-api-draft.proto` before
+   generating Java classes. Field numbers should not be reshuffled after public
+   review starts.
+4. Keep public page tokens opaque. The M1 adapter may continue to decode them as
+   the last returned client id through `ProxyClientAdminPageTokenCodec`.
+5. Keep public enum values prefixed with `PROXY_SCOPE_...`; generated adapters
+   should pass the enum name to `ProxyClientAdminScopeMapper`.
+6. Preserve M1 `LOCAL_PROXY` behavior. `PROXY_SCOPE_ALL_PROXIES` and
+   `PROXY_SCOPE_PROXY_ID` should continue to return `BAD_REQUEST` until the
+   cross-proxy query protocol is implemented.
+7. Register `GrpcProxyAdminApplication` beside `GrpcMessagingApplication` in
+   `ProxyStartup`, using the same `DefaultGrpcMessagingActivity` instance so
+   lifecycle writes, read-model queries, ACL, metrics, and context propagation
+   share one in-process state holder.
+8. Keep endpoint methods free of business logic. They should adapt protobuf
+   requests and responses only; authorization, validation, pagination, metrics,
+   and error mapping should stay behind `ProxyClientAdminEndpointExecutor` and
+   `ProxyClientAdminEndpointHandler`.
+
 Cross-proxy fan-out, new ACL granularity, and new metrics labels should be added
 behind the same service/activity boundary instead of being embedded into the
 generated gRPC application.
