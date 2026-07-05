@@ -115,6 +115,24 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void listClientsIntersectsGroupTopicAndClientTypeIndexesInClientIdOrder() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-d", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-a")));
+        service.upsertClient(client("client-b", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-a")));
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+        service.upsertClient(client("client-c", ClientType.PUSH_CONSUMER, set("group-b"), set("topic-a")));
+        service.upsertClient(client("client-e", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-b")));
+
+        ProxyClientPage page = service.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("group-a")
+            .setTopic("topic-a")
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .build());
+
+        assertThat(clientIds(page.getClients())).containsExactly("client-b", "client-d");
+    }
+
+    @Test
     public void upsertClientTreatsUnspecifiedClientTypeAsMissingType() {
         ProxyClientReadService service = new ProxyClientReadService();
 

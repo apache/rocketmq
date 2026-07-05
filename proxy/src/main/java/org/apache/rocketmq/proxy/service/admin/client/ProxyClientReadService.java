@@ -36,6 +36,7 @@ public class ProxyClientReadService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     private final Map<String, ProxyClientInfo> clientIdTable = new HashMap<>();
+    private final NavigableSet<String> clientIdIndex = new TreeSet<>();
     private final Map<String, NavigableSet<String>> groupIndex = new HashMap<>();
     private final Map<String, NavigableSet<String>> topicIndex = new HashMap<>();
     private final Map<ClientType, NavigableSet<String>> clientTypeIndex = new HashMap<>();
@@ -58,6 +59,7 @@ public class ProxyClientReadService {
         if (oldClientInfo != null) {
             this.removeIndexes(oldClientInfo);
         }
+        this.clientIdIndex.add(clientId);
         this.addIndexes(clientInfo);
         this.recordOperation(ProxyClientReadServiceOperation.UPSERT);
     }
@@ -70,6 +72,7 @@ public class ProxyClientReadService {
         ProxyClientInfo oldClientInfo = this.clientIdTable.remove(normalizedClientId);
         if (oldClientInfo != null) {
             this.removeIndexes(oldClientInfo);
+            this.clientIdIndex.remove(normalizedClientId);
             this.recordOperation(ProxyClientReadServiceOperation.REMOVE);
         }
     }
@@ -117,17 +120,38 @@ public class ProxyClientReadService {
     }
 
     private NavigableSet<String> getCandidateClientIds(ProxyClientQuery query) {
-        NavigableSet<String> clientIds = new TreeSet<>(this.clientIdTable.keySet());
+        List<NavigableSet<String>> candidateIndexes = new ArrayList<>(3);
         if (StringUtils.isNotBlank(query.getGroup())) {
-            clientIds.retainAll(this.getIndexClientIds(this.groupIndex, query.getGroup()));
+            candidateIndexes.add(this.getIndexClientIds(this.groupIndex, query.getGroup()));
         }
         if (StringUtils.isNotBlank(query.getTopic())) {
-            clientIds.retainAll(this.getIndexClientIds(this.topicIndex, query.getTopic()));
+            candidateIndexes.add(this.getIndexClientIds(this.topicIndex, query.getTopic()));
         }
         if (query.getClientType() != null) {
-            clientIds.retainAll(this.getIndexClientIds(this.clientTypeIndex, query.getClientType()));
+            candidateIndexes.add(this.getIndexClientIds(this.clientTypeIndex, query.getClientType()));
+        }
+        if (candidateIndexes.isEmpty()) {
+            return this.clientIdIndex;
+        }
+
+        NavigableSet<String> smallestCandidateIndex = this.smallestCandidateIndex(candidateIndexes);
+        NavigableSet<String> clientIds = new TreeSet<>(smallestCandidateIndex);
+        for (NavigableSet<String> candidateIndex : candidateIndexes) {
+            if (candidateIndex != smallestCandidateIndex) {
+                clientIds.retainAll(candidateIndex);
+            }
         }
         return clientIds;
+    }
+
+    private NavigableSet<String> smallestCandidateIndex(List<NavigableSet<String>> candidateIndexes) {
+        NavigableSet<String> result = candidateIndexes.get(0);
+        for (NavigableSet<String> candidateIndex : candidateIndexes) {
+            if (candidateIndex.size() < result.size()) {
+                result = candidateIndex;
+            }
+        }
+        return result;
     }
 
     private <T> NavigableSet<String> getIndexClientIds(Map<T, NavigableSet<String>> index, T key) {
