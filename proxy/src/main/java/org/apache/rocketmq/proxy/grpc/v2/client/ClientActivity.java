@@ -60,6 +60,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.ContextStreamObserver;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -485,6 +486,7 @@ public class ClientActivity extends AbstractMessagingActivity {
             ctx.getRemoteAddress(),
             ctx.getLocalAddress(),
             ctx.getClientVersion(),
+            ConfigurationManager.getProxyConfig().getProxyName(),
             connectTimeMillis,
             now
         ));

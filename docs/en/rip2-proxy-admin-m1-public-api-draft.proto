@@ -137,4 +137,5 @@ message ProxyClient {
   string client_version = 8;
   int64 connect_time_millis = 9;
   int64 last_active_time_millis = 10;
+  string proxy_id = 11;
 }

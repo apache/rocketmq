@@ -31,12 +31,20 @@ public class ProxyClientInfo {
     private final String remoteAddress;
     private final String localAddress;
     private final String clientVersion;
+    private final String proxyId;
     private final long connectTimeMillis;
     private final long lastActiveTimeMillis;
 
     public ProxyClientInfo(String clientId, ClientType clientType, Set<String> groups, Set<String> topics,
         String language, String remoteAddress, String localAddress, String clientVersion, long connectTimeMillis,
         long lastActiveTimeMillis) {
+        this(clientId, clientType, groups, topics, language, remoteAddress, localAddress, clientVersion, null,
+            connectTimeMillis, lastActiveTimeMillis);
+    }
+
+    public ProxyClientInfo(String clientId, ClientType clientType, Set<String> groups, Set<String> topics,
+        String language, String remoteAddress, String localAddress, String clientVersion, String proxyId,
+        long connectTimeMillis, long lastActiveTimeMillis) {
         this.clientId = StringUtils.trimToNull(clientId);
         this.clientType = clientType;
         this.groups = normalize(groups);
@@ -45,6 +53,7 @@ public class ProxyClientInfo {
         this.remoteAddress = remoteAddress;
         this.localAddress = localAddress;
         this.clientVersion = clientVersion;
+        this.proxyId = StringUtils.trimToNull(proxyId);
         this.connectTimeMillis = connectTimeMillis;
         this.lastActiveTimeMillis = lastActiveTimeMillis;
     }
@@ -93,6 +102,10 @@ public class ProxyClientInfo {
 
     public String getClientVersion() {
         return clientVersion;
+    }
+
+    public String getProxyId() {
+        return proxyId;
     }
 
     public long getConnectTimeMillis() {

@@ -42,6 +42,7 @@ public final class ProxyClientAdminResponseConverter {
             clientInfo.getRemoteAddress(),
             clientInfo.getLocalAddress(),
             clientInfo.getClientVersion(),
+            clientInfo.getProxyId(),
             clientInfo.getConnectTimeMillis(),
             clientInfo.getLastActiveTimeMillis()
         );

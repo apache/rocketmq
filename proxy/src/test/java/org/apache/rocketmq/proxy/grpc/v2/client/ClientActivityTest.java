@@ -50,6 +50,7 @@ import org.apache.rocketmq.broker.client.ProducerGroupEvent;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.ContextStreamObserver;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
@@ -287,6 +288,30 @@ public class ClientActivityTest extends BaseActivityTest {
         assertThat(clientInfo.getLocalAddress()).isEqualTo(LOCAL_ADDR);
         assertThat(clientInfo.getConnectTimeMillis()).isGreaterThan(0L);
         assertThat(clientInfo.getLastActiveTimeMillis()).isGreaterThanOrEqualTo(clientInfo.getConnectTimeMillis());
+    }
+
+    @Test
+    public void testTelemetryRecordsLocalProxyIdInProxyClientReadService() throws Throwable {
+        String originalProxyName = ConfigurationManager.getProxyConfig().getProxyName();
+        try {
+            ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+            ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+            this.clientActivity = new ClientActivity(
+                this.messagingProcessor,
+                this.grpcClientSettingsManager,
+                this.grpcChannelManager,
+                proxyClientReadService
+            );
+            ProxyContext context = createContext();
+
+            this.sendProducerTelemetry(context);
+
+            ProxyClientInfo clientInfo = proxyClientReadService.getClient(CLIENT_ID);
+            assertThat(clientInfo).isNotNull();
+            assertThat(clientInfo.getProxyId()).isEqualTo("proxy-a");
+        } finally {
+            ConfigurationManager.getProxyConfig().setProxyName(originalProxyName);
+        }
     }
 
     @Test

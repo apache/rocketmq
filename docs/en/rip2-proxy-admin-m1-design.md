@@ -288,11 +288,14 @@ The internal model uses `ProxyClientInfo`:
 - `language`: client language from request metadata.
 - `remoteAddress` and `localAddress`: connection addresses.
 - `clientVersion`: client version from request metadata.
+- `proxyId`: source proxy node id. M1 records the local `proxyName`; future
+  `ALL_PROXIES` responses can use the same field to distinguish fan-out
+  results.
 - `connectTimeMillis`: first observed local connection time.
 - `lastActiveTimeMillis`: most recent successful telemetry or heartbeat time.
 
 The internal public-view adapter normalizes nullable string metadata such as
-language, addresses, and client version to empty strings before a future
+language, addresses, client version, and proxy id to empty strings before a future
 protobuf adapter writes response fields. A missing internal client type is
 normalized to `CLIENT_TYPE_UNSPECIFIED` so generated protobuf responses never
 need to write a null enum value.

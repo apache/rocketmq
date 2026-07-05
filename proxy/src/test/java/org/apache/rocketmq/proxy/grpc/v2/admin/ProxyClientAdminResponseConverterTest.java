@@ -134,6 +134,7 @@ public class ProxyClientAdminResponseConverterTest {
         assertThat(view.getRemoteAddress()).isEmpty();
         assertThat(view.getLocalAddress()).isEmpty();
         assertThat(view.getClientVersion()).isEmpty();
+        assertThat(view.getProxyId()).isEmpty();
     }
 
     @Test
@@ -154,6 +155,27 @@ public class ProxyClientAdminResponseConverterTest {
         ProxyClientAdminClientView view = ProxyClientAdminResponseConverter.toClientView(clientInfo);
 
         assertThat(view.getClientType()).isEqualTo(ClientType.CLIENT_TYPE_UNSPECIFIED);
+    }
+
+    @Test
+    public void convertsProxyIdToPublicView() {
+        ProxyClientInfo clientInfo = new ProxyClientInfo(
+            "client-a",
+            ClientType.PRODUCER,
+            Collections.emptySet(),
+            Collections.emptySet(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            "proxy-a",
+            100L,
+            200L
+        );
+
+        ProxyClientAdminClientView view = ProxyClientAdminResponseConverter.toClientView(clientInfo);
+
+        assertThat(view.getProxyId()).isEqualTo("proxy-a");
     }
 
     private static ProxyClientInfo client(String clientId) {

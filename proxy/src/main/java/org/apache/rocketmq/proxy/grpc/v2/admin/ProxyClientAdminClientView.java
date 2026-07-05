@@ -31,12 +31,20 @@ public class ProxyClientAdminClientView {
     private final String remoteAddress;
     private final String localAddress;
     private final String clientVersion;
+    private final String proxyId;
     private final long connectTimeMillis;
     private final long lastActiveTimeMillis;
 
     public ProxyClientAdminClientView(String clientId, ClientType clientType, List<String> groups,
         List<String> topics, String language, String remoteAddress, String localAddress, String clientVersion,
         long connectTimeMillis, long lastActiveTimeMillis) {
+        this(clientId, clientType, groups, topics, language, remoteAddress, localAddress, clientVersion, null,
+            connectTimeMillis, lastActiveTimeMillis);
+    }
+
+    public ProxyClientAdminClientView(String clientId, ClientType clientType, List<String> groups,
+        List<String> topics, String language, String remoteAddress, String localAddress, String clientVersion,
+        String proxyId, long connectTimeMillis, long lastActiveTimeMillis) {
         this.clientId = clientId;
         this.clientType = clientType == null ? ClientType.CLIENT_TYPE_UNSPECIFIED : clientType;
         this.groups = immutableCopy(groups);
@@ -45,6 +53,7 @@ public class ProxyClientAdminClientView {
         this.remoteAddress = nullToEmpty(remoteAddress);
         this.localAddress = nullToEmpty(localAddress);
         this.clientVersion = nullToEmpty(clientVersion);
+        this.proxyId = nullToEmpty(proxyId);
         this.connectTimeMillis = connectTimeMillis;
         this.lastActiveTimeMillis = lastActiveTimeMillis;
     }
@@ -90,6 +99,10 @@ public class ProxyClientAdminClientView {
 
     public String getClientVersion() {
         return clientVersion;
+    }
+
+    public String getProxyId() {
+        return proxyId;
     }
 
     public long getConnectTimeMillis() {
