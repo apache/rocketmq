@@ -30,6 +30,7 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -328,6 +329,30 @@ public class ProxyStartupTest {
 
         assertEquals(1, services.size());
         Assert.assertTrue(services.get(0) instanceof GrpcMessagingApplication);
+        Field activityField = GrpcMessagingApplication.class.getDeclaredField("grpcMessagingActivity");
+        activityField.setAccessible(true);
+        assertSame(sharedActivity, activityField.get(services.get(0)));
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesAppendsAdditionalServicesAfterMessagingService() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        BindableService adminService = mock(BindableService.class);
+
+        List<BindableService> services = ProxyStartup.createGrpcBindableServices(
+            messagingProcessor,
+            sharedActivity,
+            Collections.singletonList(adminService)
+        );
+
+        assertEquals(2, services.size());
+        Assert.assertTrue(services.get(0) instanceof GrpcMessagingApplication);
+        assertSame(adminService, services.get(1));
         Field activityField = GrpcMessagingApplication.class.getDeclaredField("grpcMessagingActivity");
         activityField.setAccessible(true);
         assertSame(sharedActivity, activityField.get(services.get(0)));

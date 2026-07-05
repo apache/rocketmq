@@ -226,7 +226,18 @@ public class ProxyStartup {
 
     static List<BindableService> createGrpcBindableServices(MessagingProcessor messagingProcessor,
         DefaultGrpcMessagingActivity grpcMessagingActivity) {
-        return Lists.newArrayList(createServiceProcessor(messagingProcessor, grpcMessagingActivity));
+        return createGrpcBindableServices(messagingProcessor, grpcMessagingActivity, null);
+    }
+
+    static List<BindableService> createGrpcBindableServices(MessagingProcessor messagingProcessor,
+        DefaultGrpcMessagingActivity grpcMessagingActivity, List<BindableService> additionalServices) {
+        List<BindableService> services = Lists.newArrayList(
+            createServiceProcessor(messagingProcessor, grpcMessagingActivity)
+        );
+        if (additionalServices != null) {
+            services.addAll(additionalServices);
+        }
+        return services;
     }
 
     static GrpcMessagingApplication createServiceProcessor(MessagingProcessor messagingProcessor,
