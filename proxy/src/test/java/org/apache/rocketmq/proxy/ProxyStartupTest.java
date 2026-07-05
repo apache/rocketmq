@@ -357,4 +357,25 @@ public class ProxyStartupTest {
         activityField.setAccessible(true);
         assertSame(sharedActivity, activityField.get(services.get(0)));
     }
+
+    @Test
+    public void testCreateGrpcBindableServicesRejectsNullAdditionalService() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> ProxyStartup.createGrpcBindableServices(
+                messagingProcessor,
+                sharedActivity,
+                Collections.singletonList(null)
+            )
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("additional service is required"));
+    }
 }

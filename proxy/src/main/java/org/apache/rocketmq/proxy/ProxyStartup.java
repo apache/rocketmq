@@ -235,7 +235,12 @@ public class ProxyStartup {
             createServiceProcessor(messagingProcessor, grpcMessagingActivity)
         );
         if (additionalServices != null) {
-            services.addAll(additionalServices);
+            for (BindableService additionalService : additionalServices) {
+                if (additionalService == null) {
+                    throw new IllegalArgumentException("additional service is required");
+                }
+                services.add(additionalService);
+            }
         }
         return services;
     }
