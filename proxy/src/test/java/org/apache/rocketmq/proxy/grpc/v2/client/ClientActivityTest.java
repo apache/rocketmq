@@ -417,6 +417,36 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testNotifyClientTerminationRemovesReadModelForUnrecognizedClientType() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any()))
+            .thenReturn(Settings.newBuilder()
+                .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+                .build());
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+
+        NotifyClientTerminationResponse response = this.clientActivity.notifyClientTermination(
+            context,
+            NotifyClientTerminationRequest.newBuilder().build()
+        ).get();
+
+        assertEquals(Code.UNRECOGNIZED_CLIENT_TYPE, response.getStatus().getCode());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
     public void testProducerUnregisterListenerRemovesProxyClientReadServiceIndexes() throws Throwable {
         ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
         this.clientActivity = new ClientActivity(

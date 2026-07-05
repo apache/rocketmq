@@ -425,6 +425,8 @@ Follow-up lifecycle tests should cover:
 - producer unregister listener removes client and indexes. Done.
 - consumer unregister listener removes client and indexes. Done.
 - telemetry cancellation removes client and indexes. Done.
+- termination with an unrecognized cached client type removes stale client and
+  indexes before returning the error status. Done.
 
 Internal adapter tests cover:
 

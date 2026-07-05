@@ -200,6 +200,7 @@ public class ClientActivity extends AbstractMessagingActivity {
                     future.complete(NotifyClientTerminationResponse.newBuilder()
                         .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
                         .build());
+                    this.proxyClientReadService.removeClient(clientId);
                     return future;
             }
             future.complete(NotifyClientTerminationResponse.newBuilder()
