@@ -25,13 +25,20 @@ public class ProxyClientReadServiceStats {
     private final long totalClientCount;
     private final long groupIndexCount;
     private final long topicIndexCount;
+    private final long proxyIdIndexCount;
     private final Map<ClientType, Long> clientTypeCounts;
 
     public ProxyClientReadServiceStats(long totalClientCount, long groupIndexCount, long topicIndexCount,
         Map<ClientType, Long> clientTypeCounts) {
+        this(totalClientCount, groupIndexCount, topicIndexCount, 0L, clientTypeCounts);
+    }
+
+    public ProxyClientReadServiceStats(long totalClientCount, long groupIndexCount, long topicIndexCount,
+        long proxyIdIndexCount, Map<ClientType, Long> clientTypeCounts) {
         this.totalClientCount = totalClientCount;
         this.groupIndexCount = groupIndexCount;
         this.topicIndexCount = topicIndexCount;
+        this.proxyIdIndexCount = proxyIdIndexCount;
         Map<ClientType, Long> copiedClientTypeCounts = new HashMap<>();
         if (clientTypeCounts != null) {
             copiedClientTypeCounts.putAll(clientTypeCounts);
@@ -49,6 +56,10 @@ public class ProxyClientReadServiceStats {
 
     public long getTopicIndexCount() {
         return topicIndexCount;
+    }
+
+    public long getProxyIdIndexCount() {
+        return proxyIdIndexCount;
     }
 
     public Map<ClientType, Long> getClientTypeCounts() {

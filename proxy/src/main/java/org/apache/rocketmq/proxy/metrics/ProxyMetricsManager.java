@@ -74,6 +74,7 @@ import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_UP;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_GROUP;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_PROXY_ID;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_TOPIC;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_CLIENT_TYPE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_INDEX_TYPE;
@@ -255,6 +256,10 @@ public class ProxyMetricsManager implements StartAndShutdown {
         measurement.record(
             stats.getTopicIndexCount(),
             newAttributesBuilder().put(LABEL_INDEX_TYPE, INDEX_TYPE_TOPIC).build()
+        );
+        measurement.record(
+            stats.getProxyIdIndexCount(),
+            newAttributesBuilder().put(LABEL_INDEX_TYPE, INDEX_TYPE_PROXY_ID).build()
         );
     }
 

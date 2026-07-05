@@ -207,6 +207,7 @@ public class ProxyClientReadServiceTest {
         assertThat(stats.getTotalClientCount()).isEqualTo(2L);
         assertThat(stats.getGroupIndexCount()).isEqualTo(2L);
         assertThat(stats.getTopicIndexCount()).isEqualTo(2L);
+        assertThat(stats.getProxyIdIndexCount()).isEqualTo(0L);
         assertThat(stats.getClientTypeCounts())
             .containsEntry(ClientType.PRODUCER, 1L)
             .containsEntry(ClientType.PUSH_CONSUMER, 1L);
@@ -217,8 +218,23 @@ public class ProxyClientReadServiceTest {
         assertThat(stats.getTotalClientCount()).isEqualTo(1L);
         assertThat(stats.getGroupIndexCount()).isEqualTo(2L);
         assertThat(stats.getTopicIndexCount()).isEqualTo(1L);
+        assertThat(stats.getProxyIdIndexCount()).isEqualTo(0L);
         assertThat(stats.getClientTypeCount(ClientType.PRODUCER)).isEqualTo(0L);
         assertThat(stats.getClientTypeCount(ClientType.PUSH_CONSUMER)).isEqualTo(1L);
+    }
+
+    @Test
+    public void snapshotStatsReflectsProxyIdIndexCount() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"), "proxy-a"));
+        service.upsertClient(client("client-b", ClientType.PRODUCER, set("group-a"), set("topic-a"), "proxy-a"));
+        service.upsertClient(client("client-c", ClientType.PRODUCER, set("group-a"), set("topic-a"), "proxy-b"));
+
+        assertThat(service.snapshotStats().getProxyIdIndexCount()).isEqualTo(2L);
+
+        service.removeClient("client-c");
+
+        assertThat(service.snapshotStats().getProxyIdIndexCount()).isEqualTo(1L);
     }
 
     @Test

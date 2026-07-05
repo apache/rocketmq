@@ -57,6 +57,7 @@ import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_UP;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_GROUP;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_PROXY_ID;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_TOPIC;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_CLIENT_TYPE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_INDEX_TYPE;
@@ -99,7 +100,7 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
         ProxyMetricsManager.initMetrics(
             meter,
             Attributes::builder,
-            () -> new ProxyClientReadServiceStats(3L, 4L, 5L, clientTypeCounts)
+            () -> new ProxyClientReadServiceStats(3L, 4L, 5L, 6L, clientTypeCounts)
         );
 
         ObservableLongMeasurement clientTotalMeasurement = mock(ObservableLongMeasurement.class);
@@ -121,6 +122,8 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
             INDEX_TYPE_GROUP.equals(attributes.get(AttributeKey.stringKey(LABEL_INDEX_TYPE)))));
         verify(clientIndexMeasurement).record(eq(5L), argThat(attributes ->
             INDEX_TYPE_TOPIC.equals(attributes.get(AttributeKey.stringKey(LABEL_INDEX_TYPE)))));
+        verify(clientIndexMeasurement).record(eq(6L), argThat(attributes ->
+            INDEX_TYPE_PROXY_ID.equals(attributes.get(AttributeKey.stringKey(LABEL_INDEX_TYPE)))));
     }
 
     @Test

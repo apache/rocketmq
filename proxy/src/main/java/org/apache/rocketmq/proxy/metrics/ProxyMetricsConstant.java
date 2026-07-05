@@ -36,6 +36,7 @@ public class ProxyMetricsConstant {
 
     public static final String INDEX_TYPE_GROUP = "group";
     public static final String INDEX_TYPE_TOPIC = "topic";
+    public static final String INDEX_TYPE_PROXY_ID = "proxy_id";
 
     public static final String NODE_TYPE_PROXY = "proxy";
 }

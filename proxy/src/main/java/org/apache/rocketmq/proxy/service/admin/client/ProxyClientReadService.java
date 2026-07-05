@@ -91,6 +91,7 @@ public class ProxyClientReadService {
             this.clientIdTable.size(),
             this.groupIndex.size(),
             this.topicIndex.size(),
+            this.proxyIdIndex.size(),
             clientTypeCounts
         );
     }
