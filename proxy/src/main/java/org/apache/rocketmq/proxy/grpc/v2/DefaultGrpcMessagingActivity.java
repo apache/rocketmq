@@ -123,6 +123,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             this.proxyClientAdminEndpointHandler
         );
         ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(this.proxyClientReadService::snapshotStats);
+        this.appendShutdown(() -> ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(null));
 
         this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.ackMessageActivity = new AckMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);

@@ -232,6 +232,36 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
         }
     }
 
+    @Test
+    public void defaultGrpcMessagingActivityClearsProxyClientStatsSupplierOnShutdown() throws Exception {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTotalCallback =
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        ProxyRelayService proxyRelayService = mock(ProxyRelayService.class);
+        when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
+        TestDefaultGrpcMessagingActivity activity = new TestDefaultGrpcMessagingActivity(messagingProcessor);
+        try {
+            activity.upsertClient(client("client-a"));
+            activity.shutdown();
+
+            ProxyMetricsManager.initMetrics(meter, Attributes::builder);
+
+            ObservableLongMeasurement clientTotalMeasurement = mock(ObservableLongMeasurement.class);
+            clientTotalCallback.getValue().accept(clientTotalMeasurement);
+            verify(clientTotalMeasurement).record(eq(0L), any(Attributes.class));
+        } finally {
+            activity.shutdownForTest();
+            ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(null);
+        }
+    }
+
     private static ArgumentCaptor<Consumer<ObservableLongMeasurement>> mockLongGauge(Meter meter, String name) {
         DoubleGaugeBuilder doubleGaugeBuilder = mock(DoubleGaugeBuilder.class);
         LongGaugeBuilder longGaugeBuilder = mock(LongGaugeBuilder.class);
