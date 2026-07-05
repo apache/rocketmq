@@ -56,6 +56,9 @@ public final class ProxyClientAdminPageTokenCodec {
             if (normalizedReadModelPageToken == null) {
                 throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
             }
+            if (!normalizedReadModelPageToken.equals(readModelPageToken)) {
+                throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
+            }
             return normalizedReadModelPageToken;
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken, e);

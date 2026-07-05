@@ -117,8 +117,9 @@ small and tested boundary to call:
   tokens. M1 encodes internal last-client-id tokens as versioned `v1:`
   base64url public tokens, accepts legacy bare client-id tokens only for early
   internal compatibility, rejects unknown versioned public tokens, normalizes
-  blank public tokens to "no token", and normalizes blank internal next tokens
-  to an empty public string.
+  blank public tokens to "no token", rejects versioned tokens whose decoded
+  read-model token is not already in canonical trimmed form, and normalizes
+  blank internal next tokens to an empty public string.
 - `ProxyClientAdminScopeMapper` is the adapter boundary for public proxy scope
   values. It maps missing or `PROXY_SCOPE_UNSPECIFIED` public scope values to
   internal `LOCAL_PROXY`, maps prefixed public values such as
