@@ -90,7 +90,8 @@ small and tested boundary to call:
 - `ProxyClientAdminActivity` owns the request execution boundary for client
   admin queries. It accepts `ProxyContext`, calls `AuthorizingClientAdminService`,
   and returns `ProxyClientAdminResult<T>` with an `apache.rocketmq.v2.Status`
-  plus an optional body.
+  plus an optional body. It also enforces the M1 `LOCAL_PROXY` scope before
+  invoking authorization or read-model queries.
 - `ProxyClientAdminResult` preserves the public status/body split expected by a
   gRPC endpoint while keeping the internal service API simple.
 - `ProxyClientAdminClientView` and `ProxyClientAdminPageView` are public-facing
@@ -132,10 +133,12 @@ small and tested boundary to call:
 The request DTOs convert pagination, client type, scope, and optional proxy id
 into `ProxyClientQuery`. Page tokens are preserved as opaque strings at this
 layer. The default scope is `LOCAL_PROXY`; unsupported future scopes and their
-proxy id are intentionally carried through to the activity/service validation
-path so they produce the same `BAD_REQUEST` semantics as direct internal calls
-and keep the adapter contract ready for future `PROXY_ID` support. The protobuf
-default `CLIENT_TYPE_UNSPECIFIED` is normalized to no client type filter, while
+proxy id are intentionally carried through the DTO and query objects so they can
+be validated by the activity before authorization. The service layer revalidates
+the same scope to keep direct internal calls consistent. This preserves
+`BAD_REQUEST` semantics for unsupported scopes while keeping the adapter
+contract ready for future `PROXY_ID` support. The protobuf default
+`CLIENT_TYPE_UNSPECIFIED` is normalized to no client type filter, while
 `UNRECOGNIZED` client type values are rejected as `BAD_REQUEST`.
 
 The future generated endpoint should only translate protobuf messages to these
@@ -317,8 +320,9 @@ The current internal implementation provides `ClientAdminAuthPolicy`,
 The gRPC request pipeline also copies the authenticated access key into
 `ProxyContext` as a `Subject`, and `ClientAdminRequestContext.from` derives the
 admin request context from `ProxyContext`. This lets the future public adapter
-authorize before delegating to read-model queries while keeping the first admin
-surface consistent with existing management actions.
+reject unsupported M1 scopes before ACL, then authorize before delegating to
+read-model queries while keeping the first admin surface consistent with
+existing management actions.
 Topic-level or group-level ACL can be discussed later if the community wants
 more granular visibility controls.
 
@@ -336,6 +340,11 @@ The current internal admin service wrapper records:
 
 - admin query counters by operation and result code.
 - admin query latency histograms.
+
+Metrics are recorded around the authorizing admin service, not only around the
+read-model service. This means ACL denials are reported as `UNAUTHORIZED`, while
+successful reads, bad requests, not-found responses, and unexpected internal
+errors are still counted once at the public admin operation boundary.
 
 Metric recording is best effort. Read-model mutation recorder failures and
 admin query metrics recorder failures are logged but do not mask successful
@@ -402,6 +411,8 @@ Internal adapter tests cover:
 - default `LOCAL_PROXY` scope, opaque page-token pass-through, and proxy id
   pass-through for future scoped queries.
 - activity overloads for request DTOs.
+- activity-level rejection of unsupported M1 scopes before ACL or delegate
+  invocation.
 - response view conversion, stable collection snapshots, and null-safe string
   metadata normalization.
 - endpoint handler success response writing, error response writing, and thrown
@@ -466,9 +477,11 @@ generated gRPC application.
    DTOs, and activity overloads. Done.
 7. Add shared gRPC request-pipeline, activity wiring, and endpoint-handler seams
    for the future standalone admin gRPC application. Done.
-8. Discuss public protobuf ownership before changing `rocketmq-apis`.
-9. Add the public admin gRPC/protobuf adapter.
-10. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy,
+8. Harden admin activity scope validation and place admin metrics around the
+   authorizing request boundary. Done.
+9. Discuss public protobuf ownership before changing `rocketmq-apis`.
+10. Add the public admin gRPC/protobuf adapter.
+11. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy,
    request context propagation, and service are already in place.
-11. Extend metrics with admin query counters and latency histograms. Done.
-12. Add a synthetic 1M-client benchmark or simulation. Done.
+12. Extend metrics with admin query counters and latency histograms. Done.
+13. Add a synthetic 1M-client benchmark or simulation. Done.
