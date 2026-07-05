@@ -771,6 +771,45 @@ public class ClientActivityTest extends BaseActivityTest {
         verify(this.grpcClientSettingsManager).offlineClientLiteSubscription(context, CLIENT_ID, producerSettings);
     }
 
+    @Test
+    public void testTelemetryCompletedRemovesProxyClientReadServiceIndexesAndSettingsBeforeOfflineHooks() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        when(grpcClientSettingsManager.removeAndGetRawClientSettings(CLIENT_ID)).thenReturn(producerSettings);
+        StreamObserver<TelemetryCommand> responseObserver = mock(StreamObserver.class);
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(responseObserver);
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(producerSettings)
+            .build());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        requestObserver.onCompleted();
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+        verify(this.grpcClientSettingsManager).offlineClientLiteSubscription(context, CLIENT_ID, producerSettings);
+        verify(responseObserver).onCompleted();
+    }
+
     protected void assertClientChannelInfo(ClientChannelInfo clientChannelInfo, String group) {
         assertEquals(LanguageCode.JAVA, clientChannelInfo.getLanguage());
         assertEquals(CLIENT_ID, clientChannelInfo.getClientId());

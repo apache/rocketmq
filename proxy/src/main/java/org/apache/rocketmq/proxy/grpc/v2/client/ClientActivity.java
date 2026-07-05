@@ -333,6 +333,7 @@ public class ClientActivity extends AbstractMessagingActivity {
 
             @Override
             public void onCompleted() {
+                cleanupClientOnTelemetryClose(proxyCtx);
                 responseObserver.onCompleted();
             }
         };
@@ -367,10 +368,21 @@ public class ClientActivity extends AbstractMessagingActivity {
         StatusRuntimeException statusException = (StatusRuntimeException) t;
         if (io.grpc.Status.CANCELLED.getCode() == statusException.getStatus().getCode() ||
             io.grpc.Status.UNAVAILABLE.getCode() == statusException.getStatus().getCode()) {
-            Settings settings = this.grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
-            this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
-            this.proxyClientReadService.removeClient(clientId);
+            this.cleanupClientOnTelemetryClose(ctx);
         }
+    }
+
+    private void cleanupClientOnTelemetryClose(ProxyContext ctx) {
+        if (ctx == null) {
+            return;
+        }
+        final String clientId = ctx.getClientID();
+        if (StringUtils.isBlank(clientId)) {
+            return;
+        }
+        Settings settings = this.grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
+        this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
+        this.proxyClientReadService.removeClient(clientId);
     }
 
     protected void processTelemetryException(TelemetryCommand request, Throwable t,
