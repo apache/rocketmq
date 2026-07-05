@@ -158,6 +158,32 @@ public class AuthorizingClientAdminServiceTest {
         ));
     }
 
+    @Test
+    public void meteredServiceRecordsInternalErrorWhenDelegateThrowsError() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminRequestContext requestContext = requestContext();
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        List<Record> records = new ArrayList<>();
+        LinkageError error = new LinkageError("linkage failed");
+        when(delegate.listClients(query)).thenThrow(error);
+        MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
+            delegate,
+            authorizationService,
+            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            clock()
+        );
+
+        assertThatThrownBy(() -> adminService.listClients(requestContext, query))
+            .isSameAs(error);
+
+        assertThat(records).containsExactly(new Record(
+            ClientAdminOperation.LIST_CLIENTS,
+            ClientAdminMetricsResult.INTERNAL_ERROR,
+            1L
+        ));
+    }
+
     private static ClientAdminRequestContext requestContext() {
         return ClientAdminRequestContext.of(User.of("admin"), "127.0.0.1");
     }

@@ -137,6 +137,29 @@ public class MeteredClientAdminServiceTest {
     }
 
     @Test
+    public void listClientsRecordsInternalErrorAndRethrowsError() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        LinkageError error = new LinkageError("linkage failed");
+        when(delegate.listClients(query)).thenThrow(error);
+        List<Record> records = new ArrayList<>();
+
+        MeteredClientAdminService service = new MeteredClientAdminService(
+            delegate,
+            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            clock()
+        );
+
+        assertThatThrownBy(() -> service.listClients(query))
+            .isSameAs(error);
+        assertThat(records).containsExactly(new Record(
+            ClientAdminOperation.LIST_CLIENTS,
+            ClientAdminMetricsResult.INTERNAL_ERROR,
+            1L
+        ));
+    }
+
+    @Test
     public void metricsRecorderFailureDoesNotMaskSuccessfulResult() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ProxyClientQuery query = ProxyClientQuery.newBuilder().build();

@@ -89,6 +89,9 @@ public class MeteredAuthorizingClientAdminService extends AuthorizingClientAdmin
         } catch (RuntimeException e) {
             result = this.classify(e);
             throw e;
+        } catch (Error e) {
+            result = ClientAdminMetricsResult.INTERNAL_ERROR;
+            throw e;
         } finally {
             this.recordMetrics(operation, result, this.elapsedMillis(startNanos));
         }
