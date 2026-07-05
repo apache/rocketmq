@@ -70,7 +70,7 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
-    public void listClientsRequestTrimsPageTokenAndProxyId() {
+    public void listClientsRequestTrimsPageTokenAndIgnoresProxyIdForLocalScope() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setPageToken(" v1:Y2xpZW50LWE ")
             .setProxyId(" proxy-a ")
@@ -81,7 +81,7 @@ public class ProxyClientAdminRequestTest {
         assertThat(request.getPageToken()).isEqualTo("v1:Y2xpZW50LWE");
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
         assertThat(query.getPageToken()).isEqualTo("client-a");
-        assertThat(query.getProxyId()).isEqualTo("proxy-a");
+        assertThat(query.getProxyId()).isNull();
     }
 
     @Test
@@ -165,7 +165,7 @@ public class ProxyClientAdminRequestTest {
         assertThat(query.getPageSize()).isEqualTo(20);
         assertThat(query.getPageToken()).isEqualTo("client-b");
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
-        assertThat(query.getProxyId()).isEqualTo("proxy-a");
+        assertThat(query.getProxyId()).isNull();
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
     }
 

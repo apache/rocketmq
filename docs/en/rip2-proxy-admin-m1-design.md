@@ -109,7 +109,10 @@ small and tested boundary to call:
   `ProxyClientAdminListClientsByTopicRequest` mirror the proposed public request
   fields without importing generated admin protobuf classes. They normalize
   request string fields at the adapter boundary so surrounding whitespace is
-  trimmed and blank strings become missing values before validation.
+  trimmed and blank strings become missing values before validation. List-style
+  request DTOs also drop `proxy_id` when converting `LOCAL_PROXY` requests to
+  `ProxyClientQuery`, so direct DTO use and future protobuf conversion share the
+  same M1 local-scope semantics.
 - `ProxyClientAdminRequestConverter` centralizes the future proto-to-internal
   DTO mapping from public scalar fields, so generated unary methods can keep
   request conversion out of the RPC method bodies once `ProxyAdminService`
