@@ -106,6 +106,9 @@ small and tested boundary to call:
   fields without importing generated admin protobuf classes. They normalize
   request string fields at the adapter boundary so surrounding whitespace is
   trimmed and blank strings become missing values before validation.
+- `ProxyClientAdminRequestConverter` centralizes the future proto-to-internal
+  DTO mapping from public scalar fields, so generated unary methods can keep
+  request conversion out of the RPC method bodies once `ProxyAdminService` lands.
 - `ProxyClientAdminPageTokenCodec` is the adapter boundary for public pagination
   tokens. M1 encodes internal last-client-id tokens as versioned `v1:`
   base64url public tokens, accepts legacy bare client-id tokens only for early
@@ -501,7 +504,7 @@ The endpoint adapter should stay thin:
   Admin RPCs should use `ProxyClientAdminContextFactory` instead of the
   messaging application's client-id validation and generic authorization path.
 - translate proto requests to the internal request DTOs through
-  `ProxyClientAdminEndpointExecutor`.
+  `ProxyClientAdminRequestConverter` and `ProxyClientAdminEndpointExecutor`.
 - call `ProxyClientAdminActivity` through the shared endpoint handler.
 - translate `ProxyClientAdminPageView` and `ProxyClientAdminClientView` into
   proto responses.
