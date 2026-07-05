@@ -160,9 +160,10 @@ public class ClientActivity extends AbstractMessagingActivity {
     public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(ProxyContext ctx,
         NotifyClientTerminationRequest request) {
         CompletableFuture<NotifyClientTerminationResponse> future = new CompletableFuture<>();
+        String clientId = null;
 
         try {
-            String clientId = ctx.getClientID();
+            clientId = ctx.getClientID();
             LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
             Settings clientSettings = grpcClientSettingsManager.removeAndGetClientSettings(ctx);
             if (clientSettings == null) {
@@ -208,6 +209,7 @@ public class ClientActivity extends AbstractMessagingActivity {
                 .build());
             this.proxyClientReadService.removeClient(clientId);
         } catch (Throwable t) {
+            this.proxyClientReadService.removeClient(clientId);
             future.completeExceptionally(t);
         }
         return future;

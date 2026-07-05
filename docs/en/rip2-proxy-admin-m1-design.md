@@ -427,6 +427,8 @@ Follow-up lifecycle tests should cover:
 - telemetry cancellation removes client and indexes. Done.
 - termination with an unrecognized cached client type removes stale client and
   indexes before returning the error status. Done.
+- termination unregister failures remove stale client and indexes before
+  completing the response future exceptionally. Done.
 
 Internal adapter tests cover:
 

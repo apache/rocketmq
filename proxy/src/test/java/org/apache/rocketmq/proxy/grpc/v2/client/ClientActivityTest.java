@@ -447,6 +447,36 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testNotifyClientTerminationRemovesReadModelWhenUnregisterFails() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendConsumerTelemetry(context);
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any()))
+            .thenReturn(Settings.newBuilder()
+                .setClientType(ClientType.PUSH_CONSUMER)
+                .build());
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+
+        assertThatThrownBy(() -> this.clientActivity.notifyClientTermination(
+            context,
+            NotifyClientTerminationRequest.newBuilder().build()
+        ).get())
+            .isInstanceOf(ExecutionException.class);
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("Group")
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
     public void testProducerUnregisterListenerRemovesProxyClientReadServiceIndexes() throws Throwable {
         ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
         this.clientActivity = new ClientActivity(
