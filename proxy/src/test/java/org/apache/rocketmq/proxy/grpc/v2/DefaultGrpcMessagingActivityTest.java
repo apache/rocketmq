@@ -24,14 +24,19 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.stub.StreamObserver;
+import java.lang.reflect.Field;
 import java.util.Collections;
+import java.util.List;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
-import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminResult;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminRequestContext;
@@ -39,6 +44,7 @@ import org.apache.rocketmq.proxy.service.admin.client.MeteredAuthorizingClientAd
 import org.apache.rocketmq.proxy.service.admin.client.MeteredClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceCleaner;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
@@ -196,6 +202,36 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
             .isInstanceOf(MeteredAuthorizingClientAdminService.class);
     }
 
+    @Test
+    public void initLeavesProxyClientReadServiceCleanerDisabledByDefault() throws Exception {
+        DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        assertThat(activity.proxyClientReadServiceCleaner).isNull();
+        assertThat(lifecycleComponents(activity))
+            .noneMatch(component -> component instanceof ProxyClientReadServiceCleaner);
+    }
+
+    @Test
+    public void initRegistersProxyClientReadServiceCleanerWhenEnabled() throws Exception {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientReadServiceCleaner(true);
+        ConfigurationManager.getProxyConfig().setProxyClientReadServiceCleanerInactiveTimeoutMillis(500L);
+        ConfigurationManager.getProxyConfig().setProxyClientReadServiceCleanerIntervalMillis(1000L);
+
+        DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+        activity.proxyClientReadService.upsertClient(clientInfo("client-old", 1L));
+        activity.proxyClientReadService.upsertClient(
+            clientInfo("client-active", System.currentTimeMillis() + 100000L)
+        );
+
+        int removed = activity.proxyClientReadServiceCleaner.cleanup();
+
+        assertThat(activity.proxyClientReadServiceCleaner).isNotNull();
+        assertThat(lifecycleComponents(activity)).contains(activity.proxyClientReadServiceCleaner);
+        assertThat(removed).isEqualTo(1);
+        assertThat(activity.proxyClientReadService.getClient("client-old")).isNull();
+        assertThat(activity.proxyClientReadService.getClient("client-active")).isNotNull();
+    }
+
     private static StreamObserver<TelemetryCommand> noopTelemetryObserver() {
         return new StreamObserver<TelemetryCommand>() {
             @Override
@@ -210,5 +246,27 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
             public void onCompleted() {
             }
         };
+    }
+
+    private static ProxyClientInfo clientInfo(String clientId, long lastActiveTimeMillis) {
+        return new ProxyClientInfo(
+            clientId,
+            ClientType.PRODUCER,
+            Collections.emptySet(),
+            Collections.singleton("topic-a"),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            lastActiveTimeMillis
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<StartAndShutdown> lifecycleComponents(DefaultGrpcMessagingActivity activity) throws Exception {
+        Field field = AbstractStartAndShutdown.class.getDeclaredField("startAndShutdownList");
+        field.setAccessible(true);
+        return (List<StartAndShutdown>) field.get(activity);
     }
 }

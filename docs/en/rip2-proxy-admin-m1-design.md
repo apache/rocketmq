@@ -361,9 +361,11 @@ cutoff. It reuses the same remove path as lifecycle close, unregister, and
 termination cleanup, so the client table, all secondary indexes, and read-model
 operation metrics remain consistent. `ProxyClientReadServiceCleaner` wraps that
 helper behind a `StartAndShutdown` maintenance component with explicit timeout,
-interval, executor, and clock dependencies. M1 does not attach it to the default
-startup path yet; that wiring should land as a separate configurable checkpoint
-so deployments can choose whether stale-entry guardrails are enabled.
+interval, executor, and clock dependencies. The default gRPC activity wires this
+cleaner behind the disabled-by-default `enableProxyClientReadServiceCleaner`
+switch. When enabled, `proxyClientReadServiceCleanerInactiveTimeoutMillis`
+controls the stale cutoff and `proxyClientReadServiceCleanerIntervalMillis`
+controls the fixed-delay maintenance interval.
 
 Unfiltered scans iterate the maintained sorted client id index directly instead
 of copying all client ids on every request. Filtered scans collect only the

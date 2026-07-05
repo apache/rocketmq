@@ -156,6 +156,9 @@ public class ProxyConfig implements ConfigFile {
     private long grpcClientConsumerMaxLongPollingTimeoutMillis = Duration.ofSeconds(20).toMillis();
     private int grpcClientConsumerLongPollingBatchSize = 32;
     private long grpcClientIdleTimeMills = Duration.ofSeconds(120).toMillis();
+    private boolean enableProxyClientReadServiceCleaner = false;
+    private long proxyClientReadServiceCleanerInactiveTimeoutMillis = Duration.ofMinutes(10).toMillis();
+    private long proxyClientReadServiceCleanerIntervalMillis = Duration.ofMinutes(1).toMillis();
     private long grpcServerPermitKeepAliveTimeMillis = 30000;
     private boolean grpcServerPermitKeepAliveWithoutCalls = true;
 
@@ -1221,6 +1224,31 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcClientIdleTimeMills(final long grpcClientIdleTimeMills) {
         this.grpcClientIdleTimeMills = grpcClientIdleTimeMills;
+    }
+
+    public boolean isEnableProxyClientReadServiceCleaner() {
+        return enableProxyClientReadServiceCleaner;
+    }
+
+    public void setEnableProxyClientReadServiceCleaner(boolean enableProxyClientReadServiceCleaner) {
+        this.enableProxyClientReadServiceCleaner = enableProxyClientReadServiceCleaner;
+    }
+
+    public long getProxyClientReadServiceCleanerInactiveTimeoutMillis() {
+        return proxyClientReadServiceCleanerInactiveTimeoutMillis;
+    }
+
+    public void setProxyClientReadServiceCleanerInactiveTimeoutMillis(
+        long proxyClientReadServiceCleanerInactiveTimeoutMillis) {
+        this.proxyClientReadServiceCleanerInactiveTimeoutMillis = proxyClientReadServiceCleanerInactiveTimeoutMillis;
+    }
+
+    public long getProxyClientReadServiceCleanerIntervalMillis() {
+        return proxyClientReadServiceCleanerIntervalMillis;
+    }
+
+    public void setProxyClientReadServiceCleanerIntervalMillis(long proxyClientReadServiceCleanerIntervalMillis) {
+        this.proxyClientReadServiceCleanerIntervalMillis = proxyClientReadServiceCleanerIntervalMillis;
     }
 
     public long getGrpcServerPermitKeepAliveTimeMillis() {

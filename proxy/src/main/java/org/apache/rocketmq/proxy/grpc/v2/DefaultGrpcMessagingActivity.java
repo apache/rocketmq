@@ -43,12 +43,16 @@ import apache.rocketmq.v2.SyncLiteSubscriptionResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminContextFactory;
@@ -73,6 +77,7 @@ import org.apache.rocketmq.proxy.service.admin.client.DefaultClientAdminAuthoriz
 import org.apache.rocketmq.proxy.service.admin.client.DefaultClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.MeteredAuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceCleaner;
 
 public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown implements GrpcMessagingActivity {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -89,6 +94,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected RouteActivity routeActivity;
     protected ClientActivity clientActivity;
     protected ProxyClientReadService proxyClientReadService;
+    protected ProxyClientReadServiceCleaner proxyClientReadServiceCleaner;
     protected ClientAdminService clientAdminService;
     protected AuthorizingClientAdminService authorizingClientAdminService;
     protected ProxyClientAdminActivity proxyClientAdminActivity;
@@ -141,6 +147,27 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         );
 
         this.appendStartAndShutdown(this.grpcClientSettingsManager);
+        this.proxyClientReadServiceCleaner = this.createProxyClientReadServiceCleaner();
+        if (this.proxyClientReadServiceCleaner != null) {
+            this.appendStartAndShutdown(this.proxyClientReadServiceCleaner);
+        }
+    }
+
+    protected ProxyClientReadServiceCleaner createProxyClientReadServiceCleaner() {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        if (!proxyConfig.isEnableProxyClientReadServiceCleaner()) {
+            return null;
+        }
+        ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor(
+            new ThreadFactoryImpl("ProxyClientReadServiceCleaner_")
+        );
+        return new ProxyClientReadServiceCleaner(
+            this.proxyClientReadService,
+            proxyConfig.getProxyClientReadServiceCleanerInactiveTimeoutMillis(),
+            proxyConfig.getProxyClientReadServiceCleanerIntervalMillis(),
+            scheduledExecutorService,
+            System::currentTimeMillis
+        );
     }
 
     protected ClientAdminService getClientAdminService() {
