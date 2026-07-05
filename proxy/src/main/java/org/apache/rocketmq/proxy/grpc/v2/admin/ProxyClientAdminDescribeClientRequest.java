@@ -28,7 +28,7 @@ public class ProxyClientAdminDescribeClientRequest {
     private ProxyClientAdminDescribeClientRequest(Builder builder) {
         this.clientId = builder.clientId;
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
-        this.proxyId = builder.proxyId;
+        this.proxyId = this.scope == ProxyClientScope.LOCAL_PROXY ? null : builder.proxyId;
     }
 
     public static Builder newBuilder() {

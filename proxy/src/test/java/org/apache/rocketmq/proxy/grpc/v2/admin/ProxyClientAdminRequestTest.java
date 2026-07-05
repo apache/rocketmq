@@ -115,7 +115,7 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
-    public void describeClientRequestCarriesClientIdAndDefaultsScope() {
+    public void describeClientRequestCarriesClientIdDefaultsScopeAndIgnoresLocalProxyId() {
         ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
             .setClientId("client-a")
             .setProxyId("proxy-a")
@@ -123,6 +123,18 @@ public class ProxyClientAdminRequestTest {
 
         assertThat(request.getClientId()).isEqualTo("client-a");
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(request.getProxyId()).isNull();
+    }
+
+    @Test
+    public void describeClientRequestPreservesProxyIdForFutureProxyIdScope() {
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("client-a")
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .build();
+
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
     }
 
@@ -130,6 +142,7 @@ public class ProxyClientAdminRequestTest {
     public void describeClientRequestTrimsClientIdAndProxyId() {
         ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
             .setClientId(" client-a ")
+            .setScope(ProxyClientScope.PROXY_ID)
             .setProxyId(" proxy-a ")
             .build();
 
