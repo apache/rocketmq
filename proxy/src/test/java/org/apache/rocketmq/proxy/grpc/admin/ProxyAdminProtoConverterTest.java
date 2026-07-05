@@ -50,6 +50,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+/** Unit tests for ProxyAdminProtoConverter covering proto-to-model conversion, enum mapping, and null/edge-case handling for all admin RPC message types. */
 public class ProxyAdminProtoConverterTest {
 
     // ==================== toFilter Tests ====================

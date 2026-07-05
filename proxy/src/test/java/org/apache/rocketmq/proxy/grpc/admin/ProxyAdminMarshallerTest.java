@@ -31,6 +31,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+/** Unit tests for ProxyAdminMarshaller verifying all 8 proto marshallers are registered and perform correct serialization round-trips. */
 public class ProxyAdminMarshallerTest {
 
     @Test
@@ -151,17 +152,5 @@ public class ProxyAdminMarshallerTest {
         assertTrue(ProxyAdminMarshaller.LIST_CLIENTS_BY_GROUP_RESP_MARSHALLER instanceof MethodDescriptor.Marshaller);
         assertTrue(ProxyAdminMarshaller.LIST_CLIENTS_BY_TOPIC_REQ_MARSHALLER instanceof MethodDescriptor.Marshaller);
         assertTrue(ProxyAdminMarshaller.LIST_CLIENTS_BY_TOPIC_RESP_MARSHALLER instanceof MethodDescriptor.Marshaller);
-    }
-
-    @Test
-    public void testMarshallersUseProtoLiteSerialization() {
-        assertNotNull(ProxyAdminMarshaller.LIST_CLIENTS_REQ_MARSHALLER);
-        assertNotNull(ProxyAdminMarshaller.LIST_CLIENTS_RESP_MARSHALLER);
-        assertNotNull(ProxyAdminMarshaller.DESCRIBE_CLIENT_REQ_MARSHALLER);
-        assertNotNull(ProxyAdminMarshaller.DESCRIBE_CLIENT_RESP_MARSHALLER);
-        assertNotNull(ProxyAdminMarshaller.LIST_CLIENTS_BY_GROUP_REQ_MARSHALLER);
-        assertNotNull(ProxyAdminMarshaller.LIST_CLIENTS_BY_GROUP_RESP_MARSHALLER);
-        assertNotNull(ProxyAdminMarshaller.LIST_CLIENTS_BY_TOPIC_REQ_MARSHALLER);
-        assertNotNull(ProxyAdminMarshaller.LIST_CLIENTS_BY_TOPIC_RESP_MARSHALLER);
     }
 }

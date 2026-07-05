@@ -93,16 +93,6 @@ public class DefaultProxyAdminClientServiceUnitTest {
         when(grpcChannelManager.getChannel(clientId)).thenReturn(channel);
     }
 
-    /**
-     * Create a DefaultProxyAdminClientService that uses a separate, dedicated channel map.
-     * Useful when a test needs to control the map independently.
-     */
-    private DefaultProxyAdminClientService createServiceWithMap(Map<String, GrpcClientChannel> dedicatedMap) {
-        GrpcChannelManager dedicatedManager = mock(GrpcChannelManager.class);
-        when(dedicatedManager.getClientIdChannelMap()).thenReturn(dedicatedMap);
-        return new DefaultProxyAdminClientService(dedicatedManager, grpcClientSettingsManager);
-    }
-
     // ==================== Test 1: listClients empty channels ====================
 
     @Test
