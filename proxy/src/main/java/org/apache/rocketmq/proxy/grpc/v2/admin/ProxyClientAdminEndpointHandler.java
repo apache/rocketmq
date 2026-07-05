@@ -81,7 +81,13 @@ public class ProxyClientAdminEndpointHandler {
         Supplier<ProxyClientAdminResult<T>> action,
         BiFunction<Status, T, R> responseFactory) {
         StreamObserver<R> requiredResponseObserver = this.requireResponseObserver(responseObserver);
-        BiFunction<Status, T, R> requiredResponseFactory = this.requireResponseFactory(responseFactory);
+        BiFunction<Status, T, R> requiredResponseFactory;
+        try {
+            requiredResponseFactory = this.requireResponseFactory(responseFactory);
+        } catch (Throwable t) {
+            ProxyClientAdminGrpcErrorWriter.write(requiredResponseObserver, t);
+            return;
+        }
         ProxyClientAdminResult<T> result = this.execute(action);
         try {
             R response = this.applyResponseFactory(requiredResponseFactory, result);

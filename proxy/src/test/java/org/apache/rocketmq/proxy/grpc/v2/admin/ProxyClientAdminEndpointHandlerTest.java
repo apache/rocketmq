@@ -267,6 +267,33 @@ public class ProxyClientAdminEndpointHandlerTest {
     }
 
     @Test
+    public void handleMapsMissingResponseFactoryToGrpcInternalErrorBeforeExecutingAction() {
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+        AtomicBoolean actionInvoked = new AtomicBoolean(false);
+
+        handler.handle(
+            observer,
+            () -> {
+                actionInvoked.set(true);
+                return okResult("client-a");
+            },
+            null
+        );
+
+        ArgumentCaptor<Throwable> errorCaptor = ArgumentCaptor.forClass(Throwable.class);
+        verify(observer).onError(errorCaptor.capture());
+        assertThat(errorCaptor.getValue()).isInstanceOf(io.grpc.StatusRuntimeException.class);
+        io.grpc.StatusRuntimeException statusRuntimeException =
+            (io.grpc.StatusRuntimeException) errorCaptor.getValue();
+        assertThat(statusRuntimeException.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INTERNAL);
+        assertThat(statusRuntimeException.getStatus().getDescription()).contains("responseFactory is required");
+        assertThat(actionInvoked).isFalse();
+        verify(observer, never()).onNext(any());
+        verify(observer, never()).onCompleted();
+    }
+
+    @Test
     public void handleMapsResponseFactoryFailureToStatusResponse() {
         ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
         StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
