@@ -232,24 +232,27 @@ public class ProxyClientAdminActivity {
     }
 
     private String requireClientId(String clientId) {
-        if (StringUtils.isBlank(clientId)) {
+        String normalizedClientId = StringUtils.trimToNull(clientId);
+        if (StringUtils.isBlank(normalizedClientId)) {
             throw new IllegalArgumentException("clientId is required");
         }
-        return clientId;
+        return normalizedClientId;
     }
 
     private String requireGroup(String group) {
-        if (StringUtils.isBlank(group)) {
+        String normalizedGroup = StringUtils.trimToNull(group);
+        if (StringUtils.isBlank(normalizedGroup)) {
             throw new IllegalArgumentException("group is required");
         }
-        return group;
+        return normalizedGroup;
     }
 
     private String requireTopic(String topic) {
-        if (StringUtils.isBlank(topic)) {
+        String normalizedTopic = StringUtils.trimToNull(topic);
+        if (StringUtils.isBlank(normalizedTopic)) {
             throw new IllegalArgumentException("topic is required");
         }
-        return topic;
+        return normalizedTopic;
     }
 
     private void validateLocalProxyScope(ProxyClientScope scope) {

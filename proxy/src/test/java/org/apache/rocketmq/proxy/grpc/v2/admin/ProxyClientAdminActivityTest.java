@@ -263,6 +263,26 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void describeClientViewTrimsRequestClientIdBeforeDelegation() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        when(delegate.describeClient("client-a")).thenReturn(client("client-a"));
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId(" client-a ")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientAdminClientView> result =
+            activity.describeClientView(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClientId()).isEqualTo("client-a");
+        verify(delegate).describeClient("client-a");
+    }
+
+    @Test
     public void listClientViewsByGroupAcceptsRequestDto() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
@@ -290,6 +310,29 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void listClientViewsByGroupTrimsRequestGroupBeforeDelegation() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientPage page = new ProxyClientPage(Collections.singletonList(client("client-a")), null);
+        when(delegate.listClientsByGroup(eq("group-a"), any(ProxyClientQuery.class))).thenReturn(page);
+        ProxyClientAdminListClientsByGroupRequest request =
+            ProxyClientAdminListClientsByGroupRequest.newBuilder()
+                .setGroup(" group-a ")
+                .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByGroup(proxyContext(), request);
+
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(delegate).listClientsByGroup(eq("group-a"), queryCaptor.capture());
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(queryCaptor.getValue().getGroup()).isEqualTo("group-a");
+    }
+
+    @Test
     public void listClientViewsByTopicAcceptsRequestDto() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
@@ -314,6 +357,29 @@ public class ProxyClientAdminActivityTest {
         assertThat(queryCaptor.getValue().getTopic()).isEqualTo("topic-a");
         assertThat(queryCaptor.getValue().getClientType()).isEqualTo(ClientType.PRODUCER);
         assertThat(queryCaptor.getValue().getPageToken()).isEqualTo("client-a");
+    }
+
+    @Test
+    public void listClientViewsByTopicTrimsRequestTopicBeforeDelegation() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientPage page = new ProxyClientPage(Collections.singletonList(client("client-a")), null);
+        when(delegate.listClientsByTopic(eq("topic-a"), any(ProxyClientQuery.class))).thenReturn(page);
+        ProxyClientAdminListClientsByTopicRequest request =
+            ProxyClientAdminListClientsByTopicRequest.newBuilder()
+                .setTopic(" topic-a ")
+                .build();
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByTopic(proxyContext(), request);
+
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(delegate).listClientsByTopic(eq("topic-a"), queryCaptor.capture());
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(queryCaptor.getValue().getTopic()).isEqualTo("topic-a");
     }
 
     @Test
