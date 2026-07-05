@@ -76,6 +76,18 @@ public class ProxyClientAdminResponseConverterTest {
     }
 
     @Test
+    public void convertsBlankInternalPageTokenToEmptyPublicToken() {
+        ProxyClientPage page = new ProxyClientPage(
+            Collections.singletonList(client("client-a")),
+            " "
+        );
+
+        ProxyClientAdminPageView view = ProxyClientAdminResponseConverter.toPageView(page);
+
+        assertThat(view.getNextPageToken()).isEmpty();
+    }
+
+    @Test
     public void convertedCollectionsAreImmutableSnapshots() {
         Set<String> groups = new HashSet<>(Collections.singleton("group-a"));
         ProxyClientInfo clientInfo = new ProxyClientInfo(

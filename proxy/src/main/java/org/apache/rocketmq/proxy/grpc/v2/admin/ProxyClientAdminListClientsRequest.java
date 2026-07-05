@@ -68,7 +68,7 @@ public class ProxyClientAdminListClientsRequest {
         return builder
             .setClientType(this.normalizeClientType(clientType))
             .setPageSize(pageSize)
-            .setPageToken(pageToken)
+            .setPageToken(ProxyClientAdminPageTokenCodec.getInstance().decode(pageToken))
             .setScope(scope)
             .setProxyId(proxyId);
     }

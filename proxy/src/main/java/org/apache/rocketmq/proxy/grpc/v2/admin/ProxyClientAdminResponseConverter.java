@@ -55,7 +55,10 @@ public final class ProxyClientAdminResponseConverter {
         for (ProxyClientInfo clientInfo : page.getClients()) {
             clients.add(toClientView(clientInfo));
         }
-        return new ProxyClientAdminPageView(clients, page.getNextPageToken());
+        return new ProxyClientAdminPageView(
+            clients,
+            ProxyClientAdminPageTokenCodec.getInstance().encode(page.getNextPageToken())
+        );
     }
 
     private static List<String> sorted(Set<String> values) {

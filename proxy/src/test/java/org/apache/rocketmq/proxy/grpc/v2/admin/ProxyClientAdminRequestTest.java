@@ -68,6 +68,15 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void listClientsRequestDecodesBlankPageTokenAsNoToken() {
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setPageToken(" ")
+            .build();
+
+        assertThat(request.toQuery().getPageToken()).isNull();
+    }
+
+    @Test
     public void listClientsRequestRejectsUnrecognizedClientType() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setClientType(ClientType.UNRECOGNIZED)
