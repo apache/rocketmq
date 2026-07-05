@@ -421,6 +421,8 @@ Follow-up lifecycle tests should cover:
 - producer telemetry updates. Done.
 - heartbeat preserves `connectTimeMillis` and updates `lastActiveTimeMillis`.
   Done.
+- heartbeat with missing cached client settings removes stale client and
+  indexes before returning the error status. Done.
 - termination removes client and indexes. Done.
 - producer unregister listener removes client and indexes. Done.
 - consumer unregister listener removes client and indexes. Done.

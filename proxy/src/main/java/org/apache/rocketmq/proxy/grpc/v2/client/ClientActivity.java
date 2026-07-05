@@ -116,6 +116,7 @@ public class ClientActivity extends AbstractMessagingActivity {
         try {
             Settings clientSettings = grpcClientSettingsManager.getClientSettings(ctx);
             if (clientSettings == null) {
+                this.proxyClientReadService.removeClient(ctx.getClientID());
                 future.complete(HeartbeatResponse.newBuilder()
                     .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, "cannot find client settings for this client"))
                     .build());
