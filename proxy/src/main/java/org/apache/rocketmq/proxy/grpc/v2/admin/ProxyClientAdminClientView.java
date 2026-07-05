@@ -20,7 +20,9 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import apache.rocketmq.v2.ClientType;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientAdminClientView {
@@ -71,7 +73,7 @@ public class ProxyClientAdminClientView {
         if (values == null || values.isEmpty()) {
             return Collections.emptyList();
         }
-        List<String> result = new ArrayList<>(values.size());
+        Set<String> result = new LinkedHashSet<>();
         for (String value : values) {
             String normalizedValue = StringUtils.trimToNull(value);
             if (normalizedValue != null) {
@@ -81,7 +83,7 @@ public class ProxyClientAdminClientView {
         if (result.isEmpty()) {
             return Collections.emptyList();
         }
-        return Collections.unmodifiableList(result);
+        return Collections.unmodifiableList(new ArrayList<>(result));
     }
 
     private static String nullToEmpty(String value) {

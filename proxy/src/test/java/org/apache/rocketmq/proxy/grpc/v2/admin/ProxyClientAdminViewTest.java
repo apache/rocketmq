@@ -50,8 +50,8 @@ public class ProxyClientAdminViewTest {
         ProxyClientAdminClientView view = new ProxyClientAdminClientView(
             "client-a",
             ClientType.PUSH_CONSUMER,
-            Arrays.asList(" group-b ", null, "", " ", "group-a"),
-            Arrays.asList(" topic-b ", null, "", " ", "topic-a"),
+            Arrays.asList(" group-b ", null, "", " ", "group-a", "group-b"),
+            Arrays.asList(" topic-b ", null, "", " ", "topic-a", "topic-b"),
             "JAVA",
             "127.0.0.1:8080",
             "192.168.0.1:8080",
