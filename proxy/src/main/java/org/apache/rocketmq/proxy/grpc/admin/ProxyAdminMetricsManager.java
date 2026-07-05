@@ -24,15 +24,7 @@ import io.opentelemetry.api.metrics.Meter;
 import java.util.function.Supplier;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 
-/**
- * Metrics manager for Proxy Admin gRPC interface (RIP-2).
- * <p>
- * Provides OTel metrics for admin RPC operations:
- * - rocketmq_proxy_admin_rpc_total: Counter for admin RPC invocations (by method, status)
- * - rocketmq_proxy_admin_rpc_latency: Histogram for admin RPC latency (by method)
- * <p>
- * These metrics are enabled by default as required by RIP-2 §5.4.5 and §8.6.
- */
+/** Built-in OpenTelemetry-compatible metrics for Proxy Admin gRPC service. Tracks call count, latency (P50/P95/P99), and error rate per RPC method. */
 public class ProxyAdminMetricsManager {
 
     // Metric names following RocketMQ naming convention
@@ -52,6 +44,9 @@ public class ProxyAdminMetricsManager {
     // Status values
     public static final String STATUS_SUCCESS = "success";
     public static final String STATUS_ERROR = "error";
+
+    // Additional label keys
+    public static final String LABEL_ERROR_TYPE = "error_type";
 
     private static LongCounter adminRpcCounter;
     private static io.opentelemetry.api.metrics.DoubleHistogram adminRpcLatency;
@@ -116,6 +111,46 @@ public class ProxyAdminMetricsManager {
         Attributes attrs = buildAttributes(method, STATUS_ERROR);
         adminRpcCounter.add(1, attrs);
         adminRpcLatency.record(latencyMs, attrs);
+    }
+
+    /**
+     * Record an admin RPC invocation with success/failure flag.
+     *
+     * @param method     the RPC method name
+     * @param durationMs the duration in milliseconds
+     * @param success    true if the call succeeded, false otherwise
+     */
+    public static void recordCall(String method, long durationMs, boolean success) {
+        if (!initialized) {
+            return;
+        }
+        if (success) {
+            recordSuccess(method, durationMs);
+        } else {
+            recordError(method, durationMs);
+        }
+    }
+
+    /**
+     * Record a failed admin RPC invocation with error type detail.
+     *
+     * @param method    the RPC method name
+     * @param errorType the type of error (e.g., TIMEOUT, UNAVAILABLE, PERMISSION_DENIED)
+     */
+    public static void recordError(String method, String errorType) {
+        if (!initialized) {
+            return;
+        }
+        Attributes attrs = buildAttributesWithErrorType(method, errorType);
+        adminRpcCounter.add(1, attrs);
+    }
+
+    private static Attributes buildAttributesWithErrorType(String method, String errorType) {
+        AttributesBuilder builder = ProxyMetricsManager.newAttributesBuilder();
+        builder.put(LABEL_RPC_METHOD, method);
+        builder.put(LABEL_STATUS, STATUS_ERROR);
+        builder.put(LABEL_ERROR_TYPE, errorType);
+        return builder.build();
     }
 
     private static Attributes buildAttributes(String method, String status) {
