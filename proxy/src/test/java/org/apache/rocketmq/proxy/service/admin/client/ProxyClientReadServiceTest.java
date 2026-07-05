@@ -115,6 +115,24 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void upsertClientTreatsUnspecifiedClientTypeAsMissingType() {
+        ProxyClientReadService service = new ProxyClientReadService();
+
+        service.upsertClient(client(
+            "client-a",
+            ClientType.CLIENT_TYPE_UNSPECIFIED,
+            set("group-a"),
+            set("topic-a")
+        ));
+
+        ProxyClientReadServiceStats stats = service.snapshotStats();
+        assertThat(service.getClient("client-a").getClientType()).isNull();
+        assertThat(stats.getClientTypeCount(ClientType.CLIENT_TYPE_UNSPECIFIED)).isEqualTo(0L);
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder().build()).getClients()))
+            .containsExactly("client-a");
+    }
+
+    @Test
     public void snapshotStatsReflectsCurrentReadModel() {
         ProxyClientReadService service = new ProxyClientReadService();
         service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a", "topic-b")));

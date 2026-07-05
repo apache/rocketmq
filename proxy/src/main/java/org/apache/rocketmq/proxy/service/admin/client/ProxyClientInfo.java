@@ -46,7 +46,7 @@ public class ProxyClientInfo {
         String language, String remoteAddress, String localAddress, String clientVersion, String proxyId,
         long connectTimeMillis, long lastActiveTimeMillis) {
         this.clientId = normalizeClientId(clientId);
-        this.clientType = clientType;
+        this.clientType = normalizeClientType(clientType);
         this.groups = normalize(groups);
         this.topics = normalize(topics);
         this.language = language;
@@ -64,6 +64,13 @@ public class ProxyClientInfo {
             throw new IllegalArgumentException("clientId is required");
         }
         return normalizedClientId;
+    }
+
+    private static ClientType normalizeClientType(ClientType clientType) {
+        if (clientType == ClientType.CLIENT_TYPE_UNSPECIFIED) {
+            return null;
+        }
+        return clientType;
     }
 
     private static Set<String> normalize(Set<String> values) {

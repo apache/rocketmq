@@ -43,10 +43,21 @@ public class ProxyClientInfoTest {
             .hasMessageContaining("clientId is required");
     }
 
+    @Test
+    public void constructorTreatsUnspecifiedClientTypeAsMissing() {
+        ProxyClientInfo clientInfo = client("client-a", ClientType.CLIENT_TYPE_UNSPECIFIED);
+
+        assertThat(clientInfo.getClientType()).isNull();
+    }
+
     private static ProxyClientInfo client(String clientId) {
+        return client(clientId, ClientType.PRODUCER);
+    }
+
+    private static ProxyClientInfo client(String clientId, ClientType clientType) {
         return new ProxyClientInfo(
             clientId,
-            ClientType.PRODUCER,
+            clientType,
             Collections.emptySet(),
             Collections.emptySet(),
             "JAVA",
