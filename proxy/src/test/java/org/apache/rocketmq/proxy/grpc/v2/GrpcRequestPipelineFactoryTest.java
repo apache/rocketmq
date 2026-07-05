@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,11 +19,13 @@ package org.apache.rocketmq.proxy.grpc.v2;
 
 import apache.rocketmq.v2.QueryRouteRequest;
 import io.grpc.Metadata;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
-import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminContextFactory;
 import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminContextFactory;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.junit.Before;
 import org.junit.Test;
@@ -98,5 +100,26 @@ public class GrpcRequestPipelineFactoryTest extends InitConfigTest {
         assertThat(context.getNamespace()).isEqualTo(NAMESPACE);
         assertThat(context.getSubject()).isNotNull();
         assertThat(context.getSubject().getSubjectKey()).isEqualTo("User:admin");
+    }
+
+    @Test
+    public void createProxyClientAdminContextFactorySkipsMessagingAuthorizationPipeline() {
+        AuthConfig authConfig = ConfigurationManager.getAuthConfig();
+        authConfig.setConfigName("admin-context-" + System.nanoTime());
+        authConfig.setAuthenticationEnabled(false);
+        authConfig.setAuthorizationEnabled(true);
+        authConfig.setAuthorizationMetadataProvider(null);
+        authConfig.setAuthenticationMetadataProvider(null);
+        ProxyClientAdminContextFactory contextFactory =
+            GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(this.messagingProcessor);
+        Metadata headers = new Metadata();
+        headers.put(GrpcConstants.AUTHORIZATION_AK, ACCESS_KEY);
+        headers.put(GrpcConstants.REMOTE_ADDRESS, REMOTE_ADDRESS);
+
+        ProxyContext context = contextFactory.create(headers, QueryRouteRequest.getDefaultInstance());
+
+        assertThat(context.getSubject()).isNotNull();
+        assertThat(context.getSubject().getSubjectKey()).isEqualTo("User:admin");
+        assertThat(context.getRemoteAddress()).isEqualTo(REMOTE_ADDRESS);
     }
 }

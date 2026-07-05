@@ -120,14 +120,16 @@ small and tested boundary to call:
   the internal request DTO, delegates to `ProxyClientAdminEndpointHandler`, and
   routes context or request-adapter failures through the same status conversion
   path.
-- `ProxyClientAdminContextFactory` runs the shared gRPC request pipeline and
+- `ProxyClientAdminContextFactory` runs the admin gRPC context pipeline and
   builds a `ProxyContext` for future admin RPCs without applying the messaging
-  RPC client-id requirement. Admin authorization is based on the authenticated
-  subject carried in the context.
+  RPC client-id requirement or generic messaging authorization. Admin
+  authorization is based on the authenticated subject carried in the context
+  and is performed by `AuthorizingClientAdminService`.
 - `GrpcRequestPipelineFactory` extracts the existing gRPC context,
-  authentication, authorization, and subject pipeline so a future standalone
-  admin service can share the same request initialization behavior as
-  `GrpcMessagingApplication`. It also exposes
+  authentication, and subject pipeline so a future standalone admin service can
+  share the same request initialization behavior as `GrpcMessagingApplication`
+  while keeping admin authorization behind the client-admin service facade. It
+  also exposes
   `createProxyClientAdminContextFactory(...)` so the admin endpoint wiring can
   reuse the shared pipeline without depending on messaging RPC client-id
   validation.
@@ -330,12 +332,13 @@ M1 should reuse existing cluster-level admin permissions:
 
 The current internal implementation provides `ClientAdminAuthPolicy`,
 `DefaultClientAdminAuthorizationService`, and `AuthorizingClientAdminService`.
-The gRPC request pipeline also copies the authenticated access key into
+The admin gRPC request pipeline copies the authenticated access key into
 `ProxyContext` as a `Subject`, and `ClientAdminRequestContext.from` derives the
-admin request context from `ProxyContext`. This lets the future public adapter
-reject unsupported M1 scopes before ACL, then authorize before delegating to
-read-model queries while keeping the first admin surface consistent with
-existing management actions.
+admin request context from `ProxyContext`. The admin pipeline intentionally does
+not run generic messaging authorization; this lets the future public adapter
+reject unsupported M1 scopes before ACL, then authorize once through
+`AuthorizingClientAdminService` before delegating to read-model queries while
+keeping the first admin surface consistent with existing management actions.
 Topic-level or group-level ACL can be discussed later if the community wants
 more granular visibility controls.
 
@@ -461,7 +464,7 @@ The endpoint adapter should stay thin:
 - read headers and build `ProxyContext` through
   `GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(...)`.
   Admin RPCs should use `ProxyClientAdminContextFactory` instead of the
-  messaging application's client-id validation path.
+  messaging application's client-id validation and generic authorization path.
 - translate proto requests to the internal request DTOs through
   `ProxyClientAdminEndpointExecutor`.
 - call `ProxyClientAdminActivity` through the shared endpoint handler.

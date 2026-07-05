@@ -33,8 +33,7 @@ public final class GrpcRequestPipelineFactory {
     }
 
     public static RequestPipeline create(MessagingProcessor messagingProcessor) {
-        RequestPipeline pipeline = (context, headers, request) -> {
-        };
+        RequestPipeline pipeline = emptyPipeline();
         AuthConfig authConfig = ConfigurationManager.getAuthConfig();
         if (authConfig != null) {
             pipeline = pipeline
@@ -45,8 +44,24 @@ public final class GrpcRequestPipelineFactory {
         return pipeline.pipe(new ContextInitPipeline());
     }
 
+    public static RequestPipeline createProxyClientAdmin(MessagingProcessor messagingProcessor) {
+        RequestPipeline pipeline = emptyPipeline();
+        AuthConfig authConfig = ConfigurationManager.getAuthConfig();
+        if (authConfig != null) {
+            pipeline = pipeline
+                .pipe(new AuthenticationSubjectPipeline())
+                .pipe(new AuthenticationPipeline(authConfig, messagingProcessor));
+        }
+        return pipeline.pipe(new ContextInitPipeline());
+    }
+
     public static ProxyClientAdminContextFactory createProxyClientAdminContextFactory(
         MessagingProcessor messagingProcessor) {
-        return new ProxyClientAdminContextFactory(create(messagingProcessor));
+        return new ProxyClientAdminContextFactory(createProxyClientAdmin(messagingProcessor));
+    }
+
+    private static RequestPipeline emptyPipeline() {
+        return (context, headers, request) -> {
+        };
     }
 }
