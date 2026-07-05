@@ -385,6 +385,68 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testEmptySettingsRemovesStaleProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        assertThatThrownBy(() -> this.sendClientTelemetry(context, Settings.getDefaultInstance()).get())
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(StatusRuntimeException.class)
+            .satisfies(throwable -> assertThat(((StatusRuntimeException) throwable.getCause()).getStatus().getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT));
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testInvalidTelemetrySettingsRemovesStaleProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        Settings invalidSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        assertThatThrownBy(() -> this.sendClientTelemetry(context, invalidSettings).get())
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(StatusRuntimeException.class)
+            .satisfies(throwable -> assertThat(((StatusRuntimeException) throwable.getCause()).getStatus().getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT));
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
     public void testHeartbeatPreservesConnectTimeAndUpdatesLastActiveTime() throws Throwable {
         ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
         this.clientActivity = new ClientActivity(

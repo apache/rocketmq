@@ -321,6 +321,9 @@ public class ClientActivity extends AbstractMessagingActivity {
                         }
                     }
                 } catch (Throwable t) {
+                    if (request.getCommandCase() == TelemetryCommand.CommandCase.SETTINGS) {
+                        cleanupClientOnTelemetryClose(ctx);
+                    }
                     processTelemetryException(request, t, responseObserver);
                 }
             }
@@ -433,10 +436,7 @@ public class ClientActivity extends AbstractMessagingActivity {
                 break;
         }
         if (Settings.PubSubCase.PUBSUB_NOT_SET.equals(settings.getPubSubCase())) {
-            responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
-                .withDescription("there is no publishing or subscription data in settings")
-                .asRuntimeException());
-            return;
+            throw new GrpcProxyException(Code.BAD_REQUEST, "there is no publishing or subscription data in settings");
         }
         TelemetryCommand command = processClientSettings(ctx, request);
         this.refreshProxyClientReadModel(ctx, settings, null);
