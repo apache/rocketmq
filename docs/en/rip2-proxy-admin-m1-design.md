@@ -340,14 +340,23 @@ and future public request adapters share the same no-filter semantics.
 `ProxyClientReadService` is an in-memory local read model. It owns:
 
 - `clientId -> ProxyClientInfo`
+- `sorted clientId index`
 - `group -> sorted clientId set`
 - `topic -> sorted clientId set`
 - `clientType -> sorted clientId set`
 
 All listing results are ordered by client id. Upsert first removes the old
 client's index entries and then writes the new snapshot. Remove deletes the
-client record and all index entries. This makes repeated telemetry idempotent and
-keeps group/topic changes from leaving stale index entries.
+client record, the sorted client id entry, and all secondary index entries. This
+makes repeated telemetry idempotent and keeps group/topic changes from leaving
+stale index entries.
+
+Unfiltered scans iterate the maintained sorted client id index directly instead
+of copying all client ids on every request. Filtered scans collect only the
+requested secondary indexes, copy the smallest candidate index, and intersect the
+remaining candidates. This keeps the M1 read model simple while avoiding
+unnecessary full-snapshot copies for common paginated reads and selective
+group/topic/type queries.
 
 The read model normalizes client ids by trimming surrounding whitespace before
 storing, looking up, or removing entries. Group and topic index values are also
@@ -362,8 +371,10 @@ lock-striped or immutable-snapshot indexes without changing the service API.
 
 Pagination is bounded by `ProxyClientQuery.MAX_PAGE_SIZE`. Non-positive page
 sizes use `DEFAULT_PAGE_SIZE`. Page tokens are based on the last client id
-returned by the previous page. When a token is supplied, it must exist in the
-filtered candidate set; otherwise `ProxyClientReadService` throws
+returned by the previous page. Unfiltered pages advance through the maintained
+sorted client id index. Filtered pages advance through the sorted candidate set
+after group/topic/type indexes have been intersected. When a token is supplied,
+it must exist in that candidate set; otherwise `ProxyClientReadService` throws
 `IllegalArgumentException`.
 
 This gives stable pagination for the local snapshot and avoids offset-based
