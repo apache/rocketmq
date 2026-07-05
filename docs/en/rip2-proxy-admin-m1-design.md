@@ -447,6 +447,75 @@ therefore add a dedicated proxy-admin fan-out protocol or a separately maintaine
 cluster-wide index instead of trying to page directly over heartbeat sync
 messages.
 
+## M2 Cross-Proxy Query Decision Record
+
+The next milestone should keep M1's `LOCAL_PROXY` behavior unchanged and add
+cross-proxy query support behind a separate internal boundary before exposing it
+through public protobuf APIs. This keeps the current read model stable while the
+community decides where the public admin service lives.
+
+The recommended M2 direction is a dedicated proxy-admin fan-out layer:
+
+- Keep each proxy responsible for its own `ProxyClientReadService` local
+  snapshot.
+- Add an internal peer query protocol for `ListClients`, `DescribeClient`,
+  `ListClientsByGroup`, and `ListClientsByTopic`.
+- Let the receiving proxy execute the same authorized local query path that M1
+  already uses, but with an explicit internal caller context.
+- Merge page results at the coordinator proxy by sorted `client_id`, carrying
+  per-peer continuation state inside an opaque external page token.
+- Preserve `LOCAL_PROXY` as the default and reject cross-proxy scopes until the
+  fan-out layer and page-token ownership are implemented.
+
+Rejected M2 alternatives:
+
+- Reusing `HeartbeatSyncer` messages as the query source. This path is designed
+  for consumer registration replay into broker-side state, not for complete
+  producer/consumer online-client inspection, request/response semantics, or
+  consistent pagination.
+- Querying broker-side consumer managers only. That would miss producer
+  telemetry and proxy-local connection attributes, and it would not cover the
+  client lifecycle fields already captured by M1.
+- Adding `ALL_PROXIES` by reading remote proxy indexes directly from the local
+  process. The local process has no durable ownership of peer snapshots, so page
+  tokens would become ambiguous during peer restart, scale-out, or network
+  partitions.
+
+The coordinator should encode a future external page token as an opaque value
+that contains:
+
+- a version prefix.
+- the requested scope and filters.
+- the last emitted global `client_id`.
+- a per-peer cursor map keyed by stable proxy id.
+- a token creation timestamp for bounded retention and diagnostics.
+
+The token must not expose raw implementation details to users. The current M1
+`v1:` token codec is intentionally local and should not be reused as the final
+cross-proxy token format without wrapping it in a coordinator-owned token.
+
+Recommended partial-failure behavior:
+
+- `LOCAL_PROXY`: unchanged, fail or succeed as a single local request.
+- `PROXY_ID`: return the target proxy result if reachable; return an error if
+  that proxy cannot be reached or does not own the requested page token.
+- `ALL_PROXIES`: prefer fail-fast in the first public version unless the API adds
+  an explicit partial-result field. Silent omission would make online-client
+  inspection misleading during incidents.
+
+Recommended implementation order after public API ownership is confirmed:
+
+1. Define internal peer request/response DTOs that mirror the existing admin
+   activity DTOs, including scope, filters, page size, and page token.
+2. Add a peer transport adapter that can call another proxy process without
+   depending on public client-facing protobuf classes.
+3. Add a coordinator service that fans out local-page requests, merges results in
+   `client_id` order, and emits coordinator-owned opaque page tokens.
+4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
+   timeout, retry, and partial-failure semantics are validated.
+5. Wire the public `ProxyAdminService` adapter to the coordinator service while
+   keeping M1 `LOCAL_PROXY` as the default.
+
 ## ACL Plan
 
 M1 should reuse existing cluster-level admin permissions:
