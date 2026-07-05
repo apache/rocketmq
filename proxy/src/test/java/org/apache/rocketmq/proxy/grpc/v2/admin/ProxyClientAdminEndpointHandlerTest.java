@@ -29,7 +29,9 @@ import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -288,6 +290,30 @@ public class ProxyClientAdminEndpointHandlerTest {
         assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("response is required");
         assertThat(responseCaptor.getValue().getBody()).isNull();
+    }
+
+    @Test
+    public void handleMapsRepeatedResponseFactoryFailureToGrpcInternalError() {
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+
+        handler.handle(
+            observer,
+            () -> okResult("client-a"),
+            (status, body) -> {
+                throw new IllegalStateException("response conversion failed");
+            }
+        );
+
+        ArgumentCaptor<Throwable> errorCaptor = ArgumentCaptor.forClass(Throwable.class);
+        verify(observer).onError(errorCaptor.capture());
+        assertThat(errorCaptor.getValue()).isInstanceOf(io.grpc.StatusRuntimeException.class);
+        io.grpc.StatusRuntimeException statusRuntimeException =
+            (io.grpc.StatusRuntimeException) errorCaptor.getValue();
+        assertThat(statusRuntimeException.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INTERNAL);
+        assertThat(statusRuntimeException.getStatus().getDescription()).contains("response conversion failed");
+        verify(observer, never()).onNext(any());
+        verify(observer, never()).onCompleted();
     }
 
     private static <T> ProxyClientAdminResult<T> okResult(T body) {
