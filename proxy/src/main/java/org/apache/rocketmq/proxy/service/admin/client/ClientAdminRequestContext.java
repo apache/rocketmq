@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.service.admin.client;
 
+import com.google.common.net.HostAndPort;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.common.constant.CommonConstants;
@@ -53,6 +54,10 @@ public class ClientAdminRequestContext {
         if (StringUtils.isBlank(remoteAddress)) {
             return "";
         }
-        return StringUtils.substringBeforeLast(remoteAddress, CommonConstants.COLON);
+        try {
+            return HostAndPort.fromString(remoteAddress).getHost();
+        } catch (IllegalArgumentException ignored) {
+            return StringUtils.substringBeforeLast(remoteAddress, CommonConstants.COLON);
+        }
     }
 }

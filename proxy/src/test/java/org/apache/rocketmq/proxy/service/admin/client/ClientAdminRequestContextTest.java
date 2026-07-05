@@ -39,6 +39,16 @@ public class ClientAdminRequestContextTest {
     }
 
     @Test
+    public void fromProxyContextRemovesBracketedIpv6Port() {
+        ProxyContext proxyContext = ProxyContext.create()
+            .setRemoteAddress("[2001:db8::1]:8080");
+
+        ClientAdminRequestContext requestContext = ClientAdminRequestContext.from(proxyContext);
+
+        assertThat(requestContext.getSourceIp()).isEqualTo("2001:db8::1");
+    }
+
+    @Test
     public void fromProxyContextRejectsNullContext() {
         assertThatThrownBy(() -> ClientAdminRequestContext.from(null))
             .isInstanceOf(IllegalArgumentException.class)

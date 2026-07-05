@@ -335,13 +335,13 @@ The current internal implementation provides `ClientAdminAuthPolicy`,
 The admin gRPC request pipeline copies the authenticated access key into
 `ProxyContext` as a `Subject`, and `ClientAdminRequestContext.from` derives the
 admin request context from `ProxyContext`. The source IP used for ACL is
-normalized from the gRPC remote address by removing the trailing port, matching
-the existing remoting-side source address handling. The admin pipeline
-intentionally does not run generic messaging authorization; this lets the future
-public adapter reject unsupported M1 scopes before ACL, then authorize once
-through `AuthorizingClientAdminService` before delegating to read-model queries
-while keeping the first admin surface consistent with existing management
-actions.
+normalized from the gRPC remote address by parsing the host portion, including
+bracketed IPv6 host-and-port values, matching the existing remoting-side source
+address intent. The admin pipeline intentionally does not run generic messaging
+authorization; this lets the future public adapter reject unsupported M1 scopes
+before ACL, then authorize once through `AuthorizingClientAdminService` before
+delegating to read-model queries while keeping the first admin surface
+consistent with existing management actions.
 Topic-level or group-level ACL can be discussed later if the community wants
 more granular visibility controls.
 
