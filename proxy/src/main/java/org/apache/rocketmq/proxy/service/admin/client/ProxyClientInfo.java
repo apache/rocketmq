@@ -45,7 +45,7 @@ public class ProxyClientInfo {
     public ProxyClientInfo(String clientId, ClientType clientType, Set<String> groups, Set<String> topics,
         String language, String remoteAddress, String localAddress, String clientVersion, String proxyId,
         long connectTimeMillis, long lastActiveTimeMillis) {
-        this.clientId = StringUtils.trimToNull(clientId);
+        this.clientId = normalizeClientId(clientId);
         this.clientType = clientType;
         this.groups = normalize(groups);
         this.topics = normalize(topics);
@@ -56,6 +56,14 @@ public class ProxyClientInfo {
         this.proxyId = StringUtils.trimToNull(proxyId);
         this.connectTimeMillis = connectTimeMillis;
         this.lastActiveTimeMillis = lastActiveTimeMillis;
+    }
+
+    private static String normalizeClientId(String clientId) {
+        String normalizedClientId = StringUtils.trimToNull(clientId);
+        if (normalizedClientId == null) {
+            throw new IllegalArgumentException("clientId is required");
+        }
+        return normalizedClientId;
     }
 
     private static Set<String> normalize(Set<String> values) {
