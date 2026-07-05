@@ -93,7 +93,9 @@ small and tested boundary to call:
   admin queries. It accepts `ProxyContext`, calls `AuthorizingClientAdminService`,
   and returns `ProxyClientAdminResult<T>` with an `apache.rocketmq.v2.Status`
   plus an optional body. It also enforces the M1 `LOCAL_PROXY` scope before
-  invoking authorization or read-model queries.
+  invoking authorization or read-model queries, and canonicalizes low-level
+  `ProxyClientQuery` overloads so accidental `proxyId` filters are removed
+  before authorization, metrics, or delegate execution.
 - `ProxyClientAdminResult` preserves the public status/body split expected by a
   gRPC endpoint while keeping the internal service API simple.
 - `ProxyClientAdminClientView` and `ProxyClientAdminPageView` are public-facing
@@ -568,6 +570,8 @@ Internal adapter tests cover:
   proxy id.
 - default `LOCAL_PROXY` scope, opaque page-token encode/decode, and proxy id
   pass-through for future scoped queries.
+- activity-level `LOCAL_PROXY` query canonicalization before authorization and
+  delegate calls.
 - service-level `LOCAL_PROXY` query canonicalization that drops accidental
   proxy-id filters before querying the local read model.
 - activity overloads for request DTOs.

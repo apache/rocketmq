@@ -66,6 +66,30 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void listClientsDropsProxyIdForLocalProxyScopeBeforeDelegation() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), "");
+        when(delegate.listClients(any(ProxyClientQuery.class))).thenReturn(page);
+
+        ProxyClientAdminResult<ProxyClientPage> result = activity.listClients(
+            proxyContext(),
+            ProxyClientQuery.newBuilder()
+                .setProxyId("proxy-a")
+                .build()
+        );
+
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(delegate).listClients(queryCaptor.capture());
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(queryCaptor.getValue().getProxyId()).isNull();
+    }
+
+    @Test
     public void listClientsByGroupReturnsOkStatusAndPage() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
@@ -84,6 +108,31 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void listClientsByGroupDropsProxyIdForLocalProxyScopeBeforeDelegation() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), "");
+        when(delegate.listClientsByGroup(eq("group-a"), any(ProxyClientQuery.class))).thenReturn(page);
+
+        ProxyClientAdminResult<ProxyClientPage> result = activity.listClientsByGroup(
+            proxyContext(),
+            "group-a",
+            ProxyClientQuery.newBuilder()
+                .setProxyId("proxy-a")
+                .build()
+        );
+
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(delegate).listClientsByGroup(eq("group-a"), queryCaptor.capture());
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(queryCaptor.getValue().getProxyId()).isNull();
+    }
+
+    @Test
     public void listClientsByTopicReturnsOkStatusAndPage() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
@@ -99,6 +148,31 @@ public class ProxyClientAdminActivityTest {
 
         assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
         assertThat(result.getBody()).isSameAs(page);
+    }
+
+    @Test
+    public void listClientsByTopicDropsProxyIdForLocalProxyScopeBeforeDelegation() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), "");
+        when(delegate.listClientsByTopic(eq("topic-a"), any(ProxyClientQuery.class))).thenReturn(page);
+
+        ProxyClientAdminResult<ProxyClientPage> result = activity.listClientsByTopic(
+            proxyContext(),
+            "topic-a",
+            ProxyClientQuery.newBuilder()
+                .setProxyId("proxy-a")
+                .build()
+        );
+
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(delegate).listClientsByTopic(eq("topic-a"), queryCaptor.capture());
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(queryCaptor.getValue().getProxyId()).isNull();
     }
 
     @Test

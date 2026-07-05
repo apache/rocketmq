@@ -268,6 +268,16 @@ public class ProxyClientAdminActivity {
     private ProxyClientQuery validateLocalProxyScope(ProxyClientQuery query) {
         ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
         this.validateLocalProxyScope(effectiveQuery.getScope());
-        return effectiveQuery;
+        if (effectiveQuery.getProxyId() == null) {
+            return effectiveQuery;
+        }
+        return ProxyClientQuery.newBuilder()
+            .setGroup(effectiveQuery.getGroup())
+            .setTopic(effectiveQuery.getTopic())
+            .setClientType(effectiveQuery.getClientType())
+            .setPageSize(effectiveQuery.getPageSize())
+            .setPageToken(effectiveQuery.getPageToken())
+            .setScope(effectiveQuery.getScope())
+            .build();
     }
 }
