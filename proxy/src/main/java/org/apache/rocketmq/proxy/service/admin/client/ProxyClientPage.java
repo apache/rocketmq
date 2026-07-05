@@ -25,6 +25,9 @@ public class ProxyClientPage {
     private final String nextPageToken;
 
     public ProxyClientPage(List<ProxyClientInfo> clients, String nextPageToken) {
+        if (clients == null) {
+            throw new IllegalArgumentException("clients is required");
+        }
         this.clients = Collections.unmodifiableList(new ArrayList<>(clients));
         this.nextPageToken = nextPageToken == null ? "" : nextPageToken;
     }
