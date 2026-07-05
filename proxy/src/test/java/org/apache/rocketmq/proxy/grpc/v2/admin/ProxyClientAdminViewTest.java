@@ -46,6 +46,25 @@ public class ProxyClientAdminViewTest {
     }
 
     @Test
+    public void clientViewNormalizesGroupAndTopicEntries() {
+        ProxyClientAdminClientView view = new ProxyClientAdminClientView(
+            "client-a",
+            ClientType.PUSH_CONSUMER,
+            Arrays.asList(" group-b ", null, "", " ", "group-a"),
+            Arrays.asList(" topic-b ", null, "", " ", "topic-a"),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        );
+
+        assertThat(view.getGroups()).containsExactly("group-b", "group-a");
+        assertThat(view.getTopics()).containsExactly("topic-b", "topic-a");
+    }
+
+    @Test
     public void pageViewRejectsNullClientEntries() {
         assertThatThrownBy(() -> new ProxyClientAdminPageView(
             Arrays.asList(clientView("client-a"), null),

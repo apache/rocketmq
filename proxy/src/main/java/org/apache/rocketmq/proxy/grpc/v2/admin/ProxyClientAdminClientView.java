@@ -71,7 +71,17 @@ public class ProxyClientAdminClientView {
         if (values == null || values.isEmpty()) {
             return Collections.emptyList();
         }
-        return Collections.unmodifiableList(new ArrayList<>(values));
+        List<String> result = new ArrayList<>(values.size());
+        for (String value : values) {
+            String normalizedValue = StringUtils.trimToNull(value);
+            if (normalizedValue != null) {
+                result.add(normalizedValue);
+            }
+        }
+        if (result.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return Collections.unmodifiableList(result);
     }
 
     private static String nullToEmpty(String value) {
