@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
@@ -101,7 +102,7 @@ public class ProxyClientAdminListClientsRequest {
         }
 
         public T setPageToken(String pageToken) {
-            this.pageToken = pageToken;
+            this.pageToken = StringUtils.trimToNull(pageToken);
             return this.self();
         }
 
@@ -116,7 +117,7 @@ public class ProxyClientAdminListClientsRequest {
         }
 
         public T setProxyId(String proxyId) {
-            this.proxyId = proxyId;
+            this.proxyId = StringUtils.trimToNull(proxyId);
             return this.self();
         }
 

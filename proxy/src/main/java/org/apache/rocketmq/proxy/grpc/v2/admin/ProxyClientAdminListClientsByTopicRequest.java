@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 
 public class ProxyClientAdminListClientsByTopicRequest extends ProxyClientAdminListClientsRequest {
@@ -46,7 +47,7 @@ public class ProxyClientAdminListClientsByTopicRequest extends ProxyClientAdminL
         private String topic;
 
         public Builder setTopic(String topic) {
-            this.topic = topic;
+            this.topic = StringUtils.trimToNull(topic);
             return this;
         }
 

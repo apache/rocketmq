@@ -70,6 +70,21 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void listClientsRequestTrimsPageTokenAndProxyId() {
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setPageToken(" v1:Y2xpZW50LWE ")
+            .setProxyId(" proxy-a ")
+            .build();
+
+        ProxyClientQuery query = request.toQuery();
+
+        assertThat(request.getPageToken()).isEqualTo("v1:Y2xpZW50LWE");
+        assertThat(request.getProxyId()).isEqualTo("proxy-a");
+        assertThat(query.getPageToken()).isEqualTo("client-a");
+        assertThat(query.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
     public void listClientsRequestTreatsUnspecifiedClientTypeAsNoFilter() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
@@ -108,6 +123,17 @@ public class ProxyClientAdminRequestTest {
 
         assertThat(request.getClientId()).isEqualTo("client-a");
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(request.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
+    public void describeClientRequestTrimsClientIdAndProxyId() {
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId(" client-a ")
+            .setProxyId(" proxy-a ")
+            .build();
+
+        assertThat(request.getClientId()).isEqualTo("client-a");
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
     }
 
@@ -154,6 +180,16 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void listClientsByGroupRequestTrimsGroup() {
+        ProxyClientAdminListClientsByGroupRequest request = ProxyClientAdminListClientsByGroupRequest.newBuilder()
+            .setGroup(" group-a ")
+            .build();
+
+        assertThat(request.getGroup()).isEqualTo("group-a");
+        assertThat(request.toQuery().getGroup()).isEqualTo("group-a");
+    }
+
+    @Test
     public void listClientsByTopicRequestCarriesTopicAndOpaquePageToken() {
         ProxyClientAdminListClientsByTopicRequest request = ProxyClientAdminListClientsByTopicRequest.newBuilder()
             .setTopic("topic-a")
@@ -172,5 +208,15 @@ public class ProxyClientAdminRequestTest {
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
         assertThat(query.getProxyId()).isEqualTo("proxy-a");
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
+    public void listClientsByTopicRequestTrimsTopic() {
+        ProxyClientAdminListClientsByTopicRequest request = ProxyClientAdminListClientsByTopicRequest.newBuilder()
+            .setTopic(" topic-a ")
+            .build();
+
+        assertThat(request.getTopic()).isEqualTo("topic-a");
+        assertThat(request.toQuery().getTopic()).isEqualTo("topic-a");
     }
 }

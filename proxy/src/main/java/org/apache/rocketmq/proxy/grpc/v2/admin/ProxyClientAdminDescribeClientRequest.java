@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public class ProxyClientAdminDescribeClientRequest {
@@ -52,7 +53,7 @@ public class ProxyClientAdminDescribeClientRequest {
         private String proxyId;
 
         public Builder setClientId(String clientId) {
-            this.clientId = clientId;
+            this.clientId = StringUtils.trimToNull(clientId);
             return this;
         }
 
@@ -67,7 +68,7 @@ public class ProxyClientAdminDescribeClientRequest {
         }
 
         public Builder setProxyId(String proxyId) {
-            this.proxyId = proxyId;
+            this.proxyId = StringUtils.trimToNull(proxyId);
             return this;
         }
 
