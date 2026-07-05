@@ -184,6 +184,54 @@ public class AuthorizingClientAdminServiceTest {
         ));
     }
 
+    @Test
+    public void meteredServiceMetricsRecorderErrorDoesNotMaskSuccessfulResult() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminRequestContext requestContext = requestContext();
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), null);
+        when(delegate.listClients(query)).thenReturn(page);
+        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
+            throw new LinkageError("metrics linkage down");
+        };
+        MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
+            delegate,
+            authorizationService,
+            failingRecorder,
+            clock()
+        );
+
+        assertThat(adminService.listClients(requestContext, query)).isSameAs(page);
+    }
+
+    @Test
+    public void meteredServiceMetricsRecorderErrorDoesNotMaskAuthorizationFailure() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminRequestContext requestContext = requestContext();
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        AuthorizationException denied = new AuthorizationException("denied");
+        org.mockito.Mockito.doThrow(denied).when(authorizationService).authorize(
+            requestContext.getSubject(),
+            ClientAdminOperation.LIST_CLIENTS,
+            requestContext.getSourceIp()
+        );
+        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
+            throw new LinkageError("metrics linkage down");
+        };
+        MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
+            delegate,
+            authorizationService,
+            failingRecorder,
+            clock()
+        );
+
+        assertThatThrownBy(() -> adminService.listClients(requestContext, query))
+            .isSameAs(denied);
+        verify(delegate, never()).listClients(query);
+    }
+
     private static ClientAdminRequestContext requestContext() {
         return ClientAdminRequestContext.of(User.of("admin"), "127.0.0.1");
     }

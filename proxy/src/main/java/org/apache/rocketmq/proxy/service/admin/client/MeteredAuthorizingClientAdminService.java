@@ -100,7 +100,7 @@ public class MeteredAuthorizingClientAdminService extends AuthorizingClientAdmin
     private void recordMetrics(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis) {
         try {
             this.metricsRecorder.record(operation, result, latencyMillis);
-        } catch (RuntimeException e) {
+        } catch (Throwable e) {
             log.warn("record client admin metrics failed. operation:{}, result:{}", operation, result, e);
         }
     }
