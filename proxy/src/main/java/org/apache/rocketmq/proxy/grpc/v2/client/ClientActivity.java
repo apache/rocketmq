@@ -328,7 +328,7 @@ public class ClientActivity extends AbstractMessagingActivity {
             @Override
             public void onError(Throwable t) {
                 log.error("telemetry on error", t);
-                handleGrpcCancel(proxyCtx, t);
+                handleGrpcStreamError(proxyCtx, t);
             }
 
             @Override
@@ -353,7 +353,7 @@ public class ClientActivity extends AbstractMessagingActivity {
         throw new IllegalArgumentException("unknown LiteSubscriptionAction: " + gRpcAction);
     }
 
-    private void handleGrpcCancel(ProxyContext ctx, Throwable t) {
+    private void handleGrpcStreamError(ProxyContext ctx, Throwable t) {
         if (ctx == null) {
             return;
         }
@@ -364,12 +364,9 @@ public class ClientActivity extends AbstractMessagingActivity {
         if (!(t instanceof StatusRuntimeException)) {
             return;
         }
-        log.warn("handleGrpcCancel clientId:{}", clientId);
         StatusRuntimeException statusException = (StatusRuntimeException) t;
-        if (io.grpc.Status.CANCELLED.getCode() == statusException.getStatus().getCode() ||
-            io.grpc.Status.UNAVAILABLE.getCode() == statusException.getStatus().getCode()) {
-            this.cleanupClientOnTelemetryClose(ctx);
-        }
+        log.warn("handle grpc stream error. clientId:{}, status:{}", clientId, statusException.getStatus().getCode());
+        this.cleanupClientOnTelemetryClose(ctx);
     }
 
     private void cleanupClientOnTelemetryClose(ProxyContext ctx) {
