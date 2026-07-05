@@ -50,10 +50,11 @@ public class ProxyClientReadService {
     }
 
     public synchronized void upsertClient(ProxyClientInfo clientInfo) {
-        if (clientInfo == null || StringUtils.isBlank(clientInfo.getClientId())) {
+        String clientId = clientInfo == null ? null : normalizeClientId(clientInfo.getClientId());
+        if (clientId == null) {
             throw new IllegalArgumentException("clientId is required");
         }
-        ProxyClientInfo oldClientInfo = this.clientIdTable.put(clientInfo.getClientId(), clientInfo);
+        ProxyClientInfo oldClientInfo = this.clientIdTable.put(clientId, clientInfo);
         if (oldClientInfo != null) {
             this.removeIndexes(oldClientInfo);
         }
@@ -62,10 +63,11 @@ public class ProxyClientReadService {
     }
 
     public synchronized void removeClient(String clientId) {
-        if (StringUtils.isBlank(clientId)) {
+        String normalizedClientId = normalizeClientId(clientId);
+        if (normalizedClientId == null) {
             return;
         }
-        ProxyClientInfo oldClientInfo = this.clientIdTable.remove(clientId);
+        ProxyClientInfo oldClientInfo = this.clientIdTable.remove(normalizedClientId);
         if (oldClientInfo != null) {
             this.removeIndexes(oldClientInfo);
             this.recordOperation(ProxyClientReadServiceOperation.REMOVE);
@@ -73,7 +75,7 @@ public class ProxyClientReadService {
     }
 
     public synchronized ProxyClientInfo getClient(String clientId) {
-        return this.clientIdTable.get(clientId);
+        return this.clientIdTable.get(normalizeClientId(clientId));
     }
 
     public synchronized ProxyClientReadServiceStats snapshotStats() {
@@ -188,5 +190,9 @@ public class ProxyClientReadService {
         } catch (Throwable e) {
             log.warn("record proxy client read model operation failed. operation:{}", operation, e);
         }
+    }
+
+    private static String normalizeClientId(String clientId) {
+        return StringUtils.trimToNull(clientId);
     }
 }

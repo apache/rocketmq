@@ -315,6 +315,10 @@ client's index entries and then writes the new snapshot. Remove deletes the
 client record and all index entries. This makes repeated telemetry idempotent and
 keeps group/topic changes from leaving stale index entries.
 
+The read model normalizes client ids by trimming surrounding whitespace before
+storing, looking up, or removing entries. Group and topic index values are also
+trimmed and blank values are ignored.
+
 The service is synchronized in M1. That keeps the implementation simple and
 consistent while lifecycle updates and admin reads are still local to one proxy
 process. A future high-scale implementation can replace the internal maps with

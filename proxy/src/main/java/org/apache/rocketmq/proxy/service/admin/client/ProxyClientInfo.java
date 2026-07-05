@@ -37,7 +37,7 @@ public class ProxyClientInfo {
     public ProxyClientInfo(String clientId, ClientType clientType, Set<String> groups, Set<String> topics,
         String language, String remoteAddress, String localAddress, String clientVersion, long connectTimeMillis,
         long lastActiveTimeMillis) {
-        this.clientId = clientId;
+        this.clientId = StringUtils.trimToNull(clientId);
         this.clientType = clientType;
         this.groups = normalize(groups);
         this.topics = normalize(topics);

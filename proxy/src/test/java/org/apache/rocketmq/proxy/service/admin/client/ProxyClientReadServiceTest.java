@@ -169,6 +169,27 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void upsertGetAndRemoveNormalizeClientId() {
+        ProxyClientReadService service = new ProxyClientReadService();
+
+        service.upsertClient(client(" client-a ", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+
+        assertThat(service.getClient("client-a").getClientId()).isEqualTo("client-a");
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder().build()).getClients()))
+            .containsExactly("client-a");
+
+        service.removeClient(" client-a ");
+
+        assertThat(service.getClient("client-a")).isNull();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("group-a")
+            .build()).getClients()).isEmpty();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder()
+            .setTopic("topic-a")
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
     public void recordsSuccessfulUpsertAndRemoveOperations() {
         List<ProxyClientReadServiceOperation> operations = new ArrayList<>();
         ProxyClientReadService service = new ProxyClientReadService(operations::add);
