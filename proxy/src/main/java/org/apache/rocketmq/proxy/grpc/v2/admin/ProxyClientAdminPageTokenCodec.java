@@ -38,6 +38,9 @@ public final class ProxyClientAdminPageTokenCodec {
             return null;
         }
         if (!normalizedPublicPageToken.startsWith(VERSION_1_PREFIX)) {
+            if (isVersionedToken(normalizedPublicPageToken)) {
+                throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
+            }
             return normalizedPublicPageToken;
         }
         String encodedReadModelPageToken = normalizedPublicPageToken.substring(VERSION_1_PREFIX.length());
@@ -67,5 +70,18 @@ public final class ProxyClientAdminPageTokenCodec {
         return VERSION_1_PREFIX + Base64.getUrlEncoder()
             .withoutPadding()
             .encodeToString(normalizedReadModelPageToken.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static boolean isVersionedToken(String publicPageToken) {
+        int colonIndex = publicPageToken.indexOf(':');
+        if (colonIndex <= 1 || publicPageToken.charAt(0) != 'v') {
+            return false;
+        }
+        for (int i = 1; i < colonIndex; i++) {
+            if (!Character.isDigit(publicPageToken.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

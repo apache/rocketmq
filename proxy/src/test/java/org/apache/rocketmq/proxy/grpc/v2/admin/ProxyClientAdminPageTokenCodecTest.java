@@ -58,6 +58,20 @@ public class ProxyClientAdminPageTokenCodecTest {
     }
 
     @Test
+    public void codecRejectsUnknownVersionedTokens() {
+        ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
+
+        assertThatThrownBy(() -> codec.decode("v2:Y2xpZW50LWE"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid page token")
+            .hasMessageContaining("v2:Y2xpZW50LWE");
+        assertThatThrownBy(() -> codec.decode("v10:Y2xpZW50LWE"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid page token")
+            .hasMessageContaining("v10:Y2xpZW50LWE");
+    }
+
+    @Test
     public void codecNormalizesBlankTokensAtAdapterBoundary() {
         ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
 
