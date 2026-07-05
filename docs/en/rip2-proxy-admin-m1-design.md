@@ -403,6 +403,18 @@ Future scopes can add:
 The M1 read model intentionally stores only local lifecycle state so cross-proxy
 semantics can be added without changing the local index contract.
 
+The existing `HeartbeatSyncer` path is not a complete cross-proxy admin query
+mechanism. It broadcasts consumer register/unregister events through the proxy
+system-message topic and replays remote channels into broker-side
+`ConsumerManager` state. That data flow is useful for existing consumer
+management behavior, but it is not a pageable admin read path: it does not carry
+all producer and consumer telemetry fields, does not define a request/response
+protocol, does not provide a consistent merged snapshot, and does not define
+cross-proxy page-token ownership. A future `ALL_PROXIES` implementation should
+therefore add a dedicated proxy-admin fan-out protocol or a separately maintained
+cluster-wide index instead of trying to page directly over heartbeat sync
+messages.
+
 ## ACL Plan
 
 M1 should reuse existing cluster-level admin permissions:
