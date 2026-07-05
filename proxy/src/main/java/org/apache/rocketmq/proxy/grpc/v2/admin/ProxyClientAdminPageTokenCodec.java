@@ -33,36 +33,39 @@ public final class ProxyClientAdminPageTokenCodec {
     }
 
     public String decode(String publicPageToken) {
-        if (StringUtils.isBlank(publicPageToken)) {
+        String normalizedPublicPageToken = StringUtils.trimToNull(publicPageToken);
+        if (normalizedPublicPageToken == null) {
             return null;
         }
-        if (!publicPageToken.startsWith(VERSION_1_PREFIX)) {
-            return publicPageToken;
+        if (!normalizedPublicPageToken.startsWith(VERSION_1_PREFIX)) {
+            return normalizedPublicPageToken;
         }
-        String encodedReadModelPageToken = publicPageToken.substring(VERSION_1_PREFIX.length());
+        String encodedReadModelPageToken = normalizedPublicPageToken.substring(VERSION_1_PREFIX.length());
         if (StringUtils.isBlank(encodedReadModelPageToken)) {
-            throw new IllegalArgumentException("Invalid page token: " + publicPageToken);
+            throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
         }
         try {
             String readModelPageToken = new String(
                 Base64.getUrlDecoder().decode(encodedReadModelPageToken),
                 StandardCharsets.UTF_8
             );
-            if (StringUtils.isBlank(readModelPageToken)) {
-                throw new IllegalArgumentException("Invalid page token: " + publicPageToken);
+            String normalizedReadModelPageToken = StringUtils.trimToNull(readModelPageToken);
+            if (normalizedReadModelPageToken == null) {
+                throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
             }
-            return readModelPageToken;
+            return normalizedReadModelPageToken;
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid page token: " + publicPageToken, e);
+            throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken, e);
         }
     }
 
     public String encode(String readModelPageToken) {
-        if (StringUtils.isBlank(readModelPageToken)) {
+        String normalizedReadModelPageToken = StringUtils.trimToNull(readModelPageToken);
+        if (normalizedReadModelPageToken == null) {
             return "";
         }
         return VERSION_1_PREFIX + Base64.getUrlEncoder()
             .withoutPadding()
-            .encodeToString(readModelPageToken.getBytes(StandardCharsets.UTF_8));
+            .encodeToString(normalizedReadModelPageToken.getBytes(StandardCharsets.UTF_8));
     }
 }

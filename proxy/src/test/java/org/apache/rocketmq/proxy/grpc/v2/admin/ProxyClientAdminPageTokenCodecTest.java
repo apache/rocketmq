@@ -40,6 +40,15 @@ public class ProxyClientAdminPageTokenCodecTest {
     }
 
     @Test
+    public void codecTrimsTokensBeforeEncodingAndDecoding() {
+        ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
+
+        assertThat(codec.encode(" client-a ")).isEqualTo("v1:Y2xpZW50LWE");
+        assertThat(codec.decode(" v1:Y2xpZW50LWE ")).isEqualTo("client-a");
+        assertThat(codec.decode(" client-a ")).isEqualTo("client-a");
+    }
+
+    @Test
     public void codecRejectsMalformedVersionedTokens() {
         ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
 
