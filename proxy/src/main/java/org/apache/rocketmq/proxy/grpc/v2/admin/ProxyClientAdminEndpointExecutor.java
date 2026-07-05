@@ -107,8 +107,9 @@ public class ProxyClientAdminEndpointExecutor {
         try {
             requiredResponseFactory = this.requireResponseFactory(responseFactory);
             Function<P, D> requiredRequestAdapter = this.requireRequestAdapter(requestAdapter);
-            ProxyContext ctx = this.contextFactory.create(headers, protoRequest);
-            D request = this.requireAdaptedRequest(requiredRequestAdapter.apply(protoRequest));
+            P requiredProtoRequest = this.requireProtoRequest(protoRequest);
+            ProxyContext ctx = this.contextFactory.create(headers, requiredProtoRequest);
+            D request = this.requireAdaptedRequest(requiredRequestAdapter.apply(requiredProtoRequest));
             endpointCall.execute(ctx, request, requiredResponseObserver, requiredResponseFactory);
         } catch (RuntimeException | Error t) {
             if (requiredResponseFactory == null) {
@@ -126,6 +127,13 @@ public class ProxyClientAdminEndpointExecutor {
             throw new IllegalArgumentException("requestAdapter is required");
         }
         return requestAdapter;
+    }
+
+    private <P> P requireProtoRequest(P protoRequest) {
+        if (protoRequest == null) {
+            throw new IllegalArgumentException("protoRequest is required");
+        }
+        return protoRequest;
     }
 
     private <D> D requireAdaptedRequest(D request) {

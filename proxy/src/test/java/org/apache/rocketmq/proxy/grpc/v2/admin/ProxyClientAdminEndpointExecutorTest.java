@@ -230,6 +230,34 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void listClientsMapsMissingProtoRequestToStatusResponseBeforeCreatingContext() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        AtomicBoolean requestAdapterInvoked = new AtomicBoolean(false);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            headers,
+            null,
+            ignored -> {
+                requestAdapterInvoked.set(true);
+                return ProxyClientAdminListClientsRequest.newBuilder().build();
+            },
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("protoRequest is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        assertThat(requestAdapterInvoked).isFalse();
+        verify(contextFactory, never()).create(any(), any());
+    }
+
+    @Test
     public void mapsNullAdaptedRequestToBadRequest() {
         ProxyClientAdminEndpointExecutor executor =
             new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
