@@ -133,6 +133,52 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void listClientsFiltersByProxyIdAndIntersectsOtherIndexesInClientIdOrder() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-d", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-a"), "proxy-a"));
+        service.upsertClient(client("client-b", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-a"), "proxy-a"));
+        service.upsertClient(client("client-a", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-a"), "proxy-b"));
+        service.upsertClient(client("client-c", ClientType.PRODUCER, set("group-a"), set("topic-a"), "proxy-a"));
+        service.upsertClient(client("client-e", ClientType.PUSH_CONSUMER, set("group-b"), set("topic-a"), "proxy-a"));
+
+        ProxyClientPage page = service.listClients(ProxyClientQuery.newBuilder()
+            .setProxyId(" proxy-a ")
+            .setGroup("group-a")
+            .setTopic("topic-a")
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .build());
+
+        assertThat(clientIds(page.getClients())).containsExactly("client-b", "client-d");
+    }
+
+    @Test
+    public void upsertClientRefreshesProxyIdIndex() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"), "proxy-a"));
+
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"), "proxy-b"));
+
+        assertThat(service.listClients(ProxyClientQuery.newBuilder()
+            .setProxyId("proxy-a")
+            .build()).getClients()).isEmpty();
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setProxyId("proxy-b")
+            .build()).getClients())).containsExactly("client-a");
+    }
+
+    @Test
+    public void removeClientDeletesProxyIdIndex() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"), "proxy-a"));
+
+        service.removeClient("client-a");
+
+        assertThat(service.listClients(ProxyClientQuery.newBuilder()
+            .setProxyId("proxy-a")
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
     public void upsertClientTreatsUnspecifiedClientTypeAsMissingType() {
         ProxyClientReadService service = new ProxyClientReadService();
 
@@ -307,6 +353,11 @@ public class ProxyClientReadServiceTest {
     }
 
     private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics) {
+        return client(clientId, clientType, groups, topics, null);
+    }
+
+    private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics,
+        String proxyId) {
         return new ProxyClientInfo(
             clientId,
             clientType,
@@ -316,6 +367,7 @@ public class ProxyClientReadServiceTest {
             "127.0.0.1:8080",
             "192.168.0.1:8080",
             "V5_0_0",
+            proxyId,
             100L,
             200L
         );

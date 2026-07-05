@@ -40,6 +40,7 @@ public class ProxyClientReadService {
     private final Map<String, NavigableSet<String>> groupIndex = new HashMap<>();
     private final Map<String, NavigableSet<String>> topicIndex = new HashMap<>();
     private final Map<ClientType, NavigableSet<String>> clientTypeIndex = new HashMap<>();
+    private final Map<String, NavigableSet<String>> proxyIdIndex = new HashMap<>();
     private final Consumer<ProxyClientReadServiceOperation> operationRecorder;
 
     public ProxyClientReadService() {
@@ -120,7 +121,7 @@ public class ProxyClientReadService {
     }
 
     private NavigableSet<String> getCandidateClientIds(ProxyClientQuery query) {
-        List<NavigableSet<String>> candidateIndexes = new ArrayList<>(3);
+        List<NavigableSet<String>> candidateIndexes = new ArrayList<>(4);
         if (StringUtils.isNotBlank(query.getGroup())) {
             candidateIndexes.add(this.getIndexClientIds(this.groupIndex, query.getGroup()));
         }
@@ -129,6 +130,9 @@ public class ProxyClientReadService {
         }
         if (query.getClientType() != null) {
             candidateIndexes.add(this.getIndexClientIds(this.clientTypeIndex, query.getClientType()));
+        }
+        if (StringUtils.isNotBlank(query.getProxyId())) {
+            candidateIndexes.add(this.getIndexClientIds(this.proxyIdIndex, query.getProxyId()));
         }
         if (candidateIndexes.isEmpty()) {
             return this.clientIdIndex;
@@ -173,6 +177,9 @@ public class ProxyClientReadService {
         if (clientInfo.getClientType() != null) {
             this.addIndex(this.clientTypeIndex, clientInfo.getClientType(), clientId);
         }
+        if (clientInfo.getProxyId() != null) {
+            this.addIndex(this.proxyIdIndex, clientInfo.getProxyId(), clientId);
+        }
     }
 
     private void removeIndexes(ProxyClientInfo clientInfo) {
@@ -185,6 +192,9 @@ public class ProxyClientReadService {
         }
         if (clientInfo.getClientType() != null) {
             this.removeIndex(this.clientTypeIndex, clientInfo.getClientType(), clientId);
+        }
+        if (clientInfo.getProxyId() != null) {
+            this.removeIndex(this.proxyIdIndex, clientInfo.getProxyId(), clientId);
         }
     }
 

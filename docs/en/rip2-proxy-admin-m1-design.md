@@ -344,23 +344,27 @@ and future public request adapters share the same no-filter semantics.
 - `group -> sorted clientId set`
 - `topic -> sorted clientId set`
 - `clientType -> sorted clientId set`
+- `proxyId -> sorted clientId set`
 
 All listing results are ordered by client id. Upsert first removes the old
 client's index entries and then writes the new snapshot. Remove deletes the
 client record, the sorted client id entry, and all secondary index entries. This
-makes repeated telemetry idempotent and keeps group/topic changes from leaving
-stale index entries.
+makes repeated telemetry idempotent and keeps group/topic/proxy changes from
+leaving stale index entries.
 
 Unfiltered scans iterate the maintained sorted client id index directly instead
 of copying all client ids on every request. Filtered scans collect only the
 requested secondary indexes, copy the smallest candidate index, and intersect the
 remaining candidates. This keeps the M1 read model simple while avoiding
 unnecessary full-snapshot copies for common paginated reads and selective
-group/topic/type queries.
+group/topic/type/proxy queries.
 
 The read model normalizes client ids by trimming surrounding whitespace before
 storing, looking up, or removing entries. Group and topic index values are also
-trimmed, de-duplicated by the index sets, and blank values are ignored.
+trimmed, de-duplicated by the index sets, and blank values are ignored. Proxy
+ids are indexed with the same sorted-set structure so future `PROXY_ID` and
+fan-out merge paths can restrict a query to one source proxy without changing
+pagination order.
 
 The service is synchronized in M1. That keeps the implementation simple and
 consistent while lifecycle updates and admin reads are still local to one proxy
