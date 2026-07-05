@@ -207,18 +207,25 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
-    public void listClientsRejectsMissingRequestAdapterBeforeCreatingContext() {
+    public void listClientsMapsMissingRequestAdapterToStatusResponseBeforeCreatingContext() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
         BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
 
-        assertThatThrownBy(() -> executor.listClients(
+        executor.listClients(
             headers,
             protoRequest,
             null,
             responseObserver,
             responseFactory
-        ))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("requestAdapter is required");
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("requestAdapter is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
         verify(contextFactory, never()).create(any(), any());
     }
 

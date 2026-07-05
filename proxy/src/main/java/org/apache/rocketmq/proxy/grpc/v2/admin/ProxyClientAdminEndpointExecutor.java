@@ -104,8 +104,8 @@ public class ProxyClientAdminEndpointExecutor {
         EndpointCall<D, T, R> endpointCall) {
         StreamObserver<R> requiredResponseObserver = this.requireResponseObserver(responseObserver);
         BiFunction<Status, T, R> requiredResponseFactory = this.requireResponseFactory(responseFactory);
-        Function<P, D> requiredRequestAdapter = this.requireRequestAdapter(requestAdapter);
         try {
+            Function<P, D> requiredRequestAdapter = this.requireRequestAdapter(requestAdapter);
             ProxyContext ctx = this.contextFactory.create(headers, protoRequest);
             D request = this.requireAdaptedRequest(requiredRequestAdapter.apply(protoRequest));
             endpointCall.execute(ctx, request, requiredResponseObserver, requiredResponseFactory);
