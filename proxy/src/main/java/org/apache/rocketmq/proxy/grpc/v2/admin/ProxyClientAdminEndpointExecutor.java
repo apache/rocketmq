@@ -125,7 +125,7 @@ public class ProxyClientAdminEndpointExecutor {
 
     private <D> D requireAdaptedRequest(D request) {
         if (request == null) {
-            throw new IllegalStateException("requestAdapter result is required");
+            throw new IllegalArgumentException("requestAdapter result is required");
         }
         return request;
     }
