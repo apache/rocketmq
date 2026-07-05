@@ -306,7 +306,9 @@ The internal public-view adapter normalizes nullable string metadata such as
 language, addresses, client version, and proxy id to empty strings before a future
 protobuf adapter writes response fields. A missing internal client type is
 normalized to `CLIENT_TYPE_UNSPECIFIED` so generated protobuf responses never
-need to write a null enum value.
+need to write a null enum value. Internally, `CLIENT_TYPE_UNSPECIFIED` snapshots
+are normalized to a missing client type before indexing, so read-model metrics
+do not expose an artificial unspecified client-type series.
 
 `ProxyClientPage` returns a list of `ProxyClientInfo` plus a `nextPageToken`.
 `ProxyClientQuery` carries optional group, topic, client type, page size, page
