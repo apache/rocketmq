@@ -18,6 +18,8 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.Code;
 import java.util.NoSuchElementException;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,5 +38,19 @@ public class ResponseBuilderTest {
         assertThat(ResponseBuilder.getInstance().buildStatus(
             new NoSuchElementException("Client not found: client-a")).getCode())
             .isEqualTo(Code.NOT_FOUND);
+    }
+
+    @Test
+    public void buildStatusMapsAuthenticationExceptionToUnauthorized() {
+        assertThat(ResponseBuilder.getInstance().buildStatus(
+            new AuthenticationException("authentication failed")).getCode())
+            .isEqualTo(Code.UNAUTHORIZED);
+    }
+
+    @Test
+    public void buildStatusMapsAuthorizationExceptionToUnauthorized() {
+        assertThat(ResponseBuilder.getInstance().buildStatus(
+            new AuthorizationException("authorization failed")).getCode())
+            .isEqualTo(Code.UNAUTHORIZED);
     }
 }
