@@ -99,7 +99,7 @@ small and tested boundary to call:
 - `ProxyClientAdminClientView` and `ProxyClientAdminPageView` are public-facing
   response views. They avoid exposing the mutable internal read-model classes as
   the eventual protobuf adapter contract. The views require a nonblank client
-  id, reject null client entries in pages, snapshot collections, normalize null
+  id, reject null client entries in pages, snapshot collections, trim nullable
   string metadata to empty public strings, normalize repeated `groups` and
   `topics` entries by trimming, de-duplicating, and dropping blank values, and
   normalize blank public next-page tokens to an empty string.
@@ -318,8 +318,10 @@ need to write a null enum value. Internally, `CLIENT_TYPE_UNSPECIFIED` snapshots
 and `UNRECOGNIZED` snapshots are normalized to a missing client type before
 indexing, so read-model metrics do not expose artificial unspecified or
 unrecognized client-type series. Public response views trim group and topic
-values, drop blank values, and de-duplicate repeated values while preserving
-their first observed order.
+values, drop blank values, and de-duplicate repeated values while preserving the
+adapter input order. The read-model response converter supplies those values in
+lexicographic order so public responses remain deterministic even though the
+internal read-model snapshots use sets.
 
 `ProxyClientPage` returns a list of `ProxyClientInfo` plus a `nextPageToken`.
 `ProxyClientQuery` carries optional group, topic, client type, page size, page

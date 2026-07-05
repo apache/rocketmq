@@ -132,8 +132,14 @@ message ListClientsByTopicResponse {
 message ProxyClient {
   string client_id = 1;
   ClientType client_type = 2;
+
+  // Server-normalized, nonblank, de-duplicated values. M1 responses use
+  // deterministic lexicographic order.
   repeated string groups = 3;
   repeated string topics = 4;
+
+  // Server-normalized metadata. Missing or blank values are returned as empty
+  // strings.
   string language = 5;
   string remote_address = 6;
   string local_address = 7;
