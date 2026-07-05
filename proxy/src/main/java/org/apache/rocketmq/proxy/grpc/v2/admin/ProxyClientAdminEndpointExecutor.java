@@ -19,10 +19,12 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.Status;
 import com.google.protobuf.GeneratedMessageV3;
+import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 
 public class ProxyClientAdminEndpointExecutor {
@@ -41,6 +43,19 @@ public class ProxyClientAdminEndpointExecutor {
         this.endpointHandler = endpointHandler;
     }
 
+    public <P extends GeneratedMessageV3, R> void listClients(P protoRequest,
+        Function<P, ProxyClientAdminListClientsRequest> requestAdapter,
+        StreamObserver<R> responseObserver,
+        BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
+        this.listClients(
+            this.currentMetadata(),
+            protoRequest,
+            requestAdapter,
+            responseObserver,
+            responseFactory
+        );
+    }
+
     public <P extends GeneratedMessageV3, R> void listClients(Metadata headers, P protoRequest,
         Function<P, ProxyClientAdminListClientsRequest> requestAdapter,
         StreamObserver<R> responseObserver,
@@ -52,6 +67,19 @@ public class ProxyClientAdminEndpointExecutor {
             responseObserver,
             responseFactory,
             this.endpointHandler::listClients
+        );
+    }
+
+    public <P extends GeneratedMessageV3, R> void describeClient(P protoRequest,
+        Function<P, ProxyClientAdminDescribeClientRequest> requestAdapter,
+        StreamObserver<R> responseObserver,
+        BiFunction<Status, ProxyClientAdminClientView, R> responseFactory) {
+        this.describeClient(
+            this.currentMetadata(),
+            protoRequest,
+            requestAdapter,
+            responseObserver,
+            responseFactory
         );
     }
 
@@ -69,6 +97,19 @@ public class ProxyClientAdminEndpointExecutor {
         );
     }
 
+    public <P extends GeneratedMessageV3, R> void listClientsByGroup(P protoRequest,
+        Function<P, ProxyClientAdminListClientsByGroupRequest> requestAdapter,
+        StreamObserver<R> responseObserver,
+        BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
+        this.listClientsByGroup(
+            this.currentMetadata(),
+            protoRequest,
+            requestAdapter,
+            responseObserver,
+            responseFactory
+        );
+    }
+
     public <P extends GeneratedMessageV3, R> void listClientsByGroup(Metadata headers, P protoRequest,
         Function<P, ProxyClientAdminListClientsByGroupRequest> requestAdapter,
         StreamObserver<R> responseObserver,
@@ -80,6 +121,19 @@ public class ProxyClientAdminEndpointExecutor {
             responseObserver,
             responseFactory,
             this.endpointHandler::listClientsByGroup
+        );
+    }
+
+    public <P extends GeneratedMessageV3, R> void listClientsByTopic(P protoRequest,
+        Function<P, ProxyClientAdminListClientsByTopicRequest> requestAdapter,
+        StreamObserver<R> responseObserver,
+        BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
+        this.listClientsByTopic(
+            this.currentMetadata(),
+            protoRequest,
+            requestAdapter,
+            responseObserver,
+            responseFactory
         );
     }
 
@@ -95,6 +149,10 @@ public class ProxyClientAdminEndpointExecutor {
             responseFactory,
             this.endpointHandler::listClientsByTopic
         );
+    }
+
+    private Metadata currentMetadata() {
+        return GrpcConstants.METADATA.get(Context.current());
     }
 
     private <P extends GeneratedMessageV3, D, T, R> void execute(Metadata headers, P protoRequest,

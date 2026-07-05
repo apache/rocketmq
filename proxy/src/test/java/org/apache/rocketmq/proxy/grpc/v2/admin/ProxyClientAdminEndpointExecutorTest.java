@@ -20,10 +20,12 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.Status;
+import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,6 +86,31 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void listClientsUsesMetadataFromCurrentGrpcContext() {
+        Metadata currentHeaders = new Metadata();
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(currentHeaders, protoRequest)).thenReturn(ctx);
+
+        Context.current().withValue(GrpcConstants.METADATA, currentHeaders).run(() ->
+            executor.listClients(
+                protoRequest,
+                ignored -> internalRequest,
+                responseObserver,
+                responseFactory
+            )
+        );
+
+        verify(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
     public void describeClientBuildsContextAndDelegatesToEndpointHandler() {
         ProxyClientAdminDescribeClientRequest internalRequest =
             ProxyClientAdminDescribeClientRequest.newBuilder().setClientId("client-a").build();
@@ -96,6 +123,31 @@ public class ProxyClientAdminEndpointExecutorTest {
             ignored -> internalRequest,
             responseObserver,
             responseFactory
+        );
+
+        verify(endpointHandler).describeClient(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void describeClientUsesMetadataFromCurrentGrpcContext() {
+        Metadata currentHeaders = new Metadata();
+        ProxyClientAdminDescribeClientRequest internalRequest =
+            ProxyClientAdminDescribeClientRequest.newBuilder().setClientId("client-a").build();
+        BiFunction<Status, ProxyClientAdminClientView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(currentHeaders, protoRequest)).thenReturn(ctx);
+
+        Context.current().withValue(GrpcConstants.METADATA, currentHeaders).run(() ->
+            executor.describeClient(
+                protoRequest,
+                ignored -> internalRequest,
+                responseObserver,
+                responseFactory
+            )
         );
 
         verify(endpointHandler).describeClient(
@@ -130,6 +182,31 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void listClientsByGroupUsesMetadataFromCurrentGrpcContext() {
+        Metadata currentHeaders = new Metadata();
+        ProxyClientAdminListClientsByGroupRequest internalRequest =
+            ProxyClientAdminListClientsByGroupRequest.newBuilder().setGroup("group-a").build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(currentHeaders, protoRequest)).thenReturn(ctx);
+
+        Context.current().withValue(GrpcConstants.METADATA, currentHeaders).run(() ->
+            executor.listClientsByGroup(
+                protoRequest,
+                ignored -> internalRequest,
+                responseObserver,
+                responseFactory
+            )
+        );
+
+        verify(endpointHandler).listClientsByGroup(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
     public void listClientsByTopicBuildsContextAndDelegatesToEndpointHandler() {
         ProxyClientAdminListClientsByTopicRequest internalRequest =
             ProxyClientAdminListClientsByTopicRequest.newBuilder().setTopic("topic-a").build();
@@ -142,6 +219,31 @@ public class ProxyClientAdminEndpointExecutorTest {
             ignored -> internalRequest,
             responseObserver,
             responseFactory
+        );
+
+        verify(endpointHandler).listClientsByTopic(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void listClientsByTopicUsesMetadataFromCurrentGrpcContext() {
+        Metadata currentHeaders = new Metadata();
+        ProxyClientAdminListClientsByTopicRequest internalRequest =
+            ProxyClientAdminListClientsByTopicRequest.newBuilder().setTopic("topic-a").build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(currentHeaders, protoRequest)).thenReturn(ctx);
+
+        Context.current().withValue(GrpcConstants.METADATA, currentHeaders).run(() ->
+            executor.listClientsByTopic(
+                protoRequest,
+                ignored -> internalRequest,
+                responseObserver,
+                responseFactory
+            )
         );
 
         verify(endpointHandler).listClientsByTopic(
