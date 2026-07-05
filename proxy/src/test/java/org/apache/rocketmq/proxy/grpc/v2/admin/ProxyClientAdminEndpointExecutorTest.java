@@ -254,6 +254,32 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void mapsMissingResponseFactoryToGrpcInternalErrorBeforeCreatingContext() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+            responseObserver,
+            null
+        );
+
+        ArgumentCaptor<Throwable> errorCaptor = ArgumentCaptor.forClass(Throwable.class);
+        verify(responseObserver).onError(errorCaptor.capture());
+        assertThat(errorCaptor.getValue()).isInstanceOf(io.grpc.StatusRuntimeException.class);
+        io.grpc.StatusRuntimeException statusRuntimeException =
+            (io.grpc.StatusRuntimeException) errorCaptor.getValue();
+        assertThat(statusRuntimeException.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INTERNAL);
+        assertThat(statusRuntimeException.getStatus().getDescription()).contains("responseFactory is required");
+        verify(responseObserver, never()).onNext(any());
+        verify(responseObserver, never()).onCompleted();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
     public void constructorRejectsMissingDependencies() {
         assertThatThrownBy(() -> new ProxyClientAdminEndpointExecutor(null, endpointHandler))
             .isInstanceOf(IllegalArgumentException.class)

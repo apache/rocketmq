@@ -87,7 +87,7 @@ public class ProxyClientAdminEndpointHandler {
             R response = this.applyResponseFactory(requiredResponseFactory, result);
             ResponseWriter.getInstance().write(requiredResponseObserver, response);
         } catch (Throwable t) {
-            this.writeGrpcError(requiredResponseObserver, t);
+            ProxyClientAdminGrpcErrorWriter.write(requiredResponseObserver, t);
         }
     }
 
@@ -141,14 +141,6 @@ public class ProxyClientAdminEndpointHandler {
             throw new IllegalStateException("response is required");
         }
         return response;
-    }
-
-    private <R> void writeGrpcError(StreamObserver<R> responseObserver, Throwable t) {
-        io.grpc.Status status = io.grpc.Status.INTERNAL.withCause(t);
-        if (t.getMessage() != null && !t.getMessage().isEmpty()) {
-            status = status.withDescription(t.getMessage());
-        }
-        responseObserver.onError(status.asRuntimeException());
     }
 
     private ProxyClientAdminActivity requireProxyClientAdminActivity() {

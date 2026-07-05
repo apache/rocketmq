@@ -103,13 +103,18 @@ public class ProxyClientAdminEndpointExecutor {
         BiFunction<Status, T, R> responseFactory,
         EndpointCall<D, T, R> endpointCall) {
         StreamObserver<R> requiredResponseObserver = this.requireResponseObserver(responseObserver);
-        BiFunction<Status, T, R> requiredResponseFactory = this.requireResponseFactory(responseFactory);
+        BiFunction<Status, T, R> requiredResponseFactory = null;
         try {
+            requiredResponseFactory = this.requireResponseFactory(responseFactory);
             Function<P, D> requiredRequestAdapter = this.requireRequestAdapter(requestAdapter);
             ProxyContext ctx = this.contextFactory.create(headers, protoRequest);
             D request = this.requireAdaptedRequest(requiredRequestAdapter.apply(protoRequest));
             endpointCall.execute(ctx, request, requiredResponseObserver, requiredResponseFactory);
         } catch (RuntimeException | Error t) {
+            if (requiredResponseFactory == null) {
+                ProxyClientAdminGrpcErrorWriter.write(requiredResponseObserver, t);
+                return;
+            }
             this.endpointHandler.handle(requiredResponseObserver, () -> {
                 throw t;
             }, requiredResponseFactory);
