@@ -33,7 +33,8 @@ option java_package = "apache.rocketmq.v2";
 // The M1 adapter normalizes request string fields before internal validation:
 // surrounding whitespace is trimmed, and blank values are treated as absent.
 // Public clients should treat page tokens as opaque and should not rely on
-// whitespace being preserved in identifiers or tokens.
+// whitespace being preserved in identifiers or tokens. Versioned tokens must
+// use the canonical no-padding encoding produced by the proxy adapter.
 
 service ProxyAdminService {
   rpc ListClients(ListClientsRequest) returns (ListClientsResponse);
@@ -57,7 +58,7 @@ enum ProxyScope {
 
 message ListClientsRequest {
   // Opaque to public clients. M1 may internally encode the last client id.
-  // Unknown or noncanonical versioned tokens are rejected.
+  // Unknown, malformed, or noncanonical versioned tokens are rejected.
   string page_token = 1;
   int32 page_size = 2;
   // CLIENT_TYPE_UNSPECIFIED means no type filter. UNRECOGNIZED is rejected.
@@ -91,8 +92,8 @@ message DescribeClientResponse {
 
 message ListClientsByGroupRequest {
   string group = 1;
-  // Opaque to public clients. Unknown or noncanonical versioned tokens are
-  // rejected.
+  // Opaque to public clients. Unknown, malformed, or noncanonical versioned
+  // tokens are rejected.
   string page_token = 2;
   int32 page_size = 3;
   // CLIENT_TYPE_UNSPECIFIED means no type filter. UNRECOGNIZED is rejected.
@@ -112,8 +113,8 @@ message ListClientsByGroupResponse {
 
 message ListClientsByTopicRequest {
   string topic = 1;
-  // Opaque to public clients. Unknown or noncanonical versioned tokens are
-  // rejected.
+  // Opaque to public clients. Unknown, malformed, or noncanonical versioned
+  // tokens are rejected.
   string page_token = 2;
   int32 page_size = 3;
   // CLIENT_TYPE_UNSPECIFIED means no type filter. UNRECOGNIZED is rejected.
