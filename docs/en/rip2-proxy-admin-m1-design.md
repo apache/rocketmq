@@ -546,11 +546,12 @@ The remaining public endpoint work should start only after the community agrees
 where the protobuf API lives. Once that is settled, the implementation can land
 as a narrow adapter over the internal code already in this branch:
 
-Current branch status: after fetching `upstream/develop` on 2026-07-06, this
-branch still finds no upstream `ProxyAdminService`, `ProxyScope`,
-`ListClientsByGroup`, or `ListClientsByTopic` protobuf API to consume. The
-documentation-only draft remains under `docs/en`, and this fork should continue
-to avoid modifying `rocketmq-apis` until that ownership decision is explicit.
+Current branch status: after fetching `upstream/develop` at commit `8242c1e9d`
+on 2026-07-06, this branch still finds no upstream `ProxyAdminService`,
+`ProxyScope`, `ListClientsByGroup`, or `ListClientsByTopic` protobuf API to
+consume. The documentation-only draft remains under `docs/en`, and this fork
+should continue to avoid modifying `rocketmq-apis` until that ownership decision
+is explicit.
 
 1. Decide the `rocketmq-apis` file location and whether the service should live
    beside the existing v2 messaging APIs or in a dedicated admin file.
