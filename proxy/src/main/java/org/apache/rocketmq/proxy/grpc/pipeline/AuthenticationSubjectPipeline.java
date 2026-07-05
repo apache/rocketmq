@@ -30,8 +30,8 @@ public class AuthenticationSubjectPipeline implements RequestPipeline {
         if (context == null || headers == null) {
             return;
         }
-        String username = headers.get(GrpcConstants.AUTHORIZATION_AK);
-        if (StringUtils.isBlank(username)) {
+        String username = StringUtils.trimToNull(headers.get(GrpcConstants.AUTHORIZATION_AK));
+        if (username == null) {
             return;
         }
         context.setSubject(User.of(username));

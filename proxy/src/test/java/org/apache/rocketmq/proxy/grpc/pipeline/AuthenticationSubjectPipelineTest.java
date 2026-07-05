@@ -39,6 +39,18 @@ public class AuthenticationSubjectPipelineTest {
     }
 
     @Test
+    public void executeTrimsAuthorizationAkBeforeStoringUserSubject() {
+        Metadata headers = new Metadata();
+        headers.put(GrpcConstants.AUTHORIZATION_AK, " rocketmq ");
+        ProxyContext context = ProxyContext.create();
+
+        new AuthenticationSubjectPipeline().execute(context, headers, QueryRouteRequest.getDefaultInstance());
+
+        assertThat(context.getSubject()).isNotNull();
+        assertThat(context.getSubject().getSubjectKey()).isEqualTo("User:rocketmq");
+    }
+
+    @Test
     public void executeLeavesSubjectUnsetWhenAuthorizationAkHeaderIsMissing() {
         ProxyContext context = ProxyContext.create();
 
