@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientAdminPageView {
     private final List<ProxyClientAdminClientView> clients;
@@ -27,14 +28,21 @@ public class ProxyClientAdminPageView {
 
     public ProxyClientAdminPageView(List<ProxyClientAdminClientView> clients, String nextPageToken) {
         this.clients = immutableCopy(clients);
-        this.nextPageToken = nextPageToken == null ? "" : nextPageToken;
+        this.nextPageToken = StringUtils.trimToEmpty(nextPageToken);
     }
 
     private static List<ProxyClientAdminClientView> immutableCopy(List<ProxyClientAdminClientView> values) {
         if (values == null || values.isEmpty()) {
             return Collections.emptyList();
         }
-        return Collections.unmodifiableList(new ArrayList<>(values));
+        List<ProxyClientAdminClientView> result = new ArrayList<>(values.size());
+        for (ProxyClientAdminClientView value : values) {
+            if (value == null) {
+                throw new IllegalArgumentException("client is required");
+            }
+            result.add(value);
+        }
+        return Collections.unmodifiableList(result);
     }
 
     public List<ProxyClientAdminClientView> getClients() {

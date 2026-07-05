@@ -21,6 +21,7 @@ import apache.rocketmq.v2.ClientType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientAdminClientView {
     private final String clientId;
@@ -45,7 +46,7 @@ public class ProxyClientAdminClientView {
     public ProxyClientAdminClientView(String clientId, ClientType clientType, List<String> groups,
         List<String> topics, String language, String remoteAddress, String localAddress, String clientVersion,
         String proxyId, long connectTimeMillis, long lastActiveTimeMillis) {
-        this.clientId = clientId;
+        this.clientId = normalizeClientId(clientId);
         this.clientType = clientType == null ? ClientType.CLIENT_TYPE_UNSPECIFIED : clientType;
         this.groups = immutableCopy(groups);
         this.topics = immutableCopy(topics);
@@ -56,6 +57,14 @@ public class ProxyClientAdminClientView {
         this.proxyId = nullToEmpty(proxyId);
         this.connectTimeMillis = connectTimeMillis;
         this.lastActiveTimeMillis = lastActiveTimeMillis;
+    }
+
+    private static String normalizeClientId(String clientId) {
+        String normalizedClientId = StringUtils.trimToNull(clientId);
+        if (normalizedClientId == null) {
+            throw new IllegalArgumentException("clientId is required");
+        }
+        return normalizedClientId;
     }
 
     private static List<String> immutableCopy(List<String> values) {
