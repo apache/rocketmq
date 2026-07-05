@@ -375,6 +375,14 @@ invalid for the filtered view and the caller should restart the query.
 M1 supports `LOCAL_PROXY` only. A query observes clients connected to the current
 proxy process and does not fan out to other proxies.
 
+Remote channel registration events can still synchronize raw gRPC client
+settings for existing broker-side behavior, but M1 does not promote those remote
+settings into `ProxyClientReadService`. The local read model is written only by
+clients that connect to this proxy process through telemetry, heartbeat, explicit
+termination, or local unregister/stream-close lifecycle paths. This keeps
+`LOCAL_PROXY` query results aligned with the current proxy's online connection
+surface and avoids mixing future cross-proxy state into the M1 indexes.
+
 Future scopes can add:
 
 - `ALL_PROXIES`: fan out to peer proxies and merge sorted pages.
@@ -557,7 +565,7 @@ where the protobuf API lives. Once that is settled, the implementation can land
 as a narrow adapter over the internal code already in this branch:
 
 Current branch status: after fetching `upstream/develop` at commit `8242c1e9d`
-on 2026-07-06, this branch still finds no upstream `ProxyAdminService`,
+on 2026-07-06, `git grep` still finds no upstream `ProxyAdminService`,
 `ProxyScope`, `ListClientsByGroup`, or `ListClientsByTopic` protobuf API to
 consume. The documentation-only draft remains under `docs/en`, and this fork
 should continue to avoid modifying `rocketmq-apis` until that ownership decision
@@ -610,9 +618,11 @@ generated gRPC application.
    for the future standalone admin gRPC application. Done.
 8. Harden admin activity scope validation and place admin metrics around the
    authorizing request boundary. Done.
-9. Discuss public protobuf ownership before changing `rocketmq-apis`.
-10. Add the public admin gRPC/protobuf adapter.
-11. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy,
+9. Document the latest upstream public API status and the M1 remote-sync
+   boundary. Done.
+10. Discuss public protobuf ownership before changing `rocketmq-apis`.
+11. Add the public admin gRPC/protobuf adapter.
+12. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy,
    request context propagation, and service are already in place.
-12. Extend metrics with admin query counters and latency histograms. Done.
-13. Add a synthetic 1M-client benchmark or simulation. Done.
+13. Extend metrics with admin query counters and latency histograms. Done.
+14. Add a synthetic 1M-client benchmark or simulation. Done.
