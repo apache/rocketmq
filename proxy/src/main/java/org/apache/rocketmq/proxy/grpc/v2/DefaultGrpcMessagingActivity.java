@@ -71,7 +71,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ClientAdminAuthorizationSe
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.DefaultClientAdminAuthorizationService;
 import org.apache.rocketmq.proxy.service.admin.client.DefaultClientAdminService;
-import org.apache.rocketmq.proxy.service.admin.client.MeteredClientAdminService;
+import org.apache.rocketmq.proxy.service.admin.client.MeteredAuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
 
 public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown implements GrpcMessagingActivity {
@@ -104,17 +104,15 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
         this.grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService(), this.grpcClientSettingsManager);
         this.proxyClientReadService = new ProxyClientReadService(ProxyMetricsManager::recordProxyClientReadModelOperation);
-        this.clientAdminService = new MeteredClientAdminService(
-            new DefaultClientAdminService(this.proxyClientReadService),
-            ProxyMetricsManager::recordProxyClientAdminRequest
-        );
+        this.clientAdminService = new DefaultClientAdminService(this.proxyClientReadService);
         ClientAdminAuthorizationService clientAdminAuthorizationService = new DefaultClientAdminAuthorizationService(
             ConfigurationManager.getAuthConfig(),
             messagingProcessor::getMetadataService
         );
-        this.authorizingClientAdminService = new AuthorizingClientAdminService(
+        this.authorizingClientAdminService = new MeteredAuthorizingClientAdminService(
             this.clientAdminService,
-            clientAdminAuthorizationService
+            clientAdminAuthorizationService,
+            ProxyMetricsManager::recordProxyClientAdminRequest
         );
         this.proxyClientAdminActivity = new ProxyClientAdminActivity(this.authorizingClientAdminService);
         this.proxyClientAdminContextFactory =

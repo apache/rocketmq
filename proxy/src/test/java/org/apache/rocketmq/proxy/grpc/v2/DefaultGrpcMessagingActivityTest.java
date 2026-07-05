@@ -29,6 +29,8 @@ import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminResult;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminRequestContext;
+import org.apache.rocketmq.proxy.service.admin.client.MeteredAuthorizingClientAdminService;
+import org.apache.rocketmq.proxy.service.admin.client.MeteredClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.junit.Before;
@@ -131,5 +133,14 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         assertThat(proxyClientAdminActivity).isNotNull();
         assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
         assertThat(result.getBody()).isSameAs(clientInfo);
+    }
+
+    @Test
+    public void initMetersClientAdminRequestsOutsideAuthorizationLayer() {
+        DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        assertThat(activity.getClientAdminService()).isNotInstanceOf(MeteredClientAdminService.class);
+        assertThat(activity.getAuthorizingClientAdminService())
+            .isInstanceOf(MeteredAuthorizingClientAdminService.class);
     }
 }
