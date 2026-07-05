@@ -310,7 +310,9 @@ need to write a null enum value.
 
 `ProxyClientPage` returns a list of `ProxyClientInfo` plus a `nextPageToken`.
 `ProxyClientQuery` carries optional group, topic, client type, page size, page
-token, scope, and proxy id filters.
+token, scope, and proxy id filters. `CLIENT_TYPE_UNSPECIFIED` is normalized to a
+missing client type filter in `ProxyClientQuery`, so direct read-model callers
+and future public request adapters share the same no-filter semantics.
 
 ## Read Model and Indexes
 
