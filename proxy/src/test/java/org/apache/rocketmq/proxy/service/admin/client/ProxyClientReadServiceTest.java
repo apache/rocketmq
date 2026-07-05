@@ -127,6 +127,26 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void upsertClientIgnoresBlankGroupAndTopicIndexValues() {
+        ProxyClientReadService service = new ProxyClientReadService();
+
+        service.upsertClient(client("client-a", ClientType.PRODUCER,
+            set("group-a", "", "  "),
+            set("topic-a", "\t")));
+
+        ProxyClientReadServiceStats stats = service.snapshotStats();
+
+        assertThat(stats.getGroupIndexCount()).isEqualTo(1L);
+        assertThat(stats.getTopicIndexCount()).isEqualTo(1L);
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("group-a")
+            .build()).getClients())).containsExactly("client-a");
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setTopic("topic-a")
+            .build()).getClients())).containsExactly("client-a");
+    }
+
+    @Test
     public void recordsSuccessfulUpsertAndRemoveOperations() {
         List<ProxyClientReadServiceOperation> operations = new ArrayList<>();
         ProxyClientReadService service = new ProxyClientReadService(operations::add);

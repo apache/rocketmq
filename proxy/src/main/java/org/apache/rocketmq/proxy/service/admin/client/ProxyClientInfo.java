@@ -20,6 +20,7 @@ import apache.rocketmq.v2.ClientType;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientInfo {
     private final String clientId;
@@ -54,7 +55,7 @@ public class ProxyClientInfo {
         }
         Set<String> result = new HashSet<>();
         for (String value : values) {
-            if (value != null && !value.isEmpty()) {
+            if (StringUtils.isNotBlank(value)) {
                 result.add(value);
             }
         }
