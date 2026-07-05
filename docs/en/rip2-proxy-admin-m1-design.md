@@ -150,6 +150,11 @@ small and tested boundary to call:
   default activity also exposes the shared `ProxyClientAdminEndpointExecutor`
   that future generated admin service methods should call after proto classes
   are available.
+- `ProxyStartup.createGrpcBindableServices(...)` now has a tested package-private
+  overload for appending additional `BindableService` instances after the
+  messaging service while reusing the same `DefaultGrpcMessagingActivity`. The
+  future `GrpcProxyAdminApplication` can use that seam once generated protobuf
+  classes are available.
 
 The request DTOs convert pagination, client type, scope, and optional proxy id
 into `ProxyClientQuery`. Required identifiers such as client id, group, and
