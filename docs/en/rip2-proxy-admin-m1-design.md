@@ -40,8 +40,8 @@ client lifecycle requests to `ClientActivity`.
   removes cached settings.
 - producer and consumer unregister listeners: remove local gRPC channels when
   existing broker-side managers report unregister events.
-- telemetry stream cancellation: removes the local read-model entry for
-  `CANCELLED` or `UNAVAILABLE` streams.
+- telemetry stream closure or gRPC status errors: removes the local read-model
+  entry when the stream completes or reports a `StatusRuntimeException`.
 
 The existing broker-facing registration still uses `MessagingProcessor`,
 `ProducerManager`, `ConsumerManager`, and `ClientChannelInfo`. M1 observes these
@@ -497,7 +497,7 @@ Follow-up lifecycle tests should cover:
 - termination removes client and indexes. Done.
 - producer unregister listener removes client and indexes. Done.
 - consumer unregister listener removes client and indexes. Done.
-- telemetry cancellation removes client and indexes. Done.
+- telemetry completion and gRPC status errors remove client and indexes. Done.
 - termination with an unrecognized cached client type removes stale client and
   indexes before returning the error status. Done.
 - termination unregister failures remove stale client and indexes before
