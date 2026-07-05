@@ -53,6 +53,7 @@ public class ProxyClientReadServiceBenchmark {
     private String[] groups;
     private String[] topics;
     private ProxyClientQuery firstPageQuery;
+    private ProxyClientQuery nextPageQuery;
     private final AtomicInteger sequence = new AtomicInteger();
 
     @Setup
@@ -67,6 +68,10 @@ public class ProxyClientReadServiceBenchmark {
         this.topics = names("topic", this.topicCount);
         this.firstPageQuery = ProxyClientQuery.newBuilder()
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build();
+        this.nextPageQuery = ProxyClientQuery.newBuilder()
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .setPageToken(clientId(Math.min(ProxyClientQuery.MAX_PAGE_SIZE - 1, this.clientCount - 1)))
             .build();
 
         for (int i = 0; i < this.clientCount; i++) {
@@ -83,6 +88,15 @@ public class ProxyClientReadServiceBenchmark {
     @Threads(4)
     public ProxyClientPage listFirstPage() {
         return this.readService.listClients(this.firstPageQuery);
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ProxyClientPage listNextPage() {
+        return this.readService.listClients(this.nextPageQuery);
     }
 
     @Benchmark

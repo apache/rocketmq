@@ -39,6 +39,21 @@ public class ProxyClientReadServiceBenchmarkTest {
     }
 
     @Test
+    public void benchmarkSetupBuildsQueryableNextPageSyntheticClients() {
+        ProxyClientReadServiceBenchmark benchmark = new ProxyClientReadServiceBenchmark();
+        benchmark.clientCount = 1500;
+        benchmark.groupCount = 10;
+        benchmark.topicCount = 20;
+        benchmark.setup();
+
+        ProxyClientPage nextPage = benchmark.listNextPage();
+
+        assertThat(nextPage.getClients()).hasSize(500);
+        assertThat(nextPage.getClients().get(0).getClientId()).isEqualTo("client-0001000");
+        assertThat(nextPage.getNextPageToken()).isEmpty();
+    }
+
+    @Test
     public void benchmarkSetupRejectsInvalidClientCount() {
         ProxyClientReadServiceBenchmark benchmark = new ProxyClientReadServiceBenchmark();
         benchmark.clientCount = 0;
