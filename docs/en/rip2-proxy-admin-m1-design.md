@@ -98,7 +98,10 @@ small and tested boundary to call:
   gRPC endpoint while keeping the internal service API simple.
 - `ProxyClientAdminClientView` and `ProxyClientAdminPageView` are public-facing
   response views. They avoid exposing the mutable internal read-model classes as
-  the eventual protobuf adapter contract.
+  the eventual protobuf adapter contract. The views require a nonblank client
+  id, reject null client entries in pages, snapshot collections, normalize null
+  string metadata to empty public strings, and normalize blank public next-page
+  tokens to an empty string.
 - `ProxyClientAdminListClientsRequest`,
   `ProxyClientAdminDescribeClientRequest`,
   `ProxyClientAdminListClientsByGroupRequest`, and
@@ -129,7 +132,9 @@ small and tested boundary to call:
   unary admin methods. It builds the `ProxyContext`, adapts the proto request to
   the internal request DTO, delegates to `ProxyClientAdminEndpointHandler`, and
   routes context or request-adapter failures through the same status conversion
-  path.
+  path. It offers explicit-header overloads for tests and adapter seams, plus
+  no-header overloads that read `GrpcConstants.METADATA` from
+  `Context.current()` to match normal generated gRPC method bodies.
 - `ProxyClientAdminContextFactory` runs the admin gRPC context pipeline and
   builds a `ProxyContext` for future admin RPCs without applying the messaging
   RPC client-id requirement or generic messaging authorization. Admin
