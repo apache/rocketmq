@@ -57,6 +57,10 @@ public class ProxyClientReadServiceBenchmark {
 
     @Setup
     public void setup() {
+        validatePositive("clientCount", this.clientCount);
+        validatePositive("groupCount", this.groupCount);
+        validatePositive("topicCount", this.topicCount);
+
         this.readService = new ProxyClientReadService();
         this.clientIds = new String[this.clientCount];
         this.groups = names("group", this.groupCount);
@@ -135,6 +139,12 @@ public class ProxyClientReadServiceBenchmark {
 
     private int nextIndex(int bound) {
         return Math.floorMod(this.sequence.getAndIncrement(), bound);
+    }
+
+    private static void validatePositive(String name, int value) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(name + " must be positive");
+        }
     }
 
     private static String[] names(String prefix, int count) {

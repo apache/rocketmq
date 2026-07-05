@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.service.admin.client;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ProxyClientReadServiceBenchmarkTest {
 
@@ -35,5 +36,41 @@ public class ProxyClientReadServiceBenchmarkTest {
         assertThat(benchmark.listByGroupPage().getClients()).isNotEmpty();
         assertThat(benchmark.listByTopicPage().getClients()).isNotEmpty();
         assertThat(benchmark.describeClient()).isNotNull();
+    }
+
+    @Test
+    public void benchmarkSetupRejectsInvalidClientCount() {
+        ProxyClientReadServiceBenchmark benchmark = new ProxyClientReadServiceBenchmark();
+        benchmark.clientCount = 0;
+        benchmark.groupCount = 10;
+        benchmark.topicCount = 20;
+
+        assertThatThrownBy(benchmark::setup)
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientCount must be positive");
+    }
+
+    @Test
+    public void benchmarkSetupRejectsInvalidGroupCount() {
+        ProxyClientReadServiceBenchmark benchmark = new ProxyClientReadServiceBenchmark();
+        benchmark.clientCount = 100;
+        benchmark.groupCount = 0;
+        benchmark.topicCount = 20;
+
+        assertThatThrownBy(benchmark::setup)
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("groupCount must be positive");
+    }
+
+    @Test
+    public void benchmarkSetupRejectsInvalidTopicCount() {
+        ProxyClientReadServiceBenchmark benchmark = new ProxyClientReadServiceBenchmark();
+        benchmark.clientCount = 100;
+        benchmark.groupCount = 10;
+        benchmark.topicCount = 0;
+
+        assertThatThrownBy(benchmark::setup)
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("topicCount must be positive");
     }
 }
