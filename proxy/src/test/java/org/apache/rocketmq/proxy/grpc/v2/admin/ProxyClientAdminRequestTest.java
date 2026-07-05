@@ -32,14 +32,14 @@ public class ProxyClientAdminRequestTest {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setClientType(ClientType.PRODUCER)
             .setPageSize(10)
-            .setPageToken("opaque-token")
+            .setPageToken("v1:Y2xpZW50LWE")
             .build();
 
         ProxyClientQuery query = request.toQuery();
 
         assertThat(query.getClientType()).isEqualTo(ClientType.PRODUCER);
         assertThat(query.getPageSize()).isEqualTo(10);
-        assertThat(query.getPageToken()).isEqualTo("opaque-token");
+        assertThat(query.getPageToken()).isEqualTo("client-a");
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
         assertThat(query.getGroup()).isNull();
         assertThat(query.getTopic()).isNull();
@@ -141,6 +141,16 @@ public class ProxyClientAdminRequestTest {
         assertThat(query.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
         assertThat(query.getProxyId()).isEqualTo("proxy-a");
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
+    public void listClientsByGroupRequestAcceptsLegacyBarePageToken() {
+        ProxyClientAdminListClientsByGroupRequest request = ProxyClientAdminListClientsByGroupRequest.newBuilder()
+            .setGroup("group-a")
+            .setPageToken("client-b")
+            .build();
+
+        assertThat(request.toQuery().getPageToken()).isEqualTo("client-b");
     }
 
     @Test

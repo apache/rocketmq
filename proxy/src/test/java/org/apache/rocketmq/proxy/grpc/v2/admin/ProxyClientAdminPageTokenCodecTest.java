@@ -20,19 +20,36 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ProxyClientAdminPageTokenCodecTest {
 
     @Test
-    public void identityCodecPreservesNonBlankOpaqueTokens() {
+    public void codecEncodesReadModelTokenAsVersionedOpaqueToken() {
         ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
 
-        assertThat(codec.decode("client-a")).isEqualTo("client-a");
-        assertThat(codec.encode("client-a")).isEqualTo("client-a");
+        assertThat(codec.encode("client-a")).isEqualTo("v1:Y2xpZW50LWE");
+        assertThat(codec.decode("v1:Y2xpZW50LWE")).isEqualTo("client-a");
     }
 
     @Test
-    public void identityCodecNormalizesBlankTokensAtAdapterBoundary() {
+    public void codecDecodesLegacyBareReadModelTokens() {
+        ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
+
+        assertThat(codec.decode("client-a")).isEqualTo("client-a");
+    }
+
+    @Test
+    public void codecRejectsMalformedVersionedTokens() {
+        ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
+
+        assertThatThrownBy(() -> codec.decode("v1:*"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid page token");
+    }
+
+    @Test
+    public void codecNormalizesBlankTokensAtAdapterBoundary() {
         ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
 
         assertThat(codec.decode(null)).isNull();

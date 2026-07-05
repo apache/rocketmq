@@ -61,7 +61,7 @@ public class ProxyClientAdminResponseConverterTest {
     }
 
     @Test
-    public void convertsPageToPublicViewAndPreservesPageOrder() {
+    public void convertsPageToPublicViewAndEncodesOpaquePageToken() {
         ProxyClientPage page = new ProxyClientPage(
             Arrays.asList(client("client-b"), client("client-a")),
             "client-b"
@@ -69,7 +69,9 @@ public class ProxyClientAdminResponseConverterTest {
 
         ProxyClientAdminPageView view = ProxyClientAdminResponseConverter.toPageView(page);
 
-        assertThat(view.getNextPageToken()).isEqualTo("client-b");
+        assertThat(view.getNextPageToken()).isEqualTo("v1:Y2xpZW50LWI");
+        assertThat(ProxyClientAdminPageTokenCodec.getInstance().decode(view.getNextPageToken()))
+            .isEqualTo("client-b");
         assertThat(view.getClients())
             .extracting(ProxyClientAdminClientView::getClientId)
             .containsExactly("client-b", "client-a");

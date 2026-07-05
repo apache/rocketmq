@@ -115,7 +115,9 @@ public class ProxyClientAdminActivityTest {
         ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.listClientViews(proxyContext(), query);
 
         assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
-        assertThat(result.getBody().getNextPageToken()).isEqualTo("client-a");
+        assertThat(result.getBody().getNextPageToken()).isEqualTo("v1:Y2xpZW50LWE");
+        assertThat(ProxyClientAdminPageTokenCodec.getInstance().decode(result.getBody().getNextPageToken()))
+            .isEqualTo("client-a");
         assertThat(result.getBody().getClients())
             .extracting(ProxyClientAdminClientView::getClientId)
             .containsExactly("client-a");

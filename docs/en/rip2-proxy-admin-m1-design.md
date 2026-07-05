@@ -67,9 +67,11 @@ M1 should accept only `LOCAL_PROXY`. Requests for future scopes such as
 semantics are designed and implemented.
 
 Pagination tokens should be treated as opaque by public clients. The current
-local implementation can continue using the last returned client id as the token
-because all M1 results are sorted by client id, but the protobuf contract should
-not promise that representation.
+local read model continues using the last returned client id internally because
+all M1 results are sorted by client id, while the public adapter wraps that value
+in a versioned `v1:` base64url token. Legacy bare client-id tokens are still
+accepted by the internal adapter to keep tests and early local callers
+compatible, but the protobuf contract should not promise that representation.
 
 This fork should not directly modify `rocketmq-apis` for M1. The branch should
 first carry the internal read model, authorization, metrics, and adapter seams,
@@ -143,10 +145,11 @@ small and tested boundary to call:
   are available.
 
 The request DTOs convert pagination, client type, scope, and optional proxy id
-into `ProxyClientQuery`. Page tokens pass through the dedicated token codec so
-public callers can treat them as opaque even though M1 still uses the last
-returned client id internally. Public scope names pass through the scope mapper
-so future generated protobuf adapters can translate prefixed enum names such as
+into `ProxyClientQuery`. Page tokens pass through the dedicated token codec,
+which encodes the read-model last-client-id token as a versioned opaque public
+token and decodes versioned or legacy bare tokens back to the internal token.
+Public scope names pass through the scope mapper so future generated protobuf
+adapters can translate prefixed enum names such as
 `PROXY_SCOPE_LOCAL_PROXY`, `PROXY_SCOPE_ALL_PROXIES`, and
 `PROXY_SCOPE_PROXY_ID` without importing the generated admin service in this
 branch. The default internal scope is `LOCAL_PROXY`; unsupported future scopes
@@ -504,8 +507,9 @@ as a narrow adapter over the internal code already in this branch:
 3. Confirm field numbers in `rip2-proxy-admin-m1-public-api-draft.proto` before
    generating Java classes. Field numbers should not be reshuffled after public
    review starts.
-4. Keep public page tokens opaque. The M1 adapter may continue to decode them as
-   the last returned client id through `ProxyClientAdminPageTokenCodec`.
+4. Keep public page tokens opaque. The M1 adapter should encode read-model
+   last-client-id tokens as versioned `ProxyClientAdminPageTokenCodec` tokens
+   and decode them back at the request DTO boundary.
 5. Keep public enum values prefixed with `PROXY_SCOPE_...`; generated adapters
    should pass the enum name to `ProxyClientAdminScopeMapper`.
 6. Preserve M1 `LOCAL_PROXY` behavior. `PROXY_SCOPE_ALL_PROXIES` and
