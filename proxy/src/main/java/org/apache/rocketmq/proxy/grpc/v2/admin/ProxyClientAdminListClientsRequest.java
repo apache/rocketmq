@@ -110,6 +110,11 @@ public class ProxyClientAdminListClientsRequest {
             return this.self();
         }
 
+        public T setScopeName(String scopeName) {
+            this.scope = ProxyClientAdminScopeMapper.getInstance().decode(scopeName);
+            return this.self();
+        }
+
         public T setProxyId(String proxyId) {
             this.proxyId = proxyId;
             return this.self();

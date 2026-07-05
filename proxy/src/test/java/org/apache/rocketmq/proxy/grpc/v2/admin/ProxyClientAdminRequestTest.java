@@ -59,6 +59,17 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void listClientsRequestMapsPublicScopeNameForFutureProtoAdapter() {
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScopeName("PROXY_ID")
+            .setProxyId("proxy-a")
+            .build();
+
+        assertThat(request.toQuery().getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
+        assertThat(request.toQuery().getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
     public void listClientsRequestTreatsUnspecifiedClientTypeAsNoFilter() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
@@ -98,6 +109,16 @@ public class ProxyClientAdminRequestTest {
         assertThat(request.getClientId()).isEqualTo("client-a");
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
+    public void describeClientRequestMapsUnspecifiedPublicScopeNameToLocalProxy() {
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("client-a")
+            .setScopeName("PROXY_SCOPE_UNSPECIFIED")
+            .build();
+
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
     }
 
     @Test

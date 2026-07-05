@@ -61,6 +61,11 @@ public class ProxyClientAdminDescribeClientRequest {
             return this;
         }
 
+        public Builder setScopeName(String scopeName) {
+            this.scope = ProxyClientAdminScopeMapper.getInstance().decode(scopeName);
+            return this;
+        }
+
         public Builder setProxyId(String proxyId) {
             this.proxyId = proxyId;
             return this;
