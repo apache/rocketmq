@@ -39,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -351,6 +352,31 @@ public class ProxyClientAdminEndpointExecutorTest {
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("request headers are invalid");
         assertThat(responseCaptor.getValue().getBody()).isNull();
         assertThat(requestAdapterInvoked).isTrue();
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
+    public void mapsNullContextFactoryResultToStatusResponseBeforeEndpointCall() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(headers, protoRequest)).thenReturn(null);
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("proxyContext is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
         verify(endpointHandler, never()).listClients(any(), any(), any(), any());
     }
 

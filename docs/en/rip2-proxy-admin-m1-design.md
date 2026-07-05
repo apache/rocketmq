@@ -145,7 +145,10 @@ small and tested boundary to call:
   request-adapter failures through the same status conversion path. It offers
   explicit-header overloads for tests and adapter seams, plus no-header
   overloads that read `GrpcConstants.METADATA` from
-  `Context.current()` to match normal generated gRPC method bodies.
+  `Context.current()` to match normal generated gRPC method bodies. It also
+  requires the context factory to return a non-null `ProxyContext` before the
+  endpoint handler can run, so broken admin context initialization is reported as
+  a status response instead of leaking into activity execution.
 - `ProxyClientAdminContextFactory` runs the admin gRPC context pipeline and
   builds a `ProxyContext` for future admin RPCs without applying the messaging
   RPC client-id requirement or generic messaging authorization. Admin
