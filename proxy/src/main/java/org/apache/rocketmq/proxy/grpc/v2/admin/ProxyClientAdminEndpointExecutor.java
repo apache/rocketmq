@@ -152,8 +152,11 @@ public class ProxyClientAdminEndpointExecutor {
     }
 
     private Metadata currentMetadata() {
-        Metadata metadata = GrpcConstants.METADATA.get(Context.current());
-        return metadata == null ? new Metadata() : metadata;
+        return this.normalizeMetadata(GrpcConstants.METADATA.get(Context.current()));
+    }
+
+    private Metadata normalizeMetadata(Metadata headers) {
+        return headers == null ? new Metadata() : headers;
     }
 
     private <P extends GeneratedMessageV3, D, T, R> void execute(Metadata headers, P protoRequest,
@@ -167,7 +170,7 @@ public class ProxyClientAdminEndpointExecutor {
             requiredResponseFactory = this.requireResponseFactory(responseFactory);
             Function<P, D> requiredRequestAdapter = this.requireRequestAdapter(requestAdapter);
             P requiredProtoRequest = this.requireProtoRequest(protoRequest);
-            ProxyContext ctx = this.contextFactory.create(headers, requiredProtoRequest);
+            ProxyContext ctx = this.contextFactory.create(this.normalizeMetadata(headers), requiredProtoRequest);
             D request = this.requireAdaptedRequest(requiredRequestAdapter.apply(requiredProtoRequest));
             endpointCall.execute(ctx, request, requiredResponseObserver, requiredResponseFactory);
         } catch (RuntimeException | Error t) {
