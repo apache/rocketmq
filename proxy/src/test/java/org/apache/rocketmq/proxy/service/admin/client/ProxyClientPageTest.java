@@ -36,6 +36,13 @@ public class ProxyClientPageTest {
     }
 
     @Test
+    public void constructorRejectsNullClientEntry() {
+        assertThatThrownBy(() -> new ProxyClientPage(Collections.singletonList(null), ""))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("client is required");
+    }
+
+    @Test
     public void constructorCreatesImmutableClientSnapshotAndNormalizesNullToken() {
         List<ProxyClientInfo> clients = new ArrayList<>();
         clients.add(client("client-a"));

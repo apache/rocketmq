@@ -28,6 +28,11 @@ public class ProxyClientPage {
         if (clients == null) {
             throw new IllegalArgumentException("clients is required");
         }
+        for (ProxyClientInfo client : clients) {
+            if (client == null) {
+                throw new IllegalArgumentException("client is required");
+            }
+        }
         this.clients = Collections.unmodifiableList(new ArrayList<>(clients));
         this.nextPageToken = nextPageToken == null ? "" : nextPageToken;
     }
