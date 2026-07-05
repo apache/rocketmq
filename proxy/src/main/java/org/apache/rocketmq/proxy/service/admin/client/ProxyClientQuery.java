@@ -34,7 +34,7 @@ public class ProxyClientQuery {
     private ProxyClientQuery(Builder builder) {
         this.group = StringUtils.trimToNull(builder.group);
         this.topic = StringUtils.trimToNull(builder.topic);
-        this.clientType = builder.clientType;
+        this.clientType = normalizeClientType(builder.clientType);
         this.pageSize = builder.pageSize;
         this.pageToken = StringUtils.trimToNull(builder.pageToken);
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
@@ -78,6 +78,13 @@ public class ProxyClientQuery {
             return DEFAULT_PAGE_SIZE;
         }
         return Math.min(pageSize, MAX_PAGE_SIZE);
+    }
+
+    private static ClientType normalizeClientType(ClientType clientType) {
+        if (clientType == ClientType.CLIENT_TYPE_UNSPECIFIED) {
+            return null;
+        }
+        return clientType;
     }
 
     public static class Builder {

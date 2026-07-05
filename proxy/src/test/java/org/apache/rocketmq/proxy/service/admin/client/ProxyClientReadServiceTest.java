@@ -102,6 +102,19 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void listClientsTreatsUnspecifiedClientTypeAsNoFilter() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+        service.upsertClient(client("client-b", ClientType.PUSH_CONSUMER, set("group-b"), set("topic-b")));
+
+        ProxyClientPage page = service.listClients(ProxyClientQuery.newBuilder()
+            .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+            .build());
+
+        assertThat(clientIds(page.getClients())).containsExactly("client-a", "client-b");
+    }
+
+    @Test
     public void snapshotStatsReflectsCurrentReadModel() {
         ProxyClientReadService service = new ProxyClientReadService();
         service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a", "topic-b")));

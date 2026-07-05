@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.service.admin.client;
 
+import apache.rocketmq.v2.ClientType;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,6 +48,15 @@ public class ProxyClientQueryTest {
             .build();
 
         assertThat(query.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
+    public void queryTreatsUnspecifiedClientTypeAsNoFilter() {
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+            .build();
+
+        assertThat(query.getClientType()).isNull();
     }
 
     @Test
