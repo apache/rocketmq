@@ -20,6 +20,7 @@ import java.util.List;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.authorization.AuthorizationEvaluator;
 import org.apache.rocketmq.auth.authorization.context.DefaultAuthorizationContext;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.action.Action;
@@ -27,6 +28,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -87,6 +89,29 @@ public class DefaultClientAdminAuthorizationServiceTest {
         ArgumentCaptor<List> contextCaptor = ArgumentCaptor.forClass(List.class);
         verify(authorizationEvaluator).evaluate(contextCaptor.capture());
         assertThat(contextCaptor.getValue()).containsExactly(context);
+    }
+
+    @Test
+    public void authorizeRejectsMissingSubjectWhenAuthorizationEnabled() {
+        AuthConfig authConfig = authConfig(true);
+        ClientAdminAuthPolicy authPolicy = mock(ClientAdminAuthPolicy.class);
+        AuthorizationEvaluator authorizationEvaluator = mock(AuthorizationEvaluator.class);
+        ClientAdminAuthorizationService authorizationService = new DefaultClientAdminAuthorizationService(
+            authConfig,
+            authPolicy,
+            authorizationEvaluator
+        );
+
+        assertThatThrownBy(() -> authorizationService.authorize(
+            null,
+            ClientAdminOperation.LIST_CLIENTS,
+            "127.0.0.1"
+        ))
+            .isInstanceOf(AuthorizationException.class)
+            .hasMessageContaining("subject is required");
+
+        verify(authPolicy, never()).newContext(any(), any(), any(), any());
+        verify(authorizationEvaluator, never()).evaluate(anyList());
     }
 
     private static AuthConfig authConfig(boolean authorizationEnabled) {

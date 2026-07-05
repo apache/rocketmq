@@ -341,7 +341,9 @@ address intent. The admin pipeline intentionally does not run generic messaging
 authorization; this lets the future public adapter reject unsupported M1 scopes
 before ACL, then authorize once through `AuthorizingClientAdminService` before
 delegating to read-model queries while keeping the first admin surface
-consistent with existing management actions.
+consistent with existing management actions. When authorization is enabled, a
+missing authenticated subject is rejected at the admin authorization boundary
+and mapped to `UNAUTHORIZED`.
 Topic-level or group-level ACL can be discussed later if the community wants
 more granular visibility controls.
 

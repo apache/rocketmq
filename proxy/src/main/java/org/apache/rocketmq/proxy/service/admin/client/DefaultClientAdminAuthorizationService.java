@@ -23,6 +23,7 @@ import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authorization.AuthorizationEvaluator;
 import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
 import org.apache.rocketmq.auth.authorization.context.DefaultAuthorizationContext;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
 
@@ -50,6 +51,9 @@ public class DefaultClientAdminAuthorizationService implements ClientAdminAuthor
     public void authorize(Subject subject, ClientAdminOperation operation, String sourceIp) {
         if (authConfig == null || !authConfig.isAuthorizationEnabled()) {
             return;
+        }
+        if (subject == null) {
+            throw new AuthorizationException("subject is required");
         }
         DefaultAuthorizationContext context = authPolicy.newContext(
             subject,
