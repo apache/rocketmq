@@ -586,6 +586,23 @@ Internal adapter tests cover:
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 
+### Validation Snapshot
+
+On 2026-07-06, the branch was revalidated with this focused RIP-2 suite:
+
+```bash
+JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+  mvn -pl proxy -am \
+  '-Dtest=ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ProxyClientInfoTest,ProxyClientQueryTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,ProxyMetricsManagerTest,ProxyClientAdmin*Test,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,GrpcRequestPipelineFactoryTest,ProxyStartupTest,ClientActivityTest#testProducerTelemetryUpdatesProxyClientReadService+testConsumerTelemetryUpdatesProxyClientReadService+testHeartbeatPreservesConnectTimeAndUpdatesLastActiveTime+testNotifyClientTerminationRemovesProxyClientReadServiceIndexes' \
+  -DfailIfNoTests=false test -DskipITs
+```
+
+The proxy module reported `Tests run: 235, Failures: 0, Errors: 0, Skipped: 0`
+and the Maven reactor ended with `BUILD SUCCESS`. Under JDK 17, JaCoCo 0.8.5
+still prints instrumentation stack traces for JDK and Mockito-generated classes;
+those logs are treated as environment noise only when Surefire reports zero
+failures/errors and Maven exits successfully.
+
 ## Synthetic Benchmark
 
 The read model includes a JMH benchmark in
@@ -693,6 +710,11 @@ on 2026-07-06, `git grep` still finds no upstream `ProxyAdminService`,
 consume. The documentation-only draft remains under `docs/en`, and this fork
 should continue to avoid modifying `rocketmq-apis` until that ownership decision
 is explicit.
+
+The internal code is ready for a thin generated endpoint adapter once that
+decision is made: lifecycle writes, read-model queries, request DTOs, scope and
+page-token adapters, authorization, metrics, status mapping, context propagation,
+and startup service-registration seams are already covered in this branch.
 
 1. Decide the `rocketmq-apis` file location and whether the service should live
    beside the existing v2 messaging APIs or in a dedicated admin file.
