@@ -151,6 +151,9 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     public static GrpcMessagingApplication create(MessagingProcessor messagingProcessor,
         GrpcMessagingActivity grpcMessagingActivity) {
+        if (grpcMessagingActivity == null) {
+            throw new IllegalArgumentException("grpcMessagingActivity is required");
+        }
         RequestPipeline pipeline = GrpcRequestPipelineFactory.create(messagingProcessor);
         return new GrpcMessagingApplication(grpcMessagingActivity, pipeline);
     }

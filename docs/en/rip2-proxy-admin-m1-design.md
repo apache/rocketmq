@@ -168,7 +168,9 @@ small and tested boundary to call:
   pass the same activity/admin adapter to a future proxy admin service. The
   default activity also exposes the shared `ProxyClientAdminEndpointExecutor`
   that future generated admin service methods should call after proto classes
-  are available.
+  are available. The shared-activity factory rejects a missing activity so future
+  dual-service wiring fails during startup construction instead of running with a
+  null messaging/admin activity.
 - `ProxyStartup.createGrpcBindableServices(...)` now has a tested package-private
   overload for appending additional `BindableService` instances after the
   messaging service while reusing the same `DefaultGrpcMessagingActivity`. The
