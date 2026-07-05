@@ -683,10 +683,17 @@ public class ClientActivity extends AbstractMessagingActivity {
                 if (ChannelHelper.isRemote(clientChannelInfo.getChannel())) {
                     return;
                 }
-                GrpcClientChannel removedChannel = grpcChannelManager.removeChannel(clientChannelInfo.getClientId());
+                String clientId = clientChannelInfo.getClientId();
+                GrpcClientChannel removedChannel = grpcChannelManager.removeChannel(clientId);
+                Settings settings = grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
+                grpcClientSettingsManager.offlineClientLiteSubscription(
+                    ProxyContext.createForInner(ClientActivity.this.getClass()),
+                    clientId,
+                    settings
+                );
                 log.info("remove grpc channel when client unregister. group:{}, clientChannelInfo:{}, removed:{}",
                     group, clientChannelInfo, removedChannel != null);
-                proxyClientReadService.removeClient(clientChannelInfo.getClientId());
+                proxyClientReadService.removeClient(clientId);
             }
         }
 
