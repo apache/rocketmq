@@ -40,6 +40,7 @@ import io.opentelemetry.sdk.resources.Resource;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -113,7 +114,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_PROXY);
         LABEL_MAP.put(LABEL_CLUSTER_NAME, proxyConfig.getProxyClusterName());
         LABEL_MAP.put(LABEL_NODE_ID, proxyConfig.getProxyName());
-        LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase());
+        LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase(Locale.ROOT));
         initMetrics(brokerMetricsManager.getBrokerMeter(), brokerMetricsManager::newAttributesBuilder);
     }
 
@@ -195,8 +196,8 @@ public class ProxyMetricsManager implements StartAndShutdown {
             return;
         }
         Attributes attributes = newAttributesBuilder()
-            .put(LABEL_OPERATION, operation.name().toLowerCase())
-            .put(LABEL_RESULT, result.name().toLowerCase())
+            .put(LABEL_OPERATION, operation.name().toLowerCase(Locale.ROOT))
+            .put(LABEL_RESULT, result.name().toLowerCase(Locale.ROOT))
             .build();
         proxyClientAdminRequestsTotal.add(1L, attributes);
         proxyClientAdminRequestLatency.record(Math.max(0L, latencyMillis), attributes);
@@ -209,7 +210,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         proxyClientReadModelOperationsTotal.add(
             1L,
             newAttributesBuilder()
-                .put(LABEL_OPERATION, operation.name().toLowerCase())
+                .put(LABEL_OPERATION, operation.name().toLowerCase(Locale.ROOT))
                 .build()
         );
     }
@@ -239,7 +240,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
             measurement.record(
                 count,
                 newAttributesBuilder()
-                    .put(LABEL_CLIENT_TYPE, clientType.name().toLowerCase())
+                    .put(LABEL_CLIENT_TYPE, clientType.name().toLowerCase(Locale.ROOT))
                     .build()
             );
         }
@@ -309,7 +310,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_PROXY);
         LABEL_MAP.put(LABEL_CLUSTER_NAME, proxyConfig.getProxyClusterName());
         LABEL_MAP.put(LABEL_NODE_ID, proxyConfig.getProxyName());
-        LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase());
+        LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase(Locale.ROOT));
 
         SdkMeterProviderBuilder providerBuilder = SdkMeterProvider.builder()
             .setResource(Resource.empty());

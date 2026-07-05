@@ -31,6 +31,7 @@ import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
@@ -201,6 +202,51 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
                 attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
                 && ClientAdminMetricsResult.NOT_FOUND.name().toLowerCase().equals(
                 attributes.get(AttributeKey.stringKey(LABEL_RESULT)))));
+    }
+
+    @Test
+    public void proxyClientMetricsLabelsUseRootLocale() {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            Meter meter = mock(Meter.class);
+            mockLongGauge(meter, GAUGE_PROXY_UP);
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+            ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTypeCallback =
+                mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+            mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+            LongCounter requestCounter = mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+            LongHistogram requestLatency = mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+            Map<ClientType, Long> clientTypeCounts = new HashMap<>();
+            clientTypeCounts.put(ClientType.SIMPLE_CONSUMER, 1L);
+
+            ProxyMetricsManager.initMetrics(
+                meter,
+                Attributes::builder,
+                () -> new ProxyClientReadServiceStats(1L, 0L, 0L, clientTypeCounts)
+            );
+
+            ObservableLongMeasurement clientTypeMeasurement = mock(ObservableLongMeasurement.class);
+            clientTypeCallback.getValue().accept(clientTypeMeasurement);
+            verify(clientTypeMeasurement).record(eq(1L), argThat(attributes ->
+                "simple_consumer".equals(attributes.get(AttributeKey.stringKey(LABEL_CLIENT_TYPE)))));
+
+            ProxyMetricsManager.recordProxyClientAdminRequest(
+                ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
+                ClientAdminMetricsResult.INTERNAL_ERROR,
+                12L
+            );
+
+            verify(requestCounter).add(eq(1L), argThat(attributes ->
+                "list_clients_by_topic".equals(attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
+                    && "internal_error".equals(attributes.get(AttributeKey.stringKey(LABEL_RESULT)))));
+            verify(requestLatency).record(eq(12L), argThat(attributes ->
+                "list_clients_by_topic".equals(attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
+                    && "internal_error".equals(attributes.get(AttributeKey.stringKey(LABEL_RESULT)))));
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
     }
 
     @Test
