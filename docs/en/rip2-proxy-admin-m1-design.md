@@ -636,7 +636,7 @@ time on the full 1M-client scenario:
 
 ```bash
 export JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home
-mvn -pl proxy -am -DskipTests -DskipITs test-compile
+mvn -pl proxy -am -DskipTests -DskipITs clean test-compile
 mvn -pl proxy -DskipTests -DskipITs dependency:build-classpath \
   -Dmdep.includeScope=test \
   -Dmdep.outputFile=/tmp/rocketmq-proxy-test-classpath.txt
@@ -647,6 +647,24 @@ mvn -pl proxy -DskipTests -DskipITs dependency:build-classpath \
   -p clientCount=1000 -p groupCount=10 -p topicCount=20 -p proxyCount=5 \
   -wi 0 -i 1 -r 100ms -w 100ms -f 1 -t 1
 ```
+
+The clean compile step is intentional. On 2026-07-06, an incremental
+`test-compile` left stale JMH-generated classes under `proxy/target`, and JMH
+forks reported unresolved benchmark methods even though the real benchmark
+class contained those methods. After `clean test-compile`,
+`ProxyClientReadServiceBenchmark_jmhType_B1` correctly extended
+`ProxyClientReadServiceBenchmark`, and the smoke run completed all six
+benchmarks:
+
+- `describeClient`: sample 2378, about 0.0001 ms/op.
+- `listByGroupPage`: sample 3223, about 0.003 ms/op.
+- `listByProxyIdPage`: sample 3442, about 0.009 ms/op.
+- `listByTopicPage`: sample 3119, about 0.003 ms/op.
+- `listFirstPage`: sample 1763, about 0.022 ms/op.
+- `listNextPage`: sample 3805, about 0.001 ms/op.
+
+These numbers are a launcher and classpath sanity check for the small
+1000-client smoke scenario, not a formal performance claim.
 
 Use the same classpath preparation and omit the `-p`, `-wi`, `-i`, `-r`, `-w`,
 `-f`, and `-t` overrides for the full default 1M-client run:
