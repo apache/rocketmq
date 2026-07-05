@@ -160,6 +160,28 @@ public class ProxyClientAdminEndpointHandlerTest {
     }
 
     @Test
+    public void handleMapsOkResultWithoutBodyToStatusResponse() {
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+
+        handler.handle(
+            observer,
+            () -> new ProxyClientAdminResult<>(
+                ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),
+                null
+            ),
+            TestAdminResponse::new
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("result body is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+    }
+
+    @Test
     public void handleWritesErrorResultWithoutBody() {
         ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
         StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);

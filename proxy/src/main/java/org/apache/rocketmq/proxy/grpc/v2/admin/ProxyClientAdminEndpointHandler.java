@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
+import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
 import io.grpc.stub.StreamObserver;
 import java.util.function.BiFunction;
@@ -100,6 +101,9 @@ public class ProxyClientAdminEndpointHandler {
             ProxyClientAdminResult<T> result = this.requireAction(action).get();
             if (result == null) {
                 throw new IllegalArgumentException("result is required");
+            }
+            if (result.getStatus().getCode() == Code.OK && result.getBody() == null) {
+                throw new IllegalStateException("result body is required");
             }
             return result;
         } catch (Throwable t) {
