@@ -36,6 +36,7 @@ import apache.rocketmq.v2.SyncLiteSubscriptionResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
+import com.google.protobuf.util.JsonFormat;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -765,6 +766,47 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testRemoteConsumerRegisterSyncsSettingsWithoutUpdatingProxyClientReadService() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        Settings remoteSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .build())
+                .build())
+            .build();
+        ConsumerIdsChangeListener listener = latestConsumerIdsChangeListener();
+
+        listener.handle(
+            ConsumerGroupEvent.REGISTER,
+            CONSUMER_GROUP,
+            Lists.newArrayList(),
+            new ClientChannelInfo(remoteGrpcChannel(remoteSettings), CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        verify(this.grpcClientSettingsManager).updateClientSettings(
+            any(ProxyContext.class),
+            eq(CLIENT_ID),
+            eq(remoteSettings)
+        );
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setGroup(CONSUMER_GROUP)
+            .build()).getClients()).isEmpty();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
     public void testTelemetryCancelRemovesProxyClientReadServiceIndexes() {
         ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
         this.clientActivity = new ClientActivity(
@@ -1228,6 +1270,16 @@ public class ClientActivityTest extends BaseActivityTest {
             LOCAL_ADDR,
             ChannelProtocolType.GRPC_V2,
             null
+        );
+    }
+
+    private RemoteChannel remoteGrpcChannel(Settings settings) throws Exception {
+        return new RemoteChannel(
+            "remote-proxy",
+            REMOTE_ADDR,
+            LOCAL_ADDR,
+            ChannelProtocolType.GRPC_V2,
+            JsonFormat.printer().print(settings)
         );
     }
 
