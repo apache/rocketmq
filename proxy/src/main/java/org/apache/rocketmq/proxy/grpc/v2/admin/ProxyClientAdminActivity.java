@@ -40,15 +40,21 @@ public class ProxyClientAdminActivity {
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClients(ProxyContext ctx, ProxyClientQuery query) {
-        return this.execute(() -> this.clientAdminService.listClients(ClientAdminRequestContext.from(ctx), query));
+        return this.execute(() -> this.clientAdminService.listClients(
+            ClientAdminRequestContext.from(ctx),
+            this.validateLocalProxyScope(query)
+        ));
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClients(ProxyContext ctx,
         ProxyClientAdminListClientsRequest request) {
-        return this.execute(() -> this.clientAdminService.listClients(
-            ClientAdminRequestContext.from(ctx),
-            this.requireRequest(request).toQuery()
-        ));
+        return this.execute(() -> {
+            ProxyClientAdminListClientsRequest requiredRequest = this.requireRequest(request);
+            return this.clientAdminService.listClients(
+                ClientAdminRequestContext.from(ctx),
+                this.validateLocalProxyScope(requiredRequest.toQuery())
+            );
+        });
     }
 
     public ProxyClientAdminResult<ProxyClientAdminPageView> listClientViews(ProxyContext ctx,
@@ -107,7 +113,7 @@ public class ProxyClientAdminActivity {
         return this.execute(() -> this.clientAdminService.listClientsByGroup(
             ClientAdminRequestContext.from(ctx),
             group,
-            query
+            this.validateLocalProxyScope(query)
         ));
     }
 
@@ -118,7 +124,7 @@ public class ProxyClientAdminActivity {
             return this.clientAdminService.listClientsByGroup(
                 ClientAdminRequestContext.from(ctx),
                 requiredRequest.getGroup(),
-                requiredRequest.toQuery()
+                this.validateLocalProxyScope(requiredRequest.toQuery())
             );
         });
     }
@@ -144,7 +150,7 @@ public class ProxyClientAdminActivity {
         return this.execute(() -> this.clientAdminService.listClientsByTopic(
             ClientAdminRequestContext.from(ctx),
             topic,
-            query
+            this.validateLocalProxyScope(query)
         ));
     }
 
@@ -155,7 +161,7 @@ public class ProxyClientAdminActivity {
             return this.clientAdminService.listClientsByTopic(
                 ClientAdminRequestContext.from(ctx),
                 requiredRequest.getTopic(),
-                requiredRequest.toQuery()
+                this.validateLocalProxyScope(requiredRequest.toQuery())
             );
         });
     }
@@ -215,5 +221,11 @@ public class ProxyClientAdminActivity {
         if (effectiveScope != ProxyClientScope.LOCAL_PROXY) {
             throw new IllegalArgumentException("Unsupported proxy scope: " + effectiveScope);
         }
+    }
+
+    private ProxyClientQuery validateLocalProxyScope(ProxyClientQuery query) {
+        ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
+        this.validateLocalProxyScope(effectiveQuery.getScope());
+        return effectiveQuery;
     }
 }
