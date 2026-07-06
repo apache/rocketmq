@@ -65,7 +65,7 @@ message ListClientsRequest {
   ClientType client_type = 3;
   ProxyScope scope = 4;
 
-  // Reserved for future PROXY_SCOPE_PROXY_ID scope. Ignored for
+  // Required when scope is PROXY_SCOPE_PROXY_ID. Ignored for
   // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
   string proxy_id = 5;
 }
@@ -80,7 +80,7 @@ message DescribeClientRequest {
   string client_id = 1;
   ProxyScope scope = 2;
 
-  // Reserved for future PROXY_SCOPE_PROXY_ID scope. Ignored for
+  // Required when scope is PROXY_SCOPE_PROXY_ID. Ignored for
   // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
   string proxy_id = 3;
 }
@@ -100,7 +100,7 @@ message ListClientsByGroupRequest {
   ClientType client_type = 4;
   ProxyScope scope = 5;
 
-  // Reserved for future PROXY_SCOPE_PROXY_ID scope. Ignored for
+  // Required when scope is PROXY_SCOPE_PROXY_ID. Ignored for
   // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
   string proxy_id = 6;
 }
@@ -121,7 +121,7 @@ message ListClientsByTopicRequest {
   ClientType client_type = 4;
   ProxyScope scope = 5;
 
-  // Reserved for future PROXY_SCOPE_PROXY_ID scope. Ignored for
+  // Required when scope is PROXY_SCOPE_PROXY_ID. Ignored for
   // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
   string proxy_id = 6;
 }

@@ -33,6 +33,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ProxyClientAdminCoordinatorServiceTest {
 
@@ -586,19 +587,13 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
-    public void describeClientProxyIdRejectsMissingProxyId() {
-        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
-        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
-        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+    public void describeClientProxyIdRejectsMissingProxyIdAtRequestBoundary() {
+        assertThatThrownBy(() -> ProxyClientAdminDescribeClientRequest.newBuilder()
             .setScope(ProxyClientScope.PROXY_ID)
             .setClientId("client-a")
-            .build();
-
-        ProxyClientAdminResult<ProxyClientInfo> result = service.describeClient(proxyContext(), request);
-
-        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
-        assertThat(result.getBody()).isNull();
-        assertThat(peerClient.requests("proxy-a")).isEmpty();
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId is required");
     }
 
     @Test

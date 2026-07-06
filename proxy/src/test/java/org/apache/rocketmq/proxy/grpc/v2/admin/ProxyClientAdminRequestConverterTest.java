@@ -23,6 +23,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ProxyClientAdminRequestConverterTest {
 
@@ -65,6 +66,20 @@ public class ProxyClientAdminRequestConverterTest {
     }
 
     @Test
+    public void toListClientsRequestRejectsMissingProxyIdForProxyIdScope() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsRequest(
+                ClientType.PRODUCER,
+                10,
+                "",
+                "PROXY_SCOPE_PROXY_ID",
+                " "
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId is required");
+    }
+
+    @Test
     public void toDescribeClientRequestMapsPublicFields() {
         ProxyClientAdminDescribeClientRequest request = ProxyClientAdminRequestConverter.getInstance()
             .toDescribeClientRequest(
@@ -76,6 +91,18 @@ public class ProxyClientAdminRequestConverterTest {
         assertThat(request.getClientId()).isEqualTo("client-a");
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
+    public void toDescribeClientRequestRejectsMissingProxyIdForProxyIdScope() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toDescribeClientRequest(
+                "client-a",
+                "PROXY_SCOPE_PROXY_ID",
+                " "
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId is required");
     }
 
     @Test
@@ -102,6 +129,21 @@ public class ProxyClientAdminRequestConverterTest {
     }
 
     @Test
+    public void toListClientsByGroupRequestRejectsMissingProxyIdForProxyIdScope() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsByGroupRequest(
+                "group-a",
+                ClientType.PUSH_CONSUMER,
+                20,
+                "",
+                "PROXY_SCOPE_PROXY_ID",
+                " "
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId is required");
+    }
+
+    @Test
     public void toListClientsByTopicRequestMapsPublicFields() {
         ProxyClientAdminListClientsByTopicRequest request = ProxyClientAdminRequestConverter.getInstance()
             .toListClientsByTopicRequest(
@@ -121,6 +163,21 @@ public class ProxyClientAdminRequestConverterTest {
         assertThat(query.getTopic()).isEqualTo("topic-a");
         assertThat(query.getPageSize()).isEqualTo(30);
         assertThat(query.getPageToken()).isNull();
+    }
+
+    @Test
+    public void toListClientsByTopicRequestRejectsMissingProxyIdForProxyIdScope() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsByTopicRequest(
+                "topic-a",
+                ClientType.SIMPLE_CONSUMER,
+                30,
+                "",
+                "PROXY_SCOPE_PROXY_ID",
+                " "
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId is required");
     }
 
     @Test

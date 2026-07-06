@@ -112,8 +112,9 @@ small and tested boundary to call:
   fields without importing generated admin protobuf classes. They normalize
   request string fields at the adapter boundary so surrounding whitespace is
   trimmed and blank strings become missing values before validation. They also
-  preserve `proxy_id` only for the explicit `PROXY_ID` scope, so direct DTO use
-  and future protobuf conversion share the same M1 local and broadcast-scope
+  require a nonblank `proxy_id` for the explicit `PROXY_ID` scope before context
+  creation, and preserve `proxy_id` only for that scope. Direct DTO use and future
+  protobuf conversion therefore share the same M1 local and broadcast-scope
   semantics.
 - `DefaultClientAdminService` also canonicalizes `LOCAL_PROXY` queries before
   reading the model, dropping accidental `proxyId` filters from direct internal
@@ -187,8 +188,10 @@ small and tested boundary to call:
 The request DTOs convert pagination, client type, scope, and optional proxy id
 into `ProxyClientQuery`. Required identifiers such as client id, group, and
 topic, plus optional page token and proxy id, are trimmed at this boundary; blank
-values are treated as absent and are rejected later when the operation requires
-them. Page tokens pass through the dedicated token codec, which encodes the
+values are treated as absent. The adapter rejects missing `proxy_id` immediately
+for explicit `PROXY_ID` scope before building `ClientAdminRequestContext` or
+entering coordinator/peer code. Page tokens pass through the dedicated token codec,
+which encodes the
 read-model last-client-id token as a versioned opaque public token and decodes
 versioned or legacy bare tokens back to the internal token.
 Public scope names pass through the scope mapper so future generated protobuf
@@ -196,9 +199,10 @@ adapters can translate prefixed enum names such as
 `PROXY_SCOPE_LOCAL_PROXY`, `PROXY_SCOPE_ALL_PROXIES`, and
 `PROXY_SCOPE_PROXY_ID` without importing the generated admin service in this
 branch. The default internal scope is `LOCAL_PROXY`; request DTOs preserve
-`proxy_id` only for the explicit `PROXY_ID` scope and drop it for `LOCAL_PROXY`
-and `ALL_PROXIES`, so broadcast-style queries cannot accidentally carry a
-single-proxy filter into coordinator-owned tokens. Unsupported future scopes
+`proxy_id` only for the explicit `PROXY_ID` scope and require it for that scope,
+while dropping it for `LOCAL_PROXY` and `ALL_PROXIES`, so broadcast-style queries
+cannot accidentally carry a single-proxy filter into coordinator-owned tokens.
+Unsupported future scopes
 are still carried through the DTO and query objects so they can be validated by
 the activity before authorization. The service layer revalidates the same scope
 to keep direct internal calls consistent. This preserves `BAD_REQUEST`
@@ -233,7 +237,7 @@ ListClientsRequest {
   int32 page_size;
   ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter; UNRECOGNIZED is rejected.
   ProxyScope scope; // M1: LOCAL_PROXY only
-  string proxy_id; // Reserved for future PROXY_ID scope.
+  string proxy_id; // Required for future PROXY_ID scope; ignored for LOCAL_PROXY/ALL_PROXIES.
 }
 ```
 
@@ -255,7 +259,7 @@ Request:
 DescribeClientRequest {
   string client_id;
   ProxyScope scope; // M1: LOCAL_PROXY only
-  string proxy_id; // Reserved for future PROXY_ID scope.
+  string proxy_id; // Required for future PROXY_ID scope; ignored for LOCAL_PROXY/ALL_PROXIES.
 }
 ```
 
@@ -279,7 +283,7 @@ ListClientsByGroupRequest {
   int32 page_size;
   ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter; UNRECOGNIZED is rejected.
   ProxyScope scope; // M1: LOCAL_PROXY only
-  string proxy_id; // Reserved for future PROXY_ID scope.
+  string proxy_id; // Required for future PROXY_ID scope; ignored for LOCAL_PROXY/ALL_PROXIES.
 }
 ```
 
@@ -304,7 +308,7 @@ ListClientsByTopicRequest {
   int32 page_size;
   ClientType client_type; // CLIENT_TYPE_UNSPECIFIED means no type filter; UNRECOGNIZED is rejected.
   ProxyScope scope; // M1: LOCAL_PROXY only
-  string proxy_id; // Reserved for future PROXY_ID scope.
+  string proxy_id; // Required for future PROXY_ID scope; ignored for LOCAL_PROXY/ALL_PROXIES.
 }
 ```
 
@@ -912,12 +916,16 @@ and startup service-registration seams are already covered in this branch.
    cross-proxy scopes only when the internal coordinator scope router is enabled
    and backed by a real peer transport; otherwise they should continue to reject
    `PROXY_SCOPE_ALL_PROXIES` and `PROXY_SCOPE_PROXY_ID` with `BAD_REQUEST`.
-7. Register `GrpcProxyAdminApplication` beside `GrpcMessagingApplication` in
+7. Reject missing `proxy_id` at the adapter/request DTO boundary whenever the
+   public request selects `PROXY_SCOPE_PROXY_ID`, before creating request context
+   or invoking coordinator/peer code. Continue to ignore `proxy_id` for
+   `PROXY_SCOPE_LOCAL_PROXY` and `PROXY_SCOPE_ALL_PROXIES`.
+8. Register `GrpcProxyAdminApplication` beside `GrpcMessagingApplication` in
    `ProxyStartup.createGrpcBindableServices`, using the same
    `DefaultGrpcMessagingActivity` instance so lifecycle writes, read-model
    queries, ACL, metrics, and context propagation share one in-process state
    holder.
-8. Keep endpoint methods free of business logic. They should adapt protobuf
+9. Keep endpoint methods free of business logic. They should adapt protobuf
    requests and responses only; authorization, validation, pagination, metrics,
    and error mapping should stay behind `ProxyClientAdminEndpointExecutor` and
    `ProxyClientAdminEndpointHandler`.

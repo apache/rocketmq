@@ -28,7 +28,7 @@ public class ProxyClientAdminDescribeClientRequest {
     private ProxyClientAdminDescribeClientRequest(Builder builder) {
         this.clientId = builder.clientId;
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
-        this.proxyId = this.scope == ProxyClientScope.PROXY_ID ? builder.proxyId : null;
+        this.proxyId = this.scope == ProxyClientScope.PROXY_ID ? requireProxyId(builder.proxyId) : null;
     }
 
     public static Builder newBuilder() {
@@ -44,6 +44,13 @@ public class ProxyClientAdminDescribeClientRequest {
     }
 
     public String getProxyId() {
+        return proxyId;
+    }
+
+    private static String requireProxyId(String proxyId) {
+        if (proxyId == null) {
+            throw new IllegalArgumentException("proxyId is required");
+        }
         return proxyId;
     }
 
