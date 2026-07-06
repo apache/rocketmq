@@ -848,6 +848,9 @@ Internal adapter tests cover:
   `ProxyClientAdminActivity`.
 - coordinator pagination rejecting peer pages that go backward relative to the
   per-peer cursor stored in a coordinator-owned page token.
+- activity-level static peer gRPC fan-out wiring for `ALL_PROXIES`, covering
+  `DefaultGrpcMessagingActivity` construction with configured peer targets and
+  real internal peer gRPC services.
 - coordinator pagination preserving duplicate client ids across proxies by
   using the last emitted `(client_id, proxy_id)` as the global cursor.
 - coordinator pagination rejecting peer pages that are not strictly ordered by

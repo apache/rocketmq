@@ -24,6 +24,11 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.Channel;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.Server;
+import io.grpc.ServerInterceptors;
+import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import java.lang.reflect.Field;
 import java.util.Collections;
@@ -31,6 +36,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
@@ -38,7 +44,10 @@ import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
+import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminClientView;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminContextFactory;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminInProcessPeerMessageTransport;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminListClientsRequest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
@@ -58,10 +67,12 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminRequestContext;
+import org.apache.rocketmq.proxy.service.admin.client.DefaultClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.MeteredAuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.MeteredClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceCleaner;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
@@ -294,6 +305,48 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         assertThat(activity.capturedTargets)
             .extracting(ProxyClientAdminPeerGrpcTarget::getPort)
             .containsExactly(8080, 8081);
+    }
+
+    @Test
+    public void initRoutesAllProxyScopeThroughConfiguredStaticGrpcPeers() throws Exception {
+        PeerServer proxyA = null;
+        PeerServer proxyB = null;
+        DefaultGrpcMessagingActivity activity = null;
+        try {
+            proxyA = PeerServer.start("proxy-a", clientInfo("client-a", 200L));
+            proxyB = PeerServer.start("proxy-b", clientInfo("client-b", 300L));
+            ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+            ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+            ConfigurationManager.getProxyConfig().setProxyClientAdminPeerGrpcTargets(
+                "proxy-b=127.0.0.1:" + proxyB.port() + ",proxy-a=127.0.0.1:" + proxyA.port()
+            );
+            activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+
+            ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.getProxyClientAdminScopeRouter()
+                .listClientViews(
+                    ProxyContext.create()
+                        .setSubject(User.of("admin"))
+                        .setRemoteAddress("127.0.0.1"),
+                    ProxyClientAdminListClientsRequest.newBuilder()
+                        .setScope(ProxyClientScope.ALL_PROXIES)
+                        .setPageSize(10)
+                        .build()
+                );
+
+            assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(result.getBody().getClients())
+                .extracting(ProxyClientAdminClientView::getClientId)
+                .containsExactly("client-a", "client-b");
+            assertThat(result.getBody().getClients())
+                .extracting(ProxyClientAdminClientView::getProxyId)
+                .containsExactly("proxy-a", "proxy-b");
+        } finally {
+            if (activity != null) {
+                activity.shutdown();
+            }
+            close(proxyB);
+            close(proxyA);
+        }
     }
 
     @Test
@@ -534,6 +587,59 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         Field field = declaringClass.getDeclaredField(fieldName);
         field.setAccessible(true);
         return field.get(target);
+    }
+
+    private static void close(PeerServer peerServer) throws Exception {
+        if (peerServer != null) {
+            peerServer.close();
+        }
+    }
+
+    private static class PeerServer {
+        private final Server server;
+        private final ManagedChannel channel;
+
+        private PeerServer(Server server, ManagedChannel channel) {
+            this.server = server;
+            this.channel = channel;
+        }
+
+        private static PeerServer start(String proxyId, ProxyClientInfo clientInfo) throws Exception {
+            ProxyClientReadService readService = new ProxyClientReadService();
+            readService.upsertClient(clientInfo);
+            DefaultClientAdminService adminService = new DefaultClientAdminService(readService);
+            ProxyClientAdminContextFactory contextFactory = new ProxyClientAdminContextFactory(
+                (context, headers, request) -> {
+                }
+            );
+            ProxyClientAdminPeerGrpcService service = new ProxyClientAdminPeerGrpcService(
+                contextFactory,
+                new ProxyClientAdminPeerMessageHandler(
+                    new ProxyClientAdminPeerLocalExecutor(proxyId, adminService)
+                )
+            );
+            Server server = NettyServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(ServerInterceptors.intercept(service, new ContextInterceptor()))
+                .build()
+                .start();
+            ManagedChannel channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            return new PeerServer(server, channel);
+        }
+
+        private int port() {
+            return this.server.getPort();
+        }
+
+        private void close() throws Exception {
+            this.channel.shutdownNow();
+            this.server.shutdownNow();
+            this.channel.awaitTermination(5, TimeUnit.SECONDS);
+            this.server.awaitTermination(5, TimeUnit.SECONDS);
+        }
     }
 
     private static class TestableDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
