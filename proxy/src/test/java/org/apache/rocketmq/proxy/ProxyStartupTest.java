@@ -43,6 +43,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcService;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.junit.After;
@@ -377,5 +378,29 @@ public class ProxyStartupTest {
         );
 
         Assert.assertTrue(exception.getMessage().contains("additional service is required"));
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesAppendsPeerGrpcServiceBeforeAdditionalServices() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        ProxyClientAdminPeerGrpcService peerGrpcService = mock(ProxyClientAdminPeerGrpcService.class);
+        BindableService additionalService = mock(BindableService.class);
+        Mockito.when(sharedActivity.getProxyClientAdminPeerGrpcService()).thenReturn(peerGrpcService);
+
+        List<BindableService> services = ProxyStartup.createGrpcBindableServices(
+            messagingProcessor,
+            sharedActivity,
+            Collections.singletonList(additionalService)
+        );
+
+        assertEquals(3, services.size());
+        Assert.assertTrue(services.get(0) instanceof GrpcMessagingApplication);
+        assertSame(peerGrpcService, services.get(1));
+        assertSame(additionalService, services.get(2));
     }
 }

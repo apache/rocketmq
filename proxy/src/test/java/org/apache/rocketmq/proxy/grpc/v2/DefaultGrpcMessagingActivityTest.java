@@ -41,6 +41,7 @@ import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminInProcessPeerMess
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminListClientsRequest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerClient;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcService;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerLocalExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageClient;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageHandler;
@@ -202,6 +203,7 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
 
         DefaultGrpcMessagingActivity activity = activityRef.get();
         assertThat(activity.proxyClientAdminPeerClient).isNull();
+        assertThat(activity.getProxyClientAdminPeerGrpcService()).isNull();
         assertThat(activity.proxyClientAdminPeerExecutor).isNull();
         ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.getProxyClientAdminScopeRouter()
             .listClientViews(
@@ -224,6 +226,19 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
 
         assertThat(activity.proxyClientAdminPeerClient).isInstanceOf(TimedProxyClientAdminPeerClient.class);
+    }
+
+    @Test
+    public void initCreatesProxyClientAdminPeerGrpcServiceWhenCrossProxyScopeEnabled() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        ProxyClientAdminPeerGrpcService peerGrpcService = activity.getProxyClientAdminPeerGrpcService();
+
+        assertThat(peerGrpcService).isNotNull();
+        assertThat(peerGrpcService.bindService().getServiceDescriptor().getName())
+            .isEqualTo(ProxyClientAdminPeerGrpcService.SERVICE_NAME);
     }
 
     @Test

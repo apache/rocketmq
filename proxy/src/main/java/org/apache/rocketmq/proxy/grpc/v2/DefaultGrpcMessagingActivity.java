@@ -64,6 +64,7 @@ import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointHandler;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminInProcessPeerMessageTransport;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerClient;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcService;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerLocalExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageClient;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageHandler;
@@ -110,6 +111,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected AuthorizingClientAdminService authorizingClientAdminService;
     protected ProxyClientAdminActivity proxyClientAdminActivity;
     protected ProxyClientAdminPeerClient proxyClientAdminPeerClient;
+    protected ProxyClientAdminPeerGrpcService proxyClientAdminPeerGrpcService;
     protected ExecutorService proxyClientAdminPeerExecutor;
     protected ProxyClientAdminScopeRouter proxyClientAdminScopeRouter;
     protected ProxyClientAdminContextFactory proxyClientAdminContextFactory;
@@ -138,14 +140,15 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         boolean enableCrossProxyQuery = ConfigurationManager.getProxyConfig()
             .isEnableProxyClientAdminCrossProxyQuery();
         ProxyClientAdminCoordinatorService proxyClientAdminCoordinatorService = null;
+        String crossProxyLocalProxyId = null;
         if (enableCrossProxyQuery) {
-            String localProxyId = this.requireCrossProxyLocalProxyId();
+            crossProxyLocalProxyId = this.requireCrossProxyLocalProxyId();
             long peerRequestTimeoutMillis = this.requireCrossProxyPeerRequestTimeoutMillis();
             this.proxyClientAdminPeerExecutor = ThreadUtils.newSingleThreadExecutor(
                 new ThreadFactoryImpl("ProxyClientAdminPeerClient_")
             );
             this.proxyClientAdminPeerClient = this.createProxyClientAdminPeerClient(
-                localProxyId,
+                crossProxyLocalProxyId,
                 this.proxyClientAdminActivity,
                 this.proxyClientAdminPeerExecutor,
                 peerRequestTimeoutMillis
@@ -162,6 +165,13 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         );
         this.proxyClientAdminContextFactory =
             GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(messagingProcessor);
+        if (enableCrossProxyQuery) {
+            this.proxyClientAdminPeerGrpcService = this.createProxyClientAdminPeerGrpcService(
+                crossProxyLocalProxyId,
+                this.clientAdminService,
+                this.proxyClientAdminContextFactory
+            );
+        }
         this.proxyClientAdminEndpointHandler = new ProxyClientAdminEndpointHandler(this.proxyClientAdminScopeRouter);
         this.proxyClientAdminEndpointExecutor = new ProxyClientAdminEndpointExecutor(
             this.proxyClientAdminContextFactory,
@@ -251,6 +261,18 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         return new ProxyClientAdminPeerLocalExecutor(localProxyId, clientAdminService);
     }
 
+    protected ProxyClientAdminPeerGrpcService createProxyClientAdminPeerGrpcService(String localProxyId,
+        ClientAdminService clientAdminService, ProxyClientAdminContextFactory contextFactory) {
+        ProxyClientAdminPeerLocalExecutor localPeerExecutor = this.createProxyClientAdminPeerLocalExecutor(
+            localProxyId,
+            clientAdminService
+        );
+        return new ProxyClientAdminPeerGrpcService(
+            contextFactory,
+            new ProxyClientAdminPeerMessageHandler(localPeerExecutor)
+        );
+    }
+
     private long requireCrossProxyPeerRequestTimeoutMillis() {
         long peerRequestTimeoutMillis =
             ConfigurationManager.getProxyConfig().getProxyClientAdminPeerRequestTimeoutMillis();
@@ -285,6 +307,10 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
 
     public ProxyClientAdminEndpointExecutor getProxyClientAdminEndpointExecutor() {
         return this.proxyClientAdminEndpointExecutor;
+    }
+
+    public ProxyClientAdminPeerGrpcService getProxyClientAdminPeerGrpcService() {
+        return this.proxyClientAdminPeerGrpcService;
     }
 
     @Override
