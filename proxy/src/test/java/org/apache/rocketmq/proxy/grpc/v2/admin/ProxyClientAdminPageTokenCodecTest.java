@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -88,6 +89,23 @@ public class ProxyClientAdminPageTokenCodecTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid page token")
             .hasMessageContaining("v10:Y2xpZW50LWE");
+    }
+
+    @Test
+    public void codecRejectsCoordinatorTokensAtLocalPageTokenBoundary() {
+        ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
+        String coordinatorToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setLastClientId("client-a")
+                .putPeerPageToken("proxy-a", "client-a")
+                .build()
+        );
+
+        assertThatThrownBy(() -> codec.decode(coordinatorToken))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid page token")
+            .hasMessageContaining("cp1:");
     }
 
     @Test

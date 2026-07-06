@@ -103,6 +103,42 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void listClientsRequestRejectsCoordinatorPageTokenForLocalProxyScope() {
+        String coordinatorToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setLastClientId("client-a")
+                .putPeerPageToken("proxy-a", "client-a")
+                .build()
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setPageToken(coordinatorToken)
+            .build();
+
+        assertThatThrownBy(request::toQuery)
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid page token")
+            .hasMessageContaining("cp1:");
+    }
+
+    @Test
+    public void listClientsRequestPreservesCoordinatorPageTokenForAllProxiesScope() {
+        String coordinatorToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setLastClientId("client-a")
+                .putPeerPageToken("proxy-a", "client-a")
+                .build()
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageToken(coordinatorToken)
+            .build();
+
+        assertThat(request.toQuery().getPageToken()).isEqualTo(coordinatorToken);
+    }
+
+    @Test
     public void listClientsRequestRejectsUnrecognizedClientType() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setClientType(ClientType.UNRECOGNIZED)

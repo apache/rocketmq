@@ -513,7 +513,10 @@ by the codec, so equivalent JSON payloads cannot create multiple public cursor
 representations. The response adapter preserves canonical `cp1:` tokens instead
 of wrapping them in the local read-model `v1:` token codec. It is not wired into
 the M1 `LOCAL_PROXY` endpoints and does not change the public local `v1:` token
-behavior.
+behavior. The local `v1:` token decoder rejects coordinator-owned `cpN:` tokens
+so `LOCAL_PROXY` and `PROXY_ID` requests cannot accidentally treat a cross-proxy
+cursor as a read-model client-id cursor. Request DTOs preserve `cp1:` tokens only
+for `ALL_PROXIES`, where the coordinator owns decoding and validation.
 
 When the coordinator builds a next token, it preserves a peer's own next-page
 token after that peer's returned page has been fully emitted. If the global

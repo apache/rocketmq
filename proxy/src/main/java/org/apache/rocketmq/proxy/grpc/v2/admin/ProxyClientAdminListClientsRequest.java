@@ -69,7 +69,7 @@ public class ProxyClientAdminListClientsRequest {
         return builder
             .setClientType(this.normalizeClientType(clientType))
             .setPageSize(pageSize)
-            .setPageToken(ProxyClientAdminPageTokenCodec.getInstance().decode(pageToken))
+            .setPageToken(this.pageTokenForQuery())
             .setScope(scope)
             .setProxyId(this.proxyIdForQuery());
     }
@@ -82,6 +82,13 @@ public class ProxyClientAdminListClientsRequest {
             throw new IllegalArgumentException("Unsupported client type: " + clientType);
         }
         return clientType;
+    }
+
+    private String pageTokenForQuery() {
+        if (scope == ProxyClientScope.ALL_PROXIES) {
+            return pageToken;
+        }
+        return ProxyClientAdminPageTokenCodec.getInstance().decode(pageToken);
     }
 
     private String proxyIdForQuery() {

@@ -43,6 +43,9 @@ public final class ProxyClientAdminPageTokenCodec {
                 "Invalid page token: length exceeds " + MAX_PUBLIC_PAGE_TOKEN_LENGTH
             );
         }
+        if (isCoordinatorVersionedToken(normalizedPublicPageToken)) {
+            throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
+        }
         if (!normalizedPublicPageToken.startsWith(VERSION_1_PREFIX)) {
             if (isVersionedToken(normalizedPublicPageToken)) {
                 throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
@@ -95,6 +98,19 @@ public final class ProxyClientAdminPageTokenCodec {
             return false;
         }
         for (int i = 1; i < colonIndex; i++) {
+            if (!Character.isDigit(publicPageToken.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isCoordinatorVersionedToken(String publicPageToken) {
+        int colonIndex = publicPageToken.indexOf(':');
+        if (colonIndex <= 2 || publicPageToken.charAt(0) != 'c' || publicPageToken.charAt(1) != 'p') {
+            return false;
+        }
+        for (int i = 2; i < colonIndex; i++) {
             if (!Character.isDigit(publicPageToken.charAt(i))) {
                 return false;
             }
