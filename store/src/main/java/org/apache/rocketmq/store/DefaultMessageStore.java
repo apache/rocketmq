@@ -2775,19 +2775,25 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         protected long getReputEndOffset() {
-            return DefaultMessageStore.this.getMessageStoreConfig().isReadUnCommitted() ? DefaultMessageStore.this.commitLog.getMaxOffset() : DefaultMessageStore.this.commitLog.getConfirmOffset();
+            return DefaultMessageStore.this.getMessageStoreConfig().isReadUnCommitted()
+                ? DefaultMessageStore.this.commitLog.getMaxOffset()
+                : DefaultMessageStore.this.commitLog.getConfirmOffset();
         }
 
         public void doReput() {
+            // init reput start offset
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 LOGGER.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
                     this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
                 this.reputFromOffset = DefaultMessageStore.this.commitLog.getMinOffset();
             }
+
+            // check if reputFromOffset < maxReputOffset
             boolean isCommitLogAvailable = isCommitLogAvailable();
             if (!isCommitLogAvailable) {
                 currentReputTimestamp = System.currentTimeMillis();
             }
+            // Outer loop: drain all available data from the commitlog, one mapped file at a time.
             for (boolean doNext = true; isCommitLogAvailable() && doNext; ) {
 
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
@@ -2799,21 +2805,28 @@ public class DefaultMessageStore implements MessageStore {
                 try {
                     this.reputFromOffset = result.getStartOffset();
 
+                    // Inner loop: walk through the messages in the current mapped buffer.
                     for (int readSize = 0; readSize < result.getSize() && reputFromOffset < getReputEndOffset() && doNext; ) {
+                        // get one message and some related info
                         DispatchRequest dispatchRequest =
                             DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
                         int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
 
+                        // Stop if the end of the file.
                         if (reputFromOffset + size > getReputEndOffset()) {
                             doNext = false;
                             break;
                         }
 
-                        if (dispatchRequest.isSuccess()) {
+                        if (dispatchRequest.isSuccess()) { // dispatch and increase reput offset
                             if (size > 0) {
                                 currentReputTimestamp = dispatchRequest.getStoreTimestamp();
+                                // Hand the message off to all registered CommitLogDispatchStore
+                                // instances (ConsumeQueueStore, IndexService, IndexRocksDBStore,
+                                // TransMessageRocksDBStore, etc.).
                                 DefaultMessageStore.this.doDispatch(dispatchRequest);
 
+                                // Per-message notify only when not in batch mode (RocksDB CQ path).
                                 if (!notifyMessageArriveInBatch) {
                                     notifyMessageArriveIfNecessary(dispatchRequest);
                                 }
@@ -2829,10 +2842,11 @@ public class DefaultMessageStore implements MessageStore {
                                         .add(dispatchRequest.getMsgSize());
                                 }
                             } else if (size == 0) {
+                                // size==0 is a blank file trailer (BLANK_MAGIC_CODE) - skip to next file.
                                 this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
                                 readSize = result.getSize();
                             }
-                        } else {
+                        } else { // increase reput offset
                             if (size > 0) {
                                 LOGGER.error("[BUG]read total count not equals msg total size. reputFromOffset={}", reputFromOffset);
                                 this.reputFromOffset += size;
