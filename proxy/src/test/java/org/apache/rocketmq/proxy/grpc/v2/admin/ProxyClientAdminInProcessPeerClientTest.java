@@ -89,6 +89,7 @@ public class ProxyClientAdminInProcessPeerClientTest {
     @Test
     public void inProcessPeerClientMapsExecutorFailureToPeerError() {
         ProxyClientAdminPeerLocalExecutor executor = mock(ProxyClientAdminPeerLocalExecutor.class);
+        when(executor.getLocalProxyId()).thenReturn("proxy-a");
         when(executor.execute(any(), any())).thenThrow(new IllegalStateException("boom"));
         Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
         executors.put("proxy-a", executor);
@@ -117,6 +118,18 @@ public class ProxyClientAdminInProcessPeerClientTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Duplicate proxyId")
             .hasMessageContaining("proxy-a");
+    }
+
+    @Test
+    public void inProcessPeerClientRejectsExecutorProxyIdMismatch() {
+        Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
+        executors.put("proxy-a", newExecutor("proxy-b", mock(ClientAdminService.class)));
+
+        assertThatThrownBy(() -> new ProxyClientAdminInProcessPeerClient(executors))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("executor proxyId mismatch")
+            .hasMessageContaining("proxy-a")
+            .hasMessageContaining("proxy-b");
     }
 
     @Test

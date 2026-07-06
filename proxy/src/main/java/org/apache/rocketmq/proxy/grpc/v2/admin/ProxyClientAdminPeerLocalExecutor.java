@@ -41,6 +41,10 @@ public class ProxyClientAdminPeerLocalExecutor {
         this.activity = activity;
     }
 
+    String getLocalProxyId() {
+        return localProxyId;
+    }
+
     public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, ProxyClientAdminPeerRequest request) {
         ProxyContext requiredContext = this.requireContext(ctx);
         ProxyClientAdminPeerRequest requiredRequest = this.requireRequest(request);

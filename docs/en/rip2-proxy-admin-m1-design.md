@@ -561,8 +561,9 @@ Recommended implementation order after public API ownership is confirmed:
    converts activity failures into peer internal-error responses,
    stamps the local proxy id into successful peer page and client bodies,
    plus an in-process peer client adapter that rejects empty executor maps,
-   normalizes and rejects duplicate peer ids, exposes stable peer ids, and
-   delegates target requests to local executors.
+   normalizes and rejects duplicate peer ids, requires each map key to match the
+   local proxy id stamped by its executor, exposes stable peer ids, and delegates
+   target requests to local executors.
 2. Add a peer transport adapter that can call another proxy process without
    depending on public client-facing protobuf classes.
 3. Add a coordinator service that fans out local-page requests, merges results in

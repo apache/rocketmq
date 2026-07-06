@@ -44,6 +44,12 @@ public class ProxyClientAdminInProcessPeerClient implements ProxyClientAdminPeer
             if (entry.getValue() == null) {
                 throw new IllegalArgumentException("executor is required");
             }
+            String executorProxyId = entry.getValue().getLocalProxyId();
+            if (!proxyId.equals(executorProxyId)) {
+                throw new IllegalArgumentException(
+                    "executor proxyId mismatch: expected " + proxyId + ", actual " + executorProxyId
+                );
+            }
             sortedExecutors.put(proxyId, entry.getValue());
         }
         if (sortedExecutors.isEmpty()) {
