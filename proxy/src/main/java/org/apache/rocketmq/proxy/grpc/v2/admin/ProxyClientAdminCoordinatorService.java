@@ -79,8 +79,29 @@ public class ProxyClientAdminCoordinatorService {
         ));
     }
 
-    private ProxyClientAdminResult<ProxyClientPage> execute(
-        Supplier<ProxyClientAdminResult<ProxyClientPage>> supplier) {
+    public ProxyClientAdminResult<ProxyClientInfo> describeClient(ProxyContext ctx,
+        ProxyClientAdminDescribeClientRequest request) {
+        return this.execute(() -> {
+            ProxyClientAdminDescribeClientRequest requiredRequest = this.requireProxyIdDescribeRequest(request);
+            ProxyClientAdminPeerResponse<?> response = this.peerClient.execute(
+                ctx,
+                requiredRequest.getProxyId(),
+                this.toPeerDescribeRequest(requiredRequest.getClientId())
+            );
+            if (response == null) {
+                return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer response is required");
+            }
+            if (!response.isSuccess()) {
+                return this.peerErrorResult(response);
+            }
+            if (!(response.getBody() instanceof ProxyClientInfo)) {
+                return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer client result is required");
+            }
+            return this.okResult((ProxyClientInfo) response.getBody());
+        });
+    }
+
+    private <T> ProxyClientAdminResult<T> execute(Supplier<ProxyClientAdminResult<T>> supplier) {
         try {
             return supplier.get();
         } catch (Throwable t) {
@@ -172,6 +193,14 @@ public class ProxyClientAdminCoordinatorService {
             .build();
     }
 
+    private ProxyClientAdminPeerRequest toPeerDescribeRequest(String clientId) {
+        return ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
+            .setClientId(clientId)
+            .setScope(ProxyClientScope.LOCAL_PROXY)
+            .build();
+    }
+
     private String requireGroup(String group) {
         String normalizedGroup = StringUtils.trimToNull(group);
         if (normalizedGroup == null) {
@@ -186,6 +215,35 @@ public class ProxyClientAdminCoordinatorService {
             throw new IllegalArgumentException("topic is required");
         }
         return normalizedTopic;
+    }
+
+    private ProxyClientAdminDescribeClientRequest requireProxyIdDescribeRequest(
+        ProxyClientAdminDescribeClientRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("request is required");
+        }
+        if (request.getScope() != ProxyClientScope.PROXY_ID) {
+            throw new IllegalArgumentException("Unsupported coordinator proxy scope: " + request.getScope());
+        }
+        this.requireClientId(request.getClientId());
+        this.requireProxyId(request.getProxyId());
+        return request;
+    }
+
+    private String requireClientId(String clientId) {
+        String normalizedClientId = StringUtils.trimToNull(clientId);
+        if (normalizedClientId == null) {
+            throw new IllegalArgumentException("clientId is required");
+        }
+        return normalizedClientId;
+    }
+
+    private String requireProxyId(String proxyId) {
+        String normalizedProxyId = StringUtils.trimToNull(proxyId);
+        if (normalizedProxyId == null) {
+            throw new IllegalArgumentException("proxyId is required");
+        }
+        return normalizedProxyId;
     }
 
     private void validatePageToken(ProxyClientQuery query, ProxyClientAdminCoordinatorPageToken pageToken) {
@@ -239,11 +297,18 @@ public class ProxyClientAdminCoordinatorService {
             .build());
     }
 
-    private ProxyClientAdminResult<ProxyClientPage> peerErrorResult(ProxyClientAdminPeerResponse<?> response) {
+    private <T> ProxyClientAdminResult<T> okResult(T body) {
+        return new ProxyClientAdminResult<>(
+            ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),
+            body
+        );
+    }
+
+    private <T> ProxyClientAdminResult<T> peerErrorResult(ProxyClientAdminPeerResponse<?> response) {
         return this.errorResult(this.parseCode(response.getErrorCode()), response.getErrorMessage());
     }
 
-    private ProxyClientAdminResult<ProxyClientPage> errorResult(Code code, String message) {
+    private <T> ProxyClientAdminResult<T> errorResult(Code code, String message) {
         return new ProxyClientAdminResult<>(
             ResponseBuilder.getInstance().buildStatus(code, message),
             null

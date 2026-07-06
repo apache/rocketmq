@@ -195,6 +195,64 @@ public class ProxyClientAdminCoordinatorServiceTest {
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
     }
 
+    @Test
+    public void describeClientProxyIdDelegatesToTargetPeer() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addResponse("proxy-b", ProxyClientAdminPeerResponse.success("proxy-b", client("client-b")));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId(" proxy-b ")
+            .setClientId(" client-b ")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientInfo> result = service.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClientId()).isEqualTo("client-b");
+        assertThat(peerClient.requests("proxy-a")).isEmpty();
+        ProxyClientAdminPeerRequest peerRequest = peerClient.requests("proxy-b").get(0);
+        assertThat(peerRequest.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT);
+        assertThat(peerRequest.getClientId()).isEqualTo("client-b");
+        assertThat(peerRequest.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(peerRequest.getProxyId()).isNull();
+    }
+
+    @Test
+    public void describeClientProxyIdRejectsMissingProxyId() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setClientId("client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientInfo> result = service.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.requests("proxy-a")).isEmpty();
+    }
+
+    @Test
+    public void describeClientProxyIdFailsFastOnPeerNotFound() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.error("proxy-a", "NOT_FOUND",
+            "client missing"));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .setClientId("client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientInfo> result = service.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.NOT_FOUND);
+        assertThat(result.getStatus().getMessage()).isEqualTo("client missing");
+        assertThat(result.getBody()).isNull();
+    }
+
     private static ProxyClientPage page(List<ProxyClientInfo> clients, String nextPageToken) {
         return new ProxyClientPage(clients, nextPageToken);
     }
