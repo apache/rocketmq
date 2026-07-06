@@ -33,6 +33,7 @@ public final class ProxyClientAdminRequestConverter {
     public ProxyClientAdminListClientsRequest toListClientsRequest(ClientType clientType, int pageSize,
         String pageToken, String scopeName, String proxyId) {
         ProxyClientScope scope = this.decodeScope(scopeName);
+        this.rejectUnrecognizedClientType(clientType);
         return ProxyClientAdminListClientsRequest.newBuilder()
             .setClientType(clientType)
             .setPageSize(pageSize)
@@ -55,6 +56,7 @@ public final class ProxyClientAdminRequestConverter {
     public ProxyClientAdminListClientsByGroupRequest toListClientsByGroupRequest(String group, ClientType clientType,
         int pageSize, String pageToken, String scopeName, String proxyId) {
         ProxyClientScope scope = this.decodeScope(scopeName);
+        this.rejectUnrecognizedClientType(clientType);
         return ProxyClientAdminListClientsByGroupRequest.newBuilder()
             .setGroup(group)
             .setClientType(clientType)
@@ -68,6 +70,7 @@ public final class ProxyClientAdminRequestConverter {
     public ProxyClientAdminListClientsByTopicRequest toListClientsByTopicRequest(String topic, ClientType clientType,
         int pageSize, String pageToken, String scopeName, String proxyId) {
         ProxyClientScope scope = this.decodeScope(scopeName);
+        this.rejectUnrecognizedClientType(clientType);
         return ProxyClientAdminListClientsByTopicRequest.newBuilder()
             .setTopic(topic)
             .setClientType(clientType)
@@ -87,5 +90,11 @@ public final class ProxyClientAdminRequestConverter {
             return proxyId;
         }
         return null;
+    }
+
+    private void rejectUnrecognizedClientType(ClientType clientType) {
+        if (clientType == ClientType.UNRECOGNIZED) {
+            throw new IllegalArgumentException("Unsupported client type: " + clientType);
+        }
     }
 }

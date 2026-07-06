@@ -80,6 +80,21 @@ public class ProxyClientAdminRequestConverterTest {
     }
 
     @Test
+    public void toListClientsRequestRejectsUnrecognizedClientTypeAtAdapterBoundary() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsRequest(
+                ClientType.UNRECOGNIZED,
+                10,
+                "",
+                "PROXY_SCOPE_LOCAL_PROXY",
+                ""
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported client type")
+            .hasMessageContaining("UNRECOGNIZED");
+    }
+
+    @Test
     public void toDescribeClientRequestMapsPublicFields() {
         ProxyClientAdminDescribeClientRequest request = ProxyClientAdminRequestConverter.getInstance()
             .toDescribeClientRequest(
@@ -144,6 +159,22 @@ public class ProxyClientAdminRequestConverterTest {
     }
 
     @Test
+    public void toListClientsByGroupRequestRejectsUnrecognizedClientTypeAtAdapterBoundary() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsByGroupRequest(
+                "group-a",
+                ClientType.UNRECOGNIZED,
+                20,
+                "",
+                "PROXY_SCOPE_LOCAL_PROXY",
+                ""
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported client type")
+            .hasMessageContaining("UNRECOGNIZED");
+    }
+
+    @Test
     public void toListClientsByTopicRequestMapsPublicFields() {
         ProxyClientAdminListClientsByTopicRequest request = ProxyClientAdminRequestConverter.getInstance()
             .toListClientsByTopicRequest(
@@ -178,6 +209,22 @@ public class ProxyClientAdminRequestConverterTest {
             ))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("proxyId is required");
+    }
+
+    @Test
+    public void toListClientsByTopicRequestRejectsUnrecognizedClientTypeAtAdapterBoundary() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsByTopicRequest(
+                "topic-a",
+                ClientType.UNRECOGNIZED,
+                30,
+                "",
+                "PROXY_SCOPE_LOCAL_PROXY",
+                ""
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported client type")
+            .hasMessageContaining("UNRECOGNIZED");
     }
 
     @Test
