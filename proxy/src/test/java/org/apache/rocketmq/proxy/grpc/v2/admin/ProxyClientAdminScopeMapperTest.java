@@ -36,12 +36,21 @@ public class ProxyClientAdminScopeMapperTest {
     }
 
     @Test
-    public void mapsKnownPublicScopeNamesToInternalScopes() {
+    public void rejectsInternalScopeNamesAtPublicBoundary() {
         ProxyClientAdminScopeMapper mapper = ProxyClientAdminScopeMapper.getInstance();
 
-        assertThat(mapper.decode("LOCAL_PROXY")).isEqualTo(ProxyClientScope.LOCAL_PROXY);
-        assertThat(mapper.decode("ALL_PROXIES")).isEqualTo(ProxyClientScope.ALL_PROXIES);
-        assertThat(mapper.decode("PROXY_ID")).isEqualTo(ProxyClientScope.PROXY_ID);
+        assertThatThrownBy(() -> mapper.decode("LOCAL_PROXY"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported proxy scope")
+            .hasMessageContaining("LOCAL_PROXY");
+        assertThatThrownBy(() -> mapper.decode("ALL_PROXIES"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported proxy scope")
+            .hasMessageContaining("ALL_PROXIES");
+        assertThatThrownBy(() -> mapper.decode("PROXY_ID"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported proxy scope")
+            .hasMessageContaining("PROXY_ID");
     }
 
     @Test

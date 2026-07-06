@@ -48,10 +48,6 @@ public final class ProxyClientAdminScopeMapper {
         if (PROXY_ID_PUBLIC_SCOPE.equals(scopeName)) {
             return ProxyClientScope.PROXY_ID;
         }
-        try {
-            return ProxyClientScope.valueOf(scopeName);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unsupported proxy scope: " + publicScopeName, e);
-        }
+        throw new IllegalArgumentException("Unsupported proxy scope: " + publicScopeName);
     }
 }

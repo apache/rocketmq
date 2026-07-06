@@ -135,8 +135,8 @@ small and tested boundary to call:
   values. It maps missing or `PROXY_SCOPE_UNSPECIFIED` public scope values to
   internal `LOCAL_PROXY`, maps prefixed public values such as
   `PROXY_SCOPE_ALL_PROXIES` and `PROXY_SCOPE_PROXY_ID` into the internal request
-  model, keeps the shorter internal names accepted for tests and direct
-  adapters, and rejects unknown scope names before they reach the service layer.
+  model, rejects unprefixed internal enum names at the public adapter boundary,
+  and rejects unknown scope names before they reach the service layer.
 - `ProxyClientAdminEndpointHandler` centralizes the future unary endpoint
   response flow: execute an activity action, convert thrown exceptions through
   `ResponseBuilder`, build a response from `Status` and optional body, and write
