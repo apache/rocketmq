@@ -516,7 +516,10 @@ the M1 `LOCAL_PROXY` endpoints and does not change the public local `v1:` token
 behavior. The local `v1:` token decoder rejects coordinator-owned `cpN:` tokens
 so `LOCAL_PROXY` and `PROXY_ID` requests cannot accidentally treat a cross-proxy
 cursor as a read-model client-id cursor. Request DTOs preserve `cp1:` tokens only
-for `ALL_PROXIES`, where the coordinator owns decoding and validation.
+for `ALL_PROXIES`, where the coordinator owns decoding and validation. A
+non-empty coordinator token must include both the last emitted global `client_id`
+and at least one peer cursor; otherwise the coordinator rejects it as an
+incomplete progress token instead of restarting from the first peer page.
 
 When the coordinator builds a next token, it preserves a peer's own next-page
 token after that peer's returned page has been fully emitted. If the global

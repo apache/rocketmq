@@ -327,6 +327,9 @@ public class ProxyClientAdminCoordinatorService {
         if (pageToken.getScope() != ProxyClientScope.ALL_PROXIES) {
             throw new IllegalArgumentException("Coordinator page token scope mismatch");
         }
+        if (StringUtils.isBlank(pageToken.getLastClientId()) || pageToken.getPeerPageTokens().isEmpty()) {
+            throw new IllegalArgumentException("Coordinator page token progress is required");
+        }
         if (!Objects.equals(pageToken.getGroup(), query.getGroup())
             || !Objects.equals(pageToken.getTopic(), query.getTopic())
             || pageToken.getClientType() != query.getClientType()
