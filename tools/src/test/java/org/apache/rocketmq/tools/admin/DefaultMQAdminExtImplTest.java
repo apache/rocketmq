@@ -667,6 +667,32 @@ public class DefaultMQAdminExtImplTest {
         assertTrue(defaultMQAdminExtImpl.consumed(messageExt, defaultGroup));
     }
 
+    @Test
+    public void testConsumedConcurrentWithEqualOffset() throws Exception {
+        MessageExt messageExt = createMessageExt();
+        messageExt.setQueueOffset(10L);
+
+        ConsumeStats consumeStats = mock(ConsumeStats.class);
+        Map<MessageQueue, OffsetWrapper> offsetTable = new HashMap<>();
+        OffsetWrapper offsetWrapper = new OffsetWrapper();
+        offsetWrapper.setConsumerOffset(10L);
+        offsetTable.put(new MessageQueue(defaultTopic, defaultBroker, 0), offsetWrapper);
+        when(consumeStats.getOffsetTable()).thenReturn(offsetTable);
+        when(mqClientAPIImpl.getConsumeStats(anyString(), anyString(), anyString(), anyLong())).thenReturn(consumeStats);
+
+        ClusterInfo ci = mock(ClusterInfo.class);
+        Map<String, BrokerData> brokerAddrTable = new HashMap<>();
+        BrokerData brokerData = mock(BrokerData.class);
+        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        brokerAddrs.put(MixAll.MASTER_ID, defaultBrokerAddr);
+        when(brokerData.getBrokerAddrs()).thenReturn(brokerAddrs);
+        brokerAddrTable.put(defaultBroker, brokerData);
+        when(ci.getBrokerAddrTable()).thenReturn(brokerAddrTable);
+        when(mqClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(ci);
+
+        assertTrue(defaultMQAdminExtImpl.consumedConcurrent(messageExt, defaultGroup));
+    }
+
 //    @Test
 //    public void testConsumedConcurrent() throws Exception {
 //        ConsumeStats consumeStats = mock(ConsumeStats.class);
