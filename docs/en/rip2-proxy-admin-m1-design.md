@@ -534,7 +534,10 @@ for that peer so the next coordinator request can replay the remaining peer
 page without skipping clients. If peer responses indicate more data but the
 coordinator cannot emit any client for the current global page, it fails the
 request as an internal pagination error instead of returning an empty terminal
-page and silently dropping peer progress.
+page and silently dropping peer progress. When a coordinator token carries a
+per-peer cursor, the next peer page must only return client ids after that peer
+cursor; otherwise the coordinator treats the peer response as stale or
+misrouted and returns an internal routing error before merging the page.
 
 Recommended partial-failure behavior:
 
@@ -750,6 +753,8 @@ Internal adapter tests cover:
   action error mapping.
 - cross-package shared wiring for future admin gRPC application access to
   `ProxyClientAdminActivity`.
+- coordinator pagination rejecting peer pages that go backward relative to the
+  per-peer cursor stored in a coordinator-owned page token.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 

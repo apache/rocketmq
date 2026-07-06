@@ -140,6 +140,11 @@ public class ProxyClientAdminCoordinatorService {
                 return peerPageResult;
             }
             ProxyClientPage peerPage = peerPageResult.getBody();
+            ProxyClientAdminResult<ProxyClientPage> peerPageProgressValidationResult =
+                this.validatePeerPageProgress(proxyId, peerPage, currentPeerTokens.get(proxyId), pageToken);
+            if (peerPageProgressValidationResult != null) {
+                return peerPageProgressValidationResult;
+            }
             peerPages.put(proxyId, peerPage);
             for (ProxyClientInfo clientInfo : peerPage.getClients()) {
                 candidates.add(new Candidate(proxyId, clientInfo));
@@ -481,6 +486,26 @@ public class ProxyClientAdminCoordinatorService {
                 this.validatePeerClientInfo(clientInfo);
             if (clientValidationResult != null) {
                 return clientValidationResult;
+            }
+        }
+        return null;
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> validatePeerPageProgress(String proxyId, ProxyClientPage peerPage,
+        String peerPageToken, ProxyClientAdminCoordinatorPageToken pageToken) {
+        String normalizedPeerPageToken = StringUtils.trimToNull(peerPageToken);
+        if (normalizedPeerPageToken == null) {
+            return null;
+        }
+        for (ProxyClientInfo clientInfo : peerPage.getClients()) {
+            if (clientInfo.getClientId().compareTo(normalizedPeerPageToken) <= 0) {
+                return this.errorResult(
+                    Code.INTERNAL_SERVER_ERROR,
+                    "peer page client id is not after coordinator page token: proxyId=" + proxyId
+                        + ", clientId=" + clientInfo.getClientId()
+                        + ", peerPageToken=" + normalizedPeerPageToken
+                        + ", lastClientId=" + pageToken.getLastClientId()
+                );
             }
         }
         return null;

@@ -102,6 +102,37 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsPeerPageThatGoesBackwardsFromCoordinatorToken() {
+        Map<String, String> peerTokens = new LinkedHashMap<>();
+        peerTokens.put("proxy-a", "client-c");
+        String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setLastClientId("client-c")
+                .setPeerPageTokens(peerTokens)
+                .build()
+        );
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-b")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(2)
+            .setPageToken(pageToken)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage())
+            .contains("peer page client id is not after coordinator page token")
+            .contains("client-b")
+            .contains("client-c");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.requests("proxy-a").get(0).getPageToken()).isEqualTo("client-c");
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsCoordinatorTokenWithUnknownPeer() {
         Map<String, String> peerTokens = new LinkedHashMap<>();
         peerTokens.put("proxy-gone", "client-a");
