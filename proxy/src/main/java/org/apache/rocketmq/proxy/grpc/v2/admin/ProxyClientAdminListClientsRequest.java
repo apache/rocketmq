@@ -31,7 +31,7 @@ public class ProxyClientAdminListClientsRequest {
 
     protected ProxyClientAdminListClientsRequest(Builder<?> builder) {
         this.clientType = builder.clientType;
-        this.pageSize = builder.pageSize;
+        this.pageSize = ProxyClientQuery.boundPageSize(builder.pageSize);
         this.pageToken = builder.pageToken;
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
         this.proxyId = this.scope == ProxyClientScope.PROXY_ID ? requireProxyId(builder.proxyId) : null;

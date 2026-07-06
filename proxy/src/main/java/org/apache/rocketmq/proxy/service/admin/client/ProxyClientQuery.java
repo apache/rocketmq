@@ -45,6 +45,13 @@ public class ProxyClientQuery {
         return new Builder();
     }
 
+    public static int boundPageSize(int pageSize) {
+        if (pageSize <= 0) {
+            return DEFAULT_PAGE_SIZE;
+        }
+        return Math.min(pageSize, MAX_PAGE_SIZE);
+    }
+
     public Builder toBuilder() {
         return newBuilder()
             .setGroup(this.group)
@@ -85,10 +92,7 @@ public class ProxyClientQuery {
     }
 
     public int getBoundedPageSize() {
-        if (pageSize <= 0) {
-            return DEFAULT_PAGE_SIZE;
-        }
-        return Math.min(pageSize, MAX_PAGE_SIZE);
+        return boundPageSize(pageSize);
     }
 
     private static ClientType normalizeClientType(ClientType clientType) {

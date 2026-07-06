@@ -42,7 +42,7 @@ public class ProxyClientAdminPeerRequest {
         this.group = StringUtils.trimToNull(builder.group);
         this.topic = StringUtils.trimToNull(builder.topic);
         this.clientType = normalizeClientType(builder.clientType);
-        this.pageSize = boundPageSize(builder.pageSize);
+        this.pageSize = ProxyClientQuery.boundPageSize(builder.pageSize);
         this.pageToken = StringUtils.trimToNull(builder.pageToken);
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
         if (this.scope != ProxyClientScope.LOCAL_PROXY) {
@@ -138,13 +138,6 @@ public class ProxyClientAdminPeerRequest {
             throw new IllegalArgumentException("Unsupported client type: " + clientType);
         }
         return clientType;
-    }
-
-    private static int boundPageSize(int pageSize) {
-        if (pageSize <= 0) {
-            return ProxyClientQuery.DEFAULT_PAGE_SIZE;
-        }
-        return Math.min(pageSize, ProxyClientQuery.MAX_PAGE_SIZE);
     }
 
     public static class Builder {

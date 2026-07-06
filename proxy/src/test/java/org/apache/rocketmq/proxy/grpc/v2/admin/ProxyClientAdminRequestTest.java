@@ -47,6 +47,23 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void listClientsRequestBoundsPageSizeAtBoundary() {
+        ProxyClientAdminListClientsRequest defaultPageSizeRequest =
+            ProxyClientAdminListClientsRequest.newBuilder()
+                .setPageSize(0)
+                .build();
+        ProxyClientAdminListClientsRequest cappedPageSizeRequest =
+            ProxyClientAdminListClientsRequest.newBuilder()
+                .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE + 1)
+                .build();
+
+        assertThat(defaultPageSizeRequest.getPageSize()).isEqualTo(ProxyClientQuery.DEFAULT_PAGE_SIZE);
+        assertThat(defaultPageSizeRequest.toQuery().getPageSize()).isEqualTo(ProxyClientQuery.DEFAULT_PAGE_SIZE);
+        assertThat(cappedPageSizeRequest.getPageSize()).isEqualTo(ProxyClientQuery.MAX_PAGE_SIZE);
+        assertThat(cappedPageSizeRequest.toQuery().getPageSize()).isEqualTo(ProxyClientQuery.MAX_PAGE_SIZE);
+    }
+
+    @Test
     public void peerRequestRejectsCoordinatorScopes() {
         assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
