@@ -1,0 +1,108 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.rocketmq.proxy.grpc.v2.admin;
+
+import apache.rocketmq.v2.ClientType;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
+import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+public class ProxyClientAdminInProcessPeerClientTest {
+
+    @Test
+    public void inProcessPeerClientListsStableProxyIdsAndDelegatesToTargetExecutor() {
+        ClientAdminService proxyBDelegate = mock(ClientAdminService.class);
+        ClientAdminService proxyADelegate = mock(ClientAdminService.class);
+        ProxyClientPage page = new ProxyClientPage(Collections.singletonList(client("client-a")), "client-a");
+        when(proxyBDelegate.listClients(any())).thenReturn(page);
+        Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
+        executors.put(" proxy-b ", newExecutor("proxy-b", proxyBDelegate));
+        executors.put(" proxy-a ", newExecutor("proxy-a", proxyADelegate));
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminInProcessPeerClient(executors);
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setPageSize(10)
+            .setPageToken("client-10")
+            .build();
+
+        ProxyClientAdminPeerResponse<?> response = peerClient.execute(proxyContext(), " proxy-b ", request);
+
+        assertThat(peerClient.listProxyIds()).containsExactly("proxy-a", "proxy-b");
+        assertThat(response.isSuccess()).isTrue();
+        assertThat(response.getProxyId()).isEqualTo("proxy-b");
+        assertThat(response.getBody()).isSameAs(page);
+    }
+
+    @Test
+    public void inProcessPeerClientReturnsPeerErrorForMissingTargetProxy() {
+        Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
+        executors.put("proxy-a", newExecutor("proxy-a", mock(ClientAdminService.class)));
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminInProcessPeerClient(executors);
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .build();
+
+        ProxyClientAdminPeerResponse<?> response = peerClient.execute(proxyContext(), " proxy-missing ", request);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-missing");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo("NOT_FOUND");
+        assertThat(response.getErrorMessage()).contains("proxy-missing");
+    }
+
+    private static ProxyClientAdminPeerLocalExecutor newExecutor(String localProxyId, ClientAdminService delegate) {
+        return new ProxyClientAdminPeerLocalExecutor(
+            localProxyId,
+            new ProxyClientAdminActivity(new AuthorizingClientAdminService(delegate, (subject, operation, sourceIp) -> {
+            }))
+        );
+    }
+
+    private static ProxyContext proxyContext() {
+        return ProxyContext.create()
+            .setRemoteAddress("127.0.0.1:8080")
+            .setLocalAddress("127.0.0.1:8081");
+    }
+
+    private static ProxyClientInfo client(String clientId) {
+        return new ProxyClientInfo(
+            clientId,
+            ClientType.PRODUCER,
+            Collections.emptySet(),
+            Collections.emptySet(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "127.0.0.1:8081",
+            "1.0.0",
+            1000L,
+            2000L
+        );
+    }
+}

@@ -521,7 +521,9 @@ Recommended implementation order after public API ownership is confirmed:
    This branch includes the initial proto-free peer request/response DTOs and
    keeps peer execution local by converting peer requests into `LOCAL_PROXY`
    read-model queries. It also includes a local peer executor seam that wraps
-   existing admin activity results into proto-free peer responses.
+   existing admin activity results into proto-free peer responses, plus an
+   in-process peer client adapter that exposes stable peer ids and delegates
+   target requests to local executors.
 2. Add a peer transport adapter that can call another proxy process without
    depending on public client-facing protobuf classes.
 3. Add a coordinator service that fans out local-page requests, merges results in
