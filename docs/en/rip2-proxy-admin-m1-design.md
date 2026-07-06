@@ -181,11 +181,34 @@ small and tested boundary to call:
   are available. The shared-activity factory rejects a missing activity so future
   dual-service wiring fails during startup construction instead of running with a
   null messaging/admin activity.
+- `ProxyClientAdminPeerMessageCodec` serializes internal peer requests and
+  page/client peer responses as JSON messages. This is not the public admin API;
+  it is a proto-free internal transport payload so the coordinator and peer
+  executor can be tested and wired before `rocketmq-apis` ownership is settled.
+- `ProxyClientAdminPeerMessageClient` adapts the object-level peer-client
+  contract to a raw message transport. `ProxyClientAdminPeerMessageHandler`
+  adapts raw messages back to the local peer executor. The in-process message
+  transport keeps local multi-proxy simulations on the same serialized boundary
+  that a real transport will use.
+- `ProxyClientAdminPeerGrpcService` exposes an internal unary gRPC service using
+  `StringValue` request and response bodies that carry the peer JSON payload. It
+  builds `ProxyContext` through the same admin context factory and delegates to
+  the peer message handler. `ProxyClientAdminPeerGrpcTransport` is the matching
+  client-side raw message transport over `Channel` and the service method
+  descriptor. These classes do not add or modify any public RocketMQ protobuf
+  service definitions.
+- When cross-proxy query support is enabled, `DefaultGrpcMessagingActivity`
+  creates the internal peer gRPC service beside the local coordinator peer
+  client. The default coordinator still uses the local in-process message
+  transport until real peer discovery/channel management is configured, but the
+  server-side peer service and client-side gRPC transport boundary are now both
+  available for that replacement.
 - `ProxyStartup.createGrpcBindableServices(...)` now has a tested package-private
   overload for appending additional `BindableService` instances after the
-  messaging service while reusing the same `DefaultGrpcMessagingActivity`. The
-  future `GrpcProxyAdminApplication` can use that seam once generated protobuf
-  classes are available.
+  messaging service while reusing the same `DefaultGrpcMessagingActivity`. It
+  also appends the internal peer gRPC service when cross-proxy query support is
+  enabled. The future public `GrpcProxyAdminApplication` can use the same
+  multi-service startup seam once generated protobuf classes are available.
 
 The request DTOs convert pagination, client type, scope, and optional proxy id
 into `ProxyClientQuery`. Required identifiers such as client id, group, and
@@ -577,7 +600,17 @@ Recommended implementation order after public API ownership is confirmed:
    local proxy id stamped by its executor, exposes stable peer ids, and delegates
    target requests to local executors.
 2. Add a peer transport adapter that can call another proxy process without
-   depending on public client-facing protobuf classes.
+   depending on public client-facing protobuf classes. This branch now includes
+   that proto-free transport layer: peer requests and responses are encoded as
+   raw JSON messages, `ProxyClientAdminPeerMessageClient` and
+   `ProxyClientAdminPeerMessageHandler` adapt the object-level peer API to that
+   raw boundary, `ProxyClientAdminInProcessPeerMessageTransport` keeps local
+   simulation on the serialized path, and `ProxyClientAdminPeerGrpcService` plus
+   `ProxyClientAdminPeerGrpcTransport` provide the internal unary gRPC
+   server/client boundary using `StringValue` payloads. The gRPC peer service is
+   registered through `ProxyStartup` only when cross-proxy query support is
+   enabled. It remains an internal peer endpoint, not the public
+   `ProxyAdminService` API.
 3. Add a coordinator service that fans out local-page requests, merges results in
   `(client_id, proxy_id)` order, and emits coordinator-owned opaque page tokens.
    This branch includes the first proto-free coordinator slice for
@@ -637,9 +670,11 @@ Recommended implementation order after public API ownership is confirmed:
    `enableProxyClientAdminCrossProxyQuery`; while disabled, the internal scope
    router rejects coordinator scopes before any peer client or peer timeout
    configuration is touched. Enabling the flag lets the internal scope router
-   use the current single-node in-process peer client, and now requires an
-   explicit `proxyName` so future multi-proxy discovery and page tokens do not
-   inherit an ambiguous default proxy id.
+   use the current single-node in-process message peer transport, register the
+   internal peer gRPC service, and now requires an explicit `proxyName` so
+   future multi-proxy discovery and page tokens do not inherit an ambiguous
+   default proxy id. Real multi-node discovery and channel construction are
+   still separate follow-up work.
 5. Wire the public `ProxyAdminService` adapter to the coordinator service while
    keeping M1 `LOCAL_PROXY` as the default.
 
