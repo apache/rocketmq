@@ -103,21 +103,29 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
-    public void listClientsProxyIdReturnsBadRequestUntilCoordinatorSupportsIt() {
+    public void listClientsProxyIdDelegatesToCoordinator() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
         ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(activity, coordinator);
+        ProxyContext ctx = proxyContext();
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setScope(ProxyClientScope.PROXY_ID)
             .setProxyId("proxy-a")
+            .setPageToken("client-b")
             .build();
+        ProxyClientPage page = page("client-c");
+        when(coordinator.listClients(eq(ctx), any(ProxyClientQuery.class))).thenReturn(okResult(page));
 
-        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(ctx, request);
 
-        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
-        assertThat(result.getBody()).isNull();
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody()).isSameAs(page);
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(coordinator).listClients(eq(ctx), queryCaptor.capture());
+        assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
+        assertThat(queryCaptor.getValue().getProxyId()).isEqualTo("proxy-a");
+        assertThat(queryCaptor.getValue().getPageToken()).isEqualTo("client-b");
         verify(activity, never()).listClients(any(), any(ProxyClientAdminListClientsRequest.class));
-        verify(coordinator, never()).listClients(any(), any());
     }
 
     @Test
@@ -186,6 +194,33 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void listClientsByGroupProxyIdDelegatesToCoordinator() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(activity, coordinator);
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsByGroupRequest request = ProxyClientAdminListClientsByGroupRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-b")
+            .setGroup("group-a")
+            .build();
+        ProxyClientPage page = page("client-b");
+        when(coordinator.listClientsByGroup(eq(ctx), eq("group-a"), any(ProxyClientQuery.class)))
+            .thenReturn(okResult(page));
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClientsByGroup(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody()).isSameAs(page);
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(coordinator).listClientsByGroup(eq(ctx), eq("group-a"), queryCaptor.capture());
+        assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
+        assertThat(queryCaptor.getValue().getProxyId()).isEqualTo("proxy-b");
+        assertThat(queryCaptor.getValue().getGroup()).isEqualTo("group-a");
+        verify(activity, never()).listClientsByGroup(any(), any(ProxyClientAdminListClientsByGroupRequest.class));
+    }
+
+    @Test
     public void listClientsByTopicAllProxiesDelegatesToCoordinator() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
@@ -207,6 +242,33 @@ public class ProxyClientAdminScopeRouterTest {
         verify(coordinator).listClientsByTopic(eq(ctx), eq("topic-a"), queryCaptor.capture());
         assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
         assertThat(queryCaptor.getValue().getTopic()).isEqualTo("topic-a");
+    }
+
+    @Test
+    public void listClientsByTopicProxyIdDelegatesToCoordinator() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(activity, coordinator);
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsByTopicRequest request = ProxyClientAdminListClientsByTopicRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-c")
+            .setTopic("topic-a")
+            .build();
+        ProxyClientPage page = page("client-c");
+        when(coordinator.listClientsByTopic(eq(ctx), eq("topic-a"), any(ProxyClientQuery.class)))
+            .thenReturn(okResult(page));
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClientsByTopic(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody()).isSameAs(page);
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(coordinator).listClientsByTopic(eq(ctx), eq("topic-a"), queryCaptor.capture());
+        assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
+        assertThat(queryCaptor.getValue().getProxyId()).isEqualTo("proxy-c");
+        assertThat(queryCaptor.getValue().getTopic()).isEqualTo("topic-a");
+        verify(activity, never()).listClientsByTopic(any(), any(ProxyClientAdminListClientsByTopicRequest.class));
     }
 
     private static <T> ProxyClientAdminResult<T> okResult(T body) {

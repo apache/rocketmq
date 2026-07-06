@@ -59,6 +59,9 @@ public class ProxyClientAdminScopeRouter {
                 case ALL_PROXIES:
                     this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.coordinatorService.listClients(ctx, requiredRequest.toQuery());
+                case PROXY_ID:
+                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
+                    return this.coordinatorService.listClients(ctx, requiredRequest.toQuery());
                 default:
                     throw this.unsupportedScope("listClients", requiredRequest.getScope());
             }
@@ -105,6 +108,13 @@ public class ProxyClientAdminScopeRouter {
                         requiredRequest.getGroup(),
                         requiredRequest.toQuery()
                     );
+                case PROXY_ID:
+                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
+                    return this.coordinatorService.listClientsByGroup(
+                        ctx,
+                        requiredRequest.getGroup(),
+                        requiredRequest.toQuery()
+                    );
                 default:
                     throw this.unsupportedScope("listClientsByGroup", requiredRequest.getScope());
             }
@@ -127,6 +137,13 @@ public class ProxyClientAdminScopeRouter {
                 case LOCAL_PROXY:
                     return this.localActivity.listClientsByTopic(ctx, requiredRequest);
                 case ALL_PROXIES:
+                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
+                    return this.coordinatorService.listClientsByTopic(
+                        ctx,
+                        requiredRequest.getTopic(),
+                        requiredRequest.toQuery()
+                    );
+                case PROXY_ID:
                     this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.coordinatorService.listClientsByTopic(
                         ctx,

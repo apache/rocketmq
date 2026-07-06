@@ -529,12 +529,13 @@ Recommended implementation order after public API ownership is confirmed:
 3. Add a coordinator service that fans out local-page requests, merges results in
    `client_id` order, and emits coordinator-owned opaque page tokens.
    This branch includes the first proto-free coordinator slice for
-   `ALL_PROXIES` list queries and `PROXY_ID` `DescribeClient`: list queries fan
-   out `ListClients`, `ListClientsByGroup`, and `ListClientsByTopic` to the
-   peer-client boundary, merge peer pages by stable `client_id` order, fail fast
-   on peer errors, and store per-peer cursors in the internal `cp1:`
-   coordinator token. `DescribeClient` routes directly to the requested proxy id
-   and reuses the same peer error mapping.
+   `ALL_PROXIES` list queries and `PROXY_ID` target queries: `ALL_PROXIES`
+   list queries fan out `ListClients`, `ListClientsByGroup`, and
+   `ListClientsByTopic` to the peer-client boundary, merge peer pages by stable
+   `client_id` order, fail fast on peer errors, and store per-peer cursors in
+   the internal `cp1:` coordinator token. `PROXY_ID` list queries and
+   `DescribeClient` route directly to the requested proxy id, reuse the same
+   peer error mapping, and preserve the target peer's page token.
    It also includes a proto-free scope router that keeps `LOCAL_PROXY` on the
    existing admin activity and routes `ALL_PROXIES`/`PROXY_ID` requests to the
    coordinator, plus optional endpoint-handler wiring for that router, without

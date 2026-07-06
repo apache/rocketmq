@@ -143,6 +143,50 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsProxyIdDelegatesToTargetPeer() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-b", page(Collections.singletonList(client("client-c")), "client-c"));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId(" proxy-b ")
+            .setClientType(ClientType.PRODUCER)
+            .setPageSize(2)
+            .setPageToken("client-b")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-c");
+        assertThat(result.getBody().getNextPageToken()).isEqualTo("client-c");
+        assertThat(peerClient.requests("proxy-a")).isEmpty();
+        ProxyClientAdminPeerRequest peerRequest = peerClient.requests("proxy-b").get(0);
+        assertThat(peerRequest.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.LIST_CLIENTS);
+        assertThat(peerRequest.getClientType()).isEqualTo(ClientType.PRODUCER);
+        assertThat(peerRequest.getPageSize()).isEqualTo(2);
+        assertThat(peerRequest.getPageToken()).isEqualTo("client-b");
+        assertThat(peerRequest.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+    }
+
+    @Test
+    public void listClientsProxyIdRejectsMissingProxyId() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.requests("proxy-a")).isEmpty();
+    }
+
+    @Test
     public void listClientsByGroupAllProxiesFansOutGroupRequestAndMergesResults() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
         peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));
@@ -171,6 +215,33 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsByGroupProxyIdDelegatesToTargetPeer() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-b", page(Collections.singletonList(client("client-b")), "client-b"));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-b")
+            .setPageSize(5)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result =
+            service.listClientsByGroup(proxyContext(), " group-a ", query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-b");
+        assertThat(result.getBody().getNextPageToken()).isEqualTo("client-b");
+        assertThat(peerClient.requests("proxy-a")).isEmpty();
+        ProxyClientAdminPeerRequest request = peerClient.requests("proxy-b").get(0);
+        assertThat(request.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP);
+        assertThat(request.getGroup()).isEqualTo("group-a");
+        assertThat(request.getPageSize()).isEqualTo(5);
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+    }
+
+    @Test
     public void listClientsByTopicAllProxiesFansOutTopicRequestAndMergesResults() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
         peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-c")), ""));
@@ -190,6 +261,31 @@ public class ProxyClientAdminCoordinatorServiceTest {
             .containsExactly("client-b", "client-c");
         assertThat(result.getBody().getNextPageToken()).isEmpty();
         ProxyClientAdminPeerRequest request = peerClient.requests("proxy-b").get(0);
+        assertThat(request.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_TOPIC);
+        assertThat(request.getTopic()).isEqualTo("topic-a");
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+    }
+
+    @Test
+    public void listClientsByTopicProxyIdDelegatesToTargetPeer() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result =
+            service.listClientsByTopic(proxyContext(), " topic-a ", query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-a");
+        assertThat(result.getBody().getNextPageToken()).isEmpty();
+        assertThat(peerClient.requests("proxy-b")).isEmpty();
+        ProxyClientAdminPeerRequest request = peerClient.requests("proxy-a").get(0);
         assertThat(request.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_TOPIC);
         assertThat(request.getTopic()).isEqualTo("topic-a");
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);

@@ -54,27 +54,27 @@ public class ProxyClientAdminCoordinatorService {
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClients(ProxyContext ctx, ProxyClientQuery query) {
-        return this.execute(() -> this.listClients0(
+        return this.execute(() -> this.listClientsByScope0(
             ctx,
-            this.requireAllProxiesQuery(query),
+            this.requireCoordinatorListQuery(query),
             ProxyClientAdminPeerOperation.LIST_CLIENTS
         ));
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClientsByGroup(ProxyContext ctx, String group,
         ProxyClientQuery query) {
-        return this.execute(() -> this.listClients0(
+        return this.execute(() -> this.listClientsByScope0(
             ctx,
-            this.requireAllProxiesQuery(query).toBuilder().setGroup(this.requireGroup(group)).build(),
+            this.requireCoordinatorListQuery(query).toBuilder().setGroup(this.requireGroup(group)).build(),
             ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP
         ));
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClientsByTopic(ProxyContext ctx, String topic,
         ProxyClientQuery query) {
-        return this.execute(() -> this.listClients0(
+        return this.execute(() -> this.listClientsByScope0(
             ctx,
-            this.requireAllProxiesQuery(query).toBuilder().setTopic(this.requireTopic(topic)).build(),
+            this.requireCoordinatorListQuery(query).toBuilder().setTopic(this.requireTopic(topic)).build(),
             ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_TOPIC
         ));
     }
@@ -109,7 +109,19 @@ public class ProxyClientAdminCoordinatorService {
         }
     }
 
-    private ProxyClientAdminResult<ProxyClientPage> listClients0(ProxyContext ctx, ProxyClientQuery query,
+    private ProxyClientAdminResult<ProxyClientPage> listClientsByScope0(ProxyContext ctx, ProxyClientQuery query,
+        ProxyClientAdminPeerOperation operation) {
+        switch (query.getScope()) {
+            case ALL_PROXIES:
+                return this.listClientsAllProxies0(ctx, query, operation);
+            case PROXY_ID:
+                return this.listClientsProxyId0(ctx, query, operation);
+            default:
+                throw this.unsupportedCoordinatorScope(query.getScope());
+        }
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> listClientsAllProxies0(ProxyContext ctx, ProxyClientQuery query,
         ProxyClientAdminPeerOperation operation) {
         ProxyClientAdminCoordinatorPageToken pageToken = this.pageTokenCodec.decode(query.getPageToken());
         this.validatePageToken(query, pageToken);
@@ -132,10 +144,11 @@ public class ProxyClientAdminCoordinatorService {
             if (!response.isSuccess()) {
                 return this.peerErrorResult(response);
             }
-            if (!(response.getBody() instanceof ProxyClientPage)) {
-                return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page result is required");
+            ProxyClientAdminResult<ProxyClientPage> peerPageResult = this.peerPageResult(response);
+            if (peerPageResult.getStatus().getCode() != Code.OK) {
+                return peerPageResult;
             }
-            ProxyClientPage peerPage = (ProxyClientPage) response.getBody();
+            ProxyClientPage peerPage = peerPageResult.getBody();
             peerPages.put(proxyId, peerPage);
             for (ProxyClientInfo clientInfo : peerPage.getClients()) {
                 candidates.add(new Candidate(proxyId, clientInfo));
@@ -172,10 +185,22 @@ public class ProxyClientAdminCoordinatorService {
         );
     }
 
-    private ProxyClientQuery requireAllProxiesQuery(ProxyClientQuery query) {
+    private ProxyClientAdminResult<ProxyClientPage> listClientsProxyId0(ProxyContext ctx, ProxyClientQuery query,
+        ProxyClientAdminPeerOperation operation) {
+        String proxyId = this.requireProxyId(query.getProxyId());
+        ProxyClientAdminPeerResponse<?> response = this.peerClient.execute(
+            ctx,
+            proxyId,
+            this.toPeerRequest(query, query.getPageToken(), operation)
+        );
+        return this.peerPageResult(response);
+    }
+
+    private ProxyClientQuery requireCoordinatorListQuery(ProxyClientQuery query) {
         ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
-        if (effectiveQuery.getScope() != ProxyClientScope.ALL_PROXIES) {
-            throw new IllegalArgumentException("Unsupported coordinator proxy scope: " + effectiveQuery.getScope());
+        if (effectiveQuery.getScope() != ProxyClientScope.ALL_PROXIES
+            && effectiveQuery.getScope() != ProxyClientScope.PROXY_ID) {
+            throw this.unsupportedCoordinatorScope(effectiveQuery.getScope());
         }
         return effectiveQuery;
     }
@@ -246,6 +271,10 @@ public class ProxyClientAdminCoordinatorService {
         return normalizedProxyId;
     }
 
+    private IllegalArgumentException unsupportedCoordinatorScope(ProxyClientScope scope) {
+        return new IllegalArgumentException("Unsupported coordinator proxy scope: " + scope);
+    }
+
     private void validatePageToken(ProxyClientQuery query, ProxyClientAdminCoordinatorPageToken pageToken) {
         if (pageToken == null) {
             return;
@@ -306,6 +335,19 @@ public class ProxyClientAdminCoordinatorService {
 
     private <T> ProxyClientAdminResult<T> peerErrorResult(ProxyClientAdminPeerResponse<?> response) {
         return this.errorResult(this.parseCode(response.getErrorCode()), response.getErrorMessage());
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> peerPageResult(ProxyClientAdminPeerResponse<?> response) {
+        if (response == null) {
+            return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer response is required");
+        }
+        if (!response.isSuccess()) {
+            return this.peerErrorResult(response);
+        }
+        if (!(response.getBody() instanceof ProxyClientPage)) {
+            return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page result is required");
+        }
+        return this.okResult((ProxyClientPage) response.getBody());
     }
 
     private <T> ProxyClientAdminResult<T> errorResult(Code code, String message) {
