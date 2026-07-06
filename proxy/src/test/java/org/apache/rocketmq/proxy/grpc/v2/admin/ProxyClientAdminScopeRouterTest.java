@@ -19,22 +19,36 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import org.apache.rocketmq.auth.authentication.model.User;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminAuthorizationService;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsRecorder;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class ProxyClientAdminScopeRouterTest {
@@ -101,6 +115,127 @@ public class ProxyClientAdminScopeRouterTest {
         assertThat(queryCaptor.getValue().getClientType()).isEqualTo(ClientType.PRODUCER);
         assertThat(queryCaptor.getValue().getPageSize()).isEqualTo(25);
         verify(activity, never()).listClients(any(), any(ProxyClientAdminListClientsRequest.class));
+    }
+
+    @Test
+    public void listClientsAllProxiesAuthorizesBeforeCoordinator() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        when(coordinator.listClients(eq(ctx), any(ProxyClientQuery.class))).thenReturn(okResult(page("client-a")));
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        InOrder inOrder = inOrder(authorizationService, coordinator);
+        inOrder.verify(authorizationService)
+            .authorize(ctx.getSubject(), ClientAdminOperation.LIST_CLIENTS, "127.0.0.1");
+        inOrder.verify(coordinator).listClients(eq(ctx), any(ProxyClientQuery.class));
+    }
+
+    @Test
+    public void listClientsAllProxiesAuthorizationFailureSkipsCoordinator() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        doThrow(new AuthorizationException("denied")).when(authorizationService)
+            .authorize(any(), eq(ClientAdminOperation.LIST_CLIENTS), any());
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+        assertThat(result.getBody()).isNull();
+        verify(coordinator, never()).listClients(any(), any(ProxyClientQuery.class));
+        verify(metricsRecorder).record(
+            eq(ClientAdminOperation.LIST_CLIENTS),
+            eq(ClientAdminMetricsResult.UNAUTHORIZED),
+            anyLong()
+        );
+        verifyNoMoreInteractions(metricsRecorder);
+    }
+
+    @Test
+    public void listClientsAllProxiesRecordsSingleMetricsResult() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        List<ClientAdminMetricsResult> results = new ArrayList<>();
+        ClientAdminMetricsRecorder metricsRecorder = (operation, result, latencyMillis) -> {
+            assertThat(operation).isEqualTo(ClientAdminOperation.LIST_CLIENTS);
+            results.add(result);
+        };
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            (subject, operation, sourceIp) -> {
+            },
+            metricsRecorder
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        when(coordinator.listClients(any(), any(ProxyClientQuery.class))).thenReturn(
+            new ProxyClientAdminResult<>(
+                ResponseBuilder.getInstance().buildStatus(Code.NOT_FOUND, "missing client"),
+                page("stale-client")
+            )
+        );
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.NOT_FOUND);
+        assertThat(results).containsExactly(ClientAdminMetricsResult.NOT_FOUND);
+    }
+
+    @Test
+    public void listClientsLocalProxyDoesNotRunRouterAuthorizationOrMetrics() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.LOCAL_PROXY)
+            .build();
+        ProxyClientPage page = page("client-a");
+        when(activity.listClients(ctx, request)).thenReturn(okResult(page));
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody()).isSameAs(page);
+        verify(activity).listClients(ctx, request);
+        verifyNoInteractions(authorizationService, metricsRecorder);
     }
 
     @Test
@@ -207,6 +342,36 @@ public class ProxyClientAdminScopeRouterTest {
         assertThat(result.getBody()).isSameAs(clientInfo);
         verify(coordinator).describeClient(ctx, request);
         verify(activity, never()).describeClient(any(), any(ProxyClientAdminDescribeClientRequest.class));
+    }
+
+    @Test
+    public void describeClientProxyIdAuthorizesDescribeOperationBeforeCoordinator() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .setClientId("client-a")
+            .build();
+        when(coordinator.describeClient(ctx, request)).thenReturn(okResult(client("client-a")));
+
+        ProxyClientAdminResult<ProxyClientInfo> result = router.describeClient(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        InOrder inOrder = inOrder(authorizationService, coordinator);
+        inOrder.verify(authorizationService)
+            .authorize(ctx.getSubject(), ClientAdminOperation.DESCRIBE_CLIENT, "127.0.0.1");
+        inOrder.verify(coordinator).describeClient(ctx, request);
     }
 
     @Test
@@ -360,6 +525,7 @@ public class ProxyClientAdminScopeRouterTest {
 
     private static ProxyContext proxyContext() {
         return ProxyContext.create()
+            .setSubject(User.of("admin"))
             .setRemoteAddress("127.0.0.1:8080")
             .setLocalAddress("127.0.0.1:8081");
     }

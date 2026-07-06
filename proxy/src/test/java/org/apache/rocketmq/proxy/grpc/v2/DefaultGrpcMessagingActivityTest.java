@@ -39,6 +39,7 @@ import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminListClientsRequest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerClient;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerLocalExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerRequest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerResponse;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminResult;
@@ -297,6 +298,38 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void initCreatesPeerLocalExecutorWithSharedClientAdminService() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        CapturingPeerLocalExecutorDefaultGrpcMessagingActivity activity =
+            new CapturingPeerLocalExecutorDefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        assertThat(activity.capturedClientAdminService).isSameAs(activity.getClientAdminService());
+    }
+
+    @Test
+    public void initAuthorizesCrossProxyScopeBeforePeerDiscovery() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ConfigurationManager.getAuthConfig().setAuthorizationEnabled(true);
+        DefaultGrpcMessagingActivity activity =
+            new FailingPeerDefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.getProxyClientAdminScopeRouter()
+            .listClientViews(
+                ProxyContext.create()
+                    .setRemoteAddress("127.0.0.1"),
+                ProxyClientAdminListClientsRequest.newBuilder()
+                    .setScope(ProxyClientScope.ALL_PROXIES)
+                    .setPageSize(10)
+                    .build()
+            );
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void telemetryWriteIsVisibleThroughProxyClientAdminActivity() {
         when(this.metadataService.getTopicMessageType(any(), eq("topic-a"))).thenReturn(TopicMessageType.NORMAL);
         DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
@@ -444,6 +477,46 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
             ProxyClientAdminPeerRequest request) {
             throw new UnsupportedOperationException("not used");
+        }
+    }
+
+    private static class CapturingPeerLocalExecutorDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        private ClientAdminService capturedClientAdminService;
+
+        private CapturingPeerLocalExecutorDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        @Override
+        protected ProxyClientAdminPeerLocalExecutor createProxyClientAdminPeerLocalExecutor(String localProxyId,
+            ClientAdminService clientAdminService) {
+            this.capturedClientAdminService = clientAdminService;
+            return super.createProxyClientAdminPeerLocalExecutor(localProxyId, clientAdminService);
+        }
+    }
+
+    private static class FailingPeerDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        private FailingPeerDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        @Override
+        protected ProxyClientAdminPeerClient createProxyClientAdminPeerClient(String localProxyId,
+            ProxyClientAdminActivity proxyClientAdminActivity, ExecutorService executorService, long timeoutMillis) {
+            return new FailingProxyClientAdminPeerClient();
+        }
+    }
+
+    private static class FailingProxyClientAdminPeerClient implements ProxyClientAdminPeerClient {
+        @Override
+        public List<String> listProxyIds() {
+            throw new AssertionError("peer discovery should not run before authorization");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            throw new AssertionError("peer request should not run before authorization");
         }
     }
 }

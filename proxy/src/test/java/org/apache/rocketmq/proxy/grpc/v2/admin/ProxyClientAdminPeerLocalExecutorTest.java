@@ -98,6 +98,36 @@ public class ProxyClientAdminPeerLocalExecutorTest {
     }
 
     @Test
+    public void executeListWithClientAdminServiceDelegatesDirectly() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientAdminPeerLocalExecutor executor = new ProxyClientAdminPeerLocalExecutor(" proxy-b ", delegate);
+        when(delegate.listClients(any(ProxyClientQuery.class))).thenReturn(
+            new ProxyClientPage(Collections.singletonList(client("client-a")), "")
+        );
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setClientType(ClientType.PRODUCER)
+            .setPageSize(20)
+            .setPageToken(" client-10 ")
+            .build();
+
+        ProxyClientAdminPeerResponse<?> response = executor.execute(proxyContext(), request);
+
+        ArgumentCaptor<ProxyClientQuery> queryCaptor = ArgumentCaptor.forClass(ProxyClientQuery.class);
+        verify(delegate).listClients(queryCaptor.capture());
+        assertThat(response.isSuccess()).isTrue();
+        assertThat(response.getProxyId()).isEqualTo("proxy-b");
+        ProxyClientPage page = (ProxyClientPage) response.getBody();
+        assertThat(page.getClients())
+            .extracting(ProxyClientInfo::getProxyId)
+            .containsExactly("proxy-b");
+        assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(queryCaptor.getValue().getClientType()).isEqualTo(ClientType.PRODUCER);
+        assertThat(queryCaptor.getValue().getPageSize()).isEqualTo(20);
+        assertThat(queryCaptor.getValue().getPageToken()).isEqualTo("client-10");
+    }
+
+    @Test
     public void executeDescribeMapsActivityErrorToPeerError() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ProxyClientAdminPeerLocalExecutor executor = newExecutor("proxy-b", delegate);

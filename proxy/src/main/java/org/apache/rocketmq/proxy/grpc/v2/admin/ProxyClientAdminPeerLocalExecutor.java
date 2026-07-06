@@ -20,14 +20,18 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import apache.rocketmq.v2.Code;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 
 public class ProxyClientAdminPeerLocalExecutor {
     private final String localProxyId;
     private final ProxyClientAdminActivity activity;
+    private final ClientAdminService clientAdminService;
 
     public ProxyClientAdminPeerLocalExecutor(String localProxyId, ProxyClientAdminActivity activity) {
         String normalizedLocalProxyId = StringUtils.trimToNull(localProxyId);
@@ -39,6 +43,20 @@ public class ProxyClientAdminPeerLocalExecutor {
         }
         this.localProxyId = normalizedLocalProxyId;
         this.activity = activity;
+        this.clientAdminService = null;
+    }
+
+    public ProxyClientAdminPeerLocalExecutor(String localProxyId, ClientAdminService clientAdminService) {
+        String normalizedLocalProxyId = StringUtils.trimToNull(localProxyId);
+        if (normalizedLocalProxyId == null) {
+            throw new IllegalArgumentException("localProxyId is required");
+        }
+        if (clientAdminService == null) {
+            throw new IllegalArgumentException("clientAdminService is required");
+        }
+        this.localProxyId = normalizedLocalProxyId;
+        this.activity = null;
+        this.clientAdminService = clientAdminService;
     }
 
     String getLocalProxyId() {
@@ -51,24 +69,13 @@ public class ProxyClientAdminPeerLocalExecutor {
             ProxyClientAdminPeerRequest requiredRequest = this.requireRequest(request);
             switch (requiredRequest.getOperation()) {
                 case LIST_CLIENTS:
-                    return this.toPeerResponse(this.activity.listClients(requiredContext,
-                        requiredRequest.toLocalQuery()));
+                    return this.toPeerResponse(this.listClients(requiredContext, requiredRequest));
                 case DESCRIBE_CLIENT:
-                    return this.toPeerResponse(
-                        this.activity.describeClient(requiredContext, requiredRequest.toLocalDescribeClientRequest())
-                    );
+                    return this.toPeerResponse(this.describeClient(requiredContext, requiredRequest));
                 case LIST_CLIENTS_BY_GROUP:
-                    return this.toPeerResponse(this.activity.listClientsByGroup(
-                        requiredContext,
-                        requiredRequest.getGroup(),
-                        requiredRequest.toLocalQuery()
-                    ));
+                    return this.toPeerResponse(this.listClientsByGroup(requiredContext, requiredRequest));
                 case LIST_CLIENTS_BY_TOPIC:
-                    return this.toPeerResponse(this.activity.listClientsByTopic(
-                        requiredContext,
-                        requiredRequest.getTopic(),
-                        requiredRequest.toLocalQuery()
-                    ));
+                    return this.toPeerResponse(this.listClientsByTopic(requiredContext, requiredRequest));
                 default:
                     throw new IllegalStateException("Unsupported peer operation: " + requiredRequest.getOperation());
             }
@@ -78,6 +85,55 @@ public class ProxyClientAdminPeerLocalExecutor {
                 Code.INTERNAL_SERVER_ERROR.name(),
                 StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName())
             );
+        }
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> listClients(ProxyContext ctx,
+        ProxyClientAdminPeerRequest request) {
+        if (this.clientAdminService != null) {
+            return this.executeClientAdminService(() -> this.clientAdminService.listClients(request.toLocalQuery()));
+        }
+        return this.activity.listClients(ctx, request.toLocalQuery());
+    }
+
+    private ProxyClientAdminResult<ProxyClientInfo> describeClient(ProxyContext ctx,
+        ProxyClientAdminPeerRequest request) {
+        if (this.clientAdminService != null) {
+            return this.executeClientAdminService(() -> this.clientAdminService.describeClient(request.getClientId()));
+        }
+        return this.activity.describeClient(ctx, request.toLocalDescribeClientRequest());
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> listClientsByGroup(ProxyContext ctx,
+        ProxyClientAdminPeerRequest request) {
+        if (this.clientAdminService != null) {
+            return this.executeClientAdminService(() -> this.clientAdminService.listClientsByGroup(
+                request.getGroup(),
+                request.toLocalQuery()
+            ));
+        }
+        return this.activity.listClientsByGroup(ctx, request.getGroup(), request.toLocalQuery());
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> listClientsByTopic(ProxyContext ctx,
+        ProxyClientAdminPeerRequest request) {
+        if (this.clientAdminService != null) {
+            return this.executeClientAdminService(() -> this.clientAdminService.listClientsByTopic(
+                request.getTopic(),
+                request.toLocalQuery()
+            ));
+        }
+        return this.activity.listClientsByTopic(ctx, request.getTopic(), request.toLocalQuery());
+    }
+
+    private <T> ProxyClientAdminResult<T> executeClientAdminService(Supplier<T> supplier) {
+        try {
+            return new ProxyClientAdminResult<>(
+                ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),
+                supplier.get()
+            );
+        } catch (Throwable t) {
+            return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
     }
 

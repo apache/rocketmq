@@ -154,7 +154,9 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.proxyClientAdminScopeRouter = new ProxyClientAdminScopeRouter(
             this.proxyClientAdminActivity,
             proxyClientAdminCoordinatorService,
-            enableCrossProxyQuery
+            enableCrossProxyQuery,
+            clientAdminAuthorizationService,
+            ProxyMetricsManager::recordProxyClientAdminRequest
         );
         this.proxyClientAdminContextFactory =
             GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(messagingProcessor);
@@ -224,13 +226,20 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
 
     protected ProxyClientAdminPeerClient createProxyClientAdminPeerClient(String localProxyId,
         ProxyClientAdminActivity proxyClientAdminActivity, ExecutorService executorService, long timeoutMillis) {
-        ProxyClientAdminPeerLocalExecutor localPeerExecutor =
-            new ProxyClientAdminPeerLocalExecutor(localProxyId, proxyClientAdminActivity);
+        ProxyClientAdminPeerLocalExecutor localPeerExecutor = this.createProxyClientAdminPeerLocalExecutor(
+            localProxyId,
+            this.clientAdminService
+        );
         return new TimedProxyClientAdminPeerClient(
             new ProxyClientAdminInProcessPeerClient(Collections.singletonMap(localProxyId, localPeerExecutor)),
             executorService,
             timeoutMillis
         );
+    }
+
+    protected ProxyClientAdminPeerLocalExecutor createProxyClientAdminPeerLocalExecutor(String localProxyId,
+        ClientAdminService clientAdminService) {
+        return new ProxyClientAdminPeerLocalExecutor(localProxyId, clientAdminService);
     }
 
     private long requireCrossProxyPeerRequestTimeoutMillis() {
