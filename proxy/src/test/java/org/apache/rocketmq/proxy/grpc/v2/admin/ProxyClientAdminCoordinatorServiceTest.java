@@ -384,6 +384,28 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsMismatchedPeerClientProxyId() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.success(
+            "proxy-a",
+            page(Collections.singletonList(client("client-a", "proxy-b")), "")
+        ));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage())
+            .contains("peer client proxyId mismatch")
+            .contains("proxy-a")
+            .contains("proxy-b");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsPeerPageWithNullClients() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
         peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.success(
@@ -726,6 +748,10 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     private static ProxyClientInfo client(String clientId) {
+        return client(clientId, null);
+    }
+
+    private static ProxyClientInfo client(String clientId, String proxyId) {
         return new ProxyClientInfo(
             clientId,
             ClientType.PRODUCER,
@@ -735,6 +761,7 @@ public class ProxyClientAdminCoordinatorServiceTest {
             "127.0.0.1:8080",
             "127.0.0.1:8081",
             "1.0.0",
+            proxyId,
             1000L,
             2000L
         );

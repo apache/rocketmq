@@ -467,7 +467,7 @@ public class ProxyClientAdminCoordinatorService {
         }
         ProxyClientInfo clientInfo = (ProxyClientInfo) response.getBody();
         ProxyClientAdminResult<ProxyClientInfo> clientValidationResult =
-            this.validatePeerClientInfo(clientInfo);
+            this.validatePeerClientInfo(expectedProxyId, clientInfo);
         if (clientValidationResult != null) {
             return clientValidationResult;
         }
@@ -485,7 +485,7 @@ public class ProxyClientAdminCoordinatorService {
                 return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page client is required");
             }
             ProxyClientAdminResult<ProxyClientPage> clientValidationResult =
-                this.validatePeerClientInfo(clientInfo);
+                this.validatePeerClientInfo(proxyId, clientInfo);
             if (clientValidationResult != null) {
                 return clientValidationResult;
             }
@@ -523,9 +523,17 @@ public class ProxyClientAdminCoordinatorService {
         return null;
     }
 
-    private <T> ProxyClientAdminResult<T> validatePeerClientInfo(ProxyClientInfo clientInfo) {
+    private <T> ProxyClientAdminResult<T> validatePeerClientInfo(String expectedProxyId,
+        ProxyClientInfo clientInfo) {
         if (StringUtils.isBlank(clientInfo.getClientId())) {
             return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer client id is required");
+        }
+        String clientProxyId = StringUtils.trimToNull(clientInfo.getProxyId());
+        if (clientProxyId != null && !Objects.equals(expectedProxyId, clientProxyId)) {
+            return this.errorResult(
+                Code.INTERNAL_SERVER_ERROR,
+                "peer client proxyId mismatch: expected " + expectedProxyId + ", actual " + clientProxyId
+            );
         }
         return null;
     }
