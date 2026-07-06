@@ -72,4 +72,8 @@ public class ProxyClientAdminPeerMessageHandler {
         }
         return this.codec.encodePageResponse((ProxyClientAdminPeerResponse<ProxyClientPage>) response);
     }
+
+    String getLocalProxyId() {
+        return this.localExecutor.getLocalProxyId();
+    }
 }

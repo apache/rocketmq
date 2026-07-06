@@ -1,0 +1,157 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.rocketmq.proxy.grpc.v2.admin;
+
+import apache.rocketmq.v2.ClientType;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
+import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+public class ProxyClientAdminInProcessPeerMessageTransportTest {
+
+    @Test
+    public void inProcessMessageTransportListsStableProxyIdsAndDelegatesToTargetHandler() {
+        ClientAdminService proxyBService = mock(ClientAdminService.class);
+        ClientAdminService proxyAService = mock(ClientAdminService.class);
+        when(proxyBService.listClients(any())).thenReturn(new ProxyClientPage(
+            Collections.singletonList(client("client-b", "proxy-b")),
+            "client-b"
+        ));
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+        handlers.put(" proxy-b ", newHandler("proxy-b", proxyBService));
+        handlers.put(" proxy-a ", newHandler("proxy-a", proxyAService));
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminPeerMessageClient(
+            new ProxyClientAdminInProcessPeerMessageTransport(handlers)
+        );
+
+        ProxyClientAdminPeerResponse<?> response = peerClient.execute(
+            proxyContext(),
+            " proxy-b ",
+            ProxyClientAdminPeerRequest.newBuilder()
+                .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+                .setPageSize(10)
+                .build()
+        );
+
+        assertThat(peerClient.listProxyIds()).containsExactly("proxy-a", "proxy-b");
+        assertThat(response.isSuccess()).isTrue();
+        assertThat(response.getProxyId()).isEqualTo("proxy-b");
+        ProxyClientPage page = (ProxyClientPage) response.getBody();
+        assertThat(page.getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-b");
+        assertThat(page.getClients())
+            .extracting(ProxyClientInfo::getProxyId)
+            .containsExactly("proxy-b");
+    }
+
+    @Test
+    public void inProcessMessageTransportReturnsEncodedPeerErrorForMissingTargetProxy() {
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+        handlers.put("proxy-a", newHandler("proxy-a", mock(ClientAdminService.class)));
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminPeerMessageClient(
+            new ProxyClientAdminInProcessPeerMessageTransport(handlers)
+        );
+
+        ProxyClientAdminPeerResponse<?> response = peerClient.execute(
+            proxyContext(),
+            " proxy-missing ",
+            ProxyClientAdminPeerRequest.newBuilder()
+                .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
+                .setClientId("client-a")
+                .build()
+        );
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-missing");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo("NOT_FOUND");
+        assertThat(response.getErrorMessage()).contains("proxy-missing");
+    }
+
+    @Test
+    public void inProcessMessageTransportRejectsDuplicateNormalizedProxyIds() {
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+        handlers.put("proxy-a", newHandler("proxy-a", mock(ClientAdminService.class)));
+        handlers.put(" proxy-a ", newHandler("proxy-a", mock(ClientAdminService.class)));
+
+        assertThatThrownBy(() -> new ProxyClientAdminInProcessPeerMessageTransport(handlers))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Duplicate proxyId")
+            .hasMessageContaining("proxy-a");
+    }
+
+    @Test
+    public void inProcessMessageTransportRejectsHandlerProxyIdMismatch() {
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+        handlers.put("proxy-a", newHandler("proxy-b", mock(ClientAdminService.class)));
+
+        assertThatThrownBy(() -> new ProxyClientAdminInProcessPeerMessageTransport(handlers))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("handler proxyId mismatch")
+            .hasMessageContaining("proxy-a")
+            .hasMessageContaining("proxy-b");
+    }
+
+    @Test
+    public void inProcessMessageTransportRejectsEmptyHandlerMap() {
+        assertThatThrownBy(() -> new ProxyClientAdminInProcessPeerMessageTransport(Collections.emptyMap()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("at least one handler is required");
+    }
+
+    private static ProxyClientAdminPeerMessageHandler newHandler(String localProxyId,
+        ClientAdminService clientAdminService) {
+        return new ProxyClientAdminPeerMessageHandler(
+            new ProxyClientAdminPeerLocalExecutor(localProxyId, clientAdminService)
+        );
+    }
+
+    private static ProxyContext proxyContext() {
+        return ProxyContext.create()
+            .setRemoteAddress("127.0.0.1:8080")
+            .setLocalAddress("127.0.0.1:8081");
+    }
+
+    private static ProxyClientInfo client(String clientId, String proxyId) {
+        return new ProxyClientInfo(
+            clientId,
+            ClientType.PRODUCER,
+            Collections.emptySet(),
+            Collections.emptySet(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "127.0.0.1:8081",
+            "1.0.0",
+            proxyId,
+            1000L,
+            2000L
+        );
+    }
+}
