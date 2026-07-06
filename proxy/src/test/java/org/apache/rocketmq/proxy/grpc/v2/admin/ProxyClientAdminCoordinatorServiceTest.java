@@ -112,6 +112,7 @@ public class ProxyClientAdminCoordinatorServiceTest {
             ProxyClientAdminCoordinatorPageToken.newBuilder()
                 .setScope(ProxyClientScope.ALL_PROXIES)
                 .setLastClientId("client-c")
+                .setLastProxyId("proxy-a")
                 .setPeerPageTokens(peerTokens)
                 .build()
         );
@@ -144,6 +145,7 @@ public class ProxyClientAdminCoordinatorServiceTest {
             ProxyClientAdminCoordinatorPageToken.newBuilder()
                 .setScope(ProxyClientScope.ALL_PROXIES)
                 .setLastClientId("client-c")
+                .setLastProxyId("proxy-a")
                 .setPeerPageTokens(peerTokens)
                 .build()
         );
@@ -175,6 +177,7 @@ public class ProxyClientAdminCoordinatorServiceTest {
             ProxyClientAdminCoordinatorPageToken.newBuilder()
                 .setScope(ProxyClientScope.ALL_PROXIES)
                 .setLastClientId("client-a")
+                .setLastProxyId("proxy-gone")
                 .setPeerPageTokens(peerTokens)
                 .build()
         );
@@ -204,6 +207,7 @@ public class ProxyClientAdminCoordinatorServiceTest {
             ProxyClientAdminCoordinatorPageToken.newBuilder()
                 .setScope(ProxyClientScope.ALL_PROXIES)
                 .setLastClientId("client-b")
+                .setLastProxyId("proxy-b")
                 .setPeerPageTokens(peerTokens)
                 .build()
         );
@@ -238,6 +242,7 @@ public class ProxyClientAdminCoordinatorServiceTest {
             ProxyClientAdminCoordinatorPageToken.newBuilder()
                 .setScope(ProxyClientScope.ALL_PROXIES)
                 .setLastClientId("client-a")
+                .setLastProxyId("proxy-a")
                 .build()
         );
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
@@ -264,6 +269,34 @@ public class ProxyClientAdminCoordinatorServiceTest {
         String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
             ProxyClientAdminCoordinatorPageToken.newBuilder()
                 .setScope(ProxyClientScope.ALL_PROXIES)
+                .setPeerPageTokens(peerTokens)
+                .build()
+        );
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-b")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(2)
+            .setPageToken(pageToken)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("progress");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.requests("proxy-a")).isEmpty();
+    }
+
+    @Test
+    public void listClientsAllProxiesRejectsCoordinatorTokenWithoutLastProxyId() {
+        Map<String, String> peerTokens = new LinkedHashMap<>();
+        peerTokens.put("proxy-a", "client-a");
+        String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setLastClientId("client-a")
                 .setPeerPageTokens(peerTokens)
                 .build()
         );
@@ -351,6 +384,7 @@ public class ProxyClientAdminCoordinatorServiceTest {
                 .setScope(ProxyClientScope.ALL_PROXIES)
                 .setClientType(ClientType.PUSH_CONSUMER)
                 .setLastClientId("client-a")
+                .setLastProxyId("proxy-a")
                 .putPeerPageToken("proxy-a", "client-a")
                 .build()
         );

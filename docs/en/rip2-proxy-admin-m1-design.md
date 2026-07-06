@@ -570,11 +570,10 @@ cursors. This keeps `LOCAL_PROXY` and `PROXY_ID` requests from accidentally
 treating a cross-proxy cursor as a read-model client-id cursor. Request DTOs
 preserve `cp1:` tokens only for `ALL_PROXIES`, where the coordinator owns
 decoding and validation. A non-empty coordinator token must include the last
-emitted global `client_id` and at least one peer cursor; otherwise the
-coordinator rejects it as an incomplete progress token instead of restarting
-from the first peer page. New coordinator tokens also include the last emitted
-`proxy_id`; older tokens without that field remain valid but retain the
-conservative behavior of rejecting equal-`client_id` untokened peer results.
+emitted global cursor (`client_id` plus `proxy_id`) and at least one peer cursor;
+otherwise the coordinator rejects it as an incomplete progress token instead of
+restarting from the first peer page or interpreting duplicate client ids
+ambiguously.
 
 When the coordinator builds a next token, it preserves a peer's own next-page
 token after that peer's returned page has been fully emitted. If the global
