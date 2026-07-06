@@ -537,7 +537,8 @@ Recommended implementation order after public API ownership is confirmed:
    and reuses the same peer error mapping.
    It also includes a proto-free scope router that keeps `LOCAL_PROXY` on the
    existing admin activity and routes `ALL_PROXIES`/`PROXY_ID` requests to the
-   coordinator without changing the public endpoint registration yet.
+   coordinator, plus optional endpoint-handler wiring for that router, without
+   changing the public endpoint registration yet.
 4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
    timeout, retry, and partial-failure semantics are validated.
 5. Wire the public `ProxyAdminService` adapter to the coordinator service while

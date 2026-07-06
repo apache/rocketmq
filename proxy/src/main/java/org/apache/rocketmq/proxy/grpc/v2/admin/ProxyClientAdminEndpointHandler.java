@@ -28,13 +28,24 @@ import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
 
 public class ProxyClientAdminEndpointHandler {
     private final ProxyClientAdminActivity proxyClientAdminActivity;
+    private final ProxyClientAdminScopeRouter proxyClientAdminScopeRouter;
 
     public ProxyClientAdminEndpointHandler() {
-        this(null);
+        this(null, null);
     }
 
     public ProxyClientAdminEndpointHandler(ProxyClientAdminActivity proxyClientAdminActivity) {
+        this(proxyClientAdminActivity, null);
+    }
+
+    public ProxyClientAdminEndpointHandler(ProxyClientAdminScopeRouter proxyClientAdminScopeRouter) {
+        this(null, proxyClientAdminScopeRouter);
+    }
+
+    private ProxyClientAdminEndpointHandler(ProxyClientAdminActivity proxyClientAdminActivity,
+        ProxyClientAdminScopeRouter proxyClientAdminScopeRouter) {
         this.proxyClientAdminActivity = proxyClientAdminActivity;
+        this.proxyClientAdminScopeRouter = proxyClientAdminScopeRouter;
     }
 
     public <R> void listClients(ProxyContext ctx, ProxyClientAdminListClientsRequest request,
@@ -42,7 +53,7 @@ public class ProxyClientAdminEndpointHandler {
         BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
         this.handle(
             responseObserver,
-            () -> this.requireProxyClientAdminActivity().listClientViews(ctx, request),
+            () -> this.listClientViews(ctx, request),
             responseFactory
         );
     }
@@ -52,7 +63,7 @@ public class ProxyClientAdminEndpointHandler {
         BiFunction<Status, ProxyClientAdminClientView, R> responseFactory) {
         this.handle(
             responseObserver,
-            () -> this.requireProxyClientAdminActivity().describeClientView(ctx, request),
+            () -> this.describeClientView(ctx, request),
             responseFactory
         );
     }
@@ -62,7 +73,7 @@ public class ProxyClientAdminEndpointHandler {
         BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
         this.handle(
             responseObserver,
-            () -> this.requireProxyClientAdminActivity().listClientViewsByGroup(ctx, request),
+            () -> this.listClientViewsByGroup(ctx, request),
             responseFactory
         );
     }
@@ -72,7 +83,7 @@ public class ProxyClientAdminEndpointHandler {
         BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
         this.handle(
             responseObserver,
-            () -> this.requireProxyClientAdminActivity().listClientViewsByTopic(ctx, request),
+            () -> this.listClientViewsByTopic(ctx, request),
             responseFactory
         );
     }
@@ -150,6 +161,38 @@ public class ProxyClientAdminEndpointHandler {
             throw new IllegalStateException("response is required");
         }
         return response;
+    }
+
+    private ProxyClientAdminResult<ProxyClientAdminPageView> listClientViews(ProxyContext ctx,
+        ProxyClientAdminListClientsRequest request) {
+        if (this.proxyClientAdminScopeRouter != null) {
+            return this.proxyClientAdminScopeRouter.listClientViews(ctx, request);
+        }
+        return this.requireProxyClientAdminActivity().listClientViews(ctx, request);
+    }
+
+    private ProxyClientAdminResult<ProxyClientAdminClientView> describeClientView(ProxyContext ctx,
+        ProxyClientAdminDescribeClientRequest request) {
+        if (this.proxyClientAdminScopeRouter != null) {
+            return this.proxyClientAdminScopeRouter.describeClientView(ctx, request);
+        }
+        return this.requireProxyClientAdminActivity().describeClientView(ctx, request);
+    }
+
+    private ProxyClientAdminResult<ProxyClientAdminPageView> listClientViewsByGroup(ProxyContext ctx,
+        ProxyClientAdminListClientsByGroupRequest request) {
+        if (this.proxyClientAdminScopeRouter != null) {
+            return this.proxyClientAdminScopeRouter.listClientViewsByGroup(ctx, request);
+        }
+        return this.requireProxyClientAdminActivity().listClientViewsByGroup(ctx, request);
+    }
+
+    private ProxyClientAdminResult<ProxyClientAdminPageView> listClientViewsByTopic(ProxyContext ctx,
+        ProxyClientAdminListClientsByTopicRequest request) {
+        if (this.proxyClientAdminScopeRouter != null) {
+            return this.proxyClientAdminScopeRouter.listClientViewsByTopic(ctx, request);
+        }
+        return this.requireProxyClientAdminActivity().listClientViewsByTopic(ctx, request);
     }
 
     private ProxyClientAdminActivity requireProxyClientAdminActivity() {

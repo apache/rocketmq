@@ -57,6 +57,25 @@ public class ProxyClientAdminEndpointHandlerTest {
     }
 
     @Test
+    public void listClientsDelegatesToScopeRouterAndWritesResponse() {
+        ProxyClientAdminScopeRouter scopeRouter = mock(ProxyClientAdminScopeRouter.class);
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler(scopeRouter);
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+        ProxyContext ctx = ProxyContext.create();
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder().build();
+        ProxyClientAdminPageView pageView = new ProxyClientAdminPageView(Collections.emptyList(), "next-client");
+        when(scopeRouter.listClientViews(ctx, request)).thenReturn(okResult(pageView));
+
+        handler.listClients(ctx, request, observer, TestAdminResponse::new);
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(responseCaptor.getValue().getBody()).isSameAs(pageView);
+    }
+
+    @Test
     public void listClientsWithoutActivityWritesInternalServerError() {
         ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
         StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
@@ -99,6 +118,27 @@ public class ProxyClientAdminEndpointHandlerTest {
     }
 
     @Test
+    public void describeClientDelegatesToScopeRouterAndWritesResponse() {
+        ProxyClientAdminScopeRouter scopeRouter = mock(ProxyClientAdminScopeRouter.class);
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler(scopeRouter);
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+        ProxyContext ctx = ProxyContext.create();
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("client-a")
+            .build();
+        ProxyClientAdminClientView clientView = clientView("client-a");
+        when(scopeRouter.describeClientView(ctx, request)).thenReturn(okResult(clientView));
+
+        handler.describeClient(ctx, request, observer, TestAdminResponse::new);
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(responseCaptor.getValue().getBody()).isSameAs(clientView);
+    }
+
+    @Test
     public void listClientsByGroupDelegatesToActivityAndWritesResponse() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler(activity);
@@ -109,6 +149,27 @@ public class ProxyClientAdminEndpointHandlerTest {
             .build();
         ProxyClientAdminPageView pageView = new ProxyClientAdminPageView(Collections.emptyList(), "");
         when(activity.listClientViewsByGroup(ctx, request)).thenReturn(okResult(pageView));
+
+        handler.listClientsByGroup(ctx, request, observer, TestAdminResponse::new);
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(observer).onNext(responseCaptor.capture());
+        verify(observer).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(responseCaptor.getValue().getBody()).isSameAs(pageView);
+    }
+
+    @Test
+    public void listClientsByGroupDelegatesToScopeRouterAndWritesResponse() {
+        ProxyClientAdminScopeRouter scopeRouter = mock(ProxyClientAdminScopeRouter.class);
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler(scopeRouter);
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+        ProxyContext ctx = ProxyContext.create();
+        ProxyClientAdminListClientsByGroupRequest request = ProxyClientAdminListClientsByGroupRequest.newBuilder()
+            .setGroup("group-a")
+            .build();
+        ProxyClientAdminPageView pageView = new ProxyClientAdminPageView(Collections.emptyList(), "");
+        when(scopeRouter.listClientViewsByGroup(ctx, request)).thenReturn(okResult(pageView));
 
         handler.listClientsByGroup(ctx, request, observer, TestAdminResponse::new);
 
