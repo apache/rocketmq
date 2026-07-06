@@ -85,6 +85,12 @@ The documentation-only API sketch is captured in
 `docs/en/rip2-proxy-admin-m1-public-api-draft.proto`; it is not part of Maven or
 protobuf generation.
 
+A community-ready discussion draft is captured in
+`docs/en/rip2-proxy-admin-public-api-discussion.md`. It summarizes the proposed
+standalone service, M1 local-only behavior, page-token contract, endpoint
+implementation shape, compatibility notes, and open questions for the
+`rocketmq-apis` ownership decision.
+
 ## Implemented Internal Adapter Preparation
 
 The branch now includes a proto-independent internal admin adapter surface. It
