@@ -556,9 +556,10 @@ Recommended implementation order after public API ownership is confirmed:
    activity DTOs, including scope, filters, page size, and page token.
    This branch includes the initial proto-free peer request/response DTOs and
    keeps peer execution local by converting peer requests into `LOCAL_PROXY`
-   read-model queries. Peer requests preserve a `proxyId` only for explicit
-   `PROXY_ID` scope and drop it for `LOCAL_PROXY` and `ALL_PROXIES`, matching
-   the public request DTO rule. It also includes a local peer executor seam
+   read-model queries. Peer requests now reject coordinator scopes and only
+   carry `LOCAL_PROXY` execution semantics; the coordinator lowers
+   `ALL_PROXIES` and `PROXY_ID` requests to local peer requests before fan-out.
+   It also includes a local peer executor seam
    that wraps existing admin activity results into proto-free peer responses,
    converts activity failures into peer internal-error responses,
    stamps the local proxy id into successful peer page and client bodies,

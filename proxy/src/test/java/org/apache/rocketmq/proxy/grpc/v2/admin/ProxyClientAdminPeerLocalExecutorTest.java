@@ -49,8 +49,6 @@ public class ProxyClientAdminPeerLocalExecutorTest {
         when(delegate.listClientsByGroup(eq("group-a"), any(ProxyClientQuery.class))).thenReturn(page);
         ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP)
-            .setScope(ProxyClientScope.ALL_PROXIES)
-            .setProxyId("proxy-a")
             .setGroup(" group-a ")
             .setClientType(ClientType.PUSH_CONSUMER)
             .setPageSize(20)
@@ -107,8 +105,6 @@ public class ProxyClientAdminPeerLocalExecutorTest {
             .thenThrow(new NoSuchElementException("Client not found: missing-client"));
         ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
-            .setScope(ProxyClientScope.PROXY_ID)
-            .setProxyId("proxy-b")
             .setClientId(" missing-client ")
             .build();
 
@@ -128,8 +124,6 @@ public class ProxyClientAdminPeerLocalExecutorTest {
         when(delegate.describeClient("client-a")).thenReturn(client("client-a"));
         ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
-            .setScope(ProxyClientScope.PROXY_ID)
-            .setProxyId("proxy-b")
             .setClientId(" client-a ")
             .build();
 

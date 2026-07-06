@@ -45,7 +45,10 @@ public class ProxyClientAdminPeerRequest {
         this.pageSize = builder.pageSize;
         this.pageToken = StringUtils.trimToNull(builder.pageToken);
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
-        this.proxyId = this.scope == ProxyClientScope.PROXY_ID ? StringUtils.trimToNull(builder.proxyId) : null;
+        if (this.scope != ProxyClientScope.LOCAL_PROXY) {
+            throw new IllegalArgumentException("Unsupported peer request scope: " + this.scope);
+        }
+        this.proxyId = null;
         this.validateOperationFields();
     }
 

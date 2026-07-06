@@ -31,11 +31,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class ProxyClientAdminPeerDtoTest {
 
     @Test
-    public void peerListByGroupRequestBuildsLocalQueryWithRawPeerPageTokenAndDropsAllProxyId() {
+    public void peerListByGroupRequestBuildsLocalQueryWithRawPeerPageToken() {
         ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP)
-            .setScope(ProxyClientScope.ALL_PROXIES)
-            .setProxyId(" proxy-b ")
             .setGroup(" group-a ")
             .setClientType(ClientType.PUSH_CONSUMER)
             .setPageSize(20)
@@ -45,7 +43,7 @@ public class ProxyClientAdminPeerDtoTest {
         ProxyClientQuery localQuery = request.toLocalQuery();
 
         assertThat(request.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP);
-        assertThat(request.getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
         assertThat(request.getProxyId()).isNull();
         assertThat(request.getGroup()).isEqualTo("group-a");
         assertThat(localQuery.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
@@ -84,16 +82,14 @@ public class ProxyClientAdminPeerDtoTest {
     public void peerDescribeRequestNormalizesClientAndBuildsLocalScope() {
         ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
-            .setScope(ProxyClientScope.PROXY_ID)
-            .setProxyId(" proxy-b ")
             .setClientId(" client-a ")
             .build();
 
         ProxyClientAdminDescribeClientRequest localRequest = request.toLocalDescribeClientRequest();
 
         assertThat(request.getClientId()).isEqualTo("client-a");
-        assertThat(request.getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
-        assertThat(request.getProxyId()).isEqualTo("proxy-b");
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(request.getProxyId()).isNull();
         assertThat(localRequest.getClientId()).isEqualTo("client-a");
         assertThat(localRequest.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
         assertThat(localRequest.getProxyId()).isNull();

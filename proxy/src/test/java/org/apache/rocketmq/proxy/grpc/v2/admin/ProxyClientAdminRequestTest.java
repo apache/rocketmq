@@ -47,6 +47,26 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void peerRequestRejectsCoordinatorScopes() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported peer request scope")
+            .hasMessageContaining("ALL_PROXIES");
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported peer request scope")
+            .hasMessageContaining("PROXY_ID");
+    }
+
+    @Test
     public void listClientsRequestPreservesUnsupportedScopeButDropsProxyIdForAllProxies() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setScope(ProxyClientScope.ALL_PROXIES)
