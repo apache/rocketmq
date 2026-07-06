@@ -845,6 +845,9 @@ Internal adapter tests cover:
   using the last emitted `(client_id, proxy_id)` as the global cursor.
 - coordinator pagination rejecting peer pages that are not strictly ordered by
   `client_id`.
+- real peer gRPC fan-out from coordinator through `ProxyClientAdminPeerGrpcTransport`
+  into two in-process Netty peer services, verifying merged `ALL_PROXIES`
+  results and proxy id stamping.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 
