@@ -34,7 +34,7 @@ public class ProxyClientAdminListClientsRequest {
         this.pageSize = builder.pageSize;
         this.pageToken = builder.pageToken;
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
-        this.proxyId = this.scope == ProxyClientScope.LOCAL_PROXY ? null : builder.proxyId;
+        this.proxyId = this.scope == ProxyClientScope.PROXY_ID ? builder.proxyId : null;
     }
 
     public static Builder<?> newBuilder() {
@@ -85,10 +85,10 @@ public class ProxyClientAdminListClientsRequest {
     }
 
     private String proxyIdForQuery() {
-        if (scope == ProxyClientScope.LOCAL_PROXY) {
-            return null;
+        if (scope == ProxyClientScope.PROXY_ID) {
+            return proxyId;
         }
-        return proxyId;
+        return null;
     }
 
     public static class Builder<T extends Builder<T>> {

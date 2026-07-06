@@ -47,15 +47,15 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
-    public void listClientsRequestPreservesUnsupportedScopeForServiceValidation() {
+    public void listClientsRequestPreservesUnsupportedScopeButDropsProxyIdForAllProxies() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setScope(ProxyClientScope.ALL_PROXIES)
             .setProxyId("proxy-a")
             .build();
 
         assertThat(request.toQuery().getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
-        assertThat(request.toQuery().getProxyId()).isEqualTo("proxy-a");
-        assertThat(request.getProxyId()).isEqualTo("proxy-a");
+        assertThat(request.toQuery().getProxyId()).isNull();
+        assertThat(request.getProxyId()).isNull();
     }
 
     @Test
@@ -136,6 +136,18 @@ public class ProxyClientAdminRequestTest {
 
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
         assertThat(request.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
+    public void describeClientRequestDropsProxyIdForAllProxiesScope() {
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("client-a")
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setProxyId("proxy-a")
+            .build();
+
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
+        assertThat(request.getProxyId()).isNull();
     }
 
     @Test

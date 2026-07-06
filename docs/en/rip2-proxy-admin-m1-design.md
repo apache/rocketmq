@@ -112,8 +112,9 @@ small and tested boundary to call:
   fields without importing generated admin protobuf classes. They normalize
   request string fields at the adapter boundary so surrounding whitespace is
   trimmed and blank strings become missing values before validation. They also
-  drop `proxy_id` during `LOCAL_PROXY` request handling, so direct DTO use and
-  future protobuf conversion share the same M1 local-scope semantics.
+  preserve `proxy_id` only for the explicit `PROXY_ID` scope, so direct DTO use
+  and future protobuf conversion share the same M1 local and broadcast-scope
+  semantics.
 - `DefaultClientAdminService` also canonicalizes `LOCAL_PROXY` queries before
   reading the model, dropping accidental `proxyId` filters from direct internal
   callers while still rejecting future non-local scopes in M1.
