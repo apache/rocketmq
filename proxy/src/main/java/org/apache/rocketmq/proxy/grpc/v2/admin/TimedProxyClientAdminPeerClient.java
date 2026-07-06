@@ -90,7 +90,7 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
             return internalServerError(requiredProxyId, e);
         }
         try {
-            return future.get(this.timeoutMillis, TimeUnit.MILLISECONDS);
+            return requireResponse(requiredProxyId, future.get(this.timeoutMillis, TimeUnit.MILLISECONDS));
         } catch (TimeoutException e) {
             future.cancel(true);
             return ProxyClientAdminPeerResponse.error(
@@ -109,6 +109,14 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
         } catch (ExecutionException e) {
             return internalServerError(requiredProxyId, e.getCause() == null ? e : e.getCause());
         }
+    }
+
+    private static ProxyClientAdminPeerResponse<?> requireResponse(String proxyId,
+        ProxyClientAdminPeerResponse<?> response) {
+        if (response == null) {
+            return internalServerError(proxyId, new IllegalStateException("peer response is required"));
+        }
+        return response;
     }
 
     private static ProxyClientAdminPeerResponse<?> internalServerError(String proxyId, Throwable t) {

@@ -169,6 +169,32 @@ public class TimedProxyClientAdminPeerClientTest {
     }
 
     @Test
+    public void executeMapsNullDelegateResponseToInternalServerError() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+                new NullResponsePeerClient(),
+                executor,
+                1000L
+            );
+
+            ProxyClientAdminPeerResponse<?> response = client.execute(
+                ProxyContext.create(),
+                "proxy-a",
+                request()
+            );
+
+            assertThat(response).isNotNull();
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("peer response is required");
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     public void constructorRejectsInvalidArguments() {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
@@ -298,6 +324,19 @@ public class TimedProxyClientAdminPeerClientTest {
         public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
             ProxyClientAdminPeerRequest request) {
             throw new IllegalStateException("boom");
+        }
+    }
+
+    private static class NullResponsePeerClient implements ProxyClientAdminPeerClient {
+        @Override
+        public List<String> listProxyIds() {
+            return Collections.singletonList("proxy-a");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            return null;
         }
     }
 }
