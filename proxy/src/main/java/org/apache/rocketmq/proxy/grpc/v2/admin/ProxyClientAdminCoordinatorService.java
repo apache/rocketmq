@@ -1,0 +1,236 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.rocketmq.proxy.grpc.v2.admin;
+
+import apache.rocketmq.v2.Code;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
+
+public class ProxyClientAdminCoordinatorService {
+    private final ProxyClientAdminPeerClient peerClient;
+    private final ProxyClientAdminCoordinatorPageTokenCodec pageTokenCodec;
+
+    public ProxyClientAdminCoordinatorService(ProxyClientAdminPeerClient peerClient) {
+        this(peerClient, ProxyClientAdminCoordinatorPageTokenCodec.getInstance());
+    }
+
+    ProxyClientAdminCoordinatorService(ProxyClientAdminPeerClient peerClient,
+        ProxyClientAdminCoordinatorPageTokenCodec pageTokenCodec) {
+        if (peerClient == null) {
+            throw new IllegalArgumentException("peerClient is required");
+        }
+        if (pageTokenCodec == null) {
+            throw new IllegalArgumentException("pageTokenCodec is required");
+        }
+        this.peerClient = peerClient;
+        this.pageTokenCodec = pageTokenCodec;
+    }
+
+    public ProxyClientAdminResult<ProxyClientPage> listClients(ProxyContext ctx, ProxyClientQuery query) {
+        try {
+            return this.listClients0(ctx, this.requireAllProxiesQuery(query));
+        } catch (Throwable t) {
+            return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
+        }
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> listClients0(ProxyContext ctx, ProxyClientQuery query) {
+        ProxyClientAdminCoordinatorPageToken pageToken = this.pageTokenCodec.decode(query.getPageToken());
+        this.validatePageToken(query, pageToken);
+
+        List<String> proxyIds = this.peerClient.listProxyIds();
+        Map<String, String> currentPeerTokens = pageToken == null
+            ? Collections.emptyMap()
+            : pageToken.getPeerPageTokens();
+        Map<String, ProxyClientPage> peerPages = new LinkedHashMap<>();
+        List<Candidate> candidates = new ArrayList<>();
+        for (String proxyId : proxyIds) {
+            ProxyClientAdminPeerResponse<?> response = this.peerClient.execute(
+                ctx,
+                proxyId,
+                this.toPeerRequest(query, currentPeerTokens.get(proxyId))
+            );
+            if (response == null) {
+                return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer response is required");
+            }
+            if (!response.isSuccess()) {
+                return this.peerErrorResult(response);
+            }
+            if (!(response.getBody() instanceof ProxyClientPage)) {
+                return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page result is required");
+            }
+            ProxyClientPage peerPage = (ProxyClientPage) response.getBody();
+            peerPages.put(proxyId, peerPage);
+            for (ProxyClientInfo clientInfo : peerPage.getClients()) {
+                candidates.add(new Candidate(proxyId, clientInfo));
+            }
+        }
+
+        Collections.sort(candidates, (left, right) -> {
+            int result = left.getClientId().compareTo(right.getClientId());
+            if (result != 0) {
+                return result;
+            }
+            return left.proxyId.compareTo(right.proxyId);
+        });
+
+        int pageSize = query.getBoundedPageSize();
+        List<Candidate> selectedCandidates = candidates.subList(0, Math.min(pageSize, candidates.size()));
+        List<ProxyClientInfo> selectedClients = new ArrayList<>(selectedCandidates.size());
+        Map<String, String> emittedPeerTokens = new LinkedHashMap<>();
+        String lastClientId = null;
+        for (Candidate candidate : selectedCandidates) {
+            selectedClients.add(candidate.clientInfo);
+            emittedPeerTokens.put(candidate.proxyId, candidate.getClientId());
+            lastClientId = candidate.getClientId();
+        }
+
+        String nextPageToken = "";
+        if (!selectedClients.isEmpty() && this.hasMore(candidates, selectedCandidates, peerPages)) {
+            nextPageToken = this.buildNextPageToken(query, proxyIds, currentPeerTokens, emittedPeerTokens,
+                lastClientId);
+        }
+        return new ProxyClientAdminResult<>(
+            ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),
+            new ProxyClientPage(selectedClients, nextPageToken)
+        );
+    }
+
+    private ProxyClientQuery requireAllProxiesQuery(ProxyClientQuery query) {
+        ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
+        if (effectiveQuery.getScope() != ProxyClientScope.ALL_PROXIES) {
+            throw new IllegalArgumentException("Unsupported coordinator proxy scope: " + effectiveQuery.getScope());
+        }
+        return effectiveQuery;
+    }
+
+    private ProxyClientAdminPeerRequest toPeerRequest(ProxyClientQuery query, String peerPageToken) {
+        return ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setGroup(query.getGroup())
+            .setTopic(query.getTopic())
+            .setClientType(query.getClientType())
+            .setPageSize(query.getBoundedPageSize())
+            .setPageToken(peerPageToken)
+            .setScope(ProxyClientScope.LOCAL_PROXY)
+            .build();
+    }
+
+    private void validatePageToken(ProxyClientQuery query, ProxyClientAdminCoordinatorPageToken pageToken) {
+        if (pageToken == null) {
+            return;
+        }
+        if (pageToken.getScope() != ProxyClientScope.ALL_PROXIES) {
+            throw new IllegalArgumentException("Coordinator page token scope mismatch");
+        }
+        if (!Objects.equals(pageToken.getGroup(), query.getGroup())
+            || !Objects.equals(pageToken.getTopic(), query.getTopic())
+            || pageToken.getClientType() != query.getClientType()
+            || !Objects.equals(pageToken.getProxyId(), query.getProxyId())) {
+            throw new IllegalArgumentException("Coordinator page token filters mismatch");
+        }
+    }
+
+    private boolean hasMore(List<Candidate> candidates, List<Candidate> selectedCandidates,
+        Map<String, ProxyClientPage> peerPages) {
+        if (candidates.size() > selectedCandidates.size()) {
+            return true;
+        }
+        for (ProxyClientPage peerPage : peerPages.values()) {
+            if (StringUtils.isNotBlank(peerPage.getNextPageToken())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String buildNextPageToken(ProxyClientQuery query, List<String> proxyIds,
+        Map<String, String> currentPeerTokens, Map<String, String> emittedPeerTokens, String lastClientId) {
+        Map<String, String> nextPeerTokens = new LinkedHashMap<>();
+        for (String proxyId : proxyIds) {
+            String peerToken = emittedPeerTokens.containsKey(proxyId)
+                ? emittedPeerTokens.get(proxyId)
+                : currentPeerTokens.get(proxyId);
+            if (StringUtils.isNotBlank(peerToken)) {
+                nextPeerTokens.put(proxyId, peerToken);
+            }
+        }
+        return this.pageTokenCodec.encode(ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setGroup(query.getGroup())
+            .setTopic(query.getTopic())
+            .setClientType(query.getClientType())
+            .setProxyId(query.getProxyId())
+            .setLastClientId(lastClientId)
+            .setCreateTimeMillis(System.currentTimeMillis())
+            .setPeerPageTokens(nextPeerTokens)
+            .build());
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> peerErrorResult(ProxyClientAdminPeerResponse<?> response) {
+        return this.errorResult(this.parseCode(response.getErrorCode()), response.getErrorMessage());
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> errorResult(Code code, String message) {
+        return new ProxyClientAdminResult<>(
+            ResponseBuilder.getInstance().buildStatus(code, message),
+            null
+        );
+    }
+
+    private Code parseCode(String code) {
+        String normalizedCode = StringUtils.trimToNull(code);
+        if (normalizedCode == null) {
+            return Code.INTERNAL_SERVER_ERROR;
+        }
+        try {
+            Code result = Code.valueOf(normalizedCode);
+            if (result == Code.UNRECOGNIZED) {
+                return Code.INTERNAL_SERVER_ERROR;
+            }
+            return result;
+        } catch (RuntimeException ignored) {
+            return Code.INTERNAL_SERVER_ERROR;
+        }
+    }
+
+    private static class Candidate {
+        private final String proxyId;
+        private final ProxyClientInfo clientInfo;
+
+        private Candidate(String proxyId, ProxyClientInfo clientInfo) {
+            this.proxyId = proxyId;
+            this.clientInfo = clientInfo;
+        }
+
+        private String getClientId() {
+            return this.clientInfo.getClientId();
+        }
+    }
+}

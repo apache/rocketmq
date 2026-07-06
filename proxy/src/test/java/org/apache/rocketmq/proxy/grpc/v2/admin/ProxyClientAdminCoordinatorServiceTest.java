@@ -1,0 +1,211 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.rocketmq.proxy.grpc.v2.admin;
+
+import apache.rocketmq.v2.ClientType;
+import apache.rocketmq.v2.Code;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
+import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class ProxyClientAdminCoordinatorServiceTest {
+
+    @Test
+    public void listClientsAllProxiesMergesPeerPagesOrderedByClientId() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-a", page(Arrays.asList(client("client-a"), client("client-c")), "client-c"));
+        peerClient.addPage("proxy-b", page(Arrays.asList(client("client-b"), client("client-d")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setClientType(ClientType.PRODUCER)
+            .setPageSize(3)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-a", "client-b", "client-c");
+        ProxyClientAdminCoordinatorPageToken nextToken =
+            ProxyClientAdminCoordinatorPageTokenCodec.getInstance().decode(result.getBody().getNextPageToken());
+        assertThat(nextToken.getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
+        assertThat(nextToken.getClientType()).isEqualTo(ClientType.PRODUCER);
+        assertThat(nextToken.getLastClientId()).isEqualTo("client-c");
+        assertThat(nextToken.getPeerPageTokens()).containsEntry("proxy-a", "client-c");
+        assertThat(nextToken.getPeerPageTokens()).containsEntry("proxy-b", "client-b");
+        assertThat(peerClient.requests("proxy-a").get(0).getPageSize()).isEqualTo(3);
+        assertThat(peerClient.requests("proxy-a").get(0).getPageToken()).isNull();
+        assertThat(peerClient.requests("proxy-a").get(0).getClientType()).isEqualTo(ClientType.PRODUCER);
+        assertThat(peerClient.requests("proxy-a").get(0).getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+    }
+
+    @Test
+    public void listClientsAllProxiesContinuesFromCoordinatorToken() {
+        Map<String, String> peerTokens = new LinkedHashMap<>();
+        peerTokens.put("proxy-a", "client-c");
+        peerTokens.put("proxy-b", "client-b");
+        String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setLastClientId("client-c")
+                .setPeerPageTokens(peerTokens)
+                .build()
+        );
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-a", page(Collections.emptyList(), ""));
+        peerClient.addPage("proxy-b", page(Collections.singletonList(client("client-d")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(2)
+            .setPageToken(pageToken)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-d");
+        assertThat(result.getBody().getNextPageToken()).isEmpty();
+        assertThat(peerClient.requests("proxy-a").get(0).getPageToken()).isEqualTo("client-c");
+        assertThat(peerClient.requests("proxy-b").get(0).getPageToken()).isEqualTo("client-b");
+    }
+
+    @Test
+    public void listClientsAllProxiesRejectsMismatchedCoordinatorToken() {
+        String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setClientType(ClientType.PUSH_CONSUMER)
+                .setLastClientId("client-a")
+                .putPeerPageToken("proxy-a", "client-a")
+                .build()
+        );
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setClientType(ClientType.PRODUCER)
+            .setPageToken(pageToken)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.requests("proxy-a")).isEmpty();
+    }
+
+    @Test
+    public void listClientsAllProxiesFailsFastOnPeerError() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));
+        peerClient.addResponse("proxy-b", ProxyClientAdminPeerResponse.error("proxy-b", "UNAUTHORIZED", "denied"));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+        assertThat(result.getStatus().getMessage()).isEqualTo("denied");
+        assertThat(result.getBody()).isNull();
+    }
+
+    private static ProxyClientPage page(List<ProxyClientInfo> clients, String nextPageToken) {
+        return new ProxyClientPage(clients, nextPageToken);
+    }
+
+    private static ProxyClientInfo client(String clientId) {
+        return new ProxyClientInfo(
+            clientId,
+            ClientType.PRODUCER,
+            Collections.emptySet(),
+            Collections.emptySet(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "127.0.0.1:8081",
+            "1.0.0",
+            1000L,
+            2000L
+        );
+    }
+
+    private static ProxyContext proxyContext() {
+        return ProxyContext.create()
+            .setRemoteAddress("127.0.0.1:8080")
+            .setLocalAddress("127.0.0.1:8081");
+    }
+
+    private static class RecordingPeerClient implements ProxyClientAdminPeerClient {
+        private final List<String> proxyIds;
+        private final Map<String, List<ProxyClientAdminPeerResponse<?>>> responses = new LinkedHashMap<>();
+        private final Map<String, List<ProxyClientAdminPeerRequest>> requests = new LinkedHashMap<>();
+
+        RecordingPeerClient(String... proxyIds) {
+            this.proxyIds = Arrays.asList(proxyIds);
+            for (String proxyId : proxyIds) {
+                this.responses.put(proxyId, new ArrayList<>());
+                this.requests.put(proxyId, new ArrayList<>());
+            }
+        }
+
+        void addPage(String proxyId, ProxyClientPage page) {
+            this.addResponse(proxyId, ProxyClientAdminPeerResponse.success(proxyId, page));
+        }
+
+        void addResponse(String proxyId, ProxyClientAdminPeerResponse<?> response) {
+            this.responses.get(proxyId).add(response);
+        }
+
+        List<ProxyClientAdminPeerRequest> requests(String proxyId) {
+            return this.requests.get(proxyId);
+        }
+
+        @Override
+        public List<String> listProxyIds() {
+            return this.proxyIds;
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            this.requests.get(proxyId).add(request);
+            List<ProxyClientAdminPeerResponse<?>> peerResponses = this.responses.get(proxyId);
+            if (peerResponses.isEmpty()) {
+                return ProxyClientAdminPeerResponse.error(proxyId, "INTERNAL_SERVER_ERROR", "missing response");
+            }
+            return peerResponses.remove(0);
+        }
+    }
+}
