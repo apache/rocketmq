@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -103,6 +104,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceClea
 
 public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown implements GrpcMessagingActivity {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final long PROXY_CLIENT_ADMIN_PEER_GRPC_CHANNEL_SHUTDOWN_TIMEOUT_SECONDS = 5L;
 
     protected GrpcClientSettingsManager grpcClientSettingsManager;
     protected GrpcChannelManager grpcChannelManager;
@@ -282,13 +284,33 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         List<ProxyClientAdminPeerGrpcTarget> targets) {
         Map<String, Channel> channels = new LinkedHashMap<>();
         for (ProxyClientAdminPeerGrpcTarget target : targets) {
-            ManagedChannel channel = ManagedChannelBuilder.forAddress(target.getHost(), target.getPort())
-                .usePlaintext()
-                .build();
+            ManagedChannel channel = this.createProxyClientAdminPeerGrpcChannel(target);
             channels.put(target.getProxyId(), channel);
-            this.appendShutdown(() -> channel.shutdown());
+            this.appendShutdown(() -> this.shutdownProxyClientAdminPeerGrpcChannel(channel));
         }
         return channels;
+    }
+
+    protected ManagedChannel createProxyClientAdminPeerGrpcChannel(ProxyClientAdminPeerGrpcTarget target) {
+        return ManagedChannelBuilder.forAddress(target.getHost(), target.getPort())
+            .usePlaintext()
+            .build();
+    }
+
+    protected void shutdownProxyClientAdminPeerGrpcChannel(ManagedChannel channel) throws InterruptedException {
+        channel.shutdown();
+        try {
+            if (!channel.awaitTermination(
+                PROXY_CLIENT_ADMIN_PEER_GRPC_CHANNEL_SHUTDOWN_TIMEOUT_SECONDS,
+                TimeUnit.SECONDS
+            )) {
+                channel.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            channel.shutdownNow();
+            Thread.currentThread().interrupt();
+            throw e;
+        }
     }
 
     private void requireLocalProxyGrpcTarget(String localProxyId, List<ProxyClientAdminPeerGrpcTarget> targets) {

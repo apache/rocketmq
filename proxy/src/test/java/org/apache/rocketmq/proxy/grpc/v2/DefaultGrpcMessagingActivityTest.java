@@ -90,6 +90,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -305,6 +307,89 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         assertThat(activity.capturedTargets)
             .extracting(ProxyClientAdminPeerGrpcTarget::getPort)
             .containsExactly(8080, 8081);
+    }
+
+    @Test
+    public void shutdownWaitsForStaticGrpcPeerChannelsToTerminate() throws Exception {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ConfigurationManager.getProxyConfig().setProxyClientAdminPeerGrpcTargets(
+            "proxy-b=127.0.0.2:8081, proxy-a=127.0.0.1:8080"
+        );
+        ManagedChannel proxyAChannel = mock(ManagedChannel.class);
+        ManagedChannel proxyBChannel = mock(ManagedChannel.class);
+        when(proxyAChannel.awaitTermination(5L, TimeUnit.SECONDS)).thenReturn(true);
+        when(proxyBChannel.awaitTermination(5L, TimeUnit.SECONDS)).thenReturn(true);
+        CapturingManagedPeerGrpcChannelsDefaultGrpcMessagingActivity activity =
+            CapturingManagedPeerGrpcChannelsDefaultGrpcMessagingActivity.create(
+                this.messagingProcessor,
+                proxyAChannel,
+                proxyBChannel
+            );
+
+        activity.shutdown();
+
+        verify(proxyAChannel).shutdown();
+        verify(proxyAChannel).awaitTermination(5L, TimeUnit.SECONDS);
+        verify(proxyAChannel, never()).shutdownNow();
+        verify(proxyBChannel).shutdown();
+        verify(proxyBChannel).awaitTermination(5L, TimeUnit.SECONDS);
+        verify(proxyBChannel, never()).shutdownNow();
+    }
+
+    @Test
+    public void shutdownForcesStaticGrpcPeerChannelWhenGracefulShutdownTimesOut() throws Exception {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ConfigurationManager.getProxyConfig().setProxyClientAdminPeerGrpcTargets(
+            "proxy-b=127.0.0.2:8081, proxy-a=127.0.0.1:8080"
+        );
+        ManagedChannel proxyAChannel = mock(ManagedChannel.class);
+        ManagedChannel proxyBChannel = mock(ManagedChannel.class);
+        when(proxyAChannel.awaitTermination(5L, TimeUnit.SECONDS)).thenReturn(false);
+        when(proxyBChannel.awaitTermination(5L, TimeUnit.SECONDS)).thenReturn(true);
+        CapturingManagedPeerGrpcChannelsDefaultGrpcMessagingActivity activity =
+            CapturingManagedPeerGrpcChannelsDefaultGrpcMessagingActivity.create(
+                this.messagingProcessor,
+                proxyAChannel,
+                proxyBChannel
+            );
+
+        activity.shutdown();
+
+        verify(proxyAChannel).shutdown();
+        verify(proxyAChannel).awaitTermination(5L, TimeUnit.SECONDS);
+        verify(proxyAChannel).shutdownNow();
+        verify(proxyBChannel).shutdown();
+        verify(proxyBChannel).awaitTermination(5L, TimeUnit.SECONDS);
+        verify(proxyBChannel, never()).shutdownNow();
+    }
+
+    @Test
+    public void shutdownForcesStaticGrpcPeerChannelWhenAwaitTerminationIsInterrupted() throws Exception {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ConfigurationManager.getProxyConfig().setProxyClientAdminPeerGrpcTargets(
+            "proxy-b=127.0.0.2:8081, proxy-a=127.0.0.1:8080"
+        );
+        ManagedChannel proxyAChannel = mock(ManagedChannel.class);
+        ManagedChannel proxyBChannel = mock(ManagedChannel.class);
+        InterruptedException interrupted = new InterruptedException("interrupted");
+        when(proxyAChannel.awaitTermination(5L, TimeUnit.SECONDS)).thenThrow(interrupted);
+        when(proxyBChannel.awaitTermination(5L, TimeUnit.SECONDS)).thenReturn(true);
+        CapturingManagedPeerGrpcChannelsDefaultGrpcMessagingActivity activity =
+            CapturingManagedPeerGrpcChannelsDefaultGrpcMessagingActivity.create(
+                this.messagingProcessor,
+                proxyAChannel,
+                proxyBChannel
+            );
+
+        assertThatThrownBy(activity::shutdown).isSameAs(interrupted);
+
+        verify(proxyAChannel).shutdown();
+        verify(proxyAChannel).awaitTermination(5L, TimeUnit.SECONDS);
+        verify(proxyAChannel).shutdownNow();
+        assertThat(Thread.interrupted()).isTrue();
     }
 
     @Test
@@ -709,6 +794,38 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
                 channels.put(target.getProxyId(), mock(Channel.class));
             }
             return channels;
+        }
+    }
+
+    private static class CapturingManagedPeerGrpcChannelsDefaultGrpcMessagingActivity
+        extends DefaultGrpcMessagingActivity {
+        private static final ThreadLocal<Map<String, ManagedChannel>> CHANNELS = new ThreadLocal<>();
+
+        private CapturingManagedPeerGrpcChannelsDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        private static CapturingManagedPeerGrpcChannelsDefaultGrpcMessagingActivity create(
+            MessagingProcessor messagingProcessor,
+            ManagedChannel proxyAChannel, ManagedChannel proxyBChannel) {
+            Map<String, ManagedChannel> channels = new LinkedHashMap<>();
+            channels.put("proxy-a", proxyAChannel);
+            channels.put("proxy-b", proxyBChannel);
+            CHANNELS.set(channels);
+            try {
+                return new CapturingManagedPeerGrpcChannelsDefaultGrpcMessagingActivity(messagingProcessor);
+            } finally {
+                CHANNELS.remove();
+            }
+        }
+
+        @Override
+        protected ManagedChannel createProxyClientAdminPeerGrpcChannel(ProxyClientAdminPeerGrpcTarget target) {
+            ManagedChannel channel = CHANNELS.get().get(target.getProxyId());
+            if (channel != null) {
+                return channel;
+            }
+            throw new IllegalArgumentException("Unexpected proxyId: " + target.getProxyId());
         }
     }
 

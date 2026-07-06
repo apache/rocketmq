@@ -206,8 +206,10 @@ small and tested boundary to call:
   message boundary. The peer transport forwards the current admin
   `ProxyContext` into gRPC metadata, including the authenticated user subject
   and request address/client attributes, so the peer-side context factory sees
-  the same admin caller context as the coordinator. Dynamic discovery, secure
-  channel options, and production channel lifecycle tuning remain follow-up
+  the same admin caller context as the coordinator. Static peer gRPC channels
+  are shut down gracefully with a bounded wait when the shared activity stops,
+  and are forced closed if they do not terminate in time. Dynamic discovery,
+  secure channel options, and deeper production channel tuning remain follow-up
   work. Static target lists must include the local `proxyName`; otherwise
   startup rejects the configuration so `ALL_PROXIES` queries do not silently omit
   clients connected to the coordinator proxy itself.
@@ -851,6 +853,9 @@ Internal adapter tests cover:
 - activity-level static peer gRPC fan-out wiring for `ALL_PROXIES`, covering
   `DefaultGrpcMessagingActivity` construction with configured peer targets and
   real internal peer gRPC services.
+- static peer gRPC channel shutdown from `DefaultGrpcMessagingActivity`,
+  including bounded graceful termination, forced close on timeout, and forced
+  close plus interrupt preservation when graceful termination is interrupted.
 - coordinator pagination preserving duplicate client ids across proxies by
   using the last emitted `(client_id, proxy_id)` as the global cursor.
 - coordinator pagination rejecting peer pages that are not strictly ordered by
