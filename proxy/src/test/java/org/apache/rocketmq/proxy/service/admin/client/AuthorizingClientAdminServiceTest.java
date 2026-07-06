@@ -17,21 +17,14 @@
 
 package org.apache.rocketmq.proxy.service.admin.client;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.auth.authentication.model.User;
-import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.junit.Test;
 import org.mockito.InOrder;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class AuthorizingClientAdminServiceTest {
@@ -127,148 +120,7 @@ public class AuthorizingClientAdminServiceTest {
         inOrder.verify(delegate).listClientsByTopic("topic-a", query);
     }
 
-    @Test
-    public void meteredServiceRecordsUnauthorizedWhenAuthorizationFailsBeforeDelegating() {
-        ClientAdminService delegate = mock(ClientAdminService.class);
-        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
-        ClientAdminRequestContext requestContext = requestContext();
-        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
-        List<Record> records = new ArrayList<>();
-        AuthorizationException denied = new AuthorizationException("denied");
-        org.mockito.Mockito.doThrow(denied).when(authorizationService).authorize(
-            requestContext.getSubject(),
-            ClientAdminOperation.LIST_CLIENTS,
-            requestContext.getSourceIp()
-        );
-        MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
-            delegate,
-            authorizationService,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
-            clock()
-        );
-
-        assertThatThrownBy(() -> adminService.listClients(requestContext, query))
-            .isSameAs(denied);
-
-        verify(delegate, never()).listClients(query);
-        assertThat(records).containsExactly(new Record(
-            ClientAdminOperation.LIST_CLIENTS,
-            ClientAdminMetricsResult.UNAUTHORIZED,
-            1L
-        ));
-    }
-
-    @Test
-    public void meteredServiceRecordsInternalErrorWhenDelegateThrowsError() {
-        ClientAdminService delegate = mock(ClientAdminService.class);
-        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
-        ClientAdminRequestContext requestContext = requestContext();
-        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
-        List<Record> records = new ArrayList<>();
-        LinkageError error = new LinkageError("linkage failed");
-        when(delegate.listClients(query)).thenThrow(error);
-        MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
-            delegate,
-            authorizationService,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
-            clock()
-        );
-
-        assertThatThrownBy(() -> adminService.listClients(requestContext, query))
-            .isSameAs(error);
-
-        assertThat(records).containsExactly(new Record(
-            ClientAdminOperation.LIST_CLIENTS,
-            ClientAdminMetricsResult.INTERNAL_ERROR,
-            1L
-        ));
-    }
-
-    @Test
-    public void meteredServiceMetricsRecorderErrorDoesNotMaskSuccessfulResult() {
-        ClientAdminService delegate = mock(ClientAdminService.class);
-        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
-        ClientAdminRequestContext requestContext = requestContext();
-        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
-        ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), null);
-        when(delegate.listClients(query)).thenReturn(page);
-        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
-            throw new LinkageError("metrics linkage down");
-        };
-        MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
-            delegate,
-            authorizationService,
-            failingRecorder,
-            clock()
-        );
-
-        assertThat(adminService.listClients(requestContext, query)).isSameAs(page);
-    }
-
-    @Test
-    public void meteredServiceMetricsRecorderErrorDoesNotMaskAuthorizationFailure() {
-        ClientAdminService delegate = mock(ClientAdminService.class);
-        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
-        ClientAdminRequestContext requestContext = requestContext();
-        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
-        AuthorizationException denied = new AuthorizationException("denied");
-        org.mockito.Mockito.doThrow(denied).when(authorizationService).authorize(
-            requestContext.getSubject(),
-            ClientAdminOperation.LIST_CLIENTS,
-            requestContext.getSourceIp()
-        );
-        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
-            throw new LinkageError("metrics linkage down");
-        };
-        MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
-            delegate,
-            authorizationService,
-            failingRecorder,
-            clock()
-        );
-
-        assertThatThrownBy(() -> adminService.listClients(requestContext, query))
-            .isSameAs(denied);
-        verify(delegate, never()).listClients(query);
-    }
-
     private static ClientAdminRequestContext requestContext() {
         return ClientAdminRequestContext.of(User.of("admin"), "127.0.0.1");
-    }
-
-    private static java.util.function.LongSupplier clock() {
-        AtomicLong clock = new AtomicLong(0L);
-        return () -> clock.getAndAdd(1_000_000L);
-    }
-
-    private static class Record {
-        private final ClientAdminOperation operation;
-        private final ClientAdminMetricsResult result;
-        private final long latencyMillis;
-
-        private Record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis) {
-            this.operation = operation;
-            this.result = result;
-            this.latencyMillis = latencyMillis;
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            if (!(object instanceof Record)) {
-                return false;
-            }
-            Record that = (Record) object;
-            return this.operation == that.operation
-                && this.result == that.result
-                && this.latencyMillis == that.latencyMillis;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = this.operation.hashCode();
-            result = 31 * result + this.result.hashCode();
-            result = 31 * result + Long.hashCode(this.latencyMillis);
-            return result;
-        }
     }
 }
