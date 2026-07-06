@@ -507,17 +507,19 @@ public class ProxyClientAdminCoordinatorService {
     private ProxyClientAdminResult<ProxyClientPage> validatePeerPageProgress(String proxyId, ProxyClientPage peerPage,
         String peerPageToken, ProxyClientAdminCoordinatorPageToken pageToken) {
         String normalizedPeerPageToken = StringUtils.trimToNull(peerPageToken);
-        if (normalizedPeerPageToken == null) {
+        String coordinatorLastClientId = pageToken == null ? null : StringUtils.trimToNull(pageToken.getLastClientId());
+        String lowerBoundClientId = normalizedPeerPageToken == null ? coordinatorLastClientId : normalizedPeerPageToken;
+        if (lowerBoundClientId == null) {
             return null;
         }
         for (ProxyClientInfo clientInfo : peerPage.getClients()) {
-            if (clientInfo.getClientId().compareTo(normalizedPeerPageToken) <= 0) {
+            if (clientInfo.getClientId().compareTo(lowerBoundClientId) <= 0) {
                 return this.errorResult(
                     Code.INTERNAL_SERVER_ERROR,
                     "peer page client id is not after coordinator page token: proxyId=" + proxyId
                         + ", clientId=" + clientInfo.getClientId()
-                        + ", peerPageToken=" + normalizedPeerPageToken
-                        + ", lastClientId=" + pageToken.getLastClientId()
+                        + ", peerPageToken=" + lowerBoundClientId
+                        + ", lastClientId=" + coordinatorLastClientId
                 );
             }
         }

@@ -161,6 +161,43 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsUntokenedPeerPageThatGoesBackwardsFromCoordinatorToken() {
+        Map<String, String> peerTokens = new LinkedHashMap<>();
+        peerTokens.put("proxy-a", "client-a");
+        peerTokens.put("proxy-b", "client-b");
+        String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setLastClientId("client-b")
+                .setPeerPageTokens(peerTokens)
+                .build()
+        );
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b", "proxy-c");
+        peerClient.addPage("proxy-a", page(Collections.emptyList(), ""));
+        peerClient.addPage("proxy-b", page(Collections.emptyList(), ""));
+        peerClient.addPage("proxy-c", page(Collections.singletonList(client("client-aa")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(2)
+            .setPageToken(pageToken)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage())
+            .contains("peer page client id is not after coordinator page token")
+            .contains("proxy-c")
+            .contains("client-aa")
+            .contains("client-b");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.requests("proxy-a").get(0).getPageToken()).isEqualTo("client-a");
+        assertThat(peerClient.requests("proxy-b").get(0).getPageToken()).isEqualTo("client-b");
+        assertThat(peerClient.requests("proxy-c").get(0).getPageToken()).isNull();
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsCoordinatorTokenWithoutPeerProgress() {
         String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
             ProxyClientAdminCoordinatorPageToken.newBuilder()
