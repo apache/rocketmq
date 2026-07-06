@@ -137,7 +137,8 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             ));
         this.proxyClientAdminScopeRouter = new ProxyClientAdminScopeRouter(
             this.proxyClientAdminActivity,
-            proxyClientAdminCoordinatorService
+            proxyClientAdminCoordinatorService,
+            ConfigurationManager.getProxyConfig().isEnableProxyClientAdminCrossProxyQuery()
         );
         this.proxyClientAdminContextFactory =
             GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(messagingProcessor);

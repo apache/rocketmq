@@ -86,6 +86,23 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void listClientsAllProxiesReturnsBadRequestWhenCoordinatorScopesDisabled() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(activity, coordinator, false);
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getBody()).isNull();
+        verify(activity, never()).listClients(any(), any(ProxyClientAdminListClientsRequest.class));
+        verify(coordinator, never()).listClients(any(), any());
+    }
+
+    @Test
     public void listClientsProxyIdReturnsBadRequestUntilCoordinatorSupportsIt() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
@@ -101,6 +118,25 @@ public class ProxyClientAdminScopeRouterTest {
         assertThat(result.getBody()).isNull();
         verify(activity, never()).listClients(any(), any(ProxyClientAdminListClientsRequest.class));
         verify(coordinator, never()).listClients(any(), any());
+    }
+
+    @Test
+    public void describeClientProxyIdReturnsBadRequestWhenCoordinatorScopesDisabled() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(activity, coordinator, false);
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .setClientId("client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientInfo> result = router.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getBody()).isNull();
+        verify(activity, never()).describeClient(any(), any(ProxyClientAdminDescribeClientRequest.class));
+        verify(coordinator, never()).describeClient(any(), any());
     }
 
     @Test

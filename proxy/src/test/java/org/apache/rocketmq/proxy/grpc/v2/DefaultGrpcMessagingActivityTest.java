@@ -159,7 +159,28 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
-    public void initCreatesProxyClientAdminScopeRouterWithSharedLocalPeer() {
+    public void initCreatesProxyClientAdminScopeRouterWithCrossProxyScopeDisabledByDefault() {
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.getProxyClientAdminScopeRouter()
+            .listClientViews(
+                ProxyContext.create()
+                    .setSubject(User.of("admin"))
+                    .setRemoteAddress("127.0.0.1"),
+                ProxyClientAdminListClientsRequest.newBuilder()
+                    .setScope(ProxyClientScope.ALL_PROXIES)
+                    .setPageSize(10)
+                    .build()
+            );
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void initCreatesProxyClientAdminScopeRouterWithSharedLocalPeerWhenCrossProxyScopeEnabled() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
         ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
         DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
         activity.proxyClientReadService.upsertClient(clientInfo("client-a", 200L));

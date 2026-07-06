@@ -29,9 +29,15 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 public class ProxyClientAdminScopeRouter {
     private final ProxyClientAdminActivity localActivity;
     private final ProxyClientAdminCoordinatorService coordinatorService;
+    private final boolean coordinatorScopesEnabled;
 
     public ProxyClientAdminScopeRouter(ProxyClientAdminActivity localActivity,
         ProxyClientAdminCoordinatorService coordinatorService) {
+        this(localActivity, coordinatorService, true);
+    }
+
+    public ProxyClientAdminScopeRouter(ProxyClientAdminActivity localActivity,
+        ProxyClientAdminCoordinatorService coordinatorService, boolean coordinatorScopesEnabled) {
         if (localActivity == null) {
             throw new IllegalArgumentException("localActivity is required");
         }
@@ -40,6 +46,7 @@ public class ProxyClientAdminScopeRouter {
         }
         this.localActivity = localActivity;
         this.coordinatorService = coordinatorService;
+        this.coordinatorScopesEnabled = coordinatorScopesEnabled;
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClients(ProxyContext ctx,
@@ -50,6 +57,7 @@ public class ProxyClientAdminScopeRouter {
                 case LOCAL_PROXY:
                     return this.localActivity.listClients(ctx, requiredRequest);
                 case ALL_PROXIES:
+                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.coordinatorService.listClients(ctx, requiredRequest.toQuery());
                 default:
                     throw this.unsupportedScope("listClients", requiredRequest.getScope());
@@ -70,6 +78,7 @@ public class ProxyClientAdminScopeRouter {
                 case LOCAL_PROXY:
                     return this.localActivity.describeClient(ctx, requiredRequest);
                 case PROXY_ID:
+                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.coordinatorService.describeClient(ctx, requiredRequest);
                 default:
                     throw this.unsupportedScope("describeClient", requiredRequest.getScope());
@@ -90,6 +99,7 @@ public class ProxyClientAdminScopeRouter {
                 case LOCAL_PROXY:
                     return this.localActivity.listClientsByGroup(ctx, requiredRequest);
                 case ALL_PROXIES:
+                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.coordinatorService.listClientsByGroup(
                         ctx,
                         requiredRequest.getGroup(),
@@ -117,6 +127,7 @@ public class ProxyClientAdminScopeRouter {
                 case LOCAL_PROXY:
                     return this.localActivity.listClientsByTopic(ctx, requiredRequest);
                 case ALL_PROXIES:
+                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.coordinatorService.listClientsByTopic(
                         ctx,
                         requiredRequest.getTopic(),
@@ -166,6 +177,14 @@ public class ProxyClientAdminScopeRouter {
 
     private ProxyClientScope effectiveScope(ProxyClientScope scope) {
         return scope == null ? ProxyClientScope.LOCAL_PROXY : scope;
+    }
+
+    private void requireCoordinatorScopesEnabled(ProxyClientScope scope) {
+        if (!this.coordinatorScopesEnabled) {
+            throw new IllegalArgumentException(
+                "Proxy client admin coordinator scopes are disabled: " + this.effectiveScope(scope)
+            );
+        }
     }
 
     private IllegalArgumentException unsupportedScope(String operation, ProxyClientScope scope) {

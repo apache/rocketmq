@@ -544,6 +544,9 @@ Recommended implementation order after public API ownership is confirmed:
    endpoint or activity semantics.
 4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
    timeout, retry, and partial-failure semantics are validated.
+   This branch keeps those coordinator scopes disabled by default through
+   `enableProxyClientAdminCrossProxyQuery`; enabling the flag lets the internal
+   scope router use the current single-node in-process peer client.
 5. Wire the public `ProxyAdminService` adapter to the coordinator service while
    keeping M1 `LOCAL_PROXY` as the default.
 
