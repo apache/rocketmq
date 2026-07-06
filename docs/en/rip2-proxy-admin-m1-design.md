@@ -537,7 +537,9 @@ request as an internal pagination error instead of returning an empty terminal
 page and silently dropping peer progress. When a coordinator token carries a
 per-peer cursor, the next peer page must only return client ids after that peer
 cursor; otherwise the coordinator treats the peer response as stale or
-misrouted and returns an internal routing error before merging the page.
+misrouted and returns an internal routing error before merging the page. Every
+peer page must also be strictly ordered by increasing `client_id`; otherwise the
+coordinator rejects it before building global pagination state.
 
 Recommended partial-failure behavior:
 
@@ -758,6 +760,8 @@ Internal adapter tests cover:
   `ProxyClientAdminActivity`.
 - coordinator pagination rejecting peer pages that go backward relative to the
   per-peer cursor stored in a coordinator-owned page token.
+- coordinator pagination rejecting peer pages that are not strictly ordered by
+  `client_id`.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 

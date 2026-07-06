@@ -447,7 +447,8 @@ public class ProxyClientAdminCoordinatorService {
             return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page result is required");
         }
         ProxyClientPage peerPage = (ProxyClientPage) response.getBody();
-        ProxyClientAdminResult<ProxyClientPage> peerPageValidationResult = this.validatePeerPage(peerPage);
+        ProxyClientAdminResult<ProxyClientPage> peerPageValidationResult =
+            this.validatePeerPage(expectedProxyId, peerPage);
         if (peerPageValidationResult != null) {
             return peerPageValidationResult;
         }
@@ -473,11 +474,12 @@ public class ProxyClientAdminCoordinatorService {
         return this.okResult(clientInfo);
     }
 
-    private ProxyClientAdminResult<ProxyClientPage> validatePeerPage(ProxyClientPage peerPage) {
+    private ProxyClientAdminResult<ProxyClientPage> validatePeerPage(String proxyId, ProxyClientPage peerPage) {
         List<ProxyClientInfo> clients = peerPage.getClients();
         if (clients == null) {
             return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page clients are required");
         }
+        String previousClientId = null;
         for (ProxyClientInfo clientInfo : clients) {
             if (clientInfo == null) {
                 return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page client is required");
@@ -487,6 +489,16 @@ public class ProxyClientAdminCoordinatorService {
             if (clientValidationResult != null) {
                 return clientValidationResult;
             }
+            String clientId = clientInfo.getClientId();
+            if (previousClientId != null && clientId.compareTo(previousClientId) <= 0) {
+                return this.errorResult(
+                    Code.INTERNAL_SERVER_ERROR,
+                    "peer page client ids must be strictly increasing: proxyId=" + proxyId
+                        + ", previousClientId=" + previousClientId
+                        + ", clientId=" + clientId
+                );
+            }
+            previousClientId = clientId;
         }
         return null;
     }
