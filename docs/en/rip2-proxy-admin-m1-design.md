@@ -581,8 +581,8 @@ Recommended implementation order after public API ownership is confirmed:
    future cross-proxy transport can replace the peer client without changing
    endpoint or activity semantics. The peer client is wrapped by
    `TimedProxyClientAdminPeerClient` so peer discovery and coordinator fan-out
-   have a bounded wait; `proxyClientAdminPeerRequestTimeoutMillis` controls the
-   timeout.
+   have a bounded wait; timed discovery must return a non-empty peer list, and
+   `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout.
 4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
    timeout, retry, and partial-failure semantics are validated.
    This branch keeps those coordinator scopes disabled by default through

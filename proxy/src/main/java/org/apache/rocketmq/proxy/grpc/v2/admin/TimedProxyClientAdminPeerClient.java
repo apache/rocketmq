@@ -81,6 +81,9 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
         if (proxyIds == null) {
             throw new IllegalStateException("peer proxyIds are required");
         }
+        if (proxyIds.isEmpty()) {
+            throw new IllegalStateException("at least one peer proxyId is required");
+        }
         return proxyIds;
     }
 
