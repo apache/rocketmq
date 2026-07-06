@@ -83,9 +83,9 @@ public final class ProxyClientAdminRequestConverter {
     }
 
     private String proxyIdForScope(ProxyClientScope scope, String proxyId) {
-        if (scope == ProxyClientScope.LOCAL_PROXY) {
-            return null;
+        if (scope == ProxyClientScope.PROXY_ID) {
+            return proxyId;
         }
-        return proxyId;
+        return null;
     }
 }

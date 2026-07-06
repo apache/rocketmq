@@ -48,6 +48,23 @@ public class ProxyClientAdminRequestConverterTest {
     }
 
     @Test
+    public void toListClientsRequestIgnoresProxyIdForAllProxiesScope() {
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsRequest(
+                ClientType.PRODUCER,
+                10,
+                "",
+                "PROXY_SCOPE_ALL_PROXIES",
+                " proxy-a "
+            );
+
+        ProxyClientQuery query = request.toQuery();
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
+        assertThat(request.getProxyId()).isNull();
+        assertThat(query.getProxyId()).isNull();
+    }
+
+    @Test
     public void toDescribeClientRequestMapsPublicFields() {
         ProxyClientAdminDescribeClientRequest request = ProxyClientAdminRequestConverter.getInstance()
             .toDescribeClientRequest(
@@ -77,10 +94,11 @@ public class ProxyClientAdminRequestConverterTest {
         assertThat(request.getGroup()).isEqualTo("group-a");
         assertThat(request.getClientType()).isEqualTo(ClientType.PUSH_CONSUMER);
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
-        assertThat(request.getProxyId()).isEqualTo("proxy-a");
+        assertThat(request.getProxyId()).isNull();
         assertThat(query.getGroup()).isEqualTo("group-a");
         assertThat(query.getPageSize()).isEqualTo(20);
         assertThat(query.getPageToken()).isEqualTo("client-b");
+        assertThat(query.getProxyId()).isNull();
     }
 
     @Test
