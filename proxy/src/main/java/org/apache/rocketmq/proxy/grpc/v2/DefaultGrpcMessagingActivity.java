@@ -138,6 +138,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         ProxyClientAdminCoordinatorService proxyClientAdminCoordinatorService = null;
         if (enableCrossProxyQuery) {
             String localProxyId = this.requireCrossProxyLocalProxyId();
+            long peerRequestTimeoutMillis = this.requireCrossProxyPeerRequestTimeoutMillis();
             ProxyClientAdminPeerLocalExecutor localPeerExecutor =
                 new ProxyClientAdminPeerLocalExecutor(localProxyId, this.proxyClientAdminActivity);
             this.proxyClientAdminPeerExecutor = ThreadUtils.newSingleThreadExecutor(
@@ -146,7 +147,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             this.proxyClientAdminPeerClient = new TimedProxyClientAdminPeerClient(
                 new ProxyClientAdminInProcessPeerClient(Collections.singletonMap(localProxyId, localPeerExecutor)),
                 this.proxyClientAdminPeerExecutor,
-                ConfigurationManager.getProxyConfig().getProxyClientAdminPeerRequestTimeoutMillis()
+                peerRequestTimeoutMillis
             );
             this.appendShutdown(this.proxyClientAdminPeerExecutor::shutdown);
             proxyClientAdminCoordinatorService = new ProxyClientAdminCoordinatorService(this.proxyClientAdminPeerClient);
@@ -220,6 +221,18 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             );
         }
         return localProxyId;
+    }
+
+    private long requireCrossProxyPeerRequestTimeoutMillis() {
+        long peerRequestTimeoutMillis =
+            ConfigurationManager.getProxyConfig().getProxyClientAdminPeerRequestTimeoutMillis();
+        if (peerRequestTimeoutMillis <= 0) {
+            throw new IllegalArgumentException(
+                "proxyClientAdminPeerRequestTimeoutMillis must be positive when proxy client admin "
+                    + "cross-proxy query is enabled"
+            );
+        }
+        return peerRequestTimeoutMillis;
     }
 
     protected ClientAdminService getClientAdminService() {

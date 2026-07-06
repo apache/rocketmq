@@ -228,6 +228,17 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void initRequiresPositivePeerRequestTimeoutWhenCrossProxyScopeEnabled() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ConfigurationManager.getProxyConfig().setProxyClientAdminPeerRequestTimeoutMillis(0L);
+
+        assertThatThrownBy(() -> new DefaultGrpcMessagingActivity(this.messagingProcessor))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyClientAdminPeerRequestTimeoutMillis must be positive");
+    }
+
+    @Test
     public void initTrimsConfiguredProxyNameForLocalProxyId() {
         String originalProxyName = ConfigurationManager.getProxyConfig().getProxyName();
         try {
