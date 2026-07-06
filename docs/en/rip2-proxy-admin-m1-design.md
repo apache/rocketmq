@@ -535,6 +535,9 @@ Recommended implementation order after public API ownership is confirmed:
    on peer errors, and store per-peer cursors in the internal `cp1:`
    coordinator token. `DescribeClient` routes directly to the requested proxy id
    and reuses the same peer error mapping.
+   It also includes a proto-free scope router that keeps `LOCAL_PROXY` on the
+   existing admin activity and routes `ALL_PROXIES`/`PROXY_ID` requests to the
+   coordinator without changing the public endpoint registration yet.
 4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
    timeout, retry, and partial-failure semantics are validated.
 5. Wire the public `ProxyAdminService` adapter to the coordinator service while
