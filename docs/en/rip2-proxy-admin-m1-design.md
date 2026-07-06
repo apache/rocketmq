@@ -877,7 +877,8 @@ Internal adapter tests cover:
 
 ### Validation Snapshot
 
-On 2026-07-06, the branch was revalidated with this focused RIP-2 suite:
+On 2026-07-07 Asia/Shanghai time, the branch was revalidated with this focused
+RIP-2 suite:
 
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
@@ -886,7 +887,7 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The proxy module reported `Tests run: 393, Failures: 0, Errors: 0, Skipped: 0`
+The proxy module reported `Tests run: 403, Failures: 0, Errors: 0, Skipped: 0`
 and the Maven reactor ended with `BUILD SUCCESS`. Under JDK 17, JaCoCo 0.8.5
 still prints instrumentation stack traces for JDK and Mockito-generated classes;
 those logs are treated as environment noise only when Surefire reports zero
