@@ -61,6 +61,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -210,9 +211,20 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     @Test
     public void initCreatesTimedProxyClientAdminPeerClientWhenCrossProxyScopeEnabled() {
         ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
         DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
 
         assertThat(activity.proxyClientAdminPeerClient).isInstanceOf(TimedProxyClientAdminPeerClient.class);
+    }
+
+    @Test
+    public void initRequiresProxyNameWhenCrossProxyScopeEnabled() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName(" ");
+
+        assertThatThrownBy(() -> new DefaultGrpcMessagingActivity(this.messagingProcessor))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyName is required");
     }
 
     @Test

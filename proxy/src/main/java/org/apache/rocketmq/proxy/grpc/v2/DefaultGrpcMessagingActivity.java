@@ -137,7 +137,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             .isEnableProxyClientAdminCrossProxyQuery();
         ProxyClientAdminCoordinatorService proxyClientAdminCoordinatorService = null;
         if (enableCrossProxyQuery) {
-            String localProxyId = this.localProxyId();
+            String localProxyId = this.requireCrossProxyLocalProxyId();
             ProxyClientAdminPeerLocalExecutor localPeerExecutor =
                 new ProxyClientAdminPeerLocalExecutor(localProxyId, this.proxyClientAdminActivity);
             this.proxyClientAdminPeerExecutor = ThreadUtils.newSingleThreadExecutor(
@@ -210,6 +210,16 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             StringUtils.trimToNull(ConfigurationManager.getProxyConfig().getProxyName()),
             "DEFAULT_PROXY"
         );
+    }
+
+    private String requireCrossProxyLocalProxyId() {
+        String localProxyId = StringUtils.trimToNull(ConfigurationManager.getProxyConfig().getProxyName());
+        if (localProxyId == null) {
+            throw new IllegalArgumentException(
+                "proxyName is required when proxy client admin cross-proxy query is enabled"
+            );
+        }
+        return localProxyId;
     }
 
     protected ClientAdminService getClientAdminService() {

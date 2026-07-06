@@ -596,17 +596,21 @@ Recommended implementation order after public API ownership is confirmed:
    semantics. The peer client is wrapped by
    `TimedProxyClientAdminPeerClient` so peer discovery and coordinator fan-out
    have a bounded wait; timed discovery must return a non-empty peer list, and
-   `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout. The
-   in-process peer client converts local executor failures into peer error
-   responses so coordinator fan-out receives a bounded peer result instead of
-   an exception escaping the peer-client boundary.
+   `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout. Enabling the
+   coordinator scope flag also requires a nonblank `proxyName`, which becomes the
+   stable local peer id; the default local-only `DEFAULT_PROXY` fallback is not
+   used for coordinator scopes. The in-process peer client converts local executor
+   failures into peer error responses so coordinator fan-out receives a bounded
+   peer result instead of an exception escaping the peer-client boundary.
 4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
    timeout, retry, and partial-failure semantics are validated.
    This branch keeps those coordinator scopes disabled by default through
    `enableProxyClientAdminCrossProxyQuery`; while disabled, the internal scope
    router rejects coordinator scopes before any peer client or peer timeout
    configuration is touched. Enabling the flag lets the internal scope router
-   use the current single-node in-process peer client.
+   use the current single-node in-process peer client, and now requires an
+   explicit `proxyName` so future multi-proxy discovery and page tokens do not
+   inherit an ambiguous default proxy id.
 5. Wire the public `ProxyAdminService` adapter to the coordinator service while
    keeping M1 `LOCAL_PROXY` as the default.
 
@@ -887,7 +891,7 @@ The remaining public endpoint work should start only after the community agrees
 where the protobuf API lives. Once that is settled, the implementation can land
 as a narrow adapter over the internal code already in this branch:
 
-Current branch status: after fetching `upstream/develop` at commit `8242c1e9d`
+Current branch status: after fetching `upstream/develop` at commit `2af604f3a`
 on 2026-07-06, `git grep` still finds no upstream `ProxyAdminService`,
 `ProxyScope`, `ListClientsByGroup`, or `ListClientsByTopic` protobuf API to
 consume. The documentation-only draft remains under `docs/en`, and this fork
@@ -920,12 +924,15 @@ and startup service-registration seams are already covered in this branch.
    public request selects `PROXY_SCOPE_PROXY_ID`, before creating request context
    or invoking coordinator/peer code. Continue to ignore `proxy_id` for
    `PROXY_SCOPE_LOCAL_PROXY` and `PROXY_SCOPE_ALL_PROXIES`.
-8. Register `GrpcProxyAdminApplication` beside `GrpcMessagingApplication` in
+8. Require an explicit, nonblank `proxyName` before enabling cross-proxy
+   coordinator scopes. `LOCAL_PROXY` can keep the default local-only fallback, but
+   `ALL_PROXIES` and `PROXY_ID` must use stable, configured peer ids.
+9. Register `GrpcProxyAdminApplication` beside `GrpcMessagingApplication` in
    `ProxyStartup.createGrpcBindableServices`, using the same
    `DefaultGrpcMessagingActivity` instance so lifecycle writes, read-model
    queries, ACL, metrics, and context propagation share one in-process state
    holder.
-9. Keep endpoint methods free of business logic. They should adapt protobuf
+10. Keep endpoint methods free of business logic. They should adapt protobuf
    requests and responses only; authorization, validation, pagination, metrics,
    and error mapping should stay behind `ProxyClientAdminEndpointExecutor` and
    `ProxyClientAdminEndpointHandler`.
