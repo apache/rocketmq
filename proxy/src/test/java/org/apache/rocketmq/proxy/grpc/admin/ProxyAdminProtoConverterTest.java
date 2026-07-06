@@ -136,9 +136,21 @@ public class ProxyAdminProtoConverterTest {
     }
 
     @Test
+    public void testToClientLanguage_NODE_JS() {
+        assertEquals(ClientLanguage.CLIENT_LANGUAGE_NODEJS,
+            ProxyAdminProtoConverter.toClientLanguage("NODE_JS"));
+    }
+
+    @Test
     public void testToClientLanguage_CSHARP() {
         assertEquals(ClientLanguage.CLIENT_LANGUAGE_CSHARP,
             ProxyAdminProtoConverter.toClientLanguage("CSHARP"));
+    }
+
+    @Test
+    public void testToClientLanguage_DOTNET() {
+        assertEquals(ClientLanguage.CLIENT_LANGUAGE_CSHARP,
+            ProxyAdminProtoConverter.toClientLanguage("DOTNET"));
     }
 
     @Test
@@ -225,6 +237,12 @@ public class ProxyAdminProtoConverterTest {
     public void testToClientProtocol_GRPC() {
         assertEquals(ClientProtocol.CLIENT_PROTOCOL_GRPC,
             ProxyAdminProtoConverter.toClientProtocol("GRPC"));
+    }
+
+    @Test
+    public void testToClientProtocol_GRPC_V2() {
+        assertEquals(ClientProtocol.CLIENT_PROTOCOL_GRPC,
+            ProxyAdminProtoConverter.toClientProtocol("GRPC_V2"));
     }
 
     @Test

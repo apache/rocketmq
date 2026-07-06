@@ -381,8 +381,10 @@ public class ProxyAdminProtoConverter {
             case "PYTHON":
                 return ClientLanguage.CLIENT_LANGUAGE_PYTHON;
             case "NODEJS":
+            case "NODE_JS":
                 return ClientLanguage.CLIENT_LANGUAGE_NODEJS;
             case "CSHARP":
+            case "DOTNET":
                 return ClientLanguage.CLIENT_LANGUAGE_CSHARP;
             case "PHP":
                 return ClientLanguage.CLIENT_LANGUAGE_PHP;
@@ -400,6 +402,7 @@ public class ProxyAdminProtoConverter {
         }
         switch (protocol.toUpperCase()) {
             case "GRPC":
+            case "GRPC_V2":
                 return ClientProtocol.CLIENT_PROTOCOL_GRPC;
             case "REMOTING":
                 return ClientProtocol.CLIENT_PROTOCOL_REMOTING;

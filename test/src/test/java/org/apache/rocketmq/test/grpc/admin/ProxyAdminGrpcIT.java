@@ -140,6 +140,9 @@ public class ProxyAdminGrpcIT extends BaseConf {
         header.put(GrpcConstants.CLIENT_ID, "admin-test-client-" + UUID.randomUUID());
         header.put(GrpcConstants.LANGUAGE, "JAVA");
 
+        // Ensure namesrv address is available globally for all internal clients
+        System.setProperty("rocketmq.namesrv.addr", NAMESRV_ADDR);
+
         // Initialize proxy configuration
         String mockProxyHome = "/mock/rmq/proxy/home";
         URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");

@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.admin;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import io.grpc.Metadata;
 import org.apache.rocketmq.common.action.Action;
 import org.junit.After;
 import org.junit.Before;
@@ -26,6 +27,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 /**
  * Unit tests for ProxyAdminAuthInterceptor.
@@ -118,13 +120,112 @@ public class ProxyAdminAuthInterceptorTest {
         assertEquals("proxy.admin.client", ProxyAdminAuthInterceptor.CLIENT_ADMIN_RESOURCE);
     }
 
-    /**
-     * Use reflection to test the private resolveAction method.
-     */
+    // ==================== extractUsername Tests ====================
+
+    @Test
+    public void testExtractUsername_WithAuthAk() throws Exception {
+        Metadata headers = new Metadata();
+        headers.put(org.apache.rocketmq.common.constant.GrpcConstants.AUTHORIZATION_AK, "testuser");
+        String username = invokeExtractUsername(headers);
+        assertEquals("testuser", username);
+    }
+
+    @Test
+    public void testExtractUsername_BlankAuthAk() throws Exception {
+        Metadata headers = new Metadata();
+        headers.put(org.apache.rocketmq.common.constant.GrpcConstants.AUTHORIZATION_AK, "");
+        String username = invokeExtractUsername(headers);
+        assertEquals("unknown", username);
+    }
+
+    @Test
+    public void testExtractUsername_NullHeaders() throws Exception {
+        String username = invokeExtractUsername(null);
+        assertEquals("unknown", username);
+    }
+
+    @Test
+    public void testExtractUsername_NoAuthAk() throws Exception {
+        Metadata headers = new Metadata();
+        String username = invokeExtractUsername(headers);
+        assertEquals("unknown", username);
+    }
+
+    // ==================== extractSourceIp Tests ====================
+
+    @Test
+    public void testExtractSourceIp_WithXForwardedFor() throws Exception {
+        Metadata headers = new Metadata();
+        headers.put(Metadata.Key.of("x-forwarded-for", Metadata.ASCII_STRING_MARSHALLER), "192.168.1.1");
+        String ip = invokeExtractSourceIp(headers);
+        assertEquals("192.168.1.1", ip);
+    }
+
+    @Test
+    public void testExtractSourceIp_NullHeaders() throws Exception {
+        String ip = invokeExtractSourceIp(null);
+        assertNull(ip);
+    }
+
+    @Test
+    public void testExtractSourceIp_BlankXForwardedFor() throws Exception {
+        Metadata headers = new Metadata();
+        headers.put(Metadata.Key.of("x-forwarded-for", Metadata.ASCII_STRING_MARSHALLER), "");
+        String ip = invokeExtractSourceIp(headers);
+        assertNull(ip);
+    }
+
+    @Test
+    public void testExtractSourceIp_NoHeader() throws Exception {
+        Metadata headers = new Metadata();
+        String ip = invokeExtractSourceIp(headers);
+        assertNull(ip);
+    }
+
+    // ==================== More resolveAction Tests ====================
+
+    @Test
+    public void testResolveAction_DescribeClientInPath() throws Exception {
+        // DescribeClient appears anywhere in the path
+        Action action = invokeResolveAction("apache.rocketmq.proxy.admin.v1.ProxyClientAdminService/DescribeClient");
+        assertEquals(Action.GET, action);
+    }
+
+    @Test
+    public void testResolveAction_ListClientsInPath() throws Exception {
+        Action action = invokeResolveAction("apache.rocketmq.proxy.admin.v1.ProxyClientAdminService/ListClients");
+        assertEquals(Action.LIST, action);
+    }
+
+    @Test
+    public void testResolveAction_ListClientsByGroupInPath() throws Exception {
+        Action action = invokeResolveAction("apache.rocketmq.proxy.admin.v1.ProxyClientAdminService/ListClientsByGroup");
+        assertEquals(Action.LIST, action);
+    }
+
+    @Test
+    public void testResolveAction_ListClientsByTopicInPath() throws Exception {
+        Action action = invokeResolveAction("apache.rocketmq.proxy.admin.v1.ProxyClientAdminService/ListClientsByTopic");
+        assertEquals(Action.LIST, action);
+    }
+
+    // ==================== Reflection Helpers ====================
     private Action invokeResolveAction(String methodName) throws Exception {
         Method method = ProxyAdminAuthInterceptor.class.getDeclaredMethod("resolveAction", String.class);
         method.setAccessible(true);
         return (Action) method.invoke(interceptor, methodName);
+    }
+
+    private String invokeExtractUsername(Metadata headers) throws Exception {
+        Method method = ProxyAdminAuthInterceptor.class.getDeclaredMethod("extractUsername", Metadata.class);
+        method.setAccessible(true);
+        return (String) method.invoke(interceptor, new Object[]{headers});
+    }
+
+    private String invokeExtractSourceIp(Metadata headers) throws Exception {
+        Method method = ProxyAdminAuthInterceptor.class.getDeclaredMethod("extractSourceIp", Metadata.class);
+        method.setAccessible(true);
+        return (String) method.invoke(interceptor, new Object[]{headers});
     }
 
     /**
