@@ -21,7 +21,6 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
-import java.util.function.Supplier;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 
 /** Built-in OpenTelemetry-compatible metrics for Proxy Admin gRPC service. Tracks call count, latency (P50/P95/P99), and error rate per RPC method. */

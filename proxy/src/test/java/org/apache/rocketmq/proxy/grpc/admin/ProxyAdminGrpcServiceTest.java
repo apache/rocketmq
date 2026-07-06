@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.proxy.grpc.admin.model.ClientDetailInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientInstanceInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
 import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService;
@@ -38,17 +37,12 @@ import apache.rocketmq.proxy.admin.v1.ListClientsResponse;
 import apache.rocketmq.proxy.admin.v1.DescribeClientRequest;
 import apache.rocketmq.proxy.admin.v1.DescribeClientResponse;
 import apache.rocketmq.proxy.admin.v1.ListClientsByGroupRequest;
-import apache.rocketmq.proxy.admin.v1.ListClientsByGroupResponse;
 import apache.rocketmq.proxy.admin.v1.ListClientsByTopicRequest;
-import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 

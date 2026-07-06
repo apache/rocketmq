@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.proxy.grpc.admin;
 
-import java.util.List;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientDetailInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientInstanceInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
@@ -34,11 +33,8 @@ import apache.rocketmq.proxy.admin.v1.ConsumeProgress;
 import apache.rocketmq.proxy.admin.v1.HeartbeatRecord;
 import apache.rocketmq.proxy.admin.v1.ListClientsRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsResponse;
-import apache.rocketmq.proxy.admin.v1.DescribeClientRequest;
 import apache.rocketmq.proxy.admin.v1.DescribeClientResponse;
-import apache.rocketmq.proxy.admin.v1.ListClientsByGroupRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsByGroupResponse;
-import apache.rocketmq.proxy.admin.v1.ListClientsByTopicRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
 import apache.rocketmq.proxy.admin.v1.NetworkInfo;
 import apache.rocketmq.proxy.admin.v1.Pagination;

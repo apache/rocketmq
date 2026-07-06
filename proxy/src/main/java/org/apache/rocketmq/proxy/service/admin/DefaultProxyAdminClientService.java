@@ -39,7 +39,6 @@ import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
-import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
 
 /**
  * Default implementation of ProxyAdminClientService.

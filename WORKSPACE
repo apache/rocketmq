@@ -158,6 +158,18 @@ load("@rules_java//java:repositories.bzl", "rules_java_dependencies", "rules_jav
 rules_java_dependencies()
 rules_java_toolchains()
 
+http_archive(
+    name = "rules_proto",
+    sha256 = "6a5948e2c8e6dd7d5f3d9a28e7dfa0f6a0c0e9ad7c0c59ad1b5ab72e0b846d8f",
+    strip_prefix = "rules_proto-6.0.0",
+    urls = [
+        "https://github.com/bazelbuild/rules_proto/releases/download/6.0.0/rules_proto-6.0.0.tar.gz",
+    ],
+)
+
+load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies")
+rules_proto_dependencies()
+
 load("@rules_java//toolchains:local_java_repository.bzl", "local_java_repository")
 local_java_repository(
   name = "jdk8",

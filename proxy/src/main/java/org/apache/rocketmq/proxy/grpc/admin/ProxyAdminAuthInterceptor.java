@@ -84,8 +84,8 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
     }
 
     @Override
-    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
-        ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
+    public <REQT, RESPT> ServerCall.Listener<REQT> interceptCall(
+        ServerCall<REQT, RESPT> call, Metadata headers, ServerCallHandler<REQT, RESPT> next) {
 
         if (!authConfig.isAuthenticationEnabled() && !authConfig.isAuthorizationEnabled()) {
             return next.startCall(call, headers);
@@ -109,18 +109,18 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
                 methodName, extractUsername(headers), e.getMessage());
             call.close(Status.UNAUTHENTICATED
                 .withDescription("Authentication failed: " + e.getMessage()), headers);
-            return new ServerCall.Listener<ReqT>() {};
+            return new ServerCall.Listener<REQT>() { };
         } catch (AuthorizationException e) {
             log.warn("Admin authorization failed for method:{}, user:{}, error:{}",
                 methodName, extractUsername(headers), e.getMessage());
             call.close(Status.PERMISSION_DENIED
                 .withDescription("Authorization failed: " + e.getMessage()), headers);
-            return new ServerCall.Listener<ReqT>() {};
+            return new ServerCall.Listener<REQT>() { };
         } catch (Exception e) {
             log.error("Admin auth error for method:{}", methodName, e);
             call.close(Status.INTERNAL
                 .withDescription("Internal auth error: " + e.getMessage()), headers);
-            return new ServerCall.Listener<ReqT>() {};
+            return new ServerCall.Listener<REQT>() { };
         }
 
         return next.startCall(call, headers);
