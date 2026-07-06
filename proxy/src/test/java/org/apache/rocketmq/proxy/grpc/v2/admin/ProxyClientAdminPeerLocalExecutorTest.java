@@ -18,9 +18,11 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
+import apache.rocketmq.v2.Code;
 import java.util.Collections;
 import java.util.NoSuchElementException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
@@ -90,6 +92,29 @@ public class ProxyClientAdminPeerLocalExecutorTest {
         assertThat(response.getBody()).isNull();
         assertThat(response.getErrorCode()).isEqualTo("NOT_FOUND");
         assertThat(response.getErrorMessage()).contains("missing-client");
+    }
+
+    @Test
+    public void executeMapsOkActivityResultWithoutBodyToPeerError() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminPeerLocalExecutor executor = new ProxyClientAdminPeerLocalExecutor("proxy-b", activity);
+        when(activity.listClients(any(), any(ProxyClientQuery.class))).thenReturn(
+            new ProxyClientAdminResult<>(
+                ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),
+                null
+            )
+        );
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .build();
+
+        ProxyClientAdminPeerResponse<?> response = executor.execute(proxyContext(), request);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-b");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorMessage()).contains("peer result body is required");
     }
 
     private static ProxyClientAdminPeerLocalExecutor newExecutor(String localProxyId, ClientAdminService delegate) {

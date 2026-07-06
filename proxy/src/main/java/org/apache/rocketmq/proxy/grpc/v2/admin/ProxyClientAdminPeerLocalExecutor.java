@@ -70,6 +70,10 @@ public class ProxyClientAdminPeerLocalExecutor {
                 "peer result is required");
         }
         if (result.getStatus().getCode() == Code.OK) {
+            if (result.getBody() == null) {
+                return ProxyClientAdminPeerResponse.error(localProxyId, Code.INTERNAL_SERVER_ERROR.name(),
+                    "peer result body is required");
+            }
             return ProxyClientAdminPeerResponse.success(localProxyId, result.getBody());
         }
         return ProxyClientAdminPeerResponse.error(
