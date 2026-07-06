@@ -62,9 +62,11 @@ import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminContextFactory;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminCoordinatorService;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointHandler;
-import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminInProcessPeerClient;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminInProcessPeerMessageTransport;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerClient;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerLocalExecutor;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageClient;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageHandler;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminScopeRouter;
 import org.apache.rocketmq.proxy.grpc.v2.admin.TimedProxyClientAdminPeerClient;
 import org.apache.rocketmq.proxy.grpc.v2.client.ClientActivity;
@@ -230,8 +232,15 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             localProxyId,
             this.clientAdminService
         );
+        ProxyClientAdminPeerMessageHandler localPeerMessageHandler =
+            new ProxyClientAdminPeerMessageHandler(localPeerExecutor);
         return new TimedProxyClientAdminPeerClient(
-            new ProxyClientAdminInProcessPeerClient(Collections.singletonMap(localProxyId, localPeerExecutor)),
+            new ProxyClientAdminPeerMessageClient(
+                new ProxyClientAdminInProcessPeerMessageTransport(Collections.singletonMap(
+                    localProxyId,
+                    localPeerMessageHandler
+                ))
+            ),
             executorService,
             timeoutMillis
         );

@@ -27,6 +27,7 @@ import io.grpc.stub.StreamObserver;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
@@ -36,10 +37,13 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminInProcessPeerMessageTransport;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminListClientsRequest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerClient;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerLocalExecutor;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageClient;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageHandler;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerRequest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerResponse;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminResult;
@@ -220,6 +224,29 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
 
         assertThat(activity.proxyClientAdminPeerClient).isInstanceOf(TimedProxyClientAdminPeerClient.class);
+    }
+
+    @Test
+    public void initCreatesCrossProxyPeerClientThroughRawMessageTransport() throws Exception {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        Object delegate = fieldValue(activity.proxyClientAdminPeerClient, TimedProxyClientAdminPeerClient.class,
+            "delegate");
+        Object transport = fieldValue(delegate, ProxyClientAdminPeerMessageClient.class, "transport");
+        @SuppressWarnings("unchecked")
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers =
+            (Map<String, ProxyClientAdminPeerMessageHandler>) fieldValue(
+                transport,
+                ProxyClientAdminInProcessPeerMessageTransport.class,
+                "handlers"
+            );
+
+        assertThat(delegate).isInstanceOf(ProxyClientAdminPeerMessageClient.class);
+        assertThat(transport).isInstanceOf(ProxyClientAdminInProcessPeerMessageTransport.class);
+        assertThat(handlers).containsOnlyKeys("proxy-a");
+        assertThat(handlers.get("proxy-a")).isInstanceOf(ProxyClientAdminPeerMessageHandler.class);
     }
 
     @Test
@@ -442,6 +469,12 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         Field field = AbstractStartAndShutdown.class.getDeclaredField("startAndShutdownList");
         field.setAccessible(true);
         return (List<StartAndShutdown>) field.get(activity);
+    }
+
+    private static Object fieldValue(Object target, Class<?> declaringClass, String fieldName) throws Exception {
+        Field field = declaringClass.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.get(target);
     }
 
     private static class TestableDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
