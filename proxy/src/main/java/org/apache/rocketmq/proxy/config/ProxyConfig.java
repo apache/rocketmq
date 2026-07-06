@@ -158,6 +158,7 @@ public class ProxyConfig implements ConfigFile {
     private long grpcClientIdleTimeMills = Duration.ofSeconds(120).toMillis();
     private boolean enableProxyClientReadServiceCleaner = false;
     private boolean enableProxyClientAdminCrossProxyQuery = false;
+    private long proxyClientAdminPeerRequestTimeoutMillis = Duration.ofSeconds(2).toMillis();
     private long proxyClientReadServiceCleanerInactiveTimeoutMillis = Duration.ofMinutes(10).toMillis();
     private long proxyClientReadServiceCleanerIntervalMillis = Duration.ofMinutes(1).toMillis();
     private long grpcServerPermitKeepAliveTimeMillis = 30000;
@@ -1241,6 +1242,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableProxyClientAdminCrossProxyQuery(boolean enableProxyClientAdminCrossProxyQuery) {
         this.enableProxyClientAdminCrossProxyQuery = enableProxyClientAdminCrossProxyQuery;
+    }
+
+    public long getProxyClientAdminPeerRequestTimeoutMillis() {
+        return proxyClientAdminPeerRequestTimeoutMillis;
+    }
+
+    public void setProxyClientAdminPeerRequestTimeoutMillis(long proxyClientAdminPeerRequestTimeoutMillis) {
+        this.proxyClientAdminPeerRequestTimeoutMillis = proxyClientAdminPeerRequestTimeoutMillis;
     }
 
     public long getProxyClientReadServiceCleanerInactiveTimeoutMillis() {

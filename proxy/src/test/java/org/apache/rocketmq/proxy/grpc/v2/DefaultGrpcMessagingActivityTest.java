@@ -38,6 +38,7 @@ import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminListClientsReques
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminResult;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminScopeRouter;
+import org.apache.rocketmq.proxy.grpc.v2.admin.TimedProxyClientAdminPeerClient;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
@@ -176,6 +177,13 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
 
         assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void initCreatesTimedProxyClientAdminPeerClient() {
+        DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        assertThat(activity.proxyClientAdminPeerClient).isInstanceOf(TimedProxyClientAdminPeerClient.class);
     }
 
     @Test

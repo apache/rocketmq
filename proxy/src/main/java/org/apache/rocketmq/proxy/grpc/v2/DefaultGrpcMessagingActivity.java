@@ -44,6 +44,7 @@ import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.stub.StreamObserver;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -62,8 +63,10 @@ import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminCoordinatorServic
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointHandler;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminInProcessPeerClient;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerClient;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerLocalExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminScopeRouter;
+import org.apache.rocketmq.proxy.grpc.v2.admin.TimedProxyClientAdminPeerClient;
 import org.apache.rocketmq.proxy.grpc.v2.client.ClientActivity;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.AckMessageActivity;
@@ -104,6 +107,8 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected ClientAdminService clientAdminService;
     protected AuthorizingClientAdminService authorizingClientAdminService;
     protected ProxyClientAdminActivity proxyClientAdminActivity;
+    protected ProxyClientAdminPeerClient proxyClientAdminPeerClient;
+    protected ExecutorService proxyClientAdminPeerExecutor;
     protected ProxyClientAdminScopeRouter proxyClientAdminScopeRouter;
     protected ProxyClientAdminContextFactory proxyClientAdminContextFactory;
     protected ProxyClientAdminEndpointHandler proxyClientAdminEndpointHandler;
@@ -131,10 +136,17 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         String localProxyId = this.localProxyId();
         ProxyClientAdminPeerLocalExecutor localPeerExecutor =
             new ProxyClientAdminPeerLocalExecutor(localProxyId, this.proxyClientAdminActivity);
+        this.proxyClientAdminPeerExecutor = ThreadUtils.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminPeerClient_")
+        );
+        this.proxyClientAdminPeerClient = new TimedProxyClientAdminPeerClient(
+            new ProxyClientAdminInProcessPeerClient(Collections.singletonMap(localProxyId, localPeerExecutor)),
+            this.proxyClientAdminPeerExecutor,
+            ConfigurationManager.getProxyConfig().getProxyClientAdminPeerRequestTimeoutMillis()
+        );
+        this.appendShutdown(this.proxyClientAdminPeerExecutor::shutdown);
         ProxyClientAdminCoordinatorService proxyClientAdminCoordinatorService =
-            new ProxyClientAdminCoordinatorService(new ProxyClientAdminInProcessPeerClient(
-                Collections.singletonMap(localProxyId, localPeerExecutor)
-            ));
+            new ProxyClientAdminCoordinatorService(this.proxyClientAdminPeerClient);
         this.proxyClientAdminScopeRouter = new ProxyClientAdminScopeRouter(
             this.proxyClientAdminActivity,
             proxyClientAdminCoordinatorService,

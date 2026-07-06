@@ -541,7 +541,9 @@ Recommended implementation order after public API ownership is confirmed:
    changing the public endpoint registration yet. `DefaultGrpcMessagingActivity`
    now creates the shared scope router with a single local in-process peer; a
    future cross-proxy transport can replace the peer client without changing
-   endpoint or activity semantics.
+   endpoint or activity semantics. The peer client is wrapped by
+   `TimedProxyClientAdminPeerClient` so coordinator fan-out has a bounded wait;
+   `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout.
 4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
    timeout, retry, and partial-failure semantics are validated.
    This branch keeps those coordinator scopes disabled by default through

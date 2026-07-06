@@ -1,0 +1,106 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.rocketmq.proxy.grpc.v2.admin;
+
+import apache.rocketmq.v2.Code;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+
+public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClient {
+    private final ProxyClientAdminPeerClient delegate;
+    private final ExecutorService executorService;
+    private final long timeoutMillis;
+
+    public TimedProxyClientAdminPeerClient(ProxyClientAdminPeerClient delegate,
+        ExecutorService executorService, long timeoutMillis) {
+        if (delegate == null) {
+            throw new IllegalArgumentException("delegate is required");
+        }
+        if (executorService == null) {
+            throw new IllegalArgumentException("executorService is required");
+        }
+        if (timeoutMillis <= 0) {
+            throw new IllegalArgumentException("timeoutMillis must be positive");
+        }
+        this.delegate = delegate;
+        this.executorService = executorService;
+        this.timeoutMillis = timeoutMillis;
+    }
+
+    @Override
+    public List<String> listProxyIds() {
+        return this.delegate.listProxyIds();
+    }
+
+    @Override
+    public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+        ProxyClientAdminPeerRequest request) {
+        String requiredProxyId = requireProxyId(proxyId);
+        Future<ProxyClientAdminPeerResponse<?>> future;
+        try {
+            future = this.executorService.submit(
+                () -> this.delegate.execute(ctx, requiredProxyId, request)
+            );
+        } catch (RejectedExecutionException e) {
+            return internalServerError(requiredProxyId, e);
+        }
+        try {
+            return future.get(this.timeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            return ProxyClientAdminPeerResponse.error(
+                requiredProxyId,
+                Code.PROXY_TIMEOUT.name(),
+                "Timed out waiting for proxy client admin peer " + requiredProxyId
+                    + " after " + this.timeoutMillis + " ms"
+            );
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ProxyClientAdminPeerResponse.error(
+                requiredProxyId,
+                Code.INTERNAL_SERVER_ERROR.name(),
+                "Interrupted while waiting for proxy client admin peer " + requiredProxyId
+            );
+        } catch (ExecutionException e) {
+            return internalServerError(requiredProxyId, e.getCause() == null ? e : e.getCause());
+        }
+    }
+
+    private static ProxyClientAdminPeerResponse<?> internalServerError(String proxyId, Throwable t) {
+        return ProxyClientAdminPeerResponse.error(
+            proxyId,
+            Code.INTERNAL_SERVER_ERROR.name(),
+            StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName())
+        );
+    }
+
+    private static String requireProxyId(String proxyId) {
+        String normalizedProxyId = StringUtils.trimToNull(proxyId);
+        if (normalizedProxyId == null) {
+            throw new IllegalArgumentException("proxyId is required");
+        }
+        return normalizedProxyId;
+    }
+}
