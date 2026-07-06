@@ -168,6 +168,10 @@ public class ProxyClientAdminCoordinatorService {
         }
 
         String nextPageToken = "";
+        if (selectedClients.isEmpty() && this.hasMore(candidates, selectedCandidates, peerPages)) {
+            return this.errorResult(Code.INTERNAL_SERVER_ERROR,
+                "Cannot build coordinator page token without an emitted client id");
+        }
         if (!selectedClients.isEmpty() && this.hasMore(candidates, selectedCandidates, peerPages)) {
             nextPageToken = this.buildNextPageToken(query, proxyIds, currentPeerTokens, emittedPeerTokens,
                 emittedPeerCounts, peerPages, lastClientId);

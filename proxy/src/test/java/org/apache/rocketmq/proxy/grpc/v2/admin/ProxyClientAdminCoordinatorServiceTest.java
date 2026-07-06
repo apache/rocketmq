@@ -223,6 +223,24 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsUnmergeableEmptyPeerContinuation() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-a", page(Collections.emptyList(), "peer-a-token-2"));
+        peerClient.addPage("proxy-b", page(Collections.emptyList(), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(2)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("coordinator page token");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsMismatchedCoordinatorToken() {
         String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
             ProxyClientAdminCoordinatorPageToken.newBuilder()

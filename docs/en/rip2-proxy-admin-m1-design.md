@@ -527,7 +527,10 @@ When the coordinator builds a next token, it preserves a peer's own next-page
 token after that peer's returned page has been fully emitted. If the global
 merge stops in the middle of a peer page, it stores the last emitted client id
 for that peer so the next coordinator request can replay the remaining peer
-page without skipping clients.
+page without skipping clients. If peer responses indicate more data but the
+coordinator cannot emit any client for the current global page, it fails the
+request as an internal pagination error instead of returning an empty terminal
+page and silently dropping peer progress.
 
 Recommended partial-failure behavior:
 
