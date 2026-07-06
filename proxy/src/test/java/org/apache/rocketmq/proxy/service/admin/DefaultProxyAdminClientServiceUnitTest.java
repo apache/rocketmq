@@ -41,8 +41,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for DefaultProxyAdminClientService using Mockito mocks.
@@ -90,7 +89,7 @@ public class DefaultProxyAdminClientServiceUnitTest {
     private void addClient(String clientId, GrpcClientChannel channel, Settings settings) {
         channelMap.put(clientId, channel);
         when(grpcClientSettingsManager.getRawClientSettings(clientId)).thenReturn(settings);
-        when(grpcChannelManager.getChannel(clientId)).thenReturn(channel);
+        lenient().when(grpcChannelManager.getChannel(clientId)).thenReturn(channel);
     }
 
     // ==================== Test 1: listClients empty channels ====================

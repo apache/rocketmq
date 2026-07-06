@@ -74,8 +74,13 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
 
     public ProxyAdminAuthInterceptor(AuthConfig authConfig, MessagingProcessor messagingProcessor) {
         this.authConfig = authConfig;
-        this.authenticationEvaluator = AuthenticationFactory.getEvaluator(authConfig, messagingProcessor::getMetadataService);
-        this.authorizationEvaluator = AuthorizationFactory.getEvaluator(authConfig, messagingProcessor::getMetadataService);
+        if (authConfig.isAuthenticationEnabled() || authConfig.isAuthorizationEnabled()) {
+            this.authenticationEvaluator = AuthenticationFactory.getEvaluator(authConfig, messagingProcessor::getMetadataService);
+            this.authorizationEvaluator = AuthorizationFactory.getEvaluator(authConfig, messagingProcessor::getMetadataService);
+        } else {
+            this.authenticationEvaluator = null;
+            this.authorizationEvaluator = null;
+        }
     }
 
     @Override

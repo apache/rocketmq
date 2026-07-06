@@ -109,7 +109,6 @@ public class ProxyAdminSecurityTest {
             authConfig, null);
 
         ServerCall call = mock(ServerCall.class);
-        doReturn(ProxyAdminBindableService.LIST_CLIENTS_METHOD).when(call).getMethodDescriptor();
         Metadata headers = new Metadata();
         ServerCallHandler next = mock(ServerCallHandler.class);
 
