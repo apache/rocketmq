@@ -176,6 +176,37 @@ public class ProxyClientAdminPeerLocalExecutorTest {
         assertThat(response.getErrorMessage()).contains("boom");
     }
 
+    @Test
+    public void executeMapsMissingContextToPeerError() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminPeerLocalExecutor executor = new ProxyClientAdminPeerLocalExecutor("proxy-b", activity);
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .build();
+
+        ProxyClientAdminPeerResponse<?> response = executor.execute(null, request);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-b");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorMessage()).contains("proxyContext is required");
+    }
+
+    @Test
+    public void executeMapsMissingRequestToPeerError() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminPeerLocalExecutor executor = new ProxyClientAdminPeerLocalExecutor("proxy-b", activity);
+
+        ProxyClientAdminPeerResponse<?> response = executor.execute(proxyContext(), null);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-b");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorMessage()).contains("request is required");
+    }
+
     private static ProxyClientAdminPeerLocalExecutor newExecutor(String localProxyId, ClientAdminService delegate) {
         return new ProxyClientAdminPeerLocalExecutor(
             localProxyId,

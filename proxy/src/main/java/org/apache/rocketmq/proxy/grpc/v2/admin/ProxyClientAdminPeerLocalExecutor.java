@@ -46,9 +46,9 @@ public class ProxyClientAdminPeerLocalExecutor {
     }
 
     public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, ProxyClientAdminPeerRequest request) {
-        ProxyContext requiredContext = this.requireContext(ctx);
-        ProxyClientAdminPeerRequest requiredRequest = this.requireRequest(request);
         try {
+            ProxyContext requiredContext = this.requireContext(ctx);
+            ProxyClientAdminPeerRequest requiredRequest = this.requireRequest(request);
             switch (requiredRequest.getOperation()) {
                 case LIST_CLIENTS:
                     return this.toPeerResponse(this.activity.listClients(requiredContext,
