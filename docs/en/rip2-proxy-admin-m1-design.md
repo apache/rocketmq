@@ -471,8 +471,9 @@ The recommended M2 direction is a dedicated proxy-admin fan-out layer:
   already uses, but with an explicit internal caller context.
 - Merge page results at the coordinator proxy by sorted `client_id`, carrying
   per-peer continuation state inside an opaque external page token.
-- Preserve `LOCAL_PROXY` as the default and reject cross-proxy scopes until the
-  fan-out layer and page-token ownership are implemented.
+- Preserve `LOCAL_PROXY` as the default. Cross-proxy scopes should stay gated
+  until the fan-out layer, peer discovery, timeout, and page-token ownership are
+  validated.
 
 Rejected M2 alternatives:
 
@@ -505,6 +506,12 @@ future contract. The codec carries the requested scope, filters, last emitted
 global `client_id`, per-peer page tokens, and creation time. It is not wired
 into the M1 `LOCAL_PROXY` endpoints and does not change the public local `v1:`
 token behavior.
+
+When the coordinator builds a next token, it preserves a peer's own next-page
+token after that peer's returned page has been fully emitted. If the global
+merge stops in the middle of a peer page, it stores the last emitted client id
+for that peer so the next coordinator request can replay the remaining peer
+page without skipping clients.
 
 Recommended partial-failure behavior:
 
@@ -854,9 +861,10 @@ and startup service-registration seams are already covered in this branch.
    and decode them back at the request DTO boundary.
 5. Keep public enum values prefixed with `PROXY_SCOPE_...`; generated adapters
    should pass the enum name to `ProxyClientAdminScopeMapper`.
-6. Preserve M1 `LOCAL_PROXY` behavior. `PROXY_SCOPE_ALL_PROXIES` and
-   `PROXY_SCOPE_PROXY_ID` should continue to return `BAD_REQUEST` until the
-   cross-proxy query protocol is implemented.
+6. Preserve M1 `LOCAL_PROXY` behavior. Generated public adapters should expose
+   cross-proxy scopes only when the internal coordinator scope router is enabled
+   and backed by a real peer transport; otherwise they should continue to reject
+   `PROXY_SCOPE_ALL_PROXIES` and `PROXY_SCOPE_PROXY_ID` with `BAD_REQUEST`.
 7. Register `GrpcProxyAdminApplication` beside `GrpcMessagingApplication` in
    `ProxyStartup.createGrpcBindableServices`, using the same
    `DefaultGrpcMessagingActivity` instance so lifecycle writes, read-model

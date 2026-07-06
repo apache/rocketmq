@@ -101,6 +101,28 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesPreservesExhaustedPeerNextPageToken() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-a", page(Arrays.asList(client("client-a"), client("client-b")), "peer-a-token-2"));
+        peerClient.addPage("proxy-b", page(Collections.emptyList(), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(2)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-a", "client-b");
+        ProxyClientAdminCoordinatorPageToken nextToken =
+            ProxyClientAdminCoordinatorPageTokenCodec.getInstance().decode(result.getBody().getNextPageToken());
+        assertThat(nextToken.getPeerPageTokens()).containsEntry("proxy-a", "peer-a-token-2");
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsMismatchedCoordinatorToken() {
         String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
             ProxyClientAdminCoordinatorPageToken.newBuilder()

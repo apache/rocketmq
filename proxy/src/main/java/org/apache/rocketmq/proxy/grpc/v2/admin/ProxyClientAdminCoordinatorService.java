@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import apache.rocketmq.v2.Code;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -167,17 +168,19 @@ public class ProxyClientAdminCoordinatorService {
         List<Candidate> selectedCandidates = candidates.subList(0, Math.min(pageSize, candidates.size()));
         List<ProxyClientInfo> selectedClients = new ArrayList<>(selectedCandidates.size());
         Map<String, String> emittedPeerTokens = new LinkedHashMap<>();
+        Map<String, Integer> emittedPeerCounts = new HashMap<>();
         String lastClientId = null;
         for (Candidate candidate : selectedCandidates) {
             selectedClients.add(candidate.clientInfo);
             emittedPeerTokens.put(candidate.proxyId, candidate.getClientId());
+            emittedPeerCounts.put(candidate.proxyId, emittedPeerCounts.getOrDefault(candidate.proxyId, 0) + 1);
             lastClientId = candidate.getClientId();
         }
 
         String nextPageToken = "";
         if (!selectedClients.isEmpty() && this.hasMore(candidates, selectedCandidates, peerPages)) {
             nextPageToken = this.buildNextPageToken(query, proxyIds, currentPeerTokens, emittedPeerTokens,
-                lastClientId);
+                emittedPeerCounts, peerPages, lastClientId);
         }
         return new ProxyClientAdminResult<>(
             ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),
@@ -304,12 +307,17 @@ public class ProxyClientAdminCoordinatorService {
     }
 
     private String buildNextPageToken(ProxyClientQuery query, List<String> proxyIds,
-        Map<String, String> currentPeerTokens, Map<String, String> emittedPeerTokens, String lastClientId) {
+        Map<String, String> currentPeerTokens, Map<String, String> emittedPeerTokens,
+        Map<String, Integer> emittedPeerCounts, Map<String, ProxyClientPage> peerPages, String lastClientId) {
         Map<String, String> nextPeerTokens = new LinkedHashMap<>();
         for (String proxyId : proxyIds) {
-            String peerToken = emittedPeerTokens.containsKey(proxyId)
-                ? emittedPeerTokens.get(proxyId)
-                : currentPeerTokens.get(proxyId);
+            String peerToken = this.nextPeerPageToken(
+                proxyId,
+                currentPeerTokens,
+                emittedPeerTokens,
+                emittedPeerCounts,
+                peerPages
+            );
             if (StringUtils.isNotBlank(peerToken)) {
                 nextPeerTokens.put(proxyId, peerToken);
             }
@@ -324,6 +332,26 @@ public class ProxyClientAdminCoordinatorService {
             .setCreateTimeMillis(System.currentTimeMillis())
             .setPeerPageTokens(nextPeerTokens)
             .build());
+    }
+
+    private String nextPeerPageToken(String proxyId, Map<String, String> currentPeerTokens,
+        Map<String, String> emittedPeerTokens, Map<String, Integer> emittedPeerCounts,
+        Map<String, ProxyClientPage> peerPages) {
+        ProxyClientPage peerPage = peerPages.get(proxyId);
+        int emittedCount = emittedPeerCounts.getOrDefault(proxyId, 0);
+        String peerNextPageToken = peerPage == null ? null : peerPage.getNextPageToken();
+        if (emittedCount == 0) {
+            if (peerPage != null && peerPage.getClients().isEmpty() && StringUtils.isNotBlank(peerNextPageToken)) {
+                return peerNextPageToken;
+            }
+            return currentPeerTokens.get(proxyId);
+        }
+        if (peerPage != null
+            && emittedCount >= peerPage.getClients().size()
+            && StringUtils.isNotBlank(peerNextPageToken)) {
+            return peerNextPageToken;
+        }
+        return emittedPeerTokens.get(proxyId);
     }
 
     private <T> ProxyClientAdminResult<T> okResult(T body) {
