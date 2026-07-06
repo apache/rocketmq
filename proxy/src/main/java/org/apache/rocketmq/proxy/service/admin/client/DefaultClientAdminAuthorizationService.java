@@ -55,6 +55,12 @@ public class DefaultClientAdminAuthorizationService implements ClientAdminAuthor
         if (subject == null) {
             throw new AuthorizationException("subject is required");
         }
+        if (authPolicy == null) {
+            throw new IllegalStateException("authPolicy is required");
+        }
+        if (authorizationEvaluator == null) {
+            throw new IllegalStateException("authorizationEvaluator is required");
+        }
         DefaultAuthorizationContext context = authPolicy.newContext(
             subject,
             operation,

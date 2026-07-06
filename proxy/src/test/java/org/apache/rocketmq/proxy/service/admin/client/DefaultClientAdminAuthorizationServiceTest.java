@@ -114,6 +114,48 @@ public class DefaultClientAdminAuthorizationServiceTest {
         verify(authorizationEvaluator, never()).evaluate(anyList());
     }
 
+    @Test
+    public void authorizeRejectsMissingPolicyWhenAuthorizationEnabled() {
+        AuthConfig authConfig = authConfig(true);
+        AuthorizationEvaluator authorizationEvaluator = mock(AuthorizationEvaluator.class);
+        ClientAdminAuthorizationService authorizationService = new DefaultClientAdminAuthorizationService(
+            authConfig,
+            null,
+            authorizationEvaluator
+        );
+
+        assertThatThrownBy(() -> authorizationService.authorize(
+            User.of("admin"),
+            ClientAdminOperation.LIST_CLIENTS,
+            "127.0.0.1"
+        ))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("authPolicy is required");
+
+        verify(authorizationEvaluator, never()).evaluate(anyList());
+    }
+
+    @Test
+    public void authorizeRejectsMissingEvaluatorWhenAuthorizationEnabled() {
+        AuthConfig authConfig = authConfig(true);
+        ClientAdminAuthPolicy authPolicy = mock(ClientAdminAuthPolicy.class);
+        ClientAdminAuthorizationService authorizationService = new DefaultClientAdminAuthorizationService(
+            authConfig,
+            authPolicy,
+            null
+        );
+
+        assertThatThrownBy(() -> authorizationService.authorize(
+            User.of("admin"),
+            ClientAdminOperation.LIST_CLIENTS,
+            "127.0.0.1"
+        ))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("authorizationEvaluator is required");
+
+        verify(authPolicy, never()).newContext(any(), any(), any(), any());
+    }
+
     private static AuthConfig authConfig(boolean authorizationEnabled) {
         AuthConfig authConfig = new AuthConfig();
         authConfig.setClusterName("DefaultCluster");
