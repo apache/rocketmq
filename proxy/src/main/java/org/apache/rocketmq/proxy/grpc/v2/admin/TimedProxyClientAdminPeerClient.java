@@ -58,7 +58,7 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
             throw peerDiscoveryError(e);
         }
         try {
-            return future.get(this.timeoutMillis, TimeUnit.MILLISECONDS);
+            return requireProxyIds(future.get(this.timeoutMillis, TimeUnit.MILLISECONDS));
         } catch (TimeoutException e) {
             future.cancel(true);
             throw new IllegalStateException(
@@ -75,6 +75,13 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
         } catch (ExecutionException e) {
             throw peerDiscoveryError(e.getCause() == null ? e : e.getCause());
         }
+    }
+
+    private static List<String> requireProxyIds(List<String> proxyIds) {
+        if (proxyIds == null) {
+            throw new IllegalStateException("peer proxyIds are required");
+        }
+        return proxyIds;
     }
 
     @Override

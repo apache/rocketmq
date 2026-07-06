@@ -92,6 +92,24 @@ public class TimedProxyClientAdminPeerClientTest {
     }
 
     @Test
+    public void listProxyIdsRejectsNullDelegateResult() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+                new NullListPeerClient(),
+                executor,
+                1000L
+            );
+
+            assertThatThrownBy(client::listProxyIds)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("peer proxyIds are required");
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     public void executeReturnsDelegateResponseBeforeTimeout() {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
@@ -305,6 +323,19 @@ public class TimedProxyClientAdminPeerClientTest {
         @Override
         public List<String> listProxyIds() {
             throw new IllegalStateException("boom");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            return ProxyClientAdminPeerResponse.success(proxyId, "ok");
+        }
+    }
+
+    private static class NullListPeerClient implements ProxyClientAdminPeerClient {
+        @Override
+        public List<String> listProxyIds() {
+            return null;
         }
 
         @Override
