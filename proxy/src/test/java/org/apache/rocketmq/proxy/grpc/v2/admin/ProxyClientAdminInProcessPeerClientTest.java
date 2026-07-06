@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ProxyClientAdminInProcessPeerClientTest {
@@ -76,6 +77,27 @@ public class ProxyClientAdminInProcessPeerClientTest {
         assertThat(response.getBody()).isNull();
         assertThat(response.getErrorCode()).isEqualTo("NOT_FOUND");
         assertThat(response.getErrorMessage()).contains("proxy-missing");
+    }
+
+    @Test
+    public void inProcessPeerClientMapsExecutorFailureToPeerError() {
+        ProxyClientAdminPeerLocalExecutor executor = mock(ProxyClientAdminPeerLocalExecutor.class);
+        when(executor.execute(any(), any())).thenThrow(new IllegalStateException("boom"));
+        Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
+        executors.put("proxy-a", executor);
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminInProcessPeerClient(executors);
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .build();
+
+        ProxyClientAdminPeerResponse<?> response = peerClient.execute(proxyContext(), " proxy-a ", request);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo("INTERNAL_SERVER_ERROR");
+        assertThat(response.getErrorMessage()).contains("boom");
+        verify(executor).execute(any(), any());
     }
 
     @Test

@@ -585,7 +585,10 @@ Recommended implementation order after public API ownership is confirmed:
    endpoint or activity semantics. The peer client is wrapped by
    `TimedProxyClientAdminPeerClient` so peer discovery and coordinator fan-out
    have a bounded wait; timed discovery must return a non-empty peer list, and
-   `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout.
+   `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout. The
+   in-process peer client converts local executor failures into peer error
+   responses so coordinator fan-out receives a bounded peer result instead of
+   an exception escaping the peer-client boundary.
 4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
    timeout, retry, and partial-failure semantics are validated.
    This branch keeps those coordinator scopes disabled by default through

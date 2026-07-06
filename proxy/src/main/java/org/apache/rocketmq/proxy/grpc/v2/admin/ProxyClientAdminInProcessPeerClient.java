@@ -70,7 +70,15 @@ public class ProxyClientAdminInProcessPeerClient implements ProxyClientAdminPeer
                 "Proxy not found: " + requiredProxyId
             );
         }
-        return executor.execute(ctx, request);
+        try {
+            return executor.execute(ctx, request);
+        } catch (Throwable t) {
+            return ProxyClientAdminPeerResponse.error(
+                requiredProxyId,
+                Code.INTERNAL_SERVER_ERROR.name(),
+                StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName())
+            );
+        }
     }
 
     private static String requireProxyId(String proxyId) {
