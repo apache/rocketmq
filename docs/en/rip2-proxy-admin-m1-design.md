@@ -976,6 +976,13 @@ GrpcServerBuilder.newBuilder(...)
   .addService(ProtoReflectionService...)
 ```
 
+This branch keeps that path proto-free through a default-empty
+`ProxyAdminServiceFactory` seam in `ProxyStartup.createGrpcBindableServices`.
+The factory receives the same `DefaultGrpcMessagingActivity` used by
+`GrpcMessagingApplication`; once generated admin stubs are available, it should
+return a `GrpcProxyAdminApplication` built from that shared activity so the
+public endpoint and messaging lifecycle observe the same read model.
+
 The endpoint adapter should stay thin:
 
 - read headers and build `ProxyContext` through
