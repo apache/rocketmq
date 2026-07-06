@@ -352,6 +352,25 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsPeerPageWithNullClients() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.success(
+            "proxy-a",
+            new InvalidProxyClientPage(null, "")
+        ));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("peer page clients are required");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void listClientsProxyIdDelegatesToTargetPeer() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
         peerClient.addPage("proxy-b", page(Collections.singletonList(client("client-c")), "client-c"));
@@ -643,6 +662,20 @@ public class ProxyClientAdminCoordinatorServiceTest {
         return ProxyContext.create()
             .setRemoteAddress("127.0.0.1:8080")
             .setLocalAddress("127.0.0.1:8081");
+    }
+
+    private static class InvalidProxyClientPage extends ProxyClientPage {
+        private final List<ProxyClientInfo> clients;
+
+        InvalidProxyClientPage(List<ProxyClientInfo> clients, String nextPageToken) {
+            super(Collections.emptyList(), nextPageToken);
+            this.clients = clients;
+        }
+
+        @Override
+        public List<ProxyClientInfo> getClients() {
+            return this.clients;
+        }
     }
 
     private static class RecordingPeerClient implements ProxyClientAdminPeerClient {

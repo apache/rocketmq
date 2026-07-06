@@ -441,7 +441,12 @@ public class ProxyClientAdminCoordinatorService {
         if (!(response.getBody() instanceof ProxyClientPage)) {
             return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page result is required");
         }
-        return this.okResult((ProxyClientPage) response.getBody());
+        ProxyClientPage peerPage = (ProxyClientPage) response.getBody();
+        ProxyClientAdminResult<ProxyClientPage> peerPageValidationResult = this.validatePeerPage(peerPage);
+        if (peerPageValidationResult != null) {
+            return peerPageValidationResult;
+        }
+        return this.okResult(peerPage);
     }
 
     private ProxyClientAdminResult<ProxyClientInfo> peerInfoResult(String expectedProxyId,
@@ -455,6 +460,19 @@ public class ProxyClientAdminCoordinatorService {
             return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer client result is required");
         }
         return this.okResult((ProxyClientInfo) response.getBody());
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> validatePeerPage(ProxyClientPage peerPage) {
+        List<ProxyClientInfo> clients = peerPage.getClients();
+        if (clients == null) {
+            return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page clients are required");
+        }
+        for (ProxyClientInfo clientInfo : clients) {
+            if (clientInfo == null) {
+                return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page client is required");
+            }
+        }
+        return null;
     }
 
     private <T> ProxyClientAdminResult<T> validatePeerResponse(String expectedProxyId,

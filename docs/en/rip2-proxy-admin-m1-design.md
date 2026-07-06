@@ -576,7 +576,9 @@ Recommended implementation order after public API ownership is confirmed:
    discovery set as bad requests, and validates each peer response `proxyId`
    before accepting its body so a misrouted or stale peer transport result is
    returned as an internal routing error instead of being merged into the admin
-   response.
+   response. Peer page bodies are also validated before merge so malformed peer
+   results become stable internal errors instead of leaking as merge-time
+   exceptions.
    It also includes a proto-free scope router that keeps `LOCAL_PROXY` on the
    existing admin activity and routes `ALL_PROXIES`/`PROXY_ID` requests to the
    coordinator, plus optional endpoint-handler wiring for that router, without
