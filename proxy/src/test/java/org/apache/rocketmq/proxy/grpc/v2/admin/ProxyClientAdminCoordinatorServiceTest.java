@@ -315,6 +315,22 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsPeerErrorWithOkCode() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.error("proxy-a", "OK", "unexpected ok"));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).isEqualTo("unexpected ok");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsBlankDiscoveredProxyId() {
         BlankDiscoveryPeerClient peerClient = new BlankDiscoveryPeerClient();
         ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);

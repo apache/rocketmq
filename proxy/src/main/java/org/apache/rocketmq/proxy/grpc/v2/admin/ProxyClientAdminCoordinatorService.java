@@ -568,7 +568,7 @@ public class ProxyClientAdminCoordinatorService {
         }
         try {
             Code result = Code.valueOf(normalizedCode);
-            if (result == Code.UNRECOGNIZED) {
+            if (result == Code.OK || result == Code.UNRECOGNIZED) {
                 return Code.INTERNAL_SERVER_ERROR;
             }
             return result;
