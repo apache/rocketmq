@@ -45,7 +45,7 @@ public class ProxyClientAdminPeerRequest {
         this.pageSize = builder.pageSize;
         this.pageToken = StringUtils.trimToNull(builder.pageToken);
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
-        this.proxyId = this.scope == ProxyClientScope.LOCAL_PROXY ? null : StringUtils.trimToNull(builder.proxyId);
+        this.proxyId = this.scope == ProxyClientScope.PROXY_ID ? StringUtils.trimToNull(builder.proxyId) : null;
         this.validateOperationFields();
     }
 

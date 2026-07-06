@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class ProxyClientAdminPeerDtoTest {
 
     @Test
-    public void peerListByGroupRequestBuildsLocalQueryWithRawPeerPageToken() {
+    public void peerListByGroupRequestBuildsLocalQueryWithRawPeerPageTokenAndDropsAllProxyId() {
         ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP)
             .setScope(ProxyClientScope.ALL_PROXIES)
@@ -46,7 +46,7 @@ public class ProxyClientAdminPeerDtoTest {
 
         assertThat(request.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP);
         assertThat(request.getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
-        assertThat(request.getProxyId()).isEqualTo("proxy-b");
+        assertThat(request.getProxyId()).isNull();
         assertThat(request.getGroup()).isEqualTo("group-a");
         assertThat(localQuery.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
         assertThat(localQuery.getProxyId()).isNull();
