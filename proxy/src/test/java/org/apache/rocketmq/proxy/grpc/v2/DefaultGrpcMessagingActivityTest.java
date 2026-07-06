@@ -23,9 +23,11 @@ import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.TelemetryCommand;
+import io.grpc.Channel;
 import io.grpc.stub.StreamObserver;
 import java.lang.reflect.Field;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -42,6 +44,8 @@ import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminListClientsReques
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerClient;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcService;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcTarget;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcTransport;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerLocalExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageClient;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageHandler;
@@ -74,6 +78,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -262,6 +267,33 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         assertThat(transport).isInstanceOf(ProxyClientAdminInProcessPeerMessageTransport.class);
         assertThat(handlers).containsOnlyKeys("proxy-a");
         assertThat(handlers.get("proxy-a")).isInstanceOf(ProxyClientAdminPeerMessageHandler.class);
+    }
+
+    @Test
+    public void initCreatesGrpcPeerTransportFromStaticTargetsWhenConfigured() throws Exception {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ConfigurationManager.getProxyConfig().setProxyClientAdminPeerGrpcTargets(
+            "proxy-b=127.0.0.2:8081, proxy-a=127.0.0.1:8080"
+        );
+
+        CapturingPeerGrpcChannelsDefaultGrpcMessagingActivity activity =
+            new CapturingPeerGrpcChannelsDefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        Object delegate = fieldValue(activity.proxyClientAdminPeerClient, TimedProxyClientAdminPeerClient.class,
+            "delegate");
+        Object transport = fieldValue(delegate, ProxyClientAdminPeerMessageClient.class, "transport");
+
+        assertThat(transport).isInstanceOf(ProxyClientAdminPeerGrpcTransport.class);
+        assertThat(activity.capturedTargets)
+            .extracting(ProxyClientAdminPeerGrpcTarget::getProxyId)
+            .containsExactly("proxy-a", "proxy-b");
+        assertThat(activity.capturedTargets)
+            .extracting(ProxyClientAdminPeerGrpcTarget::getHost)
+            .containsExactly("127.0.0.1", "127.0.0.2");
+        assertThat(activity.capturedTargets)
+            .extracting(ProxyClientAdminPeerGrpcTarget::getPort)
+            .containsExactly(8080, 8081);
     }
 
     @Test
@@ -540,6 +572,25 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
             ClientAdminService clientAdminService) {
             this.capturedClientAdminService = clientAdminService;
             return super.createProxyClientAdminPeerLocalExecutor(localProxyId, clientAdminService);
+        }
+    }
+
+    private static class CapturingPeerGrpcChannelsDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        private List<ProxyClientAdminPeerGrpcTarget> capturedTargets;
+
+        private CapturingPeerGrpcChannelsDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        @Override
+        protected Map<String, Channel> createProxyClientAdminPeerGrpcChannels(
+            List<ProxyClientAdminPeerGrpcTarget> targets) {
+            this.capturedTargets = targets;
+            Map<String, Channel> channels = new LinkedHashMap<>();
+            for (ProxyClientAdminPeerGrpcTarget target : targets) {
+                channels.put(target.getProxyId(), mock(Channel.class));
+            }
+            return channels;
         }
     }
 

@@ -200,9 +200,11 @@ small and tested boundary to call:
 - When cross-proxy query support is enabled, `DefaultGrpcMessagingActivity`
   creates the internal peer gRPC service beside the local coordinator peer
   client. The default coordinator still uses the local in-process message
-  transport until real peer discovery/channel management is configured, but the
-  server-side peer service and client-side gRPC transport boundary are now both
-  available for that replacement.
+  transport when `proxyClientAdminPeerGrpcTargets` is blank. If static peer
+  targets are configured, the coordinator uses `ProxyClientAdminPeerGrpcTransport`
+  backed by per-peer gRPC channels while preserving the same proto-free peer
+  message boundary. Dynamic discovery, secure channel options, and production
+  channel lifecycle tuning remain follow-up work.
 - `ProxyStartup.createGrpcBindableServices(...)` now has a tested package-private
   overload for appending additional `BindableService` instances after the
   messaging service while reusing the same `DefaultGrpcMessagingActivity`. It
@@ -670,11 +672,12 @@ Recommended implementation order after public API ownership is confirmed:
    `enableProxyClientAdminCrossProxyQuery`; while disabled, the internal scope
    router rejects coordinator scopes before any peer client or peer timeout
    configuration is touched. Enabling the flag lets the internal scope router
-   use the current single-node in-process message peer transport, register the
-   internal peer gRPC service, and now requires an explicit `proxyName` so
-   future multi-proxy discovery and page tokens do not inherit an ambiguous
-   default proxy id. Real multi-node discovery and channel construction are
-   still separate follow-up work.
+   use the current single-node in-process message peer transport when no static
+   targets are configured, or the internal gRPC peer transport when
+   `proxyClientAdminPeerGrpcTargets` is set. It also registers the internal peer
+   gRPC service and requires an explicit `proxyName` so future multi-proxy
+   discovery and page tokens do not inherit an ambiguous default proxy id. Real
+   multi-node discovery is still separate follow-up work.
 5. Wire the public `ProxyAdminService` adapter to the coordinator service while
    keeping M1 `LOCAL_PROXY` as the default.
 
@@ -1005,8 +1008,9 @@ and startup service-registration seams are already covered in this branch.
    should pass the enum name to `ProxyClientAdminScopeMapper`.
 6. Preserve M1 `LOCAL_PROXY` behavior. Generated public adapters should expose
    cross-proxy scopes only when the internal coordinator scope router is enabled
-   and backed by a real peer transport; otherwise they should continue to reject
-   `PROXY_SCOPE_ALL_PROXIES` and `PROXY_SCOPE_PROXY_ID` with `BAD_REQUEST`.
+   and backed by configured peer targets or later peer discovery; otherwise they
+   should continue to reject `PROXY_SCOPE_ALL_PROXIES` and
+   `PROXY_SCOPE_PROXY_ID` with `BAD_REQUEST`.
 7. Reject missing `proxy_id` at the adapter/request DTO boundary whenever the
    public request selects `PROXY_SCOPE_PROXY_ID`, before creating request context
    or invoking coordinator/peer code. Continue to ignore `proxy_id` for

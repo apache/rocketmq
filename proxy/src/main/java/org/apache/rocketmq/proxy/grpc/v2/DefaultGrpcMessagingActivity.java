@@ -41,8 +41,14 @@ import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.SyncLiteSubscriptionRequest;
 import apache.rocketmq.v2.SyncLiteSubscriptionResponse;
 import apache.rocketmq.v2.TelemetryCommand;
+import io.grpc.Channel;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -65,9 +71,13 @@ import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointHandler;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminInProcessPeerMessageTransport;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerClient;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcService;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcTarget;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcTargetParser;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcTransport;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerLocalExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageClient;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageHandler;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerMessageTransport;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminScopeRouter;
 import org.apache.rocketmq.proxy.grpc.v2.admin.TimedProxyClientAdminPeerClient;
 import org.apache.rocketmq.proxy.grpc.v2.client.ClientActivity;
@@ -238,22 +248,46 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
 
     protected ProxyClientAdminPeerClient createProxyClientAdminPeerClient(String localProxyId,
         ProxyClientAdminActivity proxyClientAdminActivity, ExecutorService executorService, long timeoutMillis) {
-        ProxyClientAdminPeerLocalExecutor localPeerExecutor = this.createProxyClientAdminPeerLocalExecutor(
-            localProxyId,
-            this.clientAdminService
-        );
-        ProxyClientAdminPeerMessageHandler localPeerMessageHandler =
-            new ProxyClientAdminPeerMessageHandler(localPeerExecutor);
+        ProxyClientAdminPeerMessageTransport transport =
+            this.createProxyClientAdminPeerMessageTransport(localProxyId, this.clientAdminService);
         return new TimedProxyClientAdminPeerClient(
-            new ProxyClientAdminPeerMessageClient(
-                new ProxyClientAdminInProcessPeerMessageTransport(Collections.singletonMap(
-                    localProxyId,
-                    localPeerMessageHandler
-                ))
-            ),
+            new ProxyClientAdminPeerMessageClient(transport),
             executorService,
             timeoutMillis
         );
+    }
+
+    protected ProxyClientAdminPeerMessageTransport createProxyClientAdminPeerMessageTransport(String localProxyId,
+        ClientAdminService clientAdminService) {
+        List<ProxyClientAdminPeerGrpcTarget> targets = ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(
+            ConfigurationManager.getProxyConfig().getProxyClientAdminPeerGrpcTargets()
+        );
+        if (!targets.isEmpty()) {
+            return new ProxyClientAdminPeerGrpcTransport(this.createProxyClientAdminPeerGrpcChannels(targets));
+        }
+        ProxyClientAdminPeerLocalExecutor localPeerExecutor = this.createProxyClientAdminPeerLocalExecutor(
+            localProxyId,
+            clientAdminService
+        );
+        ProxyClientAdminPeerMessageHandler localPeerMessageHandler =
+            new ProxyClientAdminPeerMessageHandler(localPeerExecutor);
+        return new ProxyClientAdminInProcessPeerMessageTransport(Collections.singletonMap(
+            localProxyId,
+            localPeerMessageHandler
+        ));
+    }
+
+    protected Map<String, Channel> createProxyClientAdminPeerGrpcChannels(
+        List<ProxyClientAdminPeerGrpcTarget> targets) {
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        for (ProxyClientAdminPeerGrpcTarget target : targets) {
+            ManagedChannel channel = ManagedChannelBuilder.forAddress(target.getHost(), target.getPort())
+                .usePlaintext()
+                .build();
+            channels.put(target.getProxyId(), channel);
+            this.appendShutdown(() -> channel.shutdown());
+        }
+        return channels;
     }
 
     protected ProxyClientAdminPeerLocalExecutor createProxyClientAdminPeerLocalExecutor(String localProxyId,
