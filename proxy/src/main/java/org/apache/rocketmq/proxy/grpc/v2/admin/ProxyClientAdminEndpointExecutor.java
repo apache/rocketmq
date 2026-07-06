@@ -26,6 +26,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public class ProxyClientAdminEndpointExecutor {
     private final ProxyClientAdminContextFactory contextFactory;
@@ -170,7 +171,9 @@ public class ProxyClientAdminEndpointExecutor {
             requiredResponseFactory = this.requireResponseFactory(responseFactory);
             Function<P, D> requiredRequestAdapter = this.requireRequestAdapter(requestAdapter);
             P requiredProtoRequest = this.requireProtoRequest(protoRequest);
-            D request = this.requireAdaptedRequest(requiredRequestAdapter.apply(requiredProtoRequest));
+            D request = this.requirePublicEndpointScope(
+                this.requireAdaptedRequest(requiredRequestAdapter.apply(requiredProtoRequest))
+            );
             ProxyContext ctx = this.requireProxyContext(
                 this.contextFactory.create(this.normalizeMetadata(headers), requiredProtoRequest)
             );
@@ -205,6 +208,26 @@ public class ProxyClientAdminEndpointExecutor {
             throw new IllegalArgumentException("requestAdapter result is required");
         }
         return request;
+    }
+
+    private <D> D requirePublicEndpointScope(D request) {
+        ProxyClientScope scope = this.scopeOf(request);
+        if (scope != null && scope != ProxyClientScope.LOCAL_PROXY) {
+            throw new IllegalArgumentException(
+                "public proxy admin endpoint only supports LOCAL_PROXY scope: " + scope
+            );
+        }
+        return request;
+    }
+
+    private ProxyClientScope scopeOf(Object request) {
+        if (request instanceof ProxyClientAdminListClientsRequest) {
+            return ((ProxyClientAdminListClientsRequest) request).getScope();
+        }
+        if (request instanceof ProxyClientAdminDescribeClientRequest) {
+            return ((ProxyClientAdminDescribeClientRequest) request).getScope();
+        }
+        return null;
     }
 
     private ProxyContext requireProxyContext(ProxyContext ctx) {

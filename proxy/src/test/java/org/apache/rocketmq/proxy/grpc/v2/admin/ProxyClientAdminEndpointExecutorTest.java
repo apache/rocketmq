@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -453,6 +454,123 @@ public class ProxyClientAdminEndpointExecutorTest {
             .contains("requestAdapter result is required");
         assertThat(responseCaptor.getValue().getBody()).isNull();
         verify(contextFactory, never()).create(any(), any());
+    }
+
+    @Test
+    public void listClientsRejectsAllProxiesScopeBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("LOCAL_PROXY");
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("ALL_PROXIES");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
+    public void describeClientRejectsProxyIdScopeBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminClientView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.describeClient(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminDescribeClientRequest.newBuilder()
+                .setClientId("client-a")
+                .setScope(ProxyClientScope.PROXY_ID)
+                .setProxyId("proxy-a")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("LOCAL_PROXY");
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("PROXY_ID");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).describeClient(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByGroupRejectsAllProxiesScopeBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClientsByGroup(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsByGroupRequest.newBuilder()
+                .setGroup("group-a")
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("LOCAL_PROXY");
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("ALL_PROXIES");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByGroup(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByTopicRejectsProxyIdScopeBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClientsByTopic(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsByTopicRequest.newBuilder()
+                .setTopic("topic-a")
+                .setScope(ProxyClientScope.PROXY_ID)
+                .setProxyId("proxy-a")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("LOCAL_PROXY");
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("PROXY_ID");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByTopic(any(), any(), any(), any());
     }
 
     @Test

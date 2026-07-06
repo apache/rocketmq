@@ -133,7 +133,10 @@ small and tested boundary to call:
   lands. It drops `proxy_id` for the default or explicit public `LOCAL_PROXY`
   scope and for `ALL_PROXIES`, preserving it only with the future `PROXY_ID`
   scope so broadcast-style queries cannot accidentally carry a target-proxy
-  filter into coordinator page tokens.
+  filter into coordinator page tokens. The future public endpoint shell still
+  rejects non-`LOCAL_PROXY` scopes before request context creation for M1; the
+  converted cross-proxy DTOs are reserved for the internal scope router and for a
+  later public rollout after the coordinator contract is accepted.
 - `ProxyClientAdminPageTokenCodec` is the adapter boundary for public pagination
   tokens. M1 encodes internal last-client-id tokens as versioned `v1:`
   base64url public tokens, accepts legacy bare client-id tokens only for early
@@ -155,11 +158,12 @@ small and tested boundary to call:
 - `ProxyClientAdminEndpointExecutor` is a proto-independent shell for generated
   unary admin methods. It adapts the proto request to the internal request DTO
   before creating the `ProxyContext`, so malformed public request fields such as
-  invalid page tokens fail at the adapter boundary without running the admin
-  request pipeline. Once the DTO is built, it creates the `ProxyContext`,
-  delegates to `ProxyClientAdminEndpointHandler`, and routes context or
-  request-adapter failures through the same status conversion path. It offers
-  explicit-header overloads for tests and adapter seams, plus no-header
+  invalid page tokens and M1-disabled public cross-proxy scopes fail at the
+  adapter boundary without running the admin request pipeline. Once the DTO is
+  built, it creates the `ProxyContext`, delegates to
+  `ProxyClientAdminEndpointHandler`, and routes context or request-adapter
+  failures through the same status conversion path. It offers explicit-header
+  overloads for tests and adapter seams, plus no-header
   overloads that read `GrpcConstants.METADATA` from
   `Context.current()` to match normal generated gRPC method bodies. It also
   requires the context factory to return a non-null `ProxyContext` before the
