@@ -297,6 +297,18 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void initRequiresStaticGrpcPeerTargetsToIncludeLocalProxyId() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ConfigurationManager.getProxyConfig().setProxyClientAdminPeerGrpcTargets("proxy-b=127.0.0.2:8081");
+
+        assertThatThrownBy(() -> new DefaultGrpcMessagingActivity(this.messagingProcessor))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyClientAdminPeerGrpcTargets")
+            .hasMessageContaining("proxy-a");
+    }
+
+    @Test
     public void initCreatesCrossProxyPeerClientThroughFactorySeam() {
         ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
         ConfigurationManager.getProxyConfig().setProxyName(" proxy-a ");

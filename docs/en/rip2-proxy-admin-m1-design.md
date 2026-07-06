@@ -208,7 +208,9 @@ small and tested boundary to call:
   and request address/client attributes, so the peer-side context factory sees
   the same admin caller context as the coordinator. Dynamic discovery, secure
   channel options, and production channel lifecycle tuning remain follow-up
-  work.
+  work. Static target lists must include the local `proxyName`; otherwise
+  startup rejects the configuration so `ALL_PROXIES` queries do not silently omit
+  clients connected to the coordinator proxy itself.
 - `ProxyStartup.createGrpcBindableServices(...)` now has a tested package-private
   overload for appending additional `BindableService` instances after the
   messaging service while reusing the same `DefaultGrpcMessagingActivity`. It
@@ -678,8 +680,9 @@ Recommended implementation order after public API ownership is confirmed:
    configuration is touched. Enabling the flag lets the internal scope router
    use the current single-node in-process message peer transport when no static
    targets are configured, or the internal gRPC peer transport when
-   `proxyClientAdminPeerGrpcTargets` is set. It also registers the internal peer
-   gRPC service and requires an explicit `proxyName` so future multi-proxy
+   `proxyClientAdminPeerGrpcTargets` is set. Static target mode requires the
+   target list to include the local `proxyName`. It also registers the internal
+   peer gRPC service and requires an explicit `proxyName` so future multi-proxy
    discovery and page tokens do not inherit an ambiguous default proxy id. Real
    multi-node discovery is still separate follow-up work.
 5. Wire the public `ProxyAdminService` adapter to the coordinator service while

@@ -263,6 +263,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             ConfigurationManager.getProxyConfig().getProxyClientAdminPeerGrpcTargets()
         );
         if (!targets.isEmpty()) {
+            this.requireLocalProxyGrpcTarget(localProxyId, targets);
             return new ProxyClientAdminPeerGrpcTransport(this.createProxyClientAdminPeerGrpcChannels(targets));
         }
         ProxyClientAdminPeerLocalExecutor localPeerExecutor = this.createProxyClientAdminPeerLocalExecutor(
@@ -288,6 +289,17 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             this.appendShutdown(() -> channel.shutdown());
         }
         return channels;
+    }
+
+    private void requireLocalProxyGrpcTarget(String localProxyId, List<ProxyClientAdminPeerGrpcTarget> targets) {
+        for (ProxyClientAdminPeerGrpcTarget target : targets) {
+            if (localProxyId.equals(target.getProxyId())) {
+                return;
+            }
+        }
+        throw new IllegalArgumentException(
+            "proxyClientAdminPeerGrpcTargets must include local proxyId: " + localProxyId
+        );
     }
 
     protected ProxyClientAdminPeerLocalExecutor createProxyClientAdminPeerLocalExecutor(String localProxyId,
