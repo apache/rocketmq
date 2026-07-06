@@ -16,14 +16,13 @@
 #
 load("//bazel:GenTestRules.bzl", "GenTestRules")
 
-load("@rules_proto//proto:defs.bzl", "proto_library")
-
+# proto_library and java_proto_library are native rules in Bazel 6.5.0;
+# no load() statements or external repositories needed.
 proto_library(
     name = "proxy_admin_proto",
     srcs = ["src/main/proto/proxy_admin.proto"],
 )
 
-# java_proto_library is a native rule in Bazel 6.x; no load statement needed.
 java_proto_library(
     name = "proxy_admin_java_proto",
     deps = [":proxy_admin_proto"],
