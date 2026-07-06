@@ -18,8 +18,12 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.Code;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 
 public class ProxyClientAdminPeerLocalExecutor {
     private final String localProxyId;
@@ -83,12 +87,47 @@ public class ProxyClientAdminPeerLocalExecutor {
                 return ProxyClientAdminPeerResponse.error(localProxyId, Code.INTERNAL_SERVER_ERROR.name(),
                     "peer result body is required");
             }
-            return ProxyClientAdminPeerResponse.success(localProxyId, result.getBody());
+            return ProxyClientAdminPeerResponse.success(localProxyId, this.stampLocalProxyId(result.getBody()));
         }
         return ProxyClientAdminPeerResponse.error(
             localProxyId,
             result.getStatus().getCode().name(),
             result.getStatus().getMessage()
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T stampLocalProxyId(T body) {
+        if (body instanceof ProxyClientPage) {
+            return (T) this.stampPage((ProxyClientPage) body);
+        }
+        if (body instanceof ProxyClientInfo) {
+            return (T) this.stampClient((ProxyClientInfo) body);
+        }
+        return body;
+    }
+
+    private ProxyClientPage stampPage(ProxyClientPage page) {
+        List<ProxyClientInfo> stampedClients = new ArrayList<>(page.getClients().size());
+        for (ProxyClientInfo clientInfo : page.getClients()) {
+            stampedClients.add(this.stampClient(clientInfo));
+        }
+        return new ProxyClientPage(stampedClients, page.getNextPageToken());
+    }
+
+    private ProxyClientInfo stampClient(ProxyClientInfo clientInfo) {
+        return new ProxyClientInfo(
+            clientInfo.getClientId(),
+            clientInfo.getClientType(),
+            clientInfo.getGroups(),
+            clientInfo.getTopics(),
+            clientInfo.getLanguage(),
+            clientInfo.getRemoteAddress(),
+            clientInfo.getLocalAddress(),
+            clientInfo.getClientVersion(),
+            localProxyId,
+            clientInfo.getConnectTimeMillis(),
+            clientInfo.getLastActiveTimeMillis()
         );
     }
 

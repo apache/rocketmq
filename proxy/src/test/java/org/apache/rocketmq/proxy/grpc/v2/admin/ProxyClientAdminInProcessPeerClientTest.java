@@ -58,7 +58,14 @@ public class ProxyClientAdminInProcessPeerClientTest {
         assertThat(peerClient.listProxyIds()).containsExactly("proxy-a", "proxy-b");
         assertThat(response.isSuccess()).isTrue();
         assertThat(response.getProxyId()).isEqualTo("proxy-b");
-        assertThat(response.getBody()).isSameAs(page);
+        ProxyClientPage responsePage = (ProxyClientPage) response.getBody();
+        assertThat(responsePage.getNextPageToken()).isEqualTo("client-a");
+        assertThat(responsePage.getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-a");
+        assertThat(responsePage.getClients())
+            .extracting(ProxyClientInfo::getProxyId)
+            .containsExactly("proxy-b");
     }
 
     @Test

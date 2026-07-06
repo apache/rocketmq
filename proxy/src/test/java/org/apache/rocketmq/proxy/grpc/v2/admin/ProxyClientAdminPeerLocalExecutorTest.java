@@ -63,13 +63,40 @@ public class ProxyClientAdminPeerLocalExecutorTest {
         verify(delegate).listClientsByGroup(eq("group-a"), queryCaptor.capture());
         assertThat(response.isSuccess()).isTrue();
         assertThat(response.getProxyId()).isEqualTo("proxy-b");
-        assertThat(response.getBody()).isSameAs(page);
+        ProxyClientPage responsePage = (ProxyClientPage) response.getBody();
+        assertThat(responsePage.getNextPageToken()).isEqualTo("client-a");
+        assertThat(responsePage.getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-a");
+        assertThat(responsePage.getClients())
+            .extracting(ProxyClientInfo::getProxyId)
+            .containsExactly("proxy-b");
         assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
         assertThat(queryCaptor.getValue().getProxyId()).isNull();
         assertThat(queryCaptor.getValue().getGroup()).isEqualTo("group-a");
         assertThat(queryCaptor.getValue().getClientType()).isEqualTo(ClientType.PUSH_CONSUMER);
         assertThat(queryCaptor.getValue().getPageSize()).isEqualTo(20);
         assertThat(queryCaptor.getValue().getPageToken()).isEqualTo("client-10");
+    }
+
+    @Test
+    public void executeListStampsLocalProxyIdOnPeerPageClients() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientAdminPeerLocalExecutor executor = newExecutor(" proxy-b ", delegate);
+        when(delegate.listClients(any(ProxyClientQuery.class))).thenReturn(
+            new ProxyClientPage(Collections.singletonList(client("client-a")), "")
+        );
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .build();
+
+        ProxyClientAdminPeerResponse<?> response = executor.execute(proxyContext(), request);
+
+        assertThat(response.isSuccess()).isTrue();
+        ProxyClientPage page = (ProxyClientPage) response.getBody();
+        assertThat(page.getClients())
+            .extracting(ProxyClientInfo::getProxyId)
+            .containsExactly("proxy-b");
     }
 
     @Test
@@ -92,6 +119,25 @@ public class ProxyClientAdminPeerLocalExecutorTest {
         assertThat(response.getBody()).isNull();
         assertThat(response.getErrorCode()).isEqualTo("NOT_FOUND");
         assertThat(response.getErrorMessage()).contains("missing-client");
+    }
+
+    @Test
+    public void executeDescribeStampsLocalProxyIdOnPeerClient() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientAdminPeerLocalExecutor executor = newExecutor(" proxy-b ", delegate);
+        when(delegate.describeClient("client-a")).thenReturn(client("client-a"));
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-b")
+            .setClientId(" client-a ")
+            .build();
+
+        ProxyClientAdminPeerResponse<?> response = executor.execute(proxyContext(), request);
+
+        assertThat(response.isSuccess()).isTrue();
+        ProxyClientInfo clientInfo = (ProxyClientInfo) response.getBody();
+        assertThat(clientInfo.getProxyId()).isEqualTo("proxy-b");
     }
 
     @Test

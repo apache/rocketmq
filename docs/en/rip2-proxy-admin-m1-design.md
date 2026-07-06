@@ -552,6 +552,7 @@ Recommended implementation order after public API ownership is confirmed:
    the public request DTO rule. It also includes a local peer executor seam
    that wraps existing admin activity results into proto-free peer responses,
    converts activity failures into peer internal-error responses,
+   stamps the local proxy id into successful peer page and client bodies,
    plus an in-process peer client adapter that rejects empty executor maps,
    normalizes and rejects duplicate peer ids, exposes stable peer ids, and
    delegates target requests to local executors.
