@@ -371,6 +371,22 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsPeerPageWithBlankClientId() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(new InvalidProxyClientInfo(" ")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("peer client id is required");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void listClientsProxyIdDelegatesToTargetPeer() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
         peerClient.addPage("proxy-b", page(Collections.singletonList(client("client-c")), "client-c"));
@@ -623,6 +639,27 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void describeClientProxyIdRejectsPeerClientWithBlankClientId() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.success(
+            "proxy-a",
+            new InvalidProxyClientInfo("")
+        ));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .setClientId("client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientInfo> result = service.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("peer client id is required");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void describeClientAllProxiesRejectsEmptyPeerDiscovery() {
         EmptyDiscoveryPeerClient peerClient = new EmptyDiscoveryPeerClient();
         ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
@@ -675,6 +712,31 @@ public class ProxyClientAdminCoordinatorServiceTest {
         @Override
         public List<ProxyClientInfo> getClients() {
             return this.clients;
+        }
+    }
+
+    private static class InvalidProxyClientInfo extends ProxyClientInfo {
+        private final String clientId;
+
+        InvalidProxyClientInfo(String clientId) {
+            super(
+                "valid-client",
+                ClientType.PRODUCER,
+                Collections.emptySet(),
+                Collections.emptySet(),
+                "JAVA",
+                "127.0.0.1:8080",
+                "127.0.0.1:8081",
+                "1.0.0",
+                1000L,
+                2000L
+            );
+            this.clientId = clientId;
+        }
+
+        @Override
+        public String getClientId() {
+            return this.clientId;
         }
     }
 

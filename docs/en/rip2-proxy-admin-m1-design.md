@@ -577,8 +577,9 @@ Recommended implementation order after public API ownership is confirmed:
    before accepting its body so a misrouted or stale peer transport result is
    returned as an internal routing error instead of being merged into the admin
    response. Peer page bodies are also validated before merge so malformed peer
-   results become stable internal errors instead of leaking as merge-time
-   exceptions.
+   results and peer client bodies without usable client ids become stable
+   internal errors instead of leaking as merge-time exceptions or successful
+   malformed describe results.
    It also includes a proto-free scope router that keeps `LOCAL_PROXY` on the
    existing admin activity and routes `ALL_PROXIES`/`PROXY_ID` requests to the
    coordinator, plus optional endpoint-handler wiring for that router, without
