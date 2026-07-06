@@ -502,7 +502,8 @@ that contains:
 
 - a version prefix.
 - the requested scope and filters.
-- the last emitted global `client_id`.
+- the last emitted global cursor: `client_id` plus `proxy_id`, matching the
+  coordinator merge order.
 - a per-peer cursor map keyed by stable proxy id.
 - a token creation timestamp for bounded retention and diagnostics.
 
@@ -511,21 +512,24 @@ The token must not expose raw implementation details to users. The current M1
 cross-proxy token format without wrapping it in a coordinator-owned token.
 This branch now includes an internal `cp1:` coordinator-token codec for that
 future contract. The codec carries the requested scope, filters, last emitted
-global `client_id`, per-peer page tokens, and creation time. The decoder rejects
-non-canonical `cp1:` inputs that are not the exact no-padding encoding emitted
-by the codec, so equivalent JSON payloads cannot create multiple public cursor
-representations. The response adapter preserves canonical `cp1:` tokens instead
-of wrapping them in the local read-model `v1:` token codec. It is not wired into
-the M1 `LOCAL_PROXY` endpoints and does not change the public local `v1:` token
-behavior. The local token codec rejects bare coordinator-owned `cpN:` tokens,
-`v1:` tokens whose decoded read-model cursor is coordinator-owned, and attempts
-to encode coordinator-prefixed read-model cursors. This keeps `LOCAL_PROXY` and
-`PROXY_ID` requests from accidentally treating a cross-proxy cursor as a
-read-model client-id cursor. Request DTOs preserve `cp1:` tokens only for
-`ALL_PROXIES`, where the coordinator owns decoding and validation. A non-empty
-coordinator token must include both the last emitted global `client_id` and at
-least one peer cursor; otherwise the coordinator rejects it as an incomplete
-progress token instead of restarting from the first peer page.
+global cursor (`client_id` plus `proxy_id`), per-peer page tokens, and creation
+time. The decoder rejects non-canonical `cp1:` inputs that are not the exact
+no-padding encoding emitted by the codec, so equivalent JSON payloads cannot
+create multiple public cursor representations. The response adapter preserves
+canonical `cp1:` tokens instead of wrapping them in the local read-model `v1:`
+token codec. It is not wired into the M1 `LOCAL_PROXY` endpoints and does not
+change the public local `v1:` token behavior. The local token codec rejects bare
+coordinator-owned `cpN:` tokens, `v1:` tokens whose decoded read-model cursor is
+coordinator-owned, and attempts to encode coordinator-prefixed read-model
+cursors. This keeps `LOCAL_PROXY` and `PROXY_ID` requests from accidentally
+treating a cross-proxy cursor as a read-model client-id cursor. Request DTOs
+preserve `cp1:` tokens only for `ALL_PROXIES`, where the coordinator owns
+decoding and validation. A non-empty coordinator token must include the last
+emitted global `client_id` and at least one peer cursor; otherwise the
+coordinator rejects it as an incomplete progress token instead of restarting
+from the first peer page. New coordinator tokens also include the last emitted
+`proxy_id`; older tokens without that field remain valid but retain the
+conservative behavior of rejecting equal-`client_id` untokened peer results.
 
 When the coordinator builds a next token, it preserves a peer's own next-page
 token after that peer's returned page has been fully emitted. If the global
@@ -537,9 +541,12 @@ request as an internal pagination error instead of returning an empty terminal
 page and silently dropping peer progress. When a coordinator token carries a
 per-peer cursor, the next peer page must only return client ids after that peer
 cursor; otherwise the coordinator treats the peer response as stale or
-misrouted and returns an internal routing error before merging the page. Every
-peer page must also be strictly ordered by increasing `client_id`; otherwise the
-coordinator rejects it before building global pagination state.
+misrouted and returns an internal routing error before merging the page. For
+untokened peers, progress is checked against the global `(client_id, proxy_id)`
+cursor so duplicate client ids on different proxies can be paginated in stable
+proxy-id order. Every peer page must also be strictly ordered by increasing
+`client_id`; otherwise the coordinator rejects it before building global
+pagination state.
 
 Recommended partial-failure behavior:
 
@@ -570,13 +577,14 @@ Recommended implementation order after public API ownership is confirmed:
 2. Add a peer transport adapter that can call another proxy process without
    depending on public client-facing protobuf classes.
 3. Add a coordinator service that fans out local-page requests, merges results in
-   `client_id` order, and emits coordinator-owned opaque page tokens.
+  `(client_id, proxy_id)` order, and emits coordinator-owned opaque page tokens.
    This branch includes the first proto-free coordinator slice for
    `ALL_PROXIES` list queries and `PROXY_ID` target queries: `ALL_PROXIES`
    list queries fan out `ListClients`, `ListClientsByGroup`, and
-   `ListClientsByTopic` to the peer-client boundary, merge peer pages by stable
-   `client_id` order, fail fast on peer errors, and store per-peer cursors in
-   the internal `cp1:` coordinator token. `DescribeClient` with `ALL_PROXIES`
+  `ListClientsByTopic` to the peer-client boundary, merge peer pages by stable
+  `(client_id, proxy_id)` order, fail fast on peer errors, and store per-peer
+  cursors in the internal `cp1:` coordinator token. `DescribeClient` with
+  `ALL_PROXIES`
    scans discovered peers in stable proxy-id order, ignores per-peer
    `NOT_FOUND` responses until a match is found, and returns `NOT_FOUND` only
    after all peers miss. `PROXY_ID` list queries and `DescribeClient` route
@@ -766,6 +774,8 @@ Internal adapter tests cover:
   `ProxyClientAdminActivity`.
 - coordinator pagination rejecting peer pages that go backward relative to the
   per-peer cursor stored in a coordinator-owned page token.
+- coordinator pagination preserving duplicate client ids across proxies by
+  using the last emitted `(client_id, proxy_id)` as the global cursor.
 - coordinator pagination rejecting peer pages that are not strictly ordered by
   `client_id`.
 - missing request DTO, missing identifiers, not found, unsupported scope,

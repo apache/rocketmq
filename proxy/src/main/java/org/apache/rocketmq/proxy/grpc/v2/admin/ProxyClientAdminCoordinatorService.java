@@ -165,11 +165,13 @@ public class ProxyClientAdminCoordinatorService {
         Map<String, String> emittedPeerTokens = new LinkedHashMap<>();
         Map<String, Integer> emittedPeerCounts = new HashMap<>();
         String lastClientId = null;
+        String lastProxyId = null;
         for (Candidate candidate : selectedCandidates) {
             selectedClients.add(candidate.clientInfo);
             emittedPeerTokens.put(candidate.proxyId, candidate.getClientId());
             emittedPeerCounts.put(candidate.proxyId, emittedPeerCounts.getOrDefault(candidate.proxyId, 0) + 1);
             lastClientId = candidate.getClientId();
+            lastProxyId = candidate.proxyId;
         }
 
         String nextPageToken = "";
@@ -179,7 +181,7 @@ public class ProxyClientAdminCoordinatorService {
         }
         if (!selectedClients.isEmpty() && this.hasMore(candidates, selectedCandidates, peerPages)) {
             nextPageToken = this.buildNextPageToken(query, proxyIds, currentPeerTokens, emittedPeerTokens,
-                emittedPeerCounts, peerPages, lastClientId);
+                emittedPeerCounts, peerPages, lastClientId, lastProxyId);
         }
         return new ProxyClientAdminResult<>(
             ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()),
@@ -389,7 +391,8 @@ public class ProxyClientAdminCoordinatorService {
 
     private String buildNextPageToken(ProxyClientQuery query, List<String> proxyIds,
         Map<String, String> currentPeerTokens, Map<String, String> emittedPeerTokens,
-        Map<String, Integer> emittedPeerCounts, Map<String, ProxyClientPage> peerPages, String lastClientId) {
+        Map<String, Integer> emittedPeerCounts, Map<String, ProxyClientPage> peerPages, String lastClientId,
+        String lastProxyId) {
         Map<String, String> nextPeerTokens = new LinkedHashMap<>();
         for (String proxyId : proxyIds) {
             String peerToken = this.nextPeerPageToken(
@@ -410,6 +413,7 @@ public class ProxyClientAdminCoordinatorService {
             .setClientType(query.getClientType())
             .setProxyId(query.getProxyId())
             .setLastClientId(lastClientId)
+            .setLastProxyId(lastProxyId)
             .setCreateTimeMillis(System.currentTimeMillis())
             .setPeerPageTokens(nextPeerTokens)
             .build());
@@ -525,22 +529,42 @@ public class ProxyClientAdminCoordinatorService {
         String peerPageToken, ProxyClientAdminCoordinatorPageToken pageToken) {
         String normalizedPeerPageToken = StringUtils.trimToNull(peerPageToken);
         String coordinatorLastClientId = pageToken == null ? null : StringUtils.trimToNull(pageToken.getLastClientId());
-        String lowerBoundClientId = normalizedPeerPageToken == null ? coordinatorLastClientId : normalizedPeerPageToken;
-        if (lowerBoundClientId == null) {
+        String coordinatorLastProxyId = pageToken == null ? null : StringUtils.trimToNull(pageToken.getLastProxyId());
+        if (normalizedPeerPageToken == null && coordinatorLastClientId == null) {
             return null;
         }
         for (ProxyClientInfo clientInfo : peerPage.getClients()) {
-            if (clientInfo.getClientId().compareTo(lowerBoundClientId) <= 0) {
+            if (this.isBeforeOrAtCoordinatorCursor(
+                proxyId,
+                clientInfo.getClientId(),
+                normalizedPeerPageToken,
+                coordinatorLastClientId,
+                coordinatorLastProxyId
+            )) {
                 return this.errorResult(
                     Code.INTERNAL_SERVER_ERROR,
                     "peer page client id is not after coordinator page token: proxyId=" + proxyId
                         + ", clientId=" + clientInfo.getClientId()
-                        + ", peerPageToken=" + lowerBoundClientId
+                        + ", peerPageToken="
+                        + (normalizedPeerPageToken == null ? coordinatorLastClientId : normalizedPeerPageToken)
+                        + ", lastProxyId=" + coordinatorLastProxyId
                         + ", lastClientId=" + coordinatorLastClientId
                 );
             }
         }
         return null;
+    }
+
+    private boolean isBeforeOrAtCoordinatorCursor(String proxyId, String clientId, String peerPageToken,
+        String coordinatorLastClientId, String coordinatorLastProxyId) {
+        if (peerPageToken != null) {
+            return clientId.compareTo(peerPageToken) <= 0;
+        }
+        int clientIdComparison = clientId.compareTo(coordinatorLastClientId);
+        if (clientIdComparison != 0) {
+            return clientIdComparison < 0;
+        }
+        return coordinatorLastProxyId == null || proxyId.compareTo(coordinatorLastProxyId) <= 0;
     }
 
     private ProxyClientAdminResult<ProxyClientPage> validatePeerPageProgress(String proxyId, ProxyClientPage peerPage,

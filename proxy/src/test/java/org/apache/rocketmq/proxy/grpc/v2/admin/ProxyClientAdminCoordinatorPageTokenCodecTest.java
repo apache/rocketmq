@@ -44,6 +44,7 @@ public class ProxyClientAdminCoordinatorPageTokenCodecTest {
             .setTopic(" topic-a ")
             .setClientType(ClientType.PUSH_CONSUMER)
             .setLastClientId(" client-20 ")
+            .setLastProxyId(" proxy-b ")
             .setCreateTimeMillis(1000L)
             .setPeerPageTokens(peerPageTokens)
             .build();
@@ -57,6 +58,7 @@ public class ProxyClientAdminCoordinatorPageTokenCodecTest {
         assertThat(decoded.getTopic()).isEqualTo("topic-a");
         assertThat(decoded.getClientType()).isEqualTo(ClientType.PUSH_CONSUMER);
         assertThat(decoded.getLastClientId()).isEqualTo("client-20");
+        assertThat(decoded.getLastProxyId()).isEqualTo("proxy-b");
         assertThat(decoded.getCreateTimeMillis()).isEqualTo(1000L);
         assertThat(decoded.getPeerPageTokens())
             .containsExactly(

@@ -50,6 +50,7 @@ public final class ProxyClientAdminCoordinatorPageTokenCodec {
         payload.setClientType(formatClientType(coordinatorPageToken.getClientType()));
         payload.setProxyId(coordinatorPageToken.getProxyId());
         payload.setLastClientId(coordinatorPageToken.getLastClientId());
+        payload.setLastProxyId(coordinatorPageToken.getLastProxyId());
         payload.setCreateTimeMillis(coordinatorPageToken.getCreateTimeMillis());
         payload.setPeerPageTokens(coordinatorPageToken.getPeerPageTokens());
         String json = JSON.toJSONString(payload);
@@ -89,6 +90,7 @@ public final class ProxyClientAdminCoordinatorPageTokenCodec {
                 .setClientType(parseClientType(payload.getClientType()))
                 .setProxyId(payload.getProxyId())
                 .setLastClientId(payload.getLastClientId())
+                .setLastProxyId(payload.getLastProxyId())
                 .setCreateTimeMillis(payload.getCreateTimeMillis())
                 .setPeerPageTokens(payload.getPeerPageTokens())
                 .build();
@@ -134,6 +136,7 @@ public final class ProxyClientAdminCoordinatorPageTokenCodec {
         private String clientType;
         private String proxyId;
         private String lastClientId;
+        private String lastProxyId;
         private long createTimeMillis;
         private Map<String, String> peerPageTokens;
 
@@ -183,6 +186,14 @@ public final class ProxyClientAdminCoordinatorPageTokenCodec {
 
         public void setLastClientId(String lastClientId) {
             this.lastClientId = lastClientId;
+        }
+
+        public String getLastProxyId() {
+            return lastProxyId;
+        }
+
+        public void setLastProxyId(String lastProxyId) {
+            this.lastProxyId = lastProxyId;
         }
 
         public long getCreateTimeMillis() {

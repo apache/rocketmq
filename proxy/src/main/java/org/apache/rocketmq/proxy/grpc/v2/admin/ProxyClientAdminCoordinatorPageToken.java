@@ -32,6 +32,7 @@ public class ProxyClientAdminCoordinatorPageToken {
     private final ClientType clientType;
     private final String proxyId;
     private final String lastClientId;
+    private final String lastProxyId;
     private final long createTimeMillis;
     private final Map<String, String> peerPageTokens;
 
@@ -45,6 +46,7 @@ public class ProxyClientAdminCoordinatorPageToken {
         this.clientType = normalizeClientType(builder.clientType);
         this.proxyId = StringUtils.trimToNull(builder.proxyId);
         this.lastClientId = StringUtils.trimToNull(builder.lastClientId);
+        this.lastProxyId = StringUtils.trimToNull(builder.lastProxyId);
         this.createTimeMillis = builder.createTimeMillis;
         this.peerPageTokens = normalizePeerPageTokens(builder.peerPageTokens);
     }
@@ -75,6 +77,10 @@ public class ProxyClientAdminCoordinatorPageToken {
 
     public String getLastClientId() {
         return lastClientId;
+    }
+
+    public String getLastProxyId() {
+        return lastProxyId;
     }
 
     public long getCreateTimeMillis() {
@@ -121,6 +127,7 @@ public class ProxyClientAdminCoordinatorPageToken {
         private ClientType clientType;
         private String proxyId;
         private String lastClientId;
+        private String lastProxyId;
         private long createTimeMillis;
         private Map<String, String> peerPageTokens = Collections.emptyMap();
 
@@ -151,6 +158,11 @@ public class ProxyClientAdminCoordinatorPageToken {
 
         public Builder setLastClientId(String lastClientId) {
             this.lastClientId = lastClientId;
+            return this;
+        }
+
+        public Builder setLastProxyId(String lastProxyId) {
+            this.lastProxyId = lastProxyId;
             return this;
         }
 

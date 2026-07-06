@@ -69,6 +69,41 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesPaginatesDuplicateClientIdsAcrossPeersByProxyId() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a", "proxy-a")), ""));
+        peerClient.addPage("proxy-b", page(Collections.singletonList(client("client-a", "proxy-b")), ""));
+        peerClient.addPage("proxy-a", page(Collections.emptyList(), ""));
+        peerClient.addPage("proxy-b", page(Collections.singletonList(client("client-a", "proxy-b")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery firstPageQuery = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(1)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> firstPage = service.listClients(proxyContext(), firstPageQuery);
+
+        assertThat(firstPage.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(firstPage.getBody().getClients())
+            .extracting(ProxyClientInfo::getProxyId)
+            .containsExactly("proxy-a");
+
+        ProxyClientAdminResult<ProxyClientPage> secondPage = service.listClients(
+            proxyContext(),
+            firstPageQuery.toBuilder()
+                .setPageToken(firstPage.getBody().getNextPageToken())
+                .build()
+        );
+
+        assertThat(secondPage.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(secondPage.getBody().getClients())
+            .extracting(ProxyClientInfo::getProxyId)
+            .containsExactly("proxy-b");
+        assertThat(secondPage.getBody().getNextPageToken()).isEmpty();
+        assertThat(peerClient.requests("proxy-b").get(1).getPageToken()).isNull();
+    }
+
+    @Test
     public void listClientsAllProxiesContinuesFromCoordinatorToken() {
         Map<String, String> peerTokens = new LinkedHashMap<>();
         peerTokens.put("proxy-a", "client-c");
