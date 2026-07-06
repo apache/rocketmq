@@ -66,7 +66,7 @@ message ListClientsRequest {
   ProxyScope scope = 4;
 
   // Reserved for future PROXY_SCOPE_PROXY_ID scope. Ignored for
-  // PROXY_SCOPE_LOCAL_PROXY.
+  // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
   string proxy_id = 5;
 }
 
@@ -81,7 +81,7 @@ message DescribeClientRequest {
   ProxyScope scope = 2;
 
   // Reserved for future PROXY_SCOPE_PROXY_ID scope. Ignored for
-  // PROXY_SCOPE_LOCAL_PROXY.
+  // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
   string proxy_id = 3;
 }
 
@@ -101,7 +101,7 @@ message ListClientsByGroupRequest {
   ProxyScope scope = 5;
 
   // Reserved for future PROXY_SCOPE_PROXY_ID scope. Ignored for
-  // PROXY_SCOPE_LOCAL_PROXY.
+  // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
   string proxy_id = 6;
 }
 
@@ -122,7 +122,7 @@ message ListClientsByTopicRequest {
   ProxyScope scope = 5;
 
   // Reserved for future PROXY_SCOPE_PROXY_ID scope. Ignored for
-  // PROXY_SCOPE_LOCAL_PROXY.
+  // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
   string proxy_id = 6;
 }
 
