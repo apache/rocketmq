@@ -202,7 +202,10 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     }
 
     protected String localProxyId() {
-        return StringUtils.defaultIfBlank(ConfigurationManager.getProxyConfig().getProxyName(), "DEFAULT_PROXY");
+        return StringUtils.defaultIfBlank(
+            StringUtils.trimToNull(ConfigurationManager.getProxyConfig().getProxyName()),
+            "DEFAULT_PROXY"
+        );
     }
 
     protected ClientAdminService getClientAdminService() {

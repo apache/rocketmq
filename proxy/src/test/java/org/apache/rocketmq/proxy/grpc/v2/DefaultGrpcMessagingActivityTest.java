@@ -187,6 +187,19 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void initTrimsConfiguredProxyNameForLocalProxyId() {
+        String originalProxyName = ConfigurationManager.getProxyConfig().getProxyName();
+        try {
+            ConfigurationManager.getProxyConfig().setProxyName(" proxy-a ");
+            DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+
+            assertThat(activity.localProxyId()).isEqualTo("proxy-a");
+        } finally {
+            ConfigurationManager.getProxyConfig().setProxyName(originalProxyName);
+        }
+    }
+
+    @Test
     public void initCreatesProxyClientAdminScopeRouterWithSharedLocalPeerWhenCrossProxyScopeEnabled() {
         ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
         ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
