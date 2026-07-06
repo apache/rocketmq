@@ -600,8 +600,10 @@ Recommended implementation order after public API ownership is confirmed:
    semantics. The peer client is wrapped by
    `TimedProxyClientAdminPeerClient` so peer discovery and coordinator fan-out
    have a bounded wait; timed discovery must return a non-empty peer list, and
-   `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout. Enabling the
-   coordinator scope flag also requires a nonblank `proxyName`, which becomes the
+   `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout. Timed-out or
+   interrupted waits cancel the submitted peer work before returning an error or
+   restoring the interrupt flag. Enabling the coordinator scope flag also
+   requires a nonblank `proxyName`, which becomes the
    stable local peer id; the default local-only `DEFAULT_PROXY` fallback is not
    used for coordinator scopes. The in-process peer client converts local executor
    failures into peer error responses so coordinator fan-out receives a bounded

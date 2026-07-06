@@ -20,10 +20,15 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import apache.rocketmq.v2.Code;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.junit.Test;
 
@@ -88,6 +93,26 @@ public class TimedProxyClientAdminPeerClientTest {
                 .hasMessageContaining("boom");
         } finally {
             executor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void listProxyIdsCancelsDelegateWhenInterruptedWhileWaiting() {
+        InterruptingExecutorService executor = new InterruptingExecutorService();
+        TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+            new StaticPeerClient(ProxyClientAdminPeerResponse.success("proxy-a", "ok")),
+            executor,
+            1000L
+        );
+        try {
+            assertThatThrownBy(client::listProxyIds)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Interrupted")
+                .hasMessageContaining("peer discovery");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            assertThat(executor.wasCancelledWithInterrupt()).isTrue();
+        } finally {
+            Thread.interrupted();
         }
     }
 
@@ -181,6 +206,31 @@ public class TimedProxyClientAdminPeerClientTest {
     }
 
     @Test
+    public void executeCancelsDelegateWhenInterruptedWhileWaiting() {
+        InterruptingExecutorService executor = new InterruptingExecutorService();
+        TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+            new StaticPeerClient(ProxyClientAdminPeerResponse.success("proxy-a", "ok")),
+            executor,
+            1000L
+        );
+        try {
+            ProxyClientAdminPeerResponse<?> response = client.execute(
+                ProxyContext.create(),
+                "proxy-a",
+                request()
+            );
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("Interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            assertThat(executor.wasCancelledWithInterrupt()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void executeReturnsInternalServerErrorWhenDelegateThrows() {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
@@ -260,6 +310,84 @@ public class TimedProxyClientAdminPeerClientTest {
         return ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
             .build();
+    }
+
+    private static class InterruptingExecutorService extends AbstractExecutorService {
+        private InterruptingFuture<?> future;
+
+        @Override
+        public <T> Future<T> submit(Callable<T> task) {
+            InterruptingFuture<T> interruptingFuture = new InterruptingFuture<>();
+            this.future = interruptingFuture;
+            return interruptingFuture;
+        }
+
+        boolean wasCancelledWithInterrupt() {
+            return this.future != null && this.future.wasCancelledWithInterrupt();
+        }
+
+        @Override
+        public void shutdown() {
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return false;
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return false;
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) {
+            return true;
+        }
+
+        @Override
+        public void execute(Runnable command) {
+        }
+    }
+
+    private static class InterruptingFuture<T> implements Future<T> {
+        private boolean cancelledWithInterrupt;
+
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            this.cancelledWithInterrupt = mayInterruptIfRunning;
+            return true;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return cancelledWithInterrupt;
+        }
+
+        @Override
+        public boolean isDone() {
+            return false;
+        }
+
+        @Override
+        public T get() throws InterruptedException, ExecutionException {
+            throw new InterruptedException("interrupted");
+        }
+
+        @Override
+        public T get(long timeout, TimeUnit unit)
+            throws InterruptedException, ExecutionException, TimeoutException {
+            throw new InterruptedException("interrupted");
+        }
+
+        boolean wasCancelledWithInterrupt() {
+            return cancelledWithInterrupt;
+        }
     }
 
     private static class StaticPeerClient implements ProxyClientAdminPeerClient {

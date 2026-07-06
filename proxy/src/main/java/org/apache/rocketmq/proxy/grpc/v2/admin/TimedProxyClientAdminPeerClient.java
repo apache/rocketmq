@@ -67,6 +67,7 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
                 e
             );
         } catch (InterruptedException e) {
+            future.cancel(true);
             Thread.currentThread().interrupt();
             throw new IllegalStateException(
                 "Interrupted while waiting for proxy client admin peer discovery",
@@ -110,6 +111,7 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
                     + " after " + this.timeoutMillis + " ms"
             );
         } catch (InterruptedException e) {
+            future.cancel(true);
             Thread.currentThread().interrupt();
             return ProxyClientAdminPeerResponse.error(
                 requiredProxyId,
