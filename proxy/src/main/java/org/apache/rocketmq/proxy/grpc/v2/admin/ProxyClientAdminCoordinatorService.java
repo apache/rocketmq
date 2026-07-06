@@ -124,6 +124,7 @@ public class ProxyClientAdminCoordinatorService {
         Map<String, String> currentPeerTokens = pageToken == null
             ? Collections.emptyMap()
             : pageToken.getPeerPageTokens();
+        this.validatePageTokenPeerIds(currentPeerTokens, proxyIds);
         Map<String, ProxyClientPage> peerPages = new LinkedHashMap<>();
         List<Candidate> candidates = new ArrayList<>();
         for (String proxyId : proxyIds) {
@@ -297,6 +298,20 @@ public class ProxyClientAdminCoordinatorService {
             || pageToken.getClientType() != query.getClientType()
             || !Objects.equals(pageToken.getProxyId(), query.getProxyId())) {
             throw new IllegalArgumentException("Coordinator page token filters mismatch");
+        }
+    }
+
+    private void validatePageTokenPeerIds(Map<String, String> peerPageTokens, List<String> proxyIds) {
+        if (peerPageTokens.isEmpty()) {
+            return;
+        }
+        Set<String> discoveredProxyIds = new HashSet<>(proxyIds);
+        for (String peerProxyId : peerPageTokens.keySet()) {
+            if (!discoveredProxyIds.contains(peerProxyId)) {
+                throw new IllegalArgumentException(
+                    "Coordinator page token contains unknown peer proxyId: " + peerProxyId
+                );
+            }
         }
     }
 
