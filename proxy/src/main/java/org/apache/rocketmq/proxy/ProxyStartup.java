@@ -239,14 +239,14 @@ public class ProxyStartup {
 
     static List<BindableService> createGrpcBindableServices(MessagingProcessor messagingProcessor,
         DefaultGrpcMessagingActivity grpcMessagingActivity, ProxyAdminServiceFactory proxyAdminServiceFactory) {
-        List<BindableService> services = Lists.newArrayList(
-            createServiceProcessor(messagingProcessor, grpcMessagingActivity)
-        );
-        appendBindableServices(
-            services,
+        List<BindableService> proxyAdminServices = requireBindableServices(
             requireProxyAdminServiceFactory(proxyAdminServiceFactory).create(grpcMessagingActivity),
             "proxy admin service is required"
         );
+        List<BindableService> services = Lists.newArrayList(
+            createServiceProcessor(messagingProcessor, grpcMessagingActivity)
+        );
+        services.addAll(proxyAdminServices);
         BindableService peerGrpcService = grpcMessagingActivity.getProxyClientAdminPeerGrpcService();
         if (peerGrpcService != null) {
             services.add(peerGrpcService);
@@ -284,6 +284,11 @@ public class ProxyStartup {
 
     private static void appendBindableServices(List<BindableService> services,
         List<BindableService> appendServices, String nullServiceMessage) {
+        services.addAll(requireBindableServices(appendServices, nullServiceMessage));
+    }
+
+    private static List<BindableService> requireBindableServices(List<BindableService> appendServices,
+        String nullServiceMessage) {
         if (appendServices == null) {
             throw new IllegalArgumentException(nullServiceMessage);
         }
@@ -291,8 +296,8 @@ public class ProxyStartup {
             if (appendService == null) {
                 throw new IllegalArgumentException(nullServiceMessage);
             }
-            services.add(appendService);
         }
+        return appendServices;
     }
 
     static GrpcMessagingApplication createServiceProcessor(MessagingProcessor messagingProcessor,

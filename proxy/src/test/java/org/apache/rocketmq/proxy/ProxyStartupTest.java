@@ -408,6 +408,54 @@ public class ProxyStartupTest {
     }
 
     @Test
+    public void testCreateGrpcBindableServicesRejectsNullAdminServiceFactoryBeforeMessagingServiceRegistration()
+        throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        int lifecycleCountBefore = proxyLifecycleComponentCount();
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> ProxyStartup.createGrpcBindableServices(
+                messagingProcessor,
+                sharedActivity,
+                (ProxyStartup.ProxyAdminServiceFactory) null
+            )
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("proxy admin service factory is required"));
+        assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesRejectsNullAdminServiceBeforeMessagingServiceRegistration()
+        throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        int lifecycleCountBefore = proxyLifecycleComponentCount();
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> ProxyStartup.createGrpcBindableServices(
+                messagingProcessor,
+                sharedActivity,
+                activity -> Collections.singletonList(null)
+            )
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("proxy admin service is required"));
+        assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
+    }
+
+    @Test
     public void testCreateGrpcBindableServicesAppendsAdminServiceBeforePeerGrpcService() throws Exception {
         CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
             "-pm", "cluster"
@@ -453,5 +501,16 @@ public class ProxyStartupTest {
         Assert.assertTrue(services.get(0) instanceof GrpcMessagingApplication);
         assertSame(peerGrpcService, services.get(1));
         assertSame(additionalService, services.get(2));
+    }
+
+    private static int proxyLifecycleComponentCount() throws Exception {
+        Field proxyStartAndShutdownField = ProxyStartup.class.getDeclaredField("PROXY_START_AND_SHUTDOWN");
+        proxyStartAndShutdownField.setAccessible(true);
+        Object proxyStartAndShutdown = proxyStartAndShutdownField.get(null);
+        Field startAndShutdownListField =
+            proxyStartAndShutdown.getClass().getSuperclass().getDeclaredField("startAndShutdownList");
+        startAndShutdownListField.setAccessible(true);
+        List<?> startAndShutdownList = (List<?>) startAndShutdownListField.get(proxyStartAndShutdown);
+        return startAndShutdownList.size();
     }
 }
