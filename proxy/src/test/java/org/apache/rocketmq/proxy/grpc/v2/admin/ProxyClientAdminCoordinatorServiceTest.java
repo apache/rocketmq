@@ -583,6 +583,29 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsProxyIdRejectsPeerPageThatGoesBackwardsFromPageToken() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-b")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .setPageToken("client-c")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage())
+            .contains("peer page client id is not after page token")
+            .contains("proxy-a")
+            .contains("client-b")
+            .contains("client-c");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.requests("proxy-a").get(0).getPageToken()).isEqualTo("client-c");
+    }
+
+    @Test
     public void listClientsByGroupAllProxiesFansOutGroupRequestAndMergesResults() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
         peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));

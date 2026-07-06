@@ -196,7 +196,16 @@ public class ProxyClientAdminCoordinatorService {
             proxyId,
             this.toPeerRequest(query, peerPageToken, operation)
         );
-        return this.peerPageResult(proxyId, response);
+        ProxyClientAdminResult<ProxyClientPage> peerPageResult = this.peerPageResult(proxyId, response);
+        if (peerPageResult.getStatus().getCode() != Code.OK) {
+            return peerPageResult;
+        }
+        ProxyClientAdminResult<ProxyClientPage> peerPageProgressValidationResult =
+            this.validatePeerPageProgress(proxyId, peerPageResult.getBody(), peerPageToken);
+        if (peerPageProgressValidationResult != null) {
+            return peerPageProgressValidationResult;
+        }
+        return peerPageResult;
     }
 
     private ProxyClientAdminResult<ProxyClientInfo> describeClientAllProxies0(ProxyContext ctx,
@@ -528,6 +537,25 @@ public class ProxyClientAdminCoordinatorService {
                         + ", clientId=" + clientInfo.getClientId()
                         + ", peerPageToken=" + lowerBoundClientId
                         + ", lastClientId=" + coordinatorLastClientId
+                );
+            }
+        }
+        return null;
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> validatePeerPageProgress(String proxyId, ProxyClientPage peerPage,
+        String peerPageToken) {
+        String normalizedPeerPageToken = StringUtils.trimToNull(peerPageToken);
+        if (normalizedPeerPageToken == null) {
+            return null;
+        }
+        for (ProxyClientInfo clientInfo : peerPage.getClients()) {
+            if (clientInfo.getClientId().compareTo(normalizedPeerPageToken) <= 0) {
+                return this.errorResult(
+                    Code.INTERNAL_SERVER_ERROR,
+                    "peer page client id is not after page token: proxyId=" + proxyId
+                        + ", clientId=" + clientInfo.getClientId()
+                        + ", pageToken=" + normalizedPeerPageToken
                 );
             }
         }
