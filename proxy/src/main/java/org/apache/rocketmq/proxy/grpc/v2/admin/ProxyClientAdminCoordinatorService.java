@@ -312,6 +312,9 @@ public class ProxyClientAdminCoordinatorService {
             }
             normalizedProxyIds.add(normalizedProxyId);
         }
+        if (normalizedProxyIds.isEmpty()) {
+            throw new IllegalStateException("at least one peer proxyId is required");
+        }
         Collections.sort(normalizedProxyIds);
         return normalizedProxyIds;
     }

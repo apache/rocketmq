@@ -281,6 +281,22 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsEmptyPeerDiscovery() {
+        EmptyDiscoveryPeerClient peerClient = new EmptyDiscoveryPeerClient();
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("at least one peer proxyId");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.executeCount).isEqualTo(0);
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsDuplicateDiscoveredProxyId() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", " proxy-a ");
         peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));
@@ -569,6 +585,23 @@ public class ProxyClientAdminCoordinatorServiceTest {
         assertThat(result.getBody()).isNull();
     }
 
+    @Test
+    public void describeClientAllProxiesRejectsEmptyPeerDiscovery() {
+        EmptyDiscoveryPeerClient peerClient = new EmptyDiscoveryPeerClient();
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setClientId("client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientInfo> result = service.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("at least one peer proxyId");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.executeCount).isEqualTo(0);
+    }
+
     private static ProxyClientPage page(List<ProxyClientInfo> clients, String nextPageToken) {
         return new ProxyClientPage(clients, nextPageToken);
     }
@@ -648,6 +681,22 @@ public class ProxyClientAdminCoordinatorServiceTest {
         @Override
         public List<String> listProxyIds() {
             return Collections.singletonList(" ");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            this.executeCount++;
+            return ProxyClientAdminPeerResponse.success("proxy-a", page(Collections.emptyList(), ""));
+        }
+    }
+
+    private static class EmptyDiscoveryPeerClient implements ProxyClientAdminPeerClient {
+        private int executeCount;
+
+        @Override
+        public List<String> listProxyIds() {
+            return Collections.emptyList();
         }
 
         @Override
