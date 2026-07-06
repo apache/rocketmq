@@ -165,6 +165,40 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsBlankDiscoveredProxyId() {
+        BlankDiscoveryPeerClient peerClient = new BlankDiscoveryPeerClient();
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("peer proxyId is required");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.executeCount).isEqualTo(0);
+    }
+
+    @Test
+    public void listClientsAllProxiesRejectsDuplicateDiscoveredProxyId() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", " proxy-a ");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));
+        peerClient.addPage(" proxy-a ", page(Collections.singletonList(client("client-b")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("Duplicate peer proxyId").contains("proxy-a");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.requests("proxy-a")).isEmpty();
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsMismatchedPeerResponseProxyId() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
         peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.success(
@@ -472,6 +506,22 @@ public class ProxyClientAdminCoordinatorServiceTest {
                 return ProxyClientAdminPeerResponse.error(proxyId, "INTERNAL_SERVER_ERROR", "missing response");
             }
             return peerResponses.remove(0);
+        }
+    }
+
+    private static class BlankDiscoveryPeerClient implements ProxyClientAdminPeerClient {
+        private int executeCount;
+
+        @Override
+        public List<String> listProxyIds() {
+            return Collections.singletonList(" ");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            this.executeCount++;
+            return ProxyClientAdminPeerResponse.success("proxy-a", page(Collections.emptyList(), ""));
         }
     }
 }

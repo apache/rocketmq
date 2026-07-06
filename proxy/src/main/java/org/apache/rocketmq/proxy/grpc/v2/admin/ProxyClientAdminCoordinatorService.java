@@ -21,10 +21,12 @@ import apache.rocketmq.v2.Code;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -118,7 +120,7 @@ public class ProxyClientAdminCoordinatorService {
         ProxyClientAdminCoordinatorPageToken pageToken = this.pageTokenCodec.decode(query.getPageToken());
         this.validatePageToken(query, pageToken);
 
-        List<String> proxyIds = this.peerClient.listProxyIds();
+        List<String> proxyIds = this.requirePeerProxyIds(this.peerClient.listProxyIds());
         Map<String, String> currentPeerTokens = pageToken == null
             ? Collections.emptyMap()
             : pageToken.getPeerPageTokens();
@@ -257,6 +259,25 @@ public class ProxyClientAdminCoordinatorService {
             throw new IllegalArgumentException("proxyId is required");
         }
         return normalizedProxyId;
+    }
+
+    private List<String> requirePeerProxyIds(List<String> proxyIds) {
+        if (proxyIds == null) {
+            throw new IllegalStateException("peer proxyIds are required");
+        }
+        List<String> normalizedProxyIds = new ArrayList<>(proxyIds.size());
+        Set<String> seenProxyIds = new HashSet<>();
+        for (String proxyId : proxyIds) {
+            String normalizedProxyId = StringUtils.trimToNull(proxyId);
+            if (normalizedProxyId == null) {
+                throw new IllegalStateException("peer proxyId is required");
+            }
+            if (!seenProxyIds.add(normalizedProxyId)) {
+                throw new IllegalStateException("Duplicate peer proxyId: " + normalizedProxyId);
+            }
+            normalizedProxyIds.add(normalizedProxyId);
+        }
+        return normalizedProxyIds;
     }
 
     private IllegalArgumentException unsupportedCoordinatorScope(ProxyClientScope scope) {
