@@ -256,6 +256,37 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void listClientsAllProxiesDisabledRecordsBadRequestMetricsWithoutAuthorization() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            false,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getBody()).isNull();
+        verifyNoInteractions(authorizationService);
+        verify(coordinator, never()).listClients(any(), any(ProxyClientQuery.class));
+        verify(metricsRecorder).record(
+            eq(ClientAdminOperation.LIST_CLIENTS),
+            eq(ClientAdminMetricsResult.BAD_REQUEST),
+            anyLong()
+        );
+        verifyNoMoreInteractions(metricsRecorder);
+    }
+
+    @Test
     public void listClientsDropsCoordinatorErrorBody() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);

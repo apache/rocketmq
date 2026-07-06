@@ -99,17 +99,17 @@ public class ProxyClientAdminScopeRouter {
                 case LOCAL_PROXY:
                     return this.localActivity.listClients(ctx, requiredRequest);
                 case ALL_PROXIES:
-                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS,
                         ctx,
+                        () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClients(ctx, requiredRequest.toQuery())
                     );
                 case PROXY_ID:
-                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS,
                         ctx,
+                        () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClients(ctx, requiredRequest.toQuery())
                     );
                 default:
@@ -131,17 +131,17 @@ public class ProxyClientAdminScopeRouter {
                 case LOCAL_PROXY:
                     return this.localActivity.describeClient(ctx, requiredRequest);
                 case ALL_PROXIES:
-                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.DESCRIBE_CLIENT,
                         ctx,
+                        () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().describeClient(ctx, requiredRequest)
                     );
                 case PROXY_ID:
-                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.DESCRIBE_CLIENT,
                         ctx,
+                        () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().describeClient(ctx, requiredRequest)
                     );
                 default:
@@ -163,10 +163,10 @@ public class ProxyClientAdminScopeRouter {
                 case LOCAL_PROXY:
                     return this.localActivity.listClientsByGroup(ctx, requiredRequest);
                 case ALL_PROXIES:
-                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS_BY_GROUP,
                         ctx,
+                        () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClientsByGroup(
                             ctx,
                             requiredRequest.getGroup(),
@@ -174,10 +174,10 @@ public class ProxyClientAdminScopeRouter {
                         )
                     );
                 case PROXY_ID:
-                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS_BY_GROUP,
                         ctx,
+                        () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClientsByGroup(
                             ctx,
                             requiredRequest.getGroup(),
@@ -206,10 +206,10 @@ public class ProxyClientAdminScopeRouter {
                 case LOCAL_PROXY:
                     return this.localActivity.listClientsByTopic(ctx, requiredRequest);
                 case ALL_PROXIES:
-                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
                         ctx,
+                        () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClientsByTopic(
                             ctx,
                             requiredRequest.getTopic(),
@@ -217,10 +217,10 @@ public class ProxyClientAdminScopeRouter {
                         )
                     );
                 case PROXY_ID:
-                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
                         ctx,
+                        () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClientsByTopic(
                             ctx,
                             requiredRequest.getTopic(),
@@ -258,9 +258,16 @@ public class ProxyClientAdminScopeRouter {
 
     private <T> ProxyClientAdminResult<T> executeCoordinatorOperation(ClientAdminOperation operation, ProxyContext ctx,
         Supplier<ProxyClientAdminResult<T>> supplier) {
+        return this.executeCoordinatorOperation(operation, ctx, () -> {
+        }, supplier);
+    }
+
+    private <T> ProxyClientAdminResult<T> executeCoordinatorOperation(ClientAdminOperation operation, ProxyContext ctx,
+        Runnable preAuthorizationValidation, Supplier<ProxyClientAdminResult<T>> supplier) {
         long startNanos = this.nanoTimeSupplier.getAsLong();
         ClientAdminMetricsResult metricsResult = ClientAdminMetricsResult.INTERNAL_ERROR;
         try {
+            preAuthorizationValidation.run();
             this.authorizeCoordinatorOperation(ctx, operation);
             ProxyClientAdminResult<T> result = this.execute(supplier);
             metricsResult = this.toMetricsResult(result.getStatus().getCode());
