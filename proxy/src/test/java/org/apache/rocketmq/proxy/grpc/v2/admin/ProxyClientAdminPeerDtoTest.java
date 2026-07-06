@@ -56,6 +56,23 @@ public class ProxyClientAdminPeerDtoTest {
     }
 
     @Test
+    public void peerRequestBoundsPageSizeAtBoundary() {
+        ProxyClientAdminPeerRequest defaultPageSizeRequest = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setPageSize(0)
+            .build();
+        ProxyClientAdminPeerRequest cappedPageSizeRequest = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE + 1)
+            .build();
+
+        assertThat(defaultPageSizeRequest.getPageSize()).isEqualTo(ProxyClientQuery.DEFAULT_PAGE_SIZE);
+        assertThat(defaultPageSizeRequest.toLocalQuery().getPageSize()).isEqualTo(ProxyClientQuery.DEFAULT_PAGE_SIZE);
+        assertThat(cappedPageSizeRequest.getPageSize()).isEqualTo(ProxyClientQuery.MAX_PAGE_SIZE);
+        assertThat(cappedPageSizeRequest.toLocalQuery().getPageSize()).isEqualTo(ProxyClientQuery.MAX_PAGE_SIZE);
+    }
+
+    @Test
     public void peerRequestValidatesOperationSpecificFields() {
         assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder().build())
             .isInstanceOf(IllegalArgumentException.class)
