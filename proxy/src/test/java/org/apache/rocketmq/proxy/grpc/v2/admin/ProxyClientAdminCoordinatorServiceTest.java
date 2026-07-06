@@ -101,6 +101,26 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesFansOutInStableProxyIdOrder() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-b", "proxy-a");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));
+        peerClient.addPage("proxy-b", page(Collections.singletonList(client("client-b")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(2)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(peerClient.executedProxyIds()).containsExactly("proxy-a", "proxy-b");
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-a", "client-b");
+    }
+
+    @Test
     public void listClientsAllProxiesPreservesExhaustedPeerNextPageToken() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
         peerClient.addPage("proxy-a", page(Arrays.asList(client("client-a"), client("client-b")), "peer-a-token-2"));
@@ -471,6 +491,7 @@ public class ProxyClientAdminCoordinatorServiceTest {
         private final List<String> proxyIds;
         private final Map<String, List<ProxyClientAdminPeerResponse<?>>> responses = new LinkedHashMap<>();
         private final Map<String, List<ProxyClientAdminPeerRequest>> requests = new LinkedHashMap<>();
+        private final List<String> executedProxyIds = new ArrayList<>();
 
         RecordingPeerClient(String... proxyIds) {
             this.proxyIds = Arrays.asList(proxyIds);
@@ -492,6 +513,10 @@ public class ProxyClientAdminCoordinatorServiceTest {
             return this.requests.get(proxyId);
         }
 
+        List<String> executedProxyIds() {
+            return this.executedProxyIds;
+        }
+
         @Override
         public List<String> listProxyIds() {
             return this.proxyIds;
@@ -500,6 +525,7 @@ public class ProxyClientAdminCoordinatorServiceTest {
         @Override
         public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
             ProxyClientAdminPeerRequest request) {
+            this.executedProxyIds.add(proxyId);
             this.requests.get(proxyId).add(request);
             List<ProxyClientAdminPeerResponse<?>> peerResponses = this.responses.get(proxyId);
             if (peerResponses.isEmpty()) {

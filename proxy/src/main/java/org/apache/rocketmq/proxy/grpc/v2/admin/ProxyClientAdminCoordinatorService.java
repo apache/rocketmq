@@ -277,6 +277,7 @@ public class ProxyClientAdminCoordinatorService {
             }
             normalizedProxyIds.add(normalizedProxyId);
         }
+        Collections.sort(normalizedProxyIds);
         return normalizedProxyIds;
     }
 
