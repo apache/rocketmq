@@ -530,8 +530,9 @@ Recommended implementation order after public API ownership is confirmed:
    keeps peer execution local by converting peer requests into `LOCAL_PROXY`
    read-model queries. It also includes a local peer executor seam that wraps
    existing admin activity results into proto-free peer responses, plus an
-   in-process peer client adapter that exposes stable peer ids and delegates
-   target requests to local executors.
+   in-process peer client adapter that normalizes and rejects duplicate peer
+   ids, exposes stable peer ids, and delegates target requests to local
+   executors.
 2. Add a peer transport adapter that can call another proxy process without
    depending on public client-facing protobuf classes.
 3. Add a coordinator service that fans out local-page requests, merges results in

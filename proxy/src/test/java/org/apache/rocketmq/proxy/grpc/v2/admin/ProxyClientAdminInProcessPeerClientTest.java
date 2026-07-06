@@ -29,6 +29,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -75,6 +76,18 @@ public class ProxyClientAdminInProcessPeerClientTest {
         assertThat(response.getBody()).isNull();
         assertThat(response.getErrorCode()).isEqualTo("NOT_FOUND");
         assertThat(response.getErrorMessage()).contains("proxy-missing");
+    }
+
+    @Test
+    public void inProcessPeerClientRejectsDuplicateNormalizedProxyIds() {
+        Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
+        executors.put("proxy-a", newExecutor("proxy-a", mock(ClientAdminService.class)));
+        executors.put(" proxy-a ", newExecutor("proxy-a", mock(ClientAdminService.class)));
+
+        assertThatThrownBy(() -> new ProxyClientAdminInProcessPeerClient(executors))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Duplicate proxyId")
+            .hasMessageContaining("proxy-a");
     }
 
     private static ProxyClientAdminPeerLocalExecutor newExecutor(String localProxyId, ClientAdminService delegate) {

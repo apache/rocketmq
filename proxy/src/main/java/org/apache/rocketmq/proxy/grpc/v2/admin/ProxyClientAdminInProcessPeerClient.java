@@ -38,6 +38,9 @@ public class ProxyClientAdminInProcessPeerClient implements ProxyClientAdminPeer
         TreeMap<String, ProxyClientAdminPeerLocalExecutor> sortedExecutors = new TreeMap<>();
         for (Map.Entry<String, ProxyClientAdminPeerLocalExecutor> entry : executors.entrySet()) {
             String proxyId = requireProxyId(entry.getKey());
+            if (sortedExecutors.containsKey(proxyId)) {
+                throw new IllegalArgumentException("Duplicate proxyId: " + proxyId);
+            }
             if (entry.getValue() == null) {
                 throw new IllegalArgumentException("executor is required");
             }
