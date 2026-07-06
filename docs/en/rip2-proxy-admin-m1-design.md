@@ -543,7 +543,10 @@ Recommended implementation order after public API ownership is confirmed:
    `client_id` order, fail fast on peer errors, and store per-peer cursors in
    the internal `cp1:` coordinator token. `PROXY_ID` list queries and
    `DescribeClient` route directly to the requested proxy id, reuse the same
-   peer error mapping, and preserve the target peer's page token.
+   peer error mapping, and preserve the target peer's page token. The
+   coordinator validates each peer response `proxyId` before accepting its body
+   so a misrouted or stale peer transport result is returned as an internal
+   routing error instead of being merged into the admin response.
    It also includes a proto-free scope router that keeps `LOCAL_PROXY` on the
    existing admin activity and routes `ALL_PROXIES`/`PROXY_ID` requests to the
    coordinator, plus optional endpoint-handler wiring for that router, without

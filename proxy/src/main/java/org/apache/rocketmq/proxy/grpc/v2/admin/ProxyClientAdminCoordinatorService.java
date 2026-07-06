@@ -89,16 +89,7 @@ public class ProxyClientAdminCoordinatorService {
                 requiredRequest.getProxyId(),
                 this.toPeerDescribeRequest(requiredRequest.getClientId())
             );
-            if (response == null) {
-                return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer response is required");
-            }
-            if (!response.isSuccess()) {
-                return this.peerErrorResult(response);
-            }
-            if (!(response.getBody() instanceof ProxyClientInfo)) {
-                return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer client result is required");
-            }
-            return this.okResult((ProxyClientInfo) response.getBody());
+            return this.peerInfoResult(requiredRequest.getProxyId(), response);
         });
     }
 
@@ -139,13 +130,7 @@ public class ProxyClientAdminCoordinatorService {
                 proxyId,
                 this.toPeerRequest(query, currentPeerTokens.get(proxyId), operation)
             );
-            if (response == null) {
-                return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer response is required");
-            }
-            if (!response.isSuccess()) {
-                return this.peerErrorResult(response);
-            }
-            ProxyClientAdminResult<ProxyClientPage> peerPageResult = this.peerPageResult(response);
+            ProxyClientAdminResult<ProxyClientPage> peerPageResult = this.peerPageResult(proxyId, response);
             if (peerPageResult.getStatus().getCode() != Code.OK) {
                 return peerPageResult;
             }
@@ -196,7 +181,7 @@ public class ProxyClientAdminCoordinatorService {
             proxyId,
             this.toPeerRequest(query, query.getPageToken(), operation)
         );
-        return this.peerPageResult(response);
+        return this.peerPageResult(proxyId, response);
     }
 
     private ProxyClientQuery requireCoordinatorListQuery(ProxyClientQuery query) {
@@ -365,17 +350,46 @@ public class ProxyClientAdminCoordinatorService {
         return this.errorResult(this.parseCode(response.getErrorCode()), response.getErrorMessage());
     }
 
-    private ProxyClientAdminResult<ProxyClientPage> peerPageResult(ProxyClientAdminPeerResponse<?> response) {
-        if (response == null) {
-            return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer response is required");
-        }
-        if (!response.isSuccess()) {
-            return this.peerErrorResult(response);
+    private ProxyClientAdminResult<ProxyClientPage> peerPageResult(String expectedProxyId,
+        ProxyClientAdminPeerResponse<?> response) {
+        ProxyClientAdminResult<ProxyClientPage> validationResult =
+            this.validatePeerResponse(expectedProxyId, response);
+        if (validationResult != null) {
+            return validationResult;
         }
         if (!(response.getBody() instanceof ProxyClientPage)) {
             return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer page result is required");
         }
         return this.okResult((ProxyClientPage) response.getBody());
+    }
+
+    private ProxyClientAdminResult<ProxyClientInfo> peerInfoResult(String expectedProxyId,
+        ProxyClientAdminPeerResponse<?> response) {
+        ProxyClientAdminResult<ProxyClientInfo> validationResult =
+            this.validatePeerResponse(expectedProxyId, response);
+        if (validationResult != null) {
+            return validationResult;
+        }
+        if (!(response.getBody() instanceof ProxyClientInfo)) {
+            return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer client result is required");
+        }
+        return this.okResult((ProxyClientInfo) response.getBody());
+    }
+
+    private <T> ProxyClientAdminResult<T> validatePeerResponse(String expectedProxyId,
+        ProxyClientAdminPeerResponse<?> response) {
+        if (response == null) {
+            return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer response is required");
+        }
+        if (!Objects.equals(expectedProxyId, response.getProxyId())) {
+            return this.errorResult(Code.INTERNAL_SERVER_ERROR,
+                "peer response proxyId mismatch: expected " + expectedProxyId
+                    + ", actual " + response.getProxyId());
+        }
+        if (!response.isSuccess()) {
+            return this.peerErrorResult(response);
+        }
+        return null;
     }
 
     private <T> ProxyClientAdminResult<T> errorResult(Code code, String message) {
