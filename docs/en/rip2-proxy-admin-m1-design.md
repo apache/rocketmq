@@ -195,15 +195,17 @@ Public scope names pass through the scope mapper so future generated protobuf
 adapters can translate prefixed enum names such as
 `PROXY_SCOPE_LOCAL_PROXY`, `PROXY_SCOPE_ALL_PROXIES`, and
 `PROXY_SCOPE_PROXY_ID` without importing the generated admin service in this
-branch. The default internal scope is `LOCAL_PROXY`; unsupported future scopes
-and their proxy id are intentionally carried through the DTO and query objects
-so they can be validated by the activity before authorization. The service layer
-revalidates the same scope to keep direct internal calls consistent. This
-preserves `BAD_REQUEST` semantics for unsupported scopes while keeping the
-adapter contract ready for future `PROXY_ID` support. The protobuf default
-`CLIENT_TYPE_UNSPECIFIED` is normalized to no client type filter, while
-`UNRECOGNIZED` client type values are rejected
-as `BAD_REQUEST`.
+branch. The default internal scope is `LOCAL_PROXY`; request DTOs preserve
+`proxy_id` only for the explicit `PROXY_ID` scope and drop it for `LOCAL_PROXY`
+and `ALL_PROXIES`, so broadcast-style queries cannot accidentally carry a
+single-proxy filter into coordinator-owned tokens. Unsupported future scopes
+are still carried through the DTO and query objects so they can be validated by
+the activity before authorization. The service layer revalidates the same scope
+to keep direct internal calls consistent. This preserves `BAD_REQUEST`
+semantics for unsupported scopes while keeping the adapter contract ready for
+future `PROXY_ID` support. The protobuf default `CLIENT_TYPE_UNSPECIFIED` is
+normalized to no client type filter, while `UNRECOGNIZED` client type values
+are rejected as `BAD_REQUEST`.
 
 The future generated endpoint should only translate protobuf messages to these
 DTOs, call `ProxyClientAdminActivity`, and translate the result view back to a
@@ -530,10 +532,12 @@ Recommended implementation order after public API ownership is confirmed:
    activity DTOs, including scope, filters, page size, and page token.
    This branch includes the initial proto-free peer request/response DTOs and
    keeps peer execution local by converting peer requests into `LOCAL_PROXY`
-   read-model queries. It also includes a local peer executor seam that wraps
-   existing admin activity results into proto-free peer responses, plus an
-   in-process peer client adapter that normalizes and rejects duplicate peer
-   ids, exposes stable peer ids, and delegates target requests to local
+   read-model queries. Peer requests preserve a `proxyId` only for explicit
+   `PROXY_ID` scope and drop it for `LOCAL_PROXY` and `ALL_PROXIES`, matching
+   the public request DTO rule. It also includes a local peer executor seam
+   that wraps existing admin activity results into proto-free peer responses,
+   plus an in-process peer client adapter that normalizes and rejects duplicate
+   peer ids, exposes stable peer ids, and delegates target requests to local
    executors.
 2. Add a peer transport adapter that can call another proxy process without
    depending on public client-facing protobuf classes.
