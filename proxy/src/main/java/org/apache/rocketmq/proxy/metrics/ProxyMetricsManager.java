@@ -220,7 +220,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         ProxyClientReadServiceStats stats;
         try {
             stats = proxyClientReadServiceStatsSupplier.get();
-        } catch (RuntimeException e) {
+        } catch (Throwable e) {
             log.warn("snapshot proxy client read model stats failed", e);
             return EMPTY_PROXY_CLIENT_STATS_SUPPLIER.get();
         }

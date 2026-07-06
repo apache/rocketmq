@@ -173,6 +173,28 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
     }
 
     @Test
+    public void proxyClientStatsSupplierErrorFallsBackToEmptyStats() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTotalCallback =
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+
+        ProxyMetricsManager.initMetrics(meter, Attributes::builder, () -> {
+            throw new LinkageError("stats linkage unavailable");
+        });
+
+        ObservableLongMeasurement clientTotalMeasurement = mock(ObservableLongMeasurement.class);
+        clientTotalCallback.getValue().accept(clientTotalMeasurement);
+
+        verify(clientTotalMeasurement).record(eq(0L), any(Attributes.class));
+    }
+
+    @Test
     public void initMetricsRecordsProxyClientAdminRequestMetrics() {
         Meter meter = mock(Meter.class);
         mockLongGauge(meter, GAUGE_PROXY_UP);
