@@ -40,27 +40,36 @@ public class ProxyClientAdminPeerLocalExecutor {
     public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, ProxyClientAdminPeerRequest request) {
         ProxyContext requiredContext = this.requireContext(ctx);
         ProxyClientAdminPeerRequest requiredRequest = this.requireRequest(request);
-        switch (requiredRequest.getOperation()) {
-            case LIST_CLIENTS:
-                return this.toPeerResponse(this.activity.listClients(requiredContext, requiredRequest.toLocalQuery()));
-            case DESCRIBE_CLIENT:
-                return this.toPeerResponse(
-                    this.activity.describeClient(requiredContext, requiredRequest.toLocalDescribeClientRequest())
-                );
-            case LIST_CLIENTS_BY_GROUP:
-                return this.toPeerResponse(this.activity.listClientsByGroup(
-                    requiredContext,
-                    requiredRequest.getGroup(),
-                    requiredRequest.toLocalQuery()
-                ));
-            case LIST_CLIENTS_BY_TOPIC:
-                return this.toPeerResponse(this.activity.listClientsByTopic(
-                    requiredContext,
-                    requiredRequest.getTopic(),
-                    requiredRequest.toLocalQuery()
-                ));
-            default:
-                throw new IllegalStateException("Unsupported peer operation: " + requiredRequest.getOperation());
+        try {
+            switch (requiredRequest.getOperation()) {
+                case LIST_CLIENTS:
+                    return this.toPeerResponse(this.activity.listClients(requiredContext,
+                        requiredRequest.toLocalQuery()));
+                case DESCRIBE_CLIENT:
+                    return this.toPeerResponse(
+                        this.activity.describeClient(requiredContext, requiredRequest.toLocalDescribeClientRequest())
+                    );
+                case LIST_CLIENTS_BY_GROUP:
+                    return this.toPeerResponse(this.activity.listClientsByGroup(
+                        requiredContext,
+                        requiredRequest.getGroup(),
+                        requiredRequest.toLocalQuery()
+                    ));
+                case LIST_CLIENTS_BY_TOPIC:
+                    return this.toPeerResponse(this.activity.listClientsByTopic(
+                        requiredContext,
+                        requiredRequest.getTopic(),
+                        requiredRequest.toLocalQuery()
+                    ));
+                default:
+                    throw new IllegalStateException("Unsupported peer operation: " + requiredRequest.getOperation());
+            }
+        } catch (Throwable t) {
+            return ProxyClientAdminPeerResponse.error(
+                localProxyId,
+                Code.INTERNAL_SERVER_ERROR.name(),
+                StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName())
+            );
         }
     }
 

@@ -117,6 +117,25 @@ public class ProxyClientAdminPeerLocalExecutorTest {
         assertThat(response.getErrorMessage()).contains("peer result body is required");
     }
 
+    @Test
+    public void executeMapsActivityFailureToPeerError() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminPeerLocalExecutor executor = new ProxyClientAdminPeerLocalExecutor("proxy-b", activity);
+        when(activity.listClients(any(), any(ProxyClientQuery.class)))
+            .thenThrow(new IllegalStateException("boom"));
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .build();
+
+        ProxyClientAdminPeerResponse<?> response = executor.execute(proxyContext(), request);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-b");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorMessage()).contains("boom");
+    }
+
     private static ProxyClientAdminPeerLocalExecutor newExecutor(String localProxyId, ClientAdminService delegate) {
         return new ProxyClientAdminPeerLocalExecutor(
             localProxyId,
