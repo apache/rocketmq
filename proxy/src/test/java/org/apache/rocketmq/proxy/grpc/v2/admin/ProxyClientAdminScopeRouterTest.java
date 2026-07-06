@@ -60,6 +60,24 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void listClientsLocalProxyAllowsMissingCoordinatorWhenCoordinatorScopesDisabled() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(activity, null, false);
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.LOCAL_PROXY)
+            .build();
+        ProxyClientPage page = page("client-a");
+        when(activity.listClients(ctx, request)).thenReturn(okResult(page));
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody()).isSameAs(page);
+        verify(activity).listClients(ctx, request);
+    }
+
+    @Test
     public void listClientsAllProxiesDelegatesToCoordinator() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);

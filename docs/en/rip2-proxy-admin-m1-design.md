@@ -585,9 +585,11 @@ Recommended implementation order after public API ownership is confirmed:
    existing admin activity and routes `ALL_PROXIES`/`PROXY_ID` requests to the
    coordinator, plus optional endpoint-handler wiring for that router, without
    changing the public endpoint registration yet. `DefaultGrpcMessagingActivity`
-   now creates the shared scope router with a single local in-process peer; a
-   future cross-proxy transport can replace the peer client without changing
-   endpoint or activity semantics. The peer client is wrapped by
+   now creates the shared scope router for the default local-only path without
+   allocating a peer client. When `enableProxyClientAdminCrossProxyQuery` is
+   enabled, it wires a single local in-process peer; a future cross-proxy
+   transport can replace the peer client without changing endpoint or activity
+   semantics. The peer client is wrapped by
    `TimedProxyClientAdminPeerClient` so peer discovery and coordinator fan-out
    have a bounded wait; timed discovery must return a non-empty peer list, and
    `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout. The
@@ -597,8 +599,10 @@ Recommended implementation order after public API ownership is confirmed:
 4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
    timeout, retry, and partial-failure semantics are validated.
    This branch keeps those coordinator scopes disabled by default through
-   `enableProxyClientAdminCrossProxyQuery`; enabling the flag lets the internal
-   scope router use the current single-node in-process peer client.
+   `enableProxyClientAdminCrossProxyQuery`; while disabled, the internal scope
+   router rejects coordinator scopes before any peer client or peer timeout
+   configuration is touched. Enabling the flag lets the internal scope router
+   use the current single-node in-process peer client.
 5. Wire the public `ProxyAdminService` adapter to the coordinator service while
    keeping M1 `LOCAL_PROXY` as the default.
 

@@ -27,6 +27,7 @@ import io.grpc.stub.StreamObserver;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.auth.authentication.model.User;
@@ -59,6 +60,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -180,7 +182,34 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
-    public void initCreatesTimedProxyClientAdminPeerClient() {
+    public void initSkipsProxyClientAdminPeerClientWhenCrossProxyScopeDisabled() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(false);
+        ConfigurationManager.getProxyConfig().setProxyClientAdminPeerRequestTimeoutMillis(0L);
+        AtomicReference<DefaultGrpcMessagingActivity> activityRef = new AtomicReference<>();
+
+        assertThatCode(() -> activityRef.set(new DefaultGrpcMessagingActivity(this.messagingProcessor)))
+            .doesNotThrowAnyException();
+
+        DefaultGrpcMessagingActivity activity = activityRef.get();
+        assertThat(activity.proxyClientAdminPeerClient).isNull();
+        assertThat(activity.proxyClientAdminPeerExecutor).isNull();
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.getProxyClientAdminScopeRouter()
+            .listClientViews(
+                ProxyContext.create()
+                    .setSubject(User.of("admin"))
+                    .setRemoteAddress("127.0.0.1"),
+                ProxyClientAdminListClientsRequest.newBuilder()
+                    .setScope(ProxyClientScope.ALL_PROXIES)
+                    .setPageSize(10)
+                    .build()
+            );
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void initCreatesTimedProxyClientAdminPeerClientWhenCrossProxyScopeEnabled() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
         DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
 
         assertThat(activity.proxyClientAdminPeerClient).isInstanceOf(TimedProxyClientAdminPeerClient.class);

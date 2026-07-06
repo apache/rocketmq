@@ -133,24 +133,28 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             ProxyMetricsManager::recordProxyClientAdminRequest
         );
         this.proxyClientAdminActivity = new ProxyClientAdminActivity(this.authorizingClientAdminService);
-        String localProxyId = this.localProxyId();
-        ProxyClientAdminPeerLocalExecutor localPeerExecutor =
-            new ProxyClientAdminPeerLocalExecutor(localProxyId, this.proxyClientAdminActivity);
-        this.proxyClientAdminPeerExecutor = ThreadUtils.newSingleThreadExecutor(
-            new ThreadFactoryImpl("ProxyClientAdminPeerClient_")
-        );
-        this.proxyClientAdminPeerClient = new TimedProxyClientAdminPeerClient(
-            new ProxyClientAdminInProcessPeerClient(Collections.singletonMap(localProxyId, localPeerExecutor)),
-            this.proxyClientAdminPeerExecutor,
-            ConfigurationManager.getProxyConfig().getProxyClientAdminPeerRequestTimeoutMillis()
-        );
-        this.appendShutdown(this.proxyClientAdminPeerExecutor::shutdown);
-        ProxyClientAdminCoordinatorService proxyClientAdminCoordinatorService =
-            new ProxyClientAdminCoordinatorService(this.proxyClientAdminPeerClient);
+        boolean enableCrossProxyQuery = ConfigurationManager.getProxyConfig()
+            .isEnableProxyClientAdminCrossProxyQuery();
+        ProxyClientAdminCoordinatorService proxyClientAdminCoordinatorService = null;
+        if (enableCrossProxyQuery) {
+            String localProxyId = this.localProxyId();
+            ProxyClientAdminPeerLocalExecutor localPeerExecutor =
+                new ProxyClientAdminPeerLocalExecutor(localProxyId, this.proxyClientAdminActivity);
+            this.proxyClientAdminPeerExecutor = ThreadUtils.newSingleThreadExecutor(
+                new ThreadFactoryImpl("ProxyClientAdminPeerClient_")
+            );
+            this.proxyClientAdminPeerClient = new TimedProxyClientAdminPeerClient(
+                new ProxyClientAdminInProcessPeerClient(Collections.singletonMap(localProxyId, localPeerExecutor)),
+                this.proxyClientAdminPeerExecutor,
+                ConfigurationManager.getProxyConfig().getProxyClientAdminPeerRequestTimeoutMillis()
+            );
+            this.appendShutdown(this.proxyClientAdminPeerExecutor::shutdown);
+            proxyClientAdminCoordinatorService = new ProxyClientAdminCoordinatorService(this.proxyClientAdminPeerClient);
+        }
         this.proxyClientAdminScopeRouter = new ProxyClientAdminScopeRouter(
             this.proxyClientAdminActivity,
             proxyClientAdminCoordinatorService,
-            ConfigurationManager.getProxyConfig().isEnableProxyClientAdminCrossProxyQuery()
+            enableCrossProxyQuery
         );
         this.proxyClientAdminContextFactory =
             GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(messagingProcessor);
