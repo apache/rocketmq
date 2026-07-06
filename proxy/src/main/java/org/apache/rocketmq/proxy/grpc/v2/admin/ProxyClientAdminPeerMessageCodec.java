@@ -82,6 +82,9 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (!Boolean.TRUE.equals(payload.success)) {
             return ProxyClientAdminPeerResponse.error(payload.proxyId, payload.errorCode, payload.errorMessage);
         }
+        if (payload.client != null) {
+            throw new IllegalArgumentException("peer page response must not include client body");
+        }
         if (payload.page == null) {
             throw new IllegalArgumentException("peer page response body is required");
         }
@@ -96,6 +99,9 @@ public final class ProxyClientAdminPeerMessageCodec {
         ResponsePayload payload = parseResponsePayload(message);
         if (!Boolean.TRUE.equals(payload.success)) {
             return ProxyClientAdminPeerResponse.error(payload.proxyId, payload.errorCode, payload.errorMessage);
+        }
+        if (payload.page != null) {
+            throw new IllegalArgumentException("peer client response must not include page body");
         }
         if (payload.client == null) {
             throw new IllegalArgumentException("peer client response body is required");

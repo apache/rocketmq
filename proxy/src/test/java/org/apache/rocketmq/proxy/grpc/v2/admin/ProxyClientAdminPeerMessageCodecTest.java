@@ -116,6 +116,28 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void pageResponseCodecRejectsSuccessfulResponseWithClientBody() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
+            + "\"page\":{\"clients\":[],\"nextPageToken\":\"\"},"
+            + "\"client\":{\"clientId\":\"client-a\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer page response must not include client body");
+    }
+
+    @Test
+    public void clientResponseCodecRejectsSuccessfulResponseWithPageBody() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
+            + "\"client\":{\"clientId\":\"client-a\"},"
+            + "\"page\":{\"clients\":[],\"nextPageToken\":\"\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeClientResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer client response must not include page body");
+    }
+
+    @Test
     public void requestCodecRejectsMissingMessage() {
         assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeRequest(" "))
             .isInstanceOf(IllegalArgumentException.class)

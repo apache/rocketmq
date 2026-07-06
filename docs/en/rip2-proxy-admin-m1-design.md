@@ -650,7 +650,9 @@ Recommended implementation order after public API ownership is confirmed:
    discovery set as bad requests, and validates each peer response `proxyId`
    before accepting its body so a misrouted or stale peer transport result is
    returned as an internal routing error instead of being merged into the admin
-   response. Peer page bodies are also validated before merge so malformed peer
+   response. Peer wire responses reject mixed success bodies, so page responses
+   cannot also carry a client body and describe responses cannot also carry a
+   page body. Peer page bodies are also validated before merge so malformed peer
    results and peer client bodies without usable client ids become stable
    internal errors instead of leaking as merge-time exceptions or successful
    malformed describe results. Describe responses must also return the exact
