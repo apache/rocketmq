@@ -46,6 +46,9 @@ public class ProxyClientAdminInProcessPeerClient implements ProxyClientAdminPeer
             }
             sortedExecutors.put(proxyId, entry.getValue());
         }
+        if (sortedExecutors.isEmpty()) {
+            throw new IllegalArgumentException("at least one executor is required");
+        }
         this.executors = Collections.unmodifiableMap(new LinkedHashMap<>(sortedExecutors));
         this.proxyIds = Collections.unmodifiableList(new ArrayList<>(sortedExecutors.keySet()));
     }

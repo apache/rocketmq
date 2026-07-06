@@ -90,6 +90,13 @@ public class ProxyClientAdminInProcessPeerClientTest {
             .hasMessageContaining("proxy-a");
     }
 
+    @Test
+    public void inProcessPeerClientRejectsEmptyExecutorMap() {
+        assertThatThrownBy(() -> new ProxyClientAdminInProcessPeerClient(Collections.emptyMap()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("at least one executor is required");
+    }
+
     private static ProxyClientAdminPeerLocalExecutor newExecutor(String localProxyId, ClientAdminService delegate) {
         return new ProxyClientAdminPeerLocalExecutor(
             localProxyId,
