@@ -529,9 +529,10 @@ Recommended implementation order after public API ownership is confirmed:
 3. Add a coordinator service that fans out local-page requests, merges results in
    `client_id` order, and emits coordinator-owned opaque page tokens.
    This branch includes the first proto-free coordinator slice for
-   `ALL_PROXIES` `ListClients`: it fans out to the peer-client boundary, merges
-   peer pages by stable `client_id` order, fails fast on peer errors, and stores
-   per-peer cursors in the internal `cp1:` coordinator token.
+   `ALL_PROXIES` list queries: it fans out `ListClients`,
+   `ListClientsByGroup`, and `ListClientsByTopic` to the peer-client boundary,
+   merges peer pages by stable `client_id` order, fails fast on peer errors, and
+   stores per-peer cursors in the internal `cp1:` coordinator token.
 4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
    timeout, retry, and partial-failure semantics are validated.
 5. Wire the public `ProxyAdminService` adapter to the coordinator service while

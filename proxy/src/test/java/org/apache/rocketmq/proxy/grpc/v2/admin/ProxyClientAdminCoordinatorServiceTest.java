@@ -142,6 +142,59 @@ public class ProxyClientAdminCoordinatorServiceTest {
         assertThat(result.getBody()).isNull();
     }
 
+    @Test
+    public void listClientsByGroupAllProxiesFansOutGroupRequestAndMergesResults() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));
+        peerClient.addPage("proxy-b", page(Collections.singletonList(client("client-b")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(1)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result =
+            service.listClientsByGroup(proxyContext(), " group-a ", query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-a");
+        ProxyClientAdminCoordinatorPageToken nextToken =
+            ProxyClientAdminCoordinatorPageTokenCodec.getInstance().decode(result.getBody().getNextPageToken());
+        assertThat(nextToken.getGroup()).isEqualTo("group-a");
+        assertThat(nextToken.getPeerPageTokens()).containsEntry("proxy-a", "client-a");
+        ProxyClientAdminPeerRequest request = peerClient.requests("proxy-a").get(0);
+        assertThat(request.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP);
+        assertThat(request.getGroup()).isEqualTo("group-a");
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+    }
+
+    @Test
+    public void listClientsByTopicAllProxiesFansOutTopicRequestAndMergesResults() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-c")), ""));
+        peerClient.addPage("proxy-b", page(Collections.singletonList(client("client-b")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(10)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result =
+            service.listClientsByTopic(proxyContext(), " topic-a ", query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(ProxyClientInfo::getClientId)
+            .containsExactly("client-b", "client-c");
+        assertThat(result.getBody().getNextPageToken()).isEmpty();
+        ProxyClientAdminPeerRequest request = peerClient.requests("proxy-b").get(0);
+        assertThat(request.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_TOPIC);
+        assertThat(request.getTopic()).isEqualTo("topic-a");
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+    }
+
     private static ProxyClientPage page(List<ProxyClientInfo> clients, String nextPageToken) {
         return new ProxyClientPage(clients, nextPageToken);
     }

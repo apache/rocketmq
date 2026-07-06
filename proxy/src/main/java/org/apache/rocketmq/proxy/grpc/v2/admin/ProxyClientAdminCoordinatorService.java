@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
@@ -53,14 +54,42 @@ public class ProxyClientAdminCoordinatorService {
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClients(ProxyContext ctx, ProxyClientQuery query) {
+        return this.execute(() -> this.listClients0(
+            ctx,
+            this.requireAllProxiesQuery(query),
+            ProxyClientAdminPeerOperation.LIST_CLIENTS
+        ));
+    }
+
+    public ProxyClientAdminResult<ProxyClientPage> listClientsByGroup(ProxyContext ctx, String group,
+        ProxyClientQuery query) {
+        return this.execute(() -> this.listClients0(
+            ctx,
+            this.requireAllProxiesQuery(query).toBuilder().setGroup(this.requireGroup(group)).build(),
+            ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP
+        ));
+    }
+
+    public ProxyClientAdminResult<ProxyClientPage> listClientsByTopic(ProxyContext ctx, String topic,
+        ProxyClientQuery query) {
+        return this.execute(() -> this.listClients0(
+            ctx,
+            this.requireAllProxiesQuery(query).toBuilder().setTopic(this.requireTopic(topic)).build(),
+            ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_TOPIC
+        ));
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> execute(
+        Supplier<ProxyClientAdminResult<ProxyClientPage>> supplier) {
         try {
-            return this.listClients0(ctx, this.requireAllProxiesQuery(query));
+            return supplier.get();
         } catch (Throwable t) {
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
     }
 
-    private ProxyClientAdminResult<ProxyClientPage> listClients0(ProxyContext ctx, ProxyClientQuery query) {
+    private ProxyClientAdminResult<ProxyClientPage> listClients0(ProxyContext ctx, ProxyClientQuery query,
+        ProxyClientAdminPeerOperation operation) {
         ProxyClientAdminCoordinatorPageToken pageToken = this.pageTokenCodec.decode(query.getPageToken());
         this.validatePageToken(query, pageToken);
 
@@ -74,7 +103,7 @@ public class ProxyClientAdminCoordinatorService {
             ProxyClientAdminPeerResponse<?> response = this.peerClient.execute(
                 ctx,
                 proxyId,
-                this.toPeerRequest(query, currentPeerTokens.get(proxyId))
+                this.toPeerRequest(query, currentPeerTokens.get(proxyId), operation)
             );
             if (response == null) {
                 return this.errorResult(Code.INTERNAL_SERVER_ERROR, "peer response is required");
@@ -130,9 +159,10 @@ public class ProxyClientAdminCoordinatorService {
         return effectiveQuery;
     }
 
-    private ProxyClientAdminPeerRequest toPeerRequest(ProxyClientQuery query, String peerPageToken) {
+    private ProxyClientAdminPeerRequest toPeerRequest(ProxyClientQuery query, String peerPageToken,
+        ProxyClientAdminPeerOperation operation) {
         return ProxyClientAdminPeerRequest.newBuilder()
-            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setOperation(operation)
             .setGroup(query.getGroup())
             .setTopic(query.getTopic())
             .setClientType(query.getClientType())
@@ -140,6 +170,22 @@ public class ProxyClientAdminCoordinatorService {
             .setPageToken(peerPageToken)
             .setScope(ProxyClientScope.LOCAL_PROXY)
             .build();
+    }
+
+    private String requireGroup(String group) {
+        String normalizedGroup = StringUtils.trimToNull(group);
+        if (normalizedGroup == null) {
+            throw new IllegalArgumentException("group is required");
+        }
+        return normalizedGroup;
+    }
+
+    private String requireTopic(String topic) {
+        String normalizedTopic = StringUtils.trimToNull(topic);
+        if (normalizedTopic == null) {
+            throw new IllegalArgumentException("topic is required");
+        }
+        return normalizedTopic;
     }
 
     private void validatePageToken(ProxyClientQuery query, ProxyClientAdminCoordinatorPageToken pageToken) {
