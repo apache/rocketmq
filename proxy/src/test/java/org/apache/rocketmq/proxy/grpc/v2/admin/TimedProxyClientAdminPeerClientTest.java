@@ -51,6 +51,47 @@ public class TimedProxyClientAdminPeerClientTest {
     }
 
     @Test
+    public void listProxyIdsTimesOutAndCancelsDelegateOnTimeout() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch interrupted = new CountDownLatch(1);
+        try {
+            TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+                new BlockingListPeerClient(entered, interrupted),
+                executor,
+                10L
+            );
+
+            assertThatThrownBy(client::listProxyIds)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Timed out")
+                .hasMessageContaining("peer discovery");
+            assertThat(entered.await(1, TimeUnit.SECONDS)).isTrue();
+            assertThat(interrupted.await(1, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void listProxyIdsThrowsInternalErrorWhenDelegateThrows() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+                new ThrowingListPeerClient(),
+                executor,
+                1000L
+            );
+
+            assertThatThrownBy(client::listProxyIds)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("boom");
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     public void executeReturnsDelegateResponseBeforeTimeout() {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
@@ -203,6 +244,47 @@ public class TimedProxyClientAdminPeerClientTest {
                 Thread.currentThread().interrupt();
             }
             return ProxyClientAdminPeerResponse.success(proxyId, "late");
+        }
+    }
+
+    private static class BlockingListPeerClient implements ProxyClientAdminPeerClient {
+        private final CountDownLatch entered;
+        private final CountDownLatch interrupted;
+
+        private BlockingListPeerClient(CountDownLatch entered, CountDownLatch interrupted) {
+            this.entered = entered;
+            this.interrupted = interrupted;
+        }
+
+        @Override
+        public List<String> listProxyIds() {
+            this.entered.countDown();
+            try {
+                Thread.sleep(500L);
+            } catch (InterruptedException ignored) {
+                this.interrupted.countDown();
+                Thread.currentThread().interrupt();
+            }
+            return Collections.singletonList("proxy-a");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            return ProxyClientAdminPeerResponse.success(proxyId, "ok");
+        }
+    }
+
+    private static class ThrowingListPeerClient implements ProxyClientAdminPeerClient {
+        @Override
+        public List<String> listProxyIds() {
+            throw new IllegalStateException("boom");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            return ProxyClientAdminPeerResponse.success(proxyId, "ok");
         }
     }
 

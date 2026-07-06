@@ -51,7 +51,30 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
 
     @Override
     public List<String> listProxyIds() {
-        return this.delegate.listProxyIds();
+        Future<List<String>> future;
+        try {
+            future = this.executorService.submit(this.delegate::listProxyIds);
+        } catch (RejectedExecutionException e) {
+            throw peerDiscoveryError(e);
+        }
+        try {
+            return future.get(this.timeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            throw new IllegalStateException(
+                "Timed out waiting for proxy client admin peer discovery after "
+                    + this.timeoutMillis + " ms",
+                e
+            );
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                "Interrupted while waiting for proxy client admin peer discovery",
+                e
+            );
+        } catch (ExecutionException e) {
+            throw peerDiscoveryError(e.getCause() == null ? e : e.getCause());
+        }
     }
 
     @Override
@@ -93,6 +116,13 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
             proxyId,
             Code.INTERNAL_SERVER_ERROR.name(),
             StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName())
+        );
+    }
+
+    private static IllegalStateException peerDiscoveryError(Throwable t) {
+        return new IllegalStateException(
+            StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName()),
+            t
         );
     }
 
