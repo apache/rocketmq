@@ -100,6 +100,18 @@ public class ProxyClientAdminPeerDtoTest {
     }
 
     @Test
+    public void peerDescribeRequestRejectsLocalQueryConversion() {
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
+            .setClientId("client-a")
+            .build();
+
+        assertThatThrownBy(request::toLocalQuery)
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("operation is not a list operation: DESCRIBE_CLIENT");
+    }
+
+    @Test
     public void peerResponseWrapsSuccessAndErrorsWithoutPublicProtoBodies() {
         ProxyClientInfo clientInfo = new ProxyClientInfo(
             "client-a",

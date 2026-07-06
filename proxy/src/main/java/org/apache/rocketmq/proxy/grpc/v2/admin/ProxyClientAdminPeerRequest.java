@@ -54,6 +54,9 @@ public class ProxyClientAdminPeerRequest {
     }
 
     public ProxyClientQuery toLocalQuery() {
+        if (this.operation == ProxyClientAdminPeerOperation.DESCRIBE_CLIENT) {
+            throw new IllegalStateException("operation is not a list operation: " + this.operation);
+        }
         return ProxyClientQuery.newBuilder()
             .setGroup(this.group)
             .setTopic(this.topic)
