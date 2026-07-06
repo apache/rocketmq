@@ -513,13 +513,15 @@ by the codec, so equivalent JSON payloads cannot create multiple public cursor
 representations. The response adapter preserves canonical `cp1:` tokens instead
 of wrapping them in the local read-model `v1:` token codec. It is not wired into
 the M1 `LOCAL_PROXY` endpoints and does not change the public local `v1:` token
-behavior. The local `v1:` token decoder rejects coordinator-owned `cpN:` tokens
-so `LOCAL_PROXY` and `PROXY_ID` requests cannot accidentally treat a cross-proxy
-cursor as a read-model client-id cursor. Request DTOs preserve `cp1:` tokens only
-for `ALL_PROXIES`, where the coordinator owns decoding and validation. A
-non-empty coordinator token must include both the last emitted global `client_id`
-and at least one peer cursor; otherwise the coordinator rejects it as an
-incomplete progress token instead of restarting from the first peer page.
+behavior. The local token codec rejects bare coordinator-owned `cpN:` tokens,
+`v1:` tokens whose decoded read-model cursor is coordinator-owned, and attempts
+to encode coordinator-prefixed read-model cursors. This keeps `LOCAL_PROXY` and
+`PROXY_ID` requests from accidentally treating a cross-proxy cursor as a
+read-model client-id cursor. Request DTOs preserve `cp1:` tokens only for
+`ALL_PROXIES`, where the coordinator owns decoding and validation. A non-empty
+coordinator token must include both the last emitted global `client_id` and at
+least one peer cursor; otherwise the coordinator rejects it as an incomplete
+progress token instead of restarting from the first peer page.
 
 When the coordinator builds a next token, it preserves a peer's own next-page
 token after that peer's returned page has been fully emitted. If the global

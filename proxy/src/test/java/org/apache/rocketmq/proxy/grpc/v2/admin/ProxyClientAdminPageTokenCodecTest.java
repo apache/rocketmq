@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
@@ -106,6 +108,29 @@ public class ProxyClientAdminPageTokenCodecTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid page token")
             .hasMessageContaining("cp1:");
+    }
+
+    @Test
+    public void codecRejectsCoordinatorTokensWrappedInsideLocalPageToken() {
+        ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
+        String wrappedCoordinatorToken = "v1:" + Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString("cp1:cursor".getBytes(StandardCharsets.UTF_8));
+
+        assertThatThrownBy(() -> codec.decode(wrappedCoordinatorToken))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid page token")
+            .hasMessageContaining(wrappedCoordinatorToken);
+    }
+
+    @Test
+    public void codecRejectsCoordinatorTokensBeforeEncodingLocalPageToken() {
+        ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
+
+        assertThatThrownBy(() -> codec.encode("cp1:cursor"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid page token")
+            .hasMessageContaining("cp1:cursor");
     }
 
     @Test

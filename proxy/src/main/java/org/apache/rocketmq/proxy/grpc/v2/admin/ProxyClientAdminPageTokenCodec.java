@@ -68,6 +68,9 @@ public final class ProxyClientAdminPageTokenCodec {
             if (!normalizedReadModelPageToken.equals(readModelPageToken)) {
                 throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
             }
+            if (isCoordinatorVersionedToken(normalizedReadModelPageToken)) {
+                throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
+            }
             String canonicalPublicPageToken = VERSION_1_PREFIX + encodeReadModelPageToken(readModelPageToken);
             if (!canonicalPublicPageToken.equals(normalizedPublicPageToken)) {
                 throw new IllegalArgumentException("Invalid page token: " + normalizedPublicPageToken);
@@ -82,6 +85,9 @@ public final class ProxyClientAdminPageTokenCodec {
         String normalizedReadModelPageToken = StringUtils.trimToNull(readModelPageToken);
         if (normalizedReadModelPageToken == null) {
             return "";
+        }
+        if (isCoordinatorVersionedToken(normalizedReadModelPageToken)) {
+            throw new IllegalArgumentException("Invalid page token: " + normalizedReadModelPageToken);
         }
         return VERSION_1_PREFIX + encodeReadModelPageToken(normalizedReadModelPageToken);
     }
