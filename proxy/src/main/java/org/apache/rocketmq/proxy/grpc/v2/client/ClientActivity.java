@@ -502,10 +502,14 @@ public class ClientActivity extends AbstractMessagingActivity {
             ctx.getRemoteAddress(),
             ctx.getLocalAddress(),
             ctx.getClientVersion(),
-            ConfigurationManager.getProxyConfig().getProxyName(),
+            this.localProxyId(),
             connectTimeMillis,
             now
         ));
+    }
+
+    protected String localProxyId() {
+        return StringUtils.defaultIfBlank(ConfigurationManager.getProxyConfig().getProxyName(), "DEFAULT_PROXY");
     }
 
     protected Set<String> buildClientGroups(Settings settings, String heartbeatGroup) {

@@ -317,6 +317,30 @@ public class ClientActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testTelemetryUsesDefaultProxyIdWhenProxyNameIsBlank() throws Throwable {
+        String originalProxyName = ConfigurationManager.getProxyConfig().getProxyName();
+        try {
+            ConfigurationManager.getProxyConfig().setProxyName(" ");
+            ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+            this.clientActivity = new ClientActivity(
+                this.messagingProcessor,
+                this.grpcClientSettingsManager,
+                this.grpcChannelManager,
+                proxyClientReadService
+            );
+            ProxyContext context = createContext();
+
+            this.sendProducerTelemetry(context);
+
+            ProxyClientInfo clientInfo = proxyClientReadService.getClient(CLIENT_ID);
+            assertThat(clientInfo).isNotNull();
+            assertThat(clientInfo.getProxyId()).isEqualTo("DEFAULT_PROXY");
+        } finally {
+            ConfigurationManager.getProxyConfig().setProxyName(originalProxyName);
+        }
+    }
+
+    @Test
     public void testProducerTelemetryRejectsNonProducerClientTypeBeforeReadModelUpdate() {
         ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
         this.clientActivity = new ClientActivity(

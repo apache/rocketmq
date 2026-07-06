@@ -325,9 +325,10 @@ The internal model uses `ProxyClientInfo`:
 - `language`: client language from request metadata.
 - `remoteAddress` and `localAddress`: connection addresses.
 - `clientVersion`: client version from request metadata.
-- `proxyId`: source proxy node id. M1 records the local `proxyName`; future
-  `ALL_PROXIES` responses can use the same field to distinguish fan-out
-  results.
+- `proxyId`: source proxy node id. M1 records the local `proxyName` and
+  normalizes blank values to `DEFAULT_PROXY`, matching the local peer routing
+  id; future `ALL_PROXIES` responses can use the same field to distinguish
+  fan-out results.
 - `connectTimeMillis`: first observed local connection time.
 - `lastActiveTimeMillis`: most recent successful telemetry or heartbeat time.
 
