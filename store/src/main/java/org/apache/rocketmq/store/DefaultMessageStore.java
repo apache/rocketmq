@@ -2305,10 +2305,19 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * Commits the message to the ConsumeQueue, but only after the half message's
+     * transaction state has been resolved. Prepared and rolled-back half
+     * messages are intentionally skipped — they should not be visible to
+     * consumers until the transaction commits.
+     */
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 
         @Override
         public void dispatch(DispatchRequest request) throws RocksDBException {
+            // Only non-transactional and committed-transactional messages
+            // become visible to consumers via the ConsumeQueue. Half messages
+            // that are still prepared (or rolled back) are filtered out here.
             final int tranType = MessageSysFlag.getTransactionValue(request.getSysFlag());
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
