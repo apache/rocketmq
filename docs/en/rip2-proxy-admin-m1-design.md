@@ -499,6 +499,11 @@ that contains:
 The token must not expose raw implementation details to users. The current M1
 `v1:` token codec is intentionally local and should not be reused as the final
 cross-proxy token format without wrapping it in a coordinator-owned token.
+This branch now includes an internal `cp1:` coordinator-token codec for that
+future contract. The codec carries the requested scope, filters, last emitted
+global `client_id`, per-peer page tokens, and creation time. It is not wired
+into the M1 `LOCAL_PROXY` endpoints and does not change the public local `v1:`
+token behavior.
 
 Recommended partial-failure behavior:
 
