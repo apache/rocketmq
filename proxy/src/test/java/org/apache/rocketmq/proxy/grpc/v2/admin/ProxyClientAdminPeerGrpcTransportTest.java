@@ -19,18 +19,88 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.Code;
 import io.grpc.Channel;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.Metadata;
+import io.grpc.Server;
+import io.grpc.ServerInterceptors;
+import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.rocketmq.auth.authentication.model.User;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ProxyClientAdminPeerGrpcTransportTest {
+
+    @Test
+    public void grpcTransportPropagatesProxyContextMetadataToPeerService() throws Exception {
+        AtomicReference<Metadata> capturedHeaders = new AtomicReference<>();
+        ProxyClientAdminContextFactory contextFactory = new ProxyClientAdminContextFactory(
+            (context, headers, request) -> capturedHeaders.set(headers)
+        );
+        ProxyClientAdminPeerMessageHandler messageHandler = mock(ProxyClientAdminPeerMessageHandler.class);
+        String responseMessage = ProxyClientAdminPeerMessageCodec.getInstance().encodePageResponse(
+            ProxyClientAdminPeerResponse.success("proxy-a", new ProxyClientPage(Collections.emptyList(), ""))
+        );
+        when(messageHandler.execute(any(), anyString())).thenReturn(responseMessage);
+        Server server = NettyServerBuilder.forPort(0)
+            .directExecutor()
+            .addService(ServerInterceptors.intercept(
+                new ProxyClientAdminPeerGrpcService(contextFactory, messageHandler),
+                new ContextInterceptor()
+            ))
+            .build()
+            .start();
+        ManagedChannel channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+            .usePlaintext()
+            .directExecutor()
+            .build();
+        try {
+            Map<String, Channel> channels = new LinkedHashMap<>();
+            channels.put("proxy-a", channel);
+            ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(channels);
+
+            transport.execute(
+                proxyContext()
+                    .setSubject(User.of("admin"))
+                    .setClientID("client-a")
+                    .setLanguage("JAVA")
+                    .setClientVersion("V5_0_0")
+                    .setNamespace("namespace-a"),
+                "proxy-a",
+                "{\"operation\":\"LIST_CLIENTS\"}"
+            );
+
+            Metadata headers = capturedHeaders.get();
+            assertThat(headers).isNotNull();
+            assertThat(headers.get(GrpcConstants.AUTHORIZATION_AK)).isEqualTo("admin");
+            assertThat(headers.get(GrpcConstants.REMOTE_ADDRESS)).isEqualTo("127.0.0.1:8080");
+            assertThat(headers.get(GrpcConstants.LOCAL_ADDRESS)).isEqualTo("127.0.0.1:8081");
+            assertThat(headers.get(GrpcConstants.CLIENT_ID)).isEqualTo("client-a");
+            assertThat(headers.get(GrpcConstants.LANGUAGE)).isEqualTo("JAVA");
+            assertThat(headers.get(GrpcConstants.CLIENT_VERSION)).isEqualTo("V5_0_0");
+            assertThat(headers.get(GrpcConstants.NAMESPACE_ID)).isEqualTo("namespace-a");
+        } finally {
+            channel.shutdownNow();
+            server.shutdownNow();
+            channel.awaitTermination(5, TimeUnit.SECONDS);
+            server.awaitTermination(5, TimeUnit.SECONDS);
+        }
+    }
 
     @Test
     public void grpcTransportListsStableProxyIdsAndInvokesTargetChannel() {
@@ -48,6 +118,8 @@ public class ProxyClientAdminPeerGrpcTransportTest {
         assertThat(responseMessage).isEqualTo("{\"success\":true}");
         assertThat(invoker.channel).isSameAs(proxyBChannel);
         assertThat(invoker.requestMessage).isEqualTo("{\"operation\":\"LIST_CLIENTS\"}");
+        assertThat(invoker.metadata.get(GrpcConstants.REMOTE_ADDRESS)).isEqualTo("127.0.0.1:8080");
+        assertThat(invoker.metadata.get(GrpcConstants.LOCAL_ADDRESS)).isEqualTo("127.0.0.1:8081");
     }
 
     @Test
@@ -80,7 +152,7 @@ public class ProxyClientAdminPeerGrpcTransportTest {
         channels.put("proxy-a", mock(Channel.class));
         ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(
             channels,
-            (channel, requestMessage) -> {
+            (channel, requestMessage, metadata) -> {
                 throw new IllegalStateException("boom");
             }
         );
@@ -149,15 +221,17 @@ public class ProxyClientAdminPeerGrpcTransportTest {
         private final String responseMessage;
         private Channel channel;
         private String requestMessage;
+        private Metadata metadata;
 
         private RecordingInvoker(String responseMessage) {
             this.responseMessage = responseMessage;
         }
 
         @Override
-        public String execute(Channel channel, String requestMessage) {
+        public String execute(Channel channel, String requestMessage, Metadata metadata) {
             this.channel = channel;
             this.requestMessage = requestMessage;
+            this.metadata = metadata;
             return this.responseMessage;
         }
     }

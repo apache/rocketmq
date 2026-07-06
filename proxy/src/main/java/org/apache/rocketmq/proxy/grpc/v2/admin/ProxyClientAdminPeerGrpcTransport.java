@@ -21,7 +21,11 @@ import apache.rocketmq.v2.Code;
 import com.google.protobuf.StringValue;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
+import io.grpc.ClientInterceptors;
+import io.grpc.Context;
+import io.grpc.Metadata;
 import io.grpc.stub.ClientCalls;
+import io.grpc.stub.MetadataUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -29,6 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.auth.authentication.enums.SubjectType;
+import org.apache.rocketmq.auth.authentication.model.Subject;
+import org.apache.rocketmq.auth.authentication.model.User;
+import org.apache.rocketmq.common.constant.CommonConstants;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 
@@ -90,7 +99,8 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
             return this.encodeError(requiredProxyId, Code.NOT_FOUND, "Proxy not found: " + requiredProxyId);
         }
         try {
-            String responseMessage = StringUtils.trimToNull(this.invoker.execute(channel, requestMessage));
+            String responseMessage =
+                StringUtils.trimToNull(this.invoker.execute(channel, requestMessage, this.buildMetadata(ctx)));
             if (responseMessage == null) {
                 return this.encodeError(requiredProxyId, Code.INTERNAL_SERVER_ERROR,
                     "peer response message is required");
@@ -114,6 +124,49 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
         return this.codec.encodePageResponse(response);
     }
 
+    private Metadata buildMetadata(ProxyContext ctx) {
+        Metadata metadata = new Metadata();
+        Metadata currentMetadata = GrpcConstants.METADATA.get(Context.current());
+        if (currentMetadata != null) {
+            metadata.merge(currentMetadata);
+        }
+        if (ctx == null) {
+            return metadata;
+        }
+        this.putIfNotBlank(metadata, GrpcConstants.AUTHORIZATION_AK, this.subjectUsername(ctx.getSubject()));
+        this.putIfNotBlank(metadata, GrpcConstants.REMOTE_ADDRESS, ctx.getRemoteAddress());
+        this.putIfNotBlank(metadata, GrpcConstants.LOCAL_ADDRESS, ctx.getLocalAddress());
+        this.putIfNotBlank(metadata, GrpcConstants.CLIENT_ID, ctx.getClientID());
+        this.putIfNotBlank(metadata, GrpcConstants.LANGUAGE, ctx.getLanguage());
+        this.putIfNotBlank(metadata, GrpcConstants.CLIENT_VERSION, ctx.getClientVersion());
+        this.putIfNotBlank(metadata, GrpcConstants.NAMESPACE_ID, ctx.getNamespace());
+        return metadata;
+    }
+
+    private void putIfNotBlank(Metadata metadata, Metadata.Key<String> key, String value) {
+        String normalizedValue = StringUtils.trimToNull(value);
+        if (normalizedValue == null) {
+            return;
+        }
+        metadata.removeAll(key);
+        metadata.put(key, normalizedValue);
+    }
+
+    private String subjectUsername(Subject subject) {
+        if (subject == null) {
+            return null;
+        }
+        if (subject instanceof User) {
+            return ((User) subject).getUsername();
+        }
+        String subjectKey = StringUtils.trimToNull(subject.getSubjectKey());
+        String userPrefix = SubjectType.USER.getName() + CommonConstants.COLON;
+        if (StringUtils.startsWith(subjectKey, userPrefix)) {
+            return StringUtils.substringAfter(subjectKey, CommonConstants.COLON);
+        }
+        return null;
+    }
+
     private static String requireProxyId(String proxyId) {
         String normalizedProxyId = StringUtils.trimToNull(proxyId);
         if (normalizedProxyId == null) {
@@ -124,14 +177,17 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
 
     @FunctionalInterface
     interface Invoker {
-        String execute(Channel channel, String requestMessage);
+        String execute(Channel channel, String requestMessage, Metadata metadata);
     }
 
     private static class BlockingUnaryInvoker implements Invoker {
         @Override
-        public String execute(Channel channel, String requestMessage) {
+        public String execute(Channel channel, String requestMessage, Metadata metadata) {
+            Channel callChannel = metadata == null || metadata.keys().isEmpty()
+                ? channel
+                : ClientInterceptors.intercept(channel, MetadataUtils.newAttachHeadersInterceptor(metadata));
             StringValue response = ClientCalls.blockingUnaryCall(
-                channel,
+                callChannel,
                 ProxyClientAdminPeerGrpcService.EXECUTE_METHOD,
                 CallOptions.DEFAULT,
                 StringValue.of(StringUtils.defaultString(requestMessage))

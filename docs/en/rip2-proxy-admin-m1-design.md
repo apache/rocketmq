@@ -203,8 +203,12 @@ small and tested boundary to call:
   transport when `proxyClientAdminPeerGrpcTargets` is blank. If static peer
   targets are configured, the coordinator uses `ProxyClientAdminPeerGrpcTransport`
   backed by per-peer gRPC channels while preserving the same proto-free peer
-  message boundary. Dynamic discovery, secure channel options, and production
-  channel lifecycle tuning remain follow-up work.
+  message boundary. The peer transport forwards the current admin
+  `ProxyContext` into gRPC metadata, including the authenticated user subject
+  and request address/client attributes, so the peer-side context factory sees
+  the same admin caller context as the coordinator. Dynamic discovery, secure
+  channel options, and production channel lifecycle tuning remain follow-up
+  work.
 - `ProxyStartup.createGrpcBindableServices(...)` now has a tested package-private
   overload for appending additional `BindableService` instances after the
   messaging service while reusing the same `DefaultGrpcMessagingActivity`. It
