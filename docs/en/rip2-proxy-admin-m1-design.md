@@ -906,9 +906,11 @@ as a narrow adapter over the internal code already in this branch:
 Current branch status: after fetching `upstream/develop` at commit `2af604f3a`
 on 2026-07-06, `git grep` still finds no upstream `ProxyAdminService`,
 `ProxyScope`, `ListClientsByGroup`, or `ListClientsByTopic` protobuf API to
-consume. The documentation-only draft remains under `docs/en`, and this fork
-should continue to avoid modifying `rocketmq-apis` until that ownership decision
-is explicit.
+consume. The upstream tree also contains no `.proto` source files; the proxy
+module consumes generated `apache.rocketmq.v2.MessagingServiceGrpc` classes from
+the external `rocketmq-apis` project instead. The documentation-only draft
+remains under `docs/en`, and this fork should continue to avoid modifying
+`rocketmq-apis` until that ownership decision is explicit.
 
 The internal code is ready for a thin generated endpoint adapter once that
 decision is made: lifecycle writes, read-model queries, request DTOs, scope and
