@@ -48,10 +48,12 @@ service ProxyAdminService {
 enum ProxyScope {
   PROXY_SCOPE_UNSPECIFIED = 0;
 
-  // M1 supports PROXY_SCOPE_LOCAL_PROXY only.
+  // M1 public endpoints accept only the default or explicit local scope.
   PROXY_SCOPE_LOCAL_PROXY = 1;
 
-  // Reserved for future fan-out and targeted proxy query semantics.
+  // Reserved for future fan-out and targeted proxy query semantics. M1 public
+  // endpoints reject these scopes with BAD_REQUEST before request context
+  // creation.
   PROXY_SCOPE_ALL_PROXIES = 2;
   PROXY_SCOPE_PROXY_ID = 3;
 }
@@ -65,8 +67,9 @@ message ListClientsRequest {
   ClientType client_type = 3;
   ProxyScope scope = 4;
 
-  // Required when scope is PROXY_SCOPE_PROXY_ID. Ignored for
-  // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
+  // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
+  // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
+  // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
   string proxy_id = 5;
 }
 
@@ -80,8 +83,9 @@ message DescribeClientRequest {
   string client_id = 1;
   ProxyScope scope = 2;
 
-  // Required when scope is PROXY_SCOPE_PROXY_ID. Ignored for
-  // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
+  // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
+  // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
+  // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
   string proxy_id = 3;
 }
 
@@ -100,8 +104,9 @@ message ListClientsByGroupRequest {
   ClientType client_type = 4;
   ProxyScope scope = 5;
 
-  // Required when scope is PROXY_SCOPE_PROXY_ID. Ignored for
-  // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
+  // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
+  // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
+  // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
   string proxy_id = 6;
 }
 
@@ -121,8 +126,9 @@ message ListClientsByTopicRequest {
   ClientType client_type = 4;
   ProxyScope scope = 5;
 
-  // Required when scope is PROXY_SCOPE_PROXY_ID. Ignored for
-  // PROXY_SCOPE_LOCAL_PROXY and PROXY_SCOPE_ALL_PROXIES.
+  // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
+  // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
+  // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
   string proxy_id = 6;
 }
 

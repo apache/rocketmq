@@ -146,7 +146,8 @@ ownership decision:
 - internal `ClientAdminService` and `ProxyClientAdminActivity`.
 - request DTOs and response views matching the proposed public model.
 - scope mapper and page-token codec.
-- endpoint executor and endpoint handler.
+- endpoint executor and endpoint handler, including the M1 public
+  `LOCAL_PROXY` scope gate before request context creation.
 - authorization facade and metrics hooks.
 - startup service-registration seam for a future standalone admin application.
 - internal peer gRPC service and static peer transport for coordinator
