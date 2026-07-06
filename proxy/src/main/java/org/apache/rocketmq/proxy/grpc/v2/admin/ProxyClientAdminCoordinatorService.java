@@ -209,7 +209,7 @@ public class ProxyClientAdminCoordinatorService {
                 proxyId,
                 this.toPeerDescribeRequest(clientId)
             );
-            ProxyClientAdminResult<ProxyClientInfo> peerInfoResult = this.peerInfoResult(proxyId, response);
+            ProxyClientAdminResult<ProxyClientInfo> peerInfoResult = this.peerInfoResult(proxyId, clientId, response);
             if (peerInfoResult.getStatus().getCode() == Code.OK) {
                 return peerInfoResult;
             }
@@ -228,7 +228,7 @@ public class ProxyClientAdminCoordinatorService {
             proxyId,
             this.toPeerDescribeRequest(request.getClientId())
         );
-        return this.peerInfoResult(proxyId, response);
+        return this.peerInfoResult(proxyId, request.getClientId(), response);
     }
 
     private ProxyClientQuery requireCoordinatorListQuery(ProxyClientQuery query) {
@@ -456,7 +456,7 @@ public class ProxyClientAdminCoordinatorService {
         return this.okResult(peerPage);
     }
 
-    private ProxyClientAdminResult<ProxyClientInfo> peerInfoResult(String expectedProxyId,
+    private ProxyClientAdminResult<ProxyClientInfo> peerInfoResult(String expectedProxyId, String expectedClientId,
         ProxyClientAdminPeerResponse<?> response) {
         ProxyClientAdminResult<ProxyClientInfo> validationResult =
             this.validatePeerResponse(expectedProxyId, response);
@@ -471,6 +471,14 @@ public class ProxyClientAdminCoordinatorService {
             this.validatePeerClientInfo(expectedProxyId, clientInfo);
         if (clientValidationResult != null) {
             return clientValidationResult;
+        }
+        String normalizedExpectedClientId = this.requireClientId(expectedClientId);
+        if (!Objects.equals(normalizedExpectedClientId, clientInfo.getClientId())) {
+            return this.errorResult(
+                Code.INTERNAL_SERVER_ERROR,
+                "peer client id mismatch: expected " + normalizedExpectedClientId
+                    + ", actual " + clientInfo.getClientId()
+            );
         }
         return this.okResult(clientInfo);
     }

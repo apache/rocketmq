@@ -806,6 +806,53 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void describeClientProxyIdRejectsMismatchedPeerClientId() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.success(
+            "proxy-a",
+            client("client-b")
+        ));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .setClientId("client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientInfo> result = service.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage())
+            .contains("peer client id mismatch")
+            .contains("client-a")
+            .contains("client-b");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void describeClientAllProxiesRejectsMismatchedPeerClientId() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.success(
+            "proxy-a",
+            client("client-b")
+        ));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setClientId("client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientInfo> result = service.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage())
+            .contains("peer client id mismatch")
+            .contains("client-a")
+            .contains("client-b");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void describeClientAllProxiesRejectsEmptyPeerDiscovery() {
         EmptyDiscoveryPeerClient peerClient = new EmptyDiscoveryPeerClient();
         ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
