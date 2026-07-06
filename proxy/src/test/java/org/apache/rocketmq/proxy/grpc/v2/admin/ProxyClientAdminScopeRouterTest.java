@@ -103,6 +103,28 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void listClientsDropsCoordinatorErrorBody() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(activity, coordinator);
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        when(coordinator.listClients(any(), any(ProxyClientQuery.class))).thenReturn(
+            new ProxyClientAdminResult<>(
+                ResponseBuilder.getInstance().buildStatus(Code.NOT_FOUND, "missing client"),
+                page("stale-client")
+            )
+        );
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.NOT_FOUND);
+        assertThat(result.getStatus().getMessage()).contains("missing client");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void listClientsProxyIdDelegatesToCoordinator() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);

@@ -862,6 +862,8 @@ The endpoint adapter should stay thin:
 - use `ProxyClientAdminEndpointHandler` to copy the `Status` from
   `ProxyClientAdminResult`, write the response, and keep exception-to-status
   behavior consistent with the internal adapter.
+- keep non-OK responses status-only. The scope router and endpoint handler drop
+  bodies attached to error results before the future protobuf response is built.
 
 ### Public Endpoint Rollout Checklist
 

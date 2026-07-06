@@ -170,6 +170,9 @@ public class ProxyClientAdminScopeRouter {
     private <T> ProxyClientAdminResult<T> execute(Supplier<ProxyClientAdminResult<T>> supplier) {
         try {
             ProxyClientAdminResult<T> result = this.requireResult(this.requireSupplier(supplier).get());
+            if (result.getStatus().getCode() != Code.OK) {
+                return new ProxyClientAdminResult<>(result.getStatus(), null);
+            }
             if (result.getStatus().getCode() == Code.OK && result.getBody() == null) {
                 throw new IllegalStateException("result body is required");
             }
