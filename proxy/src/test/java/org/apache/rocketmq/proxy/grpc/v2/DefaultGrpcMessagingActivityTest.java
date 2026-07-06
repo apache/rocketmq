@@ -34,8 +34,10 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminListClientsRequest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminResult;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminScopeRouter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
@@ -45,6 +47,7 @@ import org.apache.rocketmq.proxy.service.admin.client.MeteredClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceCleaner;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
@@ -153,6 +156,30 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         assertThat(proxyClientAdminActivity).isNotNull();
         assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
         assertThat(result.getBody()).isSameAs(clientInfo);
+    }
+
+    @Test
+    public void initCreatesProxyClientAdminScopeRouterWithSharedLocalPeer() {
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
+        activity.proxyClientReadService.upsertClient(clientInfo("client-a", 200L));
+
+        ProxyClientAdminScopeRouter scopeRouter = activity.getProxyClientAdminScopeRouter();
+        ProxyClientAdminResult<ProxyClientAdminPageView> result = scopeRouter.listClientViews(
+            ProxyContext.create()
+                .setSubject(User.of("admin"))
+                .setRemoteAddress("127.0.0.1"),
+            ProxyClientAdminListClientsRequest.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setPageSize(10)
+                .build()
+        );
+
+        assertThat(scopeRouter).isNotNull();
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClients())
+            .extracting(client -> client.getClientId())
+            .containsExactly("client-a");
     }
 
     @Test

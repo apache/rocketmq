@@ -58,15 +58,24 @@ public class GrpcProxyAdminWiringTest extends InitConfigTest {
     }
 
     @Test
-    public void createDefaultActivityExposesAdminEndpointHandlerUsingSharedActivity() throws Exception {
+    public void createDefaultActivityExposesAdminScopeRouterAcrossGrpcPackages() {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+
+        ProxyClientAdminScopeRouter scopeRouter = activity.getProxyClientAdminScopeRouter();
+
+        assertThat(scopeRouter).isNotNull();
+    }
+
+    @Test
+    public void createDefaultActivityExposesAdminEndpointHandlerUsingSharedScopeRouter() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
 
         ProxyClientAdminEndpointHandler endpointHandler = activity.getProxyClientAdminEndpointHandler();
 
-        Field adminActivityField = ProxyClientAdminEndpointHandler.class.getDeclaredField("proxyClientAdminActivity");
-        adminActivityField.setAccessible(true);
+        Field scopeRouterField = ProxyClientAdminEndpointHandler.class.getDeclaredField("proxyClientAdminScopeRouter");
+        scopeRouterField.setAccessible(true);
         assertThat(endpointHandler).isNotNull();
-        assertThat(adminActivityField.get(endpointHandler)).isSameAs(activity.getProxyClientAdminActivity());
+        assertThat(scopeRouterField.get(endpointHandler)).isSameAs(activity.getProxyClientAdminScopeRouter());
     }
 
     @Test

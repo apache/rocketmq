@@ -42,8 +42,10 @@ import apache.rocketmq.v2.SyncLiteSubscriptionRequest;
 import apache.rocketmq.v2.SyncLiteSubscriptionResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import io.grpc.stub.StreamObserver;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
@@ -56,8 +58,12 @@ import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminContextFactory;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminCoordinatorService;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointHandler;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminInProcessPeerClient;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerLocalExecutor;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminScopeRouter;
 import org.apache.rocketmq.proxy.grpc.v2.client.ClientActivity;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.consumer.AckMessageActivity;
@@ -98,6 +104,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected ClientAdminService clientAdminService;
     protected AuthorizingClientAdminService authorizingClientAdminService;
     protected ProxyClientAdminActivity proxyClientAdminActivity;
+    protected ProxyClientAdminScopeRouter proxyClientAdminScopeRouter;
     protected ProxyClientAdminContextFactory proxyClientAdminContextFactory;
     protected ProxyClientAdminEndpointHandler proxyClientAdminEndpointHandler;
     protected ProxyClientAdminEndpointExecutor proxyClientAdminEndpointExecutor;
@@ -121,9 +128,20 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             ProxyMetricsManager::recordProxyClientAdminRequest
         );
         this.proxyClientAdminActivity = new ProxyClientAdminActivity(this.authorizingClientAdminService);
+        String localProxyId = this.localProxyId();
+        ProxyClientAdminPeerLocalExecutor localPeerExecutor =
+            new ProxyClientAdminPeerLocalExecutor(localProxyId, this.proxyClientAdminActivity);
+        ProxyClientAdminCoordinatorService proxyClientAdminCoordinatorService =
+            new ProxyClientAdminCoordinatorService(new ProxyClientAdminInProcessPeerClient(
+                Collections.singletonMap(localProxyId, localPeerExecutor)
+            ));
+        this.proxyClientAdminScopeRouter = new ProxyClientAdminScopeRouter(
+            this.proxyClientAdminActivity,
+            proxyClientAdminCoordinatorService
+        );
         this.proxyClientAdminContextFactory =
             GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(messagingProcessor);
-        this.proxyClientAdminEndpointHandler = new ProxyClientAdminEndpointHandler(this.proxyClientAdminActivity);
+        this.proxyClientAdminEndpointHandler = new ProxyClientAdminEndpointHandler(this.proxyClientAdminScopeRouter);
         this.proxyClientAdminEndpointExecutor = new ProxyClientAdminEndpointExecutor(
             this.proxyClientAdminContextFactory,
             this.proxyClientAdminEndpointHandler
@@ -170,6 +188,10 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         );
     }
 
+    protected String localProxyId() {
+        return StringUtils.defaultIfBlank(ConfigurationManager.getProxyConfig().getProxyName(), "DEFAULT_PROXY");
+    }
+
     protected ClientAdminService getClientAdminService() {
         return this.clientAdminService;
     }
@@ -180,6 +202,10 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
 
     public ProxyClientAdminActivity getProxyClientAdminActivity() {
         return this.proxyClientAdminActivity;
+    }
+
+    public ProxyClientAdminScopeRouter getProxyClientAdminScopeRouter() {
+        return this.proxyClientAdminScopeRouter;
     }
 
     public ProxyClientAdminEndpointHandler getProxyClientAdminEndpointHandler() {
