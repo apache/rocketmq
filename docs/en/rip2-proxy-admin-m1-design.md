@@ -62,9 +62,11 @@ operational expectations from normal messaging traffic. Keeping it in a
 separate service also lets Proxy register or gate admin endpoints independently
 from client-facing messaging RPCs.
 
-M1 should accept only `LOCAL_PROXY`. Requests for future scopes such as
-`ALL_PROXIES` or `PROXY_ID` should return `BAD_REQUEST` until cross-proxy
-semantics are designed and implemented.
+The first public API should accept only `LOCAL_PROXY` unless the community also
+accepts the internal cross-proxy coordinator semantics. Requests for future
+scopes such as `ALL_PROXIES` or `PROXY_ID` should return `BAD_REQUEST` from a
+public endpoint until that endpoint is explicitly wired to a reviewed peer
+transport and coordinator contract.
 
 Pagination tokens should be treated as opaque by public clients. The current
 local read model continues using the last returned client id internally because
@@ -623,7 +625,12 @@ Recommended implementation order after public API ownership is confirmed:
    stable local peer id; the default local-only `DEFAULT_PROXY` fallback is not
    used for coordinator scopes. The in-process peer client converts local executor
    failures into peer error responses so coordinator fan-out receives a bounded
-   peer result instead of an exception escaping the peer-client boundary.
+   peer result instead of an exception escaping the peer-client boundary. The
+   default local peer executor now delegates peer-local work directly to the
+   shared `ClientAdminService` instead of re-entering the public admin activity,
+   so coordinator fan-out reuses local read semantics without duplicating the
+   public admin authorization or metrics boundary. The older activity-backed
+   constructor remains available for tests and alternate embeddings.
 4. Gate `ALL_PROXIES` and `PROXY_ID` behind explicit config until peer discovery,
    timeout, retry, and partial-failure semantics are validated.
    This branch keeps those coordinator scopes disabled by default through
@@ -657,6 +664,12 @@ delegating to read-model queries while keeping the first admin surface
 consistent with existing management actions. When authorization is enabled, a
 missing authenticated subject is rejected at the admin authorization boundary
 and mapped to `UNAUTHORIZED`.
+For internal coordinator scopes, the scope router performs admin authorization
+once before peer discovery or fan-out. A denied `ALL_PROXIES` or `PROXY_ID`
+request therefore never reaches the peer client. When coordinator scopes are
+disabled by configuration, the router rejects those scopes as `BAD_REQUEST`
+before authorization or peer discovery, preserving the local-only gate while
+still treating the attempt as one public admin operation for metrics.
 Topic-level or group-level ACL can be discussed later if the community wants
 more granular visibility controls.
 
@@ -679,6 +692,15 @@ Metrics are recorded around the authorizing admin service, not only around the
 read-model service. This means ACL denials are reported as `UNAUTHORIZED`, while
 successful reads, bad requests, not-found responses, and unexpected internal
 errors are still counted once at the public admin operation boundary.
+
+Internal coordinator scopes use the same one-operation boundary at the scope
+router. The router records exactly one operation metric for a coordinator-scope
+request after mapping the final status to `OK`, `BAD_REQUEST`, `NOT_FOUND`,
+`UNAUTHORIZED`, or `INTERNAL_ERROR`. That includes the `BAD_REQUEST` result when
+cross-proxy scopes are disabled by configuration. Peer-local execution is
+deliberately routed through the shared `ClientAdminService`, not the public
+activity wrapper, so a coordinator request is not counted again as a nested
+local public admin request.
 
 Metric recording is best effort. Read-model mutation recorder failures and
 admin query metrics recorder failures are logged but do not mask successful
