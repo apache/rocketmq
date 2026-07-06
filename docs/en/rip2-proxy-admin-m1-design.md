@@ -507,9 +507,11 @@ The token must not expose raw implementation details to users. The current M1
 cross-proxy token format without wrapping it in a coordinator-owned token.
 This branch now includes an internal `cp1:` coordinator-token codec for that
 future contract. The codec carries the requested scope, filters, last emitted
-global `client_id`, per-peer page tokens, and creation time. It is not wired
-into the M1 `LOCAL_PROXY` endpoints and does not change the public local `v1:`
-token behavior.
+global `client_id`, per-peer page tokens, and creation time. The decoder rejects
+non-canonical `cp1:` inputs that are not the exact no-padding encoding emitted
+by the codec, so equivalent JSON payloads cannot create multiple public cursor
+representations. It is not wired into the M1 `LOCAL_PROXY` endpoints and does
+not change the public local `v1:` token behavior.
 
 When the coordinator builds a next token, it preserves a peer's own next-page
 token after that peer's returned page has been fully emitted. If the global

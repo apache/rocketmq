@@ -82,7 +82,7 @@ public final class ProxyClientAdminCoordinatorPageTokenCodec {
             if (payload == null) {
                 throw new IllegalArgumentException("Invalid coordinator page token: " + normalizedPublicPageToken);
             }
-            return ProxyClientAdminCoordinatorPageToken.newBuilder()
+            ProxyClientAdminCoordinatorPageToken coordinatorPageToken = ProxyClientAdminCoordinatorPageToken.newBuilder()
                 .setScope(parseScope(payload.getScope()))
                 .setGroup(payload.getGroup())
                 .setTopic(payload.getTopic())
@@ -92,6 +92,10 @@ public final class ProxyClientAdminCoordinatorPageTokenCodec {
                 .setCreateTimeMillis(payload.getCreateTimeMillis())
                 .setPeerPageTokens(payload.getPeerPageTokens())
                 .build();
+            if (!this.encode(coordinatorPageToken).equals(normalizedPublicPageToken)) {
+                throw new IllegalArgumentException("Invalid coordinator page token: " + normalizedPublicPageToken);
+            }
+            return coordinatorPageToken;
         } catch (RuntimeException e) {
             throw new IllegalArgumentException("Invalid coordinator page token: " + normalizedPublicPageToken, e);
         }

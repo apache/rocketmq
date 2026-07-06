@@ -18,6 +18,8 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
@@ -72,6 +74,20 @@ public class ProxyClientAdminCoordinatorPageTokenCodecTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid coordinator page token");
         assertThatThrownBy(() -> codec.decode("cp1:*"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid coordinator page token");
+    }
+
+    @Test
+    public void codecRejectsNonCanonicalCoordinatorTokens() {
+        ProxyClientAdminCoordinatorPageTokenCodec codec =
+            ProxyClientAdminCoordinatorPageTokenCodec.getInstance();
+        String tokenWithNonCanonicalJson = "cp1:" + Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString("{ \"scope\":\"ALL_PROXIES\", \"lastClientId\":\"client-a\" }"
+                .getBytes(StandardCharsets.UTF_8));
+
+        assertThatThrownBy(() -> codec.decode(tokenWithNonCanonicalJson))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid coordinator page token");
     }
