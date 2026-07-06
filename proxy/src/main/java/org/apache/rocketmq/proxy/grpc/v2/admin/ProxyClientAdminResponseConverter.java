@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 
@@ -58,8 +59,23 @@ public final class ProxyClientAdminResponseConverter {
         }
         return new ProxyClientAdminPageView(
             clients,
-            ProxyClientAdminPageTokenCodec.getInstance().encode(page.getNextPageToken())
+            encodePageToken(page.getNextPageToken())
         );
+    }
+
+    private static String encodePageToken(String pageToken) {
+        if (isCoordinatorPageToken(pageToken)) {
+            return StringUtils.trim(pageToken);
+        }
+        return ProxyClientAdminPageTokenCodec.getInstance().encode(pageToken);
+    }
+
+    private static boolean isCoordinatorPageToken(String pageToken) {
+        try {
+            return ProxyClientAdminCoordinatorPageTokenCodec.getInstance().decode(pageToken) != null;
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
     }
 
     private static List<String> sorted(Set<String> values) {

@@ -510,8 +510,10 @@ future contract. The codec carries the requested scope, filters, last emitted
 global `client_id`, per-peer page tokens, and creation time. The decoder rejects
 non-canonical `cp1:` inputs that are not the exact no-padding encoding emitted
 by the codec, so equivalent JSON payloads cannot create multiple public cursor
-representations. It is not wired into the M1 `LOCAL_PROXY` endpoints and does
-not change the public local `v1:` token behavior.
+representations. The response adapter preserves canonical `cp1:` tokens instead
+of wrapping them in the local read-model `v1:` token codec. It is not wired into
+the M1 `LOCAL_PROXY` endpoints and does not change the public local `v1:` token
+behavior.
 
 When the coordinator builds a next token, it preserves a peer's own next-page
 token after that peer's returned page has been fully emitted. If the global

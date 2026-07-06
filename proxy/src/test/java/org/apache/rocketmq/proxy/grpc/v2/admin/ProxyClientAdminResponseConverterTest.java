@@ -21,9 +21,12 @@ import apache.rocketmq.v2.ClientType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,6 +78,27 @@ public class ProxyClientAdminResponseConverterTest {
         assertThat(view.getClients())
             .extracting(ProxyClientAdminClientView::getClientId)
             .containsExactly("client-b", "client-a");
+    }
+
+    @Test
+    public void convertsPageToPublicViewAndPreservesCoordinatorPageToken() {
+        Map<String, String> peerPageTokens = new LinkedHashMap<>();
+        peerPageTokens.put("proxy-a", "client-a");
+        String coordinatorPageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setLastClientId("client-a")
+                .setPeerPageTokens(peerPageTokens)
+                .build()
+        );
+        ProxyClientPage page = new ProxyClientPage(
+            Collections.singletonList(client("client-a")),
+            coordinatorPageToken
+        );
+
+        ProxyClientAdminPageView view = ProxyClientAdminResponseConverter.toPageView(page);
+
+        assertThat(view.getNextPageToken()).isEqualTo(coordinatorPageToken);
     }
 
     @Test
