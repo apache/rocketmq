@@ -27,6 +27,7 @@ import io.grpc.stub.StreamObserver;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
@@ -37,6 +38,9 @@ import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminListClientsRequest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerClient;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerRequest;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerResponse;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminResult;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminScopeRouter;
 import org.apache.rocketmq.proxy.grpc.v2.admin.TimedProxyClientAdminPeerClient;
@@ -218,6 +222,22 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void initCreatesCrossProxyPeerClientThroughFactorySeam() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName(" proxy-a ");
+        ConfigurationManager.getProxyConfig().setProxyClientAdminPeerRequestTimeoutMillis(1234L);
+
+        TestableDefaultGrpcMessagingActivity activity =
+            new TestableDefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        assertThat(activity.capturedLocalProxyId).isEqualTo("proxy-a");
+        assertThat(activity.capturedAdminActivity).isSameAs(activity.getProxyClientAdminActivity());
+        assertThat(activity.capturedExecutorService).isSameAs(activity.proxyClientAdminPeerExecutor);
+        assertThat(activity.capturedTimeoutMillis).isEqualTo(1234L);
+        assertThat(activity.proxyClientAdminPeerClient).isSameAs(activity.createdPeerClient);
+    }
+
+    @Test
     public void initRequiresProxyNameWhenCrossProxyScopeEnabled() {
         ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
         ConfigurationManager.getProxyConfig().setProxyName(" ");
@@ -389,5 +409,41 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         Field field = AbstractStartAndShutdown.class.getDeclaredField("startAndShutdownList");
         field.setAccessible(true);
         return (List<StartAndShutdown>) field.get(activity);
+    }
+
+    private static class TestableDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        private ProxyClientAdminPeerClient createdPeerClient;
+        private String capturedLocalProxyId;
+        private ProxyClientAdminActivity capturedAdminActivity;
+        private ExecutorService capturedExecutorService;
+        private long capturedTimeoutMillis;
+
+        private TestableDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        @Override
+        protected ProxyClientAdminPeerClient createProxyClientAdminPeerClient(String localProxyId,
+            ProxyClientAdminActivity proxyClientAdminActivity, ExecutorService executorService, long timeoutMillis) {
+            this.capturedLocalProxyId = localProxyId;
+            this.capturedAdminActivity = proxyClientAdminActivity;
+            this.capturedExecutorService = executorService;
+            this.capturedTimeoutMillis = timeoutMillis;
+            this.createdPeerClient = new RecordingProxyClientAdminPeerClient();
+            return this.createdPeerClient;
+        }
+    }
+
+    private static class RecordingProxyClientAdminPeerClient implements ProxyClientAdminPeerClient {
+        @Override
+        public List<String> listProxyIds() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            throw new UnsupportedOperationException("not used");
+        }
     }
 }
