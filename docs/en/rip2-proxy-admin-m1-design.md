@@ -544,9 +544,12 @@ Recommended implementation order after public API ownership is confirmed:
    list queries fan out `ListClients`, `ListClientsByGroup`, and
    `ListClientsByTopic` to the peer-client boundary, merge peer pages by stable
    `client_id` order, fail fast on peer errors, and store per-peer cursors in
-   the internal `cp1:` coordinator token. `PROXY_ID` list queries and
-   `DescribeClient` route directly to the requested proxy id, reuse the same
-   peer error mapping, and preserve the target peer's page token. The
+   the internal `cp1:` coordinator token. `DescribeClient` with `ALL_PROXIES`
+   scans discovered peers in stable proxy-id order, ignores per-peer
+   `NOT_FOUND` responses until a match is found, and returns `NOT_FOUND` only
+   after all peers miss. `PROXY_ID` list queries and `DescribeClient` route
+   directly to the requested proxy id, reuse the same peer error mapping, and
+   preserve the target peer's page token. The
    coordinator trims, validates, and sorts discovered peer ids before fan-out,
    rejects blank or duplicate peer ids as internal discovery errors, rejects
    coordinator page tokens that reference peers outside the current discovery

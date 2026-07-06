@@ -85,13 +85,15 @@ public class ProxyClientAdminCoordinatorService {
     public ProxyClientAdminResult<ProxyClientInfo> describeClient(ProxyContext ctx,
         ProxyClientAdminDescribeClientRequest request) {
         return this.execute(() -> {
-            ProxyClientAdminDescribeClientRequest requiredRequest = this.requireProxyIdDescribeRequest(request);
-            ProxyClientAdminPeerResponse<?> response = this.peerClient.execute(
-                ctx,
-                requiredRequest.getProxyId(),
-                this.toPeerDescribeRequest(requiredRequest.getClientId())
-            );
-            return this.peerInfoResult(requiredRequest.getProxyId(), response);
+            ProxyClientAdminDescribeClientRequest requiredRequest = this.requireCoordinatorDescribeRequest(request);
+            switch (requiredRequest.getScope()) {
+                case ALL_PROXIES:
+                    return this.describeClientAllProxies0(ctx, requiredRequest);
+                case PROXY_ID:
+                    return this.describeClientProxyId0(ctx, requiredRequest);
+                default:
+                    throw this.unsupportedCoordinatorScope(requiredRequest.getScope());
+            }
         });
     }
 
@@ -187,6 +189,38 @@ public class ProxyClientAdminCoordinatorService {
         return this.peerPageResult(proxyId, response);
     }
 
+    private ProxyClientAdminResult<ProxyClientInfo> describeClientAllProxies0(ProxyContext ctx,
+        ProxyClientAdminDescribeClientRequest request) {
+        String clientId = this.requireClientId(request.getClientId());
+        List<String> proxyIds = this.requirePeerProxyIds(this.peerClient.listProxyIds());
+        for (String proxyId : proxyIds) {
+            ProxyClientAdminPeerResponse<?> response = this.peerClient.execute(
+                ctx,
+                proxyId,
+                this.toPeerDescribeRequest(clientId)
+            );
+            ProxyClientAdminResult<ProxyClientInfo> peerInfoResult = this.peerInfoResult(proxyId, response);
+            if (peerInfoResult.getStatus().getCode() == Code.OK) {
+                return peerInfoResult;
+            }
+            if (peerInfoResult.getStatus().getCode() != Code.NOT_FOUND) {
+                return peerInfoResult;
+            }
+        }
+        return this.errorResult(Code.NOT_FOUND, "Client not found: " + clientId);
+    }
+
+    private ProxyClientAdminResult<ProxyClientInfo> describeClientProxyId0(ProxyContext ctx,
+        ProxyClientAdminDescribeClientRequest request) {
+        String proxyId = this.requireProxyId(request.getProxyId());
+        ProxyClientAdminPeerResponse<?> response = this.peerClient.execute(
+            ctx,
+            proxyId,
+            this.toPeerDescribeRequest(request.getClientId())
+        );
+        return this.peerInfoResult(proxyId, response);
+    }
+
     private ProxyClientQuery requireCoordinatorListQuery(ProxyClientQuery query) {
         ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
         if (effectiveQuery.getScope() != ProxyClientScope.ALL_PROXIES
@@ -233,16 +267,16 @@ public class ProxyClientAdminCoordinatorService {
         return normalizedTopic;
     }
 
-    private ProxyClientAdminDescribeClientRequest requireProxyIdDescribeRequest(
+    private ProxyClientAdminDescribeClientRequest requireCoordinatorDescribeRequest(
         ProxyClientAdminDescribeClientRequest request) {
         if (request == null) {
             throw new IllegalArgumentException("request is required");
         }
-        if (request.getScope() != ProxyClientScope.PROXY_ID) {
+        if (request.getScope() != ProxyClientScope.ALL_PROXIES
+            && request.getScope() != ProxyClientScope.PROXY_ID) {
             throw new IllegalArgumentException("Unsupported coordinator proxy scope: " + request.getScope());
         }
         this.requireClientId(request.getClientId());
-        this.requireProxyId(request.getProxyId());
         return request;
     }
 

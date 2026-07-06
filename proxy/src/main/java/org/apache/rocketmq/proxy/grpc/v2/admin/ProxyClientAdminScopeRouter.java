@@ -80,6 +80,9 @@ public class ProxyClientAdminScopeRouter {
             switch (this.effectiveScope(requiredRequest.getScope())) {
                 case LOCAL_PROXY:
                     return this.localActivity.describeClient(ctx, requiredRequest);
+                case ALL_PROXIES:
+                    this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
+                    return this.coordinatorService.describeClient(ctx, requiredRequest);
                 case PROXY_ID:
                     this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                     return this.coordinatorService.describeClient(ctx, requiredRequest);

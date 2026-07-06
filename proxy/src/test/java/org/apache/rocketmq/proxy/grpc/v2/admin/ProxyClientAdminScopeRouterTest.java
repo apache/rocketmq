@@ -170,6 +170,27 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void describeClientAllProxiesDelegatesToCoordinator() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(activity, coordinator);
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setClientId("client-a")
+            .build();
+        ProxyClientInfo clientInfo = client("client-a");
+        when(coordinator.describeClient(ctx, request)).thenReturn(okResult(clientInfo));
+
+        ProxyClientAdminResult<ProxyClientInfo> result = router.describeClient(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody()).isSameAs(clientInfo);
+        verify(coordinator).describeClient(ctx, request);
+        verify(activity, never()).describeClient(any(), any(ProxyClientAdminDescribeClientRequest.class));
+    }
+
+    @Test
     public void listClientsByGroupAllProxiesDelegatesToCoordinator() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);

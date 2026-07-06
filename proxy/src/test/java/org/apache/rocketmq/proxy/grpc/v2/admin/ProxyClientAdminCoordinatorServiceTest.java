@@ -438,6 +438,33 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void describeClientAllProxiesScansPeersUntilClientIsFound() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-b", "proxy-a");
+        peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.error("proxy-a", "NOT_FOUND",
+            "client missing on proxy-a"));
+        peerClient.addResponse("proxy-b", ProxyClientAdminPeerResponse.success("proxy-b", client("client-b")));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setClientId(" client-b ")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientInfo> result = service.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        assertThat(result.getBody().getClientId()).isEqualTo("client-b");
+        assertThat(peerClient.executedProxyIds()).containsExactly("proxy-a", "proxy-b");
+        ProxyClientAdminPeerRequest firstRequest = peerClient.requests("proxy-a").get(0);
+        assertThat(firstRequest.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT);
+        assertThat(firstRequest.getClientId()).isEqualTo("client-b");
+        assertThat(firstRequest.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        ProxyClientAdminPeerRequest secondRequest = peerClient.requests("proxy-b").get(0);
+        assertThat(secondRequest.getOperation()).isEqualTo(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT);
+        assertThat(secondRequest.getClientId()).isEqualTo("client-b");
+        assertThat(secondRequest.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+    }
+
+    @Test
     public void describeClientProxyIdRejectsMissingProxyId() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
         ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
