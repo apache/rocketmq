@@ -190,10 +190,11 @@ public class ProxyClientAdminCoordinatorService {
     private ProxyClientAdminResult<ProxyClientPage> listClientsProxyId0(ProxyContext ctx, ProxyClientQuery query,
         ProxyClientAdminPeerOperation operation) {
         String proxyId = this.requireProxyId(query.getProxyId());
+        String peerPageToken = ProxyClientAdminPageTokenCodec.getInstance().decode(query.getPageToken());
         ProxyClientAdminPeerResponse<?> response = this.peerClient.execute(
             ctx,
             proxyId,
-            this.toPeerRequest(query, query.getPageToken(), operation)
+            this.toPeerRequest(query, peerPageToken, operation)
         );
         return this.peerPageResult(proxyId, response);
     }

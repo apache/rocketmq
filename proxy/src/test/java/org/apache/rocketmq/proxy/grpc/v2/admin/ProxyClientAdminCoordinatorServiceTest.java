@@ -520,6 +520,32 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsProxyIdRejectsCoordinatorPageTokenBeforePeerCall() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-b")), ""));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        String coordinatorPageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setLastClientId("client-a")
+                .putPeerPageToken("proxy-a", "client-a")
+                .build()
+        );
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .setPageToken(coordinatorPageToken)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Invalid page token").contains("cp1:");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.requests("proxy-a")).isEmpty();
+    }
+
+    @Test
     public void listClientsByGroupAllProxiesFansOutGroupRequestAndMergesResults() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
         peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));
