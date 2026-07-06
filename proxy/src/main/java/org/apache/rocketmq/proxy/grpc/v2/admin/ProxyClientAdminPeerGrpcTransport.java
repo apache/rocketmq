@@ -24,6 +24,7 @@ import io.grpc.Channel;
 import io.grpc.ClientInterceptors;
 import io.grpc.Context;
 import io.grpc.Metadata;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ClientCalls;
 import io.grpc.stub.MetadataUtils;
 import java.util.ArrayList;
@@ -109,8 +110,8 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
         } catch (Throwable t) {
             return this.encodeError(
                 requiredProxyId,
-                Code.INTERNAL_SERVER_ERROR,
-                StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName())
+                this.statusCode(t),
+                this.statusMessage(t)
             );
         }
     }
@@ -122,6 +123,43 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
             message
         );
         return this.codec.encodePageResponse(response);
+    }
+
+    private Code statusCode(Throwable t) {
+        if (!(t instanceof StatusRuntimeException)) {
+            return Code.INTERNAL_SERVER_ERROR;
+        }
+        StatusRuntimeException statusRuntimeException = (StatusRuntimeException) t;
+        switch (statusRuntimeException.getStatus().getCode()) {
+            case INVALID_ARGUMENT:
+            case FAILED_PRECONDITION:
+            case OUT_OF_RANGE:
+                return Code.BAD_REQUEST;
+            case NOT_FOUND:
+                return Code.NOT_FOUND;
+            case UNAUTHENTICATED:
+            case PERMISSION_DENIED:
+                return Code.UNAUTHORIZED;
+            case RESOURCE_EXHAUSTED:
+                return Code.TOO_MANY_REQUESTS;
+            case UNIMPLEMENTED:
+                return Code.NOT_IMPLEMENTED;
+            case DEADLINE_EXCEEDED:
+                return Code.PROXY_TIMEOUT;
+            default:
+                return Code.INTERNAL_SERVER_ERROR;
+        }
+    }
+
+    private String statusMessage(Throwable t) {
+        if (t instanceof StatusRuntimeException) {
+            StatusRuntimeException statusRuntimeException = (StatusRuntimeException) t;
+            String description = StringUtils.trimToNull(statusRuntimeException.getStatus().getDescription());
+            if (description != null) {
+                return description;
+            }
+        }
+        return StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName());
     }
 
     private Metadata buildMetadata(ProxyContext ctx) {

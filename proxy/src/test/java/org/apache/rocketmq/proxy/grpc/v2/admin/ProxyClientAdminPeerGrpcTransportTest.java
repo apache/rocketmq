@@ -24,6 +24,8 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
 import io.grpc.Server;
 import io.grpc.ServerInterceptors;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -169,6 +171,18 @@ public class ProxyClientAdminPeerGrpcTransportTest {
     }
 
     @Test
+    public void grpcTransportMapsGrpcStatusFailuresToEncodedPeerError() {
+        assertGrpcStatusMapsToPeerError(Status.PERMISSION_DENIED.withDescription("denied"),
+            Code.UNAUTHORIZED, "denied");
+        assertGrpcStatusMapsToPeerError(Status.UNAUTHENTICATED.withDescription("missing credentials"),
+            Code.UNAUTHORIZED, "missing credentials");
+        assertGrpcStatusMapsToPeerError(Status.INVALID_ARGUMENT.withDescription("bad request"),
+            Code.BAD_REQUEST, "bad request");
+        assertGrpcStatusMapsToPeerError(Status.NOT_FOUND.withDescription("missing proxy"),
+            Code.NOT_FOUND, "missing proxy");
+    }
+
+    @Test
     public void grpcTransportRejectsInvalidChannelMap() {
         assertThatThrownBy(() -> new ProxyClientAdminPeerGrpcTransport(null, new RecordingInvoker("{}")))
             .isInstanceOf(IllegalArgumentException.class)
@@ -215,6 +229,27 @@ public class ProxyClientAdminPeerGrpcTransportTest {
         return ProxyContext.create()
             .setRemoteAddress("127.0.0.1:8080")
             .setLocalAddress("127.0.0.1:8081");
+    }
+
+    private static void assertGrpcStatusMapsToPeerError(Status grpcStatus, Code expectedCode,
+        String expectedMessage) {
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", mock(Channel.class));
+        ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(
+            channels,
+            (channel, requestMessage, metadata) -> {
+                throw new StatusRuntimeException(grpcStatus);
+            }
+        );
+
+        String responseMessage = transport.execute(proxyContext(), "proxy-a", "{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getErrorCode()).isEqualTo(expectedCode.name());
+        assertThat(response.getErrorMessage()).contains(expectedMessage);
     }
 
     private static class RecordingInvoker implements ProxyClientAdminPeerGrpcTransport.Invoker {
