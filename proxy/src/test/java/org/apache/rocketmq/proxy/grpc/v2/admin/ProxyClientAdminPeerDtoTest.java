@@ -266,4 +266,15 @@ public class ProxyClientAdminPeerDtoTest {
         assertThat(error.getErrorMessage()).startsWith(StringUtils.repeat("a", 100));
         assertThat(error.getErrorMessage()).endsWith("...(truncated)");
     }
+
+    @Test
+    public void peerResponseRejectsOverlongErrorCodes() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerResponse.error(
+            "proxy-a",
+            StringUtils.repeat("A", 256),
+            "missing client"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("errorCode length exceeds 255");
+    }
 }

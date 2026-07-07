@@ -215,9 +215,10 @@ small and tested boundary to call:
   and peer error responses must remain status-only without page/client bodies.
   Raw peer JSON request and response messages are capped at 1 MiB before JSON
   parsing so malformed or oversized peer payloads fail at the transport boundary.
-  Peer error messages are capped at 4096 characters at the peer-response DTO
-  boundary and use a fixed `...(truncated)` suffix when shortened, so local
-  exception text cannot expand an otherwise bounded peer error payload.
+  Peer error codes are capped at 255 characters and peer error messages are
+  capped at 4096 characters at the peer-response DTO boundary. Error messages
+  use a fixed `...(truncated)` suffix when shortened, so local exception text
+  cannot expand an otherwise bounded peer error payload.
   The gRPC peer transport validates outbound request messages before invoking a
   peer and validates inbound response messages before returning them to the
   message client.
@@ -1000,6 +1001,7 @@ Internal adapter tests cover:
 - static peer gRPC target rejection for overlong proxy ids and host names.
 - in-process peer transport request/response bounds around local handler
   invocation.
+- peer error response code length rejection before peer payload encoding.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 

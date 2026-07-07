@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientAdminPeerResponse<T> {
+    private static final int MAX_ERROR_CODE_LENGTH = 255;
     private static final int MAX_ERROR_MESSAGE_LENGTH = 4096;
     private static final String TRUNCATED_ERROR_MESSAGE_SUFFIX = "...(truncated)";
 
@@ -34,7 +35,7 @@ public class ProxyClientAdminPeerResponse<T> {
         this.proxyId = requireProxyId(proxyId);
         this.success = success;
         this.body = body;
-        this.errorCode = StringUtils.trimToEmpty(errorCode);
+        this.errorCode = normalizeErrorCode(success, errorCode);
         this.errorMessage = normalizeErrorMessage(errorMessage);
     }
 
@@ -46,11 +47,7 @@ public class ProxyClientAdminPeerResponse<T> {
     }
 
     public static <T> ProxyClientAdminPeerResponse<T> error(String proxyId, String errorCode, String errorMessage) {
-        String normalizedErrorCode = StringUtils.trimToNull(errorCode);
-        if (normalizedErrorCode == null) {
-            throw new IllegalArgumentException("errorCode is required");
-        }
-        return new ProxyClientAdminPeerResponse<>(proxyId, false, null, normalizedErrorCode, errorMessage);
+        return new ProxyClientAdminPeerResponse<>(proxyId, false, null, errorCode, errorMessage);
     }
 
     public String getProxyId() {
@@ -79,6 +76,20 @@ public class ProxyClientAdminPeerResponse<T> {
             throw new IllegalArgumentException("proxyId is required");
         }
         return normalizedProxyId;
+    }
+
+    private static String normalizeErrorCode(boolean success, String errorCode) {
+        if (success) {
+            return "";
+        }
+        String normalizedErrorCode = StringUtils.trimToNull(errorCode);
+        if (normalizedErrorCode == null) {
+            throw new IllegalArgumentException("errorCode is required");
+        }
+        if (normalizedErrorCode.length() > MAX_ERROR_CODE_LENGTH) {
+            throw new IllegalArgumentException("errorCode length exceeds " + MAX_ERROR_CODE_LENGTH);
+        }
+        return normalizedErrorCode;
     }
 
     private static String normalizeErrorMessage(String errorMessage) {
