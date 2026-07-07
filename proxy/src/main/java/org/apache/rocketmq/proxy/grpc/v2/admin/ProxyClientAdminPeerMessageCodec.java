@@ -146,6 +146,9 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (payload.success == null) {
             throw new IllegalArgumentException("peer response success flag is required");
         }
+        if (!Boolean.TRUE.equals(payload.success) && (payload.page != null || payload.client != null)) {
+            throw new IllegalArgumentException("peer error response must not include body");
+        }
         return payload;
     }
 

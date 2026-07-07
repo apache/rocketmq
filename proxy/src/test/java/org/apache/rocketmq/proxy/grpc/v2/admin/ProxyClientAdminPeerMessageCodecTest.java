@@ -116,6 +116,28 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void pageResponseCodecRejectsErrorResponseWithPageBody() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":false,"
+            + "\"errorCode\":\"NOT_FOUND\",\"errorMessage\":\"missing\","
+            + "\"page\":{\"clients\":[],\"nextPageToken\":\"\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer error response must not include body");
+    }
+
+    @Test
+    public void clientResponseCodecRejectsErrorResponseWithClientBody() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":false,"
+            + "\"errorCode\":\"NOT_FOUND\",\"errorMessage\":\"missing\","
+            + "\"client\":{\"clientId\":\"client-a\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeClientResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer error response must not include body");
+    }
+
+    @Test
     public void pageResponseCodecRejectsSuccessfulResponseWithClientBody() {
         String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
             + "\"page\":{\"clients\":[],\"nextPageToken\":\"\"},"

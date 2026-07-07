@@ -195,6 +195,8 @@ small and tested boundary to call:
   page/client peer responses as JSON messages. This is not the public admin API;
   it is a proto-free internal transport payload so the coordinator and peer
   executor can be tested and wired before `rocketmq-apis` ownership is settled.
+  Successful peer responses must carry exactly the expected page or client body,
+  and peer error responses must remain status-only without page/client bodies.
 - `ProxyClientAdminPeerMessageClient` adapts the object-level peer-client
   contract to a raw message transport. `ProxyClientAdminPeerMessageHandler`
   adapts raw messages back to the local peer executor. The in-process message
