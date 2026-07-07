@@ -126,12 +126,55 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
      */
     private final AtomicInteger extraSearchCommitLogFilesForRecovery;
 
+    /**
+     * Construct the combined ConsumeQueue store from configuration.
+     *
+     * <p>Builds the instance in five phases:
+     * <ol>
+     *   <li>Capture messageStore/messageStoreConfig and seed
+     *   {@code extraSearchCommitLogFilesForRecovery} from
+     *   {@code combineCQMaxExtraSearchCommitLogFiles}.</li>
+     *   <li>Instantiate the file-based and/or RocksDB inner stores based
+     *   on {@code combineCQLoadingCQTypes}, appending each to
+     *   {@link #innerConsumeQueueStoreList} (require at least one).</li>
+     *   <li>Resolve the two role references:
+     *   {@code assignOffsetStore} from
+     *   {@code combineAssignOffsetCQType} and {@code currentReadStore}
+     *   from {@code combineCQPreferCQType} — both must point to a
+     *   loaded inner store.</li>
+     *   <li>Validate cross-flag consistency (LMQ + offset store, selective
+     *   double-write + offset/read store) — see the four {@code throw}
+     *   guards below.</li>
+     *   <li>Log the resolved configuration.</li>
+     * </ol>
+     *
+     * <p>The consistency guards are:
+     * <ul>
+     *   <li>LMQ with RocksDB CQ requires the RocksDB store to be
+     *   loaded.</li>
+     *   <li>LMQ with RocksDB CQ forces the file-based store to own
+     *   offset assignment (since the file-based store has the
+     *   authoritative non-Lite topic offsets).</li>
+     *   <li>Selective double-write forces the file-based store to own
+     *   both offset assignment and reads (since non-Lite topics only
+     *   live in the file-based store).</li>
+     * </ul>
+     *
+     * @param messageStore the owning message store, used to construct
+     *                     each inner store with shared configuration
+     * @throws IllegalArgumentException if configuration is invalid or
+     *                                  missing
+     */
     public CombineConsumeQueueStore(DefaultMessageStore messageStore) {
+        // Phase 1: capture dependencies and the recovery budget.
         this.messageStore = messageStore;
         this.messageStoreConfig = messageStore.getMessageStoreConfig();
         extraSearchCommitLogFilesForRecovery =
             new AtomicInteger(messageStoreConfig.getCombineCQMaxExtraSearchCommitLogFiles());
 
+        // Phase 2: build inner stores based on combineCQLoadingCQTypes.
+        // Each loaded store is added to innerConsumeQueueStoreList for
+        // fan-out operations.
         Set<StoreType> loadingConsumeQueueTypeSet = StoreType.fromString(messageStoreConfig.getCombineCQLoadingCQTypes());
         if (loadingConsumeQueueTypeSet.isEmpty()) {
             throw new IllegalArgumentException("CombineConsumeQueueStore loadingCQTypes is empty");
@@ -155,6 +198,8 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
             throw new IllegalArgumentException("CombineConsumeQueueStore loadingCQTypes is empty");
         }
 
+        // Phase 3: resolve the two role references from configuration.
+        // Each must point to a loaded inner store.
         assignOffsetStore = getInnerStoreByString(messageStoreConfig.getCombineAssignOffsetCQType());
         if (assignOffsetStore == null) {
             log.error("CombineConsumeQueueStore chooseAssignOffsetStore fail, config={}",
@@ -169,6 +214,9 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
             throw new IllegalArgumentException("CombineConsumeQueue choosePreferCQ fail");
         }
 
+        // Phase 4: enforce cross-flag consistency.
+        // Each guard rejects an unsupported flag combination with a
+        // clear startup-time error instead of a runtime failure.
         if (messageStoreConfig.isCombineCQUseRocksdbForLmq() && null == rocksDBConsumeQueueStore) {
             throw new IllegalArgumentException("CombineConsumeQueueStore rocksdbCQ is not ready for LMQ");
         }
@@ -185,6 +233,7 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
             throw new IllegalArgumentException("CombineConsumeQueueStore maybe incorrect config");
         }
 
+        // Phase 5: log the resolved configuration for diagnostics.
         log.info("CombineConsumeQueueStore init, consumeQueueStoreList={}, currentReadStore={}, assignOffsetStore={}, combineCQUseRocksdbForLmq={}",
             innerConsumeQueueStoreList, currentReadStore.getClass().getSimpleName(),
             assignOffsetStore.getClass().getSimpleName(), messageStoreConfig.isCombineCQUseRocksdbForLmq());
