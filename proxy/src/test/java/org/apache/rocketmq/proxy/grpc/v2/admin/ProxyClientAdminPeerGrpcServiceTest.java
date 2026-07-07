@@ -135,6 +135,23 @@ public class ProxyClientAdminPeerGrpcServiceTest {
     }
 
     @Test
+    public void executeRejectsOverlongHandlerResponseBeforeReturning() {
+        Metadata headers = new Metadata();
+        ProxyContext ctx = ProxyContext.create();
+        StringValue request = StringValue.of("{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminContextFactory contextFactory = mock(ProxyClientAdminContextFactory.class);
+        ProxyClientAdminPeerMessageHandler messageHandler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(contextFactory.create(headers, request)).thenReturn(ctx);
+        when(messageHandler.execute(ctx, request.getValue()))
+            .thenReturn(StringUtils.repeat("a", 1024 * 1024 + 1));
+        ProxyClientAdminPeerGrpcService service = newService(contextFactory, messageHandler);
+
+        assertThatThrownBy(() -> service.execute(headers, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer response message length exceeds");
+    }
+
+    @Test
     public void asyncExecuteRestoresInterruptWhenHandlerIsInterrupted() throws Exception {
         ProxyContext ctx = ProxyContext.create();
         StringValue request = StringValue.of("{\"operation\":\"LIST_CLIENTS\"}");

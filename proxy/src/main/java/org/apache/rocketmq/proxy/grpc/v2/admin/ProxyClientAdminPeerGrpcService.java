@@ -82,6 +82,7 @@ public class ProxyClientAdminPeerGrpcService implements BindableService {
         if (responseMessage == null) {
             throw new IllegalStateException("peer response message is required");
         }
+        this.messageCodec.requireResponseMessage(responseMessage);
         return StringValue.of(responseMessage);
     }
 
