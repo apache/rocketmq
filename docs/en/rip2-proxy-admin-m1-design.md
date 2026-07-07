@@ -799,7 +799,9 @@ statuses become `UNAUTHORIZED`, resource exhaustion becomes `TOO_MANY_REQUESTS`,
 unimplemented methods become `NOT_IMPLEMENTED`, and peer deadlines or
 unavailable peer channels become `PROXY_TIMEOUT`. Coordinator peer-discovery
 timeouts also surface as `PROXY_TIMEOUT` instead of a generic internal error.
-Unknown transport failures remain `INTERNAL_SERVER_ERROR`.
+The admin gRPC error writer preserves explicit gRPC status exceptions before
+they reach the transport mapper. Unknown transport failures remain
+`INTERNAL_SERVER_ERROR`.
 
 ## Compatibility
 

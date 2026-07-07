@@ -37,6 +37,17 @@ public class ProxyClientAdminGrpcErrorWriterTest {
         assertThat(error.getStatus().getDescription()).contains("proxy admin grpc error is required");
     }
 
+    @Test
+    public void writePreservesExplicitGrpcStatusRuntimeException() {
+        CapturingStreamObserver responseObserver = new CapturingStreamObserver();
+        StatusRuntimeException expectedError =
+            io.grpc.Status.INVALID_ARGUMENT.withDescription("bad peer request").asRuntimeException();
+
+        ProxyClientAdminGrpcErrorWriter.write(responseObserver, expectedError);
+
+        assertThat(responseObserver.error).isSameAs(expectedError);
+    }
+
     private static class CapturingStreamObserver implements StreamObserver<Object> {
         private Throwable error;
 

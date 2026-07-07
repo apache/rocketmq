@@ -25,6 +25,10 @@ final class ProxyClientAdminGrpcErrorWriter {
 
     static <R> void write(StreamObserver<R> responseObserver, Throwable t) {
         Throwable cause = t == null ? new IllegalStateException("proxy admin grpc error is required") : t;
+        if (cause instanceof io.grpc.StatusRuntimeException || cause instanceof io.grpc.StatusException) {
+            responseObserver.onError(cause);
+            return;
+        }
         io.grpc.Status status = io.grpc.Status.INTERNAL.withCause(cause);
         if (cause.getMessage() != null && !cause.getMessage().isEmpty()) {
             status = status.withDescription(cause.getMessage());
