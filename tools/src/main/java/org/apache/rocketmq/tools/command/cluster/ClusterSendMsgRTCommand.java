@@ -36,7 +36,7 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class CLusterSendMsgRTCommand implements SubCommand {
+public class ClusterSendMsgRTCommand implements SubCommand {
 
     public static void main(String[] args) {
     }
