@@ -276,6 +276,22 @@ public class ProxyClientAdminPeerGrpcTransportTest {
     }
 
     @Test
+    public void grpcTransportSendsNormalizedRequestMessageToPeer() {
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", mock(Channel.class));
+        RecordingInvoker invoker = new RecordingInvoker(ProxyClientAdminPeerMessageCodec.getInstance()
+            .encodePageResponse(ProxyClientAdminPeerResponse.success(
+                "proxy-a",
+                new ProxyClientPage(Collections.emptyList(), "")
+            )));
+        ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(channels, invoker);
+
+        transport.execute(proxyContext(), " proxy-a ", " {\"operation\":\"LIST_CLIENTS\"} ");
+
+        assertThat(invoker.requestMessage).isEqualTo("{\"operation\":\"LIST_CLIENTS\"}");
+    }
+
+    @Test
     public void grpcTransportMapsGrpcStatusFailuresToEncodedPeerError() {
         assertGrpcStatusMapsToPeerError(Status.PERMISSION_DENIED.withDescription("denied"),
             Code.UNAUTHORIZED, "denied");

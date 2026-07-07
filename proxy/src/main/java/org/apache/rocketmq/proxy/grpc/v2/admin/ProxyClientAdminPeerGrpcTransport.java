@@ -105,7 +105,7 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
         }
         try {
             String responseMessage =
-                StringUtils.trimToNull(this.invoker.execute(channel, requestMessage, this.buildMetadata(ctx)));
+                StringUtils.trimToNull(this.invoker.execute(channel, requiredRequestMessage, this.buildMetadata(ctx)));
             if (responseMessage == null) {
                 return this.encodeError(requiredProxyId, Code.INTERNAL_SERVER_ERROR,
                     "peer response message is required");
