@@ -317,28 +317,28 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
      * An empty request list is a no-op that returns {@code true}.
      */
     private boolean putMessagePosition0(List<DispatchRequest> requests) {
-        // Block reload/reconfiguration while we are writing.
+        // if rocksdb is not ready, return false.
         if (!this.rocksDBStorage.hold()) {
             return false;
         }
 
         try (WriteBatch writeBatch = new WriteBatch()) {
             final int size = requests.size();
-            if (size == 0) {
+            if (size == 0) { // should move size check outside
                 return true;
             }
+
             long maxPhyOffset = 0;
-            // Iterate in reverse: older messages are appended to the
-            // batch first, so the offset-table update sees the largest
-            // (most recent) offset when written last.
+            // Iterate in reverse: older messages are appended to the batch first,
+            // so the offset-table update sees the largest(most recent) offset when written last.
             for (int i = size - 1; i >= 0; i--) {
                 final DispatchRequest request = requests.get(i);
                 DispatchEntry entry = DispatchEntry.from(request);
+
                 dispatch(entry, writeBatch);            // default CF
                 dispatchLMQ(request, writeBatch);       // LMQ fan-out (if applicable)
 
-                // Track the largest CommitLog offset covered by this batch
-                // for the offset-table max-phy-offset entry.
+                // update max commitLog offset
                 final int msgSize = request.getMsgSize();
                 final long phyOffset = request.getCommitLogOffset();
                 if (phyOffset + msgSize >= maxPhyOffset) {
@@ -346,25 +346,22 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 }
             }
 
-            // Stage offset-table updates into the same WriteBatch so the
-            // CQ entries and the offsets land atomically.
+            // update consume queue offset
             this.rocksDBConsumeQueueOffsetTable.putMaxPhyAndCqOffset(tempTopicQueueMaxOffsetMap, writeBatch, maxPhyOffset);
 
             // Atomic commit (single fsync for both CFs).
             this.rocksDBStorage.batchPut(writeBatch);
 
-            // After the commit, update the in-memory cache and wake
-            // long-polling consumers. notifyMessageArriveAndClear also
-            // clears the request list.
+            // After the commit, update the in-memory cache and wake long-polling consumers.
+            // notifyMessageArriveAndClear also clears the request list.
             this.rocksDBConsumeQueueOffsetTable.putHeapMaxCqOffset(tempTopicQueueMaxOffsetMap);
+
             notifyMessageArriveAndClear(requests);
             return true;
         } catch (Exception e) {
             ERROR_LOG.error("putMessagePosition0 failed.", e);
             return false;
         } finally {
-            // Reset per-batch state regardless of outcome so the next
-            // batch reuses the buffer pool from the start.
             tempTopicQueueMaxOffsetMap.clear();
             consumeQueueByteBufferCacheIndex = 0;
             offsetBufferCacheIndex = 0;
