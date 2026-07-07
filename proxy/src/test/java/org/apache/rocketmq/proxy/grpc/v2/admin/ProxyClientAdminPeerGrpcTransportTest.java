@@ -247,6 +247,12 @@ public class ProxyClientAdminPeerGrpcTransportTest {
     }
 
     @Test
+    public void grpcTransportMapsUnavailablePeerToProxyTimeout() {
+        assertGrpcStatusMapsToPeerError(Status.UNAVAILABLE.withDescription("peer unavailable"),
+            Code.PROXY_TIMEOUT, "peer unavailable");
+    }
+
+    @Test
     public void grpcTransportRejectsInvalidChannelMap() {
         assertThatThrownBy(() -> new ProxyClientAdminPeerGrpcTransport(null, new RecordingInvoker("{}")))
             .isInstanceOf(IllegalArgumentException.class)

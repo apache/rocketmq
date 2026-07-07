@@ -148,6 +148,7 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
                 return Code.TOO_MANY_REQUESTS;
             case UNIMPLEMENTED:
                 return Code.NOT_IMPLEMENTED;
+            case UNAVAILABLE:
             case DEADLINE_EXCEEDED:
                 return Code.PROXY_TIMEOUT;
             default:
