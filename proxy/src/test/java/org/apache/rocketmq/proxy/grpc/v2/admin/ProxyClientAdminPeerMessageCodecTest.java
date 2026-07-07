@@ -171,6 +171,16 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void clientResponseCodecRejectsClientWithOverlongProxyId() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
+            + "\"client\":{\"clientId\":\"client-a\",\"proxyId\":\"" + StringUtils.repeat("p", 256) + "\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeClientResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer client proxyId length exceeds 255");
+    }
+
+    @Test
     public void pageResponseCodecRejectsMalformedJsonAsResponseBoundaryError() {
         assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse("{"))
             .isInstanceOf(IllegalArgumentException.class)

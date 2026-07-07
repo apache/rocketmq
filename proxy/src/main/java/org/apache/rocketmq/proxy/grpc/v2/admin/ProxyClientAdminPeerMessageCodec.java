@@ -300,10 +300,23 @@ public final class ProxyClientAdminPeerMessageCodec {
             payload.remoteAddress,
             payload.localAddress,
             payload.clientVersion,
-            payload.proxyId,
+            this.normalizePeerClientProxyId(payload.proxyId),
             payload.connectTimeMillis,
             payload.lastActiveTimeMillis
         );
+    }
+
+    private String normalizePeerClientProxyId(String proxyId) {
+        String normalizedProxyId = StringUtils.trimToNull(proxyId);
+        if (normalizedProxyId == null) {
+            return null;
+        }
+        if (normalizedProxyId.length() > MAX_PEER_RESPONSE_PROXY_ID_LENGTH) {
+            throw new IllegalArgumentException(
+                "peer client proxyId length exceeds " + MAX_PEER_RESPONSE_PROXY_ID_LENGTH
+            );
+        }
+        return normalizedProxyId;
     }
 
     private static List<String> sortedList(Set<String> values) {
