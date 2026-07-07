@@ -76,6 +76,10 @@ public final class ProxyClientAdminPeerMessageCodec {
             .build();
     }
 
+    public String requireRequestMessage(String message) {
+        return requireMessage(message, "peer request message");
+    }
+
     private RequestPayload parseRequestPayload(String message) {
         try {
             return JSON.parseObject(message, RequestPayload.class);
