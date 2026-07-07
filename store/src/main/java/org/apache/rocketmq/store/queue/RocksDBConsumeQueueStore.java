@@ -434,6 +434,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         if (!messageStoreConfig.isEnableLmq() || !request.containsLMQ()) {
             return;
         }
+
+        // get lmq names and offsets
         Map<String, String> map = request.getPropertiesMap();
         String lmqNames = map.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
         String lmqOffsets = map.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
@@ -443,18 +445,24 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             ERROR_LOG.error("[bug] queues.length!=queueOffsets.length ", request.getTopic());
             return;
         }
+
         for (int i = 0; i < queues.length; i++) {
             String queueName = queues[i];
             DispatchEntry entry = DispatchEntry.from(request);
             long queueOffset = Long.parseLong(queueOffsets[i]);
+
+            // set queueId, queueId is 0 in most cases.
             int queueId = request.getQueueId();
             if (this.messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
                 queueId = MixAll.LMQ_QUEUE_ID;
             }
+
             entry.queueId = queueId;
             entry.queueOffset = queueOffset;
             entry.topic = queueName.getBytes(StandardCharsets.UTF_8);
             log.debug("Dispatch LMQ[{}:{}]:{} --> {}", queueName, queueId, queueOffset, entry.commitLogOffset);
+
+            // store entry(CQunit) and update maxOffset cache
             dispatch(entry, writeBatch);
         }
     }
