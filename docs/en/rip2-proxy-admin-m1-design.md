@@ -211,8 +211,9 @@ small and tested boundary to call:
   page/client peer responses as JSON messages. This is not the public admin API;
   it is a proto-free internal transport payload so the coordinator and peer
   executor can be tested and wired before `rocketmq-apis` ownership is settled.
-  Successful peer responses must carry exactly the expected page or client body,
-  and peer error responses must remain status-only without page/client bodies.
+  Successful peer responses must carry exactly the expected page or client body
+  without error fields, and peer error responses must remain status-only without
+  page/client bodies.
   Raw peer JSON request and response messages are capped at 1 MiB before JSON
   parsing so malformed or oversized peer payloads fail at the transport boundary.
   Peer error codes are capped at 255 characters and peer error messages are
@@ -1006,6 +1007,7 @@ Internal adapter tests cover:
 - in-process peer transport request/response bounds around local handler
   invocation.
 - peer error response code length rejection before peer payload encoding.
+- peer success response rejection when a peer payload also carries error fields.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 

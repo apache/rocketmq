@@ -128,6 +128,17 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void pageResponseCodecRejectsSuccessfulResponseWithErrorFields() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
+            + "\"errorCode\":\"INTERNAL_SERVER_ERROR\",\"errorMessage\":\"unexpected\","
+            + "\"page\":{\"clients\":[],\"nextPageToken\":\"\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer success response must not include error fields");
+    }
+
+    @Test
     public void clientResponseCodecRejectsErrorResponseWithClientBody() {
         String message = "{\"proxyId\":\"proxy-a\",\"success\":false,"
             + "\"errorCode\":\"NOT_FOUND\",\"errorMessage\":\"missing\","
