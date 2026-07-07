@@ -18,5 +18,10 @@ package org.apache.rocketmq.proxy.service.admin.client;
 
 public interface ClientAdminMetricsRecorder {
 
-    void record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis);
+    void record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis,
+        ProxyClientScope scope);
+
+    default void record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis) {
+        this.record(operation, result, latencyMillis, null);
+    }
 }

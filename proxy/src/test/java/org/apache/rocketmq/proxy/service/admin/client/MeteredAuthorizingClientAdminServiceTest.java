@@ -37,6 +37,28 @@ import static org.mockito.Mockito.when;
 public class MeteredAuthorizingClientAdminServiceTest {
 
     @Test
+    public void listClientsRecordsQueryScopeMetrics() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminRequestContext requestContext = requestContext();
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), null);
+        when(delegate.listClients(query)).thenReturn(page);
+        List<ProxyClientScope> scopes = new ArrayList<>();
+        MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
+            delegate,
+            authorizationService,
+            (operation, result, latencyMillis, scope) -> scopes.add(scope),
+            clock()
+        );
+
+        assertThat(adminService.listClients(requestContext, query)).isSameAs(page);
+        assertThat(scopes).containsExactly(ProxyClientScope.ALL_PROXIES);
+    }
+
+    @Test
     public void recordsUnauthorizedWhenAuthorizationFailsBeforeDelegating() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
@@ -52,7 +74,7 @@ public class MeteredAuthorizingClientAdminServiceTest {
         MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
             delegate,
             authorizationService,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
@@ -79,7 +101,7 @@ public class MeteredAuthorizingClientAdminServiceTest {
         MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
             delegate,
             authorizationService,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
@@ -105,7 +127,7 @@ public class MeteredAuthorizingClientAdminServiceTest {
         MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
             delegate,
             authorizationService,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
@@ -127,7 +149,7 @@ public class MeteredAuthorizingClientAdminServiceTest {
         ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
         ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), null);
         when(delegate.listClients(query)).thenReturn(page);
-        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
+        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis, scope) -> {
             throw new LinkageError("metrics linkage down");
         };
         MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
@@ -152,7 +174,7 @@ public class MeteredAuthorizingClientAdminServiceTest {
             ClientAdminOperation.LIST_CLIENTS,
             requestContext.getSourceIp()
         );
-        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
+        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis, scope) -> {
             throw new LinkageError("metrics linkage down");
         };
         MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(

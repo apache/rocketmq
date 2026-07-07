@@ -24,7 +24,8 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class MeteredClientAdminService implements ClientAdminService {
-    private static final ClientAdminMetricsRecorder NOOP_METRICS_RECORDER = (operation, result, latencyMillis) -> {
+    private static final ClientAdminMetricsRecorder NOOP_METRICS_RECORDER = (operation, result, latencyMillis,
+        scope) -> {
     };
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
@@ -50,6 +51,7 @@ public class MeteredClientAdminService implements ClientAdminService {
     public ProxyClientPage listClients(ProxyClientQuery query) {
         return this.record(
             ClientAdminOperation.LIST_CLIENTS,
+            this.scopeOf(query),
             () -> this.delegate.listClients(query)
         );
     }
@@ -58,6 +60,7 @@ public class MeteredClientAdminService implements ClientAdminService {
     public ProxyClientInfo describeClient(String clientId) {
         return this.record(
             ClientAdminOperation.DESCRIBE_CLIENT,
+            ProxyClientScope.LOCAL_PROXY,
             () -> this.delegate.describeClient(clientId)
         );
     }
@@ -66,6 +69,7 @@ public class MeteredClientAdminService implements ClientAdminService {
     public ProxyClientPage listClientsByGroup(String group, ProxyClientQuery query) {
         return this.record(
             ClientAdminOperation.LIST_CLIENTS_BY_GROUP,
+            this.scopeOf(query),
             () -> this.delegate.listClientsByGroup(group, query)
         );
     }
@@ -74,11 +78,12 @@ public class MeteredClientAdminService implements ClientAdminService {
     public ProxyClientPage listClientsByTopic(String topic, ProxyClientQuery query) {
         return this.record(
             ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
+            this.scopeOf(query),
             () -> this.delegate.listClientsByTopic(topic, query)
         );
     }
 
-    private <T> T record(ClientAdminOperation operation, Supplier<T> supplier) {
+    private <T> T record(ClientAdminOperation operation, ProxyClientScope scope, Supplier<T> supplier) {
         long startNanos = this.nanoTimeSupplier.getAsLong();
         ClientAdminMetricsResult result = ClientAdminMetricsResult.OK;
         try {
@@ -90,16 +95,22 @@ public class MeteredClientAdminService implements ClientAdminService {
             result = ClientAdminMetricsResult.INTERNAL_ERROR;
             throw e;
         } finally {
-            this.recordMetrics(operation, result, this.elapsedMillis(startNanos));
+            this.recordMetrics(operation, result, this.elapsedMillis(startNanos), scope);
         }
     }
 
-    private void recordMetrics(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis) {
+    private void recordMetrics(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis,
+        ProxyClientScope scope) {
         try {
-            this.metricsRecorder.record(operation, result, latencyMillis);
+            this.metricsRecorder.record(operation, result, latencyMillis, scope);
         } catch (Throwable e) {
-            log.warn("record client admin metrics failed. operation:{}, result:{}", operation, result, e);
+            log.warn("record client admin metrics failed. operation:{}, result:{}, scope:{}",
+                operation, result, scope, e);
         }
+    }
+
+    private ProxyClientScope scopeOf(ProxyClientQuery query) {
+        return query == null ? ProxyClientScope.LOCAL_PROXY : query.getScope();
     }
 
     private long elapsedMillis(long startNanos) {

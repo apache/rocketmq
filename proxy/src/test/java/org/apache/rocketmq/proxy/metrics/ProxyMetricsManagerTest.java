@@ -42,6 +42,7 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceStats;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
@@ -227,6 +228,36 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
                 attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
                 && ClientAdminMetricsResult.NOT_FOUND.name().toLowerCase().equals(
                 attributes.get(AttributeKey.stringKey(LABEL_RESULT)))));
+    }
+
+    @Test
+    public void initMetricsRecordsProxyClientAdminRequestScopeLabel() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        LongCounter requestCounter = mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        LongHistogram requestLatency = mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+
+        ProxyMetricsManager.initMetrics(
+            meter,
+            Attributes::builder,
+            () -> new ProxyClientReadServiceStats(0L, 0L, 0L, Collections.emptyMap())
+        );
+
+        ProxyMetricsManager.recordProxyClientAdminRequest(
+            ClientAdminOperation.LIST_CLIENTS,
+            ClientAdminMetricsResult.OK,
+            12L,
+            ProxyClientScope.ALL_PROXIES
+        );
+
+        verify(requestCounter).add(eq(1L), argThat(attributes ->
+            "all_proxies".equals(attributes.get(AttributeKey.stringKey("scope")))));
+        verify(requestLatency).record(eq(12L), argThat(attributes ->
+            "all_proxies".equals(attributes.get(AttributeKey.stringKey("scope")))));
     }
 
     @Test

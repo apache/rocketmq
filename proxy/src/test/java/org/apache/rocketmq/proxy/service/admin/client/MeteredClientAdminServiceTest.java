@@ -43,12 +43,32 @@ public class MeteredClientAdminServiceTest {
 
         MeteredClientAdminService service = new MeteredClientAdminService(
             delegate,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
         assertThat(service.listClients(query)).isSameAs(page);
         assertThat(records).containsExactly(new Record(ClientAdminOperation.LIST_CLIENTS, ClientAdminMetricsResult.OK, 1L));
+    }
+
+    @Test
+    public void listClientsRecordsQueryScopeMetrics() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), "");
+        when(delegate.listClients(query)).thenReturn(page);
+        List<ProxyClientScope> scopes = new ArrayList<>();
+
+        MeteredClientAdminService service = new MeteredClientAdminService(
+            delegate,
+            (operation, result, latencyMillis, scope) -> scopes.add(scope),
+            clock()
+        );
+
+        assertThat(service.listClients(query)).isSameAs(page);
+        assertThat(scopes).containsExactly(ProxyClientScope.ALL_PROXIES);
     }
 
     @Test
@@ -59,7 +79,7 @@ public class MeteredClientAdminServiceTest {
 
         MeteredClientAdminService service = new MeteredClientAdminService(
             delegate,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
@@ -81,7 +101,7 @@ public class MeteredClientAdminServiceTest {
 
         MeteredClientAdminService service = new MeteredClientAdminService(
             delegate,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
@@ -103,7 +123,7 @@ public class MeteredClientAdminServiceTest {
 
         MeteredClientAdminService service = new MeteredClientAdminService(
             delegate,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
@@ -125,7 +145,7 @@ public class MeteredClientAdminServiceTest {
 
         MeteredClientAdminService service = new MeteredClientAdminService(
             delegate,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
@@ -147,7 +167,7 @@ public class MeteredClientAdminServiceTest {
 
         MeteredClientAdminService service = new MeteredClientAdminService(
             delegate,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
@@ -170,7 +190,7 @@ public class MeteredClientAdminServiceTest {
 
         MeteredClientAdminService service = new MeteredClientAdminService(
             delegate,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
@@ -193,7 +213,7 @@ public class MeteredClientAdminServiceTest {
 
         MeteredClientAdminService service = new MeteredClientAdminService(
             delegate,
-            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            (operation, result, latencyMillis, scope) -> records.add(new Record(operation, result, latencyMillis)),
             clock()
         );
 
@@ -212,7 +232,7 @@ public class MeteredClientAdminServiceTest {
         ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
         ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), "");
         when(delegate.listClients(query)).thenReturn(page);
-        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
+        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis, scope) -> {
             throw new IllegalStateException("metrics down");
         };
         MeteredClientAdminService service = new MeteredClientAdminService(delegate, failingRecorder, clock());
@@ -226,7 +246,7 @@ public class MeteredClientAdminServiceTest {
         ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
         ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), "");
         when(delegate.listClients(query)).thenReturn(page);
-        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
+        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis, scope) -> {
             throw new LinkageError("metrics linkage down");
         };
         MeteredClientAdminService service = new MeteredClientAdminService(delegate, failingRecorder, clock());
@@ -238,7 +258,7 @@ public class MeteredClientAdminServiceTest {
     public void metricsRecorderFailureDoesNotMaskDelegateException() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         when(delegate.describeClient("missing-client")).thenThrow(new NoSuchElementException("missing"));
-        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
+        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis, scope) -> {
             throw new IllegalStateException("metrics down");
         };
         MeteredClientAdminService service = new MeteredClientAdminService(delegate, failingRecorder, clock());
@@ -252,7 +272,7 @@ public class MeteredClientAdminServiceTest {
     public void metricsRecorderErrorDoesNotMaskDelegateException() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         when(delegate.describeClient("missing-client")).thenThrow(new NoSuchElementException("missing"));
-        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis) -> {
+        ClientAdminMetricsRecorder failingRecorder = (operation, result, latencyMillis, scope) -> {
             throw new LinkageError("metrics linkage down");
         };
         MeteredClientAdminService service = new MeteredClientAdminService(delegate, failingRecorder, clock());

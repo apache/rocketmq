@@ -56,6 +56,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceStats;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -81,6 +82,7 @@ import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_INDEX
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_OPERATION;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PROXY_MODE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_SCOPE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.NODE_TYPE_PROXY;
 
 public class ProxyMetricsManager implements StartAndShutdown {
@@ -193,13 +195,21 @@ public class ProxyMetricsManager implements StartAndShutdown {
 
     public static void recordProxyClientAdminRequest(ClientAdminOperation operation,
         ClientAdminMetricsResult result, long latencyMillis) {
+        recordProxyClientAdminRequest(operation, result, latencyMillis, null);
+    }
+
+    public static void recordProxyClientAdminRequest(ClientAdminOperation operation,
+        ClientAdminMetricsResult result, long latencyMillis, ProxyClientScope scope) {
         if (operation == null || result == null) {
             return;
         }
-        Attributes attributes = newAttributesBuilder()
+        AttributesBuilder attributesBuilder = newAttributesBuilder()
             .put(LABEL_OPERATION, operation.name().toLowerCase(Locale.ROOT))
-            .put(LABEL_RESULT, result.name().toLowerCase(Locale.ROOT))
-            .build();
+            .put(LABEL_RESULT, result.name().toLowerCase(Locale.ROOT));
+        if (scope != null) {
+            attributesBuilder.put(LABEL_SCOPE, scope.name().toLowerCase(Locale.ROOT));
+        }
+        Attributes attributes = attributesBuilder.build();
         proxyClientAdminRequestsTotal.add(1L, attributes);
         proxyClientAdminRequestLatency.record(Math.max(0L, latencyMillis), attributes);
     }

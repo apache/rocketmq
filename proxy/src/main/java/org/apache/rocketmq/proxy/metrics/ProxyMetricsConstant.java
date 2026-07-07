@@ -33,6 +33,7 @@ public class ProxyMetricsConstant {
     public static final String LABEL_OPERATION = "operation";
     public static final String LABEL_PROXY_MODE = "proxy_mode";
     public static final String LABEL_RESULT = "result";
+    public static final String LABEL_SCOPE = "scope";
 
     public static final String INDEX_TYPE_GROUP = "group";
     public static final String INDEX_TYPE_TOPIC = "topic";

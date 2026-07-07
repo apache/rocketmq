@@ -37,7 +37,8 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public class ProxyClientAdminScopeRouter {
-    private static final ClientAdminMetricsRecorder NOOP_METRICS_RECORDER = (operation, result, latencyMillis) -> {
+    private static final ClientAdminMetricsRecorder NOOP_METRICS_RECORDER = (operation, result, latencyMillis,
+        scope) -> {
     };
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
@@ -95,12 +96,14 @@ public class ProxyClientAdminScopeRouter {
         ProxyClientAdminListClientsRequest request) {
         return this.execute(() -> {
             ProxyClientAdminListClientsRequest requiredRequest = this.requireRequest(request);
-            switch (this.effectiveScope(requiredRequest.getScope())) {
+            ProxyClientScope scope = this.effectiveScope(requiredRequest.getScope());
+            switch (scope) {
                 case LOCAL_PROXY:
                     return this.localActivity.listClients(ctx, requiredRequest);
                 case ALL_PROXIES:
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS,
+                        scope,
                         ctx,
                         () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClients(ctx, requiredRequest.toQuery())
@@ -108,6 +111,7 @@ public class ProxyClientAdminScopeRouter {
                 case PROXY_ID:
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS,
+                        scope,
                         ctx,
                         () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClients(ctx, requiredRequest.toQuery())
@@ -127,12 +131,14 @@ public class ProxyClientAdminScopeRouter {
         ProxyClientAdminDescribeClientRequest request) {
         return this.execute(() -> {
             ProxyClientAdminDescribeClientRequest requiredRequest = this.requireRequest(request);
-            switch (this.effectiveScope(requiredRequest.getScope())) {
+            ProxyClientScope scope = this.effectiveScope(requiredRequest.getScope());
+            switch (scope) {
                 case LOCAL_PROXY:
                     return this.localActivity.describeClient(ctx, requiredRequest);
                 case ALL_PROXIES:
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.DESCRIBE_CLIENT,
+                        scope,
                         ctx,
                         () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().describeClient(ctx, requiredRequest)
@@ -140,6 +146,7 @@ public class ProxyClientAdminScopeRouter {
                 case PROXY_ID:
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.DESCRIBE_CLIENT,
+                        scope,
                         ctx,
                         () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().describeClient(ctx, requiredRequest)
@@ -159,12 +166,14 @@ public class ProxyClientAdminScopeRouter {
         ProxyClientAdminListClientsByGroupRequest request) {
         return this.execute(() -> {
             ProxyClientAdminListClientsByGroupRequest requiredRequest = this.requireRequest(request);
-            switch (this.effectiveScope(requiredRequest.getScope())) {
+            ProxyClientScope scope = this.effectiveScope(requiredRequest.getScope());
+            switch (scope) {
                 case LOCAL_PROXY:
                     return this.localActivity.listClientsByGroup(ctx, requiredRequest);
                 case ALL_PROXIES:
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS_BY_GROUP,
+                        scope,
                         ctx,
                         () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClientsByGroup(
@@ -176,6 +185,7 @@ public class ProxyClientAdminScopeRouter {
                 case PROXY_ID:
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS_BY_GROUP,
+                        scope,
                         ctx,
                         () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClientsByGroup(
@@ -202,12 +212,14 @@ public class ProxyClientAdminScopeRouter {
         ProxyClientAdminListClientsByTopicRequest request) {
         return this.execute(() -> {
             ProxyClientAdminListClientsByTopicRequest requiredRequest = this.requireRequest(request);
-            switch (this.effectiveScope(requiredRequest.getScope())) {
+            ProxyClientScope scope = this.effectiveScope(requiredRequest.getScope());
+            switch (scope) {
                 case LOCAL_PROXY:
                     return this.localActivity.listClientsByTopic(ctx, requiredRequest);
                 case ALL_PROXIES:
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
+                        scope,
                         ctx,
                         () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClientsByTopic(
@@ -219,6 +231,7 @@ public class ProxyClientAdminScopeRouter {
                 case PROXY_ID:
                     return this.executeCoordinatorOperation(
                         ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
+                        scope,
                         ctx,
                         () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
                         () -> this.requireCoordinatorService().listClientsByTopic(
@@ -257,14 +270,15 @@ public class ProxyClientAdminScopeRouter {
         }
     }
 
-    private <T> ProxyClientAdminResult<T> executeCoordinatorOperation(ClientAdminOperation operation, ProxyContext ctx,
-        Supplier<ProxyClientAdminResult<T>> supplier) {
-        return this.executeCoordinatorOperation(operation, ctx, () -> {
+    private <T> ProxyClientAdminResult<T> executeCoordinatorOperation(ClientAdminOperation operation,
+        ProxyClientScope scope, ProxyContext ctx, Supplier<ProxyClientAdminResult<T>> supplier) {
+        return this.executeCoordinatorOperation(operation, scope, ctx, () -> {
         }, supplier);
     }
 
-    private <T> ProxyClientAdminResult<T> executeCoordinatorOperation(ClientAdminOperation operation, ProxyContext ctx,
-        Runnable preAuthorizationValidation, Supplier<ProxyClientAdminResult<T>> supplier) {
+    private <T> ProxyClientAdminResult<T> executeCoordinatorOperation(ClientAdminOperation operation,
+        ProxyClientScope scope, ProxyContext ctx, Runnable preAuthorizationValidation,
+        Supplier<ProxyClientAdminResult<T>> supplier) {
         long startNanos = this.nanoTimeSupplier.getAsLong();
         ClientAdminMetricsResult metricsResult = ClientAdminMetricsResult.INTERNAL_ERROR;
         try {
@@ -282,7 +296,7 @@ public class ProxyClientAdminScopeRouter {
             metricsResult = this.toMetricsResult(result.getStatus().getCode());
             return result;
         } finally {
-            this.recordCoordinatorMetrics(operation, metricsResult, this.elapsedMillis(startNanos));
+            this.recordCoordinatorMetrics(operation, metricsResult, this.elapsedMillis(startNanos), scope);
         }
     }
 
@@ -299,12 +313,12 @@ public class ProxyClientAdminScopeRouter {
     }
 
     private void recordCoordinatorMetrics(ClientAdminOperation operation, ClientAdminMetricsResult result,
-        long latencyMillis) {
+        long latencyMillis, ProxyClientScope scope) {
         try {
-            this.coordinatorMetricsRecorder.record(operation, result, latencyMillis);
+            this.coordinatorMetricsRecorder.record(operation, result, latencyMillis, scope);
         } catch (Throwable e) {
-            log.warn("record proxy client admin coordinator metrics failed. operation:{}, result:{}",
-                operation, result, e);
+            log.warn("record proxy client admin coordinator metrics failed. operation:{}, result:{}, scope:{}",
+                operation, result, scope, e);
         }
     }
 

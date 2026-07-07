@@ -173,7 +173,8 @@ public class ProxyClientAdminScopeRouterTest {
         verify(metricsRecorder).record(
             eq(ClientAdminOperation.LIST_CLIENTS),
             eq(ClientAdminMetricsResult.UNAUTHORIZED),
-            anyLong()
+            anyLong(),
+            eq(ProxyClientScope.ALL_PROXIES)
         );
         verifyNoMoreInteractions(metricsRecorder);
     }
@@ -183,7 +184,7 @@ public class ProxyClientAdminScopeRouterTest {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
         List<ClientAdminMetricsResult> results = new ArrayList<>();
-        ClientAdminMetricsRecorder metricsRecorder = (operation, result, latencyMillis) -> {
+        ClientAdminMetricsRecorder metricsRecorder = (operation, result, latencyMillis, scope) -> {
             assertThat(operation).isEqualTo(ClientAdminOperation.LIST_CLIENTS);
             results.add(result);
         };
@@ -209,6 +210,36 @@ public class ProxyClientAdminScopeRouterTest {
 
         assertThat(result.getStatus().getCode()).isEqualTo(Code.NOT_FOUND);
         assertThat(results).containsExactly(ClientAdminMetricsResult.NOT_FOUND);
+    }
+
+    @Test
+    public void listClientsAllProxiesRecordsCoordinatorScopeMetrics() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            (subject, operation, sourceIp) -> {
+            },
+            metricsRecorder
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        when(coordinator.listClients(any(), any(ProxyClientQuery.class))).thenReturn(okResult(page("client-a")));
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.OK);
+        verify(metricsRecorder).record(
+            eq(ClientAdminOperation.LIST_CLIENTS),
+            eq(ClientAdminMetricsResult.OK),
+            anyLong(),
+            eq(ProxyClientScope.ALL_PROXIES)
+        );
+        verifyNoMoreInteractions(metricsRecorder);
     }
 
     @Test
@@ -241,7 +272,8 @@ public class ProxyClientAdminScopeRouterTest {
         verify(metricsRecorder).record(
             eq(ClientAdminOperation.LIST_CLIENTS),
             eq(ClientAdminMetricsResult.TIMEOUT),
-            anyLong()
+            anyLong(),
+            eq(ProxyClientScope.ALL_PROXIES)
         );
         verifyNoMoreInteractions(metricsRecorder);
     }
@@ -276,7 +308,8 @@ public class ProxyClientAdminScopeRouterTest {
         verify(metricsRecorder).record(
             eq(ClientAdminOperation.LIST_CLIENTS),
             eq(ClientAdminMetricsResult.TOO_MANY_REQUESTS),
-            anyLong()
+            anyLong(),
+            eq(ProxyClientScope.ALL_PROXIES)
         );
         verifyNoMoreInteractions(metricsRecorder);
     }
@@ -311,7 +344,8 @@ public class ProxyClientAdminScopeRouterTest {
         verify(metricsRecorder).record(
             eq(ClientAdminOperation.LIST_CLIENTS),
             eq(ClientAdminMetricsResult.NOT_IMPLEMENTED),
-            anyLong()
+            anyLong(),
+            eq(ProxyClientScope.ALL_PROXIES)
         );
         verifyNoMoreInteractions(metricsRecorder);
     }
@@ -426,7 +460,8 @@ public class ProxyClientAdminScopeRouterTest {
             verify(metricsRecorder).record(
                 eq(ClientAdminOperation.LIST_CLIENTS),
                 eq(ClientAdminMetricsResult.INTERNAL_ERROR),
-                anyLong()
+                anyLong(),
+                eq(ProxyClientScope.ALL_PROXIES)
             );
         } finally {
             Thread.interrupted();
@@ -476,7 +511,8 @@ public class ProxyClientAdminScopeRouterTest {
         verify(metricsRecorder).record(
             eq(ClientAdminOperation.LIST_CLIENTS),
             eq(ClientAdminMetricsResult.BAD_REQUEST),
-            anyLong()
+            anyLong(),
+            eq(ProxyClientScope.ALL_PROXIES)
         );
         verifyNoMoreInteractions(metricsRecorder);
     }
