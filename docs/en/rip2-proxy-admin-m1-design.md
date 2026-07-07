@@ -197,6 +197,8 @@ small and tested boundary to call:
   executor can be tested and wired before `rocketmq-apis` ownership is settled.
   Successful peer responses must carry exactly the expected page or client body,
   and peer error responses must remain status-only without page/client bodies.
+  Raw peer JSON request and response messages are capped at 1 MiB before JSON
+  parsing so malformed or oversized peer payloads fail at the transport boundary.
 - `ProxyClientAdminPeerMessageClient` adapts the object-level peer-client
   contract to a raw message transport. `ProxyClientAdminPeerMessageHandler`
   adapts raw messages back to the local peer executor. The in-process message

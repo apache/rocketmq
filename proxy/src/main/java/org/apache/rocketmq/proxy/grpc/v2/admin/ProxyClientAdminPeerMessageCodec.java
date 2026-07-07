@@ -31,6 +31,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public final class ProxyClientAdminPeerMessageCodec {
     private static final ProxyClientAdminPeerMessageCodec INSTANCE = new ProxyClientAdminPeerMessageCodec();
+    private static final int MAX_PEER_MESSAGE_LENGTH = 1024 * 1024;
 
     private ProxyClientAdminPeerMessageCodec() {
     }
@@ -56,7 +57,7 @@ public final class ProxyClientAdminPeerMessageCodec {
     }
 
     public ProxyClientAdminPeerRequest decodeRequest(String message) {
-        String requiredMessage = requireMessage(message, "peer request message is required");
+        String requiredMessage = requireMessage(message, "peer request message");
         RequestPayload payload = parseRequestPayload(requiredMessage);
         if (payload == null) {
             throw new IllegalArgumentException("peer request message is required");
@@ -146,7 +147,7 @@ public final class ProxyClientAdminPeerMessageCodec {
     }
 
     private ResponsePayload parseResponsePayload(String message) {
-        String requiredMessage = requireMessage(message, "peer response message is required");
+        String requiredMessage = requireMessage(message, "peer response message");
         ResponsePayload payload = parseResponsePayloadBody(requiredMessage);
         if (payload == null) {
             throw new IllegalArgumentException("peer response message is required");
@@ -281,10 +282,15 @@ public final class ProxyClientAdminPeerMessageCodec {
         }
     }
 
-    private static String requireMessage(String message, String errorMessage) {
+    private static String requireMessage(String message, String messageName) {
         String normalizedMessage = StringUtils.trimToNull(message);
         if (normalizedMessage == null) {
-            throw new IllegalArgumentException(errorMessage);
+            throw new IllegalArgumentException(messageName + " is required");
+        }
+        if (normalizedMessage.length() > MAX_PEER_MESSAGE_LENGTH) {
+            throw new IllegalArgumentException(
+                messageName + " length exceeds " + MAX_PEER_MESSAGE_LENGTH
+            );
         }
         return normalizedMessage;
     }

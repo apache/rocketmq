@@ -21,6 +21,7 @@ import apache.rocketmq.v2.ClientType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 import org.junit.Test;
@@ -181,6 +182,14 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void requestCodecRejectsOverlongMessageBeforeParsingJson() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance()
+            .decodeRequest(StringUtils.repeat("a", 1024 * 1024 + 1)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer request message length exceeds");
+    }
+
+    @Test
     public void requestCodecRejectsUnknownOperationAsBadRequestBoundaryError() {
         assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeRequest(
             "{\"operation\":\"LIST_CLIENTS_FROM_MARS\"}"
@@ -208,6 +217,14 @@ public class ProxyClientAdminPeerMessageCodecTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Unsupported peer scope")
             .hasMessageContaining("MARS_PROXY");
+    }
+
+    @Test
+    public void responseCodecRejectsOverlongMessageBeforeParsingJson() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance()
+            .decodePageResponse(StringUtils.repeat("a", 1024 * 1024 + 1)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer response message length exceeds");
     }
 
     private static ProxyClientInfo client(String clientId, ClientType clientType, String proxyId) {
