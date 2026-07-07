@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -132,6 +133,29 @@ public class MeteredClientAdminServiceTest {
         assertThat(records).containsExactly(new Record(
             ClientAdminOperation.LIST_CLIENTS,
             ClientAdminMetricsResult.UNAUTHORIZED,
+            1L
+        ));
+    }
+
+    @Test
+    public void listClientsRecordsTimeoutAndRethrowsWrappedRemotingTimeout() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        RuntimeException timeout = new RuntimeException(new RemotingTimeoutException("admin query timed out"));
+        when(delegate.listClients(query)).thenThrow(timeout);
+        List<Record> records = new ArrayList<>();
+
+        MeteredClientAdminService service = new MeteredClientAdminService(
+            delegate,
+            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            clock()
+        );
+
+        assertThatThrownBy(() -> service.listClients(query))
+            .isSameAs(timeout);
+        assertThat(records).containsExactly(new Record(
+            ClientAdminOperation.LIST_CLIENTS,
+            ClientAdminMetricsResult.TIMEOUT,
             1L
         ));
     }

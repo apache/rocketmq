@@ -16,12 +16,9 @@
  */
 package org.apache.rocketmq.proxy.service.admin.client;
 
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
-import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -87,7 +84,7 @@ public class MeteredClientAdminService implements ClientAdminService {
         try {
             return supplier.get();
         } catch (RuntimeException e) {
-            result = this.classify(e);
+            result = ClientAdminMetricsClassifier.classify(e);
             throw e;
         } catch (Error e) {
             result = ClientAdminMetricsResult.INTERNAL_ERROR;
@@ -103,19 +100,6 @@ public class MeteredClientAdminService implements ClientAdminService {
         } catch (Throwable e) {
             log.warn("record client admin metrics failed. operation:{}, result:{}", operation, result, e);
         }
-    }
-
-    private ClientAdminMetricsResult classify(RuntimeException exception) {
-        if (exception instanceof IllegalArgumentException) {
-            return ClientAdminMetricsResult.BAD_REQUEST;
-        }
-        if (exception instanceof NoSuchElementException) {
-            return ClientAdminMetricsResult.NOT_FOUND;
-        }
-        if (exception instanceof AuthenticationException || exception instanceof AuthorizationException) {
-            return ClientAdminMetricsResult.UNAUTHORIZED;
-        }
-        return ClientAdminMetricsResult.INTERNAL_ERROR;
     }
 
     private long elapsedMillis(long startNanos) {

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -88,6 +89,32 @@ public class MeteredAuthorizingClientAdminServiceTest {
         assertThat(records).containsExactly(new Record(
             ClientAdminOperation.LIST_CLIENTS,
             ClientAdminMetricsResult.INTERNAL_ERROR,
+            1L
+        ));
+    }
+
+    @Test
+    public void recordsTimeoutWhenDelegateThrowsWrappedRemotingTimeout() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminRequestContext requestContext = requestContext();
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        List<Record> records = new ArrayList<>();
+        RuntimeException timeout = new RuntimeException(new RemotingTimeoutException("admin query timed out"));
+        when(delegate.listClients(query)).thenThrow(timeout);
+        MeteredAuthorizingClientAdminService adminService = new MeteredAuthorizingClientAdminService(
+            delegate,
+            authorizationService,
+            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            clock()
+        );
+
+        assertThatThrownBy(() -> adminService.listClients(requestContext, query))
+            .isSameAs(timeout);
+
+        assertThat(records).containsExactly(new Record(
+            ClientAdminOperation.LIST_CLIENTS,
+            ClientAdminMetricsResult.TIMEOUT,
             1L
         ));
     }
