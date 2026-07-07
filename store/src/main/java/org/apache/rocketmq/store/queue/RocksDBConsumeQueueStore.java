@@ -256,11 +256,11 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     /**
-     * Persist a batch of dispatch requests to the RocksDB ConsumeQueue with
-     * bounded retry on transient failure.
+     * Persist a batch of dispatch requests to the RocksDB ConsumeQueue with bounded retry.
+     * Only Called by the {@link RocksGroupCommitService} thread.
      *
-     * <p>The retry loop runs at most 30 times with 100 ms backoff. A
-     * successful call clears the {@code isCQError} flag and the
+     * <p>The retry loop runs at most 30 times with 100 ms backoff.
+     * A successful call clears the {@code isCQError} flag and the
      * {@code LogicsQueueError} running flag, allowing the broker to
      * recover from a previous transient failure. After 30 failed
      * attempts, the method sets both flags and throws
@@ -297,7 +297,27 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         throw new RocksDBException("put CQ Failed");
     }
 
+    /**
+     * Single-shot implementation of {@link #putMessagePosition}:
+     * build the WriteBatch, commit it, and update in-memory caches.
+     *
+     * <p>The steps in order are:
+     * <ol>
+     *   <li>Acquire the storage hold (blocks reconfiguration during write).</li>
+     *   <li>For each request, dispatch a CQ entry and (if LMQ) fan out one entry per lmq,
+     *       recording the per-(topic, queueId) max offset in a temporary map.</li>
+     *   <li>Write the offset table updates into the same WriteBatch(atomic with the CQ entries).</li>
+     *   <li>{@code batchPut} commits the WriteBatch with a single fsync.</li>
+     *   <li>Update the in-memory {@code topicQueueMaxCqOffset} cache and
+     *       notify any long-polling consumers via {@link #notifyMessageArriveAndClear}.</li>
+     *   <li>Reset per-batch buffer pool indices and release the hold, even on exception.</li>
+     * </ol>
+     *
+     * <p>Returns {@code true} on success, {@code false} on exception (the caller may retry).
+     * An empty request list is a no-op that returns {@code true}.
+     */
     private boolean putMessagePosition0(List<DispatchRequest> requests) {
+        // Block reload/reconfiguration while we are writing.
         if (!this.rocksDBStorage.hold()) {
             return false;
         }
@@ -308,12 +328,17 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 return true;
             }
             long maxPhyOffset = 0;
+            // Iterate in reverse: older messages are appended to the
+            // batch first, so the offset-table update sees the largest
+            // (most recent) offset when written last.
             for (int i = size - 1; i >= 0; i--) {
                 final DispatchRequest request = requests.get(i);
                 DispatchEntry entry = DispatchEntry.from(request);
-                dispatch(entry, writeBatch);
-                dispatchLMQ(request, writeBatch);
+                dispatch(entry, writeBatch);            // default CF
+                dispatchLMQ(request, writeBatch);       // LMQ fan-out (if applicable)
 
+                // Track the largest CommitLog offset covered by this batch
+                // for the offset-table max-phy-offset entry.
                 final int msgSize = request.getMsgSize();
                 final long phyOffset = request.getCommitLogOffset();
                 if (phyOffset + msgSize >= maxPhyOffset) {
@@ -321,10 +346,16 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 }
             }
 
+            // Stage offset-table updates into the same WriteBatch so the
+            // CQ entries and the offsets land atomically.
             this.rocksDBConsumeQueueOffsetTable.putMaxPhyAndCqOffset(tempTopicQueueMaxOffsetMap, writeBatch, maxPhyOffset);
 
+            // Atomic commit (single fsync for both CFs).
             this.rocksDBStorage.batchPut(writeBatch);
 
+            // After the commit, update the in-memory cache and wake
+            // long-polling consumers. notifyMessageArriveAndClear also
+            // clears the request list.
             this.rocksDBConsumeQueueOffsetTable.putHeapMaxCqOffset(tempTopicQueueMaxOffsetMap);
             notifyMessageArriveAndClear(requests);
             return true;
@@ -332,6 +363,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             ERROR_LOG.error("putMessagePosition0 failed.", e);
             return false;
         } finally {
+            // Reset per-batch state regardless of outcome so the next
+            // batch reuses the buffer pool from the start.
             tempTopicQueueMaxOffsetMap.clear();
             consumeQueueByteBufferCacheIndex = 0;
             offsetBufferCacheIndex = 0;
