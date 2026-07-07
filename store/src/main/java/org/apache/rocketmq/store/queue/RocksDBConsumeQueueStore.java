@@ -55,6 +55,18 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.Statistics;
 import org.rocksdb.WriteBatch;
 
+/**
+ * RocksDB-backed implementation of {@link AbstractConsumeQueueStore}. The
+ * per-message CQ data and per-(topic, queueId) offset metadata live in two
+ * column families of a single RocksDB instance, and all writes are batched
+ * via {@link WriteBatch} for atomicity.
+ *
+ * <p>Two long-polling notification sites exist:
+ * {@code DefaultMessageStore.ReputMessageService.doReput()} and
+ * {@link RocksGroupCommitService#groupCommit()}. Because the RocksDB CQ
+ * is built by the latter, long-polling notifications only need to fire
+ * from the group commit path; the reput path can skip them.
+ */
 public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private static final Logger ERROR_LOG = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final Logger ROCKSDB_LOG = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
