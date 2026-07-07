@@ -795,13 +795,18 @@ It also records read-model upsert/remove mutation counters.
 
 The current internal admin service wrapper records:
 
-- admin query counters by operation and result code.
-- admin query latency histograms.
+- admin query counters by operation, result code, and proxy query scope.
+- admin query latency histograms by operation, result code, and proxy query
+  scope.
 
 Metrics are recorded around the authorizing admin service, not only around the
 read-model service. This means ACL denials are reported as `UNAUTHORIZED`, while
 successful reads, bad requests, not-found responses, and unexpected internal
 errors are still counted once at the public admin operation boundary.
+
+The `scope` label is intentionally low cardinality. It records
+`local_proxy`, `all_proxies`, or `proxy_id`, but it does not include the target
+proxy id or any client, group, or topic identifier.
 
 Internal coordinator scopes use the same one-operation boundary at the scope
 router. The router records exactly one operation metric for a coordinator-scope
@@ -963,17 +968,18 @@ those logs are treated as environment noise only when Surefire reports zero
 failures/errors and Maven exits successfully.
 
 On 2026-07-08 Asia/Shanghai time, after refreshing `upstream/develop` to commit
-`0e4ccf1b6`, the admin endpoint, coordinator, startup wiring, metrics, and
-authorization suite was revalidated with:
+`0e4ccf1b6` and adding admin metrics scope labels, the admin endpoint,
+coordinator, startup wiring, metrics, and authorization suite was revalidated
+with:
 
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  '-Dtest=ProxyClientAdmin*Test,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest' \
+  '-Dtest=ProxyClientAdmin*Test,TimedProxyClientAdminPeerClientTest,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest' \
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 455, Failures: 0, Errors: 0, Skipped: 0` and ended
+The run reported `Tests run: 476, Failures: 0, Errors: 0, Skipped: 0` and ended
 with `BUILD SUCCESS`. The same JDK 17 JaCoCo instrumentation noise appeared in
 the log, but Maven exited successfully.
 
