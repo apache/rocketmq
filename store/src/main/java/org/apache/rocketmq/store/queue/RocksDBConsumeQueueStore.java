@@ -90,7 +90,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     /**
      * Pre-allocated, off-heap DirectByteBuffer pool for the ConsumeQueue key/value pair.
-     * [(topicQueueIdBuffer, CQunitBuffer)]
+     * [(topicQueueIdBuffer, CQunitBuffer), ...]
      *
      * <p>Initialized in the constructor with 16 pairs and grown on demand
      * when {@link #consumeQueueByteBufferCacheIndex} exceeds the current size.
@@ -101,7 +101,9 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private final List<Pair<ByteBuffer, ByteBuffer>> cqBBPairList;
     /**
      * Pre-allocated, off-heap DirectByteBuffer pool for offset key/value pair.
-     * [(topicQueueIdBuffer, offsetBuffer)]
+     * [(topicQueueIdBuffer, offsetBuffer), ...]
+     *
+     * <p>offsetBuffer: commitOffset + consumeQueueOffset
      *
      * <p>Initialized in the constructor with 16 pairs and grown on demand
      * when {@link #offsetBufferCacheIndex} exceeds the current size.
