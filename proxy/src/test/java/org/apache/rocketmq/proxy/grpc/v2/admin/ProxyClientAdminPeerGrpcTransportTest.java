@@ -105,6 +105,47 @@ public class ProxyClientAdminPeerGrpcTransportTest {
     }
 
     @Test
+    public void grpcTransportMapsPeerServiceFailureWithDescriptionToEncodedPeerError() throws Exception {
+        ProxyClientAdminContextFactory contextFactory = mock(ProxyClientAdminContextFactory.class);
+        ProxyClientAdminPeerMessageHandler messageHandler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(contextFactory.create(any(Metadata.class), any())).thenReturn(ProxyContext.create());
+        when(messageHandler.execute(any(), anyString())).thenThrow(new IllegalStateException("handler failed"));
+        Server server = NettyServerBuilder.forPort(0)
+            .directExecutor()
+            .addService(new ProxyClientAdminPeerGrpcService(contextFactory, messageHandler))
+            .build()
+            .start();
+        ManagedChannel channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+            .usePlaintext()
+            .directExecutor()
+            .build();
+        try {
+            Map<String, Channel> channels = new LinkedHashMap<>();
+            channels.put("proxy-a", channel);
+            ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(channels);
+
+            String responseMessage = transport.execute(
+                proxyContext(),
+                "proxy-a",
+                "{\"operation\":\"LIST_CLIENTS\"}"
+            );
+            ProxyClientAdminPeerResponse<ProxyClientPage> response =
+                ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getBody()).isNull();
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("handler failed");
+        } finally {
+            channel.shutdownNow();
+            server.shutdownNow();
+            channel.awaitTermination(5, TimeUnit.SECONDS);
+            server.awaitTermination(5, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
     public void grpcTransportListsStableProxyIdsAndInvokesTargetChannel() {
         Channel proxyBChannel = mock(Channel.class);
         Channel proxyAChannel = mock(Channel.class);

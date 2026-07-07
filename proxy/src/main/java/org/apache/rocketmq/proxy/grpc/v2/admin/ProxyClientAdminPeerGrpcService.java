@@ -88,7 +88,7 @@ public class ProxyClientAdminPeerGrpcService implements BindableService {
             responseObserver.onNext(this.execute(this.currentMetadata(), request));
             responseObserver.onCompleted();
         } catch (Throwable t) {
-            responseObserver.onError(t);
+            ProxyClientAdminGrpcErrorWriter.write(responseObserver, t);
         }
     }
 
