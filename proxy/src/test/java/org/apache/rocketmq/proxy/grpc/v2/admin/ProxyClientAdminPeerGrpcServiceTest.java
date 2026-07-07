@@ -25,14 +25,17 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletionException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -112,6 +115,23 @@ public class ProxyClientAdminPeerGrpcServiceTest {
         assertThatThrownBy(() -> service.execute(new Metadata(), request))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("peer response message is required");
+    }
+
+    @Test
+    public void executeRejectsOverlongRequestBeforeCreatingProxyContext() {
+        ProxyClientAdminContextFactory contextFactory = mock(ProxyClientAdminContextFactory.class);
+        ProxyClientAdminPeerMessageHandler messageHandler = mock(ProxyClientAdminPeerMessageHandler.class);
+        ProxyClientAdminPeerGrpcService service = newService(contextFactory, messageHandler);
+
+        assertThatThrownBy(() -> service.execute(
+            new Metadata(),
+            StringValue.of(StringUtils.repeat("a", 1024 * 1024 + 1))
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer request message length exceeds");
+
+        verify(contextFactory, never()).create(any(Metadata.class), any(StringValue.class));
+        verify(messageHandler, never()).execute(any(ProxyContext.class), anyString());
     }
 
     @Test

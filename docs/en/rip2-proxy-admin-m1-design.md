@@ -229,6 +229,7 @@ small and tested boundary to call:
   handler execution is interrupted or wrapped by an async adapter exception.
 - `ProxyClientAdminPeerGrpcService` exposes an internal unary gRPC service using
   `StringValue` request and response bodies that carry the peer JSON payload. It
+  validates inbound peer request messages before creating the proxy context,
   builds `ProxyContext` through the same admin context factory, delegates to the
   peer message handler, and restores the interrupted flag when service-side
   handler execution is interrupted or wrapped by an async adapter exception
@@ -980,8 +981,9 @@ failures/errors and Maven exits successfully.
 
 On 2026-07-08 Asia/Shanghai time, after refreshing `upstream/develop` to commit
 `0e4ccf1b6`, adding admin metrics scope labels, and hardening peer gRPC request
-and response payload bounds, the admin endpoint, coordinator, startup wiring,
-metrics, and authorization suite was revalidated with:
+and response payload bounds including service-side request validation, the admin
+endpoint, coordinator, startup wiring, metrics, and authorization suite was
+revalidated with:
 
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
@@ -990,7 +992,7 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 478, Failures: 0, Errors: 0, Skipped: 0` and ended
+The run reported `Tests run: 479, Failures: 0, Errors: 0, Skipped: 0` and ended
 with `BUILD SUCCESS`. The same JDK 17 JaCoCo instrumentation noise appeared in
 the log, but Maven exited successfully.
 
