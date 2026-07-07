@@ -129,6 +129,22 @@ public class ProxyClientAdminPeerMessageClientTest {
     }
 
     @Test
+    public void messagePeerClientMapsMissingRequestToBadRequestPeerError() {
+        RecordingMessageTransport transport = new RecordingMessageTransport();
+        transport.addProxy("proxy-a", null);
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminPeerMessageClient(transport);
+
+        ProxyClientAdminPeerResponse<?> response = peerClient.execute(proxyContext(), " proxy-a ", null);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.BAD_REQUEST.name());
+        assertThat(response.getErrorMessage()).contains("request is required");
+        assertThat(transport.requestMessages("proxy-a")).isNull();
+    }
+
+    @Test
     public void messageHandlerEncodesPeerErrorForMalformedRequest() {
         ProxyClientAdminPeerMessageHandler handler = new ProxyClientAdminPeerMessageHandler(
             newExecutor("proxy-a", mock(ClientAdminService.class))

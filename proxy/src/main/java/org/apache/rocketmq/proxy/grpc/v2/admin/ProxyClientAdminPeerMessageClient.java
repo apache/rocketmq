@@ -53,8 +53,11 @@ public class ProxyClientAdminPeerMessageClient implements ProxyClientAdminPeerCl
     public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
         ProxyClientAdminPeerRequest request) {
         String requiredProxyId = requireProxyId(proxyId);
+        if (request == null) {
+            return badRequest(requiredProxyId, "request is required");
+        }
         try {
-            ProxyClientAdminPeerRequest requiredRequest = requireRequest(request);
+            ProxyClientAdminPeerRequest requiredRequest = request;
             String responseMessage = this.transport.execute(
                 ctx,
                 requiredProxyId,
@@ -82,19 +85,16 @@ public class ProxyClientAdminPeerMessageClient implements ProxyClientAdminPeerCl
         return this.codec.decodeClientResponse(responseMessage);
     }
 
-    private static ProxyClientAdminPeerRequest requireRequest(ProxyClientAdminPeerRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("request is required");
-        }
-        return request;
-    }
-
     private static ProxyClientAdminPeerResponse<?> internalServerError(String proxyId, Throwable t) {
         return ProxyClientAdminPeerResponse.error(
             proxyId,
             Code.INTERNAL_SERVER_ERROR.name(),
             StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName())
         );
+    }
+
+    private static ProxyClientAdminPeerResponse<?> badRequest(String proxyId, String message) {
+        return ProxyClientAdminPeerResponse.error(proxyId, Code.BAD_REQUEST.name(), message);
     }
 
     private static String requireProxyId(String proxyId) {
