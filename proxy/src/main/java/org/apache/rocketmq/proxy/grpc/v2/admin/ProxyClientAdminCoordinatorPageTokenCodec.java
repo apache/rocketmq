@@ -54,9 +54,10 @@ public final class ProxyClientAdminCoordinatorPageTokenCodec {
         payload.setCreateTimeMillis(coordinatorPageToken.getCreateTimeMillis());
         payload.setPeerPageTokens(coordinatorPageToken.getPeerPageTokens());
         String json = JSON.toJSONString(payload);
-        return VERSION_1_PREFIX + Base64.getUrlEncoder()
+        String publicPageToken = VERSION_1_PREFIX + Base64.getUrlEncoder()
             .withoutPadding()
             .encodeToString(json.getBytes(StandardCharsets.UTF_8));
+        return validateEncodedPageToken(publicPageToken);
     }
 
     public ProxyClientAdminCoordinatorPageToken decode(String publicPageToken) {
@@ -111,6 +112,15 @@ public final class ProxyClientAdminCoordinatorPageTokenCodec {
             throw new IllegalArgumentException("Unsupported client type: " + clientType);
         }
         return clientType.name();
+    }
+
+    private static String validateEncodedPageToken(String publicPageToken) {
+        if (publicPageToken.length() > MAX_PUBLIC_PAGE_TOKEN_LENGTH) {
+            throw new IllegalStateException(
+                "Encoded coordinator page token length exceeds " + MAX_PUBLIC_PAGE_TOKEN_LENGTH
+            );
+        }
+        return publicPageToken;
     }
 
     private static ProxyClientScope parseScope(String scope) {

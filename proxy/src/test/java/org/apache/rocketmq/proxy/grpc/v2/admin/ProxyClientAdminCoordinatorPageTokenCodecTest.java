@@ -105,6 +105,25 @@ public class ProxyClientAdminCoordinatorPageTokenCodecTest {
     }
 
     @Test
+    public void codecRejectsOverlongEncodedCoordinatorTokens() {
+        ProxyClientAdminCoordinatorPageTokenCodec codec =
+            ProxyClientAdminCoordinatorPageTokenCodec.getInstance();
+        Map<String, String> peerPageTokens = new LinkedHashMap<>();
+        for (int i = 0; i < 200; i++) {
+            peerPageTokens.put("proxy-" + i, StringUtils.repeat("client-" + i, 4));
+        }
+
+        assertThatThrownBy(() -> codec.encode(ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setLastClientId("client-199")
+            .setLastProxyId("proxy-199")
+            .setPeerPageTokens(peerPageTokens)
+            .build()))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Encoded coordinator page token length exceeds 4096");
+    }
+
+    @Test
     public void tokenNormalizesBlankFiltersAndRejectsMissingScope() {
         ProxyClientAdminCoordinatorPageToken token = ProxyClientAdminCoordinatorPageToken.newBuilder()
             .setScope(ProxyClientScope.PROXY_ID)

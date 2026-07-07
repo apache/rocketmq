@@ -143,6 +143,15 @@ public class ProxyClientAdminPageTokenCodecTest {
     }
 
     @Test
+    public void codecRejectsOverlongEncodedPublicTokens() {
+        ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
+
+        assertThatThrownBy(() -> codec.encode(StringUtils.repeat("a", 4096)))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Encoded page token length exceeds 4096");
+    }
+
+    @Test
     public void codecNormalizesBlankTokensAtAdapterBoundary() {
         ProxyClientAdminPageTokenCodec codec = ProxyClientAdminPageTokenCodec.getInstance();
 

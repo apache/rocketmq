@@ -89,13 +89,22 @@ public final class ProxyClientAdminPageTokenCodec {
         if (isCoordinatorVersionedToken(normalizedReadModelPageToken)) {
             throw new IllegalArgumentException("Invalid page token: " + normalizedReadModelPageToken);
         }
-        return VERSION_1_PREFIX + encodeReadModelPageToken(normalizedReadModelPageToken);
+        return validateEncodedPageToken(VERSION_1_PREFIX + encodeReadModelPageToken(normalizedReadModelPageToken));
     }
 
     private static String encodeReadModelPageToken(String readModelPageToken) {
         return Base64.getUrlEncoder()
             .withoutPadding()
             .encodeToString(readModelPageToken.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String validateEncodedPageToken(String publicPageToken) {
+        if (publicPageToken.length() > MAX_PUBLIC_PAGE_TOKEN_LENGTH) {
+            throw new IllegalStateException(
+                "Encoded page token length exceeds " + MAX_PUBLIC_PAGE_TOKEN_LENGTH
+            );
+        }
+        return publicPageToken;
     }
 
     private static boolean isVersionedToken(String publicPageToken) {

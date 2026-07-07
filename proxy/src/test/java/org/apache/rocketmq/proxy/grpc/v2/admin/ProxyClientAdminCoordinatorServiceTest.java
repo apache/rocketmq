@@ -29,6 +29,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
@@ -437,6 +438,34 @@ public class ProxyClientAdminCoordinatorServiceTest {
 
         assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
         assertThat(result.getStatus().getMessage()).contains("coordinator page token");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void listClientsAllProxiesRejectsOverlongGeneratedCoordinatorToken() {
+        List<String> proxyIds = new ArrayList<>();
+        for (int i = 0; i < 200; i++) {
+            proxyIds.add(String.format("proxy-%03d", i));
+        }
+        RecordingPeerClient peerClient = new RecordingPeerClient(proxyIds.toArray(new String[0]));
+        for (int i = 0; i < proxyIds.size(); i++) {
+            String proxyId = proxyIds.get(i);
+            peerClient.addPage(proxyId, page(
+                Collections.singletonList(client(String.format("client-%03d", i), proxyId)),
+                StringUtils.repeat("next-" + i, 4)
+            ));
+        }
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage())
+            .contains("Encoded coordinator page token length exceeds 4096");
         assertThat(result.getBody()).isNull();
     }
 

@@ -471,7 +471,8 @@ The public adapter treats page tokens as opaque values. The current M1 codec
 accepts canonical `v1:` tokens and legacy bare read-model tokens, rejects
 unknown or non-canonical versioned tokens, and caps incoming public page tokens
 at 4096 characters to bound decode work before the future public endpoint is
-registered.
+registered. The encoder enforces the same cap so the adapter does not emit a
+next-page token that the next request would reject.
 
 This gives stable pagination for the local snapshot and avoids offset-based
 scans. If clients connect or disconnect between pages, a token can become
@@ -564,8 +565,10 @@ future contract. The codec carries the requested scope, filters, last emitted
 global cursor (`client_id` plus `proxy_id`), per-peer page tokens, and creation
 time. The decoder rejects non-canonical `cp1:` inputs that are not the exact
 no-padding encoding emitted by the codec, so equivalent JSON payloads cannot
-create multiple public cursor representations. The coordinator validates the
-token creation time before peer discovery and rejects expired tokens as
+create multiple public cursor representations. The encoder enforces the same
+4096-character cap as the decoder so a large peer cursor map does not produce an
+unusable next-page token. The coordinator validates the token creation time
+before peer discovery and rejects expired tokens as
 `BAD_REQUEST`; `proxyClientAdminCoordinatorPageTokenTtlMillis` controls the
 retention window and defaults to five minutes. The response adapter preserves
 canonical `cp1:` tokens instead of wrapping them in the local read-model `v1:`
