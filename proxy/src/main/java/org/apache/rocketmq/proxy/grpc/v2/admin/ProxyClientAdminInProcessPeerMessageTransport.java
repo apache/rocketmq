@@ -96,7 +96,11 @@ public class ProxyClientAdminInProcessPeerMessageTransport implements ProxyClien
                 return this.encodeError(requiredProxyId, Code.INTERNAL_SERVER_ERROR,
                     "peer response message is required");
             }
-            return responseMessage;
+            try {
+                return this.codec.requireResponseMessage(responseMessage);
+            } catch (IllegalArgumentException e) {
+                return this.encodeError(requiredProxyId, Code.INTERNAL_SERVER_ERROR, e.getMessage());
+            }
         } catch (Throwable t) {
             this.restoreInterruptedStatus(t);
             return this.encodeError(

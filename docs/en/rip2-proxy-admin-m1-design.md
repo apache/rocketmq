@@ -229,7 +229,8 @@ small and tested boundary to call:
   wrapped by async adapter exceptions. The in-process message transport keeps
   local multi-proxy simulations on the same serialized boundary that a real
   transport will use, including applying the peer request-message bound before
-  invoking the local handler, and applies the same interrupt preservation rule
+  invoking the local handler and the peer response-message bound before
+  returning the handler output, and applies the same interrupt preservation rule
   when local handler execution is interrupted or wrapped by an async adapter
   exception.
 - `ProxyClientAdminPeerGrpcService` exposes an internal unary gRPC service using
@@ -978,7 +979,8 @@ Internal adapter tests cover:
   network call.
 - peer error response message truncation before peer payload encoding.
 - static peer gRPC target rejection for overlong proxy ids and host names.
-- in-process peer transport request bounds before local handler invocation.
+- in-process peer transport request/response bounds around local handler
+  invocation.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 
@@ -1004,9 +1006,10 @@ On 2026-07-08 Asia/Shanghai time, after refreshing `upstream/develop` to commit
 `0e4ccf1b6`, adding admin metrics scope labels, and hardening peer gRPC request
 and response payload bounds including service-side request and response
 validation, peer error-message truncation, static peer-target length bounds,
-in-process peer transport request bounds, plus coordinator stale-peer-page and
-stale-peer-next-token checks, the admin endpoint, coordinator, startup wiring,
-metrics, and authorization suite was revalidated with:
+in-process peer transport request/response bounds, plus coordinator
+stale-peer-page and stale-peer-next-token checks, the admin endpoint,
+coordinator, startup wiring, metrics, and authorization suite was revalidated
+with:
 
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
@@ -1015,7 +1018,7 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 486, Failures: 0, Errors: 0, Skipped: 0` and ended
+The run reported `Tests run: 487, Failures: 0, Errors: 0, Skipped: 0` and ended
 with `BUILD SUCCESS`. The same JDK 17 JaCoCo instrumentation noise appeared in
 the log, but Maven exited successfully.
 
