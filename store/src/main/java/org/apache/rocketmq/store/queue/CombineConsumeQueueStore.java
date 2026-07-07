@@ -47,8 +47,11 @@ import org.rocksdb.RocksDBException;
 
 /**
  * Composite {@link ConsumeQueueStoreInterface} that maintains two backing
- * ConsumeQueue stores (file-based and RocksDB-based) under a single
- * facade.
+ * ConsumeQueue stores (file-based and RocksDB-based) under a single facade.
+ *
+ * <p>There are at most two backing stores:
+ * - one file-based
+ * - one RocksDB-based.
  *
  * <p>Three logical roles are configurable:
  * <ul>

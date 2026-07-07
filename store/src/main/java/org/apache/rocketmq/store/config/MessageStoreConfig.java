@@ -484,6 +484,12 @@ public class MessageStoreConfig {
      * combineCQLoadingCQTypes is used to configure the loading types of CQ. load / recover / start order: [default -> defaultRocksDB]
      * combineCQPreferCQType is used to configure the preferred CQ type when reading. Make sure the CQ type is included in combineCQLoadingCQTypes
      * combineAssignOffsetCQType is used to configure the CQ type when assign offset. Make sure the CQ type is included in combineCQLoadingCQTypes
+     *
+     * <p>There are four checks catch the following common misconfigurations:
+     * 1. LMQ + no RocksDB → Check 1 (would NPE on LMQ access)
+     * 2. LMQ + RocksDB offset → Check 2 (LMQ offset tracking broken)
+     * 3. Selective DW + RocksDB offset → Check 3 (non-LITE topic offsets not tracked)
+     * 4. Selective DW + RocksDB read → Check 4 (consistent read view broken)
      */
     private String combineCQLoadingCQTypes = StoreType.DEFAULT.getStoreType() + ";" + StoreType.DEFAULT_ROCKSDB.getStoreType();
     private String combineCQPreferCQType = StoreType.DEFAULT.getStoreType();
