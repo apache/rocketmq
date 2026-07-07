@@ -562,7 +562,10 @@ future contract. The codec carries the requested scope, filters, last emitted
 global cursor (`client_id` plus `proxy_id`), per-peer page tokens, and creation
 time. The decoder rejects non-canonical `cp1:` inputs that are not the exact
 no-padding encoding emitted by the codec, so equivalent JSON payloads cannot
-create multiple public cursor representations. The response adapter preserves
+create multiple public cursor representations. The coordinator validates the
+token creation time before peer discovery and rejects expired tokens as
+`BAD_REQUEST`; `proxyClientAdminCoordinatorPageTokenTtlMillis` controls the
+retention window and defaults to five minutes. The response adapter preserves
 canonical `cp1:` tokens instead of wrapping them in the local read-model `v1:`
 token codec. It is not wired into the M1 `LOCAL_PROXY` endpoints and does not
 change the public local `v1:` token behavior. The local token codec rejects bare
@@ -572,7 +575,8 @@ cursors. This keeps `LOCAL_PROXY` and `PROXY_ID` requests from accidentally
 treating a cross-proxy cursor as a read-model client-id cursor. Request DTOs
 preserve `cp1:` tokens only for `ALL_PROXIES`, where the coordinator owns
 decoding and validation. A non-empty coordinator token must include the last
-emitted global cursor (`client_id` plus `proxy_id`) and at least one peer cursor;
+emitted global cursor (`client_id` plus `proxy_id`), token creation time, and at
+least one peer cursor;
 otherwise the coordinator rejects it as an incomplete progress token instead of
 restarting from the first peer page or interpreting duplicate client ids
 ambiguously.
@@ -676,8 +680,11 @@ Recommended implementation order after public API ownership is confirmed:
    have a bounded wait; timed discovery must return a non-empty peer list, and
    `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout. Timed-out or
    interrupted waits cancel the submitted peer work before returning an error or
-   restoring the interrupt flag. Enabling the coordinator scope flag also
-   requires a nonblank `proxyName`, which becomes the
+   restoring the interrupt flag. Coordinator page-token retention is also
+   bounded by `proxyClientAdminCoordinatorPageTokenTtlMillis`; expired `cp1:`
+   tokens are rejected before peer discovery so stale cursors do not trigger
+   remote fan-out. Enabling the coordinator scope flag also requires a nonblank
+   `proxyName`, which becomes the
    stable local peer id; the default local-only `DEFAULT_PROXY` fallback is not
    used for coordinator scopes. The in-process peer client converts local executor
    failures into peer error responses so coordinator fan-out receives a bounded
@@ -880,6 +887,7 @@ Internal adapter tests cover:
   using the last emitted `(client_id, proxy_id)` as the global cursor.
 - coordinator pagination rejecting peer pages that are not strictly ordered by
   `client_id`.
+- coordinator page-token TTL rejection before peer discovery.
 - real peer gRPC fan-out from coordinator through `ProxyClientAdminPeerGrpcTransport`
   into two in-process Netty peer services, verifying merged `ALL_PROXIES`
   results and proxy id stamping.

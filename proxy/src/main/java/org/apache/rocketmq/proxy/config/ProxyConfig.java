@@ -159,6 +159,7 @@ public class ProxyConfig implements ConfigFile {
     private boolean enableProxyClientReadServiceCleaner = false;
     private boolean enableProxyClientAdminCrossProxyQuery = false;
     private long proxyClientAdminPeerRequestTimeoutMillis = Duration.ofSeconds(2).toMillis();
+    private long proxyClientAdminCoordinatorPageTokenTtlMillis = Duration.ofMinutes(5).toMillis();
     private String proxyClientAdminPeerGrpcTargets = "";
     private long proxyClientReadServiceCleanerInactiveTimeoutMillis = Duration.ofMinutes(10).toMillis();
     private long proxyClientReadServiceCleanerIntervalMillis = Duration.ofMinutes(1).toMillis();
@@ -1251,6 +1252,15 @@ public class ProxyConfig implements ConfigFile {
 
     public void setProxyClientAdminPeerRequestTimeoutMillis(long proxyClientAdminPeerRequestTimeoutMillis) {
         this.proxyClientAdminPeerRequestTimeoutMillis = proxyClientAdminPeerRequestTimeoutMillis;
+    }
+
+    public long getProxyClientAdminCoordinatorPageTokenTtlMillis() {
+        return proxyClientAdminCoordinatorPageTokenTtlMillis;
+    }
+
+    public void setProxyClientAdminCoordinatorPageTokenTtlMillis(
+        long proxyClientAdminCoordinatorPageTokenTtlMillis) {
+        this.proxyClientAdminCoordinatorPageTokenTtlMillis = proxyClientAdminCoordinatorPageTokenTtlMillis;
     }
 
     public String getProxyClientAdminPeerGrpcTargets() {

@@ -90,7 +90,7 @@ the future scope semantics without changing the public API:
   when `enableProxyClientAdminCrossProxyQuery` is enabled.
 - The coordinator fans out peer-local list requests, merges pages in stable
   `(client_id, proxy_id)` order, and owns `cp1:` coordinator page tokens with
-  per-peer cursors.
+  per-peer cursors and bounded token retention.
 - A raw internal peer protocol and `ProxyClientAdminPeerGrpcTransport` allow
   static peer targets to be exercised without generated public admin stubs.
 - Peer discovery and peer calls are wrapped by
@@ -113,8 +113,10 @@ that internal token as a versioned opaque token and should reject malformed,
 unknown-version, overlong, or noncanonical versioned tokens.
 
 Future cross-proxy pagination should use coordinator-owned tokens that carry
-scope, filters, last emitted `(client_id, proxy_id)`, and per-peer cursors. The
-local page-token format should not become the cross-proxy public contract.
+scope, filters, last emitted `(client_id, proxy_id)`, per-peer cursors, and
+token creation time. Expired coordinator tokens should be rejected before peer
+fan-out. The local page-token format should not become the cross-proxy public
+contract.
 
 ## Endpoint Implementation Shape
 

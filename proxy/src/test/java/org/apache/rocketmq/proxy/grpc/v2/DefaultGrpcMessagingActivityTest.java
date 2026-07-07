@@ -48,6 +48,7 @@ import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminActivity;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminClientView;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminContextFactory;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminCoordinatorService;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminInProcessPeerMessageTransport;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminListClientsRequest;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPageView;
@@ -244,6 +245,18 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         DefaultGrpcMessagingActivity activity = new DefaultGrpcMessagingActivity(this.messagingProcessor);
 
         assertThat(activity.proxyClientAdminPeerClient).isInstanceOf(TimedProxyClientAdminPeerClient.class);
+    }
+
+    @Test
+    public void initUsesConfiguredCoordinatorPageTokenTtlWhenCrossProxyScopeEnabled() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ConfigurationManager.getProxyConfig().setProxyClientAdminCoordinatorPageTokenTtlMillis(12345L);
+
+        CapturingCoordinatorDefaultGrpcMessagingActivity activity =
+            new CapturingCoordinatorDefaultGrpcMessagingActivity(this.messagingProcessor);
+
+        assertThat(activity.capturedCoordinatorPageTokenTtlMillis).isEqualTo(12345L);
     }
 
     @Test
@@ -846,6 +859,27 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
             ProxyClientAdminPeerRequest request) {
             throw new UnsupportedOperationException("not used");
+        }
+    }
+
+    private static class CapturingCoordinatorDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        private long capturedCoordinatorPageTokenTtlMillis;
+
+        private CapturingCoordinatorDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        @Override
+        protected ProxyClientAdminPeerClient createProxyClientAdminPeerClient(String localProxyId,
+            ProxyClientAdminActivity proxyClientAdminActivity, ExecutorService executorService, long timeoutMillis) {
+            return new RecordingProxyClientAdminPeerClient();
+        }
+
+        @Override
+        protected ProxyClientAdminCoordinatorService createProxyClientAdminCoordinatorService(
+            ProxyClientAdminPeerClient peerClient, long coordinatorPageTokenTtlMillis) {
+            this.capturedCoordinatorPageTokenTtlMillis = coordinatorPageTokenTtlMillis;
+            return super.createProxyClientAdminCoordinatorService(peerClient, coordinatorPageTokenTtlMillis);
         }
     }
 

@@ -157,6 +157,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         if (enableCrossProxyQuery) {
             crossProxyLocalProxyId = this.requireCrossProxyLocalProxyId();
             long peerRequestTimeoutMillis = this.requireCrossProxyPeerRequestTimeoutMillis();
+            long coordinatorPageTokenTtlMillis = this.requireCrossProxyCoordinatorPageTokenTtlMillis();
             this.proxyClientAdminPeerExecutor = ThreadUtils.newSingleThreadExecutor(
                 new ThreadFactoryImpl("ProxyClientAdminPeerClient_")
             );
@@ -173,7 +174,10 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
                 throw e;
             }
             this.appendShutdown(this.proxyClientAdminPeerExecutor::shutdown);
-            proxyClientAdminCoordinatorService = new ProxyClientAdminCoordinatorService(this.proxyClientAdminPeerClient);
+            proxyClientAdminCoordinatorService = this.createProxyClientAdminCoordinatorService(
+                this.proxyClientAdminPeerClient,
+                coordinatorPageTokenTtlMillis
+            );
         }
         this.proxyClientAdminScopeRouter = new ProxyClientAdminScopeRouter(
             this.proxyClientAdminActivity,
@@ -374,6 +378,11 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         return new ProxyClientAdminPeerLocalExecutor(localProxyId, clientAdminService);
     }
 
+    protected ProxyClientAdminCoordinatorService createProxyClientAdminCoordinatorService(
+        ProxyClientAdminPeerClient peerClient, long coordinatorPageTokenTtlMillis) {
+        return new ProxyClientAdminCoordinatorService(peerClient, coordinatorPageTokenTtlMillis);
+    }
+
     protected ProxyClientAdminPeerGrpcService createProxyClientAdminPeerGrpcService(String localProxyId,
         ClientAdminService clientAdminService, ProxyClientAdminContextFactory contextFactory) {
         ProxyClientAdminPeerLocalExecutor localPeerExecutor = this.createProxyClientAdminPeerLocalExecutor(
@@ -396,6 +405,18 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             );
         }
         return peerRequestTimeoutMillis;
+    }
+
+    private long requireCrossProxyCoordinatorPageTokenTtlMillis() {
+        long coordinatorPageTokenTtlMillis =
+            ConfigurationManager.getProxyConfig().getProxyClientAdminCoordinatorPageTokenTtlMillis();
+        if (coordinatorPageTokenTtlMillis <= 0) {
+            throw new IllegalArgumentException(
+                "proxyClientAdminCoordinatorPageTokenTtlMillis must be positive when proxy client admin "
+                    + "cross-proxy query is enabled"
+            );
+        }
+        return coordinatorPageTokenTtlMillis;
     }
 
     protected ClientAdminService getClientAdminService() {

@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -38,23 +40,51 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public class ProxyClientAdminCoordinatorService {
+    private static final long DEFAULT_COORDINATOR_PAGE_TOKEN_TTL_MILLIS = Duration.ofMinutes(5).toMillis();
+
     private final ProxyClientAdminPeerClient peerClient;
     private final ProxyClientAdminCoordinatorPageTokenCodec pageTokenCodec;
+    private final long coordinatorPageTokenTtlMillis;
+    private final LongSupplier currentTimeMillisSupplier;
 
     public ProxyClientAdminCoordinatorService(ProxyClientAdminPeerClient peerClient) {
-        this(peerClient, ProxyClientAdminCoordinatorPageTokenCodec.getInstance());
+        this(peerClient, DEFAULT_COORDINATOR_PAGE_TOKEN_TTL_MILLIS);
+    }
+
+    public ProxyClientAdminCoordinatorService(ProxyClientAdminPeerClient peerClient,
+        long coordinatorPageTokenTtlMillis) {
+        this(
+            peerClient,
+            ProxyClientAdminCoordinatorPageTokenCodec.getInstance(),
+            coordinatorPageTokenTtlMillis,
+            System::currentTimeMillis
+        );
     }
 
     ProxyClientAdminCoordinatorService(ProxyClientAdminPeerClient peerClient,
         ProxyClientAdminCoordinatorPageTokenCodec pageTokenCodec) {
+        this(peerClient, pageTokenCodec, DEFAULT_COORDINATOR_PAGE_TOKEN_TTL_MILLIS, System::currentTimeMillis);
+    }
+
+    ProxyClientAdminCoordinatorService(ProxyClientAdminPeerClient peerClient,
+        ProxyClientAdminCoordinatorPageTokenCodec pageTokenCodec, long coordinatorPageTokenTtlMillis,
+        LongSupplier currentTimeMillisSupplier) {
         if (peerClient == null) {
             throw new IllegalArgumentException("peerClient is required");
         }
         if (pageTokenCodec == null) {
             throw new IllegalArgumentException("pageTokenCodec is required");
         }
+        if (coordinatorPageTokenTtlMillis <= 0) {
+            throw new IllegalArgumentException("coordinatorPageTokenTtlMillis must be positive");
+        }
+        if (currentTimeMillisSupplier == null) {
+            throw new IllegalArgumentException("currentTimeMillisSupplier is required");
+        }
         this.peerClient = peerClient;
         this.pageTokenCodec = pageTokenCodec;
+        this.coordinatorPageTokenTtlMillis = coordinatorPageTokenTtlMillis;
+        this.currentTimeMillisSupplier = currentTimeMillisSupplier;
     }
 
     public ProxyClientAdminResult<ProxyClientPage> listClients(ProxyContext ctx, ProxyClientQuery query) {
@@ -356,6 +386,7 @@ public class ProxyClientAdminCoordinatorService {
         if (pageToken == null) {
             return;
         }
+        this.validatePageTokenCreateTime(pageToken);
         if (pageToken.getScope() != ProxyClientScope.ALL_PROXIES) {
             throw new IllegalArgumentException("Coordinator page token scope mismatch");
         }
@@ -430,9 +461,19 @@ public class ProxyClientAdminCoordinatorService {
             .setProxyId(query.getProxyId())
             .setLastClientId(lastClientId)
             .setLastProxyId(lastProxyId)
-            .setCreateTimeMillis(System.currentTimeMillis())
+            .setCreateTimeMillis(this.currentTimeMillisSupplier.getAsLong())
             .setPeerPageTokens(nextPeerTokens)
             .build());
+    }
+
+    private void validatePageTokenCreateTime(ProxyClientAdminCoordinatorPageToken pageToken) {
+        if (pageToken.getCreateTimeMillis() <= 0) {
+            throw new IllegalArgumentException("Coordinator page token create time is required");
+        }
+        long nowMillis = this.currentTimeMillisSupplier.getAsLong();
+        if (nowMillis - pageToken.getCreateTimeMillis() > this.coordinatorPageTokenTtlMillis) {
+            throw new IllegalArgumentException("Coordinator page token expired");
+        }
     }
 
     private String nextPeerPageToken(String proxyId, Map<String, String> currentPeerTokens,

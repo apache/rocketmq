@@ -128,7 +128,7 @@ public class ProxyClientAdminCoordinatorPageToken {
         private String proxyId;
         private String lastClientId;
         private String lastProxyId;
-        private long createTimeMillis;
+        private long createTimeMillis = System.currentTimeMillis();
         private Map<String, String> peerPageTokens = Collections.emptyMap();
 
         public Builder setScope(ProxyClientScope scope) {
