@@ -123,6 +123,65 @@ public class ProxyClientAdminPeerDtoTest {
     }
 
     @Test
+    public void peerRequestRejectsOperationMismatchedIdentityAndListFields() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
+            .setClientId("client-a")
+            .setGroup("group-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("DESCRIBE_CLIENT")
+            .hasMessageContaining("group");
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
+            .setClientId("client-a")
+            .setTopic("topic-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("DESCRIBE_CLIENT")
+            .hasMessageContaining("topic");
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
+            .setClientId("client-a")
+            .setClientType(ClientType.PRODUCER)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("DESCRIBE_CLIENT")
+            .hasMessageContaining("clientType");
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
+            .setClientId("client-a")
+            .setPageToken("client-b")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("DESCRIBE_CLIENT")
+            .hasMessageContaining("pageToken");
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setClientId("client-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("LIST_CLIENTS")
+            .hasMessageContaining("clientId");
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP)
+            .setGroup("group-a")
+            .setClientId("client-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("LIST_CLIENTS_BY_GROUP")
+            .hasMessageContaining("clientId");
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_TOPIC)
+            .setTopic("topic-a")
+            .setClientId("client-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("LIST_CLIENTS_BY_TOPIC")
+            .hasMessageContaining("clientId");
+    }
+
+    @Test
     public void peerDescribeRequestNormalizesClientAndBuildsLocalScope() {
         ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)

@@ -120,19 +120,28 @@ public class ProxyClientAdminPeerRequest {
 
     private void validateOperationFields() {
         if (this.operation == ProxyClientAdminPeerOperation.LIST_CLIENTS) {
+            rejectUnexpectedField(this.operation, "clientId", this.clientId);
             rejectUnexpectedField(this.operation, "group", this.group);
             rejectUnexpectedField(this.operation, "topic", this.topic);
         }
-        if (this.operation == ProxyClientAdminPeerOperation.DESCRIBE_CLIENT && this.clientId == null) {
-            throw new IllegalArgumentException("clientId is required");
+        if (this.operation == ProxyClientAdminPeerOperation.DESCRIBE_CLIENT) {
+            if (this.clientId == null) {
+                throw new IllegalArgumentException("clientId is required");
+            }
+            rejectUnexpectedField(this.operation, "group", this.group);
+            rejectUnexpectedField(this.operation, "topic", this.topic);
+            rejectUnexpectedField(this.operation, "clientType", this.clientType);
+            rejectUnexpectedField(this.operation, "pageToken", this.pageToken);
         }
         if (this.operation == ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP) {
+            rejectUnexpectedField(this.operation, "clientId", this.clientId);
             rejectUnexpectedField(this.operation, "topic", this.topic);
         }
         if (this.operation == ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_GROUP && this.group == null) {
             throw new IllegalArgumentException("group is required");
         }
         if (this.operation == ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_TOPIC) {
+            rejectUnexpectedField(this.operation, "clientId", this.clientId);
             rejectUnexpectedField(this.operation, "group", this.group);
         }
         if (this.operation == ProxyClientAdminPeerOperation.LIST_CLIENTS_BY_TOPIC && this.topic == null) {
@@ -141,7 +150,7 @@ public class ProxyClientAdminPeerRequest {
     }
 
     private static void rejectUnexpectedField(ProxyClientAdminPeerOperation operation, String fieldName,
-        String value) {
+        Object value) {
         if (value != null) {
             throw new IllegalArgumentException(operation + " request must not set " + fieldName);
         }
