@@ -88,6 +88,27 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private final RocksDBConsumeQueueTable rocksDBConsumeQueueTable;
     private final RocksDBConsumeQueueOffsetTable rocksDBConsumeQueueOffsetTable;
 
+    /**
+     * Pre-allocated, off-heap DirectByteBuffer pool for the ConsumeQueue
+     * key/value pair.
+     *
+     * <p>Each entry is a {@link Pair} of (key, value) buffers used by
+     * {@link #dispatch(DispatchEntry, WriteBatch)} to stage a single
+     * CQ entry before committing. The key buffer is sized to
+     * {@link #MAX_KEY_LEN} bytes (300) and the value buffer to
+     * {@link RocksDBConsumeQueueTable#CQ_UNIT_SIZE} bytes (28).
+     *
+     * <p>Initialized in the constructor with 16 pairs and grown on
+     * demand by {@link #getCQByteBufferPair()} when
+     * {@link #consumeQueueByteBufferCacheIndex} exceeds the current
+     * size. The pool is reset (index only, not buffer instances) at the
+     * end of each {@link #putMessagePosition0} call so subsequent
+     * batches reuse the same DirectByteBuffer instances.
+     *
+     * <p>Access is single-threaded (only
+     * {@link RocksGroupCommitService} drives writes), so no
+     * synchronization is required.
+     */
     private final List<Pair<ByteBuffer, ByteBuffer>> cqBBPairList;
     private final List<Pair<ByteBuffer, ByteBuffer>> offsetBBPairList;
     private final Map<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> tempTopicQueueMaxOffsetMap;
