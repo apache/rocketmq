@@ -135,6 +135,27 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
      * synchronization is required.
      */
     private final List<Pair<ByteBuffer, ByteBuffer>> offsetBBPairList;
+    /**
+     * Per-batch accumulator of the max cq-offset seen for each
+     * (topic, queueId) within a single {@link #putMessagePosition0}
+     * call.
+     *
+     * <p>Keyed by the topic-queueId buffer (a slice of
+     * {@link #offsetBBPairList}); the value is a
+     * (max-offset ByteBuffer, original {@link DispatchEntry}) pair.
+     * The max-offset buffer is the candidate that
+     * {@link RocksDBConsumeQueueOffsetTable#putMaxPhyAndCqOffset}
+     * reads when staging the offset-table updates into the WriteBatch.
+     *
+     * <p>The map is created fresh in the constructor and reused
+     * across batches — entries are cleared in the
+     * {@code finally} block of {@link #putMessagePosition0} rather
+     * than reallocating the map.
+     *
+     * <p>Access is single-threaded (only
+     * {@link RocksGroupCommitService} drives writes), so a plain
+     * {@link HashMap} suffices.
+     */
     private final Map<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> tempTopicQueueMaxOffsetMap;
     private volatile boolean isCQError = false;
 
