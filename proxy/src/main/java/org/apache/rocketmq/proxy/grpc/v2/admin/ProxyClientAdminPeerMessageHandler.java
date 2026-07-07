@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.Code;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
@@ -50,6 +51,7 @@ public class ProxyClientAdminPeerMessageHandler {
             operation = request.getOperation();
             return this.encodeResponse(operation, this.localExecutor.execute(ctx, request));
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return this.encodeError(operation, t);
         }
     }
@@ -60,16 +62,21 @@ public class ProxyClientAdminPeerMessageHandler {
             ProxyClientAdminPeerResponse.error(
                 this.localExecutor.getLocalProxyId(),
                 this.errorCode(t).name(),
-                StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName())
+                this.errorMessage(t)
             )
         );
     }
 
     private Code errorCode(Throwable t) {
-        if (t instanceof IllegalArgumentException) {
+        if (ExceptionUtils.getRealException(t) instanceof IllegalArgumentException) {
             return Code.BAD_REQUEST;
         }
         return Code.INTERNAL_SERVER_ERROR;
+    }
+
+    private String errorMessage(Throwable t) {
+        Throwable realException = ExceptionUtils.getRealException(t);
+        return StringUtils.defaultIfBlank(realException.getMessage(), realException.getClass().getSimpleName());
     }
 
     @SuppressWarnings("unchecked")
@@ -82,5 +89,9 @@ public class ProxyClientAdminPeerMessageHandler {
 
     String getLocalProxyId() {
         return this.localExecutor.getLocalProxyId();
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        ProxyClientAdminInterrupts.restoreInterruptedStatus(t);
     }
 }

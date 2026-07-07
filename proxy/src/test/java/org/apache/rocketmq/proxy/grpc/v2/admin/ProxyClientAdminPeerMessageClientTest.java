@@ -253,6 +253,61 @@ public class ProxyClientAdminPeerMessageClientTest {
     }
 
     @Test
+    public void messageHandlerEncodesBadRequestForWrappedMalformedRequest() {
+        ProxyClientAdminPeerMessageCodec codec = mock(ProxyClientAdminPeerMessageCodec.class);
+        when(codec.decodeRequest("{}"))
+            .thenThrow(new CompletionException(new IllegalArgumentException("wrapped bad request")));
+        when(codec.encodePageResponse(any())).thenAnswer(invocation -> {
+            ProxyClientAdminPeerResponse<ProxyClientPage> response = invocation.getArgument(0);
+            return ProxyClientAdminPeerMessageCodec.getInstance().encodePageResponse(response);
+        });
+        ProxyClientAdminPeerMessageHandler handler = new ProxyClientAdminPeerMessageHandler(
+            newExecutor("proxy-a", mock(ClientAdminService.class)),
+            codec
+        );
+
+        String responseMessage = handler.execute(proxyContext(), "{}");
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.BAD_REQUEST.name());
+        assertThat(response.getErrorMessage()).contains("wrapped bad request");
+    }
+
+    @Test
+    public void messageHandlerRestoresInterruptForWrappedDecodeInterrupt() {
+        ProxyClientAdminPeerMessageCodec codec = mock(ProxyClientAdminPeerMessageCodec.class);
+        when(codec.decodeRequest("{}"))
+            .thenThrow(new CompletionException(new InterruptedException("wrapped peer decode interrupted")));
+        when(codec.encodePageResponse(any())).thenAnswer(invocation -> {
+            ProxyClientAdminPeerResponse<ProxyClientPage> response = invocation.getArgument(0);
+            return ProxyClientAdminPeerMessageCodec.getInstance().encodePageResponse(response);
+        });
+        ProxyClientAdminPeerMessageHandler handler = new ProxyClientAdminPeerMessageHandler(
+            newExecutor("proxy-a", mock(ClientAdminService.class)),
+            codec
+        );
+
+        try {
+            String responseMessage = handler.execute(proxyContext(), "{}");
+            ProxyClientAdminPeerResponse<ProxyClientPage> response =
+                ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getBody()).isNull();
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("wrapped peer decode interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void messageHandlerEncodesBadRequestForUnknownOperationRequest() {
         ProxyClientAdminPeerMessageHandler handler = new ProxyClientAdminPeerMessageHandler(
             newExecutor("proxy-a", mock(ClientAdminService.class))
