@@ -25,6 +25,7 @@ import io.grpc.Metadata;
 import io.grpc.Server;
 import io.grpc.ServerInterceptors;
 import io.grpc.Status;
+import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import java.util.Collections;
@@ -310,6 +311,28 @@ public class ProxyClientAdminPeerGrpcTransportTest {
     }
 
     @Test
+    public void grpcTransportMapsGrpcCheckedStatusFailuresToEncodedPeerError() {
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", mock(Channel.class));
+        ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(
+            channels,
+            (channel, requestMessage, metadata) -> {
+                throwUnchecked(Status.UNAVAILABLE.withDescription("peer unavailable").asException());
+                return null;
+            }
+        );
+
+        String responseMessage = transport.execute(proxyContext(), "proxy-a", "{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getErrorCode()).isEqualTo(Code.PROXY_TIMEOUT.name());
+        assertThat(response.getErrorMessage()).contains("peer unavailable");
+    }
+
+    @Test
     public void grpcTransportRejectsInvalidChannelMap() {
         assertThatThrownBy(() -> new ProxyClientAdminPeerGrpcTransport(null, new RecordingInvoker("{}")))
             .isInstanceOf(IllegalArgumentException.class)
@@ -377,6 +400,15 @@ public class ProxyClientAdminPeerGrpcTransportTest {
         assertThat(response.getProxyId()).isEqualTo("proxy-a");
         assertThat(response.getErrorCode()).isEqualTo(expectedCode.name());
         assertThat(response.getErrorMessage()).contains(expectedMessage);
+    }
+
+    private static void throwUnchecked(StatusException statusException) {
+        ProxyClientAdminPeerGrpcTransportTest.<RuntimeException>throwAny(statusException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
     }
 
     private static class RecordingInvoker implements ProxyClientAdminPeerGrpcTransport.Invoker {

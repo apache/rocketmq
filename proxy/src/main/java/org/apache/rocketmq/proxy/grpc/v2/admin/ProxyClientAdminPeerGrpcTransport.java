@@ -24,6 +24,8 @@ import io.grpc.Channel;
 import io.grpc.ClientInterceptors;
 import io.grpc.Context;
 import io.grpc.Metadata;
+import io.grpc.Status;
+import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ClientCalls;
 import io.grpc.stub.MetadataUtils;
@@ -130,11 +132,11 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
     }
 
     private Code statusCode(Throwable t) {
-        if (!(t instanceof StatusRuntimeException)) {
+        Status status = this.grpcStatus(t);
+        if (status == null) {
             return Code.INTERNAL_SERVER_ERROR;
         }
-        StatusRuntimeException statusRuntimeException = (StatusRuntimeException) t;
-        switch (statusRuntimeException.getStatus().getCode()) {
+        switch (status.getCode()) {
             case INVALID_ARGUMENT:
             case FAILED_PRECONDITION:
             case OUT_OF_RANGE:
@@ -157,14 +159,24 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
     }
 
     private String statusMessage(Throwable t) {
-        if (t instanceof StatusRuntimeException) {
-            StatusRuntimeException statusRuntimeException = (StatusRuntimeException) t;
-            String description = StringUtils.trimToNull(statusRuntimeException.getStatus().getDescription());
+        Status status = this.grpcStatus(t);
+        if (status != null) {
+            String description = StringUtils.trimToNull(status.getDescription());
             if (description != null) {
                 return description;
             }
         }
         return StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName());
+    }
+
+    private Status grpcStatus(Throwable t) {
+        if (t instanceof StatusRuntimeException) {
+            return ((StatusRuntimeException) t).getStatus();
+        }
+        if (t instanceof StatusException) {
+            return ((StatusException) t).getStatus();
+        }
+        return null;
     }
 
     private Metadata buildMetadata(ProxyContext ctx) {
