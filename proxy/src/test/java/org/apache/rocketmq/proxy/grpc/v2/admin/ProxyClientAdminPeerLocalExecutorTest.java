@@ -207,6 +207,32 @@ public class ProxyClientAdminPeerLocalExecutorTest {
     }
 
     @Test
+    public void executeRestoresInterruptWhenClientAdminServiceIsInterrupted() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientAdminPeerLocalExecutor executor = new ProxyClientAdminPeerLocalExecutor("proxy-b", delegate);
+        when(delegate.listClients(any(ProxyClientQuery.class))).thenAnswer(invocation -> {
+            throwUnchecked(new InterruptedException("local peer admin interrupted"));
+            return null;
+        });
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .build();
+
+        try {
+            ProxyClientAdminPeerResponse<?> response = executor.execute(proxyContext(), request);
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-b");
+            assertThat(response.getBody()).isNull();
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("local peer admin interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void executeMapsMissingContextToPeerError() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminPeerLocalExecutor executor = new ProxyClientAdminPeerLocalExecutor("proxy-b", activity);
@@ -264,5 +290,14 @@ public class ProxyClientAdminPeerLocalExecutorTest {
             1000L,
             2000L
         );
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminPeerLocalExecutorTest.<RuntimeException>throwAny(interruptedException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
     }
 }

@@ -79,11 +79,18 @@ public class ProxyClientAdminInProcessPeerClient implements ProxyClientAdminPeer
         try {
             return executor.execute(ctx, request);
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return ProxyClientAdminPeerResponse.error(
                 requiredProxyId,
                 Code.INTERNAL_SERVER_ERROR.name(),
                 StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName())
             );
+        }
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        if (t instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
         }
     }
 

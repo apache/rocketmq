@@ -205,7 +205,8 @@ small and tested boundary to call:
   are converted into peer error responses, and interrupted raw peer calls restore
   the thread interrupted flag before returning that error. The in-process
   message transport keeps local multi-proxy simulations on the same serialized
-  boundary that a real transport will use.
+  boundary that a real transport will use and applies the same interrupt
+  preservation rule when local handler execution is interrupted.
 - `ProxyClientAdminPeerGrpcService` exposes an internal unary gRPC service using
   `StringValue` request and response bodies that carry the peer JSON payload. It
   builds `ProxyContext` through the same admin context factory and delegates to
@@ -697,7 +698,8 @@ Recommended implementation order after public API ownership is confirmed:
    stable local peer id; the default local-only `DEFAULT_PROXY` fallback is not
    used for coordinator scopes. The in-process peer client converts local executor
    failures into peer error responses so coordinator fan-out receives a bounded
-   peer result instead of an exception escaping the peer-client boundary. The
+   peer result instead of an exception escaping the peer-client boundary, while
+   preserving the interrupted flag when local executor work is interrupted. The
    default local peer executor now delegates peer-local work directly to the
    shared `ClientAdminService` instead of re-entering the public admin activity,
    so coordinator fan-out reuses local read semantics without duplicating the

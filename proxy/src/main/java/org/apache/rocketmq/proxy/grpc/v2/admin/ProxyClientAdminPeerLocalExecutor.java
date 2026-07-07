@@ -80,6 +80,7 @@ public class ProxyClientAdminPeerLocalExecutor {
                     throw new IllegalStateException("Unsupported peer operation: " + requiredRequest.getOperation());
             }
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return ProxyClientAdminPeerResponse.error(
                 localProxyId,
                 Code.INTERNAL_SERVER_ERROR.name(),
@@ -133,6 +134,7 @@ public class ProxyClientAdminPeerLocalExecutor {
                 supplier.get()
             );
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
     }
@@ -203,5 +205,11 @@ public class ProxyClientAdminPeerLocalExecutor {
             throw new IllegalArgumentException("request is required");
         }
         return request;
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        if (t instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

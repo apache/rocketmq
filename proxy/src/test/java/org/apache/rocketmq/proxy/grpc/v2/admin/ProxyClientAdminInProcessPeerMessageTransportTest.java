@@ -141,6 +141,35 @@ public class ProxyClientAdminInProcessPeerMessageTransportTest {
     }
 
     @Test
+    public void inProcessMessageTransportRestoresInterruptWhenHandlerIsInterrupted() {
+        ProxyClientAdminPeerMessageHandler handler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(handler.getLocalProxyId()).thenReturn("proxy-a");
+        when(handler.execute(any(), anyString())).thenAnswer(invocation -> {
+            throwUnchecked(new InterruptedException("in-process peer handler interrupted"));
+            return null;
+        });
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+        handlers.put("proxy-a", handler);
+        ProxyClientAdminInProcessPeerMessageTransport transport =
+            new ProxyClientAdminInProcessPeerMessageTransport(handlers);
+
+        try {
+            String responseMessage = transport.execute(proxyContext(), " proxy-a ", "{\"operation\":\"LIST_CLIENTS\"}");
+            ProxyClientAdminPeerResponse<ProxyClientPage> response =
+                ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getBody()).isNull();
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("in-process peer handler interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void inProcessMessageTransportRejectsDuplicateNormalizedProxyIds() {
         Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
         handlers.put("proxy-a", newHandler("proxy-a", mock(ClientAdminService.class)));
@@ -198,5 +227,14 @@ public class ProxyClientAdminInProcessPeerMessageTransportTest {
             1000L,
             2000L
         );
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminInProcessPeerMessageTransportTest.<RuntimeException>throwAny(interruptedException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
     }
 }

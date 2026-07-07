@@ -96,6 +96,7 @@ public class ProxyClientAdminInProcessPeerMessageTransport implements ProxyClien
             }
             return responseMessage;
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return this.encodeError(
                 requiredProxyId,
                 Code.INTERNAL_SERVER_ERROR,
@@ -111,6 +112,12 @@ public class ProxyClientAdminInProcessPeerMessageTransport implements ProxyClien
             message
         );
         return this.codec.encodePageResponse(response);
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        if (t instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static String requireProxyId(String proxyId) {

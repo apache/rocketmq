@@ -109,6 +109,35 @@ public class ProxyClientAdminInProcessPeerClientTest {
     }
 
     @Test
+    public void inProcessPeerClientRestoresInterruptWhenExecutorIsInterrupted() {
+        ProxyClientAdminPeerLocalExecutor executor = mock(ProxyClientAdminPeerLocalExecutor.class);
+        when(executor.getLocalProxyId()).thenReturn("proxy-a");
+        when(executor.execute(any(), any())).thenAnswer(invocation -> {
+            throwUnchecked(new InterruptedException("in-process peer executor interrupted"));
+            return null;
+        });
+        Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
+        executors.put("proxy-a", executor);
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminInProcessPeerClient(executors);
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .build();
+
+        try {
+            ProxyClientAdminPeerResponse<?> response = peerClient.execute(proxyContext(), " proxy-a ", request);
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getBody()).isNull();
+            assertThat(response.getErrorCode()).isEqualTo("INTERNAL_SERVER_ERROR");
+            assertThat(response.getErrorMessage()).contains("in-process peer executor interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void inProcessPeerClientRejectsDuplicateNormalizedProxyIds() {
         Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
         executors.put("proxy-a", newExecutor("proxy-a", mock(ClientAdminService.class)));
@@ -166,5 +195,14 @@ public class ProxyClientAdminInProcessPeerClientTest {
             1000L,
             2000L
         );
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminInProcessPeerClientTest.<RuntimeException>throwAny(interruptedException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
     }
 }
