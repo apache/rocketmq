@@ -1002,6 +1002,8 @@ Internal adapter tests cover:
   results and proxy id stamping.
 - peer gRPC transport request and response payload bounds before and after the
   network call.
+- malformed peer response payload mapping at both in-process and gRPC transport
+  boundaries.
 - peer error response message truncation before peer payload encoding.
 - static peer gRPC target rejection for overlong proxy ids and host names.
 - in-process peer transport request/response bounds around local handler

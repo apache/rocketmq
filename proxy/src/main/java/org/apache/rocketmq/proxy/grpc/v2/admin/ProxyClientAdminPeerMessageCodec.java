@@ -125,7 +125,9 @@ public final class ProxyClientAdminPeerMessageCodec {
     }
 
     public String requireResponseMessage(String message) {
-        return requireMessage(message, "peer response message");
+        String requiredMessage = requireMessage(message, "peer response message");
+        parseResponsePayload(requiredMessage);
+        return requiredMessage;
     }
 
     private ResponsePayload toPageResponsePayload(ProxyClientAdminPeerResponse<ProxyClientPage> response) {

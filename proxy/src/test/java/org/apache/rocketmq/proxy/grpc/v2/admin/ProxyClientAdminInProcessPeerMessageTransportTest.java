@@ -189,6 +189,26 @@ public class ProxyClientAdminInProcessPeerMessageTransportTest {
     }
 
     @Test
+    public void inProcessMessageTransportMapsMalformedResponseMessageToPeerError() {
+        ProxyClientAdminPeerMessageHandler handler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(handler.getLocalProxyId()).thenReturn("proxy-a");
+        when(handler.execute(any(), anyString())).thenReturn("{");
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+        handlers.put("proxy-a", handler);
+        ProxyClientAdminInProcessPeerMessageTransport transport =
+            new ProxyClientAdminInProcessPeerMessageTransport(handlers);
+
+        String responseMessage = transport.execute(proxyContext(), "proxy-a", "{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorMessage()).contains("Invalid peer response message");
+    }
+
+    @Test
     public void inProcessMessageTransportRestoresInterruptWhenHandlerIsInterrupted() {
         ProxyClientAdminPeerMessageHandler handler = mock(ProxyClientAdminPeerMessageHandler.class);
         when(handler.getLocalProxyId()).thenReturn("proxy-a");
