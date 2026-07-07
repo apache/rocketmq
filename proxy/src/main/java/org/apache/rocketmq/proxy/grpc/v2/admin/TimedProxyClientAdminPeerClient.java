@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 
 public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClient {
     private final ProxyClientAdminPeerClient delegate;
@@ -61,7 +62,8 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
             return requireProxyIds(future.get(this.timeoutMillis, TimeUnit.MILLISECONDS));
         } catch (TimeoutException e) {
             future.cancel(true);
-            throw new IllegalStateException(
+            throw new GrpcProxyException(
+                Code.PROXY_TIMEOUT,
                 "Timed out waiting for proxy client admin peer discovery after "
                     + this.timeoutMillis + " ms",
                 e

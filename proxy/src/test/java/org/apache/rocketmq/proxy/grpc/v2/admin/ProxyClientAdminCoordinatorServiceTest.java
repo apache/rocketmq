@@ -25,6 +25,10 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
@@ -495,6 +499,34 @@ public class ProxyClientAdminCoordinatorServiceTest {
         assertThat(result.getStatus().getMessage()).contains("at least one peer proxyId");
         assertThat(result.getBody()).isNull();
         assertThat(peerClient.executeCount).isEqualTo(0);
+    }
+
+    @Test
+    public void listClientsAllProxiesMapsPeerDiscoveryTimeoutToProxyTimeout() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch interrupted = new CountDownLatch(1);
+        try {
+            ProxyClientAdminPeerClient peerClient = new TimedProxyClientAdminPeerClient(
+                new BlockingDiscoveryPeerClient(entered, interrupted),
+                executor,
+                10L
+            );
+            ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+            ProxyClientQuery query = ProxyClientQuery.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .build();
+
+            ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+            assertThat(result.getStatus().getCode()).isEqualTo(Code.PROXY_TIMEOUT);
+            assertThat(result.getStatus().getMessage()).contains("Timed out").contains("peer discovery");
+            assertThat(result.getBody()).isNull();
+            assertThat(entered.await(1, TimeUnit.SECONDS)).isTrue();
+            assertThat(interrupted.await(1, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
@@ -1136,6 +1168,34 @@ public class ProxyClientAdminCoordinatorServiceTest {
             ProxyClientAdminPeerRequest request) {
             this.executeCount++;
             return ProxyClientAdminPeerResponse.success("proxy-a", page(Collections.emptyList(), ""));
+        }
+    }
+
+    private static class BlockingDiscoveryPeerClient implements ProxyClientAdminPeerClient {
+        private final CountDownLatch entered;
+        private final CountDownLatch interrupted;
+
+        BlockingDiscoveryPeerClient(CountDownLatch entered, CountDownLatch interrupted) {
+            this.entered = entered;
+            this.interrupted = interrupted;
+        }
+
+        @Override
+        public List<String> listProxyIds() {
+            this.entered.countDown();
+            try {
+                Thread.sleep(TimeUnit.SECONDS.toMillis(5));
+            } catch (InterruptedException ignored) {
+                this.interrupted.countDown();
+                Thread.currentThread().interrupt();
+            }
+            return Collections.singletonList("proxy-a");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            return ProxyClientAdminPeerResponse.success(proxyId, page(Collections.emptyList(), ""));
         }
     }
 }

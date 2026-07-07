@@ -30,6 +30,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,7 +69,7 @@ public class TimedProxyClientAdminPeerClientTest {
             );
 
             assertThatThrownBy(client::listProxyIds)
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(GrpcProxyException.class)
                 .hasMessageContaining("Timed out")
                 .hasMessageContaining("peer discovery");
             assertThat(entered.await(1, TimeUnit.SECONDS)).isTrue();

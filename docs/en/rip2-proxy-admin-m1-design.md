@@ -794,7 +794,9 @@ encoding a peer error response: invalid-argument style statuses become
 `BAD_REQUEST`, `NOT_FOUND` stays `NOT_FOUND`, authentication and permission
 statuses become `UNAUTHORIZED`, resource exhaustion becomes `TOO_MANY_REQUESTS`,
 unimplemented methods become `NOT_IMPLEMENTED`, and peer deadlines become
-`PROXY_TIMEOUT`. Unknown transport failures remain `INTERNAL_SERVER_ERROR`.
+`PROXY_TIMEOUT`. Coordinator peer-discovery timeouts also surface as
+`PROXY_TIMEOUT` instead of a generic internal error. Unknown transport failures
+remain `INTERNAL_SERVER_ERROR`.
 
 ## Compatibility
 
