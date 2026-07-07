@@ -65,6 +65,7 @@ public class ProxyClientAdminPeerMessageClient implements ProxyClientAdminPeerCl
             );
             return this.decodeResponse(requiredRequest.getOperation(), responseMessage);
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return internalServerError(requiredProxyId, t);
         }
     }
@@ -95,6 +96,12 @@ public class ProxyClientAdminPeerMessageClient implements ProxyClientAdminPeerCl
 
     private static ProxyClientAdminPeerResponse<?> badRequest(String proxyId, String message) {
         return ProxyClientAdminPeerResponse.error(proxyId, Code.BAD_REQUEST.name(), message);
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        if (t instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static String requireProxyId(String proxyId) {

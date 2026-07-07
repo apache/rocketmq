@@ -129,6 +129,32 @@ public class ProxyClientAdminPeerMessageClientTest {
     }
 
     @Test
+    public void messagePeerClientRestoresInterruptWhenTransportIsInterrupted() {
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminPeerMessageClient(
+            new InterruptingMessageTransport()
+        );
+
+        try {
+            ProxyClientAdminPeerResponse<?> response = peerClient.execute(
+                proxyContext(),
+                " proxy-a ",
+                ProxyClientAdminPeerRequest.newBuilder()
+                    .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+                    .build()
+            );
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getBody()).isNull();
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("peer message transport interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void messagePeerClientMapsMalformedResponseToPeerError() {
         ProxyClientAdminPeerClient peerClient = new ProxyClientAdminPeerMessageClient(
             new MalformedResponseTransport()
@@ -289,6 +315,19 @@ public class ProxyClientAdminPeerMessageClientTest {
         }
     }
 
+    private static class InterruptingMessageTransport implements ProxyClientAdminPeerMessageTransport {
+        @Override
+        public List<String> listProxyIds() {
+            return Collections.singletonList("proxy-a");
+        }
+
+        @Override
+        public String execute(ProxyContext ctx, String proxyId, String requestMessage) {
+            throwUnchecked(new InterruptedException("peer message transport interrupted"));
+            return null;
+        }
+    }
+
     private static class MalformedResponseTransport implements ProxyClientAdminPeerMessageTransport {
         @Override
         public List<String> listProxyIds() {
@@ -299,5 +338,14 @@ public class ProxyClientAdminPeerMessageClientTest {
         public String execute(ProxyContext ctx, String proxyId, String requestMessage) {
             return "{";
         }
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminPeerMessageClientTest.<RuntimeException>throwAny(interruptedException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
     }
 }

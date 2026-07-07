@@ -201,9 +201,11 @@ small and tested boundary to call:
   parsing so malformed or oversized peer payloads fail at the transport boundary.
 - `ProxyClientAdminPeerMessageClient` adapts the object-level peer-client
   contract to a raw message transport. `ProxyClientAdminPeerMessageHandler`
-  adapts raw messages back to the local peer executor. The in-process message
-  transport keeps local multi-proxy simulations on the same serialized boundary
-  that a real transport will use.
+  adapts raw messages back to the local peer executor. Raw transport failures
+  are converted into peer error responses, and interrupted raw peer calls restore
+  the thread interrupted flag before returning that error. The in-process
+  message transport keeps local multi-proxy simulations on the same serialized
+  boundary that a real transport will use.
 - `ProxyClientAdminPeerGrpcService` exposes an internal unary gRPC service using
   `StringValue` request and response bodies that carry the peer JSON payload. It
   builds `ProxyContext` through the same admin context factory and delegates to
