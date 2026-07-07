@@ -215,6 +215,9 @@ small and tested boundary to call:
   and peer error responses must remain status-only without page/client bodies.
   Raw peer JSON request and response messages are capped at 1 MiB before JSON
   parsing so malformed or oversized peer payloads fail at the transport boundary.
+  Peer error messages are capped at 4096 characters at the peer-response DTO
+  boundary and use a fixed `...(truncated)` suffix when shortened, so local
+  exception text cannot expand an otherwise bounded peer error payload.
   The gRPC peer transport validates outbound request messages before invoking a
   peer and validates inbound response messages before returning them to the
   message client.
@@ -968,6 +971,7 @@ Internal adapter tests cover:
   results and proxy id stamping.
 - peer gRPC transport request and response payload bounds before and after the
   network call.
+- peer error response message truncation before peer payload encoding.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 
@@ -992,9 +996,9 @@ failures/errors and Maven exits successfully.
 On 2026-07-08 Asia/Shanghai time, after refreshing `upstream/develop` to commit
 `0e4ccf1b6`, adding admin metrics scope labels, and hardening peer gRPC request
 and response payload bounds including service-side request and response
-validation, plus coordinator stale-peer-page and stale-peer-next-token checks,
-the admin endpoint, coordinator, startup wiring, metrics, and authorization
-suite was revalidated with:
+validation, peer error-message truncation, plus coordinator stale-peer-page and
+stale-peer-next-token checks, the admin endpoint, coordinator, startup wiring,
+metrics, and authorization suite was revalidated with:
 
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
@@ -1003,7 +1007,7 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 483, Failures: 0, Errors: 0, Skipped: 0` and ended
+The run reported `Tests run: 484, Failures: 0, Errors: 0, Skipped: 0` and ended
 with `BUILD SUCCESS`. The same JDK 17 JaCoCo instrumentation noise appeared in
 the log, but Maven exited successfully.
 

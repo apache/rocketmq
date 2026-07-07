@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
 import java.util.Collections;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
@@ -251,5 +252,18 @@ public class ProxyClientAdminPeerDtoTest {
         assertThat(error.getBody()).isNull();
         assertThat(error.getErrorCode()).isEqualTo("NOT_FOUND");
         assertThat(error.getErrorMessage()).isEqualTo("missing");
+    }
+
+    @Test
+    public void peerResponseTruncatesOverlongErrorMessages() {
+        ProxyClientAdminPeerResponse<ProxyClientPage> error = ProxyClientAdminPeerResponse.error(
+            "proxy-a",
+            "INTERNAL_SERVER_ERROR",
+            StringUtils.repeat("a", 5000)
+        );
+
+        assertThat(error.getErrorMessage()).hasSize(4096);
+        assertThat(error.getErrorMessage()).startsWith(StringUtils.repeat("a", 100));
+        assertThat(error.getErrorMessage()).endsWith("...(truncated)");
     }
 }

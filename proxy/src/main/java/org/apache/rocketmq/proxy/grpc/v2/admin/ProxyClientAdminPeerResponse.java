@@ -20,6 +20,9 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientAdminPeerResponse<T> {
+    private static final int MAX_ERROR_MESSAGE_LENGTH = 4096;
+    private static final String TRUNCATED_ERROR_MESSAGE_SUFFIX = "...(truncated)";
+
     private final String proxyId;
     private final boolean success;
     private final T body;
@@ -32,7 +35,7 @@ public class ProxyClientAdminPeerResponse<T> {
         this.success = success;
         this.body = body;
         this.errorCode = StringUtils.trimToEmpty(errorCode);
-        this.errorMessage = StringUtils.trimToEmpty(errorMessage);
+        this.errorMessage = normalizeErrorMessage(errorMessage);
     }
 
     public static <T> ProxyClientAdminPeerResponse<T> success(String proxyId, T body) {
@@ -76,5 +79,16 @@ public class ProxyClientAdminPeerResponse<T> {
             throw new IllegalArgumentException("proxyId is required");
         }
         return normalizedProxyId;
+    }
+
+    private static String normalizeErrorMessage(String errorMessage) {
+        String normalizedErrorMessage = StringUtils.trimToEmpty(errorMessage);
+        if (normalizedErrorMessage.length() <= MAX_ERROR_MESSAGE_LENGTH) {
+            return normalizedErrorMessage;
+        }
+        return normalizedErrorMessage.substring(
+            0,
+            MAX_ERROR_MESSAGE_LENGTH - TRUNCATED_ERROR_MESSAGE_SUFFIX.length()
+        ) + TRUNCATED_ERROR_MESSAGE_SUFFIX;
     }
 }
