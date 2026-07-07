@@ -18,6 +18,8 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.Code;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -89,7 +91,15 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
         if (proxyIds.isEmpty()) {
             throw new IllegalStateException("at least one peer proxyId is required");
         }
-        return proxyIds;
+        List<String> normalizedProxyIds = new ArrayList<>(proxyIds.size());
+        for (String proxyId : proxyIds) {
+            try {
+                normalizedProxyIds.add(ProxyClientAdminPeerIds.requirePeerProxyId(proxyId));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+        }
+        return Collections.unmodifiableList(normalizedProxyIds);
     }
 
     @Override
@@ -153,10 +163,6 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
     }
 
     private static String requireProxyId(String proxyId) {
-        String normalizedProxyId = StringUtils.trimToNull(proxyId);
-        if (normalizedProxyId == null) {
-            throw new IllegalArgumentException("proxyId is required");
-        }
-        return normalizedProxyId;
+        return ProxyClientAdminPeerIds.requireProxyId(proxyId);
     }
 }

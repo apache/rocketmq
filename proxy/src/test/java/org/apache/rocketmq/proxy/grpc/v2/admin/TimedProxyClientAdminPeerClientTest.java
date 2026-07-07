@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.junit.Test;
@@ -169,6 +170,24 @@ public class TimedProxyClientAdminPeerClientTest {
             assertThatThrownBy(client::listProxyIds)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("at least one peer proxyId");
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void listProxyIdsRejectsOverlongDelegateProxyIds() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+                new OverlongListPeerClient(),
+                executor,
+                1000L
+            );
+
+            assertThatThrownBy(client::listProxyIds)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("peer proxyId length exceeds 255");
         } finally {
             executor.shutdownNow();
         }
@@ -556,6 +575,19 @@ public class TimedProxyClientAdminPeerClientTest {
         @Override
         public List<String> listProxyIds() {
             return Collections.emptyList();
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            return ProxyClientAdminPeerResponse.success(proxyId, "ok");
+        }
+    }
+
+    private static class OverlongListPeerClient implements ProxyClientAdminPeerClient {
+        @Override
+        public List<String> listProxyIds() {
+            return Collections.singletonList(StringUtils.repeat("p", 256));
         }
 
         @Override

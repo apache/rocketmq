@@ -318,6 +318,19 @@ public class ProxyClientAdminInProcessPeerMessageTransportTest {
     }
 
     @Test
+    public void inProcessMessageTransportRejectsOverlongProxyIds() {
+        String proxyId = StringUtils.repeat("p", 256);
+
+        assertThatThrownBy(() -> {
+            Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+            handlers.put(proxyId, newHandler(proxyId, mock(ClientAdminService.class)));
+            new ProxyClientAdminInProcessPeerMessageTransport(handlers);
+        })
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
+    }
+
+    @Test
     public void inProcessMessageTransportRejectsHandlerProxyIdMismatch() {
         Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
         handlers.put("proxy-a", newHandler("proxy-b", mock(ClientAdminService.class)));

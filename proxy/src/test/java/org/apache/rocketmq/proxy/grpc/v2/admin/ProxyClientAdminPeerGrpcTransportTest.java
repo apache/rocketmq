@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -542,6 +543,19 @@ public class ProxyClientAdminPeerGrpcTransportTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Duplicate proxyId")
             .hasMessageContaining("proxy-a");
+    }
+
+    @Test
+    public void grpcTransportRejectsOverlongProxyIds() {
+        String proxyId = StringUtils.repeat("p", 256);
+
+        assertThatThrownBy(() -> {
+            Map<String, Channel> channels = new LinkedHashMap<>();
+            channels.put(proxyId, mock(Channel.class));
+            new ProxyClientAdminPeerGrpcTransport(channels, new RecordingInvoker("{}"));
+        })
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
     }
 
     @Test

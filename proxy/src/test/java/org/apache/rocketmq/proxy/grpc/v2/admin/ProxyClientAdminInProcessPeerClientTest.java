@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
@@ -176,6 +177,19 @@ public class ProxyClientAdminInProcessPeerClientTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Duplicate proxyId")
             .hasMessageContaining("proxy-a");
+    }
+
+    @Test
+    public void inProcessPeerClientRejectsOverlongProxyIds() {
+        String proxyId = StringUtils.repeat("p", 256);
+
+        assertThatThrownBy(() -> {
+            Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
+            executors.put(proxyId, newExecutor(proxyId, mock(ClientAdminService.class)));
+            new ProxyClientAdminInProcessPeerClient(executors);
+        })
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
     }
 
     @Test

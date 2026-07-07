@@ -231,11 +231,7 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
     }
 
     private static String requireProxyId(String proxyId) {
-        String normalizedProxyId = StringUtils.trimToNull(proxyId);
-        if (normalizedProxyId == null) {
-            throw new IllegalArgumentException("proxyId is required");
-        }
-        return normalizedProxyId;
+        return ProxyClientAdminPeerIds.requireProxyId(proxyId);
     }
 
     @FunctionalInterface

@@ -1008,6 +1008,8 @@ Internal adapter tests cover:
   boundaries.
 - peer error response message truncation before peer payload encoding.
 - static peer gRPC target rejection for overlong proxy ids and host names.
+- peer client and transport discovery rejection for overlong proxy ids before
+  coordinator page-token construction.
 - in-process peer transport request/response bounds around local handler
   invocation.
 - peer error response code length rejection before peer payload encoding and at
