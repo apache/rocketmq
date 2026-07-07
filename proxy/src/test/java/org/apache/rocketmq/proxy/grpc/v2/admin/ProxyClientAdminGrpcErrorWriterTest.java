@@ -60,6 +60,26 @@ public class ProxyClientAdminGrpcErrorWriterTest {
         assertThat(responseObserver.error).isSameAs(expectedError);
     }
 
+    @Test
+    public void writeRestoresInterruptForWrappedInterruptedException() {
+        CapturingStreamObserver responseObserver = new CapturingStreamObserver();
+
+        try {
+            ProxyClientAdminGrpcErrorWriter.write(
+                responseObserver,
+                new CompletionException(new InterruptedException("wrapped admin grpc interrupted"))
+            );
+
+            assertThat(responseObserver.error).isInstanceOf(StatusRuntimeException.class);
+            StatusRuntimeException error = (StatusRuntimeException) responseObserver.error;
+            assertThat(error.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INTERNAL);
+            assertThat(error.getStatus().getDescription()).contains("wrapped admin grpc interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
     private static class CapturingStreamObserver implements StreamObserver<Object> {
         private Throwable error;
 
