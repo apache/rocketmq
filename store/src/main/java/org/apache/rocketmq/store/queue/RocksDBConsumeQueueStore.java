@@ -346,14 +346,13 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 }
             }
 
-            // update consume queue offset
+            // update offset
             this.rocksDBConsumeQueueOffsetTable.putMaxPhyAndCqOffset(tempTopicQueueMaxOffsetMap, writeBatch, maxPhyOffset);
 
             // Atomic commit (single fsync for both CFs).
             this.rocksDBStorage.batchPut(writeBatch);
 
-            // After the commit, update the in-memory cache and wake long-polling consumers.
-            // notifyMessageArriveAndClear also clears the request list.
+            // update the in-memory cache.
             this.rocksDBConsumeQueueOffsetTable.putHeapMaxCqOffset(tempTopicQueueMaxOffsetMap);
 
             notifyMessageArriveAndClear(requests);
