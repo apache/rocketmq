@@ -182,6 +182,9 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (payload.success == null) {
             throw new IllegalArgumentException("peer response success flag is required");
         }
+        if (StringUtils.isBlank(payload.proxyId)) {
+            throw new IllegalArgumentException("peer response proxyId is required");
+        }
         if (Boolean.TRUE.equals(payload.success)
             && (StringUtils.isNotBlank(payload.errorCode) || StringUtils.isNotBlank(payload.errorMessage))) {
             throw new IllegalArgumentException("peer success response must not include error fields");

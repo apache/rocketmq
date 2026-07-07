@@ -267,6 +267,15 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void responseMessageRequirementRejectsResponseWithoutProxyId() {
+        String message = "{\"success\":false,\"errorCode\":\"NOT_FOUND\",\"errorMessage\":\"missing\"}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().requireResponseMessage(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer response proxyId is required");
+    }
+
+    @Test
     public void responseMessageRequirementRejectsSuccessfulListResponseWithoutPageBody() {
         String message = "{\"proxyId\":\"proxy-a\",\"success\":true}";
 
