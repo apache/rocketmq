@@ -80,11 +80,11 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
      * All backing ConsumeQueue stores that are loaded and maintained.
      *
      * <p>Populated in the constructor based on {@code combineCQLoadingCQTypes}:
-     * the file-based {@link ConsumeQueueStore} is added when {@link StoreType#DEFAULT} is present,
-     * and the RocksDB-based {@link RocksDBConsumeQueueStore} is added when {@link StoreType#DEFAULT_ROCKSDB} is present. 
-     * At least one entry is required (the constructor throws if both are missing).
+     * - file-based {@link ConsumeQueueStore}
+     * - the RocksDB-based {@link RocksDBConsumeQueueStore}
      *
-     * <p>No element is ever removed — once added, a store remains part of the list for the
+     * <p>At least one entry is required (the constructor throws if both are missing).
+     * No element is ever removed — once added, a store remains part of the list for the
      * lifetime of the {@code CombineConsumeQueueStore}.
      */
     private final LinkedList<AbstractConsumeQueueStore> innerConsumeQueueStoreList = new LinkedList<>();
