@@ -658,6 +658,34 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void describeClientAllProxiesRejectsMissingClientIdBeforeAuthorization() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setClientId(" ")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientInfo> result = router.describeClient(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("clientId is required");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(coordinator, never()).describeClient(any(), any());
+    }
+
+    @Test
     public void listClientsByGroupAllProxiesDelegatesToCoordinator() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
@@ -679,6 +707,34 @@ public class ProxyClientAdminScopeRouterTest {
         verify(coordinator).listClientsByGroup(eq(ctx), eq("group-a"), queryCaptor.capture());
         assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
         assertThat(queryCaptor.getValue().getGroup()).isEqualTo("group-a");
+    }
+
+    @Test
+    public void listClientsByGroupAllProxiesRejectsMissingGroupBeforeAuthorization() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsByGroupRequest request = ProxyClientAdminListClientsByGroupRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setGroup(" ")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClientsByGroup(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("group is required");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(coordinator, never()).listClientsByGroup(any(), any(), any());
     }
 
     @Test
@@ -730,6 +786,34 @@ public class ProxyClientAdminScopeRouterTest {
         verify(coordinator).listClientsByTopic(eq(ctx), eq("topic-a"), queryCaptor.capture());
         assertThat(queryCaptor.getValue().getScope()).isEqualTo(ProxyClientScope.ALL_PROXIES);
         assertThat(queryCaptor.getValue().getTopic()).isEqualTo("topic-a");
+    }
+
+    @Test
+    public void listClientsByTopicAllProxiesRejectsMissingTopicBeforeAuthorization() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsByTopicRequest request = ProxyClientAdminListClientsByTopicRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setTopic(" ")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClientsByTopic(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("topic is required");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(coordinator, never()).listClientsByTopic(any(), any(), any());
     }
 
     @Test

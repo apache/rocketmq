@@ -802,6 +802,10 @@ request therefore never reaches the peer client. When coordinator scopes are
 disabled by configuration, the router rejects those scopes as `BAD_REQUEST`
 before authorization or peer discovery, preserving the local-only gate while
 still treating the attempt as one public admin operation for metrics.
+Coordinator-scope requests also validate required identifiers before
+authorization: `DescribeClient` requires `client_id`, group queries require
+`group`, and topic queries require `topic`. This keeps malformed cross-proxy
+requests from touching ACL state or peer routing.
 Topic-level or group-level ACL can be discussed later if the community wants
 more granular visibility controls.
 
@@ -835,11 +839,12 @@ router. The router records exactly one operation metric for a coordinator-scope
 request after mapping the final status to `OK`, `BAD_REQUEST`, `NOT_FOUND`,
 `UNAUTHORIZED`, `TIMEOUT`, `TOO_MANY_REQUESTS`, `NOT_IMPLEMENTED`, or
 `INTERNAL_ERROR`. That includes the `BAD_REQUEST` result when cross-proxy scopes
-are disabled by configuration, the `TIMEOUT` result when peer fan-out or
-discovery exceeds its bounded wait, and explicit peer throttling or
-not-implemented results from the internal gRPC transport. Wrapped asynchronous
-exceptions are classified by their cause chain so bad-request, not-found,
-authorization, and timeout outcomes are not counted as internal errors.
+are disabled by configuration or missing required identifiers, the `TIMEOUT`
+result when peer fan-out or discovery exceeds its bounded wait, and explicit
+peer throttling or not-implemented results from the internal gRPC transport.
+Wrapped asynchronous exceptions are classified by their cause chain so
+bad-request, not-found, authorization, and timeout outcomes are not counted as
+internal errors.
 Peer-local execution is deliberately routed through the shared
 `ClientAdminService`, not the public activity wrapper, so a coordinator request
 is not counted again as a nested local public admin request.
@@ -889,6 +894,9 @@ The admin gRPC error writer preserves explicit gRPC status exceptions, including
 those wrapped by async adapters, before they reach the transport mapper. Unknown
 transport failures remain
 `INTERNAL_SERVER_ERROR`.
+For coordinator scopes, required identifiers are checked by the scope router
+before authorization and fan-out, so malformed `ALL_PROXIES` or `PROXY_ID`
+requests map to `BAD_REQUEST` without touching ACL state or peer routing.
 
 ## Compatibility
 
@@ -961,6 +969,8 @@ Internal adapter tests cover:
   per-peer cursor but still behind the global coordinator cursor.
 - coordinator pagination rejecting stale peer next-page tokens that do not
   advance beyond the input peer cursor or that rewind behind the returned page.
+- scope-router coordinator pre-validation for missing client id, group, and
+  topic before authorization or peer routing.
 - activity-level static peer gRPC fan-out wiring for `ALL_PROXIES`, covering
   `DefaultGrpcMessagingActivity` construction with configured peer targets and
   real internal peer gRPC services.
@@ -1218,15 +1228,18 @@ and startup service-registration seams are already covered in this branch.
    public request selects `PROXY_SCOPE_PROXY_ID`, before creating request context
    or invoking coordinator/peer code. Continue to ignore `proxy_id` for
    `PROXY_SCOPE_LOCAL_PROXY` and `PROXY_SCOPE_ALL_PROXIES`.
-8. Require an explicit, nonblank `proxyName` before enabling cross-proxy
+8. Preserve coordinator-scope pre-validation before authorization: missing
+   `client_id`, `group`, or `topic` should return `BAD_REQUEST` without invoking
+   ACL or peer fan-out.
+9. Require an explicit, nonblank `proxyName` before enabling cross-proxy
    coordinator scopes. `LOCAL_PROXY` can keep the default local-only fallback, but
    `ALL_PROXIES` and `PROXY_ID` must use stable, configured peer ids.
-9. Register `GrpcProxyAdminApplication` beside `GrpcMessagingApplication` in
+10. Register `GrpcProxyAdminApplication` beside `GrpcMessagingApplication` in
    `ProxyStartup.createGrpcBindableServices`, using the same
    `DefaultGrpcMessagingActivity` instance so lifecycle writes, read-model
    queries, ACL, metrics, and context propagation share one in-process state
    holder.
-10. Keep endpoint methods free of business logic. They should adapt protobuf
+11. Keep endpoint methods free of business logic. They should adapt protobuf
    requests and responses only; authorization, validation, pagination, metrics,
    and error mapping should stay behind `ProxyClientAdminEndpointExecutor` and
    `ProxyClientAdminEndpointHandler`.
