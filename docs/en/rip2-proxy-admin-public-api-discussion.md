@@ -59,6 +59,12 @@ The proposed unary RPCs are:
 The response model returns an existing v2 `Status` plus either a `ProxyClient`
 or a page of `ProxyClient` entries. Error responses should be status-only.
 
+The draft currently includes `proxy_id` in `ProxyClient` responses. Local M1
+responses can populate it with the serving proxy name, and future cross-proxy
+responses can use the same field to identify the source proxy for each client.
+The field should still be confirmed during community API review because it is
+part of the public response surface.
+
 ## Scope Semantics
 
 `PROXY_SCOPE_UNSPECIFIED` should be treated as `PROXY_SCOPE_LOCAL_PROXY`.
@@ -73,6 +79,28 @@ page-token ownership, and failure semantics are accepted.
 `PROXY_SCOPE_PROXY_ID` is reserved for querying one named proxy. Requests using
 this scope must provide `proxy_id`; the adapter should reject missing or blank
 `proxy_id` before request context creation or service invocation.
+
+## Internal Cross-Proxy Experiment
+
+This fork now contains a proto-free internal cross-proxy experiment to validate
+the future scope semantics without changing the public API:
+
+- `ProxyClientAdminScopeRouter` keeps `LOCAL_PROXY` on the local activity and
+  routes internal `ALL_PROXIES` and `PROXY_ID` requests to a coordinator only
+  when `enableProxyClientAdminCrossProxyQuery` is enabled.
+- The coordinator fans out peer-local list requests, merges pages in stable
+  `(client_id, proxy_id)` order, and owns `cp1:` coordinator page tokens with
+  per-peer cursors.
+- A raw internal peer protocol and `ProxyClientAdminPeerGrpcTransport` allow
+  static peer targets to be exercised without generated public admin stubs.
+- Peer discovery and peer calls are wrapped by
+  `TimedProxyClientAdminPeerClient`, so bounded waits surface as
+  `PROXY_TIMEOUT` instead of generic internal errors.
+
+These pieces are implementation evidence for the proposal, not a public API
+commitment. The public endpoint should still expose only `LOCAL_PROXY` until the
+community accepts the peer discovery, timeout, token ownership, and partial
+failure semantics.
 
 ## Pagination
 
@@ -150,5 +178,6 @@ ownership decision:
   `LOCAL_PROXY` scope gate before request context creation.
 - authorization facade and metrics hooks.
 - startup service-registration seam for a future standalone admin application.
-- internal peer gRPC service and static peer transport for coordinator
-  experiments without modifying public protobuf APIs.
+- internal coordinator, peer gRPC service, static peer transport, timeout
+  handling, and coordinator-scope metrics for cross-proxy experiments without
+  modifying public protobuf APIs.
