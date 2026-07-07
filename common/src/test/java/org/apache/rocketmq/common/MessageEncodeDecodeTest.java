@@ -104,6 +104,8 @@ public class MessageEncodeDecodeTest {
 
         messageBatch.putUserProperty("name", "value");
 
+        assertEquals("value", messageBatch.getUserProperty("name"));
+
         ByteBuffer buffer = ByteBuffer.wrap(messageBatch.encode());
         List<Message> decodedMessages = MessageDecoder.decodeMessages(buffer);
 
