@@ -171,6 +171,29 @@ public class ProxyClientAdminPeerGrpcTransportTest {
     }
 
     @Test
+    public void grpcTransportRejectsBlankRequestMessageBeforeCallingPeer() {
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", mock(Channel.class));
+        RecordingInvoker invoker = new RecordingInvoker(ProxyClientAdminPeerMessageCodec.getInstance()
+            .encodePageResponse(ProxyClientAdminPeerResponse.success(
+                "proxy-a",
+                new ProxyClientPage(Collections.emptyList(), "")
+            )));
+        ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(channels, invoker);
+
+        String responseMessage = transport.execute(proxyContext(), " proxy-a ", " ");
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.BAD_REQUEST.name());
+        assertThat(response.getErrorMessage()).contains("peer request message is required");
+        assertThat(invoker.channel).isNull();
+    }
+
+    @Test
     public void grpcTransportMapsGrpcStatusFailuresToEncodedPeerError() {
         assertGrpcStatusMapsToPeerError(Status.PERMISSION_DENIED.withDescription("denied"),
             Code.UNAUTHORIZED, "denied");
