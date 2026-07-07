@@ -88,6 +88,7 @@ public class ProxyClientAdminPeerGrpcService implements BindableService {
             responseObserver.onNext(this.execute(this.currentMetadata(), request));
             responseObserver.onCompleted();
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             ProxyClientAdminGrpcErrorWriter.write(responseObserver, t);
         }
     }
@@ -112,5 +113,11 @@ public class ProxyClientAdminPeerGrpcService implements BindableService {
             throw new IllegalStateException("proxyContext is required");
         }
         return ctx;
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        if (t instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

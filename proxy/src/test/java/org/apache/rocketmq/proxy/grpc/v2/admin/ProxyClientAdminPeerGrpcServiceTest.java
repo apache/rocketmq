@@ -21,11 +21,15 @@ import com.google.protobuf.StringValue;
 import io.grpc.Metadata;
 import io.grpc.ServerMethodDefinition;
 import io.grpc.ServerServiceDefinition;
+import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
+import java.lang.reflect.Method;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -110,6 +114,33 @@ public class ProxyClientAdminPeerGrpcServiceTest {
     }
 
     @Test
+    public void asyncExecuteRestoresInterruptWhenHandlerIsInterrupted() throws Exception {
+        ProxyContext ctx = ProxyContext.create();
+        StringValue request = StringValue.of("{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminContextFactory contextFactory = mock(ProxyClientAdminContextFactory.class);
+        ProxyClientAdminPeerMessageHandler messageHandler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(contextFactory.create(org.mockito.ArgumentMatchers.any(Metadata.class), same(request))).thenReturn(ctx);
+        when(messageHandler.execute(same(ctx), anyString())).thenAnswer(invocation -> {
+            throwUnchecked(new InterruptedException("peer service interrupted"));
+            return null;
+        });
+        ProxyClientAdminPeerGrpcService service = newService(contextFactory, messageHandler);
+        CapturingStreamObserver responseObserver = new CapturingStreamObserver();
+
+        try {
+            invokeAsyncExecute(service, request, responseObserver);
+
+            assertThat(responseObserver.error).isInstanceOf(StatusRuntimeException.class);
+            StatusRuntimeException error = (StatusRuntimeException) responseObserver.error;
+            assertThat(error.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INTERNAL);
+            assertThat(error.getStatus().getDescription()).contains("peer service interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void constructorRejectsMissingDependencies() {
         assertThatThrownBy(() -> new ProxyClientAdminPeerGrpcService(null,
             mock(ProxyClientAdminPeerMessageHandler.class)))
@@ -126,5 +157,42 @@ public class ProxyClientAdminPeerGrpcServiceTest {
     private static ProxyClientAdminPeerGrpcService newService(ProxyClientAdminContextFactory contextFactory,
         ProxyClientAdminPeerMessageHandler messageHandler) {
         return new ProxyClientAdminPeerGrpcService(contextFactory, messageHandler);
+    }
+
+    private static void invokeAsyncExecute(ProxyClientAdminPeerGrpcService service, StringValue request,
+        StreamObserver<StringValue> responseObserver) throws Exception {
+        Method method = ProxyClientAdminPeerGrpcService.class.getDeclaredMethod(
+            "execute",
+            StringValue.class,
+            StreamObserver.class
+        );
+        method.setAccessible(true);
+        method.invoke(service, request, responseObserver);
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminPeerGrpcServiceTest.<RuntimeException>throwAny(interruptedException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
+    }
+
+    private static class CapturingStreamObserver implements StreamObserver<StringValue> {
+        private Throwable error;
+
+        @Override
+        public void onNext(StringValue value) {
+        }
+
+        @Override
+        public void onError(Throwable t) {
+            this.error = t;
+        }
+
+        @Override
+        public void onCompleted() {
+        }
     }
 }

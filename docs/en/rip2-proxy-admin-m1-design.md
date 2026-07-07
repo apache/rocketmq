@@ -223,13 +223,14 @@ small and tested boundary to call:
   preservation rule when local handler execution is interrupted.
 - `ProxyClientAdminPeerGrpcService` exposes an internal unary gRPC service using
   `StringValue` request and response bodies that carry the peer JSON payload. It
-  builds `ProxyContext` through the same admin context factory and delegates to
-  the peer message handler. `ProxyClientAdminPeerGrpcTransport` is the matching
-  client-side raw message transport over `Channel` and the service method
-  descriptor. The transport maps peer gRPC status failures into peer error
-  responses and restores the interrupted flag when the underlying invocation is
-  interrupted. These classes do not add or modify any public RocketMQ protobuf
-  service definitions.
+  builds `ProxyContext` through the same admin context factory, delegates to the
+  peer message handler, and restores the interrupted flag when service-side
+  handler execution is interrupted before being written as a gRPC error.
+  `ProxyClientAdminPeerGrpcTransport` is the matching client-side raw message
+  transport over `Channel` and the service method descriptor. The transport maps
+  peer gRPC status failures into peer error responses and restores the
+  interrupted flag when the underlying invocation is interrupted. These classes
+  do not add or modify any public RocketMQ protobuf service definitions.
 - When cross-proxy query support is enabled, `DefaultGrpcMessagingActivity`
   creates the internal peer gRPC service beside the local coordinator peer
   client. The default coordinator still uses the local in-process message
