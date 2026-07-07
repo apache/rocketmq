@@ -45,6 +45,30 @@ import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.exception.StoreException;
 import org.rocksdb.RocksDBException;
 
+/**
+ * Composite {@link ConsumeQueueStoreInterface} that maintains two backing
+ * ConsumeQueue stores (file-based and RocksDB-based) under a single
+ * facade.
+ *
+ * <p>Three logical roles are configurable:
+ * <ul>
+ *   <li>{@code innerConsumeQueueStoreList} — all stores to load and
+ *   dispatch writes to</li>
+ *   <li>{@code currentReadStore} — the preferred store for read
+ *   operations (controlled by {@code combineCQPreferCQType})</li>
+ *   <li>{@code assignOffsetStore} — the store that owns queue-offset
+ *   assignment and increment (controlled by
+ *   {@code combineAssignOffsetCQType})</li>
+ * </ul>
+ *
+ * <p>When {@code rocksdbCQSelectiveDoubleWriteEnable} is set, only
+ * {@link TopicMessageType#LITE} topics are written to both stores; all
+ * other topics go to the file-based store only. LMQ topics also
+ * override the per-topic assignment and read store when
+ * {@code combineCQUseRocksdbForLmq} is enabled, so the RocksDB store
+ * becomes authoritative for LMQ even if the default assignment
+ * differs.
+ */
 public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger BROKER_LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
