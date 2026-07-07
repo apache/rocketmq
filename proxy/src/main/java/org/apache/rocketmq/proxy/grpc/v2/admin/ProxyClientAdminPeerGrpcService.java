@@ -74,6 +74,7 @@ public class ProxyClientAdminPeerGrpcService implements BindableService {
     StringValue execute(Metadata headers, StringValue request) {
         StringValue requiredRequest = this.requireRequest(request);
         String requestMessage = this.messageCodec.requireRequestMessage(requiredRequest.getValue());
+        ProxyClientAdminPeerRequest peerRequest = this.messageCodec.decodeRequest(requestMessage);
         ProxyContext ctx = this.requireProxyContext(this.contextFactory.create(
             this.normalizeMetadata(headers),
             requiredRequest
@@ -82,7 +83,7 @@ public class ProxyClientAdminPeerGrpcService implements BindableService {
         if (responseMessage == null) {
             throw new IllegalStateException("peer response message is required");
         }
-        this.messageCodec.requireResponseMessage(responseMessage);
+        this.messageCodec.requireResponseMessage(peerRequest.getOperation(), responseMessage);
         return StringValue.of(responseMessage);
     }
 

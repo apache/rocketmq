@@ -24,9 +24,11 @@ import io.grpc.ServerServiceDefinition;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.concurrent.CompletionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -91,13 +93,19 @@ public class ProxyClientAdminPeerGrpcServiceTest {
         StringValue request = StringValue.of("{\"operation\":\"LIST_CLIENTS\"}");
         ProxyClientAdminContextFactory contextFactory = mock(ProxyClientAdminContextFactory.class);
         ProxyClientAdminPeerMessageHandler messageHandler = mock(ProxyClientAdminPeerMessageHandler.class);
+        String responseMessage = ProxyClientAdminPeerMessageCodec.getInstance().encodePageResponse(
+            ProxyClientAdminPeerResponse.success(
+                "proxy-a",
+                new ProxyClientPage(Collections.emptyList(), "")
+            )
+        );
         when(contextFactory.create(org.mockito.ArgumentMatchers.any(Metadata.class), same(request))).thenReturn(ctx);
-        when(messageHandler.execute(ctx, request.getValue())).thenReturn("{\"success\":true}");
+        when(messageHandler.execute(ctx, request.getValue())).thenReturn(responseMessage);
         ProxyClientAdminPeerGrpcService service = newService(contextFactory, messageHandler);
 
         StringValue response = service.execute(null, request);
 
-        assertThat(response.getValue()).isEqualTo("{\"success\":true}");
+        assertThat(response.getValue()).isEqualTo(responseMessage);
     }
 
     @Test
@@ -118,6 +126,22 @@ public class ProxyClientAdminPeerGrpcServiceTest {
         assertThatThrownBy(() -> service.execute(new Metadata(), request))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("peer response message is required");
+    }
+
+    @Test
+    public void executeRejectsSuccessfulHandlerResponseWithoutExpectedBody() {
+        Metadata headers = new Metadata();
+        ProxyContext ctx = ProxyContext.create();
+        StringValue request = StringValue.of("{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminContextFactory contextFactory = mock(ProxyClientAdminContextFactory.class);
+        ProxyClientAdminPeerMessageHandler messageHandler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(contextFactory.create(headers, request)).thenReturn(ctx);
+        when(messageHandler.execute(ctx, request.getValue())).thenReturn("{\"proxyId\":\"proxy-a\",\"success\":true}");
+        ProxyClientAdminPeerGrpcService service = newService(contextFactory, messageHandler);
+
+        assertThatThrownBy(() -> service.execute(headers, request))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer page response body is required");
     }
 
     @Test

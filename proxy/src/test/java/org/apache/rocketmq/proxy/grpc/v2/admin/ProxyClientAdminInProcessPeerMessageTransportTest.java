@@ -229,6 +229,26 @@ public class ProxyClientAdminInProcessPeerMessageTransportTest {
     }
 
     @Test
+    public void inProcessMessageTransportMapsSuccessfulResponseWithoutExpectedBodyToPeerError() {
+        ProxyClientAdminPeerMessageHandler handler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(handler.getLocalProxyId()).thenReturn("proxy-a");
+        when(handler.execute(any(), anyString())).thenReturn("{\"proxyId\":\"proxy-a\",\"success\":true}");
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+        handlers.put("proxy-a", handler);
+        ProxyClientAdminInProcessPeerMessageTransport transport =
+            new ProxyClientAdminInProcessPeerMessageTransport(handlers);
+
+        String responseMessage = transport.execute(proxyContext(), "proxy-a", "{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorMessage()).contains("peer page response body is required");
+    }
+
+    @Test
     public void inProcessMessageTransportRestoresInterruptWhenHandlerIsInterrupted() {
         ProxyClientAdminPeerMessageHandler handler = mock(ProxyClientAdminPeerMessageHandler.class);
         when(handler.getLocalProxyId()).thenReturn("proxy-a");

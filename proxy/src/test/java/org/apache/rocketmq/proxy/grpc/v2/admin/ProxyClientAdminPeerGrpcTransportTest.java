@@ -192,16 +192,20 @@ public class ProxyClientAdminPeerGrpcTransportTest {
     public void grpcTransportListsStableProxyIdsAndInvokesTargetChannel() {
         Channel proxyBChannel = mock(Channel.class);
         Channel proxyAChannel = mock(Channel.class);
-        RecordingInvoker invoker = new RecordingInvoker("{\"success\":true}");
+        String responseMessage = ProxyClientAdminPeerMessageCodec.getInstance().encodePageResponse(
+            ProxyClientAdminPeerResponse.success("proxy-b", new ProxyClientPage(Collections.emptyList(), ""))
+        );
+        RecordingInvoker invoker = new RecordingInvoker(responseMessage);
         Map<String, Channel> channels = new LinkedHashMap<>();
         channels.put(" proxy-b ", proxyBChannel);
         channels.put(" proxy-a ", proxyAChannel);
         ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(channels, invoker);
 
-        String responseMessage = transport.execute(proxyContext(), " proxy-b ", "{\"operation\":\"LIST_CLIENTS\"}");
+        String actualResponseMessage =
+            transport.execute(proxyContext(), " proxy-b ", "{\"operation\":\"LIST_CLIENTS\"}");
 
         assertThat(transport.listProxyIds()).containsExactly("proxy-a", "proxy-b");
-        assertThat(responseMessage).isEqualTo("{\"success\":true}");
+        assertThat(actualResponseMessage).isEqualTo(responseMessage);
         assertThat(invoker.channel).isSameAs(proxyBChannel);
         assertThat(invoker.requestMessage).isEqualTo("{\"operation\":\"LIST_CLIENTS\"}");
         assertThat(invoker.metadata.get(GrpcConstants.REMOTE_ADDRESS)).isEqualTo("127.0.0.1:8080");
@@ -362,6 +366,25 @@ public class ProxyClientAdminPeerGrpcTransportTest {
         assertThat(response.getProxyId()).isEqualTo("proxy-a");
         assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
         assertThat(response.getErrorMessage()).contains("Invalid peer response message");
+    }
+
+    @Test
+    public void grpcTransportMapsSuccessfulPeerResponseWithoutExpectedBodyToEncodedPeerError() {
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", mock(Channel.class));
+        ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(
+            channels,
+            new RecordingInvoker("{\"proxyId\":\"proxy-a\",\"success\":true}")
+        );
+
+        String responseMessage = transport.execute(proxyContext(), "proxy-a", "{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorMessage()).contains("peer page response body is required");
     }
 
     @Test

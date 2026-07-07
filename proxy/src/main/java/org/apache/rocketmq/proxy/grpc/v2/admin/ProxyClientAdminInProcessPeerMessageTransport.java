@@ -85,8 +85,10 @@ public class ProxyClientAdminInProcessPeerMessageTransport implements ProxyClien
             return this.encodeError(requiredProxyId, Code.NOT_FOUND, "Proxy not found: " + requiredProxyId);
         }
         String requiredRequestMessage;
+        ProxyClientAdminPeerRequest peerRequest;
         try {
             requiredRequestMessage = this.codec.requireRequestMessage(requestMessage);
+            peerRequest = this.codec.decodeRequest(requiredRequestMessage);
         } catch (IllegalArgumentException e) {
             return this.encodeError(requiredProxyId, Code.BAD_REQUEST, e.getMessage());
         }
@@ -97,7 +99,7 @@ public class ProxyClientAdminInProcessPeerMessageTransport implements ProxyClien
                     "peer response message is required");
             }
             try {
-                return this.codec.requireResponseMessage(responseMessage);
+                return this.codec.requireResponseMessage(peerRequest.getOperation(), responseMessage);
             } catch (IllegalArgumentException e) {
                 return this.encodeError(requiredProxyId, Code.INTERNAL_SERVER_ERROR, e.getMessage());
             }

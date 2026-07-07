@@ -1013,6 +1013,8 @@ Internal adapter tests cover:
 - peer error response code length rejection before peer payload encoding.
 - peer error response envelope rejection when `success=false` omits `errorCode`.
 - peer success response rejection when a peer payload also carries error fields.
+- operation-aware peer response validation that rejects successful responses
+  without the expected page or client body at service and transport boundaries.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 

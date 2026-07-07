@@ -103,13 +103,16 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
             return this.encodeError(requiredProxyId, Code.NOT_FOUND, "Proxy not found: " + requiredProxyId);
         }
         String requiredRequestMessage;
+        ProxyClientAdminPeerRequest peerRequest;
         try {
             requiredRequestMessage = this.codec.requireRequestMessage(requestMessage);
+            peerRequest = this.codec.decodeRequest(requiredRequestMessage);
         } catch (IllegalArgumentException e) {
             return this.encodeError(requiredProxyId, Code.BAD_REQUEST, e.getMessage());
         }
         try {
             return this.codec.requireResponseMessage(
+                peerRequest.getOperation(),
                 this.invoker.execute(channel, requiredRequestMessage, this.buildMetadata(ctx))
             );
         } catch (Throwable t) {

@@ -266,6 +266,26 @@ public class ProxyClientAdminPeerMessageCodecTest {
             .hasMessageContaining("peer error response code is required");
     }
 
+    @Test
+    public void responseMessageRequirementRejectsSuccessfulListResponseWithoutPageBody() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance()
+            .requireResponseMessage(ProxyClientAdminPeerOperation.LIST_CLIENTS, message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer page response body is required");
+    }
+
+    @Test
+    public void responseMessageRequirementRejectsSuccessfulDescribeResponseWithoutClientBody() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance()
+            .requireResponseMessage(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT, message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer client response body is required");
+    }
+
     private static ProxyClientInfo client(String clientId, ClientType clientType, String proxyId) {
         return new ProxyClientInfo(
             clientId,

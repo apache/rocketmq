@@ -132,6 +132,19 @@ public final class ProxyClientAdminPeerMessageCodec {
         return requiredMessage;
     }
 
+    public String requireResponseMessage(ProxyClientAdminPeerOperation operation, String message) {
+        if (operation == null) {
+            throw new IllegalArgumentException("peer operation is required");
+        }
+        String requiredMessage = requireResponseMessage(message);
+        if (operation == ProxyClientAdminPeerOperation.DESCRIBE_CLIENT) {
+            decodeClientResponse(requiredMessage);
+        } else {
+            decodePageResponse(requiredMessage);
+        }
+        return requiredMessage;
+    }
+
     private ResponsePayload toPageResponsePayload(ProxyClientAdminPeerResponse<ProxyClientPage> response) {
         ResponsePayload payload = toResponsePayload(response);
         if (payload.success) {
