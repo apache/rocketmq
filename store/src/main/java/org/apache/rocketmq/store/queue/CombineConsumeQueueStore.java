@@ -79,20 +79,12 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
     /**
      * All backing ConsumeQueue stores that are loaded and maintained.
      *
-     * <p>Populated in the constructor based on
-     * {@code combineCQLoadingCQTypes}: the file-based {@link ConsumeQueueStore}
-     * is added when {@link StoreType#DEFAULT} is present, and the RocksDB-based
-     * {@link RocksDBConsumeQueueStore} is added when
-     * {@link StoreType#DEFAULT_ROCKSDB} is present. At least one entry is
-     * required (the constructor throws if both are missing).
+     * <p>Populated in the constructor based on {@code combineCQLoadingCQTypes}:
+     * the file-based {@link ConsumeQueueStore} is added when {@link StoreType#DEFAULT} is present,
+     * and the RocksDB-based {@link RocksDBConsumeQueueStore} is added when {@link StoreType#DEFAULT_ROCKSDB} is present. 
+     * At least one entry is required (the constructor throws if both are missing).
      *
-     * <p>Iterated by fan-out operations: {@link #load()}, {@link #recover},
-     * {@link #shutdown()}, {@link #destroy}, {@link #deleteTopic},
-     * {@link #flush()}, {@link #cleanExpired}, {@link #truncateDirty},
-     * {@link #recoverOffsetTable}, {@link #getTotalSize}, and
-     * {@link #putMessagePositionInfoWrapper}. These methods call the same
-     * operation on every inner store in insertion order. No element is
-     * ever removed — once added, a store remains part of the list for the
+     * <p>No element is ever removed — once added, a store remains part of the list for the
      * lifetime of the {@code CombineConsumeQueueStore}.
      */
     private final LinkedList<AbstractConsumeQueueStore> innerConsumeQueueStoreList = new LinkedList<>();
