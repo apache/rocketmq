@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -64,6 +65,28 @@ public class MeteredClientAdminServiceTest {
 
         assertThatThrownBy(() -> service.describeClient("missing-client"))
             .isInstanceOf(NoSuchElementException.class);
+        assertThat(records).containsExactly(new Record(
+            ClientAdminOperation.DESCRIBE_CLIENT,
+            ClientAdminMetricsResult.NOT_FOUND,
+            1L
+        ));
+    }
+
+    @Test
+    public void describeClientRecordsNotFoundWhenDelegateThrowsWrappedNoSuchElement() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        CompletionException wrapped = new CompletionException(new NoSuchElementException("missing"));
+        when(delegate.describeClient("missing-client")).thenThrow(wrapped);
+        List<Record> records = new ArrayList<>();
+
+        MeteredClientAdminService service = new MeteredClientAdminService(
+            delegate,
+            (operation, result, latencyMillis) -> records.add(new Record(operation, result, latencyMillis)),
+            clock()
+        );
+
+        assertThatThrownBy(() -> service.describeClient("missing-client"))
+            .isSameAs(wrapped);
         assertThat(records).containsExactly(new Record(
             ClientAdminOperation.DESCRIBE_CLIENT,
             ClientAdminMetricsResult.NOT_FOUND,

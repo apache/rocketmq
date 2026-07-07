@@ -27,13 +27,14 @@ final class ClientAdminMetricsClassifier {
     }
 
     static ClientAdminMetricsResult classify(RuntimeException exception) {
-        if (exception instanceof IllegalArgumentException) {
+        if (hasCause(exception, IllegalArgumentException.class)) {
             return ClientAdminMetricsResult.BAD_REQUEST;
         }
-        if (exception instanceof NoSuchElementException) {
+        if (hasCause(exception, NoSuchElementException.class)) {
             return ClientAdminMetricsResult.NOT_FOUND;
         }
-        if (exception instanceof AuthenticationException || exception instanceof AuthorizationException) {
+        if (hasCause(exception, AuthenticationException.class)
+            || hasCause(exception, AuthorizationException.class)) {
             return ClientAdminMetricsResult.UNAUTHORIZED;
         }
         if (hasCause(exception, RemotingTimeoutException.class)) {
