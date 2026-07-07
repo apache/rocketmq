@@ -255,11 +255,26 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
+    /**
+     * Persist a batch of dispatch requests to the RocksDB ConsumeQueue with
+     * bounded retry on transient failure.
+     *
+     * <p>The retry loop runs at most 30 times with 100 ms backoff. A
+     * successful call clears the {@code isCQError} flag and the
+     * {@code LogicsQueueError} running flag, allowing the broker to
+     * recover from a previous transient failure. After 30 failed
+     * attempts, the method sets both flags and throws
+     * {@link RocksDBException}; the broker enters a degraded state and
+     * stops accepting new writes via {@code LogicsQueueError}.
+     *
+     * <p>The actual write logic lives in {@link #putMessagePosition0}.
+     */
     public void putMessagePosition(List<DispatchRequest> requests) throws RocksDBException {
         final int maxRetries = 30;
         for (int i = 0; i < maxRetries; i++) {
             if (putMessagePosition0(requests)) {
                 if (this.isCQError) {
+                    // Recovery: clear the logical-queue error so writes resume
                     this.messageStore.getRunningFlags().clearLogicsQueueError();
                     this.isCQError = false;
                 }
@@ -273,6 +288,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             }
         }
         if (!this.isCQError) {
+            // Final failure: set the in-process flag and the broker-level
+            // LogicsQueueError running flag, then throw to abort the request
             ERROR_LOG.error("[BUG] put CQ Failed.");
             this.messageStore.getRunningFlags().makeLogicsQueueError();
             this.isCQError = true;
