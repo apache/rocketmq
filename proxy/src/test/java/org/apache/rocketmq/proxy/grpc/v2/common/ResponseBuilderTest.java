@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.Code;
+import io.grpc.Status;
 import java.util.NoSuchElementException;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
@@ -52,5 +53,38 @@ public class ResponseBuilderTest {
         assertThat(ResponseBuilder.getInstance().buildStatus(
             new AuthorizationException("authorization failed")).getCode())
             .isEqualTo(Code.UNAUTHORIZED);
+    }
+
+    @Test
+    public void buildStatusMapsGrpcRuntimeStatusExceptionToRocketMqStatus() {
+        assertGrpcStatusMapsToRocketMqCode(Status.INVALID_ARGUMENT.withDescription("bad admin request"),
+            Code.BAD_REQUEST, "bad admin request");
+        assertGrpcStatusMapsToRocketMqCode(Status.NOT_FOUND.withDescription("peer not found"),
+            Code.NOT_FOUND, "peer not found");
+        assertGrpcStatusMapsToRocketMqCode(Status.PERMISSION_DENIED.withDescription("admin denied"),
+            Code.UNAUTHORIZED, "admin denied");
+        assertGrpcStatusMapsToRocketMqCode(Status.RESOURCE_EXHAUSTED.withDescription("admin throttled"),
+            Code.TOO_MANY_REQUESTS, "admin throttled");
+        assertGrpcStatusMapsToRocketMqCode(Status.UNIMPLEMENTED.withDescription("admin not implemented"),
+            Code.NOT_IMPLEMENTED, "admin not implemented");
+        assertGrpcStatusMapsToRocketMqCode(Status.UNAVAILABLE.withDescription("peer unavailable"),
+            Code.PROXY_TIMEOUT, "peer unavailable");
+        assertGrpcStatusMapsToRocketMqCode(Status.DEADLINE_EXCEEDED.withDescription("peer deadline exceeded"),
+            Code.PROXY_TIMEOUT, "peer deadline exceeded");
+    }
+
+    @Test
+    public void buildStatusMapsGrpcCheckedStatusExceptionToRocketMqStatus() {
+        assertThat(ResponseBuilder.getInstance().buildStatus(
+            Status.UNAVAILABLE.withDescription("checked peer unavailable").asException()).getCode())
+            .isEqualTo(Code.PROXY_TIMEOUT);
+    }
+
+    private static void assertGrpcStatusMapsToRocketMqCode(Status grpcStatus, Code expectedCode,
+        String expectedMessage) {
+        apache.rocketmq.v2.Status status = ResponseBuilder.getInstance().buildStatus(grpcStatus.asRuntimeException());
+
+        assertThat(status.getCode()).isEqualTo(expectedCode);
+        assertThat(status.getMessage()).contains(expectedMessage);
     }
 }

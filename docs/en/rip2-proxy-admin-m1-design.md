@@ -806,13 +806,17 @@ Draft public adapter mapping:
   `INTERNAL_SERVER_ERROR`.
 - internal failures: `INTERNAL_SERVER_ERROR`.
 
-The internal peer gRPC transport maps peer call `StatusRuntimeException`s before
-encoding a peer error response: invalid-argument style statuses become
-`BAD_REQUEST`, `NOT_FOUND` stays `NOT_FOUND`, authentication and permission
-statuses become `UNAUTHORIZED`, resource exhaustion becomes `TOO_MANY_REQUESTS`,
-unimplemented methods become `NOT_IMPLEMENTED`, and peer deadlines or
-unavailable peer channels become `PROXY_TIMEOUT`. Coordinator peer-discovery
-timeouts also surface as `PROXY_TIMEOUT` instead of a generic internal error.
+`ResponseBuilder` maps gRPC `StatusRuntimeException` and `StatusException`
+instances into the same public status vocabulary the admin endpoint expects:
+invalid-argument style statuses become `BAD_REQUEST`, `NOT_FOUND` stays
+`NOT_FOUND`, authentication and permission statuses become `UNAUTHORIZED`,
+resource exhaustion becomes `TOO_MANY_REQUESTS`, unimplemented methods become
+`NOT_IMPLEMENTED`, and gRPC deadlines or unavailable channels become
+`PROXY_TIMEOUT`. Coordinator peer-discovery timeouts also surface as
+`PROXY_TIMEOUT` instead of a generic internal error.
+
+The internal peer gRPC transport applies the same mapping before encoding a
+peer error response so coordinator fan-out sees one normalized status model.
 The admin gRPC error writer preserves explicit gRPC status exceptions before
 they reach the transport mapper. Unknown transport failures remain
 `INTERNAL_SERVER_ERROR`.
