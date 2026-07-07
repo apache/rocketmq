@@ -161,6 +161,23 @@ public class ProxyClientAdminPeerMessageClientTest {
         assertThat(response.getErrorMessage()).contains("peer request message is required");
     }
 
+    @Test
+    public void messageHandlerEncodesBadRequestForMalformedJsonRequest() {
+        ProxyClientAdminPeerMessageHandler handler = new ProxyClientAdminPeerMessageHandler(
+            newExecutor("proxy-a", mock(ClientAdminService.class))
+        );
+
+        String responseMessage = handler.execute(proxyContext(), "{");
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.BAD_REQUEST.name());
+        assertThat(response.getErrorMessage()).contains("Invalid peer request message");
+    }
+
     private static ProxyClientAdminPeerLocalExecutor newExecutor(String localProxyId,
         ClientAdminService clientAdminService) {
         return new ProxyClientAdminPeerLocalExecutor(localProxyId, clientAdminService);

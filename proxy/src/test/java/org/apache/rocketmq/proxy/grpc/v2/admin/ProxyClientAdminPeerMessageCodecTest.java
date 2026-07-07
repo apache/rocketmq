@@ -166,6 +166,13 @@ public class ProxyClientAdminPeerMessageCodecTest {
             .hasMessageContaining("peer request message is required");
     }
 
+    @Test
+    public void requestCodecRejectsMalformedJsonAsBadRequestBoundaryError() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeRequest("{"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid peer request message");
+    }
+
     private static ProxyClientInfo client(String clientId, ClientType clientType, String proxyId) {
         return new ProxyClientInfo(
             clientId,

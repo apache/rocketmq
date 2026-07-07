@@ -57,7 +57,7 @@ public final class ProxyClientAdminPeerMessageCodec {
 
     public ProxyClientAdminPeerRequest decodeRequest(String message) {
         String requiredMessage = requireMessage(message, "peer request message is required");
-        RequestPayload payload = JSON.parseObject(requiredMessage, RequestPayload.class);
+        RequestPayload payload = parseRequestPayload(requiredMessage);
         if (payload == null) {
             throw new IllegalArgumentException("peer request message is required");
         }
@@ -71,6 +71,14 @@ public final class ProxyClientAdminPeerMessageCodec {
             .setPageToken(payload.pageToken)
             .setScope(parseScope(payload.scope))
             .build();
+    }
+
+    private RequestPayload parseRequestPayload(String message) {
+        try {
+            return JSON.parseObject(message, RequestPayload.class);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Invalid peer request message", e);
+        }
     }
 
     public String encodePageResponse(ProxyClientAdminPeerResponse<ProxyClientPage> response) {
