@@ -311,6 +311,10 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         try {
             for (ProxyClientAdminPeerGrpcTarget target : targets) {
                 ManagedChannel channel = this.createProxyClientAdminPeerGrpcChannel(target);
+                if (channel == null) {
+                    throw new IllegalStateException("proxy client admin peer grpc channel is required: "
+                        + target.getProxyId());
+                }
                 channels.put(target.getProxyId(), channel);
                 createdChannels.add(channel);
                 this.appendShutdown(() -> this.shutdownProxyClientAdminPeerGrpcChannel(channel));
