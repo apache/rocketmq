@@ -496,6 +496,9 @@ trimmed, de-duplicated by the index sets, and blank values are ignored. Proxy
 ids are indexed with the same sorted-set structure so future `PROXY_ID` and
 fan-out merge paths can restrict a query to one source proxy without changing
 pagination order.
+Client ids with the `cp<digits>:` prefix are rejected because that namespace is
+reserved for coordinator-owned page tokens; accepting them into the local read
+model would make a local next-page token ambiguous or unencodable.
 
 The service is synchronized in M1. That keeps the implementation simple and
 consistent while lifecycle updates and admin reads are still local to one proxy
@@ -923,6 +926,7 @@ heartbeat.
 M1 tests cover:
 
 - stable client id ordering and pagination.
+- reserved coordinator page-token client id prefix rejection.
 - index refresh when upserting changed group/topic/type data.
 - client and index deletion on remove.
 - invalid page token rejection.

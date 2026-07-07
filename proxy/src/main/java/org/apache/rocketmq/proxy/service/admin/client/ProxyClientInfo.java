@@ -63,7 +63,24 @@ public class ProxyClientInfo {
         if (normalizedClientId == null) {
             throw new IllegalArgumentException("clientId is required");
         }
+        if (isCoordinatorPageTokenPrefix(normalizedClientId)) {
+            throw new IllegalArgumentException("clientId must not use reserved page token prefix: "
+                + normalizedClientId);
+        }
         return normalizedClientId;
+    }
+
+    private static boolean isCoordinatorPageTokenPrefix(String clientId) {
+        int colonIndex = clientId.indexOf(':');
+        if (colonIndex <= 2 || clientId.charAt(0) != 'c' || clientId.charAt(1) != 'p') {
+            return false;
+        }
+        for (int i = 2; i < colonIndex; i++) {
+            if (!Character.isDigit(clientId.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static ClientType normalizeClientType(ClientType clientType) {

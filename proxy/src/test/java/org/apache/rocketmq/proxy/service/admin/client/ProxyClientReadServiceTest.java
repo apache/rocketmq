@@ -301,6 +301,17 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void upsertClientRejectsCoordinatorPageTokenClientIds() {
+        ProxyClientReadService service = new ProxyClientReadService();
+
+        assertThatThrownBy(() -> service.upsertClient(
+            client("cp1:cursor", ClientType.PRODUCER, set("group-a"), set("topic-a"))
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientId must not use reserved page token prefix");
+    }
+
+    @Test
     public void recordsSuccessfulUpsertAndRemoveOperations() {
         List<ProxyClientReadServiceOperation> operations = new ArrayList<>();
         ProxyClientReadService service = new ProxyClientReadService(operations::add);
