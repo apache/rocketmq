@@ -1010,7 +1010,8 @@ Internal adapter tests cover:
 - static peer gRPC target rejection for overlong proxy ids and host names.
 - in-process peer transport request/response bounds around local handler
   invocation.
-- peer error response code length rejection before peer payload encoding.
+- peer error response code length rejection before peer payload encoding and at
+  the peer response boundary.
 - peer error response code rejection when `success=false` uses `OK` or
   `UNRECOGNIZED`.
 - peer error response code rejection when the code is not a known RocketMQ

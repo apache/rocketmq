@@ -33,6 +33,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 public final class ProxyClientAdminPeerMessageCodec {
     private static final ProxyClientAdminPeerMessageCodec INSTANCE = new ProxyClientAdminPeerMessageCodec();
     private static final int MAX_PEER_MESSAGE_LENGTH = 1024 * 1024;
+    private static final int MAX_PEER_ERROR_CODE_LENGTH = 255;
 
     private ProxyClientAdminPeerMessageCodec() {
     }
@@ -207,6 +208,11 @@ public final class ProxyClientAdminPeerMessageCodec {
 
     private Code parsePeerErrorCode(String errorCode) {
         String normalizedErrorCode = StringUtils.trimToEmpty(errorCode);
+        if (normalizedErrorCode.length() > MAX_PEER_ERROR_CODE_LENGTH) {
+            throw new IllegalArgumentException(
+                "peer error response code length exceeds " + MAX_PEER_ERROR_CODE_LENGTH
+            );
+        }
         try {
             return Code.valueOf(normalizedErrorCode);
         } catch (RuntimeException e) {

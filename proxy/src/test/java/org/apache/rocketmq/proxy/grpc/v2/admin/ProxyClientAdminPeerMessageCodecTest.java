@@ -267,6 +267,16 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void responseMessageRequirementRejectsErrorResponseWithOverlongErrorCode() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":false,\"errorCode\":\""
+            + StringUtils.repeat("A", 256) + "\"}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().requireResponseMessage(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer error response code length exceeds 255");
+    }
+
+    @Test
     public void responseMessageRequirementRejectsErrorResponseWithNonErrorCode() {
         assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().requireResponseMessage(
             "{\"proxyId\":\"proxy-a\",\"success\":false,\"errorCode\":\"OK\"}"
