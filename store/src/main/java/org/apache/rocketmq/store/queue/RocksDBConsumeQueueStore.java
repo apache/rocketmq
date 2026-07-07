@@ -89,72 +89,35 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private final RocksDBConsumeQueueOffsetTable rocksDBConsumeQueueOffsetTable;
 
     /**
-     * Pre-allocated, off-heap DirectByteBuffer pool for the ConsumeQueue
-     * key/value pair.
+     * Pre-allocated, off-heap DirectByteBuffer pool for the ConsumeQueue key/value pair.
+     * [(topicQueueIdBuffer, CQunitBuffer)]
      *
-     * <p>Each entry is a {@link Pair} of (key, value) buffers used by
-     * {@link #dispatch(DispatchEntry, WriteBatch)} to stage a single
-     * CQ entry before committing. The key buffer is sized to
-     * {@link #MAX_KEY_LEN} bytes (300) and the value buffer to
-     * {@link RocksDBConsumeQueueTable#CQ_UNIT_SIZE} bytes (28).
+     * <p>Initialized in the constructor with 16 pairs and grown on demand
+     * when {@link #consumeQueueByteBufferCacheIndex} exceeds the current size.
+     * The pool is reset (index only) at the end of each {@link #putMessagePosition0} call.
      *
-     * <p>Initialized in the constructor with 16 pairs and grown on
-     * demand by {@link #getCQByteBufferPair()} when
-     * {@link #consumeQueueByteBufferCacheIndex} exceeds the current
-     * size. The pool is reset (index only, not buffer instances) at the
-     * end of each {@link #putMessagePosition0} call so subsequent
-     * batches reuse the same DirectByteBuffer instances.
-     *
-     * <p>Access is single-threaded (only
-     * {@link RocksGroupCommitService} drives writes), so no
-     * synchronization is required.
+     * <p>Access is single-threaded (only {@link RocksGroupCommitService} drives writes)
      */
     private final List<Pair<ByteBuffer, ByteBuffer>> cqBBPairList;
     /**
-     * Pre-allocated, off-heap DirectByteBuffer pool for the
-     * {@link RocksDBConsumeQueueOffsetTable} key/value pair.
+     * Pre-allocated, off-heap DirectByteBuffer pool for offset key/value pair.
+     * [(topicQueueIdBuffer, offsetBuffer)]
      *
-     * <p>Each entry is a {@link Pair} of (key, value) buffers used by
-     * {@link #updateTempTopicQueueMaxOffset(Pair, DispatchEntry)} to
-     * stage a per-(topic, queueId) max-offset entry. The key buffer
-     * holds the topic-queueId and the value buffer holds the
-     * {@code PhyAndCQOffset} pair. These buffers are then read back
-     * when {@link RocksDBConsumeQueueOffsetTable#putMaxPhyAndCqOffset}
-     * stages the offset-table updates into the same WriteBatch as the
-     * CQ entries.
+     * <p>Initialized in the constructor with 16 pairs and grown on demand
+     * when {@link #offsetBufferCacheIndex} exceeds the current size.
+     * The pool is reset (index only) at the end of each {@link #putMessagePosition0} call.
      *
-     * <p>Initialized in the constructor with 16 pairs and grown on
-     * demand by {@link #getOffsetByteBufferPair()} when
-     * {@link #offsetBufferCacheIndex} exceeds the current size. The
-     * pool is reset (index only) at the end of each
-     * {@link #putMessagePosition0} call so subsequent batches reuse
-     * the same DirectByteBuffer instances.
-     *
-     * <p>Access is single-threaded (only
-     * {@link RocksGroupCommitService} drives writes), so no
-     * synchronization is required.
+     * <p>Access is single-threaded (only {@link RocksGroupCommitService} drives writes)
      */
     private final List<Pair<ByteBuffer, ByteBuffer>> offsetBBPairList;
     /**
-     * Per-batch accumulator of the max cq-offset seen for each
-     * (topic, queueId) within a single {@link #putMessagePosition0}
-     * call.
+     * Per-batch accumulator of the max cq-offset map within a single {@link #putMessagePosition0} call.
+     * topicQueueIdBuffer -> (maxOffsetBuffer, DispatchEntry)
      *
-     * <p>Keyed by the topic-queueId buffer (a slice of
-     * {@link #offsetBBPairList}); the value is a
-     * (max-offset ByteBuffer, original {@link DispatchEntry}) pair.
-     * The max-offset buffer is the candidate that
-     * {@link RocksDBConsumeQueueOffsetTable#putMaxPhyAndCqOffset}
-     * reads when staging the offset-table updates into the WriteBatch.
+     * <p>The map is created fresh in the constructor and reused across batches
+     * entries are cleared in the {@code finally} block of {@link #putMessagePosition0}.
      *
-     * <p>The map is created fresh in the constructor and reused
-     * across batches — entries are cleared in the
-     * {@code finally} block of {@link #putMessagePosition0} rather
-     * than reallocating the map.
-     *
-     * <p>Access is single-threaded (only
-     * {@link RocksGroupCommitService} drives writes), so a plain
-     * {@link HashMap} suffices.
+     * <p>Access is single-threaded (only {@link RocksGroupCommitService} drives writes)
      */
     private final Map<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> tempTopicQueueMaxOffsetMap;
     private volatile boolean isCQError = false;
