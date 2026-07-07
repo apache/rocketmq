@@ -215,6 +215,9 @@ small and tested boundary to call:
   and peer error responses must remain status-only without page/client bodies.
   Raw peer JSON request and response messages are capped at 1 MiB before JSON
   parsing so malformed or oversized peer payloads fail at the transport boundary.
+  The gRPC peer transport validates outbound request messages before invoking a
+  peer and validates inbound response messages before returning them to the
+  message client.
 - `ProxyClientAdminPeerMessageClient` adapts the object-level peer-client
   contract to a raw message transport. `ProxyClientAdminPeerMessageHandler`
   adapts raw messages back to the local peer executor. Raw transport failures
@@ -236,8 +239,11 @@ small and tested boundary to call:
   interrupted flag when the underlying invocation is interrupted directly or via
   an async adapter wrapper. Async-wrapped gRPC status failures are unwrapped
   before mapping, so deadline or unavailable peer calls still surface as
-  `PROXY_TIMEOUT` peer errors instead of generic internal errors. These classes
-  do not add or modify any public RocketMQ protobuf service definitions.
+  `PROXY_TIMEOUT` peer errors instead of generic internal errors. Oversized or
+  blank outbound request messages are returned as `BAD_REQUEST` peer errors
+  before any network call; oversized or blank inbound response messages are
+  normalized as `INTERNAL_SERVER_ERROR` peer errors. These classes do not add or
+  modify any public RocketMQ protobuf service definitions.
 - When cross-proxy query support is enabled, `DefaultGrpcMessagingActivity`
   creates the internal peer gRPC service beside the local coordinator peer
   client. The default coordinator still uses the local in-process message
@@ -860,6 +866,9 @@ resource exhaustion becomes `TOO_MANY_REQUESTS`, unimplemented methods become
 
 The internal peer gRPC transport applies the same mapping before encoding a
 peer error response so coordinator fan-out sees one normalized status model.
+It also maps invalid outbound peer request payloads to `BAD_REQUEST` before the
+network call, while malformed or oversized peer response payloads are converted
+to peer `INTERNAL_SERVER_ERROR` results at the transport boundary.
 The admin gRPC error writer preserves explicit gRPC status exceptions, including
 those wrapped by async adapters, before they reach the transport mapper. Unknown
 transport failures remain
@@ -946,6 +955,8 @@ Internal adapter tests cover:
 - real peer gRPC fan-out from coordinator through `ProxyClientAdminPeerGrpcTransport`
   into two in-process Netty peer services, verifying merged `ALL_PROXIES`
   results and proxy id stamping.
+- peer gRPC transport request and response payload bounds before and after the
+  network call.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 
@@ -968,9 +979,9 @@ those logs are treated as environment noise only when Surefire reports zero
 failures/errors and Maven exits successfully.
 
 On 2026-07-08 Asia/Shanghai time, after refreshing `upstream/develop` to commit
-`0e4ccf1b6` and adding admin metrics scope labels, the admin endpoint,
-coordinator, startup wiring, metrics, and authorization suite was revalidated
-with:
+`0e4ccf1b6`, adding admin metrics scope labels, and hardening peer gRPC request
+and response payload bounds, the admin endpoint, coordinator, startup wiring,
+metrics, and authorization suite was revalidated with:
 
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
@@ -979,7 +990,7 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 476, Failures: 0, Errors: 0, Skipped: 0` and ended
+The run reported `Tests run: 478, Failures: 0, Errors: 0, Skipped: 0` and ended
 with `BUILD SUCCESS`. The same JDK 17 JaCoCo instrumentation noise appeared in
 the log, but Maven exited successfully.
 
