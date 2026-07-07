@@ -257,9 +257,10 @@ public class ProxyStartup {
 
     static List<BindableService> createGrpcBindableServices(MessagingProcessor messagingProcessor,
         DefaultGrpcMessagingActivity grpcMessagingActivity, List<BindableService> additionalServices) {
-        BindableService peerGrpcService = grpcMessagingActivity.getProxyClientAdminPeerGrpcService();
+        DefaultGrpcMessagingActivity requiredGrpcMessagingActivity = requireGrpcMessagingActivity(grpcMessagingActivity);
+        BindableService peerGrpcService = requiredGrpcMessagingActivity.getProxyClientAdminPeerGrpcService();
         List<BindableService> services = Lists.newArrayList(
-            createServiceProcessor(messagingProcessor, grpcMessagingActivity)
+            createServiceProcessor(messagingProcessor, requiredGrpcMessagingActivity)
         );
         if (peerGrpcService != null) {
             services.add(peerGrpcService);

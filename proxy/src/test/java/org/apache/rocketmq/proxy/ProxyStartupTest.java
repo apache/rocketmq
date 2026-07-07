@@ -460,6 +460,30 @@ public class ProxyStartupTest {
     }
 
     @Test
+    public void testCreateGrpcBindableServicesRejectsNullSharedActivityBeforeAdditionalServices()
+        throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        BindableService additionalService = mock(BindableService.class);
+        int lifecycleCountBefore = proxyLifecycleComponentCount();
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> ProxyStartup.createGrpcBindableServices(
+                messagingProcessor,
+                null,
+                Collections.singletonList(additionalService)
+            )
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("grpcMessagingActivity is required"));
+        assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
+    }
+
+    @Test
     public void testCreateGrpcBindableServicesRejectsNullAdminServiceBeforeMessagingServiceRegistration()
         throws Exception {
         CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
