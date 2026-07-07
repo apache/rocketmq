@@ -73,6 +73,9 @@ public final class ProxyClientAdminPeerGrpcTargetParser {
         if (normalizedAddress.startsWith("[")) {
             return this.parseBracketedAddress(normalizedAddress);
         }
+        if (StringUtils.countMatches(normalizedAddress, ':') > 1) {
+            throw new IllegalArgumentException("IPv6 target address must be bracketed");
+        }
         int portDelimiterIndex = normalizedAddress.lastIndexOf(':');
         if (portDelimiterIndex < 0 || portDelimiterIndex == normalizedAddress.length() - 1) {
             throw new IllegalArgumentException("target address must be host:port");

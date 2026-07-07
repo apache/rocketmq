@@ -55,6 +55,15 @@ public class ProxyClientAdminPeerGrpcTargetParserTest {
     }
 
     @Test
+    public void parseRejectsUnbracketedIpv6Hosts() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(
+            "proxy-v6=2001:db8::1:18080"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("IPv6 target address must be bracketed");
+    }
+
+    @Test
     public void parseReturnsEmptyListForBlankConfig() {
         assertThat(ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(null)).isEmpty();
         assertThat(ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(" ")).isEmpty();
