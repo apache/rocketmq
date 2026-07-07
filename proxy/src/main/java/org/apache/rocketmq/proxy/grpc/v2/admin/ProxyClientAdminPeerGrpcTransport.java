@@ -181,9 +181,7 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
     }
 
     private void restoreInterruptedStatus(Throwable t) {
-        if (t instanceof InterruptedException) {
-            Thread.currentThread().interrupt();
-        }
+        ProxyClientAdminInterrupts.restoreInterruptedStatus(t);
     }
 
     private Metadata buildMetadata(ProxyContext ctx) {

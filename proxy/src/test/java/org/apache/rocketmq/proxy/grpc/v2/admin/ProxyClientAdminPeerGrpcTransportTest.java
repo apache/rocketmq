@@ -31,6 +31,7 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.auth.authentication.model.User;
@@ -353,6 +354,32 @@ public class ProxyClientAdminPeerGrpcTransportTest {
             assertThat(response.getProxyId()).isEqualTo("proxy-a");
             assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
             assertThat(response.getErrorMessage()).contains("peer call interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void grpcTransportRestoresInterruptWhenInvokerFailureWrapsInterruptedException() {
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", mock(Channel.class));
+        ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(
+            channels,
+            (channel, requestMessage, metadata) -> {
+                throw new CompletionException(new InterruptedException("wrapped peer call interrupted"));
+            }
+        );
+
+        try {
+            String responseMessage = transport.execute(proxyContext(), "proxy-a", "{\"operation\":\"LIST_CLIENTS\"}");
+            ProxyClientAdminPeerResponse<ProxyClientPage> response =
+                ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("wrapped peer call interrupted");
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {
             Thread.interrupted();

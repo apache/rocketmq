@@ -24,6 +24,7 @@ import io.grpc.ServerServiceDefinition;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import java.lang.reflect.Method;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.junit.Test;
 
@@ -134,6 +135,32 @@ public class ProxyClientAdminPeerGrpcServiceTest {
             StatusRuntimeException error = (StatusRuntimeException) responseObserver.error;
             assertThat(error.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INTERNAL);
             assertThat(error.getStatus().getDescription()).contains("peer service interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void asyncExecuteRestoresInterruptWhenHandlerFailureWrapsInterruptedException() throws Exception {
+        ProxyContext ctx = ProxyContext.create();
+        StringValue request = StringValue.of("{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminContextFactory contextFactory = mock(ProxyClientAdminContextFactory.class);
+        ProxyClientAdminPeerMessageHandler messageHandler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(contextFactory.create(org.mockito.ArgumentMatchers.any(Metadata.class), same(request))).thenReturn(ctx);
+        when(messageHandler.execute(same(ctx), anyString())).thenThrow(
+            new CompletionException(new InterruptedException("wrapped peer service interrupted"))
+        );
+        ProxyClientAdminPeerGrpcService service = newService(contextFactory, messageHandler);
+        CapturingStreamObserver responseObserver = new CapturingStreamObserver();
+
+        try {
+            invokeAsyncExecute(service, request, responseObserver);
+
+            assertThat(responseObserver.error).isInstanceOf(StatusRuntimeException.class);
+            StatusRuntimeException error = (StatusRuntimeException) responseObserver.error;
+            assertThat(error.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INTERNAL);
+            assertThat(error.getStatus().getDescription()).contains("wrapped peer service interrupted");
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {
             Thread.interrupted();

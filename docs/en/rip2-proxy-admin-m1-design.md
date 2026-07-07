@@ -218,20 +218,23 @@ small and tested boundary to call:
   contract to a raw message transport. `ProxyClientAdminPeerMessageHandler`
   adapts raw messages back to the local peer executor. Raw transport failures
   are converted into peer error responses, and interrupted raw peer calls restore
-  the thread interrupted flag before returning that error. The in-process
-  message transport keeps local multi-proxy simulations on the same serialized
-  boundary that a real transport will use and applies the same interrupt
-  preservation rule when local handler execution is interrupted.
+  the thread interrupted flag before returning that error, including interrupts
+  wrapped by async adapter exceptions. The in-process message transport keeps
+  local multi-proxy simulations on the same serialized boundary that a real
+  transport will use and applies the same interrupt preservation rule when local
+  handler execution is interrupted or wrapped by an async adapter exception.
 - `ProxyClientAdminPeerGrpcService` exposes an internal unary gRPC service using
   `StringValue` request and response bodies that carry the peer JSON payload. It
   builds `ProxyContext` through the same admin context factory, delegates to the
   peer message handler, and restores the interrupted flag when service-side
-  handler execution is interrupted before being written as a gRPC error.
+  handler execution is interrupted or wrapped by an async adapter exception
+  before being written as a gRPC error.
   `ProxyClientAdminPeerGrpcTransport` is the matching client-side raw message
   transport over `Channel` and the service method descriptor. The transport maps
   peer gRPC status failures into peer error responses and restores the
-  interrupted flag when the underlying invocation is interrupted. These classes
-  do not add or modify any public RocketMQ protobuf service definitions.
+  interrupted flag when the underlying invocation is interrupted directly or via
+  an async adapter wrapper. These classes do not add or modify any public
+  RocketMQ protobuf service definitions.
 - When cross-proxy query support is enabled, `DefaultGrpcMessagingActivity`
   creates the internal peer gRPC service beside the local coordinator peer
   client. The default coordinator still uses the local in-process message

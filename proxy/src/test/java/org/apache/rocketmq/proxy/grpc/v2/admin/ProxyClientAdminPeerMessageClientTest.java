@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
@@ -148,6 +149,32 @@ public class ProxyClientAdminPeerMessageClientTest {
             assertThat(response.getBody()).isNull();
             assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
             assertThat(response.getErrorMessage()).contains("peer message transport interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void messagePeerClientRestoresInterruptWhenTransportFailureWrapsInterruptedException() {
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminPeerMessageClient(
+            new WrappedInterruptingMessageTransport()
+        );
+
+        try {
+            ProxyClientAdminPeerResponse<?> response = peerClient.execute(
+                proxyContext(),
+                " proxy-a ",
+                ProxyClientAdminPeerRequest.newBuilder()
+                    .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+                    .build()
+            );
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getBody()).isNull();
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("wrapped peer message transport interrupted");
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {
             Thread.interrupted();
@@ -325,6 +352,18 @@ public class ProxyClientAdminPeerMessageClientTest {
         public String execute(ProxyContext ctx, String proxyId, String requestMessage) {
             throwUnchecked(new InterruptedException("peer message transport interrupted"));
             return null;
+        }
+    }
+
+    private static class WrappedInterruptingMessageTransport implements ProxyClientAdminPeerMessageTransport {
+        @Override
+        public List<String> listProxyIds() {
+            return Collections.singletonList("proxy-a");
+        }
+
+        @Override
+        public String execute(ProxyContext ctx, String proxyId, String requestMessage) {
+            throw new CompletionException(new InterruptedException("wrapped peer message transport interrupted"));
         }
     }
 

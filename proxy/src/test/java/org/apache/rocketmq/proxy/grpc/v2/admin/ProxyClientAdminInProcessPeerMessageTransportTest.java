@@ -22,6 +22,7 @@ import apache.rocketmq.v2.Code;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
@@ -163,6 +164,34 @@ public class ProxyClientAdminInProcessPeerMessageTransportTest {
             assertThat(response.getBody()).isNull();
             assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
             assertThat(response.getErrorMessage()).contains("in-process peer handler interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void inProcessMessageTransportRestoresInterruptWhenHandlerFailureWrapsInterruptedException() {
+        ProxyClientAdminPeerMessageHandler handler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(handler.getLocalProxyId()).thenReturn("proxy-a");
+        when(handler.execute(any(), anyString())).thenThrow(
+            new CompletionException(new InterruptedException("wrapped in-process peer handler interrupted"))
+        );
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+        handlers.put("proxy-a", handler);
+        ProxyClientAdminInProcessPeerMessageTransport transport =
+            new ProxyClientAdminInProcessPeerMessageTransport(handlers);
+
+        try {
+            String responseMessage = transport.execute(proxyContext(), " proxy-a ", "{\"operation\":\"LIST_CLIENTS\"}");
+            ProxyClientAdminPeerResponse<ProxyClientPage> response =
+                ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getBody()).isNull();
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("wrapped in-process peer handler interrupted");
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {
             Thread.interrupted();
