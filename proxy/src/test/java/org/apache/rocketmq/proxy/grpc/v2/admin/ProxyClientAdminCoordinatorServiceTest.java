@@ -513,6 +513,37 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsPeerNextPageTokenThatDoesNotAdvanceFromPeerCursor() {
+        Map<String, String> peerTokens = new LinkedHashMap<>();
+        peerTokens.put("proxy-a", "client-a");
+        String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setLastClientId("client-a")
+                .setLastProxyId("proxy-a")
+                .setPeerPageTokens(peerTokens)
+                .build()
+        );
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-b")), "client-a"));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(2)
+            .setPageToken(pageToken)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage())
+            .contains("peer next page token is not after page token")
+            .contains("proxy-a")
+            .contains("client-a");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsOverlongGeneratedCoordinatorToken() {
         List<String> proxyIds = new ArrayList<>();
         for (int i = 0; i < 200; i++) {
@@ -944,6 +975,28 @@ public class ProxyClientAdminCoordinatorServiceTest {
             .contains("client-c");
         assertThat(result.getBody()).isNull();
         assertThat(peerClient.requests("proxy-a").get(0).getPageToken()).isEqualTo("client-c");
+    }
+
+    @Test
+    public void listClientsProxyIdRejectsPeerNextPageTokenBehindReturnedClients() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-c")), "client-b"));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .setPageToken("client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage())
+            .contains("peer next page token is before last peer client id")
+            .contains("proxy-a")
+            .contains("client-b")
+            .contains("client-c");
+        assertThat(result.getBody()).isNull();
     }
 
     @Test

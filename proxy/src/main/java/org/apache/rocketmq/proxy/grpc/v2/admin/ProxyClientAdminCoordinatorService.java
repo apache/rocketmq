@@ -613,7 +613,13 @@ public class ProxyClientAdminCoordinatorService {
                 );
             }
         }
-        return null;
+        return this.validatePeerNextPageTokenProgress(
+            proxyId,
+            peerPage,
+            normalizedPeerPageToken,
+            coordinatorLastClientId,
+            coordinatorLastProxyId
+        );
     }
 
     private boolean isBeforeOrAtCoordinatorCursor(String proxyId, String clientId, String peerPageToken,
@@ -646,6 +652,46 @@ public class ProxyClientAdminCoordinatorService {
                         + ", pageToken=" + normalizedPeerPageToken
                 );
             }
+        }
+        return this.validatePeerNextPageTokenProgress(proxyId, peerPage, normalizedPeerPageToken, null, null);
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> validatePeerNextPageTokenProgress(String proxyId,
+        ProxyClientPage peerPage, String peerPageToken, String coordinatorLastClientId, String coordinatorLastProxyId) {
+        String nextPageToken = StringUtils.trimToNull(peerPage.getNextPageToken());
+        if (nextPageToken == null) {
+            return null;
+        }
+        if (peerPageToken != null && nextPageToken.compareTo(peerPageToken) <= 0) {
+            return this.errorResult(
+                Code.INTERNAL_SERVER_ERROR,
+                "peer next page token is not after page token: proxyId=" + proxyId
+                    + ", nextPageToken=" + nextPageToken
+                    + ", pageToken=" + peerPageToken
+            );
+        }
+        List<ProxyClientInfo> clients = peerPage.getClients();
+        if (!clients.isEmpty()) {
+            String lastClientId = clients.get(clients.size() - 1).getClientId();
+            if (nextPageToken.compareTo(lastClientId) < 0) {
+                return this.errorResult(
+                    Code.INTERNAL_SERVER_ERROR,
+                    "peer next page token is before last peer client id: proxyId=" + proxyId
+                        + ", nextPageToken=" + nextPageToken
+                        + ", lastClientId=" + lastClientId
+                );
+            }
+        }
+        if (coordinatorLastClientId != null
+            && this.isBeforeOrAtCoordinatorCursor(proxyId, nextPageToken, null,
+                coordinatorLastClientId, coordinatorLastProxyId)) {
+            return this.errorResult(
+                Code.INTERNAL_SERVER_ERROR,
+                "peer next page token is not after coordinator page token: proxyId=" + proxyId
+                    + ", nextPageToken=" + nextPageToken
+                    + ", lastProxyId=" + coordinatorLastProxyId
+                    + ", lastClientId=" + coordinatorLastClientId
+            );
         }
         return null;
     }

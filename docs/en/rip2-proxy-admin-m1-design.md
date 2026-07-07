@@ -636,7 +636,12 @@ returns an internal routing error before merging the page. For untokened peers,
 progress is checked against the same global cursor so duplicate client ids on
 different proxies can be paginated in stable proxy-id order. Every peer page
 must also be strictly ordered by increasing `client_id`; otherwise the
-coordinator rejects it before building global pagination state.
+coordinator rejects it before building global pagination state. A peer's
+returned next-page token must also make forward progress: it cannot be at or
+before the page token sent to that peer, and it cannot sort before the last
+client id returned in that peer page. This prevents the coordinator from
+emitting an opaque token that would make the next request repeat or rewind a
+peer page.
 
 Recommended partial-failure behavior:
 
@@ -945,6 +950,8 @@ Internal adapter tests cover:
   per-peer cursor stored in a coordinator-owned page token.
 - coordinator pagination rejecting tokened peer pages that are after their
   per-peer cursor but still behind the global coordinator cursor.
+- coordinator pagination rejecting stale peer next-page tokens that do not
+  advance beyond the input peer cursor or that rewind behind the returned page.
 - activity-level static peer gRPC fan-out wiring for `ALL_PROXIES`, covering
   `DefaultGrpcMessagingActivity` construction with configured peer targets and
   real internal peer gRPC services.
@@ -985,9 +992,9 @@ failures/errors and Maven exits successfully.
 On 2026-07-08 Asia/Shanghai time, after refreshing `upstream/develop` to commit
 `0e4ccf1b6`, adding admin metrics scope labels, and hardening peer gRPC request
 and response payload bounds including service-side request and response
-validation, plus coordinator stale-peer-page checks against both per-peer and
-global cursors, the admin endpoint, coordinator, startup wiring, metrics, and
-authorization suite was revalidated with:
+validation, plus coordinator stale-peer-page and stale-peer-next-token checks,
+the admin endpoint, coordinator, startup wiring, metrics, and authorization
+suite was revalidated with:
 
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
@@ -996,7 +1003,7 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 481, Failures: 0, Errors: 0, Skipped: 0` and ended
+The run reported `Tests run: 483, Failures: 0, Errors: 0, Skipped: 0` and ended
 with `BUILD SUCCESS`. The same JDK 17 JaCoCo instrumentation noise appeared in
 the log, but Maven exited successfully.
 
