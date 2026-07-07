@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
@@ -119,6 +120,31 @@ public class ProxyClientAdminInProcessPeerMessageTransportTest {
         assertThat(response.getBody()).isNull();
         assertThat(response.getErrorCode()).isEqualTo(Code.BAD_REQUEST.name());
         assertThat(response.getErrorMessage()).contains("peer request message is required");
+        verify(handler, never()).execute(any(), anyString());
+    }
+
+    @Test
+    public void inProcessMessageTransportRejectsOverlongRequestMessageBeforeCallingHandler() {
+        ProxyClientAdminPeerMessageHandler handler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(handler.getLocalProxyId()).thenReturn("proxy-a");
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+        handlers.put("proxy-a", handler);
+        ProxyClientAdminInProcessPeerMessageTransport transport =
+            new ProxyClientAdminInProcessPeerMessageTransport(handlers);
+
+        String responseMessage = transport.execute(
+            proxyContext(),
+            "proxy-a",
+            StringUtils.repeat("a", 1024 * 1024 + 1)
+        );
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.BAD_REQUEST.name());
+        assertThat(response.getErrorMessage()).contains("peer request message length exceeds");
         verify(handler, never()).execute(any(), anyString());
     }
 
