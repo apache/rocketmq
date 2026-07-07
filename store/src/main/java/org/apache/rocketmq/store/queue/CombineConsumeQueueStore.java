@@ -131,27 +131,16 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
      *
      * <p>Builds the instance in five phases:
      * <ol>
-     *   <li>Capture messageStore/messageStoreConfig and seed
-     *   {@code extraSearchCommitLogFilesForRecovery} from
-     *   {@code combineCQMaxExtraSearchCommitLogFiles}.</li>
-     *   <li>Instantiate the file-based and/or RocksDB inner stores based
-     *   on {@code combineCQLoadingCQTypes}, appending each to
-     *   {@link #innerConsumeQueueStoreList} (require at least one).</li>
-     *   <li>Resolve the two role references:
-     *   {@code assignOffsetStore} from
-     *   {@code combineAssignOffsetCQType} and {@code currentReadStore}
-     *   from {@code combineCQPreferCQType} — both must point to a
-     *   loaded inner store.</li>
-     *   <li>Validate cross-flag consistency (LMQ + offset store, selective
-     *   double-write + offset/read store) — see the four {@code throw}
-     *   guards below.</li>
+     *   <li>Capture messageStore/messageStoreConfig.</li>
+     *   <li>Instantiate the file-based and/or RocksDB stores and add them to {@link #innerConsumeQueueStoreList}.</li>
+     *   <li>Resolve the two role references: {@code assignOffsetStore} and {@code currentReadStore}</li>
+     *   <li>Validate cross-flag consistency (LMQ + offset store, selective double-write + offset/read store).</li>
      *   <li>Log the resolved configuration.</li>
      * </ol>
      *
      * <p>The consistency guards are:
      * <ul>
-     *   <li>LMQ with RocksDB CQ requires the RocksDB store to be
-     *   loaded.</li>
+     *   <li>LMQ with RocksDB CQ requires the RocksDB store to be loaded.</li>
      *   <li>LMQ with RocksDB CQ forces the file-based store to own
      *   offset assignment (since the file-based store has the
      *   authoritative non-Lite topic offsets).</li>
