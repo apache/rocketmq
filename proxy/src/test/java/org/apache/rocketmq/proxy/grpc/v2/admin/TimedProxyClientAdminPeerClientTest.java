@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -93,6 +94,26 @@ public class TimedProxyClientAdminPeerClientTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("boom");
         } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void listProxyIdsRestoresInterruptWhenDelegateFailureWrapsInterruptedException() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+                new WrappedInterruptedListPeerClient(),
+                executor,
+                1000L
+            );
+
+            assertThatThrownBy(client::listProxyIds)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("wrapped peer discovery interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
             executor.shutdownNow();
         }
     }
@@ -251,6 +272,32 @@ public class TimedProxyClientAdminPeerClientTest {
             assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
             assertThat(response.getErrorMessage()).contains("boom");
         } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void executeRestoresInterruptWhenDelegateFailureWrapsInterruptedException() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+                new WrappedInterruptedExecutePeerClient(),
+                executor,
+                1000L
+            );
+
+            ProxyClientAdminPeerResponse<?> response = client.execute(
+                ProxyContext.create(),
+                "proxy-a",
+                request()
+            );
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("wrapped peer execute interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
             executor.shutdownNow();
         }
     }
@@ -479,6 +526,19 @@ public class TimedProxyClientAdminPeerClientTest {
         }
     }
 
+    private static class WrappedInterruptedListPeerClient implements ProxyClientAdminPeerClient {
+        @Override
+        public List<String> listProxyIds() {
+            throw new CompletionException(new InterruptedException("wrapped peer discovery interrupted"));
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            return ProxyClientAdminPeerResponse.success(proxyId, "ok");
+        }
+    }
+
     private static class NullListPeerClient implements ProxyClientAdminPeerClient {
         @Override
         public List<String> listProxyIds() {
@@ -515,6 +575,19 @@ public class TimedProxyClientAdminPeerClientTest {
         public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
             ProxyClientAdminPeerRequest request) {
             throw new IllegalStateException("boom");
+        }
+    }
+
+    private static class WrappedInterruptedExecutePeerClient implements ProxyClientAdminPeerClient {
+        @Override
+        public List<String> listProxyIds() {
+            return Collections.singletonList("proxy-a");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            throw new CompletionException(new InterruptedException("wrapped peer execute interrupted"));
         }
     }
 

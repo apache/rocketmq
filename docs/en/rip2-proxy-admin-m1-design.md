@@ -710,11 +710,13 @@ Recommended implementation order after public API ownership is confirmed:
    have a bounded wait; timed discovery must return a non-empty peer list, and
    `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout. Timed-out or
    interrupted waits cancel the submitted peer work before returning an error or
-   restoring the interrupt flag. Coordinator page-token retention is also
-   bounded by `proxyClientAdminCoordinatorPageTokenTtlMillis`; expired or
-   future-dated `cp1:` tokens are rejected before peer discovery so stale or
-   non-monotonic cursors do not trigger remote fan-out. Enabling the coordinator
-   scope flag also requires a nonblank
+   restoring the interrupt flag; delegate failures that wrap an
+   `InterruptedException` restore the caller interrupt flag before being mapped
+   to the existing discovery or peer error response. Coordinator page-token
+   retention is also bounded by `proxyClientAdminCoordinatorPageTokenTtlMillis`;
+   expired or future-dated `cp1:` tokens are rejected before peer discovery so
+   stale or non-monotonic cursors do not trigger remote fan-out. Enabling the
+   coordinator scope flag also requires a nonblank
    `proxyName`, which becomes the
    stable local peer id; the default local-only `DEFAULT_PROXY` fallback is not
    used for coordinator scopes. The in-process peer client converts local executor

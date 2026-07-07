@@ -76,7 +76,9 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
                 e
             );
         } catch (ExecutionException e) {
-            throw peerDiscoveryError(e.getCause() == null ? e : e.getCause());
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            ProxyClientAdminInterrupts.restoreInterruptedStatus(cause);
+            throw peerDiscoveryError(cause);
         }
     }
 
@@ -121,7 +123,9 @@ public class TimedProxyClientAdminPeerClient implements ProxyClientAdminPeerClie
                 "Interrupted while waiting for proxy client admin peer " + requiredProxyId
             );
         } catch (ExecutionException e) {
-            return internalServerError(requiredProxyId, e.getCause() == null ? e : e.getCause());
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            ProxyClientAdminInterrupts.restoreInterruptedStatus(cause);
+            return internalServerError(requiredProxyId, cause);
         }
     }
 
