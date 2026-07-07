@@ -310,6 +310,33 @@ public class ProxyClientAdminEndpointHandlerTest {
     }
 
     @Test
+    public void handleMapsInterruptedActionToStatusResponseAndRestoresInterrupt() {
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+
+        try {
+            handler.handle(
+                observer,
+                () -> {
+                    throwUnchecked(new InterruptedException("admin action interrupted"));
+                    return null;
+                },
+                TestAdminResponse::new
+            );
+
+            ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+            verify(observer).onNext(responseCaptor.capture());
+            verify(observer).onCompleted();
+            assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("admin action interrupted");
+            assertThat(responseCaptor.getValue().getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void handleRejectsMissingResponseObserverBeforeExecutingAction() {
         ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
         AtomicBoolean actionInvoked = new AtomicBoolean(false);
@@ -376,6 +403,36 @@ public class ProxyClientAdminEndpointHandlerTest {
         assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("response conversion failed");
         assertThat(responseCaptor.getValue().getBody()).isNull();
+    }
+
+    @Test
+    public void handleMapsInterruptedResponseFactoryFailureToStatusResponseAndRestoresInterrupt() {
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+
+        try {
+            handler.handle(
+                observer,
+                () -> okResult("client-a"),
+                (status, body) -> {
+                    if (status.getCode() == Code.OK) {
+                        throwUnchecked(new InterruptedException("response factory interrupted"));
+                        return null;
+                    }
+                    return new TestAdminResponse(status, body);
+                }
+            );
+
+            ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+            verify(observer).onNext(responseCaptor.capture());
+            verify(observer).onCompleted();
+            assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("response factory interrupted");
+            assertThat(responseCaptor.getValue().getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
     }
 
     @Test
@@ -464,5 +521,14 @@ public class ProxyClientAdminEndpointHandlerTest {
         private Object getBody() {
             return body;
         }
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminEndpointHandlerTest.<RuntimeException>throwAny(interruptedException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
     }
 }

@@ -104,6 +104,7 @@ public class ProxyClientAdminEndpointHandler {
             R response = this.applyResponseFactory(requiredResponseFactory, result);
             ResponseWriter.getInstance().write(requiredResponseObserver, response);
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             ProxyClientAdminGrpcErrorWriter.write(requiredResponseObserver, t);
         }
     }
@@ -113,6 +114,7 @@ public class ProxyClientAdminEndpointHandler {
         try {
             return this.requireResponse(responseFactory.apply(result.getStatus(), result.getBody()));
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return this.requireResponse(responseFactory.apply(ResponseBuilder.getInstance().buildStatus(t), null));
         }
     }
@@ -131,6 +133,7 @@ public class ProxyClientAdminEndpointHandler {
             }
             return result;
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
     }
@@ -200,5 +203,11 @@ public class ProxyClientAdminEndpointHandler {
             throw new IllegalStateException("proxyClientAdminActivity is required");
         }
         return this.proxyClientAdminActivity;
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        if (t instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

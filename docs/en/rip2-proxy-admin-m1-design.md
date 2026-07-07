@@ -154,7 +154,9 @@ small and tested boundary to call:
 - `ProxyClientAdminEndpointHandler` centralizes the future unary endpoint
   response flow: execute an activity action, convert thrown exceptions through
   `ResponseBuilder`, build a response from `Status` and optional body, and write
-  it through `ResponseWriter`.
+  it through `ResponseWriter`. Handler-level action and response-conversion
+  failures also preserve the interrupted flag before they are converted to
+  status responses.
 - `ProxyClientAdminEndpointExecutor` is a proto-independent shell for generated
   unary admin methods. It adapts the proto request to the internal request DTO
   before creating the `ProxyContext`, so malformed public request fields such as
