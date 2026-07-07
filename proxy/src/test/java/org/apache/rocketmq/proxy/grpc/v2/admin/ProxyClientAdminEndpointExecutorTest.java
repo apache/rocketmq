@@ -457,6 +457,33 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void listClientsRejectsInvalidLocalPageTokenBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder()
+                .setPageToken("v2:Y2xpZW50LWE")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("Invalid page token");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
     public void listClientsRejectsAllProxiesScopeBeforeCreatingContextForPublicEndpoint() {
         ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
         ProxyClientAdminEndpointExecutor executor =
@@ -571,6 +598,34 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void listClientsByGroupRejectsInvalidLocalPageTokenBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClientsByGroup(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsByGroupRequest.newBuilder()
+                .setGroup("group-a")
+                .setPageToken("v2:Y2xpZW50LWE")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("Invalid page token");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByGroup(any(), any(), any(), any());
+    }
+
+    @Test
     public void listClientsByGroupRejectsMissingGroupBeforeCreatingContextForPublicEndpoint() {
         ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
         ProxyClientAdminEndpointExecutor executor =
@@ -622,6 +677,34 @@ public class ProxyClientAdminEndpointExecutorTest {
         assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("LOCAL_PROXY");
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("PROXY_ID");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByTopic(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByTopicRejectsInvalidLocalPageTokenBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClientsByTopic(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsByTopicRequest.newBuilder()
+                .setTopic("topic-a")
+                .setPageToken("v2:Y2xpZW50LWE")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("Invalid page token");
         assertThat(responseCaptor.getValue().getBody()).isNull();
         verify(contextFactory, never()).create(any(), any());
         verify(endpointHandler, never()).listClientsByTopic(any(), any(), any(), any());

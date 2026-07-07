@@ -214,6 +214,7 @@ public class ProxyClientAdminEndpointExecutor {
     private <D> D requirePublicEndpointRequest(D request) {
         this.requirePublicEndpointScope(request);
         this.requirePublicEndpointIdentifiers(request);
+        this.requirePublicEndpointPageToken(request);
         return request;
     }
 
@@ -239,6 +240,12 @@ public class ProxyClientAdminEndpointExecutor {
         if (request instanceof ProxyClientAdminListClientsByTopicRequest
             && StringUtils.isBlank(((ProxyClientAdminListClientsByTopicRequest) request).getTopic())) {
             throw new IllegalArgumentException("topic is required");
+        }
+    }
+
+    private void requirePublicEndpointPageToken(Object request) {
+        if (request instanceof ProxyClientAdminListClientsRequest) {
+            ((ProxyClientAdminListClientsRequest) request).toQuery();
         }
     }
 
