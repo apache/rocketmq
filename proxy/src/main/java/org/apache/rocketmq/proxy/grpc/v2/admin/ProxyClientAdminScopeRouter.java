@@ -319,6 +319,9 @@ public class ProxyClientAdminScopeRouter {
         if (code == Code.UNAUTHORIZED) {
             return ClientAdminMetricsResult.UNAUTHORIZED;
         }
+        if (code == Code.PROXY_TIMEOUT) {
+            return ClientAdminMetricsResult.TIMEOUT;
+        }
         return ClientAdminMetricsResult.INTERNAL_ERROR;
     }
 

@@ -756,8 +756,9 @@ errors are still counted once at the public admin operation boundary.
 Internal coordinator scopes use the same one-operation boundary at the scope
 router. The router records exactly one operation metric for a coordinator-scope
 request after mapping the final status to `OK`, `BAD_REQUEST`, `NOT_FOUND`,
-`UNAUTHORIZED`, or `INTERNAL_ERROR`. That includes the `BAD_REQUEST` result when
-cross-proxy scopes are disabled by configuration. Peer-local execution is
+`UNAUTHORIZED`, `TIMEOUT`, or `INTERNAL_ERROR`. That includes the `BAD_REQUEST`
+result when cross-proxy scopes are disabled by configuration and the `TIMEOUT`
+result when peer fan-out or discovery exceeds its bounded wait. Peer-local execution is
 deliberately routed through the shared `ClientAdminService`, not the public
 activity wrapper, so a coordinator request is not counted again as a nested
 local public admin request.

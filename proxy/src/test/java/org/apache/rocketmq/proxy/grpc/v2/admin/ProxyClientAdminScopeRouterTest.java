@@ -211,6 +211,41 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void listClientsAllProxiesRecordsTimeoutMetricsResult() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            (subject, operation, sourceIp) -> {
+            },
+            metricsRecorder
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        when(coordinator.listClients(any(), any(ProxyClientQuery.class))).thenReturn(
+            new ProxyClientAdminResult<>(
+                ResponseBuilder.getInstance().buildStatus(Code.PROXY_TIMEOUT, "peer discovery timeout"),
+                null
+            )
+        );
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.PROXY_TIMEOUT);
+        assertThat(result.getBody()).isNull();
+        verify(metricsRecorder).record(
+            eq(ClientAdminOperation.LIST_CLIENTS),
+            eq(ClientAdminMetricsResult.TIMEOUT),
+            anyLong()
+        );
+        verifyNoMoreInteractions(metricsRecorder);
+    }
+
+    @Test
     public void listClientsLocalProxyDoesNotRunRouterAuthorizationOrMetrics() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
