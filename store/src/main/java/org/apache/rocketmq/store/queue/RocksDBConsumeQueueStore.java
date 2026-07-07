@@ -110,6 +110,30 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
      * synchronization is required.
      */
     private final List<Pair<ByteBuffer, ByteBuffer>> cqBBPairList;
+    /**
+     * Pre-allocated, off-heap DirectByteBuffer pool for the
+     * {@link RocksDBConsumeQueueOffsetTable} key/value pair.
+     *
+     * <p>Each entry is a {@link Pair} of (key, value) buffers used by
+     * {@link #updateTempTopicQueueMaxOffset(Pair, DispatchEntry)} to
+     * stage a per-(topic, queueId) max-offset entry. The key buffer
+     * holds the topic-queueId and the value buffer holds the
+     * {@code PhyAndCQOffset} pair. These buffers are then read back
+     * when {@link RocksDBConsumeQueueOffsetTable#putMaxPhyAndCqOffset}
+     * stages the offset-table updates into the same WriteBatch as the
+     * CQ entries.
+     *
+     * <p>Initialized in the constructor with 16 pairs and grown on
+     * demand by {@link #getOffsetByteBufferPair()} when
+     * {@link #offsetBufferCacheIndex} exceeds the current size. The
+     * pool is reset (index only) at the end of each
+     * {@link #putMessagePosition0} call so subsequent batches reuse
+     * the same DirectByteBuffer instances.
+     *
+     * <p>Access is single-threaded (only
+     * {@link RocksGroupCommitService} drives writes), so no
+     * synchronization is required.
+     */
     private final List<Pair<ByteBuffer, ByteBuffer>> offsetBBPairList;
     private final Map<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> tempTopicQueueMaxOffsetMap;
     private volatile boolean isCQError = false;
