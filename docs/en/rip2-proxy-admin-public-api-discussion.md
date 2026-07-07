@@ -14,7 +14,7 @@ decision is where and how the public protobuf API should land.
 
 ## Current Upstream Status
 
-After fetching `upstream/develop` at commit `2af604f3a` on 2026-07-06, this
+After fetching `upstream/develop` at commit `0e4ccf1b6` on 2026-07-08, this
 RocketMQ repository does not contain a public `ProxyAdminService` protobuf API
 or `.proto` source files to update directly. The proxy module consumes generated
 `apache.rocketmq.v2.MessagingServiceGrpc` classes from the external

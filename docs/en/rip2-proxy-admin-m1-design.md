@@ -962,6 +962,21 @@ still prints instrumentation stack traces for JDK and Mockito-generated classes;
 those logs are treated as environment noise only when Surefire reports zero
 failures/errors and Maven exits successfully.
 
+On 2026-07-08 Asia/Shanghai time, after refreshing `upstream/develop` to commit
+`0e4ccf1b6`, the admin endpoint, coordinator, startup wiring, metrics, and
+authorization suite was revalidated with:
+
+```bash
+JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+  mvn -pl proxy -am \
+  '-Dtest=ProxyClientAdmin*Test,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest' \
+  -DfailIfNoTests=false test -DskipITs
+```
+
+The run reported `Tests run: 455, Failures: 0, Errors: 0, Skipped: 0` and ended
+with `BUILD SUCCESS`. The same JDK 17 JaCoCo instrumentation noise appeared in
+the log, but Maven exited successfully.
+
 ## Synthetic Benchmark
 
 The read model includes a JMH benchmark in
@@ -1122,8 +1137,8 @@ The remaining public endpoint work should start only after the community agrees
 where the protobuf API lives. Once that is settled, the implementation can land
 as a narrow adapter over the internal code already in this branch:
 
-Current branch status: after fetching `upstream/develop` at commit `2af604f3a`
-on 2026-07-06, `git grep` still finds no upstream `ProxyAdminService`,
+Current branch status: after fetching `upstream/develop` at commit `0e4ccf1b6`
+on 2026-07-08, `git grep` still finds no upstream `ProxyAdminService`,
 `ProxyScope`, `ListClientsByGroup`, or `ListClientsByTopic` protobuf API to
 consume. The upstream tree also contains no `.proto` source files; the proxy
 module consumes generated `apache.rocketmq.v2.MessagingServiceGrpc` classes from
