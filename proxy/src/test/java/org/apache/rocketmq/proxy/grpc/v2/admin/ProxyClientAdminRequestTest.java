@@ -164,6 +164,7 @@ public class ProxyClientAdminRequestTest {
             ProxyClientAdminCoordinatorPageToken.newBuilder()
                 .setScope(ProxyClientScope.ALL_PROXIES)
                 .setLastClientId("client-a")
+                .setLastProxyId("proxy-a")
                 .putPeerPageToken("proxy-a", "client-a")
                 .build()
         );
@@ -173,6 +174,29 @@ public class ProxyClientAdminRequestTest {
             .build();
 
         assertThat(request.toQuery().getPageToken()).isEqualTo(coordinatorToken);
+    }
+
+    @Test
+    public void listClientsRequestRejectsLocalPageTokensForAllProxiesScope() {
+        ProxyClientAdminListClientsRequest versionedLocalTokenRequest =
+            ProxyClientAdminListClientsRequest.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setPageToken("v1:Y2xpZW50LWE")
+                .build();
+        ProxyClientAdminListClientsRequest legacyBareLocalTokenRequest =
+            ProxyClientAdminListClientsRequest.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setPageToken("client-a")
+                .build();
+
+        assertThatThrownBy(versionedLocalTokenRequest::toQuery)
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid coordinator page token")
+            .hasMessageContaining("v1:Y2xpZW50LWE");
+        assertThatThrownBy(legacyBareLocalTokenRequest::toQuery)
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid coordinator page token")
+            .hasMessageContaining("client-a");
     }
 
     @Test

@@ -122,12 +122,21 @@ public class ProxyClientAdminRequestConverterTest {
 
     @Test
     public void toListClientsByGroupRequestMapsPublicFields() {
+        String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
+            ProxyClientAdminCoordinatorPageToken.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setGroup("group-a")
+                .setLastClientId("client-b")
+                .setLastProxyId("proxy-a")
+                .putPeerPageToken("proxy-a", "client-b")
+                .build()
+        );
         ProxyClientAdminListClientsByGroupRequest request = ProxyClientAdminRequestConverter.getInstance()
             .toListClientsByGroupRequest(
                 " group-a ",
                 ClientType.PUSH_CONSUMER,
                 20,
-                "client-b",
+                pageToken,
                 "PROXY_SCOPE_ALL_PROXIES",
                 " proxy-a "
             );
@@ -139,7 +148,7 @@ public class ProxyClientAdminRequestConverterTest {
         assertThat(request.getProxyId()).isNull();
         assertThat(query.getGroup()).isEqualTo("group-a");
         assertThat(query.getPageSize()).isEqualTo(20);
-        assertThat(query.getPageToken()).isEqualTo("client-b");
+        assertThat(query.getPageToken()).isEqualTo(pageToken);
         assertThat(query.getProxyId()).isNull();
     }
 

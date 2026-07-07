@@ -93,9 +93,17 @@ public class ProxyClientAdminListClientsRequest {
 
     private String pageTokenForQuery() {
         if (scope == ProxyClientScope.ALL_PROXIES) {
-            return pageToken;
+            return coordinatorPageTokenForQuery();
         }
         return ProxyClientAdminPageTokenCodec.getInstance().decode(pageToken);
+    }
+
+    private String coordinatorPageTokenForQuery() {
+        if (pageToken == null) {
+            return null;
+        }
+        ProxyClientAdminCoordinatorPageTokenCodec.getInstance().decode(pageToken);
+        return pageToken;
     }
 
     private String proxyIdForQuery() {
