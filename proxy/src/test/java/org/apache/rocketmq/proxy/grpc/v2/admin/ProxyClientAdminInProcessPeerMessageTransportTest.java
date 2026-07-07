@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -118,6 +119,25 @@ public class ProxyClientAdminInProcessPeerMessageTransportTest {
         assertThat(response.getErrorCode()).isEqualTo(Code.BAD_REQUEST.name());
         assertThat(response.getErrorMessage()).contains("peer request message is required");
         verify(handler, never()).execute(any(), anyString());
+    }
+
+    @Test
+    public void inProcessMessageTransportSendsNormalizedRequestMessageToHandler() {
+        ProxyClientAdminPeerMessageHandler handler = mock(ProxyClientAdminPeerMessageHandler.class);
+        when(handler.getLocalProxyId()).thenReturn("proxy-a");
+        when(handler.execute(any(), anyString())).thenReturn(ProxyClientAdminPeerMessageCodec.getInstance()
+            .encodePageResponse(ProxyClientAdminPeerResponse.success(
+                "proxy-a",
+                new ProxyClientPage(Collections.emptyList(), "")
+            )));
+        Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
+        handlers.put("proxy-a", handler);
+        ProxyClientAdminInProcessPeerMessageTransport transport =
+            new ProxyClientAdminInProcessPeerMessageTransport(handlers);
+
+        transport.execute(proxyContext(), " proxy-a ", " {\"operation\":\"LIST_CLIENTS\"} ");
+
+        verify(handler).execute(any(), eq("{\"operation\":\"LIST_CLIENTS\"}"));
     }
 
     @Test

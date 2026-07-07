@@ -89,7 +89,7 @@ public class ProxyClientAdminInProcessPeerMessageTransport implements ProxyClien
             return this.encodeError(requiredProxyId, Code.BAD_REQUEST, "peer request message is required");
         }
         try {
-            String responseMessage = StringUtils.trimToNull(handler.execute(ctx, requestMessage));
+            String responseMessage = StringUtils.trimToNull(handler.execute(ctx, requiredRequestMessage));
             if (responseMessage == null) {
                 return this.encodeError(requiredProxyId, Code.INTERNAL_SERVER_ERROR,
                     "peer response message is required");
