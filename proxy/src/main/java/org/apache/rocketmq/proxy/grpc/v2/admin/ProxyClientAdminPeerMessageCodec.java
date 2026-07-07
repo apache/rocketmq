@@ -147,7 +147,7 @@ public final class ProxyClientAdminPeerMessageCodec {
 
     private ResponsePayload parseResponsePayload(String message) {
         String requiredMessage = requireMessage(message, "peer response message is required");
-        ResponsePayload payload = JSON.parseObject(requiredMessage, ResponsePayload.class);
+        ResponsePayload payload = parseResponsePayloadBody(requiredMessage);
         if (payload == null) {
             throw new IllegalArgumentException("peer response message is required");
         }
@@ -158,6 +158,14 @@ public final class ProxyClientAdminPeerMessageCodec {
             throw new IllegalArgumentException("peer error response must not include body");
         }
         return payload;
+    }
+
+    private ResponsePayload parseResponsePayloadBody(String message) {
+        try {
+            return JSON.parseObject(message, ResponsePayload.class);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Invalid peer response message", e);
+        }
     }
 
     private PagePayload toPagePayload(ProxyClientPage page) {

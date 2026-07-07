@@ -149,6 +149,13 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void pageResponseCodecRejectsMalformedJsonAsResponseBoundaryError() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse("{"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid peer response message");
+    }
+
+    @Test
     public void clientResponseCodecRejectsSuccessfulResponseWithPageBody() {
         String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
             + "\"client\":{\"clientId\":\"client-a\"},"

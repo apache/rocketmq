@@ -129,6 +129,27 @@ public class ProxyClientAdminPeerMessageClientTest {
     }
 
     @Test
+    public void messagePeerClientMapsMalformedResponseToPeerError() {
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminPeerMessageClient(
+            new MalformedResponseTransport()
+        );
+
+        ProxyClientAdminPeerResponse<?> response = peerClient.execute(
+            proxyContext(),
+            " proxy-a ",
+            ProxyClientAdminPeerRequest.newBuilder()
+                .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+                .build()
+        );
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorMessage()).contains("Invalid peer response message");
+    }
+
+    @Test
     public void messagePeerClientMapsMissingRequestToBadRequestPeerError() {
         RecordingMessageTransport transport = new RecordingMessageTransport();
         transport.addProxy("proxy-a", null);
@@ -244,6 +265,18 @@ public class ProxyClientAdminPeerMessageClientTest {
         @Override
         public String execute(ProxyContext ctx, String proxyId, String requestMessage) {
             throw new IllegalStateException("boom");
+        }
+    }
+
+    private static class MalformedResponseTransport implements ProxyClientAdminPeerMessageTransport {
+        @Override
+        public List<String> listProxyIds() {
+            return Collections.singletonList("proxy-a");
+        }
+
+        @Override
+        public String execute(ProxyContext ctx, String proxyId, String requestMessage) {
+            return "{";
         }
     }
 }
