@@ -234,8 +234,10 @@ small and tested boundary to call:
   transport over `Channel` and the service method descriptor. The transport maps
   peer gRPC status failures into peer error responses and restores the
   interrupted flag when the underlying invocation is interrupted directly or via
-  an async adapter wrapper. These classes do not add or modify any public
-  RocketMQ protobuf service definitions.
+  an async adapter wrapper. Async-wrapped gRPC status failures are unwrapped
+  before mapping, so deadline or unavailable peer calls still surface as
+  `PROXY_TIMEOUT` peer errors instead of generic internal errors. These classes
+  do not add or modify any public RocketMQ protobuf service definitions.
 - When cross-proxy query support is enabled, `DefaultGrpcMessagingActivity`
   creates the internal peer gRPC service beside the local coordinator peer
   client. The default coordinator still uses the local in-process message

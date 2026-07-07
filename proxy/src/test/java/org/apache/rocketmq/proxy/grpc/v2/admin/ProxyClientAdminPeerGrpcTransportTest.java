@@ -334,6 +334,29 @@ public class ProxyClientAdminPeerGrpcTransportTest {
     }
 
     @Test
+    public void grpcTransportMapsWrappedGrpcStatusFailuresToEncodedPeerError() {
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", mock(Channel.class));
+        ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(
+            channels,
+            (channel, requestMessage, metadata) -> {
+                throw new CompletionException(
+                    Status.DEADLINE_EXCEEDED.withDescription("peer deadline exceeded").asRuntimeException()
+                );
+            }
+        );
+
+        String responseMessage = transport.execute(proxyContext(), "proxy-a", "{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getErrorCode()).isEqualTo(Code.PROXY_TIMEOUT.name());
+        assertThat(response.getErrorMessage()).contains("peer deadline exceeded");
+    }
+
+    @Test
     public void grpcTransportRestoresInterruptWhenInvokerIsInterrupted() {
         Map<String, Channel> channels = new LinkedHashMap<>();
         channels.put("proxy-a", mock(Channel.class));

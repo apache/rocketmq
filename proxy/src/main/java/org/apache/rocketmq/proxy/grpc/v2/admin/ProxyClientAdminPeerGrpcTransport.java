@@ -41,6 +41,7 @@ import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.common.constant.GrpcConstants;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
 
@@ -171,11 +172,12 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
     }
 
     private Status grpcStatus(Throwable t) {
-        if (t instanceof StatusRuntimeException) {
-            return ((StatusRuntimeException) t).getStatus();
+        Throwable realException = ExceptionUtils.getRealException(t);
+        if (realException instanceof StatusRuntimeException) {
+            return ((StatusRuntimeException) realException).getStatus();
         }
-        if (t instanceof StatusException) {
-            return ((StatusException) t).getStatus();
+        if (realException instanceof StatusException) {
+            return ((StatusException) realException).getStatus();
         }
         return null;
     }
