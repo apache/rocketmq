@@ -519,6 +519,37 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void initShutsDownCrossProxyResourcesWhenPeerGrpcServiceCreationFails() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ConfigurationManager.getProxyConfig().setProxyClientAdminPeerGrpcTargets(
+            "proxy-a=127.0.0.1:8080,proxy-b=127.0.0.2:8081"
+        );
+        ManagedChannel proxyAChannel = mock(ManagedChannel.class);
+        ManagedChannel proxyBChannel = mock(ManagedChannel.class);
+        Map<String, ManagedChannel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", proxyAChannel);
+        channels.put("proxy-b", proxyBChannel);
+        ThrowingPeerGrpcServiceDefaultGrpcMessagingActivity.setChannels(channels);
+        try {
+            assertThatThrownBy(() -> new ThrowingPeerGrpcServiceDefaultGrpcMessagingActivity(
+                this.messagingProcessor
+            ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("peer grpc service init failed");
+        } finally {
+            ThrowingPeerGrpcServiceDefaultGrpcMessagingActivity.reset();
+        }
+
+        ExecutorService capturedExecutor =
+            ThrowingPeerGrpcServiceDefaultGrpcMessagingActivity.capturedExecutor();
+        assertThat(capturedExecutor).isNotNull();
+        assertThat(capturedExecutor.isShutdown()).isTrue();
+        verify(proxyAChannel).shutdownNow();
+        verify(proxyBChannel).shutdownNow();
+    }
+
+    @Test
     public void initTrimsConfiguredProxyNameForLocalProxyId() {
         String originalProxyName = ConfigurationManager.getProxyConfig().getProxyName();
         try {
@@ -933,6 +964,55 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
                 return PROXY_A_CHANNEL.get();
             }
             throw new IllegalStateException("channel init failed");
+        }
+    }
+
+    private static class ThrowingPeerGrpcServiceDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        private static final ThreadLocal<Map<String, ManagedChannel>> CHANNELS = new ThreadLocal<>();
+        private static final AtomicReference<ExecutorService> CAPTURED_EXECUTOR = new AtomicReference<>();
+
+        private ThrowingPeerGrpcServiceDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        private static void setChannels(Map<String, ManagedChannel> channels) {
+            CHANNELS.set(channels);
+            CAPTURED_EXECUTOR.set(null);
+        }
+
+        private static void reset() {
+            CHANNELS.remove();
+        }
+
+        private static ExecutorService capturedExecutor() {
+            return CAPTURED_EXECUTOR.get();
+        }
+
+        @Override
+        protected ProxyClientAdminPeerClient createProxyClientAdminPeerClient(String localProxyId,
+            ProxyClientAdminActivity proxyClientAdminActivity, ExecutorService executorService, long timeoutMillis) {
+            CAPTURED_EXECUTOR.set(executorService);
+            return super.createProxyClientAdminPeerClient(
+                localProxyId,
+                proxyClientAdminActivity,
+                executorService,
+                timeoutMillis
+            );
+        }
+
+        @Override
+        protected ManagedChannel createProxyClientAdminPeerGrpcChannel(ProxyClientAdminPeerGrpcTarget target) {
+            ManagedChannel channel = CHANNELS.get().get(target.getProxyId());
+            if (channel != null) {
+                return channel;
+            }
+            throw new IllegalArgumentException("Unexpected proxyId: " + target.getProxyId());
+        }
+
+        @Override
+        protected ProxyClientAdminPeerGrpcService createProxyClientAdminPeerGrpcService(String localProxyId,
+            ClientAdminService clientAdminService, ProxyClientAdminContextFactory contextFactory) {
+            throw new IllegalStateException("peer grpc service init failed");
         }
     }
 }

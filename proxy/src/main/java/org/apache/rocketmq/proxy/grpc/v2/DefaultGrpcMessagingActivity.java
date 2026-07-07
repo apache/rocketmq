@@ -185,11 +185,16 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.proxyClientAdminContextFactory =
             GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(messagingProcessor);
         if (enableCrossProxyQuery) {
-            this.proxyClientAdminPeerGrpcService = this.createProxyClientAdminPeerGrpcService(
-                crossProxyLocalProxyId,
-                this.clientAdminService,
-                this.proxyClientAdminContextFactory
-            );
+            try {
+                this.proxyClientAdminPeerGrpcService = this.createProxyClientAdminPeerGrpcService(
+                    crossProxyLocalProxyId,
+                    this.clientAdminService,
+                    this.proxyClientAdminContextFactory
+                );
+            } catch (RuntimeException | Error e) {
+                this.shutdownInitializedProxyClientAdminResources();
+                throw e;
+            }
         }
         this.proxyClientAdminEndpointHandler = new ProxyClientAdminEndpointHandler(this.proxyClientAdminScopeRouter);
         this.proxyClientAdminEndpointExecutor = new ProxyClientAdminEndpointExecutor(
@@ -218,6 +223,18 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.proxyClientReadServiceCleaner = this.createProxyClientReadServiceCleaner();
         if (this.proxyClientReadServiceCleaner != null) {
             this.appendStartAndShutdown(this.proxyClientReadServiceCleaner);
+        }
+    }
+
+    private void shutdownInitializedProxyClientAdminResources() {
+        try {
+            this.shutdown();
+        } catch (Throwable e) {
+            log.warn("shutdown initialized proxy client admin resources failed.", e);
+        }
+        if (this.proxyClientAdminPeerExecutor != null) {
+            this.proxyClientAdminPeerExecutor.shutdownNow();
+            this.proxyClientAdminPeerExecutor = null;
         }
     }
 
