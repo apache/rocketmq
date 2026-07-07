@@ -244,11 +244,11 @@ public class ProxyStartup {
             requireProxyAdminServiceFactory(proxyAdminServiceFactory).create(requiredGrpcMessagingActivity),
             "proxy admin service is required"
         );
+        BindableService peerGrpcService = requiredGrpcMessagingActivity.getProxyClientAdminPeerGrpcService();
         List<BindableService> services = Lists.newArrayList(
             createServiceProcessor(messagingProcessor, requiredGrpcMessagingActivity)
         );
         services.addAll(proxyAdminServices);
-        BindableService peerGrpcService = requiredGrpcMessagingActivity.getProxyClientAdminPeerGrpcService();
         if (peerGrpcService != null) {
             services.add(peerGrpcService);
         }
@@ -257,10 +257,10 @@ public class ProxyStartup {
 
     static List<BindableService> createGrpcBindableServices(MessagingProcessor messagingProcessor,
         DefaultGrpcMessagingActivity grpcMessagingActivity, List<BindableService> additionalServices) {
+        BindableService peerGrpcService = grpcMessagingActivity.getProxyClientAdminPeerGrpcService();
         List<BindableService> services = Lists.newArrayList(
             createServiceProcessor(messagingProcessor, grpcMessagingActivity)
         );
-        BindableService peerGrpcService = grpcMessagingActivity.getProxyClientAdminPeerGrpcService();
         if (peerGrpcService != null) {
             services.add(peerGrpcService);
         }
