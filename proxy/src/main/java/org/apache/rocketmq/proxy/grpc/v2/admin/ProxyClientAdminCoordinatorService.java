@@ -618,8 +618,11 @@ public class ProxyClientAdminCoordinatorService {
 
     private boolean isBeforeOrAtCoordinatorCursor(String proxyId, String clientId, String peerPageToken,
         String coordinatorLastClientId, String coordinatorLastProxyId) {
-        if (peerPageToken != null) {
-            return clientId.compareTo(peerPageToken) <= 0;
+        if (peerPageToken != null && clientId.compareTo(peerPageToken) <= 0) {
+            return true;
+        }
+        if (coordinatorLastClientId == null) {
+            return false;
         }
         int clientIdComparison = clientId.compareTo(coordinatorLastClientId);
         if (clientIdComparison != 0) {
