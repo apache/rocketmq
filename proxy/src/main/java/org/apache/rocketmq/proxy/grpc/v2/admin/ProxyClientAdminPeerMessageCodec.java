@@ -183,11 +183,12 @@ public final class ProxyClientAdminPeerMessageCodec {
     }
 
     private ProxyClientPage toPage(PagePayload payload) {
+        if (payload.clients == null) {
+            throw new IllegalArgumentException("peer page clients are required");
+        }
         List<ProxyClientInfo> clients = new ArrayList<>();
-        if (payload.clients != null) {
-            for (ClientPayload clientPayload : payload.clients) {
-                clients.add(toClientInfo(clientPayload));
-            }
+        for (ClientPayload clientPayload : payload.clients) {
+            clients.add(toClientInfo(clientPayload));
         }
         return new ProxyClientPage(clients, payload.nextPageToken);
     }

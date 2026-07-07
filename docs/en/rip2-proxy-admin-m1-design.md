@@ -688,10 +688,12 @@ Recommended implementation order after public API ownership is confirmed:
    returned as an internal routing error instead of being merged into the admin
    response. Peer wire responses reject mixed success bodies, so page responses
    cannot also carry a client body and describe responses cannot also carry a
-   page body. Peer page bodies are also validated before merge so malformed peer
-   results and peer client bodies without usable client ids become stable
-   internal errors instead of leaking as merge-time exceptions or successful
-   malformed describe results. Describe responses must also return the exact
+   page body; successful page responses must carry an explicit `clients` array
+   so a malformed peer cannot be silently decoded as an empty page. Peer page
+   bodies are also validated before merge so malformed peer results and peer
+   client bodies without usable client ids become stable internal errors instead
+   of leaking as merge-time exceptions or successful malformed describe results.
+   Describe responses must also return the exact
    requested `client_id`; a peer response that carries a different client id is
    treated as an internal routing or peer-corruption error for both `PROXY_ID`
    and `ALL_PROXIES`. Single-proxy `PROXY_ID` page responses are checked against

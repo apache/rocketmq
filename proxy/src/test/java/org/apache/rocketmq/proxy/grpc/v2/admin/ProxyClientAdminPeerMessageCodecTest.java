@@ -150,6 +150,16 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void pageResponseCodecRejectsSuccessfulPageWithoutClientsArray() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
+            + "\"page\":{\"nextPageToken\":\"\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer page clients are required");
+    }
+
+    @Test
     public void pageResponseCodecRejectsMalformedJsonAsResponseBoundaryError() {
         assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse("{"))
             .isInstanceOf(IllegalArgumentException.class)
