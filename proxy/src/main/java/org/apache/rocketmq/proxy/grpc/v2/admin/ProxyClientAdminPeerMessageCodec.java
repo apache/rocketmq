@@ -120,6 +120,10 @@ public final class ProxyClientAdminPeerMessageCodec {
         return ProxyClientAdminPeerResponse.success(payload.proxyId, toClientInfo(payload.client));
     }
 
+    public String requireResponseMessage(String message) {
+        return requireMessage(message, "peer response message");
+    }
+
     private ResponsePayload toPageResponsePayload(ProxyClientAdminPeerResponse<ProxyClientPage> response) {
         ResponsePayload payload = toResponsePayload(response);
         if (payload.success) {

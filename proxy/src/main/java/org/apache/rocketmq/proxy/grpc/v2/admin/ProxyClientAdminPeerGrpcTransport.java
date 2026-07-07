@@ -107,13 +107,9 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
             return this.encodeError(requiredProxyId, Code.BAD_REQUEST, "peer request message is required");
         }
         try {
-            String responseMessage =
-                StringUtils.trimToNull(this.invoker.execute(channel, requiredRequestMessage, this.buildMetadata(ctx)));
-            if (responseMessage == null) {
-                return this.encodeError(requiredProxyId, Code.INTERNAL_SERVER_ERROR,
-                    "peer response message is required");
-            }
-            return responseMessage;
+            return this.codec.requireResponseMessage(
+                this.invoker.execute(channel, requiredRequestMessage, this.buildMetadata(ctx))
+            );
         } catch (Throwable t) {
             this.restoreInterruptedStatus(t);
             return this.encodeError(

@@ -278,6 +278,25 @@ public class ProxyClientAdminPeerGrpcTransportTest {
     }
 
     @Test
+    public void grpcTransportMapsOverlongPeerResponseToEncodedPeerError() {
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", mock(Channel.class));
+        ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(
+            channels,
+            new RecordingInvoker(org.apache.commons.lang3.StringUtils.repeat("a", 1024 * 1024 + 1))
+        );
+
+        String responseMessage = transport.execute(proxyContext(), "proxy-a", "{\"operation\":\"LIST_CLIENTS\"}");
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorMessage()).contains("peer response message length exceeds");
+    }
+
+    @Test
     public void grpcTransportSendsNormalizedRequestMessageToPeer() {
         Map<String, Channel> channels = new LinkedHashMap<>();
         channels.put("proxy-a", mock(Channel.class));
