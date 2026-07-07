@@ -399,6 +399,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
+    // put CQunit to rocksdb and update in-memory maxOffset cache.
     private void dispatch(@Nonnull DispatchEntry entry, @Nonnull final WriteBatch writeBatch) throws RocksDBException {
         this.rocksDBConsumeQueueTable.buildAndPutCQByteBuffer(getCQByteBufferPair(), entry, writeBatch);
         updateTempTopicQueueMaxOffset(getOffsetByteBufferPair(), entry);
