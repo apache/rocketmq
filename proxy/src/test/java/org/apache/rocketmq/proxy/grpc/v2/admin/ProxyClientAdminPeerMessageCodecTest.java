@@ -311,6 +311,16 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void responseMessageRequirementRejectsResponseWithOverlongProxyId() {
+        String message = "{\"proxyId\":\"" + StringUtils.repeat("p", 256)
+            + "\",\"success\":false,\"errorCode\":\"NOT_FOUND\"}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().requireResponseMessage(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer response proxyId length exceeds 255");
+    }
+
+    @Test
     public void responseMessageRequirementRejectsSuccessfulListResponseWithoutPageBody() {
         String message = "{\"proxyId\":\"proxy-a\",\"success\":true}";
 

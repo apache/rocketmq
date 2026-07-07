@@ -268,6 +268,17 @@ public class ProxyClientAdminPeerDtoTest {
     }
 
     @Test
+    public void peerResponseRejectsOverlongProxyIds() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerResponse.error(
+            StringUtils.repeat("p", 256),
+            "NOT_FOUND",
+            "missing client"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
+    }
+
+    @Test
     public void peerResponseRejectsOverlongErrorCodes() {
         assertThatThrownBy(() -> ProxyClientAdminPeerResponse.error(
             "proxy-a",

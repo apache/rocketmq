@@ -33,6 +33,7 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 public final class ProxyClientAdminPeerMessageCodec {
     private static final ProxyClientAdminPeerMessageCodec INSTANCE = new ProxyClientAdminPeerMessageCodec();
     private static final int MAX_PEER_MESSAGE_LENGTH = 1024 * 1024;
+    private static final int MAX_PEER_RESPONSE_PROXY_ID_LENGTH = 255;
     private static final int MAX_PEER_ERROR_CODE_LENGTH = 255;
 
     private ProxyClientAdminPeerMessageCodec() {
@@ -184,9 +185,7 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (payload.success == null) {
             throw new IllegalArgumentException("peer response success flag is required");
         }
-        if (StringUtils.isBlank(payload.proxyId)) {
-            throw new IllegalArgumentException("peer response proxyId is required");
-        }
+        payload.proxyId = this.requirePeerResponseProxyId(payload.proxyId);
         if (Boolean.TRUE.equals(payload.success)
             && (StringUtils.isNotBlank(payload.errorCode) || StringUtils.isNotBlank(payload.errorMessage))) {
             throw new IllegalArgumentException("peer success response must not include error fields");
@@ -204,6 +203,19 @@ public final class ProxyClientAdminPeerMessageCodec {
             throw new IllegalArgumentException("peer error response must not include body");
         }
         return payload;
+    }
+
+    private String requirePeerResponseProxyId(String proxyId) {
+        String normalizedProxyId = StringUtils.trimToNull(proxyId);
+        if (normalizedProxyId == null) {
+            throw new IllegalArgumentException("peer response proxyId is required");
+        }
+        if (normalizedProxyId.length() > MAX_PEER_RESPONSE_PROXY_ID_LENGTH) {
+            throw new IllegalArgumentException(
+                "peer response proxyId length exceeds " + MAX_PEER_RESPONSE_PROXY_ID_LENGTH
+            );
+        }
+        return normalizedProxyId;
     }
 
     private Code parsePeerErrorCode(String errorCode) {

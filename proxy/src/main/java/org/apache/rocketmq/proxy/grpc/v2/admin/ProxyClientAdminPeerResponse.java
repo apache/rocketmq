@@ -21,6 +21,7 @@ import apache.rocketmq.v2.Code;
 import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientAdminPeerResponse<T> {
+    private static final int MAX_PROXY_ID_LENGTH = 255;
     private static final int MAX_ERROR_CODE_LENGTH = 255;
     private static final int MAX_ERROR_MESSAGE_LENGTH = 4096;
     private static final String TRUNCATED_ERROR_MESSAGE_SUFFIX = "...(truncated)";
@@ -75,6 +76,9 @@ public class ProxyClientAdminPeerResponse<T> {
         String normalizedProxyId = StringUtils.trimToNull(proxyId);
         if (normalizedProxyId == null) {
             throw new IllegalArgumentException("proxyId is required");
+        }
+        if (normalizedProxyId.length() > MAX_PROXY_ID_LENGTH) {
+            throw new IllegalArgumentException("proxyId length exceeds " + MAX_PROXY_ID_LENGTH);
         }
         return normalizedProxyId;
     }
