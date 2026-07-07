@@ -180,6 +180,36 @@ public class ProxyClientAdminPeerMessageCodecTest {
             .hasMessageContaining("Invalid peer request message");
     }
 
+    @Test
+    public void requestCodecRejectsUnknownOperationAsBadRequestBoundaryError() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeRequest(
+            "{\"operation\":\"LIST_CLIENTS_FROM_MARS\"}"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported peer operation")
+            .hasMessageContaining("LIST_CLIENTS_FROM_MARS");
+    }
+
+    @Test
+    public void requestCodecRejectsUnknownClientTypeAsBadRequestBoundaryError() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeRequest(
+            "{\"operation\":\"LIST_CLIENTS\",\"clientType\":\"MARS_CLIENT\"}"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported peer clientType")
+            .hasMessageContaining("MARS_CLIENT");
+    }
+
+    @Test
+    public void requestCodecRejectsUnknownScopeAsBadRequestBoundaryError() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeRequest(
+            "{\"operation\":\"LIST_CLIENTS\",\"scope\":\"MARS_PROXY\"}"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported peer scope")
+            .hasMessageContaining("MARS_PROXY");
+    }
+
     private static ProxyClientInfo client(String clientId, ClientType clientType, String proxyId) {
         return new ProxyClientInfo(
             clientId,

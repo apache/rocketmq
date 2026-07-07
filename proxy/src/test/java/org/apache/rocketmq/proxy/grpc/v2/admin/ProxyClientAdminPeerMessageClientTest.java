@@ -199,6 +199,27 @@ public class ProxyClientAdminPeerMessageClientTest {
         assertThat(response.getErrorMessage()).contains("Invalid peer request message");
     }
 
+    @Test
+    public void messageHandlerEncodesBadRequestForUnknownOperationRequest() {
+        ProxyClientAdminPeerMessageHandler handler = new ProxyClientAdminPeerMessageHandler(
+            newExecutor("proxy-a", mock(ClientAdminService.class))
+        );
+
+        String responseMessage = handler.execute(
+            proxyContext(),
+            "{\"operation\":\"LIST_CLIENTS_FROM_MARS\"}"
+        );
+        ProxyClientAdminPeerResponse<ProxyClientPage> response =
+            ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getProxyId()).isEqualTo("proxy-a");
+        assertThat(response.getBody()).isNull();
+        assertThat(response.getErrorCode()).isEqualTo(Code.BAD_REQUEST.name());
+        assertThat(response.getErrorMessage()).contains("Unsupported peer operation");
+        assertThat(response.getErrorMessage()).contains("LIST_CLIENTS_FROM_MARS");
+    }
+
     private static ProxyClientAdminPeerLocalExecutor newExecutor(String localProxyId,
         ClientAdminService clientAdminService) {
         return new ProxyClientAdminPeerLocalExecutor(localProxyId, clientAdminService);

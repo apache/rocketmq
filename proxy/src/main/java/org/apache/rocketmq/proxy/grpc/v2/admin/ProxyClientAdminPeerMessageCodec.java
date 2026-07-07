@@ -250,7 +250,11 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (normalizedOperation == null) {
             return null;
         }
-        return ProxyClientAdminPeerOperation.valueOf(normalizedOperation);
+        try {
+            return ProxyClientAdminPeerOperation.valueOf(normalizedOperation);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unsupported peer operation: " + normalizedOperation, e);
+        }
     }
 
     private static ClientType parseClientType(String clientType) {
@@ -258,7 +262,11 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (normalizedClientType == null) {
             return null;
         }
-        return ClientType.valueOf(normalizedClientType);
+        try {
+            return ClientType.valueOf(normalizedClientType);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unsupported peer clientType: " + normalizedClientType, e);
+        }
     }
 
     private static ProxyClientScope parseScope(String scope) {
@@ -266,7 +274,11 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (normalizedScope == null) {
             return ProxyClientScope.LOCAL_PROXY;
         }
-        return ProxyClientScope.valueOf(normalizedScope);
+        try {
+            return ProxyClientScope.valueOf(normalizedScope);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Unsupported peer scope: " + normalizedScope, e);
+        }
     }
 
     private static String requireMessage(String message, String errorMessage) {
