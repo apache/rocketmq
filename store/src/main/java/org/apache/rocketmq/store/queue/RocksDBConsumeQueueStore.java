@@ -63,7 +63,7 @@ import org.rocksdb.WriteBatch;
  *
  * <p>Two long-polling notification sites exist:
  * 1. {@code DefaultMessageStore.ReputMessageService.doReput()}
- * 2. {@link RocksGroupCommitService#groupCommit()}. 
+ * 2. {@link RocksGroupCommitService#groupCommit()}.
  * Because the RocksDB CQ is built by the latter,
  * long-polling notifications only need to fire from the group commit path;
  * the reput path can skip them.
