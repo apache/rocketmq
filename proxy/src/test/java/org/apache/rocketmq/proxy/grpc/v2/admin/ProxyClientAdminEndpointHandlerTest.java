@@ -21,6 +21,7 @@ import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
 import io.grpc.stub.StreamObserver;
 import java.util.Collections;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
@@ -329,6 +330,33 @@ public class ProxyClientAdminEndpointHandlerTest {
             verify(observer).onCompleted();
             assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
             assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("admin action interrupted");
+            assertThat(responseCaptor.getValue().getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void handleMapsWrappedInterruptedActionToStatusResponseAndRestoresInterrupt() {
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler();
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+
+        try {
+            handler.handle(
+                observer,
+                () -> {
+                    throw new CompletionException(new InterruptedException("wrapped admin action interrupted"));
+                },
+                TestAdminResponse::new
+            );
+
+            ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+            verify(observer).onNext(responseCaptor.capture());
+            verify(observer).onCompleted();
+            assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(responseCaptor.getValue().getStatus().getMessage())
+                .contains("wrapped admin action interrupted");
             assertThat(responseCaptor.getValue().getBody()).isNull();
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {

@@ -166,7 +166,7 @@ small and tested boundary to call:
   `ResponseBuilder`, build a response from `Status` and optional body, and write
   it through `ResponseWriter`. Handler-level action and response-conversion
   failures also preserve the interrupted flag before they are converted to
-  status responses.
+  status responses, including interrupts wrapped by async adapter exceptions.
 - `ProxyClientAdminEndpointExecutor` is a proto-independent shell for generated
   unary admin methods. It adapts the proto request to the internal request DTO
   before creating the `ProxyContext`, so malformed public request fields such as
@@ -175,8 +175,9 @@ small and tested boundary to call:
   built, it creates the `ProxyContext`, delegates to
   `ProxyClientAdminEndpointHandler`, and routes context or request-adapter
   failures through the same status conversion path. If an adapter or context
-  factory boundary surfaces an interrupt, the executor restores the thread
-  interrupted flag before writing the status response. It offers explicit-header
+  factory boundary surfaces an interrupt, including one wrapped by async adapter
+  exceptions, the executor restores the thread interrupted flag before writing
+  the status response. It offers explicit-header
   overloads for tests and adapter seams, plus no-header
   overloads that read `GrpcConstants.METADATA` from
   `Context.current()` to match normal generated gRPC method bodies. It also

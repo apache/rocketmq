@@ -23,6 +23,7 @@ import apache.rocketmq.v2.Status;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import org.apache.rocketmq.common.constant.GrpcConstants;
@@ -349,6 +350,38 @@ public class ProxyClientAdminEndpointExecutorTest {
             verify(responseObserver).onCompleted();
             assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
             assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("request adapter interrupted");
+            assertThat(responseCaptor.getValue().getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            verify(contextFactory, never()).create(any(), any());
+            verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void mapsWrappedInterruptedRequestAdapterFailureToStatusResponseAndRestoresInterrupt() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        try {
+            executor.listClients(
+                headers,
+                protoRequest,
+                ignored -> {
+                    throw new CompletionException(new InterruptedException("wrapped request adapter interrupted"));
+                },
+                responseObserver,
+                responseFactory
+            );
+
+            ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+            verify(responseObserver).onNext(responseCaptor.capture());
+            verify(responseObserver).onCompleted();
+            assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(responseCaptor.getValue().getStatus().getMessage())
+                .contains("wrapped request adapter interrupted");
             assertThat(responseCaptor.getValue().getBody()).isNull();
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
             verify(contextFactory, never()).create(any(), any());

@@ -282,9 +282,7 @@ public class ProxyClientAdminEndpointExecutor {
     }
 
     private void restoreInterruptedStatus(Throwable t) {
-        if (t instanceof InterruptedException) {
-            Thread.currentThread().interrupt();
-        }
+        ProxyClientAdminInterrupts.restoreInterruptedStatus(t);
     }
 
     private <T> T throwUnchecked(Throwable t) {
