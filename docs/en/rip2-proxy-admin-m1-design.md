@@ -644,8 +644,10 @@ Recommended implementation order after public API ownership is confirmed:
    This branch includes the initial proto-free peer request/response DTOs and
    keeps peer execution local by converting peer requests into `LOCAL_PROXY`
    read-model queries. Peer requests now reject coordinator scopes and only
-   carry `LOCAL_PROXY` execution semantics; the coordinator lowers
-   `ALL_PROXIES` and `PROXY_ID` requests to local peer requests before fan-out.
+   carry `LOCAL_PROXY` execution semantics; they also reject explicit `proxyId`
+   values because peer targeting is owned by the coordinator and peer client.
+   The coordinator lowers `ALL_PROXIES` and `PROXY_ID` requests to local peer
+   requests before fan-out.
    It also includes a local peer executor seam
    that wraps existing admin activity results into proto-free peer responses,
    converts activity failures into peer internal-error responses,
@@ -665,7 +667,9 @@ Recommended implementation order after public API ownership is confirmed:
    server/client boundary using `StringValue` payloads. The gRPC peer service is
    registered through `ProxyStartup` only when cross-proxy query support is
    enabled. It remains an internal peer endpoint, not the public
-   `ProxyAdminService` API.
+   `ProxyAdminService` API. The raw peer request codec preserves and rejects
+   any inbound `proxyId` field instead of silently dropping it at the JSON
+   boundary.
 3. Add a coordinator service that fans out local-page requests, merges results in
   `(client_id, proxy_id)` order, and emits coordinator-owned opaque page tokens.
    This branch includes the first proto-free coordinator slice for

@@ -123,6 +123,16 @@ public class ProxyClientAdminPeerDtoTest {
     }
 
     @Test
+    public void peerRequestRejectsProxyIdBecauseTargetingIsOwnedByCoordinator() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setProxyId("proxy-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer request must not set proxyId");
+    }
+
+    @Test
     public void peerRequestRejectsOperationMismatchedIdentityAndListFields() {
         assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)

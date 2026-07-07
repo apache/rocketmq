@@ -53,6 +53,7 @@ public final class ProxyClientAdminPeerMessageCodec {
         payload.pageSize = request.getPageSize();
         payload.pageToken = request.getPageToken();
         payload.scope = request.getScope() == null ? null : request.getScope().name();
+        payload.proxyId = request.getProxyId();
         return JSON.toJSONString(payload);
     }
 
@@ -71,6 +72,7 @@ public final class ProxyClientAdminPeerMessageCodec {
             .setPageSize(payload.pageSize)
             .setPageToken(payload.pageToken)
             .setScope(parseScope(payload.scope))
+            .setProxyId(payload.proxyId)
             .build();
     }
 
@@ -305,6 +307,7 @@ public final class ProxyClientAdminPeerMessageCodec {
         public int pageSize;
         public String pageToken;
         public String scope;
+        public String proxyId;
     }
 
     public static class ResponsePayload {

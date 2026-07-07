@@ -230,6 +230,15 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void requestCodecRejectsProxyIdBecauseTargetingIsOwnedByCoordinator() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeRequest(
+            "{\"operation\":\"LIST_CLIENTS\",\"proxyId\":\"proxy-a\"}"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer request must not set proxyId");
+    }
+
+    @Test
     public void responseCodecRejectsOverlongMessageBeforeParsingJson() {
         assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance()
             .decodePageResponse(StringUtils.repeat("a", 1024 * 1024 + 1)))

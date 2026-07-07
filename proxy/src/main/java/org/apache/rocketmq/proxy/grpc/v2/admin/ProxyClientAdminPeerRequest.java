@@ -48,6 +48,10 @@ public class ProxyClientAdminPeerRequest {
         if (this.scope != ProxyClientScope.LOCAL_PROXY) {
             throw new IllegalArgumentException("Unsupported peer request scope: " + this.scope);
         }
+        String normalizedProxyId = StringUtils.trimToNull(builder.proxyId);
+        if (normalizedProxyId != null) {
+            throw new IllegalArgumentException("peer request must not set proxyId");
+        }
         this.proxyId = null;
         this.validateOperationFields();
     }
