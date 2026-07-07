@@ -429,6 +429,23 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
+    /**
+     * Fan out a single dispatch request to one ConsumeQueue entry per
+     * LMQ destination, when the request targets multiple LMQs.
+     *
+     * <p>The list of LMQ names comes from
+     * {@link MessageConst#PROPERTY_INNER_MULTI_DISPATCH} and the matching
+     * pre-allocated offsets from
+     * {@link MessageConst#PROPERTY_INNER_MULTI_QUEUE_OFFSET} (both set by
+     * {@code LmqDispatch.wrapLmqDispatch} during the CommitLog pre-write
+     * hook). For each LMQ the request's topic and queueId are rewritten
+     * to the LMQ name and {@link MixAll#LMQ_QUEUE_ID} before the
+     * normal {@link #dispatch(DispatchEntry, WriteBatch)} runs.
+     *
+     * <p>A defensive check rejects the request if the two arrays have
+     * different lengths — that would indicate a bug in the wrap
+     * step, not bad user input.
+     */
     private void dispatchLMQ(@Nonnull DispatchRequest request, @Nonnull final WriteBatch writeBatch)
         throws RocksDBException {
         if (!messageStoreConfig.isEnableLmq() || !request.containsLMQ()) {
