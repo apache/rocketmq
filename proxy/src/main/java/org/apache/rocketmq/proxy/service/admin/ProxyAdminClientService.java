@@ -18,9 +18,12 @@
 package org.apache.rocketmq.proxy.service.admin;
 
 import java.util.List;
+import org.apache.rocketmq.proxy.common.BatchConsumeClientDiagnostics;
+import org.apache.rocketmq.proxy.common.BatchConsumeGroupSummary;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientInstanceInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientDetailInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
+import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager.PopReceiptHandleDiagnosticResult;
 
 /**
  * Proxy Admin Client Service interface.
@@ -81,6 +84,88 @@ public interface ProxyAdminClientService {
      * @param clientId the client identifier
      */
     void recordHeartbeat(String clientId);
+
+    /**
+     * Force disconnect a specific client connection.
+     * Closes the gRPC telemetry stream, removes the channel and settings,
+     * triggering client reconnection and consumer group rebalance.
+     * <p>
+     * Use cases:
+     * - Malicious client detection and isolation
+     * - Stuck consumer triggering rebalance
+     * - Zombie connection cleanup
+     *
+     * @param clientId the unique client identifier to disconnect
+     * @param reason   human-readable reason for audit logging
+     * @return true if the client was found and disconnected, false if not found
+     */
+    boolean forceDisconnectClient(String clientId, String reason);
+
+    /**
+     * Query POP receipt handles for diagnostics.
+     * <p>
+     * Provides diagnostic information for POP consumption mode, including:
+     * - Unacked message receipt handles with renewal statistics
+     * - Messages with expired invisible time (about to be redelivered)
+     * - Frequent ChangeInvisibleTime (renewal) patterns
+     * - Consumption timeout detection
+     * <p>
+     * This is the core service method for RIP-2 M3 (POP Diagnostics).
+     *
+     * @param group    consumer group name (required)
+     * @param topic    optional topic filter, null or empty means no filter
+     * @param pageNum  page number starting from 1
+     * @param pageSize page size, max 100
+     * @return diagnostic result containing summary and paginated handle details
+     */
+    PopReceiptHandleDiagnosticResult describePopReceiptHandles(String group, String topic, int pageNum, int pageSize);
+
+    /**
+     * Query batch consumption diagnostics, aggregated per client.
+     * <p>
+     * Provides diagnostic information for batch consumption mode, including:
+     * - Per-client unacked message counts and handle counts
+     * - Clients with expired handles (messages about to be redelivered)
+     * - Renewal patterns per client (ChangeInvisibleTime frequency)
+     * - Topic distribution of unacked messages per client
+     * - Client configuration correlation (receiveBatchSize, longPollingTimeout)
+     * <p>
+     * This is the core service method for RIP-2 M4 (Batch Consume Diagnostics).
+     *
+     * @param group    consumer group name (required)
+     * @param topic    optional topic filter, null or empty means no filter
+     * @param clientId optional client ID filter for exact match
+     * @param pageNum  page number starting from 1
+     * @param pageSize page size, max 100
+     * @return diagnostic result containing summary and paginated per-client diagnostics
+     */
+    BatchConsumeDiagnosticResult describeBatchConsumeDiagnostics(String group, String topic, String clientId, int pageNum, int pageSize);
+
+    /**
+     * Result of batch consumption diagnostic query.
+     */
+    class BatchConsumeDiagnosticResult {
+        private final BatchConsumeGroupSummary summary;
+        private final List<BatchConsumeClientDiagnostics> diagnostics;
+        private final long total;
+        private final int pageNum;
+        private final int pageSize;
+
+        public BatchConsumeDiagnosticResult(BatchConsumeGroupSummary summary,
+            List<BatchConsumeClientDiagnostics> diagnostics, long total, int pageNum, int pageSize) {
+            this.summary = summary;
+            this.diagnostics = diagnostics;
+            this.total = total;
+            this.pageNum = pageNum;
+            this.pageSize = pageSize;
+        }
+
+        public BatchConsumeGroupSummary getSummary() { return summary; }
+        public List<BatchConsumeClientDiagnostics> getDiagnostics() { return diagnostics; }
+        public long getTotal() { return total; }
+        public int getPageNum() { return pageNum; }
+        public int getPageSize() { return pageSize; }
+    }
 
     /**
      * Result of list clients query with pagination info.

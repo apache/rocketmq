@@ -56,8 +56,11 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
  * - DescribeClient: proxy.admin.client read
  * - ListClientsByGroup: proxy.admin.client read
  * - ListClientsByTopic: proxy.admin.client read
+ * - GetConfig: proxy.admin.client read
+ * - UpdateConfig: proxy.admin.client write
  * <p>
  * All admin RPCs require read permission on the proxy.admin.client resource.
+ * UpdateConfig requires write permission.
  */
 public class ProxyAdminAuthInterceptor implements ServerInterceptor {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -194,12 +197,18 @@ public class ProxyAdminAuthInterceptor implements ServerInterceptor {
 
     /**
      * Resolve the authorization action for the given admin RPC method.
-     * RIP-2 §7.2: read = list/describe/get
+     * RIP-2 §7.2: read = list/describe/get, write = update
      * - DescribeClient → GET (single resource read)
+     * - GetConfig → GET (single config read)
+     * - UpdateConfig → UPDATE (config write)
      * - ListClients / ListClientsByGroup / ListClientsByTopic → LIST (collection read)
      */
     private Action resolveAction(String methodName) {
-        if (methodName != null && methodName.contains("DescribeClient")) {
+        if (methodName != null && methodName.contains("UpdateConfig")) {
+            return Action.UPDATE;
+        }
+        if (methodName != null && (methodName.contains("DescribeClient")
+            || methodName.contains("GetConfig"))) {
             return Action.GET;
         }
         return Action.LIST;

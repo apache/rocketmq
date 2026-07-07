@@ -58,7 +58,12 @@ public enum AdminCode {
     /**
      * Too many requests - rate limited.
      */
-    TOO_MANY_REQUESTS(7, "Too many requests");
+    TOO_MANY_REQUESTS(7, "Too many requests"),
+
+    /**
+     * Conflict - client already disconnected or in transition.
+     */
+    CONFLICT(8, "Conflict");
 
     private final int code;
     private final String description;

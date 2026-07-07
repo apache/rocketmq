@@ -44,6 +44,7 @@ import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminAuthInterceptor;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminBindableService;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminGrpcService;
 import org.apache.rocketmq.proxy.grpc.admin.ProxyAdminMetricsManager;
+import org.apache.rocketmq.proxy.grpc.admin.RouteChangeNotifier;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -54,6 +55,7 @@ import org.apache.rocketmq.proxy.remoting.RemotingProtocolServer;
 import org.apache.rocketmq.proxy.service.admin.DefaultProxyAdminClientService;
 import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService;
 import org.apache.rocketmq.proxy.service.cert.TlsCertificateManager;
+import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
@@ -265,12 +267,30 @@ public class ProxyStartup {
             ProxyAdminClientService adminClientService = new DefaultProxyAdminClientService(
                 grpcChannelManager, grpcClientSettingsManager);
 
+            // Wire ReceiptHandleManager for POP diagnostics (RIP-2 M3)
+            ((DefaultProxyAdminClientService) adminClientService).setReceiptHandleManager(
+                messagingProcessor.getReceiptHandleManager());
+
             // Wire admin service into telemetry pipeline for heartbeat recording (RIP-2 §5.2.2)
             grpcMessagingApplication.setProxyAdminClientService(adminClientService);
 
             // Create gRPC service with isolated thread pool
-            ProxyAdminGrpcService adminGrpcService = new ProxyAdminGrpcService(
-                adminClientService, config.getProxyAdminThreadPoolNums());
+            ProxyAdminGrpcService adminGrpcService;
+
+            // Wire up RouteChangeNotifier for SubscribeRouteEvents streaming RPC
+            TopicRouteService topicRouteService = messagingProcessor.getTopicRouteService();
+            if (topicRouteService != null) {
+                RouteChangeNotifier routeChangeNotifier = new RouteChangeNotifier(topicRouteService);
+                topicRouteService.addRouteRefreshListener(routeChangeNotifier);
+                adminGrpcService = new ProxyAdminGrpcService(
+                    adminClientService, config.getProxyAdminThreadPoolNums(), routeChangeNotifier);
+                PROXY_START_AND_SHUTDOWN.appendShutdown(routeChangeNotifier::shutdown);
+                log.info("RouteChangeNotifier wired: listening for route refresh events from TopicRouteService");
+            } else {
+                adminGrpcService = new ProxyAdminGrpcService(
+                    adminClientService, config.getProxyAdminThreadPoolNums());
+                log.warn("TopicRouteService not available, SubscribeRouteEvents RPC will return UNAVAILABLE");
+            }
 
             // Create bindable service wrapper
             ProxyAdminBindableService adminBindableService = new ProxyAdminBindableService(adminGrpcService);

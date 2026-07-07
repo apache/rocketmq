@@ -27,6 +27,18 @@ import apache.rocketmq.proxy.admin.v1.ListClientsByGroupRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsByGroupResponse;
 import apache.rocketmq.proxy.admin.v1.ListClientsByTopicRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
+import apache.rocketmq.proxy.admin.v1.GetConfigRequest;
+import apache.rocketmq.proxy.admin.v1.GetConfigResponse;
+import apache.rocketmq.proxy.admin.v1.UpdateConfigRequest;
+import apache.rocketmq.proxy.admin.v1.UpdateConfigResponse;
+import apache.rocketmq.proxy.admin.v1.DisconnectClientRequest;
+import apache.rocketmq.proxy.admin.v1.DisconnectClientResponse;
+import apache.rocketmq.proxy.admin.v1.DescribePopReceiptHandlesRequest;
+import apache.rocketmq.proxy.admin.v1.DescribePopReceiptHandlesResponse;
+import apache.rocketmq.proxy.admin.v1.DescribeBatchConsumeDiagnosticsRequest;
+import apache.rocketmq.proxy.admin.v1.DescribeBatchConsumeDiagnosticsResponse;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsRequest;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsResponse;
 
 /**
  * Protobuf-based Marshallers for Proxy Admin gRPC requests and responses.
@@ -70,4 +82,40 @@ public class ProxyAdminMarshaller {
 
     public static final MethodDescriptor.Marshaller<ListClientsByTopicResponse>
         LIST_CLIENTS_BY_TOPIC_RESP_MARSHALLER = ProtoLiteUtils.marshaller(ListClientsByTopicResponse.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<GetConfigRequest>
+        GET_CONFIG_REQ_MARSHALLER = ProtoLiteUtils.marshaller(GetConfigRequest.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<GetConfigResponse>
+        GET_CONFIG_RESP_MARSHALLER = ProtoLiteUtils.marshaller(GetConfigResponse.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<UpdateConfigRequest>
+        UPDATE_CONFIG_REQ_MARSHALLER = ProtoLiteUtils.marshaller(UpdateConfigRequest.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<UpdateConfigResponse>
+        UPDATE_CONFIG_RESP_MARSHALLER = ProtoLiteUtils.marshaller(UpdateConfigResponse.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<DisconnectClientRequest>
+        DISCONNECT_CLIENT_REQ_MARSHALLER = ProtoLiteUtils.marshaller(DisconnectClientRequest.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<DisconnectClientResponse>
+        DISCONNECT_CLIENT_RESP_MARSHALLER = ProtoLiteUtils.marshaller(DisconnectClientResponse.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<DescribePopReceiptHandlesRequest>
+        DESCRIBE_POP_RECEIPT_HANDLES_REQ_MARSHALLER = ProtoLiteUtils.marshaller(DescribePopReceiptHandlesRequest.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<DescribePopReceiptHandlesResponse>
+        DESCRIBE_POP_RECEIPT_HANDLES_RESP_MARSHALLER = ProtoLiteUtils.marshaller(DescribePopReceiptHandlesResponse.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<DescribeBatchConsumeDiagnosticsRequest>
+        DESCRIBE_BATCH_CONSUME_DIAGNOSTICS_REQ_MARSHALLER = ProtoLiteUtils.marshaller(DescribeBatchConsumeDiagnosticsRequest.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<DescribeBatchConsumeDiagnosticsResponse>
+        DESCRIBE_BATCH_CONSUME_DIAGNOSTICS_RESP_MARSHALLER = ProtoLiteUtils.marshaller(DescribeBatchConsumeDiagnosticsResponse.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<SubscribeRouteEventsRequest>
+        SUBSCRIBE_ROUTE_EVENTS_REQ_MARSHALLER = ProtoLiteUtils.marshaller(SubscribeRouteEventsRequest.getDefaultInstance());
+
+    public static final MethodDescriptor.Marshaller<SubscribeRouteEventsResponse>
+        SUBSCRIBE_ROUTE_EVENTS_RESP_MARSHALLER = ProtoLiteUtils.marshaller(SubscribeRouteEventsResponse.getDefaultInstance());
 }

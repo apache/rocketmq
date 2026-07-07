@@ -42,10 +42,13 @@ import apache.rocketmq.proxy.admin.v1.ListClientsByGroupRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsByGroupResponse;
 import apache.rocketmq.proxy.admin.v1.ListClientsByTopicRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsRequest;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsResponse;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -59,6 +62,9 @@ public class ProxyAdminGrpcServiceTest {
 
     @Mock
     private ProxyAdminClientService adminClientService;
+
+    @Mock
+    private RouteChangeNotifier routeChangeNotifier;
 
     private ProxyAdminGrpcService adminGrpcService;
 
@@ -633,5 +639,110 @@ public class ProxyAdminGrpcServiceTest {
         });
 
         assertTrue("listClientsByTopic error should complete within 5 seconds", latch.await(5, TimeUnit.SECONDS));
+    }
+
+    // ==================== subscribeRouteEvents Tests ====================
+
+    @Test
+    public void testSubscribeRouteEvents_NotifierNull() throws Exception {
+        // adminGrpcService created with 2-arg constructor has null routeChangeNotifier
+        CountDownLatch latch = new CountDownLatch(1);
+        SubscribeRouteEventsRequest request = SubscribeRouteEventsRequest.newBuilder().build();
+
+        adminGrpcService.subscribeRouteEvents(request, new io.grpc.stub.StreamObserver<SubscribeRouteEventsResponse>() {
+            @Override
+            public void onNext(SubscribeRouteEventsResponse value) {
+                assertEquals(AdminCode.ADMIN_CODE_INTERNAL_ERROR, value.getCode());
+                assertTrue(value.getMessage().contains("Route change notifier is not available"));
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                throw new RuntimeException("Unexpected error", t);
+            }
+
+            @Override
+            public void onCompleted() {}
+        });
+
+        assertTrue("subscribeRouteEvents with null notifier should complete within 5 seconds",
+            latch.await(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testSubscribeRouteEvents_DelegatesToNotifier() throws Exception {
+        ProxyAdminGrpcService serviceWithNotifier = new ProxyAdminGrpcService(
+            adminClientService, 2, routeChangeNotifier);
+
+        SubscribeRouteEventsRequest request = SubscribeRouteEventsRequest.newBuilder()
+            .addTopics("testTopic")
+            .addEventTypes(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.TOPIC_CREATE)
+            .build();
+
+        CountDownLatch latch = new CountDownLatch(1);
+        serviceWithNotifier.subscribeRouteEvents(request, new io.grpc.stub.StreamObserver<SubscribeRouteEventsResponse>() {
+            @Override
+            public void onNext(SubscribeRouteEventsResponse value) {
+                // The notifier handles the stream; we just verify delegation occurred
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                // Stream errors are expected in test environment (no real gRPC channel)
+                latch.countDown();
+            }
+
+            @Override
+            public void onCompleted() {
+                latch.countDown();
+            }
+        });
+
+        // Verify that subscribe was called on the notifier
+        verify(routeChangeNotifier).subscribe(any(), any(), any());
+        assertTrue("subscribeRouteEvents should respond within 5 seconds",
+            latch.await(5, TimeUnit.SECONDS));
+    }
+
+    // ==================== fromProtoRouteChangeEventType Tests ====================
+
+    @Test
+    public void testFromProtoRouteChangeEventType_AllTypes() throws Exception {
+        assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.BROKER_ONLINE,
+            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.BROKER_ONLINE));
+        assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.BROKER_OFFLINE,
+            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.BROKER_OFFLINE));
+        assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.QUEUE_SCALE,
+            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.QUEUE_SCALE));
+        assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.TOPIC_CREATE,
+            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.TOPIC_CREATE));
+        assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.TOPIC_DELETE,
+            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.TOPIC_DELETE));
+        assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.ROUTE_SNAPSHOT,
+            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.ROUTE_SNAPSHOT));
+    }
+
+    @Test
+    public void testFromProtoRouteChangeEventType_Null() throws Exception {
+        assertNull(invokeFromProtoRouteChangeEventType(null));
+    }
+
+    @Test
+    public void testFromProtoRouteChangeEventType_Unspecified() throws Exception {
+        assertNull(invokeFromProtoRouteChangeEventType(
+            apache.rocketmq.proxy.admin.v1.RouteChangeEventType.ROUTE_CHANGE_EVENT_TYPE_UNSPECIFIED));
+    }
+
+    /**
+     * Use reflection to test the private fromProtoRouteChangeEventType method.
+     */
+    private org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType invokeFromProtoRouteChangeEventType(
+        apache.rocketmq.proxy.admin.v1.RouteChangeEventType protoType) throws Exception {
+        Method method = ProxyAdminGrpcService.class.getDeclaredMethod(
+            "fromProtoRouteChangeEventType", apache.rocketmq.proxy.admin.v1.RouteChangeEventType.class);
+        method.setAccessible(true);
+        return (org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType) method.invoke(adminGrpcService, protoType);
     }
 }

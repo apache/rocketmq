@@ -203,6 +203,380 @@ message ListClientsByTopicResponse {
   repeated ClientInstance list = 4;
 }
 
+// GetConfig request - no parameters needed, returns current runtime config
+message GetConfigRequest {
+}
+
+// Proxy runtime configuration snapshot
+message ProxyRuntimeConfig {
+  // Basic info
+  string proxy_mode = 1;
+  string rocketmq_cluster_name = 2;
+  string proxy_cluster_name = 3;
+  string proxy_name = 4;
+  string local_serve_addr = 5;
+  string namesrv_addr = 6;
+
+  // gRPC data plane
+  int32 grpc_server_port = 10;
+  int32 grpc_boss_loop_num = 11;
+  int32 grpc_worker_loop_num = 12;
+  int32 grpc_thread_pool_nums = 13;
+  int32 grpc_thread_pool_queue_capacity = 14;
+  int32 grpc_max_inbound_message_size = 15;
+  int32 grpc_max_concurrent_calls_per_connection = 16;
+
+  // Admin interface
+  bool proxy_admin_enabled = 20;
+  int32 proxy_admin_server_port = 21;
+  int32 proxy_admin_thread_pool_nums = 22;
+  int32 proxy_admin_max_page_size = 23;
+  int32 proxy_admin_describe_client_concurrency_limit = 24;
+  double proxy_admin_sampling_rate_under_load = 25;
+  int32 proxy_admin_heartbeat_history_size = 26;
+  int64 proxy_admin_sampling_threshold = 27;
+
+  // Thread pools - gRPC activities
+  int32 grpc_producer_thread_pool_nums = 30;
+  int32 grpc_producer_thread_queue_capacity = 31;
+  int32 grpc_consumer_thread_pool_nums = 32;
+  int32 grpc_consumer_thread_queue_capacity = 33;
+  int32 grpc_route_thread_pool_nums = 34;
+  int32 grpc_route_thread_queue_capacity = 35;
+  int32 grpc_client_manager_thread_pool_nums = 36;
+  int32 grpc_client_manager_thread_queue_capacity = 37;
+  int32 grpc_transaction_thread_pool_nums = 38;
+  int32 grpc_transaction_thread_queue_capacity = 39;
+
+  // Thread pools - remoting
+  int32 remoting_heartbeat_thread_pool_nums = 40;
+  int32 remoting_send_message_thread_pool_nums = 41;
+  int32 remoting_pull_message_thread_pool_nums = 42;
+
+  // Message limits
+  int32 max_message_size = 50;
+  int32 max_user_property_size = 51;
+  int32 user_property_max_num = 52;
+  int32 max_message_group_size = 53;
+
+  // Timeout and polling
+  int64 default_invisible_time_mills = 60;
+  int64 max_invisible_time_mills = 61;
+  int64 min_invisible_time_mills_for_recv = 62;
+  int64 max_delay_time_mills = 63;
+  int64 grpc_client_consumer_min_long_polling_timeout_millis = 64;
+  int64 grpc_client_consumer_max_long_polling_timeout_millis = 65;
+  int32 grpc_client_consumer_long_polling_batch_size = 66;
+  int32 grpc_client_producer_max_attempts = 67;
+  int64 grpc_client_producer_backoff_initial_millis = 68;
+  int64 grpc_client_producer_backoff_max_millis = 69;
+  int32 grpc_client_producer_backoff_multiplier = 70;
+
+  // Cache
+  int32 topic_route_service_cache_expired_seconds = 80;
+  int32 topic_route_service_cache_refresh_seconds = 81;
+  int32 topic_route_service_cache_max_num = 82;
+
+  // TLS
+  bool tls_test_mode_enable = 90;
+  string tls_key_path = 91;
+  string tls_cert_path = 92;
+
+  // Metrics
+  string metrics_exporter_type = 100;
+  int32 metrics_prom_exporter_port = 101;
+  bool trace_on = 102;
+}
+
+// GetConfig response
+message GetConfigResponse {
+  AdminCode code = 1;
+  string message = 2;
+  ProxyRuntimeConfig config = 3;
+}
+
+// UpdateConfig request - send the desired config state.
+// The server compares each field with the current config and applies only changed fields.
+// Note: Due to proto3 default value semantics:
+//   - Numeric fields set to 0, string fields set to "" will be treated as "not set" and NOT updated.
+//   - Boolean fields can only be toggled ON (false→true), not OFF (true→false).
+// To reset fields to their defaults, modify the config file (rmq-proxy.json) directly.
+message UpdateConfigRequest {
+  ProxyRuntimeConfig config = 1;
+}
+
+// UpdateConfig response
+message UpdateConfigResponse {
+  AdminCode code = 1;
+  string message = 2;
+  ProxyRuntimeConfig config = 3;
+  // List of field names (snake_case) that were actually changed
+  repeated string changed_fields = 4;
+}
+
+// DisconnectClient request - force disconnect a specific client connection
+// Use cases:
+//   - Malicious client detection and isolation
+//   - Stuck consumer triggering rebalance
+//   - Zombie connection cleanup
+message DisconnectClientRequest {
+  // The unique client identifier to disconnect (required)
+  string client_id = 1;
+  // Human-readable reason for the forced disconnection, used for audit logging (required)
+  string reason = 2;
+}
+
+// DisconnectClient response
+message DisconnectClientResponse {
+  AdminCode code = 1;
+  string message = 2;
+  // Whether the client was found and successfully disconnected
+  bool disconnected = 3;
+}
+
+// POP receipt handle diagnostic info for a single unacked message
+message PopReceiptHandleInfo {
+  // Consumer group name
+  string group = 1;
+  // Topic name
+  string topic = 2;
+  // Queue ID
+  int32 queue_id = 3;
+  // Message ID
+  string message_id = 4;
+  // Queue offset
+  int64 queue_offset = 5;
+  // Reconsume times (retry count)
+  int32 reconsume_times = 6;
+  // Number of successful renewals (ChangeInvisibleTime)
+  int32 renew_times = 7;
+  // Number of failed renewal attempts
+  int32 renew_retry_times = 8;
+  // Timestamp when the message was first consumed (epoch millis)
+  int64 consume_timestamp = 9;
+  // Current receipt handle string
+  string receipt_handle = 10;
+  // Next visible time for this message (epoch millis)
+  int64 next_visible_time = 11;
+  // Invisible time duration (millis)
+  int64 invisible_time = 12;
+  // Broker name where the message resides
+  string broker_name = 13;
+  // Whether the invisible time has expired (message is about to be redelivered)
+  bool is_expired = 14;
+}
+
+// POP receipt handle group summary (aggregated per consumer group)
+message PopReceiptHandleGroupSummary {
+  // Consumer group name
+  string group = 1;
+  // Total number of receipt handles (may exceed message count due to dedup)
+  int32 total_handles = 2;
+  // Total number of unique unacked messages
+  int32 total_messages = 3;
+  // Sum of renew times across all handles in this group
+  int64 total_renew_times = 4;
+  // Sum of renew retry times across all handles in this group
+  int64 total_renew_retry_times = 5;
+  // Number of handles whose invisible time has expired
+  int32 expired_handles = 6;
+}
+
+// DescribePopReceiptHandles request - query POP receipt handles for diagnostics
+// Use cases:
+//   - Diagnose messages with expired invisible time causing duplicate delivery
+//   - Investigate frequent ChangeInvisibleTime (renewal) calls
+//   - Debug consumption timeout issues in POP mode
+//   - Monitor unacked message accumulation per consumer group
+message DescribePopReceiptHandlesRequest {
+  // Consumer group name (required)
+  string group = 1;
+  // Optional topic filter - only return handles for this topic
+  string topic = 2;
+  // Pagination: page number starting from 1
+  int32 page_num = 3;
+  // Pagination: page size, max 100
+  int32 page_size = 4;
+}
+
+// DescribePopReceiptHandles response
+message DescribePopReceiptHandlesResponse {
+  AdminCode code = 1;
+  string message = 2;
+  // Group-level summary statistics
+  PopReceiptHandleGroupSummary summary = 3;
+  // Paginated list of receipt handle details
+  repeated PopReceiptHandleInfo handles = 4;
+  // Pagination metadata
+  Pagination pagination = 5;
+}
+
+// Batch consume diagnostic info for a single client (per-channel aggregation)
+// Aggregates unacked message statistics from ReceiptHandleManager for a specific client channel
+message BatchConsumeClientDiagnostics {
+  // Client identifier (from gRPC channel, empty for remoting clients)
+  string client_id = 1;
+  // Channel identifier (Netty channel ID)
+  string channel_id = 2;
+  // Number of unacked messages held by this client
+  int32 unacked_message_count = 3;
+  // Number of unacked receipt handles (may differ from message count due to dedup)
+  int32 unacked_handle_count = 4;
+  // Sum of renew times across all handles for this client
+  int64 total_renew_times = 5;
+  // Sum of renew retry times across all handles for this client
+  int64 total_renew_retry_times = 6;
+  // Number of handles whose invisible time has expired (about to be redelivered)
+  int32 expired_handle_count = 7;
+  // Distribution of unacked messages by topic (topic -> count)
+  map<string, int32> topic_distribution = 8;
+  // Consumer type: PUSH or PULL (from ConsumerManager)
+  string consume_type = 9;
+  // Message model: CLUSTERING, BROADCASTING, or LITE_SELECTIVE (from ConsumerManager)
+  string message_model = 10;
+  // Configured batch receive size (from client Settings, 0 if unavailable)
+  int32 receive_batch_size = 11;
+  // Configured long polling timeout in ms (from client Settings, 0 if unavailable)
+  int64 long_polling_timeout_ms = 12;
+  // Last measured RTT in ms (from gRPC channel, -1 if unavailable)
+  int64 last_rtt_ms = 13;
+  // Client connection time (epoch millis, 0 if unavailable)
+  int64 connect_time = 14;
+}
+
+// Batch consume group-level summary (aggregated across all clients in the group)
+message BatchConsumeGroupSummary {
+  // Consumer group name
+  string group = 1;
+  // Number of clients with unacked messages
+  int32 total_clients = 2;
+  // Total unacked messages across all clients
+  int32 total_unacked_messages = 3;
+  // Total unacked handles across all clients
+  int32 total_unacked_handles = 4;
+  // Total expired handles across all clients
+  int32 total_expired_handles = 5;
+  // Sum of renew times across all clients
+  int64 total_renew_times = 6;
+  // Sum of renew retry times across all clients
+  int64 total_renew_retry_times = 7;
+}
+
+// DescribeBatchConsumeDiagnostics request - query batch consumption diagnostics
+// Use cases:
+//   - Diagnose batch size too large causing timeout
+//   - Investigate partial message failure but entire batch retry
+//   - Monitor unacked message accumulation per client in a consumer group
+//   - Identify clients with excessive renewal or expired handles
+message DescribeBatchConsumeDiagnosticsRequest {
+  // Consumer group name (required)
+  string group = 1;
+  // Optional topic filter - only count messages for this topic
+  string topic = 2;
+  // Optional client ID filter - only return diagnostics for this client
+  string client_id = 3;
+  // Pagination: page number starting from 1
+  int32 page_num = 4;
+  // Pagination: page size, max 100
+  int32 page_size = 5;
+}
+
+// DescribeBatchConsumeDiagnostics response
+message DescribeBatchConsumeDiagnosticsResponse {
+  AdminCode code = 1;
+  string message = 2;
+  // Group-level summary statistics
+  BatchConsumeGroupSummary summary = 3;
+  // Per-client diagnostic details (paginated)
+  repeated BatchConsumeClientDiagnostics diagnostics = 4;
+  // Pagination metadata
+  Pagination pagination = 5;
+}
+
+// SubscribeRouteEvents request
+message SubscribeRouteEventsRequest {
+  // Optional: subscribe to specific topics only (empty = all topics)
+  repeated string topics = 1;
+  // Optional: subscribe to specific event types only (empty = all event types)
+  repeated RouteChangeEventType event_types = 2;
+}
+
+// SubscribeRouteEvents response (streamed)
+message SubscribeRouteEventsResponse {
+  AdminCode code = 1;
+  string message = 2;
+  RouteChangeEvent event = 3;
+}
+
+// Route change event types
+enum RouteChangeEventType {
+  ROUTE_CHANGE_EVENT_TYPE_UNSPECIFIED = 0;
+  // A broker has come online (registered with NameServer)
+  BROKER_ONLINE = 1;
+  // A broker has gone offline (unregistered from NameServer)
+  BROKER_OFFLINE = 2;
+  // Queue count changed (read or write queue nums scaled up/down)
+  QUEUE_SCALE = 3;
+  // A new topic has been created
+  TOPIC_CREATE = 4;
+  // A topic has been deleted
+  TOPIC_DELETE = 5;
+  // Full route snapshot sent on initial subscription
+  ROUTE_SNAPSHOT = 6;
+}
+
+// Route change event - represents a single route change detected by the proxy
+message RouteChangeEvent {
+  // Event type
+  RouteChangeEventType event_type = 1;
+  // Timestamp when the event was detected (epoch millis)
+  int64 timestamp = 2;
+  // Topic name (set for TOPIC_CREATE, TOPIC_DELETE, QUEUE_SCALE events)
+  string topic = 3;
+  // Broker cluster name (set for BROKER_ONLINE, BROKER_OFFLINE events)
+  string cluster = 4;
+  // Broker name (set for BROKER_ONLINE, BROKER_OFFLINE, QUEUE_SCALE events)
+  string broker_name = 5;
+  // Broker ID (set for BROKER_ONLINE, BROKER_OFFLINE events)
+  int64 broker_id = 6;
+  // Broker address (set for BROKER_ONLINE, BROKER_OFFLINE events)
+  string broker_address = 7;
+  // Previous read queue count (set for QUEUE_SCALE events)
+  int32 previous_read_queue_nums = 8;
+  // Current read queue count (set for QUEUE_SCALE events)
+  int32 current_read_queue_nums = 9;
+  // Previous write queue count (set for QUEUE_SCALE events)
+  int32 previous_write_queue_nums = 10;
+  // Current write queue count (set for QUEUE_SCALE events)
+  int32 current_write_queue_nums = 11;
+  // Full route snapshot (set only for ROUTE_SNAPSHOT events)
+  // Contains the complete current route data for the topic
+  TopicRouteSnapshot route_snapshot = 12;
+}
+
+// Topic route snapshot - complete route data for a topic at a point in time
+message TopicRouteSnapshot {
+  string topic = 1;
+  repeated BrokerInfo brokers = 2;
+  repeated QueueInfo queues = 3;
+}
+
+// Broker info in route snapshot
+message BrokerInfo {
+  string cluster = 1;
+  string broker_name = 2;
+  // Map of broker_id -> broker_address
+  map<int64, string> broker_addrs = 3;
+}
+
+// Queue info in route snapshot
+message QueueInfo {
+  string broker_name = 1;
+  int32 read_queue_nums = 2;
+  int32 write_queue_nums = 3;
+  int32 perm = 4;
+}
+
 // ProxyClientAdminService - Admin service for online client queries
 service ProxyClientAdminService {
   // List online gRPC clients with filtering and pagination
@@ -213,4 +587,20 @@ service ProxyClientAdminService {
   rpc ListClientsByGroup(ListClientsByGroupRequest) returns (ListClientsByGroupResponse) {}
   // List online clients by topic
   rpc ListClientsByTopic(ListClientsByTopicRequest) returns (ListClientsByTopicResponse) {}
+  // Get current runtime configuration of the proxy
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse) {}
+  // Hot-update runtime configuration without restarting proxy
+  rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse) {}
+  // Force disconnect a specific client connection
+  rpc DisconnectClient(DisconnectClientRequest) returns (DisconnectClientResponse) {}
+  // Query POP receipt handles for diagnostics (RIP-2 M3)
+  // Diagnose invisible time expiration, renewal issues, and consumption timeouts
+  rpc DescribePopReceiptHandles(DescribePopReceiptHandlesRequest) returns (DescribePopReceiptHandlesResponse) {}
+  // Query batch consumption diagnostics (RIP-2 M4)
+  // Diagnose batch size issues, partial failures, and unacked message accumulation per client
+  rpc DescribeBatchConsumeDiagnostics(DescribeBatchConsumeDiagnosticsRequest) returns (DescribeBatchConsumeDiagnosticsResponse) {}
+  // Subscribe to route change events (server-streaming RPC)
+  // Dashboard subscribes once and receives real-time route change notifications
+  // including broker online/offline, queue scaling, topic create/delete
+  rpc SubscribeRouteEvents(SubscribeRouteEventsRequest) returns (stream SubscribeRouteEventsResponse) {}
 }

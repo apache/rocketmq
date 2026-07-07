@@ -19,15 +19,20 @@ package org.apache.rocketmq.proxy.grpc.admin;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientDetailInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientInstanceInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
+import org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEvent;
+import org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType;
+import org.apache.rocketmq.proxy.grpc.admin.model.TopicRouteSnapshot;
 import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService.ListClientsResult;
 import org.junit.Test;
 
 import apache.rocketmq.proxy.admin.v1.AdminCode;
 import apache.rocketmq.proxy.admin.v1.AuthStatus;
+import apache.rocketmq.proxy.admin.v1.BrokerInfo;
 import apache.rocketmq.proxy.admin.v1.ClientDetail;
 import apache.rocketmq.proxy.admin.v1.ClientInstance;
 import apache.rocketmq.proxy.admin.v1.ClientLanguage;
@@ -42,6 +47,8 @@ import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
 import apache.rocketmq.proxy.admin.v1.ListClientsRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsResponse;
 import apache.rocketmq.proxy.admin.v1.NetworkInfo;
+import apache.rocketmq.proxy.admin.v1.QueueInfo;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsResponse;
 import apache.rocketmq.proxy.admin.v1.TopicConsumeProgress;
 
 import static org.junit.Assert.assertEquals;
@@ -727,5 +734,270 @@ public class ProxyAdminProtoConverterTest {
         assertEquals("", progress.getTopic());
         assertEquals(100L, progress.getLag());
         assertEquals(5L, progress.getLatencyMs());
+    }
+
+    // ==================== toProtoRouteChangeEventType Tests ====================
+
+    @Test
+    public void testToProtoRouteChangeEventType_AllTypes() {
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.BROKER_ONLINE,
+            ProxyAdminProtoConverter.toProtoRouteChangeEventType(RouteChangeEventType.BROKER_ONLINE));
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.BROKER_OFFLINE,
+            ProxyAdminProtoConverter.toProtoRouteChangeEventType(RouteChangeEventType.BROKER_OFFLINE));
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.QUEUE_SCALE,
+            ProxyAdminProtoConverter.toProtoRouteChangeEventType(RouteChangeEventType.QUEUE_SCALE));
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.TOPIC_CREATE,
+            ProxyAdminProtoConverter.toProtoRouteChangeEventType(RouteChangeEventType.TOPIC_CREATE));
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.TOPIC_DELETE,
+            ProxyAdminProtoConverter.toProtoRouteChangeEventType(RouteChangeEventType.TOPIC_DELETE));
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.ROUTE_SNAPSHOT,
+            ProxyAdminProtoConverter.toProtoRouteChangeEventType(RouteChangeEventType.ROUTE_SNAPSHOT));
+    }
+
+    @Test
+    public void testToProtoRouteChangeEventType_Null() {
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.ROUTE_CHANGE_EVENT_TYPE_UNSPECIFIED,
+            ProxyAdminProtoConverter.toProtoRouteChangeEventType(null));
+    }
+
+    // ==================== toProtoBrokerInfo Tests ====================
+
+    @Test
+    public void testToProtoBrokerInfo_Full() {
+        TopicRouteSnapshot.BrokerInfo info = new TopicRouteSnapshot.BrokerInfo();
+        info.setCluster("testCluster");
+        info.setBrokerName("broker-a");
+        HashMap<Long, String> addrs = new HashMap<>();
+        addrs.put(0L, "127.0.0.1:10911");
+        addrs.put(1L, "127.0.0.1:10912");
+        info.setBrokerAddrs(addrs);
+
+        BrokerInfo protoInfo = ProxyAdminProtoConverter.toProtoBrokerInfo(info);
+
+        assertEquals("testCluster", protoInfo.getCluster());
+        assertEquals("broker-a", protoInfo.getBrokerName());
+        assertEquals(2, protoInfo.getBrokerAddrsCount());
+        assertEquals("127.0.0.1:10911", protoInfo.getBrokerAddrsOrThrow(0L));
+        assertEquals("127.0.0.1:10912", protoInfo.getBrokerAddrsOrThrow(1L));
+    }
+
+    @Test
+    public void testToProtoBrokerInfo_NullFields() {
+        TopicRouteSnapshot.BrokerInfo info = new TopicRouteSnapshot.BrokerInfo();
+
+        BrokerInfo protoInfo = ProxyAdminProtoConverter.toProtoBrokerInfo(info);
+
+        assertEquals("", protoInfo.getCluster());
+        assertEquals("", protoInfo.getBrokerName());
+        assertEquals(0, protoInfo.getBrokerAddrsCount());
+    }
+
+    // ==================== toProtoQueueInfo Tests ====================
+
+    @Test
+    public void testToProtoQueueInfo_Full() {
+        TopicRouteSnapshot.QueueInfo info = new TopicRouteSnapshot.QueueInfo();
+        info.setBrokerName("broker-a");
+        info.setReadQueueNums(8);
+        info.setWriteQueueNums(8);
+        info.setPerm(6);
+
+        QueueInfo protoInfo = ProxyAdminProtoConverter.toProtoQueueInfo(info);
+
+        assertEquals("broker-a", protoInfo.getBrokerName());
+        assertEquals(8, protoInfo.getReadQueueNums());
+        assertEquals(8, protoInfo.getWriteQueueNums());
+        assertEquals(6, protoInfo.getPerm());
+    }
+
+    @Test
+    public void testToProtoQueueInfo_NullBrokerName() {
+        TopicRouteSnapshot.QueueInfo info = new TopicRouteSnapshot.QueueInfo();
+
+        QueueInfo protoInfo = ProxyAdminProtoConverter.toProtoQueueInfo(info);
+
+        assertEquals("", protoInfo.getBrokerName());
+        assertEquals(0, protoInfo.getReadQueueNums());
+        assertEquals(0, protoInfo.getWriteQueueNums());
+        assertEquals(0, protoInfo.getPerm());
+    }
+
+    // ==================== toProtoTopicRouteSnapshot Tests ====================
+
+    @Test
+    public void testToProtoTopicRouteSnapshot_Full() {
+        TopicRouteSnapshot snapshot = new TopicRouteSnapshot();
+        snapshot.setTopic("testTopic");
+
+        TopicRouteSnapshot.BrokerInfo brokerInfo = new TopicRouteSnapshot.BrokerInfo();
+        brokerInfo.setCluster("cluster1");
+        brokerInfo.setBrokerName("broker-a");
+        HashMap<Long, String> addrs = new HashMap<>();
+        addrs.put(0L, "127.0.0.1:10911");
+        brokerInfo.setBrokerAddrs(addrs);
+        snapshot.setBrokers(Collections.singletonList(brokerInfo));
+
+        TopicRouteSnapshot.QueueInfo queueInfo = new TopicRouteSnapshot.QueueInfo();
+        queueInfo.setBrokerName("broker-a");
+        queueInfo.setReadQueueNums(4);
+        queueInfo.setWriteQueueNums(4);
+        queueInfo.setPerm(6);
+        snapshot.setQueues(Collections.singletonList(queueInfo));
+
+        apache.rocketmq.proxy.admin.v1.TopicRouteSnapshot protoSnapshot = ProxyAdminProtoConverter.toProtoTopicRouteSnapshot(snapshot);
+
+        assertEquals("testTopic", protoSnapshot.getTopic());
+        assertEquals(1, protoSnapshot.getBrokersCount());
+        assertEquals("cluster1", protoSnapshot.getBrokers(0).getCluster());
+        assertEquals("broker-a", protoSnapshot.getBrokers(0).getBrokerName());
+        assertEquals(1, protoSnapshot.getQueuesCount());
+        assertEquals("broker-a", protoSnapshot.getQueues(0).getBrokerName());
+        assertEquals(4, protoSnapshot.getQueues(0).getReadQueueNums());
+    }
+
+    @Test
+    public void testToProtoTopicRouteSnapshot_NullTopic() {
+        TopicRouteSnapshot snapshot = new TopicRouteSnapshot();
+
+        apache.rocketmq.proxy.admin.v1.TopicRouteSnapshot protoSnapshot = ProxyAdminProtoConverter.toProtoTopicRouteSnapshot(snapshot);
+
+        assertEquals("", protoSnapshot.getTopic());
+        assertEquals(0, protoSnapshot.getBrokersCount());
+        assertEquals(0, protoSnapshot.getQueuesCount());
+    }
+
+    @Test
+    public void testToProtoTopicRouteSnapshot_NullBrokersAndQueues() {
+        TopicRouteSnapshot snapshot = new TopicRouteSnapshot();
+        snapshot.setTopic("testTopic");
+        snapshot.setBrokers(null);
+        snapshot.setQueues(null);
+
+        apache.rocketmq.proxy.admin.v1.TopicRouteSnapshot protoSnapshot = ProxyAdminProtoConverter.toProtoTopicRouteSnapshot(snapshot);
+
+        assertEquals("testTopic", protoSnapshot.getTopic());
+        assertEquals(0, protoSnapshot.getBrokersCount());
+        assertEquals(0, protoSnapshot.getQueuesCount());
+    }
+
+    // ==================== toSubscribeRouteEventsResponse Tests ====================
+
+    @Test
+    public void testToSubscribeRouteEventsResponse_TopicCreate() {
+        RouteChangeEvent event = new RouteChangeEvent();
+        event.setEventType(RouteChangeEventType.TOPIC_CREATE);
+        event.setTimestamp(1234567890L);
+        event.setTopic("newTopic");
+        event.setCluster("testCluster");
+        event.setBrokerName("broker-a");
+        event.setBrokerId(0L);
+        event.setBrokerAddress("127.0.0.1:10911");
+
+        SubscribeRouteEventsResponse response = ProxyAdminProtoConverter.toSubscribeRouteEventsResponse(event);
+
+        assertEquals(AdminCode.ADMIN_CODE_OK, response.getCode());
+        assertEquals(AdminCode.ADMIN_CODE_OK.name(), response.getMessage());
+        assertNotNull(response.getEvent());
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.TOPIC_CREATE, response.getEvent().getEventType());
+        assertEquals(1234567890L, response.getEvent().getTimestamp());
+        assertEquals("newTopic", response.getEvent().getTopic());
+        assertEquals("testCluster", response.getEvent().getCluster());
+        assertEquals("broker-a", response.getEvent().getBrokerName());
+        assertEquals(0L, response.getEvent().getBrokerId());
+        assertEquals("127.0.0.1:10911", response.getEvent().getBrokerAddress());
+    }
+
+    @Test
+    public void testToSubscribeRouteEventsResponse_QueueScale() {
+        RouteChangeEvent event = new RouteChangeEvent();
+        event.setEventType(RouteChangeEventType.QUEUE_SCALE);
+        event.setTimestamp(9999L);
+        event.setTopic("scaleTopic");
+        event.setBrokerName("broker-b");
+        event.setPreviousReadQueueNums(4);
+        event.setCurrentReadQueueNums(8);
+        event.setPreviousWriteQueueNums(4);
+        event.setCurrentWriteQueueNums(8);
+
+        SubscribeRouteEventsResponse response = ProxyAdminProtoConverter.toSubscribeRouteEventsResponse(event);
+
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.QUEUE_SCALE, response.getEvent().getEventType());
+        assertEquals(4, response.getEvent().getPreviousReadQueueNums());
+        assertEquals(8, response.getEvent().getCurrentReadQueueNums());
+        assertEquals(4, response.getEvent().getPreviousWriteQueueNums());
+        assertEquals(8, response.getEvent().getCurrentWriteQueueNums());
+    }
+
+    @Test
+    public void testToSubscribeRouteEventsResponse_WithRouteSnapshot() {
+        RouteChangeEvent event = new RouteChangeEvent();
+        event.setEventType(RouteChangeEventType.ROUTE_SNAPSHOT);
+        event.setTimestamp(1000L);
+        event.setTopic("snapshotTopic");
+
+        TopicRouteSnapshot snapshot = new TopicRouteSnapshot();
+        snapshot.setTopic("snapshotTopic");
+        TopicRouteSnapshot.BrokerInfo brokerInfo = new TopicRouteSnapshot.BrokerInfo();
+        brokerInfo.setCluster("cluster1");
+        brokerInfo.setBrokerName("broker-a");
+        snapshot.setBrokers(Collections.singletonList(brokerInfo));
+        event.setRouteSnapshot(snapshot);
+
+        SubscribeRouteEventsResponse response = ProxyAdminProtoConverter.toSubscribeRouteEventsResponse(event);
+
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.ROUTE_SNAPSHOT, response.getEvent().getEventType());
+        assertNotNull(response.getEvent().getRouteSnapshot());
+        assertEquals("snapshotTopic", response.getEvent().getRouteSnapshot().getTopic());
+        assertEquals(1, response.getEvent().getRouteSnapshot().getBrokersCount());
+        assertEquals("broker-a", response.getEvent().getRouteSnapshot().getBrokers(0).getBrokerName());
+    }
+
+    @Test
+    public void testToSubscribeRouteEventsResponse_NullFields() {
+        RouteChangeEvent event = new RouteChangeEvent();
+        event.setEventType(RouteChangeEventType.BROKER_ONLINE);
+        event.setTimestamp(0L);
+        event.setTopic(null);
+        event.setCluster(null);
+        event.setBrokerName(null);
+        event.setBrokerAddress(null);
+
+        SubscribeRouteEventsResponse response = ProxyAdminProtoConverter.toSubscribeRouteEventsResponse(event);
+
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.BROKER_ONLINE, response.getEvent().getEventType());
+        assertEquals("", response.getEvent().getTopic());
+        // In proto3, string fields always have default values (empty string), no hasX() methods
+    }
+
+    @Test
+    public void testToSubscribeRouteEventsResponse_BrokerOffline() {
+        RouteChangeEvent event = new RouteChangeEvent();
+        event.setEventType(RouteChangeEventType.BROKER_OFFLINE);
+        event.setTimestamp(5555L);
+        event.setTopic("offlineTopic");
+        event.setBrokerName("broker-c");
+        event.setBrokerId(1L);
+        event.setBrokerAddress("10.0.0.1:10911");
+
+        SubscribeRouteEventsResponse response = ProxyAdminProtoConverter.toSubscribeRouteEventsResponse(event);
+
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.BROKER_OFFLINE, response.getEvent().getEventType());
+        assertEquals("offlineTopic", response.getEvent().getTopic());
+        assertEquals("broker-c", response.getEvent().getBrokerName());
+        assertEquals(1L, response.getEvent().getBrokerId());
+        assertEquals("10.0.0.1:10911", response.getEvent().getBrokerAddress());
+    }
+
+    @Test
+    public void testToSubscribeRouteEventsResponse_TopicDelete() {
+        RouteChangeEvent event = new RouteChangeEvent();
+        event.setEventType(RouteChangeEventType.TOPIC_DELETE);
+        event.setTimestamp(7777L);
+        event.setTopic("deletedTopic");
+
+        SubscribeRouteEventsResponse response = ProxyAdminProtoConverter.toSubscribeRouteEventsResponse(event);
+
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.TOPIC_DELETE, response.getEvent().getEventType());
+        assertEquals("deletedTopic", response.getEvent().getTopic());
     }
 }

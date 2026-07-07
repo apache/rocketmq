@@ -253,6 +253,37 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         this.telemetryCommandRef.compareAndSet(future, null);
     }
 
+    /**
+     * Forcibly close this client channel from the server side.
+     * Sends an error status to the client via the telemetry stream observer,
+     * then clears the observer reference so the channel is marked as inactive.
+     * <p>
+     * After this call:
+     * - The client receives a gRPC error on its telemetry stream
+     * - isOpen()/isActive()/isWritable() return false
+     * - The caller should also remove the channel from GrpcChannelManager
+     *   and clean up settings to complete the disconnection.
+     *
+     * @param reason human-readable reason for the forced disconnection
+     * @return true if the stream was successfully closed, false if already closed
+     */
+    public boolean forceClose(String reason) {
+        StreamObserver<TelemetryCommand> observer = this.telemetryCommandRef.get();
+        if (observer == null) {
+            return false;
+        }
+        try {
+            observer.onError(io.grpc.Status.UNAVAILABLE
+                .withDescription("Connection force closed by admin: " + reason)
+                .asRuntimeException());
+        } catch (Exception e) {
+            log.warn("forceClose: failed to send error to client {}, clearing observer directly", clientId, e);
+        }
+        this.clearClientObserver(observer);
+        log.info("forceClose: client {} disconnected, reason: {}", clientId, reason);
+        return true;
+    }
+
     @Override
     public boolean isOpen() {
         return this.telemetryCommandRef.get() != null;

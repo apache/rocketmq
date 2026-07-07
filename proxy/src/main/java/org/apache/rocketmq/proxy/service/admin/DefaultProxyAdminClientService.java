@@ -22,6 +22,7 @@ import apache.rocketmq.v2.Language;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.UA;
+import io.netty.channel.Channel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,12 +34,18 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.common.BatchConsumeClientDiagnostics;
+import org.apache.rocketmq.proxy.common.BatchConsumeGroupSummary;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientDetailInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientInstanceInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
+import org.apache.rocketmq.proxy.common.PopReceiptHandleGroupSummary;
+import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager;
+import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager.ChannelBatchConsumeData;
+import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager.PopReceiptHandleDiagnosticResult;
 
 /**
  * Default implementation of ProxyAdminClientService.
@@ -69,6 +76,7 @@ public class DefaultProxyAdminClientService implements ProxyAdminClientService {
 
     private final GrpcChannelManager grpcChannelManager;
     private final GrpcClientSettingsManager grpcClientSettingsManager;
+    private volatile ReceiptHandleManager receiptHandleManager;
 
     /**
      * Heartbeat history tracker: clientId -> deque of heartbeat timestamps.
@@ -81,6 +89,16 @@ public class DefaultProxyAdminClientService implements ProxyAdminClientService {
         GrpcClientSettingsManager grpcClientSettingsManager) {
         this.grpcChannelManager = grpcChannelManager;
         this.grpcClientSettingsManager = grpcClientSettingsManager;
+    }
+
+    /**
+     * Set the ReceiptHandleManager for POP diagnostics.
+     * Called during startup after the MessagingProcessor is initialized.
+     *
+     * @param receiptHandleManager the receipt handle manager instance
+     */
+    public void setReceiptHandleManager(ReceiptHandleManager receiptHandleManager) {
+        this.receiptHandleManager = receiptHandleManager;
     }
 
     @Override
@@ -181,6 +199,43 @@ public class DefaultProxyAdminClientService implements ProxyAdminClientService {
         while (heartbeatLog.size() > MAX_HEARTBEAT_HISTORY_SIZE * 1000) {
             heartbeatLog.removeLast();
         }
+    }
+
+    @Override
+    public boolean forceDisconnectClient(String clientId, String reason) {
+        if (StringUtils.isBlank(clientId)) {
+            log.warn("forceDisconnectClient: clientId is blank, ignoring");
+            return false;
+        }
+
+        GrpcClientChannel channel = grpcChannelManager.getChannel(clientId);
+        if (channel == null) {
+            log.warn("forceDisconnectClient: client {} not found in channel manager", clientId);
+            return false;
+        }
+
+        // Step 1: Force close the gRPC telemetry stream
+        // This sends a UNAVAILABLE error to the client, triggering reconnection
+        boolean closed = channel.forceClose(reason);
+        if (!closed) {
+            log.warn("forceDisconnectClient: client {} stream already closed, proceeding with cleanup", clientId);
+        }
+
+        // Step 2: Remove the channel from GrpcChannelManager
+        GrpcClientChannel removed = grpcChannelManager.removeChannel(clientId);
+        if (removed != null) {
+            log.info("forceDisconnectClient: removed channel for client {} from channel manager", clientId);
+        }
+
+        // Step 3: Remove client settings from GrpcClientSettingsManager
+        Settings removedSettings = grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
+        if (removedSettings != null) {
+            log.info("forceDisconnectClient: removed settings for client {}", clientId);
+        }
+
+        log.info("forceDisconnectClient: client {} disconnected. reason: {}, streamClosed: {}, channelRemoved: {}, settingsRemoved: {}",
+            clientId, reason, closed, removed != null, removedSettings != null);
+        return true;
     }
 
     /**
@@ -661,6 +716,199 @@ public class DefaultProxyAdminClientService implements ProxyAdminClientService {
             log.debug("Failed to detect SSL state for channel: {}", channel.getClientId(), e);
         }
         return false;
+    }
+
+    // ==================== POP Diagnostics ====================
+
+    @Override
+    public PopReceiptHandleDiagnosticResult describePopReceiptHandles(String group, String topic,
+        int pageNum, int pageSize) {
+        if (receiptHandleManager == null) {
+            log.warn("ReceiptHandleManager not initialized, POP diagnostics unavailable");
+            return new PopReceiptHandleDiagnosticResult(
+                new PopReceiptHandleGroupSummary(group, 0, 0, 0, 0, 0),
+                Collections.emptyList(), 0, 1, 1);
+        }
+        pageNum = Math.max(pageNum, 1);
+        pageSize = Math.min(Math.max(pageSize, 1), MAX_PAGE_SIZE);
+        return receiptHandleManager.describePopReceiptHandles(group, topic, pageNum, pageSize);
+    }
+
+    // ==================== Batch Consume Diagnostics ====================
+
+    @Override
+    public ProxyAdminClientService.BatchConsumeDiagnosticResult describeBatchConsumeDiagnostics(
+        String group, String topic, String clientId, int pageNum, int pageSize) {
+        if (receiptHandleManager == null) {
+            log.warn("ReceiptHandleManager not initialized, batch consume diagnostics unavailable");
+            return new ProxyAdminClientService.BatchConsumeDiagnosticResult(
+                new BatchConsumeGroupSummary(group, 0, 0, 0, 0, 0, 0),
+                Collections.emptyList(), 0, 1, 1);
+        }
+        if (StringUtils.isBlank(group)) {
+            return new ProxyAdminClientService.BatchConsumeDiagnosticResult(
+                new BatchConsumeGroupSummary("", 0, 0, 0, 0, 0, 0),
+                Collections.emptyList(), 0, 1, 1);
+        }
+
+        pageNum = Math.max(pageNum, 1);
+        pageSize = Math.min(Math.max(pageSize, 1), MAX_PAGE_SIZE);
+
+        // Step 1: Get all channel-level raw data from ReceiptHandleManager
+        // We fetch all data (no server-side pagination) because we need to:
+        //   a) Enrich with clientId from GrpcClientChannel
+        //   b) Apply clientId filter if specified
+        //   c) Re-paginate after enrichment and filtering
+        ReceiptHandleManager.BatchConsumeDiagnosticResult rawResult = receiptHandleManager.describeBatchConsumeDiagnostics(
+            group, topic, 1, Integer.MAX_VALUE);
+
+        // Step 2: Enrich each ChannelBatchConsumeData with gRPC channel/settings data
+        List<BatchConsumeClientDiagnostics> enriched = new ArrayList<>();
+        for (ChannelBatchConsumeData channelData : rawResult.getChannelData()) {
+            BatchConsumeClientDiagnostics diagnostic = enrichChannelData(channelData);
+            if (diagnostic == null) {
+                continue;
+            }
+
+            // Step 3: Apply clientId filter if specified
+            if (StringUtils.isNotBlank(clientId) && !clientId.equals(diagnostic.getClientId())) {
+                continue;
+            }
+
+            enriched.add(diagnostic);
+        }
+
+        // Step 4: Re-paginate after enrichment and filtering
+        long total = enriched.size();
+        int fromIndex = (pageNum - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, enriched.size());
+
+        List<BatchConsumeClientDiagnostics> pageList;
+        if (fromIndex >= enriched.size()) {
+            pageList = Collections.emptyList();
+        } else {
+            pageList = enriched.subList(fromIndex, toIndex);
+        }
+
+        // Step 5: Recalculate summary for the filtered set
+        BatchConsumeGroupSummary summary = recalculateSummary(group, enriched);
+
+        return new ProxyAdminClientService.BatchConsumeDiagnosticResult(
+            summary, new ArrayList<>(pageList), total, pageNum, pageSize);
+    }
+
+    /**
+     * Enrich a ChannelBatchConsumeData with gRPC channel and settings information.
+     * <p>
+     * The Channel stored in ReceiptHandleGroupKey is the GrpcClientChannel itself
+     * (passed from ReceiveMessageActivity), so we can directly cast and extract:
+     * - clientId, lastRttMs, createTime from GrpcClientChannel
+     * - receiveBatchSize, longPollingTimeout from Settings
+     * - consumeType from Settings.clientType
+     * - messageModel defaults to CLUSTERING for gRPC v2 proxy clients
+     *
+     * @param channelData raw per-channel data from ReceiptHandleManager
+     * @return enriched diagnostics, or null if channel cannot be identified
+     */
+    private BatchConsumeClientDiagnostics enrichChannelData(ChannelBatchConsumeData channelData) {
+        Channel channel = channelData.getChannel();
+
+        // Extract clientId and channel info from GrpcClientChannel
+        String clientId = null;
+        long lastRttMs = -1;
+        long connectTime = -1;
+
+        // The Channel in ReceiptHandleGroupKey IS the GrpcClientChannel (set in ReceiveMessageActivity)
+        if (channel instanceof GrpcClientChannel) {
+            GrpcClientChannel grpcChannel = (GrpcClientChannel) channel;
+            clientId = grpcChannel.getClientId();
+            lastRttMs = grpcChannel.getLastRttMs();
+            connectTime = grpcChannel.getCreateTime();
+        } else {
+            // Fallback: reverse-lookup from GrpcChannelManager's clientIdChannelMap
+            // This handles edge cases where the channel type differs
+            for (Map.Entry<String, GrpcClientChannel> entry : grpcChannelManager.getClientIdChannelMap().entrySet()) {
+                if (entry.getValue().equals(channel)) {
+                    clientId = entry.getKey();
+                    lastRttMs = entry.getValue().getLastRttMs();
+                    connectTime = entry.getValue().getCreateTime();
+                    break;
+                }
+            }
+        }
+
+        if (clientId == null) {
+            // Channel no longer exists in gRPC channel manager, skip this entry
+            log.debug("Batch diagnostics: channel {} not found in GrpcChannelManager, skipping", channel);
+            return null;
+        }
+
+        // Get Settings for receiveBatchSize, longPollingTimeout, and consumeType
+        int receiveBatchSize = -1;
+        long longPollingTimeoutMs = -1;
+        String consumeType = "UNSPECIFIED";
+        String messageModel = "CLUSTERING"; // Default for gRPC v2 proxy clients
+
+        Settings settings = grpcClientSettingsManager.getRawClientSettings(clientId);
+        if (settings != null) {
+            consumeType = convertClientType(settings.getClientType());
+
+            if (settings.hasSubscription()) {
+                receiveBatchSize = settings.getSubscription().getReceiveBatchSize();
+                longPollingTimeoutMs = settings.getSubscription().getLongPollingTimeout().getSeconds() * 1000
+                    + settings.getSubscription().getLongPollingTimeout().getNanos() / 1_000_000L;
+            }
+        }
+
+        String channelId = channel.id().asShortText();
+
+        return new BatchConsumeClientDiagnostics(
+            clientId,
+            channelId,
+            channelData.getUnackedMessageCount(),
+            channelData.getUnackedHandleCount(),
+            channelData.getTotalRenewTimes(),
+            channelData.getTotalRenewRetryTimes(),
+            channelData.getExpiredHandleCount(),
+            channelData.getTopicDistribution(),
+            consumeType,
+            messageModel,
+            receiveBatchSize,
+            longPollingTimeoutMs,
+            lastRttMs,
+            connectTime
+        );
+    }
+
+    /**
+     * Recalculate the group summary from the enriched (and possibly filtered) diagnostics list.
+     * This is necessary because:
+     * 1. The raw summary from ReceiptHandleManager covers ALL channels in the group
+     * 2. We may have filtered by clientId, reducing the set
+     * 3. Some channels may have been removed (not found in GrpcChannelManager)
+     *
+     * @param group      consumer group name
+     * @param diagnostics enriched and filtered diagnostics list
+     * @return recalculated group summary
+     */
+    private BatchConsumeGroupSummary recalculateSummary(String group, List<BatchConsumeClientDiagnostics> diagnostics) {
+        int totalClients = diagnostics.size();
+        int totalUnackedMessages = 0;
+        int totalUnackedHandles = 0;
+        int totalExpiredHandles = 0;
+        long totalRenewTimes = 0;
+        long totalRenewRetryTimes = 0;
+
+        for (BatchConsumeClientDiagnostics diag : diagnostics) {
+            totalUnackedMessages += diag.getUnackedMessageCount();
+            totalUnackedHandles += diag.getUnackedHandleCount();
+            totalExpiredHandles += diag.getExpiredHandleCount();
+            totalRenewTimes += diag.getTotalRenewTimes();
+            totalRenewRetryTimes += diag.getTotalRenewRetryTimes();
+        }
+
+        return new BatchConsumeGroupSummary(group, totalClients, totalUnackedMessages,
+            totalUnackedHandles, totalExpiredHandles, totalRenewTimes, totalRenewRetryTimes);
     }
 
     // ==================== Inner Classes ====================

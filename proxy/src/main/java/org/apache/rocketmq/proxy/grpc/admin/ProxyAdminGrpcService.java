@@ -18,6 +18,8 @@
 package org.apache.rocketmq.proxy.grpc.admin;
 
 import io.grpc.stub.StreamObserver;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -27,8 +29,11 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientDetailInfo;
+import org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType;
 import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService;
 import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService.ListClientsResult;
+import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService.BatchConsumeDiagnosticResult;
+import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager.PopReceiptHandleDiagnosticResult;
 import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
 import apache.rocketmq.proxy.admin.v1.AdminCode;
 import apache.rocketmq.proxy.admin.v1.ListClientsRequest;
@@ -39,6 +44,21 @@ import apache.rocketmq.proxy.admin.v1.ListClientsByGroupRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsByGroupResponse;
 import apache.rocketmq.proxy.admin.v1.ListClientsByTopicRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
+import apache.rocketmq.proxy.admin.v1.GetConfigRequest;
+import apache.rocketmq.proxy.admin.v1.GetConfigResponse;
+import apache.rocketmq.proxy.admin.v1.UpdateConfigRequest;
+import apache.rocketmq.proxy.admin.v1.UpdateConfigResponse;
+import apache.rocketmq.proxy.admin.v1.DisconnectClientRequest;
+import apache.rocketmq.proxy.admin.v1.DisconnectClientResponse;
+import apache.rocketmq.proxy.admin.v1.DescribePopReceiptHandlesRequest;
+import apache.rocketmq.proxy.admin.v1.DescribePopReceiptHandlesResponse;
+import apache.rocketmq.proxy.admin.v1.DescribeBatchConsumeDiagnosticsRequest;
+import apache.rocketmq.proxy.admin.v1.DescribeBatchConsumeDiagnosticsResponse;
+import apache.rocketmq.proxy.admin.v1.ProxyRuntimeConfig;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsRequest;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsResponse;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 
 /**
  * gRPC service implementation for Proxy Admin Client queries.
@@ -77,6 +97,7 @@ public class ProxyAdminGrpcService {
 
     private final ProxyAdminClientService adminClientService;
     private final ExecutorService adminExecutor;
+    private final RouteChangeNotifier routeChangeNotifier;
 
     /**
      * Current concurrent DescribeClient request count for sampling control.
@@ -86,6 +107,14 @@ public class ProxyAdminGrpcService {
     public ProxyAdminGrpcService(ProxyAdminClientService adminClientService, int threadNums) {
         this.adminClientService = adminClientService;
         this.adminExecutor = createAdminExecutor(threadNums);
+        this.routeChangeNotifier = null;
+    }
+
+    public ProxyAdminGrpcService(ProxyAdminClientService adminClientService, int threadNums,
+        RouteChangeNotifier routeChangeNotifier) {
+        this.adminClientService = adminClientService;
+        this.adminExecutor = createAdminExecutor(threadNums);
+        this.routeChangeNotifier = routeChangeNotifier;
     }
 
     private ExecutorService createAdminExecutor(int threadNums) {
@@ -324,9 +353,364 @@ public class ProxyAdminGrpcService {
     }
 
     /**
+     * Get current runtime configuration of the proxy.
+     * Allows Dashboard to remotely query Proxy's runtime settings including
+     * rate limiting thresholds, timeout values, thread pool sizes, etc.
+     */
+    public void getConfig(GetConfigRequest request, StreamObserver<GetConfigResponse> responseObserver) {
+        adminExecutor.execute(() -> {
+            long startTime = System.currentTimeMillis();
+            try {
+                ProxyConfig config = ConfigurationManager.getProxyConfig();
+                GetConfigResponse response = ProxyAdminProtoConverter.toGetConfigResponse(config);
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+                ProxyAdminMetricsManager.recordSuccess(ProxyAdminMetricsManager.METHOD_GET_CONFIG,
+                    System.currentTimeMillis() - startTime);
+                log.debug("getConfig completed in {}ms", System.currentTimeMillis() - startTime);
+            } catch (Exception e) {
+                log.error("getConfig failed", e);
+                ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_GET_CONFIG,
+                    System.currentTimeMillis() - startTime);
+                GetConfigResponse errorResponse = ProxyAdminProtoConverter.toGetConfigError(
+                    AdminCode.ADMIN_CODE_INTERNAL_ERROR, "Internal error: " + e.getMessage());
+                responseObserver.onNext(errorResponse);
+                responseObserver.onCompleted();
+            }
+        });
+    }
+
+    /**
+     * Hot-update runtime configuration without restarting proxy.
+     * <p>
+     * Compares each field of the requested config with the current runtime config,
+     * and applies only the fields that have changed. Changed fields are returned
+     * in the response for audit/verification.
+     * <p>
+     * Most configuration changes take effect immediately:
+     * - Message size limits, user property limits: applied on next message operation
+     * - Timeout/polling values: applied on next client operation
+     * - Rate limiting thresholds (concurrency limit, sampling rate): applied on next admin request
+     * - Cache settings: applied on next cache access
+     * <p>
+     * Note: Some settings cannot be hot-updated and require a restart:
+     * - Network ports (grpc_server_port, proxy_admin_server_port)
+     * - Cluster names and proxy identity
+     * - TLS configuration
+     */
+    public void updateConfig(UpdateConfigRequest request, StreamObserver<UpdateConfigResponse> responseObserver) {
+        adminExecutor.execute(() -> {
+            long startTime = System.currentTimeMillis();
+            try {
+                ProxyConfig config = ConfigurationManager.getProxyConfig();
+                ProxyRuntimeConfig reqConfig = request.getConfig();
+
+                if (reqConfig == null || reqConfig.equals(ProxyRuntimeConfig.getDefaultInstance())) {
+                    ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_UPDATE_CONFIG,
+                        System.currentTimeMillis() - startTime);
+                    UpdateConfigResponse errorResponse = ProxyAdminProtoConverter.toUpdateConfigError(
+                        AdminCode.ADMIN_CODE_BAD_REQUEST, "Config is required in the request");
+                    responseObserver.onNext(errorResponse);
+                    responseObserver.onCompleted();
+                    return;
+                }
+
+                // Apply config changes and collect changed field names
+                List<String> changedFields = ProxyAdminProtoConverter.applyConfigChanges(config, reqConfig);
+
+                UpdateConfigResponse response = ProxyAdminProtoConverter.toUpdateConfigResponse(config, changedFields);
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+                ProxyAdminMetricsManager.recordSuccess(ProxyAdminMetricsManager.METHOD_UPDATE_CONFIG,
+                    System.currentTimeMillis() - startTime);
+                log.info("updateConfig completed in {}ms, changed {} fields: {}",
+                    System.currentTimeMillis() - startTime, changedFields.size(), changedFields);
+            } catch (Exception e) {
+                log.error("updateConfig failed", e);
+                ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_UPDATE_CONFIG,
+                    System.currentTimeMillis() - startTime);
+                UpdateConfigResponse errorResponse = ProxyAdminProtoConverter.toUpdateConfigError(
+                    AdminCode.ADMIN_CODE_INTERNAL_ERROR, "Internal error: " + e.getMessage());
+                responseObserver.onNext(errorResponse);
+                responseObserver.onCompleted();
+            }
+        });
+    }
+
+    /**
+     * Force disconnect a specific client connection.
+     * RIP-2 M2: DisconnectClient RPC
+     * <p>
+     * Closes the gRPC telemetry stream, removes the channel and settings,
+     * triggering client reconnection and consumer group rebalance.
+     * <p>
+     * Use cases:
+     * - Malicious client detection and isolation
+     * - Stuck consumer triggering rebalance
+     * - Zombie connection cleanup
+     */
+    public void disconnectClient(DisconnectClientRequest request, StreamObserver<DisconnectClientResponse> responseObserver) {
+        adminExecutor.execute(() -> {
+            long startTime = System.currentTimeMillis();
+            try {
+                String clientId = request.getClientId();
+                String reason = request.getReason();
+
+                if (clientId == null || clientId.isEmpty()) {
+                    ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_DISCONNECT_CLIENT,
+                        System.currentTimeMillis() - startTime);
+                    DisconnectClientResponse errorResponse = ProxyAdminProtoConverter.toDisconnectClientError(
+                        AdminCode.ADMIN_CODE_BAD_REQUEST, "clientId is required");
+                    responseObserver.onNext(errorResponse);
+                    responseObserver.onCompleted();
+                    return;
+                }
+
+                if (reason == null || reason.isEmpty()) {
+                    ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_DISCONNECT_CLIENT,
+                        System.currentTimeMillis() - startTime);
+                    DisconnectClientResponse errorResponse = ProxyAdminProtoConverter.toDisconnectClientError(
+                        AdminCode.ADMIN_CODE_BAD_REQUEST, "reason is required for audit logging");
+                    responseObserver.onNext(errorResponse);
+                    responseObserver.onCompleted();
+                    return;
+                }
+
+                boolean disconnected = adminClientService.forceDisconnectClient(clientId, reason);
+                if (!disconnected) {
+                    ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_DISCONNECT_CLIENT,
+                        System.currentTimeMillis() - startTime);
+                    DisconnectClientResponse errorResponse = ProxyAdminProtoConverter.toDisconnectClientError(
+                        AdminCode.ADMIN_CODE_NOT_FOUND, "Client not found: " + clientId);
+                    responseObserver.onNext(errorResponse);
+                    responseObserver.onCompleted();
+                    return;
+                }
+
+                DisconnectClientResponse response = ProxyAdminProtoConverter.toDisconnectClientResponse(true);
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+                ProxyAdminMetricsManager.recordSuccess(ProxyAdminMetricsManager.METHOD_DISCONNECT_CLIENT,
+                    System.currentTimeMillis() - startTime);
+                log.info("disconnectClient completed in {}ms, clientId={}, reason={}",
+                    System.currentTimeMillis() - startTime, clientId, reason);
+            } catch (Exception e) {
+                log.error("disconnectClient failed", e);
+                ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_DISCONNECT_CLIENT,
+                    System.currentTimeMillis() - startTime);
+                DisconnectClientResponse errorResponse = ProxyAdminProtoConverter.toDisconnectClientError(
+                    AdminCode.ADMIN_CODE_INTERNAL_ERROR, "Internal error: " + e.getMessage());
+                responseObserver.onNext(errorResponse);
+                responseObserver.onCompleted();
+            }
+        });
+    }
+
+    /**
+     * Query POP receipt handles for diagnostics.
+     * RIP-2 M3: DescribePopReceiptHandles RPC
+     * <p>
+     * Provides diagnostic information for POP consumption mode, including:
+     * - Unacked message receipt handles with renewal statistics
+     * - Messages with expired invisible time (about to be redelivered)
+     * - Frequent ChangeInvisibleTime (renewal) patterns
+     * - Consumption timeout detection
+     */
+    public void describePopReceiptHandles(DescribePopReceiptHandlesRequest request,
+        StreamObserver<DescribePopReceiptHandlesResponse> responseObserver) {
+        adminExecutor.execute(() -> {
+            long startTime = System.currentTimeMillis();
+            try {
+                String group = request.getGroup();
+                if (group == null || group.isEmpty()) {
+                    ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_DESCRIBE_POP_RECEIPT_HANDLES,
+                        System.currentTimeMillis() - startTime);
+                    DescribePopReceiptHandlesResponse errorResponse = ProxyAdminProtoConverter.toDescribePopReceiptHandlesError(
+                        AdminCode.ADMIN_CODE_BAD_REQUEST, "group is required");
+                    responseObserver.onNext(errorResponse);
+                    responseObserver.onCompleted();
+                    return;
+                }
+
+                String topic = request.getTopic();
+                int pageNum = request.getPageNum() > 0 ? request.getPageNum() : 1;
+                int pageSize = enforcePageSize(request.getPageSize());
+
+                PopReceiptHandleDiagnosticResult result = adminClientService.describePopReceiptHandles(
+                    group, topic, pageNum, pageSize);
+                DescribePopReceiptHandlesResponse response = ProxyAdminProtoConverter.toDescribePopReceiptHandlesResponse(result);
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+                ProxyAdminMetricsManager.recordSuccess(ProxyAdminMetricsManager.METHOD_DESCRIBE_POP_RECEIPT_HANDLES,
+                    System.currentTimeMillis() - startTime);
+                log.debug("describePopReceiptHandles completed in {}ms, group={}, total={}",
+                    System.currentTimeMillis() - startTime, group, result.getTotal());
+            } catch (Exception e) {
+                log.error("describePopReceiptHandles failed", e);
+                ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_DESCRIBE_POP_RECEIPT_HANDLES,
+                    System.currentTimeMillis() - startTime);
+                DescribePopReceiptHandlesResponse errorResponse = ProxyAdminProtoConverter.toDescribePopReceiptHandlesError(
+                    AdminCode.ADMIN_CODE_INTERNAL_ERROR, "Internal error: " + e.getMessage());
+                responseObserver.onNext(errorResponse);
+                responseObserver.onCompleted();
+            }
+        });
+    }
+
+    /**
+     * Query batch consumption diagnostics, aggregated per client.
+     * RIP-2 M4: DescribeBatchConsumeDiagnostics RPC
+     * <p>
+     * Provides diagnostic information for batch consumption mode, including:
+     * - Per-client unacked message counts and handle counts
+     * - Clients with expired handles (messages about to be redelivered)
+     * - Renewal patterns per client (ChangeInvisibleTime frequency)
+     * - Topic distribution of unacked messages per client
+     * - Client configuration correlation (receiveBatchSize, longPollingTimeout)
+     */
+    public void describeBatchConsumeDiagnostics(DescribeBatchConsumeDiagnosticsRequest request,
+        StreamObserver<DescribeBatchConsumeDiagnosticsResponse> responseObserver) {
+        adminExecutor.execute(() -> {
+            long startTime = System.currentTimeMillis();
+            try {
+                String group = request.getGroup();
+                if (group == null || group.isEmpty()) {
+                    ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_DESCRIBE_BATCH_CONSUME_DIAGNOSTICS,
+                        System.currentTimeMillis() - startTime);
+                    DescribeBatchConsumeDiagnosticsResponse errorResponse =
+                        ProxyAdminProtoConverter.toDescribeBatchConsumeDiagnosticsError(
+                            AdminCode.ADMIN_CODE_BAD_REQUEST, "group is required");
+                    responseObserver.onNext(errorResponse);
+                    responseObserver.onCompleted();
+                    return;
+                }
+
+                String topic = request.getTopic();
+                String clientId = request.getClientId();
+                int pageNum = request.getPageNum() > 0 ? request.getPageNum() : 1;
+                int pageSize = enforcePageSize(request.getPageSize());
+
+                BatchConsumeDiagnosticResult result = adminClientService.describeBatchConsumeDiagnostics(
+                    group, topic, clientId, pageNum, pageSize);
+                DescribeBatchConsumeDiagnosticsResponse response =
+                    ProxyAdminProtoConverter.toDescribeBatchConsumeDiagnosticsResponse(result);
+                responseObserver.onNext(response);
+                responseObserver.onCompleted();
+
+                ProxyAdminMetricsManager.recordSuccess(ProxyAdminMetricsManager.METHOD_DESCRIBE_BATCH_CONSUME_DIAGNOSTICS,
+                    System.currentTimeMillis() - startTime);
+                log.debug("describeBatchConsumeDiagnostics completed in {}ms, group={}, clientId={}, total={}",
+                    System.currentTimeMillis() - startTime, group, clientId, result.getTotal());
+            } catch (Exception e) {
+                log.error("describeBatchConsumeDiagnostics failed", e);
+                ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_DESCRIBE_BATCH_CONSUME_DIAGNOSTICS,
+                    System.currentTimeMillis() - startTime);
+                DescribeBatchConsumeDiagnosticsResponse errorResponse =
+                    ProxyAdminProtoConverter.toDescribeBatchConsumeDiagnosticsError(
+                        AdminCode.ADMIN_CODE_INTERNAL_ERROR, "Internal error: " + e.getMessage());
+                responseObserver.onNext(errorResponse);
+                responseObserver.onCompleted();
+            }
+        });
+    }
+
+    /**
+     * Subscribe to route change events (Server Streaming RPC).
+     * <p>
+     * Dashboard subscribes to receive real-time notifications when:
+     * - Brokers go online or offline (BROKER_ONLINE / BROKER_OFFLINE)
+     * - Queue counts change (QUEUE_SCALE)
+     * - Topics are created or deleted (TOPIC_CREATE / TOPIC_DELETE)
+     * <p>
+     * An initial ROUTE_SNAPSHOT event is sent for each cached topic upon subscription,
+     * providing the client with the current routing state.
+     * <p>
+     * The stream remains open until the client disconnects or the server shuts down.
+     */
+    public void subscribeRouteEvents(SubscribeRouteEventsRequest request,
+        StreamObserver<SubscribeRouteEventsResponse> responseObserver) {
+        long startTime = System.currentTimeMillis();
+        try {
+            if (routeChangeNotifier == null) {
+                ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_SUBSCRIBE_ROUTE_EVENTS,
+                    System.currentTimeMillis() - startTime);
+                SubscribeRouteEventsResponse errorResponse = SubscribeRouteEventsResponse.newBuilder()
+                    .setCode(AdminCode.ADMIN_CODE_INTERNAL_ERROR)
+                    .setMessage("Route change notifier is not available")
+                    .build();
+                responseObserver.onNext(errorResponse);
+                responseObserver.onCompleted();
+                return;
+            }
+
+            // Parse topic filter from request
+            List<String> topics = new ArrayList<>(request.getTopicsList());
+
+            // Parse event type filter from request
+            List<RouteChangeEventType> eventTypes = new ArrayList<>();
+            for (apache.rocketmq.proxy.admin.v1.RouteChangeEventType protoType : request.getEventTypesList()) {
+                RouteChangeEventType internalType = fromProtoRouteChangeEventType(protoType);
+                if (internalType != null) {
+                    eventTypes.add(internalType);
+                }
+            }
+
+            routeChangeNotifier.subscribe(topics, eventTypes, responseObserver);
+
+            ProxyAdminMetricsManager.recordSuccess(ProxyAdminMetricsManager.METHOD_SUBSCRIBE_ROUTE_EVENTS,
+                System.currentTimeMillis() - startTime);
+            log.info("subscribeRouteEvents registered, topics filter: {}, event types filter: {}",
+                topics, eventTypes);
+        } catch (Exception e) {
+            log.error("subscribeRouteEvents failed", e);
+            ProxyAdminMetricsManager.recordError(ProxyAdminMetricsManager.METHOD_SUBSCRIBE_ROUTE_EVENTS,
+                System.currentTimeMillis() - startTime);
+            SubscribeRouteEventsResponse errorResponse = SubscribeRouteEventsResponse.newBuilder()
+                .setCode(AdminCode.ADMIN_CODE_INTERNAL_ERROR)
+                .setMessage("Internal error: " + e.getMessage())
+                .build();
+            responseObserver.onNext(errorResponse);
+            responseObserver.onCompleted();
+        }
+    }
+
+    /**
+     * Convert proto RouteChangeEventType to internal RouteChangeEventType.
+     */
+    private RouteChangeEventType fromProtoRouteChangeEventType(
+        apache.rocketmq.proxy.admin.v1.RouteChangeEventType protoType) {
+        if (protoType == null || protoType == apache.rocketmq.proxy.admin.v1.RouteChangeEventType.ROUTE_CHANGE_EVENT_TYPE_UNSPECIFIED) {
+            return null;
+        }
+        switch (protoType) {
+            case BROKER_ONLINE:
+                return RouteChangeEventType.BROKER_ONLINE;
+            case BROKER_OFFLINE:
+                return RouteChangeEventType.BROKER_OFFLINE;
+            case QUEUE_SCALE:
+                return RouteChangeEventType.QUEUE_SCALE;
+            case TOPIC_CREATE:
+                return RouteChangeEventType.TOPIC_CREATE;
+            case TOPIC_DELETE:
+                return RouteChangeEventType.TOPIC_DELETE;
+            case ROUTE_SNAPSHOT:
+                return RouteChangeEventType.ROUTE_SNAPSHOT;
+            default:
+                return null;
+        }
+    }
+
+    /**
      * Shutdown the admin executor.
      */
     public void shutdown() {
+        if (routeChangeNotifier != null) {
+            routeChangeNotifier.shutdown();
+        }
         adminExecutor.shutdown();
         try {
             if (!adminExecutor.awaitTermination(10, TimeUnit.SECONDS)) {

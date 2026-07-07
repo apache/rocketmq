@@ -39,6 +39,12 @@ public class ProxyAdminMetricsManager {
     public static final String METHOD_DESCRIBE_CLIENT = "DescribeClient";
     public static final String METHOD_LIST_CLIENTS_BY_GROUP = "ListClientsByGroup";
     public static final String METHOD_LIST_CLIENTS_BY_TOPIC = "ListClientsByTopic";
+    public static final String METHOD_GET_CONFIG = "GetConfig";
+    public static final String METHOD_UPDATE_CONFIG = "UpdateConfig";
+    public static final String METHOD_DISCONNECT_CLIENT = "DisconnectClient";
+    public static final String METHOD_DESCRIBE_POP_RECEIPT_HANDLES = "DescribePopReceiptHandles";
+    public static final String METHOD_DESCRIBE_BATCH_CONSUME_DIAGNOSTICS = "DescribeBatchConsumeDiagnostics";
+    public static final String METHOD_SUBSCRIBE_ROUTE_EVENTS = "SubscribeRouteEvents";
 
     // Status values
     public static final String STATUS_SUCCESS = "success";

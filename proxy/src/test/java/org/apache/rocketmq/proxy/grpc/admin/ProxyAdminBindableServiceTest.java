@@ -51,7 +51,7 @@ public class ProxyAdminBindableServiceTest {
 
     @Test
     public void testServiceDescriptorHasFourMethods() {
-        assertEquals(4, ProxyAdminBindableService.SERVICE_DESCRIPTOR.getMethods().size());
+        assertEquals(10, ProxyAdminBindableService.SERVICE_DESCRIPTOR.getMethods().size());
     }
 
     @Test
@@ -62,11 +62,17 @@ public class ProxyAdminBindableServiceTest {
         for (io.grpc.MethodDescriptor<?, ?> method : methods) {
             methodNames.add(method.getBareMethodName());
         }
-        assertEquals(4, methodNames.size());
+        assertEquals(10, methodNames.size());
         assertTrue(methodNames.contains("ListClients"));
         assertTrue(methodNames.contains("DescribeClient"));
         assertTrue(methodNames.contains("ListClientsByGroup"));
         assertTrue(methodNames.contains("ListClientsByTopic"));
+        assertTrue(methodNames.contains("GetConfig"));
+        assertTrue(methodNames.contains("UpdateConfig"));
+        assertTrue(methodNames.contains("DisconnectClient"));
+        assertTrue(methodNames.contains("DescribePopReceiptHandles"));
+        assertTrue(methodNames.contains("DescribeBatchConsumeDiagnostics"));
+        assertTrue(methodNames.contains("SubscribeRouteEvents"));
     }
 
     @Test
@@ -98,6 +104,48 @@ public class ProxyAdminBindableServiceTest {
     }
 
     @Test
+    public void testGetConfigMethod() {
+        assertNotNull(ProxyAdminBindableService.GET_CONFIG_METHOD);
+        assertEquals(MethodDescriptor.MethodType.UNARY,
+            ProxyAdminBindableService.GET_CONFIG_METHOD.getType());
+    }
+
+    @Test
+    public void testUpdateConfigMethod() {
+        assertNotNull(ProxyAdminBindableService.UPDATE_CONFIG_METHOD);
+        assertEquals(MethodDescriptor.MethodType.UNARY,
+            ProxyAdminBindableService.UPDATE_CONFIG_METHOD.getType());
+    }
+
+    @Test
+    public void testDisconnectClientMethod() {
+        assertNotNull(ProxyAdminBindableService.DISCONNECT_CLIENT_METHOD);
+        assertEquals(MethodDescriptor.MethodType.UNARY,
+            ProxyAdminBindableService.DISCONNECT_CLIENT_METHOD.getType());
+    }
+
+    @Test
+    public void testDescribePopReceiptHandlesMethod() {
+        assertNotNull(ProxyAdminBindableService.DESCRIBE_POP_RECEIPT_HANDLES_METHOD);
+        assertEquals(MethodDescriptor.MethodType.UNARY,
+            ProxyAdminBindableService.DESCRIBE_POP_RECEIPT_HANDLES_METHOD.getType());
+    }
+
+    @Test
+    public void testDescribeBatchConsumeDiagnosticsMethod() {
+        assertNotNull(ProxyAdminBindableService.DESCRIBE_BATCH_CONSUME_DIAGNOSTICS_METHOD);
+        assertEquals(MethodDescriptor.MethodType.UNARY,
+            ProxyAdminBindableService.DESCRIBE_BATCH_CONSUME_DIAGNOSTICS_METHOD.getType());
+    }
+
+    @Test
+    public void testSubscribeRouteEventsMethod() {
+        assertNotNull(ProxyAdminBindableService.SUBSCRIBE_ROUTE_EVENTS_METHOD);
+        assertEquals(MethodDescriptor.MethodType.SERVER_STREAMING,
+            ProxyAdminBindableService.SUBSCRIBE_ROUTE_EVENTS_METHOD.getType());
+    }
+
+    @Test
     public void testBindServiceContainsExpectedMethodNames() {
         ProxyAdminGrpcService mockDelegate = Mockito.mock(ProxyAdminGrpcService.class);
         ProxyAdminBindableService service = new ProxyAdminBindableService(mockDelegate);
@@ -107,11 +155,17 @@ public class ProxyAdminBindableServiceTest {
         for (ServerMethodDefinition<?, ?> serverMethod : definition.getMethods()) {
             methodNames.add(serverMethod.getMethodDescriptor().getBareMethodName());
         }
-        assertEquals(4, methodNames.size());
+        assertEquals(10, methodNames.size());
         assertTrue(methodNames.contains("ListClients"));
         assertTrue(methodNames.contains("DescribeClient"));
         assertTrue(methodNames.contains("ListClientsByGroup"));
         assertTrue(methodNames.contains("ListClientsByTopic"));
+        assertTrue(methodNames.contains("GetConfig"));
+        assertTrue(methodNames.contains("UpdateConfig"));
+        assertTrue(methodNames.contains("DisconnectClient"));
+        assertTrue(methodNames.contains("DescribePopReceiptHandles"));
+        assertTrue(methodNames.contains("DescribeBatchConsumeDiagnostics"));
+        assertTrue(methodNames.contains("SubscribeRouteEvents"));
     }
 
     @Test

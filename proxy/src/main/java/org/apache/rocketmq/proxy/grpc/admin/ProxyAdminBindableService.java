@@ -33,6 +33,18 @@ import apache.rocketmq.proxy.admin.v1.ListClientsByGroupRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsByGroupResponse;
 import apache.rocketmq.proxy.admin.v1.ListClientsByTopicRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
+import apache.rocketmq.proxy.admin.v1.GetConfigRequest;
+import apache.rocketmq.proxy.admin.v1.GetConfigResponse;
+import apache.rocketmq.proxy.admin.v1.UpdateConfigRequest;
+import apache.rocketmq.proxy.admin.v1.UpdateConfigResponse;
+import apache.rocketmq.proxy.admin.v1.DisconnectClientRequest;
+import apache.rocketmq.proxy.admin.v1.DisconnectClientResponse;
+import apache.rocketmq.proxy.admin.v1.DescribePopReceiptHandlesRequest;
+import apache.rocketmq.proxy.admin.v1.DescribePopReceiptHandlesResponse;
+import apache.rocketmq.proxy.admin.v1.DescribeBatchConsumeDiagnosticsRequest;
+import apache.rocketmq.proxy.admin.v1.DescribeBatchConsumeDiagnosticsResponse;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsRequest;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsResponse;
 
 /**
  * BindableService wrapper for ProxyAdminGrpcService.
@@ -89,12 +101,72 @@ public class ProxyAdminBindableService implements BindableService {
         .setResponseMarshaller(ProxyAdminMarshaller.LIST_CLIENTS_BY_TOPIC_RESP_MARSHALLER)
         .build();
 
+    /** Method descriptor for GetConfig RPC, reusable by both server and client. */
+    public static final MethodDescriptor<GetConfigRequest, GetConfigResponse>
+        GET_CONFIG_METHOD = MethodDescriptor.<GetConfigRequest, GetConfigResponse>newBuilder()
+        .setType(MethodDescriptor.MethodType.UNARY)
+        .setFullMethodName(MethodDescriptor.generateFullMethodName(SERVICE_NAME, "GetConfig"))
+        .setRequestMarshaller(ProxyAdminMarshaller.GET_CONFIG_REQ_MARSHALLER)
+        .setResponseMarshaller(ProxyAdminMarshaller.GET_CONFIG_RESP_MARSHALLER)
+        .build();
+
+    /** Method descriptor for UpdateConfig RPC, reusable by both server and client. */
+    public static final MethodDescriptor<UpdateConfigRequest, UpdateConfigResponse>
+        UPDATE_CONFIG_METHOD = MethodDescriptor.<UpdateConfigRequest, UpdateConfigResponse>newBuilder()
+        .setType(MethodDescriptor.MethodType.UNARY)
+        .setFullMethodName(MethodDescriptor.generateFullMethodName(SERVICE_NAME, "UpdateConfig"))
+        .setRequestMarshaller(ProxyAdminMarshaller.UPDATE_CONFIG_REQ_MARSHALLER)
+        .setResponseMarshaller(ProxyAdminMarshaller.UPDATE_CONFIG_RESP_MARSHALLER)
+        .build();
+
+    /** Method descriptor for DisconnectClient RPC, reusable by both server and client. */
+    public static final MethodDescriptor<DisconnectClientRequest, DisconnectClientResponse>
+        DISCONNECT_CLIENT_METHOD = MethodDescriptor.<DisconnectClientRequest, DisconnectClientResponse>newBuilder()
+        .setType(MethodDescriptor.MethodType.UNARY)
+        .setFullMethodName(MethodDescriptor.generateFullMethodName(SERVICE_NAME, "DisconnectClient"))
+        .setRequestMarshaller(ProxyAdminMarshaller.DISCONNECT_CLIENT_REQ_MARSHALLER)
+        .setResponseMarshaller(ProxyAdminMarshaller.DISCONNECT_CLIENT_RESP_MARSHALLER)
+        .build();
+
+    /** Method descriptor for DescribePopReceiptHandles RPC, reusable by both server and client. */
+    public static final MethodDescriptor<DescribePopReceiptHandlesRequest, DescribePopReceiptHandlesResponse>
+        DESCRIBE_POP_RECEIPT_HANDLES_METHOD = MethodDescriptor.<DescribePopReceiptHandlesRequest, DescribePopReceiptHandlesResponse>newBuilder()
+        .setType(MethodDescriptor.MethodType.UNARY)
+        .setFullMethodName(MethodDescriptor.generateFullMethodName(SERVICE_NAME, "DescribePopReceiptHandles"))
+        .setRequestMarshaller(ProxyAdminMarshaller.DESCRIBE_POP_RECEIPT_HANDLES_REQ_MARSHALLER)
+        .setResponseMarshaller(ProxyAdminMarshaller.DESCRIBE_POP_RECEIPT_HANDLES_RESP_MARSHALLER)
+        .build();
+
+    /** Method descriptor for DescribeBatchConsumeDiagnostics RPC, reusable by both server and client. */
+    public static final MethodDescriptor<DescribeBatchConsumeDiagnosticsRequest, DescribeBatchConsumeDiagnosticsResponse>
+        DESCRIBE_BATCH_CONSUME_DIAGNOSTICS_METHOD = MethodDescriptor.<DescribeBatchConsumeDiagnosticsRequest, DescribeBatchConsumeDiagnosticsResponse>newBuilder()
+        .setType(MethodDescriptor.MethodType.UNARY)
+        .setFullMethodName(MethodDescriptor.generateFullMethodName(SERVICE_NAME, "DescribeBatchConsumeDiagnostics"))
+        .setRequestMarshaller(ProxyAdminMarshaller.DESCRIBE_BATCH_CONSUME_DIAGNOSTICS_REQ_MARSHALLER)
+        .setResponseMarshaller(ProxyAdminMarshaller.DESCRIBE_BATCH_CONSUME_DIAGNOSTICS_RESP_MARSHALLER)
+        .build();
+
+    /** Method descriptor for SubscribeRouteEvents RPC (SERVER_STREAMING), reusable by both server and client. */
+    public static final MethodDescriptor<SubscribeRouteEventsRequest, SubscribeRouteEventsResponse>
+        SUBSCRIBE_ROUTE_EVENTS_METHOD = MethodDescriptor.<SubscribeRouteEventsRequest, SubscribeRouteEventsResponse>newBuilder()
+        .setType(MethodDescriptor.MethodType.SERVER_STREAMING)
+        .setFullMethodName(MethodDescriptor.generateFullMethodName(SERVICE_NAME, "SubscribeRouteEvents"))
+        .setRequestMarshaller(ProxyAdminMarshaller.SUBSCRIBE_ROUTE_EVENTS_REQ_MARSHALLER)
+        .setResponseMarshaller(ProxyAdminMarshaller.SUBSCRIBE_ROUTE_EVENTS_RESP_MARSHALLER)
+        .build();
+
     /** Service descriptor for ProxyClientAdminService. */
     public static final ServiceDescriptor SERVICE_DESCRIPTOR = ServiceDescriptor.newBuilder(SERVICE_NAME)
         .addMethod(LIST_CLIENTS_METHOD)
         .addMethod(DESCRIBE_CLIENT_METHOD)
         .addMethod(LIST_CLIENTS_BY_GROUP_METHOD)
         .addMethod(LIST_CLIENTS_BY_TOPIC_METHOD)
+        .addMethod(GET_CONFIG_METHOD)
+        .addMethod(UPDATE_CONFIG_METHOD)
+        .addMethod(DISCONNECT_CLIENT_METHOD)
+        .addMethod(DESCRIBE_POP_RECEIPT_HANDLES_METHOD)
+        .addMethod(DESCRIBE_BATCH_CONSUME_DIAGNOSTICS_METHOD)
+        .addMethod(SUBSCRIBE_ROUTE_EVENTS_METHOD)
         .build();
 
     private final ProxyAdminGrpcService delegate;
@@ -115,6 +187,18 @@ public class ProxyAdminBindableService implements BindableService {
                 (request, responseObserver) -> delegate.listClientsByGroup(request, responseObserver)))
             .addMethod(LIST_CLIENTS_BY_TOPIC_METHOD, ServerCalls.asyncUnaryCall(
                 (request, responseObserver) -> delegate.listClientsByTopic(request, responseObserver)))
+            .addMethod(GET_CONFIG_METHOD, ServerCalls.asyncUnaryCall(
+                (request, responseObserver) -> delegate.getConfig(request, responseObserver)))
+            .addMethod(UPDATE_CONFIG_METHOD, ServerCalls.asyncUnaryCall(
+                (request, responseObserver) -> delegate.updateConfig(request, responseObserver)))
+            .addMethod(DISCONNECT_CLIENT_METHOD, ServerCalls.asyncUnaryCall(
+                (request, responseObserver) -> delegate.disconnectClient(request, responseObserver)))
+            .addMethod(DESCRIBE_POP_RECEIPT_HANDLES_METHOD, ServerCalls.asyncUnaryCall(
+                (request, responseObserver) -> delegate.describePopReceiptHandles(request, responseObserver)))
+            .addMethod(DESCRIBE_BATCH_CONSUME_DIAGNOSTICS_METHOD, ServerCalls.asyncUnaryCall(
+                (request, responseObserver) -> delegate.describeBatchConsumeDiagnostics(request, responseObserver)))
+            .addMethod(SUBSCRIBE_ROUTE_EVENTS_METHOD, ServerCalls.asyncServerStreamingCall(
+                (request, responseObserver) -> delegate.subscribeRouteEvents(request, responseObserver)))
             .build();
     }
 }

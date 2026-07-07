@@ -19,6 +19,9 @@ package org.apache.rocketmq.proxy.service.receipt;
 
 import com.google.common.base.Stopwatch;
 import io.netty.channel.Channel;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -45,7 +48,10 @@ import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.common.BatchConsumeGroupSummary;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
+import org.apache.rocketmq.proxy.common.PopReceiptHandleGroupSummary;
+import org.apache.rocketmq.proxy.common.PopReceiptHandleInfo;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
@@ -302,5 +308,215 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
 
     protected ProxyContext createContext(String actionName) {
         return ProxyContext.createForInner(this.getClass().getSimpleName() + actionName);
+    }
+
+    /**
+     * Query POP receipt handles for diagnostics.
+     * <p>
+     * Scans all receipt handle groups matching the given consumer group name,
+     * collects diagnostic information for each unacked message handle,
+     * and returns a summary with paginated handle details.
+     * <p>
+     * This method is thread-safe: it iterates over the ConcurrentHashMap without
+     * locking, providing a weakly consistent snapshot of the current state.
+     */
+    @Override
+    public PopReceiptHandleDiagnosticResult describePopReceiptHandles(String group, String topic, int pageNum, int pageSize) {
+        List<PopReceiptHandleInfo> allHandles = new ArrayList<>();
+        long totalRenewTimes = 0;
+        long totalRenewRetryTimes = 0;
+        int expiredHandles = 0;
+        int totalHandleCount = 0;
+        int totalMessageCount = 0;
+
+        long currentTime = System.currentTimeMillis();
+
+        // Scan all receipt handle groups matching the group name
+        for (Map.Entry<ReceiptHandleGroupKey, ReceiptHandleGroup> entry : receiptHandleGroupMap.entrySet()) {
+            ReceiptHandleGroupKey key = entry.getKey();
+            if (!key.getGroup().equals(group)) {
+                continue;
+            }
+
+            ReceiptHandleGroup handleGroup = entry.getValue();
+            totalHandleCount += handleGroup.getHandleNum();
+            totalMessageCount += handleGroup.getMsgCount();
+
+            // Scan handles in this group
+            handleGroup.scan((msgID, handleStr, messageReceiptHandle) -> {
+                // Apply topic filter if specified
+                if (topic != null && !topic.isEmpty() && !topic.equals(messageReceiptHandle.getTopic())) {
+                    return;
+                }
+
+                // Decode receipt handle to get invisible time info
+                ReceiptHandle receiptHandle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
+                boolean isExpired = receiptHandle.getNextVisibleTime() <= currentTime;
+
+                PopReceiptHandleInfo info = new PopReceiptHandleInfo(
+                    messageReceiptHandle.getGroup(),
+                    messageReceiptHandle.getTopic(),
+                    messageReceiptHandle.getQueueId(),
+                    messageReceiptHandle.getMessageId(),
+                    messageReceiptHandle.getQueueOffset(),
+                    messageReceiptHandle.getReconsumeTimes(),
+                    messageReceiptHandle.getRenewTimes(),
+                    messageReceiptHandle.getRenewRetryTimes(),
+                    messageReceiptHandle.getConsumeTimestamp(),
+                    messageReceiptHandle.getReceiptHandleStr(),
+                    receiptHandle.getNextVisibleTime(),
+                    receiptHandle.getInvisibleTime(),
+                    receiptHandle.getBrokerName(),
+                    isExpired
+                );
+                allHandles.add(info);
+            });
+        }
+
+        // Aggregate summary statistics
+        for (PopReceiptHandleInfo info : allHandles) {
+            totalRenewTimes += info.getRenewTimes();
+            totalRenewRetryTimes += info.getRenewRetryTimes();
+            if (info.isExpired()) {
+                expiredHandles++;
+            }
+        }
+
+        PopReceiptHandleGroupSummary summary = new PopReceiptHandleGroupSummary(
+            group, totalHandleCount, totalMessageCount,
+            totalRenewTimes, totalRenewRetryTimes, expiredHandles
+        );
+
+        // Apply pagination
+        long total = allHandles.size();
+        int fromIndex = (pageNum - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, allHandles.size());
+        List<PopReceiptHandleInfo> pagedHandles;
+        if (fromIndex >= allHandles.size()) {
+            pagedHandles = new ArrayList<>();
+        } else {
+            pagedHandles = allHandles.subList(fromIndex, toIndex);
+        }
+
+        return new PopReceiptHandleDiagnosticResult(summary, pagedHandles, total, pageNum, pageSize);
+    }
+
+    /**
+     * Query batch consumption diagnostics, aggregated per client channel.
+     * <p>
+     * Scans all receipt handle groups matching the given consumer group,
+     * aggregates unacked message statistics per Channel, and returns
+     * a summary with paginated per-channel diagnostic data.
+     * <p>
+     * This method is thread-safe: it iterates over the ConcurrentHashMap without
+     * locking, providing a weakly consistent snapshot of the current state.
+     */
+    @Override
+    public BatchConsumeDiagnosticResult describeBatchConsumeDiagnostics(String group, String topic, int pageNum, int pageSize) {
+        long currentTime = System.currentTimeMillis();
+
+        // Aggregate per-channel data: Channel -> aggregated stats
+        Map<Channel, ChannelAggregator> channelAggregators = new HashMap<>();
+
+        // Scan all receipt handle groups matching the group name
+        for (Map.Entry<ReceiptHandleGroupKey, ReceiptHandleGroup> entry : receiptHandleGroupMap.entrySet()) {
+            ReceiptHandleGroupKey key = entry.getKey();
+            if (!key.getGroup().equals(group)) {
+                continue;
+            }
+
+            Channel channel = key.getChannel();
+            ReceiptHandleGroup handleGroup = entry.getValue();
+            ChannelAggregator aggregator = channelAggregators.computeIfAbsent(channel, ChannelAggregator::new);
+
+            // Scan handles in this group
+            handleGroup.scan((msgID, handleStr, messageReceiptHandle) -> {
+                // Apply topic filter if specified
+                if (topic != null && !topic.isEmpty() && !topic.equals(messageReceiptHandle.getTopic())) {
+                    return;
+                }
+
+                // Decode receipt handle to check expiration
+                ReceiptHandle receiptHandle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
+                boolean isExpired = receiptHandle.getNextVisibleTime() <= currentTime;
+
+                aggregator.unackedMessageCount++;
+                aggregator.totalRenewTimes += messageReceiptHandle.getRenewTimes();
+                aggregator.totalRenewRetryTimes += messageReceiptHandle.getRenewRetryTimes();
+                if (isExpired) {
+                    aggregator.expiredHandleCount++;
+                }
+                aggregator.topicDistribution.merge(messageReceiptHandle.getTopic(), 1, Integer::sum);
+            });
+
+            // Handle count is per-group (one ReceiptHandleGroup per Channel+group key)
+            aggregator.unackedHandleCount += handleGroup.getHandleNum();
+        }
+
+        // Build per-channel data list
+        List<ChannelBatchConsumeData> allChannelData = new ArrayList<>();
+        int totalUnackedMessages = 0;
+        int totalUnackedHandles = 0;
+        int totalExpiredHandles = 0;
+        long totalRenewTimes = 0;
+        long totalRenewRetryTimes = 0;
+
+        for (ChannelAggregator aggregator : channelAggregators.values()) {
+            // Skip channels with no unacked messages (after topic filter)
+            if (aggregator.unackedMessageCount == 0) {
+                continue;
+            }
+
+            allChannelData.add(new ChannelBatchConsumeData(
+                aggregator.channel,
+                aggregator.unackedMessageCount,
+                aggregator.unackedHandleCount,
+                aggregator.totalRenewTimes,
+                aggregator.totalRenewRetryTimes,
+                aggregator.expiredHandleCount,
+                new HashMap<>(aggregator.topicDistribution)
+            ));
+
+            totalUnackedMessages += aggregator.unackedMessageCount;
+            totalUnackedHandles += aggregator.unackedHandleCount;
+            totalExpiredHandles += aggregator.expiredHandleCount;
+            totalRenewTimes += aggregator.totalRenewTimes;
+            totalRenewRetryTimes += aggregator.totalRenewRetryTimes;
+        }
+
+        BatchConsumeGroupSummary summary = new BatchConsumeGroupSummary(
+            group, allChannelData.size(), totalUnackedMessages,
+            totalUnackedHandles, totalExpiredHandles, totalRenewTimes, totalRenewRetryTimes
+        );
+
+        // Apply pagination
+        long total = allChannelData.size();
+        int fromIndex = (pageNum - 1) * pageSize;
+        int toIndex = Math.min(fromIndex + pageSize, allChannelData.size());
+        List<ChannelBatchConsumeData> pagedData;
+        if (fromIndex >= allChannelData.size()) {
+            pagedData = new ArrayList<>();
+        } else {
+            pagedData = allChannelData.subList(fromIndex, toIndex);
+        }
+
+        return new BatchConsumeDiagnosticResult(summary, pagedData, total, pageNum, pageSize);
+    }
+
+    /**
+     * Internal aggregator for per-channel statistics during batch diagnostics scan.
+     */
+    private static class ChannelAggregator {
+        final Channel channel;
+        int unackedMessageCount = 0;
+        int unackedHandleCount = 0;
+        long totalRenewTimes = 0;
+        long totalRenewRetryTimes = 0;
+        int expiredHandleCount = 0;
+        final Map<String, Integer> topicDistribution = new HashMap<>();
+
+        ChannelAggregator(Channel channel) {
+            this.channel = channel;
+        }
     }
 }
