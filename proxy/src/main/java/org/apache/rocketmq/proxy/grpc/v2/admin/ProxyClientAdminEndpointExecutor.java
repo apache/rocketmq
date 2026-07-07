@@ -179,13 +179,14 @@ public class ProxyClientAdminEndpointExecutor {
                 this.contextFactory.create(this.normalizeMetadata(headers), requiredProtoRequest)
             );
             endpointCall.execute(ctx, request, requiredResponseObserver, requiredResponseFactory);
-        } catch (RuntimeException | Error t) {
+        } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             if (requiredResponseFactory == null) {
                 ProxyClientAdminGrpcErrorWriter.write(requiredResponseObserver, t);
                 return;
             }
             this.endpointHandler.handle(requiredResponseObserver, () -> {
-                throw t;
+                return this.throwUnchecked(t);
             }, requiredResponseFactory);
         }
     }
@@ -278,6 +279,22 @@ public class ProxyClientAdminEndpointExecutor {
             throw new IllegalArgumentException("responseObserver is required");
         }
         return responseObserver;
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        if (t instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private <T> T throwUnchecked(Throwable t) {
+        ProxyClientAdminEndpointExecutor.<RuntimeException>throwAny(t);
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <E extends Throwable> void throwAny(Throwable t) throws E {
+        throw (E) t;
     }
 
     private interface EndpointCall<D, T, R> {

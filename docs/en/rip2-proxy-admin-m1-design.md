@@ -162,7 +162,9 @@ small and tested boundary to call:
   adapter boundary without running the admin request pipeline. Once the DTO is
   built, it creates the `ProxyContext`, delegates to
   `ProxyClientAdminEndpointHandler`, and routes context or request-adapter
-  failures through the same status conversion path. It offers explicit-header
+  failures through the same status conversion path. If an adapter or context
+  factory boundary surfaces an interrupt, the executor restores the thread
+  interrupted flag before writing the status response. It offers explicit-header
   overloads for tests and adapter seams, plus no-header
   overloads that read `GrpcConstants.METADATA` from
   `Context.current()` to match normal generated gRPC method bodies. It also

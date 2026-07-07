@@ -327,6 +327,38 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void mapsInterruptedRequestAdapterFailureToStatusResponseAndRestoresInterrupt() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        try {
+            executor.listClients(
+                headers,
+                protoRequest,
+                ignored -> {
+                    throwUnchecked(new InterruptedException("request adapter interrupted"));
+                    return null;
+                },
+                responseObserver,
+                responseFactory
+            );
+
+            ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+            verify(responseObserver).onNext(responseCaptor.capture());
+            verify(responseObserver).onCompleted();
+            assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("request adapter interrupted");
+            assertThat(responseCaptor.getValue().getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            verify(contextFactory, never()).create(any(), any());
+            verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void mapsContextFactoryFailureToStatusResponseAfterAdaptingRequest() {
         ProxyClientAdminEndpointExecutor executor =
             new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
@@ -789,5 +821,14 @@ public class ProxyClientAdminEndpointExecutorTest {
         private Object getBody() {
             return body;
         }
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminEndpointExecutorTest.<RuntimeException>throwAny(interruptedException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
     }
 }
