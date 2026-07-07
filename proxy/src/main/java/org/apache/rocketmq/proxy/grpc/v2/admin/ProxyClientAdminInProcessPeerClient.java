@@ -89,9 +89,7 @@ public class ProxyClientAdminInProcessPeerClient implements ProxyClientAdminPeer
     }
 
     private void restoreInterruptedStatus(Throwable t) {
-        if (t instanceof InterruptedException) {
-            Thread.currentThread().interrupt();
-        }
+        ProxyClientAdminInterrupts.restoreInterruptedStatus(t);
     }
 
     private static String requireProxyId(String proxyId) {

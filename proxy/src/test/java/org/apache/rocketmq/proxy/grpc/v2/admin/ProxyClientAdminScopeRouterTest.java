@@ -22,6 +22,7 @@ import apache.rocketmq.v2.Code;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -362,6 +363,31 @@ public class ProxyClientAdminScopeRouterTest {
 
             assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
             assertThat(result.getStatus().getMessage()).contains("local activity interrupted");
+            assertThat(result.getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void listClientsLocalProxyRestoresInterruptWhenActivityFailureWrapsInterruptedException() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(activity, coordinator);
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.LOCAL_PROXY)
+            .build();
+        when(activity.listClients(ctx, request)).thenThrow(
+            new CompletionException(new InterruptedException("wrapped local activity interrupted"))
+        );
+
+        try {
+            ProxyClientAdminResult<ProxyClientPage> result = router.listClients(ctx, request);
+
+            assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(result.getStatus().getMessage()).contains("wrapped local activity interrupted");
             assertThat(result.getBody()).isNull();
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {

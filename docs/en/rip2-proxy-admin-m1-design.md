@@ -131,12 +131,13 @@ small and tested boundary to call:
   `ProxyClientAdminActivity` and routes explicitly enabled coordinator scopes to
   `ProxyClientAdminCoordinatorService` after authorization. Router-level
   exception-to-status conversion preserves the interrupted flag before returning
-  status-only error results.
+  status-only error results, including interrupts wrapped by async adapter
+  exceptions.
 - `ProxyClientAdminCoordinatorService` owns the proto-free cross-proxy fan-out
   and merge semantics for `ALL_PROXIES` and `PROXY_ID`. Coordinator-level
   exception-to-status conversion also preserves the interrupted flag, including
-  direct peer-discovery or fan-out interruption before a peer response is
-  available.
+  direct or async-wrapped peer-discovery or fan-out interruption before a peer
+  response is available.
 - `ProxyClientAdminRequestConverter` centralizes the future proto-to-internal
   DTO mapping from public scalar fields, so generated unary methods can keep
   request conversion out of the RPC method bodies once `ProxyAdminService`
@@ -718,9 +719,10 @@ Recommended implementation order after public API ownership is confirmed:
    used for coordinator scopes. The in-process peer client converts local executor
    failures into peer error responses so coordinator fan-out receives a bounded
    peer result instead of an exception escaping the peer-client boundary, while
-   preserving the interrupted flag when local executor work is interrupted. The
-   default local peer executor now delegates peer-local work directly to the
-   shared `ClientAdminService` instead of re-entering the public admin activity,
+   preserving the interrupted flag when local executor work is interrupted
+   directly or through an async wrapper. The default local peer executor now
+   delegates peer-local work directly to the shared `ClientAdminService` instead
+   of re-entering the public admin activity,
    so coordinator fan-out reuses local read semantics without duplicating the
    public admin authorization or metrics boundary. The older activity-backed
    constructor remains available for tests and alternate embeddings.

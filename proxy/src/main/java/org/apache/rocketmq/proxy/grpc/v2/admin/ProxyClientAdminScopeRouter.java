@@ -416,8 +416,6 @@ public class ProxyClientAdminScopeRouter {
     }
 
     private void restoreInterruptedStatus(Throwable t) {
-        if (t instanceof InterruptedException) {
-            Thread.currentThread().interrupt();
-        }
+        ProxyClientAdminInterrupts.restoreInterruptedStatus(t);
     }
 }

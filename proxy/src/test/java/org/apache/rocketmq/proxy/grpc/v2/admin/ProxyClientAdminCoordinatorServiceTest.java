@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -631,6 +632,37 @@ public class ProxyClientAdminCoordinatorServiceTest {
 
             assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
             assertThat(result.getStatus().getMessage()).contains("peer discovery interrupted");
+            assertThat(result.getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void listClientsAllProxiesRestoresInterruptWhenPeerDiscoveryFailureWrapsInterruptedException() {
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminPeerClient() {
+            @Override
+            public List<String> listProxyIds() {
+                throw new CompletionException(new InterruptedException("wrapped peer discovery interrupted"));
+            }
+
+            @Override
+            public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+                ProxyClientAdminPeerRequest request) {
+                return ProxyClientAdminPeerResponse.success(proxyId, page(Collections.emptyList(), ""));
+            }
+        };
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        try {
+            ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+            assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(result.getStatus().getMessage()).contains("wrapped peer discovery interrupted");
             assertThat(result.getBody()).isNull();
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {

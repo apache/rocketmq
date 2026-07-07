@@ -21,6 +21,7 @@ import apache.rocketmq.v2.ClientType;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
@@ -131,6 +132,34 @@ public class ProxyClientAdminInProcessPeerClientTest {
             assertThat(response.getBody()).isNull();
             assertThat(response.getErrorCode()).isEqualTo("INTERNAL_SERVER_ERROR");
             assertThat(response.getErrorMessage()).contains("in-process peer executor interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void inProcessPeerClientRestoresInterruptWhenExecutorFailureWrapsInterruptedException() {
+        ProxyClientAdminPeerLocalExecutor executor = mock(ProxyClientAdminPeerLocalExecutor.class);
+        when(executor.getLocalProxyId()).thenReturn("proxy-a");
+        when(executor.execute(any(), any())).thenThrow(
+            new CompletionException(new InterruptedException("wrapped in-process peer executor interrupted"))
+        );
+        Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
+        executors.put("proxy-a", executor);
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminInProcessPeerClient(executors);
+        ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .build();
+
+        try {
+            ProxyClientAdminPeerResponse<?> response = peerClient.execute(proxyContext(), " proxy-a ", request);
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getBody()).isNull();
+            assertThat(response.getErrorCode()).isEqualTo("INTERNAL_SERVER_ERROR");
+            assertThat(response.getErrorMessage()).contains("wrapped in-process peer executor interrupted");
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
         } finally {
             Thread.interrupted();
