@@ -80,22 +80,35 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
      * All backing ConsumeQueue stores that are loaded and maintained.
      *
      * <p>Populated in the constructor based on {@code combineCQLoadingCQTypes}:
-     * - file-based {@link ConsumeQueueStore}
-     * - the RocksDB-based {@link RocksDBConsumeQueueStore}
+     * - one file-based {@link ConsumeQueueStore}
+     * - one RocksDB-based {@link RocksDBConsumeQueueStore}
      *
      * <p>At least one entry is required (the constructor throws if both are missing).
      * No element is ever removed — once added, a store remains part of the list for the
      * lifetime of the {@code CombineConsumeQueueStore}.
      */
     private final LinkedList<AbstractConsumeQueueStore> innerConsumeQueueStoreList = new LinkedList<>();
+
+    /**
+     * The only file-based consume queue store instance.
+     * It will be added to innerConsumeQueueStoreList after creation.
+     */
     private final ConsumeQueueStore consumeQueueStore;
+    /**
+     * The only RocksDB-based consume queue store instance.
+     * It will be added to innerConsumeQueueStoreList after creation.
+     */
     private final RocksDBConsumeQueueStore rocksDBConsumeQueueStore;
 
+    // The reference of current consume queue store.
     // current read consume queue store.
+    // It is consumeQueueStore by default config.
     private final AbstractConsumeQueueStore currentReadStore;
-    // consume queue store for assign offset and increase offset.
-    private final AbstractConsumeQueueStore assignOffsetStore;
 
+    // The reference of consume queue store for offset operations.
+    // consume queue store for assign offset and increase offset.
+    // It is consumeQueueStore by default config.
+    private final AbstractConsumeQueueStore assignOffsetStore;
 
     /**
      * ConsumeQueueStore recovers through commitlog dispatch, so it needs to search which file in the commitLog to
@@ -108,7 +121,6 @@ public class CombineConsumeQueueStore implements ConsumeQueueStoreInterface {
      * extraSearchCommitLogFilesForRecovery to control whether to continue searching forward for positions that might
      * satisfy the recovery of other stores.
      */
-
     private final AtomicInteger extraSearchCommitLogFilesForRecovery;
 
     public CombineConsumeQueueStore(DefaultMessageStore messageStore) {
