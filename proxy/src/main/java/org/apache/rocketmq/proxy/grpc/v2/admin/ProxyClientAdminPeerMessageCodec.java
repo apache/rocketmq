@@ -173,6 +173,9 @@ public final class ProxyClientAdminPeerMessageCodec {
             && (StringUtils.isNotBlank(payload.errorCode) || StringUtils.isNotBlank(payload.errorMessage))) {
             throw new IllegalArgumentException("peer success response must not include error fields");
         }
+        if (!Boolean.TRUE.equals(payload.success) && StringUtils.isBlank(payload.errorCode)) {
+            throw new IllegalArgumentException("peer error response code is required");
+        }
         if (!Boolean.TRUE.equals(payload.success) && (payload.page != null || payload.client != null)) {
             throw new IllegalArgumentException("peer error response must not include body");
         }

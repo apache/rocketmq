@@ -71,13 +71,16 @@ public class ProxyClientAdminPeerGrpcServiceTest {
         StringValue request = StringValue.of("{\"operation\":\"LIST_CLIENTS\"}");
         ProxyClientAdminContextFactory contextFactory = mock(ProxyClientAdminContextFactory.class);
         ProxyClientAdminPeerMessageHandler messageHandler = mock(ProxyClientAdminPeerMessageHandler.class);
+        String responseMessage = ProxyClientAdminPeerMessageCodec.getInstance().encodePageResponse(
+            ProxyClientAdminPeerResponse.error("proxy-a", "NOT_FOUND", "missing")
+        );
         when(contextFactory.create(headers, request)).thenReturn(ctx);
-        when(messageHandler.execute(ctx, request.getValue())).thenReturn("{\"success\":false}");
+        when(messageHandler.execute(ctx, request.getValue())).thenReturn(responseMessage);
         ProxyClientAdminPeerGrpcService service = newService(contextFactory, messageHandler);
 
         StringValue response = service.execute(headers, request);
 
-        assertThat(response.getValue()).isEqualTo("{\"success\":false}");
+        assertThat(response.getValue()).isEqualTo(responseMessage);
         verify(contextFactory).create(same(headers), same(request));
         verify(messageHandler).execute(same(ctx), same(request.getValue()));
     }

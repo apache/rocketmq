@@ -1011,6 +1011,7 @@ Internal adapter tests cover:
 - in-process peer transport request/response bounds around local handler
   invocation.
 - peer error response code length rejection before peer payload encoding.
+- peer error response envelope rejection when `success=false` omits `errorCode`.
 - peer success response rejection when a peer payload also carries error fields.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.

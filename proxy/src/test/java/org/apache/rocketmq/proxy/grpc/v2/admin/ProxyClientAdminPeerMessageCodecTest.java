@@ -257,6 +257,15 @@ public class ProxyClientAdminPeerMessageCodecTest {
             .hasMessageContaining("peer response message length exceeds");
     }
 
+    @Test
+    public void responseMessageRequirementRejectsErrorResponseWithoutErrorCode() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":false,\"errorMessage\":\"missing code\"}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().requireResponseMessage(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer error response code is required");
+    }
+
     private static ProxyClientInfo client(String clientId, ClientType clientType, String proxyId) {
         return new ProxyClientInfo(
             clientId,
