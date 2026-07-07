@@ -114,6 +114,7 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
             }
             return responseMessage;
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return this.encodeError(
                 requiredProxyId,
                 this.statusCode(t),
@@ -177,6 +178,12 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
             return ((StatusException) t).getStatus();
         }
         return null;
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        if (t instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private Metadata buildMetadata(ProxyContext ctx) {

@@ -209,7 +209,9 @@ small and tested boundary to call:
   builds `ProxyContext` through the same admin context factory and delegates to
   the peer message handler. `ProxyClientAdminPeerGrpcTransport` is the matching
   client-side raw message transport over `Channel` and the service method
-  descriptor. These classes do not add or modify any public RocketMQ protobuf
+  descriptor. The transport maps peer gRPC status failures into peer error
+  responses and restores the interrupted flag when the underlying invocation is
+  interrupted. These classes do not add or modify any public RocketMQ protobuf
   service definitions.
 - When cross-proxy query support is enabled, `DefaultGrpcMessagingActivity`
   creates the internal peer gRPC service beside the local coordinator peer

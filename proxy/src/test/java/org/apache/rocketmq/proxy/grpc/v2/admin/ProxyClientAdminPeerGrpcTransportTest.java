@@ -333,6 +333,33 @@ public class ProxyClientAdminPeerGrpcTransportTest {
     }
 
     @Test
+    public void grpcTransportRestoresInterruptWhenInvokerIsInterrupted() {
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", mock(Channel.class));
+        ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(
+            channels,
+            (channel, requestMessage, metadata) -> {
+                throwUnchecked(new InterruptedException("peer call interrupted"));
+                return null;
+            }
+        );
+
+        try {
+            String responseMessage = transport.execute(proxyContext(), "proxy-a", "{\"operation\":\"LIST_CLIENTS\"}");
+            ProxyClientAdminPeerResponse<ProxyClientPage> response =
+                ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(responseMessage);
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getProxyId()).isEqualTo("proxy-a");
+            assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+            assertThat(response.getErrorMessage()).contains("peer call interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void grpcTransportRejectsInvalidChannelMap() {
         assertThatThrownBy(() -> new ProxyClientAdminPeerGrpcTransport(null, new RecordingInvoker("{}")))
             .isInstanceOf(IllegalArgumentException.class)
@@ -404,6 +431,10 @@ public class ProxyClientAdminPeerGrpcTransportTest {
 
     private static void throwUnchecked(StatusException statusException) {
         ProxyClientAdminPeerGrpcTransportTest.<RuntimeException>throwAny(statusException);
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminPeerGrpcTransportTest.<RuntimeException>throwAny(interruptedException);
     }
 
     @SuppressWarnings("unchecked")
