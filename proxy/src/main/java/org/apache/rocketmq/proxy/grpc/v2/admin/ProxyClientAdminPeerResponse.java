@@ -90,14 +90,23 @@ public class ProxyClientAdminPeerResponse<T> {
         if (normalizedErrorCode.length() > MAX_ERROR_CODE_LENGTH) {
             throw new IllegalArgumentException("errorCode length exceeds " + MAX_ERROR_CODE_LENGTH);
         }
-        if (isNonErrorCode(normalizedErrorCode)) {
+        Code parsedCode = parseErrorCode(normalizedErrorCode);
+        if (isNonErrorCode(parsedCode)) {
             throw new IllegalArgumentException("errorCode must not be OK or UNRECOGNIZED");
         }
         return normalizedErrorCode;
     }
 
-    private static boolean isNonErrorCode(String errorCode) {
-        return Code.OK.name().equals(errorCode) || Code.UNRECOGNIZED.name().equals(errorCode);
+    private static Code parseErrorCode(String errorCode) {
+        try {
+            return Code.valueOf(errorCode);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Unsupported errorCode: " + errorCode, e);
+        }
+    }
+
+    private static boolean isNonErrorCode(Code errorCode) {
+        return errorCode == Code.OK || errorCode == Code.UNRECOGNIZED;
     }
 
     private static String normalizeErrorMessage(String errorMessage) {

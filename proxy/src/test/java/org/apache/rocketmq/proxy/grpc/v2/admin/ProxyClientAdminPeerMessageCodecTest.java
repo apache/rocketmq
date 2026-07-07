@@ -282,6 +282,16 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void responseMessageRequirementRejectsErrorResponseWithUnknownErrorCode() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().requireResponseMessage(
+            "{\"proxyId\":\"proxy-a\",\"success\":false,\"errorCode\":\"NOT_A_CODE\"}"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported peer error response code")
+            .hasMessageContaining("NOT_A_CODE");
+    }
+
+    @Test
     public void responseMessageRequirementRejectsResponseWithoutProxyId() {
         String message = "{\"success\":false,\"errorCode\":\"NOT_FOUND\",\"errorMessage\":\"missing\"}";
 

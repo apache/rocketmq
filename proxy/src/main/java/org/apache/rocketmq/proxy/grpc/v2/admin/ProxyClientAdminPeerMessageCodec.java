@@ -193,8 +193,11 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (!Boolean.TRUE.equals(payload.success) && StringUtils.isBlank(payload.errorCode)) {
             throw new IllegalArgumentException("peer error response code is required");
         }
-        if (!Boolean.TRUE.equals(payload.success) && this.isNonErrorCode(payload.errorCode)) {
-            throw new IllegalArgumentException("peer error response code must not be OK or UNRECOGNIZED");
+        if (!Boolean.TRUE.equals(payload.success)) {
+            Code errorCode = this.parsePeerErrorCode(payload.errorCode);
+            if (this.isNonErrorCode(errorCode)) {
+                throw new IllegalArgumentException("peer error response code must not be OK or UNRECOGNIZED");
+            }
         }
         if (!Boolean.TRUE.equals(payload.success) && (payload.page != null || payload.client != null)) {
             throw new IllegalArgumentException("peer error response must not include body");
@@ -202,10 +205,17 @@ public final class ProxyClientAdminPeerMessageCodec {
         return payload;
     }
 
-    private boolean isNonErrorCode(String errorCode) {
+    private Code parsePeerErrorCode(String errorCode) {
         String normalizedErrorCode = StringUtils.trimToEmpty(errorCode);
-        return Code.OK.name().equals(normalizedErrorCode)
-            || Code.UNRECOGNIZED.name().equals(normalizedErrorCode);
+        try {
+            return Code.valueOf(normalizedErrorCode);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("Unsupported peer error response code: " + normalizedErrorCode, e);
+        }
+    }
+
+    private boolean isNonErrorCode(Code errorCode) {
+        return errorCode == Code.OK || errorCode == Code.UNRECOGNIZED;
     }
 
     private ResponsePayload parseResponsePayloadBody(String message) {

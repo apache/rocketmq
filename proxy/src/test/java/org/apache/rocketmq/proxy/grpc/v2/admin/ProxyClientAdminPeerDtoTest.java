@@ -288,4 +288,12 @@ public class ProxyClientAdminPeerDtoTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("errorCode must not be OK or UNRECOGNIZED");
     }
+
+    @Test
+    public void peerResponseRejectsUnknownErrorCodes() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerResponse.error("proxy-a", "NOT_A_CODE", "bad code"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported errorCode")
+            .hasMessageContaining("NOT_A_CODE");
+    }
 }
