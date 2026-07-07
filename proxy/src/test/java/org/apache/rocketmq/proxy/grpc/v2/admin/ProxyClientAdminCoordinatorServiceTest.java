@@ -437,6 +437,24 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsUnsupportedClientTypeBeforePeerDiscovery() {
+        CountingDiscoveryPeerClient peerClient = new CountingDiscoveryPeerClient();
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setClientType(ClientType.UNRECOGNIZED)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Unsupported client type").contains("UNRECOGNIZED");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.discoveryCount).isEqualTo(0);
+        assertThat(peerClient.executeCount).isEqualTo(0);
+    }
+
+    @Test
     public void listClientsAllProxiesFailsFastOnPeerError() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", "proxy-b");
         peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));
@@ -1168,6 +1186,24 @@ public class ProxyClientAdminCoordinatorServiceTest {
             ProxyClientAdminPeerRequest request) {
             this.executeCount++;
             return ProxyClientAdminPeerResponse.success("proxy-a", page(Collections.emptyList(), ""));
+        }
+    }
+
+    private static class CountingDiscoveryPeerClient implements ProxyClientAdminPeerClient {
+        private int discoveryCount;
+        private int executeCount;
+
+        @Override
+        public List<String> listProxyIds() {
+            this.discoveryCount++;
+            return Collections.singletonList("proxy-a");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            this.executeCount++;
+            return ProxyClientAdminPeerResponse.success(proxyId, page(Collections.emptyList(), ""));
         }
     }
 

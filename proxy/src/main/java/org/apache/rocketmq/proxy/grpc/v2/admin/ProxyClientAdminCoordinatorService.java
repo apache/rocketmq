@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
+import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -248,7 +249,14 @@ public class ProxyClientAdminCoordinatorService {
             && effectiveQuery.getScope() != ProxyClientScope.PROXY_ID) {
             throw this.unsupportedCoordinatorScope(effectiveQuery.getScope());
         }
+        this.validateClientType(effectiveQuery.getClientType());
         return effectiveQuery;
+    }
+
+    private void validateClientType(ClientType clientType) {
+        if (clientType == ClientType.UNRECOGNIZED) {
+            throw new IllegalArgumentException("Unsupported client type: " + clientType);
+        }
     }
 
     private ProxyClientAdminPeerRequest toPeerRequest(ProxyClientQuery query, String peerPageToken,
