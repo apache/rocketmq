@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -103,6 +104,20 @@ public class ProxyClientAdminPeerGrpcTargetParserTest {
         assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse("proxy-a=127.0.0.1"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("host:port");
+    }
+
+    @Test
+    public void parseRejectsOverlongProxyIdsAndHosts() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(
+            StringUtils.repeat("p", 256) + "=127.0.0.1:8080"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
+        assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(
+            "proxy-a=" + StringUtils.repeat("h", 256) + ":8080"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("host length exceeds 255");
     }
 
     @Test

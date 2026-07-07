@@ -20,6 +20,9 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientAdminPeerGrpcTarget {
+    private static final int MAX_PROXY_ID_LENGTH = 255;
+    private static final int MAX_HOST_LENGTH = 255;
+
     private final String proxyId;
     private final String host;
     private final int port;
@@ -50,6 +53,9 @@ public class ProxyClientAdminPeerGrpcTarget {
         if (normalizedProxyId == null) {
             throw new IllegalArgumentException("proxyId is required");
         }
+        if (normalizedProxyId.length() > MAX_PROXY_ID_LENGTH) {
+            throw new IllegalArgumentException("proxyId length exceeds " + MAX_PROXY_ID_LENGTH);
+        }
         return normalizedProxyId;
     }
 
@@ -57,6 +63,9 @@ public class ProxyClientAdminPeerGrpcTarget {
         String normalizedHost = StringUtils.trimToNull(host);
         if (normalizedHost == null) {
             throw new IllegalArgumentException("host is required");
+        }
+        if (normalizedHost.length() > MAX_HOST_LENGTH) {
+            throw new IllegalArgumentException("host length exceeds " + MAX_HOST_LENGTH);
         }
         return normalizedHost;
     }

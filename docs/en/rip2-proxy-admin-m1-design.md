@@ -264,7 +264,10 @@ small and tested boundary to call:
   secure channel options, and deeper production channel tuning remain follow-up
   work. Static target lists must include the local `proxyName`; otherwise
   startup rejects the configuration so `ALL_PROXIES` queries do not silently omit
-  clients connected to the coordinator proxy itself.
+  clients connected to the coordinator proxy itself. Static peer target parsing
+  also caps configured proxy ids and host names at 255 characters before a
+  target can enter the channel map, keeping configuration-derived peer ids out
+  of unbounded coordinator tokens and peer error payloads.
 - `ProxyStartup.createGrpcBindableServices(...)` now has a tested package-private
   overload for appending additional `BindableService` instances after the
   messaging service while reusing the same `DefaultGrpcMessagingActivity`. It
@@ -972,6 +975,7 @@ Internal adapter tests cover:
 - peer gRPC transport request and response payload bounds before and after the
   network call.
 - peer error response message truncation before peer payload encoding.
+- static peer gRPC target rejection for overlong proxy ids and host names.
 - missing request DTO, missing identifiers, not found, unsupported scope,
   authorization failure, and unexpected runtime error mapping.
 
@@ -996,9 +1000,10 @@ failures/errors and Maven exits successfully.
 On 2026-07-08 Asia/Shanghai time, after refreshing `upstream/develop` to commit
 `0e4ccf1b6`, adding admin metrics scope labels, and hardening peer gRPC request
 and response payload bounds including service-side request and response
-validation, peer error-message truncation, plus coordinator stale-peer-page and
-stale-peer-next-token checks, the admin endpoint, coordinator, startup wiring,
-metrics, and authorization suite was revalidated with:
+validation, peer error-message truncation, static peer-target length bounds,
+plus coordinator stale-peer-page and stale-peer-next-token checks, the admin
+endpoint, coordinator, startup wiring, metrics, and authorization suite was
+revalidated with:
 
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
@@ -1007,7 +1012,7 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 484, Failures: 0, Errors: 0, Skipped: 0` and ended
+The run reported `Tests run: 485, Failures: 0, Errors: 0, Skipped: 0` and ended
 with `BUILD SUCCESS`. The same JDK 17 JaCoCo instrumentation noise appeared in
 the log, but Maven exited successfully.
 
