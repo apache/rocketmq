@@ -499,6 +499,26 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void initShutsDownCreatedStaticGrpcPeerChannelsWhenLaterChannelCreationFails() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ConfigurationManager.getProxyConfig().setProxyClientAdminPeerGrpcTargets(
+            "proxy-a=127.0.0.1:8080,proxy-b=127.0.0.2:8081"
+        );
+        ManagedChannel proxyAChannel = mock(ManagedChannel.class);
+        ThrowingPeerGrpcChannelDefaultGrpcMessagingActivity.setProxyAChannel(proxyAChannel);
+        try {
+            assertThatThrownBy(() -> new ThrowingPeerGrpcChannelDefaultGrpcMessagingActivity(this.messagingProcessor))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("channel init failed");
+        } finally {
+            ThrowingPeerGrpcChannelDefaultGrpcMessagingActivity.reset();
+        }
+
+        verify(proxyAChannel).shutdownNow();
+    }
+
+    @Test
     public void initTrimsConfiguredProxyNameForLocalProxyId() {
         String originalProxyName = ConfigurationManager.getProxyConfig().getProxyName();
         try {
@@ -889,6 +909,30 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
             ProxyClientAdminActivity proxyClientAdminActivity, ExecutorService executorService, long timeoutMillis) {
             CAPTURED_EXECUTOR.set(executorService);
             throw new IllegalStateException("peer init failed");
+        }
+    }
+
+    private static class ThrowingPeerGrpcChannelDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        private static final ThreadLocal<ManagedChannel> PROXY_A_CHANNEL = new ThreadLocal<>();
+
+        private ThrowingPeerGrpcChannelDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        private static void setProxyAChannel(ManagedChannel channel) {
+            PROXY_A_CHANNEL.set(channel);
+        }
+
+        private static void reset() {
+            PROXY_A_CHANNEL.remove();
+        }
+
+        @Override
+        protected ManagedChannel createProxyClientAdminPeerGrpcChannel(ProxyClientAdminPeerGrpcTarget target) {
+            if ("proxy-a".equals(target.getProxyId())) {
+                return PROXY_A_CHANNEL.get();
+            }
+            throw new IllegalStateException("channel init failed");
         }
     }
 }

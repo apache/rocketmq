@@ -45,6 +45,7 @@ import io.grpc.Channel;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -289,12 +290,29 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected Map<String, Channel> createProxyClientAdminPeerGrpcChannels(
         List<ProxyClientAdminPeerGrpcTarget> targets) {
         Map<String, Channel> channels = new LinkedHashMap<>();
-        for (ProxyClientAdminPeerGrpcTarget target : targets) {
-            ManagedChannel channel = this.createProxyClientAdminPeerGrpcChannel(target);
-            channels.put(target.getProxyId(), channel);
-            this.appendShutdown(() -> this.shutdownProxyClientAdminPeerGrpcChannel(channel));
+        List<ManagedChannel> createdChannels = new ArrayList<>();
+        try {
+            for (ProxyClientAdminPeerGrpcTarget target : targets) {
+                ManagedChannel channel = this.createProxyClientAdminPeerGrpcChannel(target);
+                channels.put(target.getProxyId(), channel);
+                createdChannels.add(channel);
+                this.appendShutdown(() -> this.shutdownProxyClientAdminPeerGrpcChannel(channel));
+            }
+        } catch (RuntimeException | Error e) {
+            this.shutdownCreatedProxyClientAdminPeerGrpcChannels(createdChannels);
+            throw e;
         }
         return channels;
+    }
+
+    private void shutdownCreatedProxyClientAdminPeerGrpcChannels(List<ManagedChannel> channels) {
+        for (ManagedChannel channel : channels) {
+            try {
+                channel.shutdownNow();
+            } catch (Throwable e) {
+                log.warn("shutdown created proxy client admin peer grpc channel failed.", e);
+            }
+        }
     }
 
     protected ManagedChannel createProxyClientAdminPeerGrpcChannel(ProxyClientAdminPeerGrpcTarget target) {
