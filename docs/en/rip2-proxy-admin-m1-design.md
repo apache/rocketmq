@@ -908,7 +908,7 @@ failures/errors and Maven exits successfully.
 
 The read model includes a JMH benchmark in
 `ProxyClientReadServiceBenchmark`. It builds synthetic in-memory client
-metadata and measures the steady-state query paths that M1 exposes:
+metadata and measures the steady-state local query paths that M1 exposes:
 
 - unfiltered first-page listing.
 - unfiltered next-page listing.
@@ -917,10 +917,22 @@ metadata and measures the steady-state query paths that M1 exposes:
 - proxy-id-filtered listing.
 - direct client lookup.
 
+The cross-proxy coordinator experiment also includes
+`ProxyClientAdminCoordinatorServiceBenchmark`. It builds synthetic per-proxy
+read models behind a real `ProxyClientAdminCoordinatorService` and
+`ProxyClientAdminPeerLocalExecutor` fan-out path, then measures:
+
+- all-proxies first-page listing.
+- all-proxies next-page listing.
+- all-proxies group-filtered listing.
+- all-proxies topic-filtered listing.
+- targeted `PROXY_ID` listing.
+- all-proxies client lookup.
+
 The default benchmark parameters model 1,000,000 clients, 1,000 groups, 10,000
-topics, and 100 proxy ids. The benchmark annotations run one fork, three
-one-second warmup iterations, five five-second measurement iterations, and four
-worker threads.
+topics, 100 proxy ids, and a coordinator page size of 1,000. The benchmark
+annotations run one fork, three one-second warmup iterations, five five-second
+measurement iterations, and four worker threads.
 
 Use the focused unit test to verify the benchmark setup and guard the synthetic
 data assumptions:
@@ -928,7 +940,7 @@ data assumptions:
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  -Dtest=ProxyClientReadServiceBenchmarkTest \
+  -Dtest=ProxyClientReadServiceBenchmarkTest,ProxyClientAdminCoordinatorServiceBenchmarkTest \
   -DfailIfNoTests=false test -DskipITs
 ```
 
@@ -946,6 +958,17 @@ mvn -pl proxy -DskipTests -DskipITs dependency:build-classpath \
   org.openjdk.jmh.Main \
   org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark \
   -p clientCount=1000 -p groupCount=10 -p topicCount=20 -p proxyCount=5 \
+  -wi 0 -i 1 -r 100ms -w 100ms -f 1 -t 1
+```
+
+Use the same launcher shape for the coordinator benchmark:
+
+```bash
+"$JAVA_HOME/bin/java" \
+  -cp "proxy/target/test-classes:proxy/target/classes:$(cat /tmp/rocketmq-proxy-test-classpath.txt)" \
+  org.openjdk.jmh.Main \
+  org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminCoordinatorServiceBenchmark \
+  -p clientCount=1000 -p groupCount=10 -p topicCount=20 -p proxyCount=5 -p pageSize=100 \
   -wi 0 -i 1 -r 100ms -w 100ms -f 1 -t 1
 ```
 
@@ -975,6 +998,15 @@ Use the same classpath preparation and omit the `-p`, `-wi`, `-i`, `-r`, `-w`,
   -cp "proxy/target/test-classes:proxy/target/classes:$(cat /tmp/rocketmq-proxy-test-classpath.txt)" \
   org.openjdk.jmh.Main \
   org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark
+```
+
+To run the full default coordinator scenario, use:
+
+```bash
+"$JAVA_HOME/bin/java" \
+  -cp "proxy/target/test-classes:proxy/target/classes:$(cat /tmp/rocketmq-proxy-test-classpath.txt)" \
+  org.openjdk.jmh.Main \
+  org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminCoordinatorServiceBenchmark
 ```
 
 The Maven `exec:java` path is useful for non-forked debugging, but the
