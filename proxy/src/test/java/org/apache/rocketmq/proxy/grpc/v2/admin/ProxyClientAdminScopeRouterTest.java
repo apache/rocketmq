@@ -180,6 +180,33 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsInvalidPageTokenBeforeAuthorization() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageToken("v1:Y2xpZW50LWE")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Invalid coordinator page token");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(coordinator, never()).listClients(any(), any());
+    }
+
+    @Test
     public void listClientsAllProxiesRecordsSingleMetricsResult() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
@@ -738,6 +765,35 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void listClientsByGroupAllProxiesRejectsInvalidPageTokenBeforeAuthorization() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsByGroupRequest request = ProxyClientAdminListClientsByGroupRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setGroup("group-a")
+            .setPageToken("v1:Y2xpZW50LWE")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClientsByGroup(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Invalid coordinator page token");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(coordinator, never()).listClientsByGroup(any(), any(), any());
+    }
+
+    @Test
     public void listClientsByGroupProxyIdDelegatesToCoordinator() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
@@ -811,6 +867,36 @@ public class ProxyClientAdminScopeRouterTest {
 
         assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(result.getStatus().getMessage()).contains("topic is required");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(coordinator, never()).listClientsByTopic(any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByTopicProxyIdRejectsInvalidPageTokenBeforeAuthorization() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsByTopicRequest request = ProxyClientAdminListClientsByTopicRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .setTopic("topic-a")
+            .setPageToken("v2:Y2xpZW50LWE")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClientsByTopic(ctx, request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("Invalid page token");
         assertThat(result.getBody()).isNull();
         verify(authorizationService, never()).authorize(any(), any(), any());
         verify(coordinator, never()).listClientsByTopic(any(), any(), any());

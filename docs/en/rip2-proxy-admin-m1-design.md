@@ -806,6 +806,9 @@ Coordinator-scope requests also validate required identifiers before
 authorization: `DescribeClient` requires `client_id`, group queries require
 `group`, and topic queries require `topic`. This keeps malformed cross-proxy
 requests from touching ACL state or peer routing.
+List-style coordinator-scope requests also decode and validate page tokens and
+client-type filters before authorization, so malformed opaque tokens are
+reported as `BAD_REQUEST` without invoking ACL or peers.
 Topic-level or group-level ACL can be discussed later if the community wants
 more granular visibility controls.
 
@@ -839,9 +842,10 @@ router. The router records exactly one operation metric for a coordinator-scope
 request after mapping the final status to `OK`, `BAD_REQUEST`, `NOT_FOUND`,
 `UNAUTHORIZED`, `TIMEOUT`, `TOO_MANY_REQUESTS`, `NOT_IMPLEMENTED`, or
 `INTERNAL_ERROR`. That includes the `BAD_REQUEST` result when cross-proxy scopes
-are disabled by configuration or missing required identifiers, the `TIMEOUT`
-result when peer fan-out or discovery exceeds its bounded wait, and explicit
-peer throttling or not-implemented results from the internal gRPC transport.
+are disabled by configuration, missing required identifiers, or malformed page
+tokens, the `TIMEOUT` result when peer fan-out or discovery exceeds its bounded
+wait, and explicit peer throttling or not-implemented results from the internal
+gRPC transport.
 Wrapped asynchronous exceptions are classified by their cause chain so
 bad-request, not-found, authorization, and timeout outcomes are not counted as
 internal errors.
@@ -897,6 +901,9 @@ transport failures remain
 For coordinator scopes, required identifiers are checked by the scope router
 before authorization and fan-out, so malformed `ALL_PROXIES` or `PROXY_ID`
 requests map to `BAD_REQUEST` without touching ACL state or peer routing.
+List-style coordinator requests also validate page tokens and client-type
+filters before authorization, keeping request-shape errors on the same
+pre-authorization path.
 
 ## Compatibility
 
@@ -971,6 +978,8 @@ Internal adapter tests cover:
   advance beyond the input peer cursor or that rewind behind the returned page.
 - scope-router coordinator pre-validation for missing client id, group, and
   topic before authorization or peer routing.
+- scope-router coordinator pre-validation for malformed page tokens before
+  authorization or peer routing.
 - activity-level static peer gRPC fan-out wiring for `ALL_PROXIES`, covering
   `DefaultGrpcMessagingActivity` construction with configured peer targets and
   real internal peer gRPC services.
@@ -1229,8 +1238,8 @@ and startup service-registration seams are already covered in this branch.
    or invoking coordinator/peer code. Continue to ignore `proxy_id` for
    `PROXY_SCOPE_LOCAL_PROXY` and `PROXY_SCOPE_ALL_PROXIES`.
 8. Preserve coordinator-scope pre-validation before authorization: missing
-   `client_id`, `group`, or `topic` should return `BAD_REQUEST` without invoking
-   ACL or peer fan-out.
+   `client_id`, `group`, `topic`, malformed page tokens, or unsupported client
+   type filters should return `BAD_REQUEST` without invoking ACL or peer fan-out.
 9. Require an explicit, nonblank `proxyName` before enabling cross-proxy
    coordinator scopes. `LOCAL_PROXY` can keep the default local-only fallback, but
    `ALL_PROXIES` and `PROXY_ID` must use stable, configured peer ids.

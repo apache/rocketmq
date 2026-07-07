@@ -106,7 +106,10 @@ public class ProxyClientAdminScopeRouter {
                         ClientAdminOperation.LIST_CLIENTS,
                         scope,
                         ctx,
-                        () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
+                        () -> {
+                            this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
+                            requiredRequest.toQuery();
+                        },
                         () -> this.requireCoordinatorService().listClients(ctx, requiredRequest.toQuery())
                     );
                 case PROXY_ID:
@@ -114,7 +117,10 @@ public class ProxyClientAdminScopeRouter {
                         ClientAdminOperation.LIST_CLIENTS,
                         scope,
                         ctx,
-                        () -> this.requireCoordinatorScopesEnabled(requiredRequest.getScope()),
+                        () -> {
+                            this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
+                            requiredRequest.toQuery();
+                        },
                         () -> this.requireCoordinatorService().listClients(ctx, requiredRequest.toQuery())
                     );
                 default:
@@ -185,6 +191,7 @@ public class ProxyClientAdminScopeRouter {
                         () -> {
                             this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                             this.requireGroup(requiredRequest.getGroup());
+                            requiredRequest.toQuery();
                         },
                         () -> this.requireCoordinatorService().listClientsByGroup(
                             ctx,
@@ -200,6 +207,7 @@ public class ProxyClientAdminScopeRouter {
                         () -> {
                             this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                             this.requireGroup(requiredRequest.getGroup());
+                            requiredRequest.toQuery();
                         },
                         () -> this.requireCoordinatorService().listClientsByGroup(
                             ctx,
@@ -237,6 +245,7 @@ public class ProxyClientAdminScopeRouter {
                         () -> {
                             this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                             this.requireTopic(requiredRequest.getTopic());
+                            requiredRequest.toQuery();
                         },
                         () -> this.requireCoordinatorService().listClientsByTopic(
                             ctx,
@@ -252,6 +261,7 @@ public class ProxyClientAdminScopeRouter {
                         () -> {
                             this.requireCoordinatorScopesEnabled(requiredRequest.getScope());
                             this.requireTopic(requiredRequest.getTopic());
+                            requiredRequest.toQuery();
                         },
                         () -> this.requireCoordinatorService().listClientsByTopic(
                             ctx,
