@@ -246,6 +246,76 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void listClientsAllProxiesRecordsTooManyRequestsMetricsResult() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            (subject, operation, sourceIp) -> {
+            },
+            metricsRecorder
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        when(coordinator.listClients(any(), any(ProxyClientQuery.class))).thenReturn(
+            new ProxyClientAdminResult<>(
+                ResponseBuilder.getInstance().buildStatus(Code.TOO_MANY_REQUESTS, "peer is throttled"),
+                null
+            )
+        );
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.TOO_MANY_REQUESTS);
+        assertThat(result.getBody()).isNull();
+        verify(metricsRecorder).record(
+            eq(ClientAdminOperation.LIST_CLIENTS),
+            eq(ClientAdminMetricsResult.TOO_MANY_REQUESTS),
+            anyLong()
+        );
+        verifyNoMoreInteractions(metricsRecorder);
+    }
+
+    @Test
+    public void listClientsAllProxiesRecordsNotImplementedMetricsResult() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            (subject, operation, sourceIp) -> {
+            },
+            metricsRecorder
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        when(coordinator.listClients(any(), any(ProxyClientQuery.class))).thenReturn(
+            new ProxyClientAdminResult<>(
+                ResponseBuilder.getInstance().buildStatus(Code.NOT_IMPLEMENTED, "peer service is not implemented"),
+                null
+            )
+        );
+
+        ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.NOT_IMPLEMENTED);
+        assertThat(result.getBody()).isNull();
+        verify(metricsRecorder).record(
+            eq(ClientAdminOperation.LIST_CLIENTS),
+            eq(ClientAdminMetricsResult.NOT_IMPLEMENTED),
+            anyLong()
+        );
+        verifyNoMoreInteractions(metricsRecorder);
+    }
+
+    @Test
     public void listClientsLocalProxyDoesNotRunRouterAuthorizationOrMetrics() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);

@@ -322,6 +322,12 @@ public class ProxyClientAdminScopeRouter {
         if (code == Code.PROXY_TIMEOUT) {
             return ClientAdminMetricsResult.TIMEOUT;
         }
+        if (code == Code.TOO_MANY_REQUESTS) {
+            return ClientAdminMetricsResult.TOO_MANY_REQUESTS;
+        }
+        if (code == Code.NOT_IMPLEMENTED) {
+            return ClientAdminMetricsResult.NOT_IMPLEMENTED;
+        }
         return ClientAdminMetricsResult.INTERNAL_ERROR;
     }
 

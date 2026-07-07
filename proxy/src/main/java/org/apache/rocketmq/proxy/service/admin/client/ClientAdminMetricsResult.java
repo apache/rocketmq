@@ -22,5 +22,7 @@ public enum ClientAdminMetricsResult {
     NOT_FOUND,
     UNAUTHORIZED,
     TIMEOUT,
+    TOO_MANY_REQUESTS,
+    NOT_IMPLEMENTED,
     INTERNAL_ERROR
 }
