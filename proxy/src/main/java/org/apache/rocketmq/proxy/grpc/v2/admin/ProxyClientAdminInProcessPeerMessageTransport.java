@@ -84,6 +84,10 @@ public class ProxyClientAdminInProcessPeerMessageTransport implements ProxyClien
         if (handler == null) {
             return this.encodeError(requiredProxyId, Code.NOT_FOUND, "Proxy not found: " + requiredProxyId);
         }
+        String requiredRequestMessage = StringUtils.trimToNull(requestMessage);
+        if (requiredRequestMessage == null) {
+            return this.encodeError(requiredProxyId, Code.BAD_REQUEST, "peer request message is required");
+        }
         try {
             String responseMessage = StringUtils.trimToNull(handler.execute(ctx, requestMessage));
             if (responseMessage == null) {
