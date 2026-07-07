@@ -40,6 +40,8 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ProxyClientAdminCoordinatorServiceTest {
 
@@ -635,7 +637,12 @@ public class ProxyClientAdminCoordinatorServiceTest {
     @Test
     public void listClientsAllProxiesRejectsPeerErrorWithOkCode() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
-        peerClient.addResponse("proxy-a", ProxyClientAdminPeerResponse.error("proxy-a", "OK", "unexpected ok"));
+        ProxyClientAdminPeerResponse<?> invalidPeerResponse = mock(ProxyClientAdminPeerResponse.class);
+        when(invalidPeerResponse.getProxyId()).thenReturn("proxy-a");
+        when(invalidPeerResponse.isSuccess()).thenReturn(false);
+        when(invalidPeerResponse.getErrorCode()).thenReturn("OK");
+        when(invalidPeerResponse.getErrorMessage()).thenReturn("unexpected ok");
+        peerClient.addResponse("proxy-a", invalidPeerResponse);
         ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
         ProxyClientQuery query = ProxyClientQuery.newBuilder()
             .setScope(ProxyClientScope.ALL_PROXIES)

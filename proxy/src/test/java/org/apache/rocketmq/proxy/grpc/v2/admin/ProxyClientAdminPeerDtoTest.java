@@ -277,4 +277,15 @@ public class ProxyClientAdminPeerDtoTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("errorCode length exceeds 255");
     }
+
+    @Test
+    public void peerResponseRejectsNonErrorCodesForErrorResponse() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerResponse.error("proxy-a", "OK", "not an error"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("errorCode must not be OK or UNRECOGNIZED");
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerResponse.error("proxy-a", "UNRECOGNIZED", "not an error"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("errorCode must not be OK or UNRECOGNIZED");
+    }
 }

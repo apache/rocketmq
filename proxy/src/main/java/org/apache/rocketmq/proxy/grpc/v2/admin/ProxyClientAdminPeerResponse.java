@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
+import apache.rocketmq.v2.Code;
 import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientAdminPeerResponse<T> {
@@ -89,7 +90,14 @@ public class ProxyClientAdminPeerResponse<T> {
         if (normalizedErrorCode.length() > MAX_ERROR_CODE_LENGTH) {
             throw new IllegalArgumentException("errorCode length exceeds " + MAX_ERROR_CODE_LENGTH);
         }
+        if (isNonErrorCode(normalizedErrorCode)) {
+            throw new IllegalArgumentException("errorCode must not be OK or UNRECOGNIZED");
+        }
         return normalizedErrorCode;
+    }
+
+    private static boolean isNonErrorCode(String errorCode) {
+        return Code.OK.name().equals(errorCode) || Code.UNRECOGNIZED.name().equals(errorCode);
     }
 
     private static String normalizeErrorMessage(String errorMessage) {

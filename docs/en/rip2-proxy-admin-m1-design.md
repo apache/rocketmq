@@ -1011,6 +1011,8 @@ Internal adapter tests cover:
 - in-process peer transport request/response bounds around local handler
   invocation.
 - peer error response code length rejection before peer payload encoding.
+- peer error response code rejection when `success=false` uses `OK` or
+  `UNRECOGNIZED`.
 - peer response envelope rejection when the peer `proxyId` is missing.
 - peer error response envelope rejection when `success=false` omits `errorCode`.
 - peer success response rejection when a peer payload also carries error fields.

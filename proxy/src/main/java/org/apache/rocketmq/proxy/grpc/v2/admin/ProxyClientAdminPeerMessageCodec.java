@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
+import apache.rocketmq.v2.Code;
 import com.alibaba.fastjson2.JSON;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -192,10 +193,19 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (!Boolean.TRUE.equals(payload.success) && StringUtils.isBlank(payload.errorCode)) {
             throw new IllegalArgumentException("peer error response code is required");
         }
+        if (!Boolean.TRUE.equals(payload.success) && this.isNonErrorCode(payload.errorCode)) {
+            throw new IllegalArgumentException("peer error response code must not be OK or UNRECOGNIZED");
+        }
         if (!Boolean.TRUE.equals(payload.success) && (payload.page != null || payload.client != null)) {
             throw new IllegalArgumentException("peer error response must not include body");
         }
         return payload;
+    }
+
+    private boolean isNonErrorCode(String errorCode) {
+        String normalizedErrorCode = StringUtils.trimToEmpty(errorCode);
+        return Code.OK.name().equals(normalizedErrorCode)
+            || Code.UNRECOGNIZED.name().equals(normalizedErrorCode);
     }
 
     private ResponsePayload parseResponsePayloadBody(String message) {

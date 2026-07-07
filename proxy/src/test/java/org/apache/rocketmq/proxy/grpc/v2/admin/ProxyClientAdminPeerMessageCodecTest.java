@@ -267,6 +267,21 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void responseMessageRequirementRejectsErrorResponseWithNonErrorCode() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().requireResponseMessage(
+            "{\"proxyId\":\"proxy-a\",\"success\":false,\"errorCode\":\"OK\"}"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer error response code must not be OK or UNRECOGNIZED");
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().requireResponseMessage(
+            "{\"proxyId\":\"proxy-a\",\"success\":false,\"errorCode\":\"UNRECOGNIZED\"}"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer error response code must not be OK or UNRECOGNIZED");
+    }
+
+    @Test
     public void responseMessageRequirementRejectsResponseWithoutProxyId() {
         String message = "{\"success\":false,\"errorCode\":\"NOT_FOUND\",\"errorMessage\":\"missing\"}";
 
