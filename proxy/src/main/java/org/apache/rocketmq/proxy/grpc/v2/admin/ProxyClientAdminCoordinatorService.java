@@ -472,6 +472,9 @@ public class ProxyClientAdminCoordinatorService {
             throw new IllegalArgumentException("Coordinator page token create time is required");
         }
         long nowMillis = this.currentTimeMillisSupplier.getAsLong();
+        if (pageToken.getCreateTimeMillis() > nowMillis) {
+            throw new IllegalArgumentException("Coordinator page token create time is in the future");
+        }
         if (nowMillis - pageToken.getCreateTimeMillis() > this.coordinatorPageTokenTtlMillis) {
             throw new IllegalArgumentException("Coordinator page token expired");
         }

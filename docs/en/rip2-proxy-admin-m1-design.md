@@ -593,7 +593,7 @@ no-padding encoding emitted by the codec, so equivalent JSON payloads cannot
 create multiple public cursor representations. The encoder enforces the same
 4096-character cap as the decoder so a large peer cursor map does not produce an
 unusable next-page token. The coordinator validates the token creation time
-before peer discovery and rejects expired tokens as
+before peer discovery and rejects expired or future-dated tokens as
 `BAD_REQUEST`; `proxyClientAdminCoordinatorPageTokenTtlMillis` controls the
 retention window and defaults to five minutes. The response adapter preserves
 canonical `cp1:` tokens instead of wrapping them in the local read-model `v1:`
@@ -711,9 +711,10 @@ Recommended implementation order after public API ownership is confirmed:
    `proxyClientAdminPeerRequestTimeoutMillis` controls the timeout. Timed-out or
    interrupted waits cancel the submitted peer work before returning an error or
    restoring the interrupt flag. Coordinator page-token retention is also
-   bounded by `proxyClientAdminCoordinatorPageTokenTtlMillis`; expired `cp1:`
-   tokens are rejected before peer discovery so stale cursors do not trigger
-   remote fan-out. Enabling the coordinator scope flag also requires a nonblank
+   bounded by `proxyClientAdminCoordinatorPageTokenTtlMillis`; expired or
+   future-dated `cp1:` tokens are rejected before peer discovery so stale or
+   non-monotonic cursors do not trigger remote fan-out. Enabling the coordinator
+   scope flag also requires a nonblank
    `proxyName`, which becomes the
    stable local peer id; the default local-only `DEFAULT_PROXY` fallback is not
    used for coordinator scopes. The in-process peer client converts local executor
