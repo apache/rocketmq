@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import java.util.concurrent.CompletionException;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,6 +45,17 @@ public class ProxyClientAdminGrpcErrorWriterTest {
             io.grpc.Status.INVALID_ARGUMENT.withDescription("bad peer request").asRuntimeException();
 
         ProxyClientAdminGrpcErrorWriter.write(responseObserver, expectedError);
+
+        assertThat(responseObserver.error).isSameAs(expectedError);
+    }
+
+    @Test
+    public void writePreservesWrappedExplicitGrpcStatusRuntimeException() {
+        CapturingStreamObserver responseObserver = new CapturingStreamObserver();
+        StatusRuntimeException expectedError =
+            io.grpc.Status.INVALID_ARGUMENT.withDescription("wrapped bad peer request").asRuntimeException();
+
+        ProxyClientAdminGrpcErrorWriter.write(responseObserver, new CompletionException(expectedError));
 
         assertThat(responseObserver.error).isSameAs(expectedError);
     }

@@ -18,13 +18,15 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import io.grpc.stub.StreamObserver;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 
 final class ProxyClientAdminGrpcErrorWriter {
     private ProxyClientAdminGrpcErrorWriter() {
     }
 
     static <R> void write(StreamObserver<R> responseObserver, Throwable t) {
-        Throwable cause = t == null ? new IllegalStateException("proxy admin grpc error is required") : t;
+        Throwable cause = t == null ? new IllegalStateException("proxy admin grpc error is required") :
+            ExceptionUtils.getRealException(t);
         if (cause instanceof io.grpc.StatusRuntimeException || cause instanceof io.grpc.StatusException) {
             responseObserver.onError(cause);
             return;

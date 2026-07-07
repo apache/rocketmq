@@ -853,8 +853,9 @@ resource exhaustion becomes `TOO_MANY_REQUESTS`, unimplemented methods become
 
 The internal peer gRPC transport applies the same mapping before encoding a
 peer error response so coordinator fan-out sees one normalized status model.
-The admin gRPC error writer preserves explicit gRPC status exceptions before
-they reach the transport mapper. Unknown transport failures remain
+The admin gRPC error writer preserves explicit gRPC status exceptions, including
+those wrapped by async adapters, before they reach the transport mapper. Unknown
+transport failures remain
 `INTERNAL_SERVER_ERROR`.
 
 ## Compatibility
