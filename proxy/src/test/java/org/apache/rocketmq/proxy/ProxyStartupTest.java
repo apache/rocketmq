@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
@@ -428,6 +429,33 @@ public class ProxyStartupTest {
         );
 
         Assert.assertTrue(exception.getMessage().contains("proxy admin service factory is required"));
+        assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesRejectsNullSharedActivityBeforeAdminFactory() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        AtomicBoolean factoryInvoked = new AtomicBoolean(false);
+        int lifecycleCountBefore = proxyLifecycleComponentCount();
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> ProxyStartup.createGrpcBindableServices(
+                messagingProcessor,
+                null,
+                activity -> {
+                    factoryInvoked.set(true);
+                    return Collections.emptyList();
+                }
+            )
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("grpcMessagingActivity is required"));
+        Assert.assertFalse(factoryInvoked.get());
         assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
     }
 
