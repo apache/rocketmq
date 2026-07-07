@@ -40,7 +40,7 @@ public final class ProxyClientAdminPeerGrpcTargetParser {
             return Collections.emptyList();
         }
         Map<String, ProxyClientAdminPeerGrpcTarget> targets = new TreeMap<>();
-        String[] entries = StringUtils.split(targetConfig, ',');
+        String[] entries = StringUtils.splitPreserveAllTokens(targetConfig, ',');
         for (String entry : entries) {
             ProxyClientAdminPeerGrpcTarget target = this.parseEntry(entry);
             if (targets.containsKey(target.getProxyId())) {

@@ -75,6 +75,16 @@ public class ProxyClientAdminPeerGrpcTargetParserTest {
         assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse("proxy-a"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid proxy client admin peer target");
+        assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(
+            "proxy-a=127.0.0.1:8080,,proxy-b=127.0.0.2:8081"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid proxy client admin peer target");
+        assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(
+            "proxy-a=127.0.0.1:8080,"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Invalid proxy client admin peer target");
         assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse("=127.0.0.1:8080"))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("proxyId is required");
