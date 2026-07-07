@@ -405,19 +405,11 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     /**
-     * Update {@link #tempTopicQueueMaxOffsetMap} with the per-(topic, queueId)
-     * max cq-offset for the given entry. The provided {@code offsetBBPair}
-     * is filled in-place by
-     * {@link RocksDBConsumeQueueOffsetTable#buildOffsetKeyAndValueByteBuffer};
-     * element 0 becomes the (topic, queueId) key, element 1 the
-     * PhyAndCQOffset value.
+     * Update in-memory maxOffset cache {@link #tempTopicQueueMaxOffsetMap}.
      *
-     * <p>For the first entry under a (topic, queueId) the pair is stored
-     * as-is. For subsequent entries a sanity check is performed: if the
-     * new cq-offset is not strictly greater than the previously seen
-     * max, an error is logged. This catches duplicate-dispatch or
-     * out-of-order cases. The newer value still replaces the older one
-     * — the check is diagnostic, not corrective.
+     * <p>Store the first entry, and check the rest.
+     * This is a deliberate design that depends on the caller's iteration order.
+     * Because DispatchRequest list iterates in reverse order.
      */
     private void updateTempTopicQueueMaxOffset(final Pair<ByteBuffer, ByteBuffer> offsetBBPair,
         final DispatchEntry entry) {
