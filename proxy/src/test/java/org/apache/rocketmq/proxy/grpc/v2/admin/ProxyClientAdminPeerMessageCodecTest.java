@@ -181,6 +181,31 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void clientResponseCodecRejectsClientProxyIdMismatch() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
+            + "\"client\":{\"clientId\":\"client-a\",\"proxyId\":\"proxy-b\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeClientResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer client proxyId mismatch")
+            .hasMessageContaining("proxy-a")
+            .hasMessageContaining("proxy-b");
+    }
+
+    @Test
+    public void pageResponseCodecRejectsClientProxyIdMismatch() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
+            + "\"page\":{\"clients\":[{\"clientId\":\"client-a\",\"proxyId\":\"proxy-b\"}],"
+            + "\"nextPageToken\":\"\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer client proxyId mismatch")
+            .hasMessageContaining("proxy-a")
+            .hasMessageContaining("proxy-b");
+    }
+
+    @Test
     public void pageResponseCodecRejectsMalformedJsonAsResponseBoundaryError() {
         assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse("{"))
             .isInstanceOf(IllegalArgumentException.class)

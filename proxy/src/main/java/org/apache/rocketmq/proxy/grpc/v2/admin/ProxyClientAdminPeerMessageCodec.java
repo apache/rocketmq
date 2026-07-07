@@ -108,7 +108,7 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (payload.page == null) {
             throw new IllegalArgumentException("peer page response body is required");
         }
-        return ProxyClientAdminPeerResponse.success(payload.proxyId, toPage(payload.page));
+        return ProxyClientAdminPeerResponse.success(payload.proxyId, toPage(payload.page, payload.proxyId));
     }
 
     public String encodeClientResponse(ProxyClientAdminPeerResponse<ProxyClientInfo> response) {
@@ -126,7 +126,9 @@ public final class ProxyClientAdminPeerMessageCodec {
         if (payload.client == null) {
             throw new IllegalArgumentException("peer client response body is required");
         }
-        return ProxyClientAdminPeerResponse.success(payload.proxyId, toClientInfo(payload.client));
+        ProxyClientInfo clientInfo = toClientInfo(payload.client);
+        this.validatePeerClientProxyId(payload.proxyId, clientInfo);
+        return ProxyClientAdminPeerResponse.success(payload.proxyId, clientInfo);
     }
 
     public String requireResponseMessage(String message) {
@@ -257,13 +259,15 @@ public final class ProxyClientAdminPeerMessageCodec {
         return payload;
     }
 
-    private ProxyClientPage toPage(PagePayload payload) {
+    private ProxyClientPage toPage(PagePayload payload, String responseProxyId) {
         if (payload.clients == null) {
             throw new IllegalArgumentException("peer page clients are required");
         }
         List<ProxyClientInfo> clients = new ArrayList<>();
         for (ClientPayload clientPayload : payload.clients) {
-            clients.add(toClientInfo(clientPayload));
+            ProxyClientInfo clientInfo = toClientInfo(clientPayload);
+            this.validatePeerClientProxyId(responseProxyId, clientInfo);
+            clients.add(clientInfo);
         }
         return new ProxyClientPage(clients, payload.nextPageToken);
     }
@@ -304,6 +308,16 @@ public final class ProxyClientAdminPeerMessageCodec {
             payload.connectTimeMillis,
             payload.lastActiveTimeMillis
         );
+    }
+
+    private void validatePeerClientProxyId(String responseProxyId, ProxyClientInfo clientInfo) {
+        String clientProxyId = StringUtils.trimToNull(clientInfo.getProxyId());
+        if (clientProxyId != null && !StringUtils.equals(responseProxyId, clientProxyId)) {
+            throw new IllegalArgumentException(
+                "peer client proxyId mismatch: response proxyId=" + responseProxyId
+                    + ", client proxyId=" + clientProxyId
+            );
+        }
     }
 
     private String normalizePeerClientProxyId(String proxyId) {

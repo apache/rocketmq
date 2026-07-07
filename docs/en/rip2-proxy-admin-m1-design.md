@@ -1021,6 +1021,8 @@ Internal adapter tests cover:
   proxy-id length.
 - peer client-body rejection when the client `proxyId` exceeds the bounded
   proxy-id length.
+- peer client-body rejection when the client `proxyId` does not match the
+  response-envelope `proxyId`.
 - peer error response envelope rejection when `success=false` omits `errorCode`.
 - peer success response rejection when a peer payload also carries error fields.
 - operation-aware peer response validation that rejects successful responses
