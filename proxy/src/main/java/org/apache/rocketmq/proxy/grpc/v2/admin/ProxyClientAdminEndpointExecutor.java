@@ -24,6 +24,7 @@ import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
@@ -171,7 +172,7 @@ public class ProxyClientAdminEndpointExecutor {
             requiredResponseFactory = this.requireResponseFactory(responseFactory);
             Function<P, D> requiredRequestAdapter = this.requireRequestAdapter(requestAdapter);
             P requiredProtoRequest = this.requireProtoRequest(protoRequest);
-            D request = this.requirePublicEndpointScope(
+            D request = this.requirePublicEndpointRequest(
                 this.requireAdaptedRequest(requiredRequestAdapter.apply(requiredProtoRequest))
             );
             ProxyContext ctx = this.requireProxyContext(
@@ -210,6 +211,12 @@ public class ProxyClientAdminEndpointExecutor {
         return request;
     }
 
+    private <D> D requirePublicEndpointRequest(D request) {
+        this.requirePublicEndpointScope(request);
+        this.requirePublicEndpointIdentifiers(request);
+        return request;
+    }
+
     private <D> D requirePublicEndpointScope(D request) {
         ProxyClientScope scope = this.scopeOf(request);
         if (scope != null && scope != ProxyClientScope.LOCAL_PROXY) {
@@ -218,6 +225,21 @@ public class ProxyClientAdminEndpointExecutor {
             );
         }
         return request;
+    }
+
+    private void requirePublicEndpointIdentifiers(Object request) {
+        if (request instanceof ProxyClientAdminDescribeClientRequest
+            && StringUtils.isBlank(((ProxyClientAdminDescribeClientRequest) request).getClientId())) {
+            throw new IllegalArgumentException("clientId is required");
+        }
+        if (request instanceof ProxyClientAdminListClientsByGroupRequest
+            && StringUtils.isBlank(((ProxyClientAdminListClientsByGroupRequest) request).getGroup())) {
+            throw new IllegalArgumentException("group is required");
+        }
+        if (request instanceof ProxyClientAdminListClientsByTopicRequest
+            && StringUtils.isBlank(((ProxyClientAdminListClientsByTopicRequest) request).getTopic())) {
+            throw new IllegalArgumentException("topic is required");
+        }
     }
 
     private ProxyClientScope scopeOf(Object request) {
