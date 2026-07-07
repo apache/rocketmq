@@ -59,10 +59,17 @@ public class ProxyClientAdminPeerMessageHandler {
             operation,
             ProxyClientAdminPeerResponse.error(
                 this.localExecutor.getLocalProxyId(),
-                Code.INTERNAL_SERVER_ERROR.name(),
+                this.errorCode(t).name(),
                 StringUtils.defaultIfBlank(t.getMessage(), t.getClass().getSimpleName())
             )
         );
+    }
+
+    private Code errorCode(Throwable t) {
+        if (t instanceof IllegalArgumentException) {
+            return Code.BAD_REQUEST;
+        }
+        return Code.INTERNAL_SERVER_ERROR;
     }
 
     @SuppressWarnings("unchecked")

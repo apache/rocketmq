@@ -141,7 +141,7 @@ public class ProxyClientAdminPeerMessageClientTest {
         assertThat(response.isSuccess()).isFalse();
         assertThat(response.getProxyId()).isEqualTo("proxy-a");
         assertThat(response.getBody()).isNull();
-        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorCode()).isEqualTo(Code.BAD_REQUEST.name());
         assertThat(response.getErrorMessage()).contains("peer request message is required");
     }
 
