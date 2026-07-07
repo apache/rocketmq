@@ -344,6 +344,70 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void listClientsLocalProxyRestoresInterruptWhenActivityIsInterrupted() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(activity, coordinator);
+        ProxyContext ctx = proxyContext();
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.LOCAL_PROXY)
+            .build();
+        when(activity.listClients(ctx, request)).thenAnswer(invocation -> {
+            throwUnchecked(new InterruptedException("local activity interrupted"));
+            return null;
+        });
+
+        try {
+            ProxyClientAdminResult<ProxyClientPage> result = router.listClients(ctx, request);
+
+            assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(result.getStatus().getMessage()).contains("local activity interrupted");
+            assertThat(result.getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void listClientsAllProxiesRestoresInterruptWhenCoordinatorIsInterrupted() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            (subject, operation, sourceIp) -> {
+            },
+            metricsRecorder
+        );
+        ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+        when(coordinator.listClients(any(), any(ProxyClientQuery.class))).thenAnswer(invocation -> {
+            throwUnchecked(new InterruptedException("coordinator interrupted"));
+            return null;
+        });
+
+        try {
+            ProxyClientAdminResult<ProxyClientPage> result = router.listClients(proxyContext(), request);
+
+            assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(result.getStatus().getMessage()).contains("coordinator interrupted");
+            assertThat(result.getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            verify(metricsRecorder).record(
+                eq(ClientAdminOperation.LIST_CLIENTS),
+                eq(ClientAdminMetricsResult.INTERNAL_ERROR),
+                anyLong()
+            );
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void listClientsAllProxiesReturnsBadRequestWhenCoordinatorScopesDisabled() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
@@ -664,5 +728,14 @@ public class ProxyClientAdminScopeRouterTest {
             .setSubject(User.of("admin"))
             .setRemoteAddress("127.0.0.1:8080")
             .setLocalAddress("127.0.0.1:8081");
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminScopeRouterTest.<RuntimeException>throwAny(interruptedException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
     }
 }

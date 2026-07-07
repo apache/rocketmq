@@ -127,6 +127,16 @@ small and tested boundary to call:
 - `DefaultClientAdminService` also canonicalizes `LOCAL_PROXY` queries before
   reading the model, dropping accidental `proxyId` filters from direct internal
   callers while still rejecting future non-local scopes in M1.
+- `ProxyClientAdminScopeRouter` keeps the default `LOCAL_PROXY` path on
+  `ProxyClientAdminActivity` and routes explicitly enabled coordinator scopes to
+  `ProxyClientAdminCoordinatorService` after authorization. Router-level
+  exception-to-status conversion preserves the interrupted flag before returning
+  status-only error results.
+- `ProxyClientAdminCoordinatorService` owns the proto-free cross-proxy fan-out
+  and merge semantics for `ALL_PROXIES` and `PROXY_ID`. Coordinator-level
+  exception-to-status conversion also preserves the interrupted flag, including
+  direct peer-discovery or fan-out interruption before a peer response is
+  available.
 - `ProxyClientAdminRequestConverter` centralizes the future proto-to-internal
   DTO mapping from public scalar fields, so generated unary methods can keep
   request conversion out of the RPC method bodies once `ProxyAdminService`

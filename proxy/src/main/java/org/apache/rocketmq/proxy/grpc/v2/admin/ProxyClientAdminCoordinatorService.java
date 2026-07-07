@@ -132,6 +132,7 @@ public class ProxyClientAdminCoordinatorService {
         try {
             return supplier.get();
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
     }
@@ -694,6 +695,12 @@ public class ProxyClientAdminCoordinatorService {
             return result;
         } catch (RuntimeException ignored) {
             return Code.INTERNAL_SERVER_ERROR;
+        }
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        if (t instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
         }
     }
 

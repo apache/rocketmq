@@ -252,6 +252,7 @@ public class ProxyClientAdminScopeRouter {
             }
             return result;
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
     }
@@ -273,6 +274,7 @@ public class ProxyClientAdminScopeRouter {
             metricsResult = this.toMetricsResult(result.getStatus().getCode());
             return result;
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             ProxyClientAdminResult<T> result = new ProxyClientAdminResult<>(
                 ResponseBuilder.getInstance().buildStatus(t),
                 null
@@ -348,6 +350,7 @@ public class ProxyClientAdminScopeRouter {
                 this.requireConvertedBody(this.requireConverter(converter).apply(requiredResult.getBody()))
             );
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
     }
@@ -410,5 +413,11 @@ public class ProxyClientAdminScopeRouter {
             throw new IllegalStateException("converted body is required");
         }
         return body;
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        if (t instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

@@ -607,6 +607,38 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRestoresInterruptWhenPeerDiscoveryIsInterrupted() {
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminPeerClient() {
+            @Override
+            public List<String> listProxyIds() {
+                throwUnchecked(new InterruptedException("peer discovery interrupted"));
+                return Collections.emptyList();
+            }
+
+            @Override
+            public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+                ProxyClientAdminPeerRequest request) {
+                return ProxyClientAdminPeerResponse.success(proxyId, page(Collections.emptyList(), ""));
+            }
+        };
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        try {
+            ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+            assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(result.getStatus().getMessage()).contains("peer discovery interrupted");
+            assertThat(result.getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsDuplicateDiscoveredProxyId() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a", " proxy-a ");
         peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-a")), ""));
@@ -1292,5 +1324,14 @@ public class ProxyClientAdminCoordinatorServiceTest {
             ProxyClientAdminPeerRequest request) {
             return ProxyClientAdminPeerResponse.success(proxyId, page(Collections.emptyList(), ""));
         }
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminCoordinatorServiceTest.<RuntimeException>throwAny(interruptedException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
     }
 }
