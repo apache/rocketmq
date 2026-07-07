@@ -159,12 +159,18 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             this.proxyClientAdminPeerExecutor = ThreadUtils.newSingleThreadExecutor(
                 new ThreadFactoryImpl("ProxyClientAdminPeerClient_")
             );
-            this.proxyClientAdminPeerClient = this.createProxyClientAdminPeerClient(
-                crossProxyLocalProxyId,
-                this.proxyClientAdminActivity,
-                this.proxyClientAdminPeerExecutor,
-                peerRequestTimeoutMillis
-            );
+            try {
+                this.proxyClientAdminPeerClient = this.createProxyClientAdminPeerClient(
+                    crossProxyLocalProxyId,
+                    this.proxyClientAdminActivity,
+                    this.proxyClientAdminPeerExecutor,
+                    peerRequestTimeoutMillis
+                );
+            } catch (RuntimeException | Error e) {
+                this.proxyClientAdminPeerExecutor.shutdownNow();
+                this.proxyClientAdminPeerExecutor = null;
+                throw e;
+            }
             this.appendShutdown(this.proxyClientAdminPeerExecutor::shutdown);
             proxyClientAdminCoordinatorService = new ProxyClientAdminCoordinatorService(this.proxyClientAdminPeerClient);
         }

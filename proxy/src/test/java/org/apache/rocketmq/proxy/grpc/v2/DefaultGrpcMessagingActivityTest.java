@@ -484,6 +484,21 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
     }
 
     @Test
+    public void initShutsDownPeerExecutorWhenCrossProxyPeerClientCreationFails() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientAdminCrossProxyQuery(true);
+        ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+        ThrowingPeerClientDefaultGrpcMessagingActivity.reset();
+
+        assertThatThrownBy(() -> new ThrowingPeerClientDefaultGrpcMessagingActivity(this.messagingProcessor))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("peer init failed");
+
+        ExecutorService capturedExecutor = ThrowingPeerClientDefaultGrpcMessagingActivity.capturedExecutor();
+        assertThat(capturedExecutor).isNotNull();
+        assertThat(capturedExecutor.isShutdown()).isTrue();
+    }
+
+    @Test
     public void initTrimsConfiguredProxyNameForLocalProxyId() {
         String originalProxyName = ConfigurationManager.getProxyConfig().getProxyName();
         try {
@@ -851,6 +866,29 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
             ProxyClientAdminPeerRequest request) {
             throw new AssertionError("peer request should not run before authorization");
+        }
+    }
+
+    private static class ThrowingPeerClientDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        private static final AtomicReference<ExecutorService> CAPTURED_EXECUTOR = new AtomicReference<>();
+
+        private ThrowingPeerClientDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        private static void reset() {
+            CAPTURED_EXECUTOR.set(null);
+        }
+
+        private static ExecutorService capturedExecutor() {
+            return CAPTURED_EXECUTOR.get();
+        }
+
+        @Override
+        protected ProxyClientAdminPeerClient createProxyClientAdminPeerClient(String localProxyId,
+            ProxyClientAdminActivity proxyClientAdminActivity, ExecutorService executorService, long timeoutMillis) {
+            CAPTURED_EXECUTOR.set(executorService);
+            throw new IllegalStateException("peer init failed");
         }
     }
 }
