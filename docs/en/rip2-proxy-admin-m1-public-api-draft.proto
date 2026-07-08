@@ -37,12 +37,12 @@ option java_package = "apache.rocketmq.v2";
 // detail for coordinator experiments and early adapter tests.
 
 service ProxyAdminService {
-  rpc ListClient(ListClientRequest) returns (ListClientResponse);
-  rpc GetClient(GetClientRequest) returns (GetClientResponse);
-  rpc ListClientByGroup(ListClientByGroupRequest)
-      returns (ListClientByGroupResponse);
-  rpc ListClientByTopic(ListClientByTopicRequest)
-      returns (ListClientByTopicResponse);
+  rpc ListClients(ListClientsRequest) returns (ListClientsResponse);
+  rpc DescribeClient(DescribeClientRequest) returns (DescribeClientResponse);
+  rpc ListClientsByGroup(ListClientsByGroupRequest)
+      returns (ListClientsByGroupResponse);
+  rpc ListClientsByTopic(ListClientsByTopicRequest)
+      returns (ListClientsByTopicResponse);
 }
 
 enum ProxyScope {
@@ -58,7 +58,7 @@ enum ProxyScope {
   PROXY_SCOPE_PROXY_ID = 3;
 }
 
-message ListClientRequest {
+message ListClientsRequest {
   // Exact client id filter. Empty means no exact-id filter.
   string client_id = 1;
   string client_id_prefix = 2;
@@ -79,14 +79,14 @@ message ListClientRequest {
   string proxy_id = 11;
 }
 
-message ListClientResponse {
+message ListClientsResponse {
   Status status = 1;
   repeated ProxyClient clients = 2;
   // True when another page can be requested with page_num + 1.
   bool has_more = 3;
 }
 
-message GetClientRequest {
+message DescribeClientRequest {
   string client_id = 1;
   ProxyScope scope = 2;
 
@@ -96,12 +96,12 @@ message GetClientRequest {
   string proxy_id = 3;
 }
 
-message GetClientResponse {
+message DescribeClientResponse {
   Status status = 1;
   ProxyClient client = 2;
 }
 
-message ListClientByGroupRequest {
+message ListClientsByGroupRequest {
   string group = 1;
   string client_id = 2;
   string client_id_prefix = 3;
@@ -119,13 +119,13 @@ message ListClientByGroupRequest {
   string proxy_id = 10;
 }
 
-message ListClientByGroupResponse {
+message ListClientsByGroupResponse {
   Status status = 1;
   repeated ProxyClient clients = 2;
   bool has_more = 3;
 }
 
-message ListClientByTopicRequest {
+message ListClientsByTopicRequest {
   string topic = 1;
   string client_id = 2;
   string client_id_prefix = 3;
@@ -143,7 +143,7 @@ message ListClientByTopicRequest {
   string proxy_id = 10;
 }
 
-message ListClientByTopicResponse {
+message ListClientsByTopicResponse {
   Status status = 1;
   repeated ProxyClient clients = 2;
   bool has_more = 3;

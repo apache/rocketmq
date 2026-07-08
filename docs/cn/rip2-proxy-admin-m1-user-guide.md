@@ -17,10 +17,10 @@ M1 对外语义建议只暴露 `LOCAL_PROXY`，即查询当前 proxy 进程上�
 
 计划 RPC：
 
-- `ListClient`
-- `GetClient`
-- `ListClientByGroup`
-- `ListClientByTopic`
+- `ListClients`
+- `DescribeClient`
+- `ListClientsByGroup`
+- `ListClientsByTopic`
 
 未来公开 endpoint adapter 只负责 protobuf request/response 转换。实际校验、
 授权、metrics、错误映射、分页和查询逻辑都复用当前已经实现的 admin
@@ -73,7 +73,7 @@ language、version、local address、remote address 和 connection time 信息�
 | 场景 | Code |
 | --- | --- |
 | 非法参数、非法 page token、非法 scope、缺少必填 id | `BAD_REQUEST` |
-| `GetClient` 缺少目标客户端或查询为空 | `NOT_FOUND` |
+| `DescribeClient` 缺少目标客户端或查询为空 | `NOT_FOUND` |
 | 授权失败或缺少认证 subject | `UNAUTHORIZED` |
 | peer discovery 或 peer request 超时 | `PROXY_TIMEOUT` |
 | admin 查询线程池队列满 | `TOO_MANY_REQUESTS` |
@@ -84,8 +84,8 @@ language、version、local address、remote address 和 connection time 信息�
 
 逻辑 ACL 资源为 `proxy.admin.client`。
 
-- `ListClient`、`ListClientByGroup`、`ListClientByTopic` 需要 `LIST`。
-- `GetClient` 需要 `GET`。
+- `ListClients`、`ListClientsByGroup`、`ListClientsByTopic` 需要 `LIST`。
+- `DescribeClient` 需要 `GET`。
 
 gRPC request pipeline 会把认证后的 subject 传入 `ProxyContext`。Admin endpoint
 必须使用该 subject 做授权，并且不能在日志中明文记录 subject。

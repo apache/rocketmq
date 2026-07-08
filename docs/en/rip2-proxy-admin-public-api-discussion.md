@@ -51,10 +51,10 @@ The documentation-only draft is maintained in
 
 The proposed contest-facing unary RPCs are:
 
-- `ListClient`
-- `GetClient`
-- `ListClientByGroup`
-- `ListClientByTopic`
+- `ListClients`
+- `DescribeClient`
+- `ListClientsByGroup`
+- `ListClientsByTopic`
 
 The response model returns an existing v2 `Status` plus either a `ProxyClient`
 or a page of `ProxyClient` entries. Error responses should be status-only.

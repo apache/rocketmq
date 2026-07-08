@@ -63,12 +63,10 @@ separate service also lets Proxy register or gate admin endpoints independently
 from client-facing messaging RPCs.
 
 The public contest-facing method names should follow the RIP-2 tracking issue:
-`ListClient`, `GetClient`, `ListClientByGroup`, and `ListClientByTopic`. The
-existing internal names in this branch, such as `ListClients` and
-`DescribeClient`, remain implementation details until the generated public
-protobuf API is available. The endpoint adapter should map the public method and
-field names to the internal service boundary without changing the read model's
-ownership.
+`ListClients`, `DescribeClient`, `ListClientsByGroup`, and
+`ListClientsByTopic`. These names now match the internal service boundary used
+by this branch, so the future generated endpoint adapter can stay thin and avoid
+renaming logic around the read model.
 
 The first public API should accept only `LOCAL_PROXY` unless the community also
 accepts the internal cross-proxy coordinator semantics. Requests for future
@@ -110,17 +108,35 @@ contest submission:
 
 | RIP-2 requirement | Current branch state | Next action |
 | --- | --- | --- |
-| Public admin gRPC surface with `ListClient`, `GetClient`, `ListClientByGroup`, and `ListClientByTopic` | Internal proto-free activity and endpoint executor exist; no generated public `ProxyAdminService` is registered. | Keep a standalone `ProxyAdminService` draft in docs and wire the real endpoint after `rocketmq-apis` ownership is confirmed. |
+| Public admin gRPC surface with `ListClients`, `DescribeClient`, `ListClientsByGroup`, and `ListClientsByTopic` | Internal proto-free activity and endpoint executor exist; no generated public `ProxyAdminService` is registered. | Keep a standalone `ProxyAdminService` draft in docs and wire the real endpoint after `rocketmq-apis` ownership is confirmed. |
 | Filters: `clientId`, `clientIdPrefix`, `group`, `topic`, `clientLanguage`, `connectTimeStart`, `connectTimeEnd`, `pageNum`, and `pageSize` | Internal queries, the read model, and proto-free request DTOs support these fields. | Map the same fields from generated public protobuf requests once `rocketmq-apis` ownership is confirmed. |
 | `pageSize <= 100` | Client-admin query page size is capped at 100 in `ProxyClientQuery`. | Keep the generated public endpoint and benchmark scenarios on the same cap. |
 | Response fields: `clientId`, `language`, `version`, `localAddress`, `remoteAddress`, and `connectionTime` | Response views already expose the equivalent metadata, including client version and connect time. | Preserve the existing response view and align public proto field names with the contest wording. |
 | Error codes compatible with RocketMQ gRPC status codes | `ResponseBuilder` and admin endpoint handler already map internal exceptions to v2 `Status`. | Extend tests for new validation errors and the future public endpoint. |
 | Independent ACL resource `proxy.admin.client` | Client-admin authorization now uses the logical resource name `proxy.admin.client`, encoded as `Admin:proxy.admin.client` in the RocketMQ ACL resource model. | Keep the future public endpoint on the same LIST/GET policy. |
 | Separate query thread pool | The proto-free endpoint executor now runs admin queries on a dedicated bounded executor by default: 4 threads, queue capacity 10000, and the `ProxyClientAdminQueryThread_` thread-name prefix. | Keep the future generated public endpoint on this executor boundary. |
+| Admin service and port isolation | Startup seams exist for adding admin bindable services, but the public admin service and separate admin gRPC port are not registered yet. | Add a standalone public admin server/port after generated protobuf classes are available. |
 | OpenTelemetry metrics, traces, and logs | Admin service metrics now include operation, result, scope, status, page size, filter presence, result size, and duration. The proto-free endpoint also writes matching trace attributes and structured failure logs without sensitive identifiers. | Keep the future public endpoint on the same low-cardinality labels and attributes. |
 | Unit tests and E2E tests | Unit and internal peer tests exist; public endpoint E2E is blocked by generated stubs. | Add unit coverage for new filters now and add in-process public gRPC E2E once generated stubs are available. |
-| English and Chinese documentation | English design and discussion docs exist. | Add a Chinese user-facing doc and update English usage docs before final submission. |
+| English and Chinese documentation | English design, English user guide, Chinese user guide, and public API discussion docs exist. | Keep all docs synchronized with the final public endpoint and benchmark results before final submission. |
 | 1M client query benchmark | Read-model and coordinator JMH benchmarks cover unfiltered, group, topic, proxy-id, prefix, language, connect-time range, and `pageSize=100` scenarios. | Run full 1M JMH locally before final submission and attach representative results. |
+
+## Final Acceptance Matrix
+
+This branch should be considered complete contest material only when the
+following acceptance points are all true:
+
+| Acceptance point | Required final state |
+| --- | --- |
+| Public service contract | A reviewed standalone `ProxyAdminService` contract exposes `ListClients`, `DescribeClient`, `ListClientsByGroup`, and `ListClientsByTopic` without extending the data-plane `MessagingService`. |
+| Public endpoint implementation | A generated public gRPC adapter is registered only after `rocketmq-apis` ownership is settled; until then the repo carries a documentation-only draft and an endpoint-ready internal adapter. |
+| Isolation | Admin queries are isolated from data-plane traffic by service boundary, ACL resource, dedicated query executor, and a separate admin gRPC server/port when the public endpoint is enabled. |
+| Query semantics | All official filters are pushed into the read model or service layer, `pageNum` is 1-based, `pageSize` is capped at 100, and M1 public scope is `LOCAL_PROXY`. |
+| Security | List-style RPCs require `LIST` on `proxy.admin.client`; `DescribeClient` requires `GET` on `proxy.admin.client`; missing or unauthorized subjects are rejected before query execution. |
+| Observability | Admin operations record low-cardinality metrics, trace attributes, and failure logs for operation, scope, status/result, duration, filters, page size, and result size. |
+| Validation | Unit, integration, and public in-process gRPC E2E tests cover success, filtering, pagination, ACL deny, not found, bad request, and shutdown behavior. |
+| Performance | A benchmark report demonstrates paginated query P99 latency below 1s at 1M synthetic clients on a documented local environment. |
+| Documentation | English and Chinese docs describe API fields, configuration, ACL, metrics, errors, examples, LOCAL_PROXY limitations, and the public API ownership gate. |
 
 ## Implemented Internal Adapter Preparation
 
@@ -384,12 +400,12 @@ cannot accidentally carry stale success data. Missing response observers are
 rejected before executing the admin action. A missing injected admin activity is
 treated as a server-side wiring error.
 
-### ListClient
+### ListClients
 
 Request:
 
 ```text
-ListClientRequest {
+ListClientsRequest {
   string client_id; // Optional exact-id filter.
   string client_id_prefix;
   string group;
@@ -407,19 +423,19 @@ ListClientRequest {
 Response:
 
 ```text
-ListClientResponse {
+ListClientsResponse {
   Status status;
   repeated Client clients;
   bool has_more;
 }
 ```
 
-### GetClient
+### DescribeClient
 
 Request:
 
 ```text
-GetClientRequest {
+DescribeClientRequest {
   string client_id;
   ProxyScope scope; // M1: LOCAL_PROXY only
   string proxy_id; // Required for future PROXY_ID scope; ignored for LOCAL_PROXY/ALL_PROXIES.
@@ -429,18 +445,18 @@ GetClientRequest {
 Response:
 
 ```text
-GetClientResponse {
+DescribeClientResponse {
   Status status;
   Client client;
 }
 ```
 
-### ListClientByGroup
+### ListClientsByGroup
 
 Request:
 
 ```text
-ListClientByGroupRequest {
+ListClientsByGroupRequest {
   string group;
   string client_id; // Optional exact-id filter.
   string client_id_prefix;
@@ -457,19 +473,19 @@ ListClientByGroupRequest {
 Response:
 
 ```text
-ListClientByGroupResponse {
+ListClientsByGroupResponse {
   Status status;
   repeated Client clients;
   bool has_more;
 }
 ```
 
-### ListClientByTopic
+### ListClientsByTopic
 
 Request:
 
 ```text
-ListClientByTopicRequest {
+ListClientsByTopicRequest {
   string topic;
   string client_id; // Optional exact-id filter.
   string client_id_prefix;
@@ -486,7 +502,7 @@ ListClientByTopicRequest {
 Response:
 
 ```text
-ListClientByTopicResponse {
+ListClientsByTopicResponse {
   Status status;
   repeated Client clients;
   bool has_more;
@@ -929,7 +945,7 @@ disabled by configuration, the router rejects those scopes as `BAD_REQUEST`
 before authorization or peer discovery, preserving the local-only gate while
 still treating the attempt as one public admin operation for metrics.
 Coordinator-scope requests also validate required identifiers before
-authorization: `GetClient` requires `client_id`, group queries require
+authorization: `DescribeClient` requires `client_id`, group queries require
 `group`, and topic queries require `topic`. This keeps malformed cross-proxy
 requests from touching ACL state or peer routing.
 List-style coordinator-scope requests also decode and validate page tokens and
@@ -1441,7 +1457,7 @@ as a narrow adapter over the internal code already in this branch:
 
 Current branch status: after fetching `upstream/develop` at commit `0e4ccf1b6`
 on 2026-07-08, `git grep` still finds no upstream `ProxyAdminService`,
-`ProxyScope`, `ListClientByGroup`, or `ListClientByTopic` protobuf API to
+`ProxyScope`, `ListClientsByGroup`, or `ListClientsByTopic` protobuf API to
 consume. The upstream tree also contains no `.proto` source files; the proxy
 module consumes generated `apache.rocketmq.v2.MessagingServiceGrpc` classes from
 the external `rocketmq-apis` project instead. The documentation-only draft
@@ -1456,8 +1472,8 @@ and startup service-registration seams are already covered in this branch.
 1. Decide the `rocketmq-apis` file location and whether the service should live
    beside the existing v2 messaging APIs or in a dedicated admin file.
 2. Confirm the standalone service name `ProxyAdminService` and the four unary
-   methods from the draft: `ListClient`, `GetClient`, `ListClientByGroup`, and
-   `ListClientByTopic`.
+   methods from the draft: `ListClients`, `DescribeClient`,
+   `ListClientsByGroup`, and `ListClientsByTopic`.
 3. Confirm field numbers in `rip2-proxy-admin-m1-public-api-draft.proto` before
    generating Java classes. Field numbers should not be reshuffled after public
    review starts.

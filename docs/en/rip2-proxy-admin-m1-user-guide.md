@@ -20,10 +20,10 @@ the existing `MessagingService`.
 
 Planned RPCs:
 
-- `ListClient`
-- `GetClient`
-- `ListClientByGroup`
-- `ListClientByTopic`
+- `ListClients`
+- `DescribeClient`
+- `ListClientsByGroup`
+- `ListClientsByTopic`
 
 The endpoint adapter should only translate protobuf requests and responses. It
 should reuse the existing admin activity/service for validation, authorization,
@@ -36,7 +36,7 @@ Supported query fields in the internal service and proto-free adapter:
 | Field | Meaning |
 | --- | --- |
 | `scope` | M1 public API accepts `LOCAL_PROXY` only. |
-| `clientId` | Exact client id lookup for `GetClient` or filtering. |
+| `clientId` | Exact client id lookup for `DescribeClient` or filtering. |
 | `clientIdPrefix` | Stable ordered prefix scan over client ids. |
 | `group` | Consumer group index filter. |
 | `topic` | Topic index filter. |
@@ -77,7 +77,7 @@ The proto-free endpoint maps failures to RocketMQ v2 `Status` codes:
 | Case | Code |
 | --- | --- |
 | Invalid argument, invalid page token, invalid scope, missing required id | `BAD_REQUEST` |
-| Missing client id or empty result for `GetClient` | `NOT_FOUND` |
+| Missing client id or empty result for `DescribeClient` | `NOT_FOUND` |
 | Authorization failure or missing subject | `UNAUTHORIZED` |
 | Peer discovery or peer request timeout | `PROXY_TIMEOUT` |
 | Queue saturation in the admin executor | `TOO_MANY_REQUESTS` |
@@ -88,8 +88,8 @@ The proto-free endpoint maps failures to RocketMQ v2 `Status` codes:
 
 The logical ACL resource is `proxy.admin.client`.
 
-- `ListClient`, `ListClientByGroup`, and `ListClientByTopic` require `LIST`.
-- `GetClient` requires `GET`.
+- `ListClients`, `ListClientsByGroup`, and `ListClientsByTopic` require `LIST`.
+- `DescribeClient` requires `GET`.
 
 The gRPC request pipeline propagates the authenticated subject into
 `ProxyContext`. The admin endpoint must use that subject for authorization and
