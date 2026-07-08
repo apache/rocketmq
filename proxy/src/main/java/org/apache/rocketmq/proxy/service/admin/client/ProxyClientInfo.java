@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.Validators;
 
 public class ProxyClientInfo {
     private static final int MAX_PROXY_ID_LENGTH = 255;
@@ -49,8 +50,8 @@ public class ProxyClientInfo {
         long connectTimeMillis, long lastActiveTimeMillis) {
         this.clientId = normalizeClientId(clientId);
         this.clientType = normalizeClientType(clientType);
-        this.groups = normalize(groups);
-        this.topics = normalize(topics);
+        this.groups = normalizeGroups(groups);
+        this.topics = normalizeTopics(topics);
         this.language = language;
         this.remoteAddress = remoteAddress;
         this.localAddress = localAddress;
@@ -103,7 +104,15 @@ public class ProxyClientInfo {
         return normalizedProxyId;
     }
 
-    private static Set<String> normalize(Set<String> values) {
+    private static Set<String> normalizeGroups(Set<String> groups) {
+        return normalize(groups, true);
+    }
+
+    private static Set<String> normalizeTopics(Set<String> topics) {
+        return normalize(topics, false);
+    }
+
+    private static Set<String> normalize(Set<String> values, boolean groupValues) {
         if (values == null || values.isEmpty()) {
             return Collections.emptySet();
         }
@@ -111,10 +120,22 @@ public class ProxyClientInfo {
         for (String value : values) {
             String normalizedValue = StringUtils.trim(value);
             if (StringUtils.isNotBlank(normalizedValue)) {
+                validateTopicOrGroup(normalizedValue, groupValues);
                 result.add(normalizedValue);
             }
         }
         return Collections.unmodifiableSet(result);
+    }
+
+    private static void validateTopicOrGroup(String value, boolean groupValue) {
+        if (groupValue && value.length() > Validators.GROUP_MAX_LENGTH) {
+            throw new IllegalArgumentException("group length exceeds group max length: "
+                + Validators.GROUP_MAX_LENGTH);
+        }
+        if (!groupValue && value.length() > Validators.TOPIC_MAX_LENGTH) {
+            throw new IllegalArgumentException("topic length exceeds topic max length "
+                + Validators.TOPIC_MAX_LENGTH);
+        }
     }
 
     public String getClientId() {

@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.service.admin.client;
 
 import apache.rocketmq.v2.ClientType;
 import java.util.Collections;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
@@ -65,6 +66,20 @@ public class ProxyClientInfoTest {
             .hasMessageContaining("proxyId length exceeds 255");
     }
 
+    @Test
+    public void constructorRejectsOverlongGroup() {
+        assertThatThrownBy(() -> client("client-a", set(StringUtils.repeat("g", 121)), Collections.emptySet()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("group max length: 120");
+    }
+
+    @Test
+    public void constructorRejectsOverlongTopic() {
+        assertThatThrownBy(() -> client("client-a", Collections.emptySet(), set(StringUtils.repeat("t", 128))))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("topic max length 127");
+    }
+
     private static ProxyClientInfo client(String clientId) {
         return client(clientId, ClientType.PRODUCER);
     }
@@ -74,11 +89,20 @@ public class ProxyClientInfoTest {
     }
 
     private static ProxyClientInfo client(String clientId, ClientType clientType, String proxyId) {
+        return client(clientId, clientType, Collections.emptySet(), Collections.emptySet(), proxyId);
+    }
+
+    private static ProxyClientInfo client(String clientId, Set<String> groups, Set<String> topics) {
+        return client(clientId, ClientType.PRODUCER, groups, topics, null);
+    }
+
+    private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups,
+        Set<String> topics, String proxyId) {
         return new ProxyClientInfo(
             clientId,
             clientType,
-            Collections.emptySet(),
-            Collections.emptySet(),
+            groups,
+            topics,
             "JAVA",
             "127.0.0.1:8080",
             "192.168.0.1:8080",
@@ -87,5 +111,9 @@ public class ProxyClientInfoTest {
             100L,
             200L
         );
+    }
+
+    private static Set<String> set(String value) {
+        return Collections.singleton(value);
     }
 }

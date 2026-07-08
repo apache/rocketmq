@@ -493,10 +493,12 @@ group/topic/type/proxy queries.
 
 The read model normalizes client ids by trimming surrounding whitespace before
 storing, looking up, or removing entries. Group and topic index values are also
-trimmed, de-duplicated by the index sets, and blank values are ignored. Proxy
-ids are indexed with the same sorted-set structure so future `PROXY_ID` and
-fan-out merge paths can restrict a query to one source proxy without changing
-pagination order.
+trimmed, de-duplicated by the index sets, and blank values are ignored. Group
+and topic values are bounded by the existing RocketMQ client limits before
+indexing or query lookup: group names use `Validators.GROUP_MAX_LENGTH` and
+topic names use `Validators.TOPIC_MAX_LENGTH`. Proxy ids are indexed with the
+same sorted-set structure so future `PROXY_ID` and fan-out merge paths can
+restrict a query to one source proxy without changing pagination order.
 Client ids with the `cp<digits>:` prefix are rejected because that namespace is
 reserved for coordinator-owned page tokens; accepting them into the local read
 model would make a local next-page token ambiguous or unencodable.
@@ -930,6 +932,9 @@ M1 tests cover:
 - reserved coordinator page-token client id prefix rejection.
 - read-model client metadata rejection for overlong proxy ids before indexing.
 - read-model query rejection for overlong proxy id filters before lookup.
+- read-model client metadata rejection for overlong group/topic names before
+  indexing.
+- read-model query rejection for overlong group/topic filters before lookup.
 - index refresh when upserting changed group/topic/type data.
 - client and index deletion on remove.
 - invalid page token rejection.

@@ -63,6 +63,24 @@ public class ProxyClientQueryTest {
     }
 
     @Test
+    public void queryRejectsOverlongGroupFilter() {
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
+            .setGroup(StringUtils.repeat("g", 121))
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("group max length: 120");
+    }
+
+    @Test
+    public void queryRejectsOverlongTopicFilter() {
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
+            .setTopic(StringUtils.repeat("t", 128))
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("topic max length 127");
+    }
+
+    @Test
     public void queryTreatsUnspecifiedClientTypeAsNoFilter() {
         ProxyClientQuery query = ProxyClientQuery.newBuilder()
             .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
