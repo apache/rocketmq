@@ -323,7 +323,7 @@ public class ProxyClientAdminInProcessPeerMessageTransportTest {
 
         assertThatThrownBy(() -> {
             Map<String, ProxyClientAdminPeerMessageHandler> handlers = new LinkedHashMap<>();
-            handlers.put(proxyId, newHandler(proxyId, mock(ClientAdminService.class)));
+            handlers.put(proxyId, newHandler("proxy-a", mock(ClientAdminService.class)));
             new ProxyClientAdminInProcessPeerMessageTransport(handlers);
         })
             .isInstanceOf(IllegalArgumentException.class)

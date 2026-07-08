@@ -34,10 +34,7 @@ public class ProxyClientAdminPeerLocalExecutor {
     private final ClientAdminService clientAdminService;
 
     public ProxyClientAdminPeerLocalExecutor(String localProxyId, ProxyClientAdminActivity activity) {
-        String normalizedLocalProxyId = StringUtils.trimToNull(localProxyId);
-        if (normalizedLocalProxyId == null) {
-            throw new IllegalArgumentException("localProxyId is required");
-        }
+        String normalizedLocalProxyId = ProxyClientAdminPeerIds.requireLocalProxyId(localProxyId);
         if (activity == null) {
             throw new IllegalArgumentException("activity is required");
         }
@@ -47,10 +44,7 @@ public class ProxyClientAdminPeerLocalExecutor {
     }
 
     public ProxyClientAdminPeerLocalExecutor(String localProxyId, ClientAdminService clientAdminService) {
-        String normalizedLocalProxyId = StringUtils.trimToNull(localProxyId);
-        if (normalizedLocalProxyId == null) {
-            throw new IllegalArgumentException("localProxyId is required");
-        }
+        String normalizedLocalProxyId = ProxyClientAdminPeerIds.requireLocalProxyId(localProxyId);
         if (clientAdminService == null) {
             throw new IllegalArgumentException("clientAdminService is required");
         }

@@ -33,6 +33,10 @@ final class ProxyClientAdminPeerIds {
         return requireProxyId(proxyId, "peer proxyId");
     }
 
+    static String requireLocalProxyId(String proxyId) {
+        return requireProxyId(proxyId, "localProxyId");
+    }
+
     private static String requireProxyId(String proxyId, String fieldName) {
         String normalizedProxyId = StringUtils.trimToNull(proxyId);
         if (normalizedProxyId == null) {

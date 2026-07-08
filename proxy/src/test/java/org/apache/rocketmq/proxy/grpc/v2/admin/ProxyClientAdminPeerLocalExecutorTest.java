@@ -22,6 +22,7 @@ import apache.rocketmq.v2.Code;
 import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletionException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
@@ -34,6 +35,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -41,6 +43,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ProxyClientAdminPeerLocalExecutorTest {
+
+    @Test
+    public void constructorsRejectOverlongLocalProxyIds() {
+        String localProxyId = StringUtils.repeat("p", 256);
+
+        assertThatThrownBy(() -> new ProxyClientAdminPeerLocalExecutor(
+            localProxyId,
+            mock(ProxyClientAdminActivity.class)
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("localProxyId length exceeds 255");
+
+        assertThatThrownBy(() -> new ProxyClientAdminPeerLocalExecutor(
+            localProxyId,
+            mock(ClientAdminService.class)
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("localProxyId length exceeds 255");
+    }
 
     @Test
     public void executeListByGroupUsesLocalQueryAndReturnsPeerPage() {

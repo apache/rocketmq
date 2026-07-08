@@ -185,7 +185,7 @@ public class ProxyClientAdminInProcessPeerClientTest {
 
         assertThatThrownBy(() -> {
             Map<String, ProxyClientAdminPeerLocalExecutor> executors = new LinkedHashMap<>();
-            executors.put(proxyId, newExecutor(proxyId, mock(ClientAdminService.class)));
+            executors.put(proxyId, newExecutor("proxy-a", mock(ClientAdminService.class)));
             new ProxyClientAdminInProcessPeerClient(executors);
         })
             .isInstanceOf(IllegalArgumentException.class)

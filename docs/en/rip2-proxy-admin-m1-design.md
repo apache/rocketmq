@@ -1003,6 +1003,8 @@ Internal adapter tests cover:
 - real peer gRPC fan-out from coordinator through `ProxyClientAdminPeerGrpcTransport`
   into two in-process Netty peer services, verifying merged `ALL_PROXIES`
   results and proxy id stamping.
+- local peer executor rejection for overlong configured local proxy ids before
+  response stamping.
 - peer gRPC transport request and response payload bounds before and after the
   network call.
 - malformed outbound peer request payload rejection before both local handler
