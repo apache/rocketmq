@@ -23,6 +23,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import apache.rocketmq.proxy.admin.v1.*;
+import apache.rocketmq.proxy.admin.v1.AdminCode;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientDetailInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientInstanceInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
@@ -33,17 +36,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import apache.rocketmq.proxy.admin.v1.AdminCode;
-import apache.rocketmq.proxy.admin.v1.ListClientsRequest;
-import apache.rocketmq.proxy.admin.v1.ListClientsResponse;
-import apache.rocketmq.proxy.admin.v1.DescribeClientRequest;
-import apache.rocketmq.proxy.admin.v1.DescribeClientResponse;
-import apache.rocketmq.proxy.admin.v1.ListClientsByGroupRequest;
-import apache.rocketmq.proxy.admin.v1.ListClientsByGroupResponse;
-import apache.rocketmq.proxy.admin.v1.ListClientsByTopicRequest;
-import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
-import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsRequest;
-import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsResponse;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -54,8 +46,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProxyAdminGrpcServiceTest {
@@ -672,6 +663,20 @@ public class ProxyAdminGrpcServiceTest {
 
     @Test
     public void testSubscribeRouteEvents_DelegatesToNotifier() throws Exception {
+        doAnswer(invocation -> {
+            io.grpc.stub.StreamObserver<SubscribeRouteEventsResponse> responseObserver = invocation.getArgument(2);
+            SubscribeRouteEventsResponse response = SubscribeRouteEventsResponse.newBuilder()
+                .setEvent(apache.rocketmq.proxy.admin.v1.RouteChangeEvent.newBuilder()
+                        .setEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.ROUTE_SNAPSHOT)
+                        .setTopic("testTopic")
+                        .setTimestamp(System.currentTimeMillis())
+                        .build())
+                .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+            return null;
+        }).when(routeChangeNotifier).subscribe(anyList(), anyList(), any());
+
         ProxyAdminGrpcService serviceWithNotifier = new ProxyAdminGrpcService(
             adminClientService, 2, routeChangeNotifier);
 

@@ -217,9 +217,9 @@ public class RouteChangeNotifierTest {
         ArgumentCaptor<SubscribeRouteEventsResponse> responseCaptor = ArgumentCaptor.forClass(SubscribeRouteEventsResponse.class);
         verify(streamObserver, times(2)).onNext(responseCaptor.capture());
         List<SubscribeRouteEventsResponse> responses = responseCaptor.getAllValues();
-        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.BROKER_OFFLINE,
-            responses.get(0).getEvent().getEventType());
         assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.TOPIC_DELETE,
+            responses.get(0).getEvent().getEventType());
+        assertEquals(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.BROKER_OFFLINE,
             responses.get(1).getEvent().getEventType());
     }
 
