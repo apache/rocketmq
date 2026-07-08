@@ -171,6 +171,27 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void pageResponseCodecRejectsReservedCoordinatorNextPageToken() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
+            + "\"page\":{\"clients\":[],\"nextPageToken\":\"cp1:client-a\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pageToken must not use reserved page token prefix")
+            .hasMessageContaining("cp1:client-a");
+    }
+
+    @Test
+    public void pageResponseCodecRejectsOverlongNextPageToken() {
+        String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
+            + "\"page\":{\"clients\":[],\"nextPageToken\":\"" + StringUtils.repeat("c", 256) + "\"}}";
+
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodePageResponse(message))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pageToken length exceeds 255");
+    }
+
+    @Test
     public void clientResponseCodecRejectsClientWithOverlongProxyId() {
         String message = "{\"proxyId\":\"proxy-a\",\"success\":true,"
             + "\"client\":{\"clientId\":\"client-a\",\"proxyId\":\"" + StringUtils.repeat("p", 256) + "\"}}";

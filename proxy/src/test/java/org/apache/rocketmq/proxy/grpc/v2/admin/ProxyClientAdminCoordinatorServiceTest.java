@@ -546,6 +546,25 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsReservedPeerNextPageTokenBeforeCoordinatorToken() {
+        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
+        peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-b")), "cp1:client-b"));
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageSize(1)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage())
+            .contains("pageToken must not use reserved page token prefix")
+            .contains("cp1:client-b");
+        assertThat(result.getBody()).isNull();
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsOverlongGeneratedCoordinatorToken() {
         List<String> proxyIds = new ArrayList<>();
         for (int i = 0; i < 200; i++) {

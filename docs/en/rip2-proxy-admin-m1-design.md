@@ -234,7 +234,10 @@ small and tested boundary to call:
   Peer error codes are capped at 255 characters and peer error messages are
   capped at 4096 characters at the peer-response DTO boundary. Error messages
   use a fixed `...(truncated)` suffix when shortened, so local exception text
-  cannot expand an otherwise bounded peer error payload.
+  cannot expand an otherwise bounded peer error payload. Successful peer page
+  responses also validate `nextPageToken` as a local read-model client-id cursor,
+  rejecting overlong values and reserved coordinator page-token prefixes before
+  the response leaves the raw peer boundary.
   The gRPC peer transport validates outbound request messages before invoking a
   peer and validates inbound response messages before returning them to the
   message client.
@@ -757,8 +760,9 @@ Recommended implementation order after public API ownership is confirmed:
    page body; successful page responses must carry an explicit `clients` array
    so a malformed peer cannot be silently decoded as an empty page. Peer page
    bodies are also validated before merge so malformed peer results and peer
-   client bodies without usable client ids become stable internal errors instead
-   of leaking as merge-time exceptions or successful malformed describe results.
+   client bodies without usable client ids, or with malformed peer
+   `nextPageToken` values, become stable internal errors instead of leaking as
+   merge-time exceptions or successful malformed describe results.
    Describe responses must also return the exact
    requested `client_id`; a peer response that carries a different client id is
    treated as an internal routing or peer-corruption error for both `PROXY_ID`
@@ -1076,6 +1080,8 @@ Internal adapter tests cover:
   client-id prefixes before peer-local execution.
 - peer list request rejection for overlong local page tokens and reserved
   coordinator page-token prefixes before peer-local execution.
+- peer page response rejection for overlong local next-page tokens and reserved
+  coordinator page-token prefixes before coordinator token construction.
 - in-process peer transport request/response bounds around local handler
   invocation.
 - peer error response code length rejection before peer payload encoding and at

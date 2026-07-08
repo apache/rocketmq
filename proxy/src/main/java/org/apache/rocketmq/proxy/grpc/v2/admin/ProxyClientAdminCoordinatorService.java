@@ -590,7 +590,7 @@ public class ProxyClientAdminCoordinatorService {
         String coordinatorLastClientId = pageToken == null ? null : StringUtils.trimToNull(pageToken.getLastClientId());
         String coordinatorLastProxyId = pageToken == null ? null : StringUtils.trimToNull(pageToken.getLastProxyId());
         if (normalizedPeerPageToken == null && coordinatorLastClientId == null) {
-            return null;
+            return this.validatePeerNextPageTokenProgress(proxyId, peerPage, null, null, null);
         }
         for (ProxyClientInfo clientInfo : peerPage.getClients()) {
             if (this.isBeforeOrAtCoordinatorCursor(
@@ -639,7 +639,7 @@ public class ProxyClientAdminCoordinatorService {
         String peerPageToken) {
         String normalizedPeerPageToken = StringUtils.trimToNull(peerPageToken);
         if (normalizedPeerPageToken == null) {
-            return null;
+            return this.validatePeerNextPageTokenProgress(proxyId, peerPage, null, null, null);
         }
         for (ProxyClientInfo clientInfo : peerPage.getClients()) {
             if (clientInfo.getClientId().compareTo(normalizedPeerPageToken) <= 0) {
@@ -659,6 +659,11 @@ public class ProxyClientAdminCoordinatorService {
         String nextPageToken = StringUtils.trimToNull(peerPage.getNextPageToken());
         if (nextPageToken == null) {
             return null;
+        }
+        ProxyClientAdminResult<ProxyClientPage> nextPageTokenValidationResult =
+            this.validatePeerNextPageToken(proxyId, nextPageToken);
+        if (nextPageTokenValidationResult != null) {
+            return nextPageTokenValidationResult;
         }
         if (peerPageToken != null && nextPageToken.compareTo(peerPageToken) <= 0) {
             return this.errorResult(
@@ -692,6 +697,20 @@ public class ProxyClientAdminCoordinatorService {
             );
         }
         return null;
+    }
+
+    private ProxyClientAdminResult<ProxyClientPage> validatePeerNextPageToken(String proxyId, String nextPageToken) {
+        try {
+            ProxyClientQuery.newBuilder()
+                .setPageToken(nextPageToken)
+                .build();
+            return null;
+        } catch (IllegalArgumentException e) {
+            return this.errorResult(
+                Code.INTERNAL_SERVER_ERROR,
+                "Invalid peer next page token: proxyId=" + proxyId + ", " + e.getMessage()
+            );
+        }
     }
 
     private <T> ProxyClientAdminResult<T> validatePeerClientInfo(String expectedProxyId,

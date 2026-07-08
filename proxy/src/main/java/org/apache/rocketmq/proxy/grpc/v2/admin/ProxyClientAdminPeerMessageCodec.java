@@ -28,6 +28,7 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientPage;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public final class ProxyClientAdminPeerMessageCodec {
@@ -269,7 +270,7 @@ public final class ProxyClientAdminPeerMessageCodec {
             this.validatePeerClientProxyId(responseProxyId, clientInfo);
             clients.add(clientInfo);
         }
-        return new ProxyClientPage(clients, payload.nextPageToken);
+        return new ProxyClientPage(clients, normalizePeerNextPageToken(payload.nextPageToken));
     }
 
     private ClientPayload toClientPayload(ProxyClientInfo clientInfo) {
@@ -331,6 +332,17 @@ public final class ProxyClientAdminPeerMessageCodec {
             );
         }
         return normalizedProxyId;
+    }
+
+    private static String normalizePeerNextPageToken(String nextPageToken) {
+        String normalizedNextPageToken = StringUtils.trimToNull(nextPageToken);
+        if (normalizedNextPageToken == null) {
+            return "";
+        }
+        return ProxyClientQuery.newBuilder()
+            .setPageToken(normalizedNextPageToken)
+            .build()
+            .getPageToken();
     }
 
     private static List<String> sortedList(Set<String> values) {
