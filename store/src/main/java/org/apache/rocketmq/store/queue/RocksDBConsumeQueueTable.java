@@ -126,16 +126,14 @@ public class RocksDBConsumeQueueTable {
      * Batch-read {@code num} consecutive CQ entries starting at
      * {@code (topic, queueId, startIndex)}.
      *
-     * <p>Keys for the whole range are built up front and submitted as
-     * a single RocksDB {@code multiGet}, which is significantly cheaper
-     * than {@code num} separate {@code get} calls. Results are
-     * reordered by the index tracked in {@code kvIndexList} and the
-     * returned list is truncated at the first {@code null} (missing
-     * entry), so callers see a contiguous run of existing entries.
+     * <p>Keys for the whole range are built up front and submitted as a single RocksDB {@code multiGet},
+     * which is significantly cheaper than {@code num} separate {@code get} calls.
+     * Results are reordered by the index tracked in {@code kvIndexList}
+     * and the returned list is truncated at the first {@code null} (missing entry),
+     * so callers see a contiguous run of existing entries.
      *
-     * <p>If {@code multiGet} ever returns a different count than the
-     * number of keys, a {@link RocksDBException} is thrown — this
-     * would indicate a RocksDB bug, not a user error.
+     * <p>If {@code multiGet} ever returns a different count than the number of keys,
+     * a {@link RocksDBException} is thrown
      */
     public List<ByteBuffer> rangeQuery(final String topic, final int queueId, final long startIndex, final int num) throws RocksDBException {
         final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
@@ -143,12 +141,14 @@ public class RocksDBConsumeQueueTable {
         final ByteBuffer[] resultList = new ByteBuffer[num];
         final List<Integer> kvIndexList = new ArrayList<>(num);
         final List<byte[]> kvKeyList = new ArrayList<>(num);
+
         for (int i = 0; i < num; i++) {
             final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, startIndex + i);
             kvIndexList.add(i);
             kvKeyList.add(keyBB.array());
             defaultCFHList.add(this.defaultCFH);
         }
+
         int keyNum = kvIndexList.size();
         if (keyNum > 0) {
             List<byte[]> kvValueList = this.rocksDBStorage.multiGet(defaultCFHList, kvKeyList);
