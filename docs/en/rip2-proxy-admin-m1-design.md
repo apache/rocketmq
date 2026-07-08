@@ -1289,6 +1289,27 @@ After `5564a8606`, Maven reported
 `BUILD SUCCESS`. JDK 17 JaCoCo instrumentation stack traces remained
 environment noise because Surefire and Maven both completed successfully.
 
+On 2026-07-08 Asia/Shanghai time, after the final coverage-hardening checkpoint
+at `54263a5c0d`, the broader RIP-2 proxy admin suite was rerun with:
+
+```bash
+JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+  mvn -pl proxy -am \
+  "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
+  -DfailIfNoTests=false test -DskipITs
+```
+
+The run reported `Tests run: 700, Failures: 0, Errors: 0, Skipped: 0` and
+ended with `BUILD SUCCESS`. Package-level JaCoCo coverage from the same run was:
+
+| Package | Instruction | Branch | Line |
+| --- | ---: | ---: | ---: |
+| `org/apache/rocketmq/proxy/service/admin/client` | 93.82% | 86.83% | 95.48% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.66% | 85.05% | 94.52% |
+
+The final submission package, including PR and issue-comment drafts, is in
+`docs/en/rip2-proxy-admin-m1-submission-package.md`.
+
 ## Synthetic Benchmark
 
 The read model includes a JMH benchmark in
