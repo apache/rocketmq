@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 
 public class ProxyClientAdminClientView {
     private static final int MAX_PROXY_ID_LENGTH = 255;
@@ -65,14 +66,7 @@ public class ProxyClientAdminClientView {
     }
 
     private static String normalizeClientId(String clientId) {
-        String normalizedClientId = StringUtils.trimToNull(clientId);
-        if (normalizedClientId == null) {
-            throw new IllegalArgumentException("clientId is required");
-        }
-        if (normalizedClientId.length() > Validators.CHARACTER_MAX_LENGTH) {
-            throw new IllegalArgumentException("clientId length exceeds " + Validators.CHARACTER_MAX_LENGTH);
-        }
-        return normalizedClientId;
+        return ProxyClientInfo.normalizeClientId(clientId);
     }
 
     private static ClientType normalizeClientType(ClientType clientType) {

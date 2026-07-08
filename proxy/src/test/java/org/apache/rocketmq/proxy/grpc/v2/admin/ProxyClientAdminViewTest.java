@@ -54,6 +54,14 @@ public class ProxyClientAdminViewTest {
     }
 
     @Test
+    public void clientViewRejectsReservedClientIdPrefix() {
+        assertThatThrownBy(() -> clientView("cp1:client-a"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientId must not use reserved page token prefix")
+            .hasMessageContaining("cp1:client-a");
+    }
+
+    @Test
     public void clientViewTreatsUnrecognizedClientTypeAsUnspecified() {
         ProxyClientAdminClientView view = new ProxyClientAdminClientView(
             "client-a",

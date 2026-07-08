@@ -112,7 +112,8 @@ small and tested boundary to call:
 - `ProxyClientAdminClientView` and `ProxyClientAdminPageView` are public-facing
   response views. They avoid exposing the mutable internal read-model classes as
   the eventual protobuf adapter contract. The views require a nonblank client
-  id, reject null client entries in pages, snapshot collections, trim nullable
+  id, reject overlong ids and reserved coordinator page-token prefixes, reject
+  null client entries in pages, snapshot collections, trim nullable
   string metadata to empty public strings, cap response `proxyId` values at
   255 characters, normalize repeated `groups` and `topics` entries by trimming,
   bounding them to the existing RocketMQ group/topic length limits,
@@ -995,6 +996,8 @@ Internal adapter tests cover:
   client ids before endpoint handling or protobuf response construction.
 - describe-client request DTO rejection for reserved coordinator page-token
   client-id prefixes before endpoint handling.
+- response-view rejection for reserved coordinator page-token client-id prefixes
+  before protobuf response construction.
 - default `LOCAL_PROXY` scope, opaque page-token encode/decode, and proxy id
   pass-through for future scoped queries.
 - activity-level `LOCAL_PROXY` query canonicalization before authorization and
