@@ -50,6 +50,8 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -291,5 +293,39 @@ public class ProxyStartupTest {
 
             assertSame(processor, ProxyStartup.createMessagingProcessor());
         }
+    }
+
+    // ==================== createServerExecutor Tests ====================
+
+    @Test
+    public void testCreateServerExecutor() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "local"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+
+        java.util.concurrent.ThreadPoolExecutor executor = ProxyStartup.createServerExecutor();
+        try {
+            assertNotNull("Executor should not be null", executor);
+            assertFalse("Executor should not be shut down", executor.isShutdown());
+            ProxyConfig config = ConfigurationManager.getProxyConfig();
+            assertEquals(config.getGrpcThreadPoolNums(), executor.getCorePoolSize());
+            assertEquals(config.getGrpcThreadPoolNums(), executor.getMaximumPoolSize());
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    // ==================== initThreadPoolMonitor Tests ====================
+
+    @Test
+    public void testInitThreadPoolMonitor_DoesNotThrow() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "local"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+
+        // Should not throw
+        ProxyStartup.initThreadPoolMonitor();
     }
 }

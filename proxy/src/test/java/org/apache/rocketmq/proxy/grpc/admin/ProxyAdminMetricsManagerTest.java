@@ -36,7 +36,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -214,6 +216,87 @@ public class ProxyAdminMetricsManagerTest {
         Attributes latencyAttrs = latencyAttrsCaptor.getValue();
         assertEquals("ListClients", latencyAttrs.get(AttributeKey.stringKey("rpc_method")));
         assertEquals("error", latencyAttrs.get(AttributeKey.stringKey("status")));
+    }
+
+    // ==================== recordCall() Tests ====================
+
+    @Test
+    public void testRecordCall_Success() {
+        ProxyAdminMetricsManager.init(meter);
+
+        ProxyAdminMetricsManager.recordCall("ListClients", 100, true);
+
+        // Should delegate to recordSuccess
+        ArgumentCaptor<Attributes> counterAttrsCaptor = ArgumentCaptor.forClass(Attributes.class);
+        verify(longCounter).add(eq(1L), counterAttrsCaptor.capture());
+        Attributes counterAttrs = counterAttrsCaptor.getValue();
+        assertEquals("ListClients", counterAttrs.get(AttributeKey.stringKey("rpc_method")));
+        assertEquals("success", counterAttrs.get(AttributeKey.stringKey("status")));
+
+        ArgumentCaptor<Attributes> latencyAttrsCaptor = ArgumentCaptor.forClass(Attributes.class);
+        verify(doubleHistogram).record(eq(100.0), latencyAttrsCaptor.capture());
+        Attributes latencyAttrs = latencyAttrsCaptor.getValue();
+        assertEquals("ListClients", latencyAttrs.get(AttributeKey.stringKey("rpc_method")));
+        assertEquals("success", latencyAttrs.get(AttributeKey.stringKey("status")));
+    }
+
+    @Test
+    public void testRecordCall_Failure() {
+        ProxyAdminMetricsManager.init(meter);
+
+        ProxyAdminMetricsManager.recordCall("DescribeClient", 200, false);
+
+        // Should delegate to recordError
+        ArgumentCaptor<Attributes> counterAttrsCaptor = ArgumentCaptor.forClass(Attributes.class);
+        verify(longCounter).add(eq(1L), counterAttrsCaptor.capture());
+        Attributes counterAttrs = counterAttrsCaptor.getValue();
+        assertEquals("DescribeClient", counterAttrs.get(AttributeKey.stringKey("rpc_method")));
+        assertEquals("error", counterAttrs.get(AttributeKey.stringKey("status")));
+
+        ArgumentCaptor<Attributes> latencyAttrsCaptor = ArgumentCaptor.forClass(Attributes.class);
+        verify(doubleHistogram).record(eq(200.0), latencyAttrsCaptor.capture());
+        Attributes latencyAttrs = latencyAttrsCaptor.getValue();
+        assertEquals("DescribeClient", latencyAttrs.get(AttributeKey.stringKey("rpc_method")));
+        assertEquals("error", latencyAttrs.get(AttributeKey.stringKey("status")));
+    }
+
+    @Test
+    public void testRecordCall_WhenNotInitialized_NoException() {
+        // Should be a no-op, not throw
+        ProxyAdminMetricsManager.recordCall("ListClients", 100, true);
+        ProxyAdminMetricsManager.recordCall("DescribeClient", 200, false);
+    }
+
+    // ==================== recordError(String, String) Tests ====================
+
+    @Test
+    public void testRecordErrorWithErrorType_WhenNotInitialized_NoException() {
+        // Should be a no-op, not throw
+        ProxyAdminMetricsManager.recordError("ListClients", "TIMEOUT");
+    }
+
+    @Test
+    public void testRecordErrorWithErrorType_RecordsCounterWithLabels() {
+        ProxyAdminMetricsManager.init(meter);
+
+        ProxyAdminMetricsManager.recordError("DescribeClient", "TIMEOUT");
+
+        ArgumentCaptor<Attributes> attrsCaptor = ArgumentCaptor.forClass(Attributes.class);
+        verify(longCounter).add(eq(1L), attrsCaptor.capture());
+        Attributes attrs = attrsCaptor.getValue();
+        assertEquals("DescribeClient", attrs.get(AttributeKey.stringKey("rpc_method")));
+        assertEquals("error", attrs.get(AttributeKey.stringKey("status")));
+        assertEquals("TIMEOUT", attrs.get(AttributeKey.stringKey("error_type")));
+    }
+
+    @Test
+    public void testRecordErrorWithErrorType_VariousErrorTypes() {
+        ProxyAdminMetricsManager.init(meter);
+
+        ProxyAdminMetricsManager.recordError("DisconnectClient", "PERMISSION_DENIED");
+        ProxyAdminMetricsManager.recordError("GetConfig", "UNAVAILABLE");
+
+        verify(longCounter, times(2)).add(eq(1L), any(Attributes.class));
     }
 
     // ==================== Constants Tests ====================

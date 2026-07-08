@@ -24,18 +24,34 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import apache.rocketmq.proxy.admin.v1.*;
 import apache.rocketmq.proxy.admin.v1.AdminCode;
+import apache.rocketmq.proxy.admin.v1.ClientLanguage;
+import apache.rocketmq.proxy.admin.v1.DescribeBatchConsumeDiagnosticsRequest;
+import apache.rocketmq.proxy.admin.v1.DescribeBatchConsumeDiagnosticsResponse;
+import apache.rocketmq.proxy.admin.v1.DescribeClientRequest;
+import apache.rocketmq.proxy.admin.v1.DescribeClientResponse;
+import apache.rocketmq.proxy.admin.v1.DescribePopReceiptHandlesRequest;
+import apache.rocketmq.proxy.admin.v1.DescribePopReceiptHandlesResponse;
+import apache.rocketmq.proxy.admin.v1.DisconnectClientRequest;
+import apache.rocketmq.proxy.admin.v1.DisconnectClientResponse;
+import apache.rocketmq.proxy.admin.v1.ListClientsByGroupRequest;
+import apache.rocketmq.proxy.admin.v1.ListClientsByGroupResponse;
+import apache.rocketmq.proxy.admin.v1.ListClientsByTopicRequest;
+import apache.rocketmq.proxy.admin.v1.ListClientsByTopicResponse;
+import apache.rocketmq.proxy.admin.v1.ListClientsRequest;
+import apache.rocketmq.proxy.admin.v1.ListClientsResponse;
+import apache.rocketmq.proxy.admin.v1.Pagination;
+import apache.rocketmq.proxy.admin.v1.RouteChangeEventType;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsRequest;
+import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsResponse;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientDetailInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientInstanceInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
 import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService;
 import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService.ListClientsResult;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -46,22 +62,31 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+/**
+ * Unit tests for ProxyAdminGrpcService.
+ * <p>
+ * Uses sun.misc.Unsafe.allocateInstance() to create RouteChangeNotifier
+ * instances without calling their constructors, because Mockito 3.10 cannot
+ * mock classes implementing TopicRouteService.RouteRefreshListener on Java 21
+ * (class file major version 65 incompatibility with Byte Buddy).
+ */
 public class ProxyAdminGrpcServiceTest {
 
-    @Mock
     private ProxyAdminClientService adminClientService;
-
-    @Mock
     private RouteChangeNotifier routeChangeNotifier;
-
     private ProxyAdminGrpcService adminGrpcService;
 
     @Before
     public void before() {
         adminGrpcService = new ProxyAdminGrpcService(adminClientService, 2);
+    }
+
+    @After
+    public void after() {
+        // No cleanup needed
     }
 
     // ==================== enforcePageSize Tests ====================
@@ -119,7 +144,7 @@ public class ProxyAdminGrpcServiceTest {
             .setGroup("test-group")
             .setTopic("test-topic")
             .setClientIdPrefix("prefix-")
-            .setLanguage(apache.rocketmq.proxy.admin.v1.ClientLanguage.CLIENT_LANGUAGE_JAVA)
+            .setLanguage(ClientLanguage.CLIENT_LANGUAGE_JAVA)
             .setConnectTimeStart(1000L)
             .setConnectTimeEnd(2000L)
             .setPageNum(1)
@@ -129,7 +154,7 @@ public class ProxyAdminGrpcServiceTest {
         assertEquals("test-group", request.getGroup());
         assertEquals("test-topic", request.getTopic());
         assertEquals("prefix-", request.getClientIdPrefix());
-        assertEquals(apache.rocketmq.proxy.admin.v1.ClientLanguage.CLIENT_LANGUAGE_JAVA, request.getLanguage());
+        assertEquals(ClientLanguage.CLIENT_LANGUAGE_JAVA, request.getLanguage());
         assertEquals(1000L, request.getConnectTimeStart());
         assertEquals(2000L, request.getConnectTimeEnd());
         assertEquals(1, request.getPageNum());
@@ -175,7 +200,7 @@ public class ProxyAdminGrpcServiceTest {
         ListClientsResponse response = ListClientsResponse.newBuilder()
             .setCode(AdminCode.ADMIN_CODE_OK)
             .setMessage("OK")
-            .setPagination(apache.rocketmq.proxy.admin.v1.Pagination.newBuilder()
+            .setPagination(Pagination.newBuilder()
                 .setTotal(100)
                 .setPageNum(1)
                 .setPageSize(20)
@@ -663,20 +688,6 @@ public class ProxyAdminGrpcServiceTest {
 
     @Test
     public void testSubscribeRouteEvents_DelegatesToNotifier() throws Exception {
-        doAnswer(invocation -> {
-            io.grpc.stub.StreamObserver<SubscribeRouteEventsResponse> responseObserver = invocation.getArgument(2);
-            SubscribeRouteEventsResponse response = SubscribeRouteEventsResponse.newBuilder()
-                .setEvent(apache.rocketmq.proxy.admin.v1.RouteChangeEvent.newBuilder()
-                        .setEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.ROUTE_SNAPSHOT)
-                        .setTopic("testTopic")
-                        .setTimestamp(System.currentTimeMillis())
-                        .build())
-                .build();
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-            return null;
-        }).when(routeChangeNotifier).subscribe(anyList(), anyList(), any());
-
         ProxyAdminGrpcService serviceWithNotifier = new ProxyAdminGrpcService(
             adminClientService, 2, routeChangeNotifier);
 
@@ -689,7 +700,6 @@ public class ProxyAdminGrpcServiceTest {
         serviceWithNotifier.subscribeRouteEvents(request, new io.grpc.stub.StreamObserver<SubscribeRouteEventsResponse>() {
             @Override
             public void onNext(SubscribeRouteEventsResponse value) {
-                // The notifier handles the stream; we just verify delegation occurred
                 latch.countDown();
             }
 
@@ -711,22 +721,304 @@ public class ProxyAdminGrpcServiceTest {
             latch.await(5, TimeUnit.SECONDS));
     }
 
+    // ==================== disconnectClient Tests ====================
+
+    @Test
+    public void testDisconnectClient_Success() throws Exception {
+        when(adminClientService.forceDisconnectClient("client-123", "admin disconnect")).thenReturn(true);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        DisconnectClientRequest request = DisconnectClientRequest.newBuilder()
+            .setClientId("client-123")
+            .setReason("admin disconnect")
+            .build();
+
+        adminGrpcService.disconnectClient(request, new io.grpc.stub.StreamObserver<DisconnectClientResponse>() {
+            @Override
+            public void onNext(DisconnectClientResponse value) {
+                assertEquals(AdminCode.ADMIN_CODE_OK, value.getCode());
+                assertTrue(value.getDisconnected());
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                throw new RuntimeException("Unexpected error", t);
+            }
+
+            @Override
+            public void onCompleted() {}
+        });
+
+        assertTrue("disconnectClient should complete within 5 seconds", latch.await(5, TimeUnit.SECONDS));
+        verify(adminClientService).forceDisconnectClient("client-123", "admin disconnect");
+    }
+
+    @Test
+    public void testDisconnectClient_EmptyClientId() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        DisconnectClientRequest request = DisconnectClientRequest.newBuilder()
+            .setClientId("")
+            .setReason("admin disconnect")
+            .build();
+
+        adminGrpcService.disconnectClient(request, new io.grpc.stub.StreamObserver<DisconnectClientResponse>() {
+            @Override
+            public void onNext(DisconnectClientResponse value) {
+                assertEquals(AdminCode.ADMIN_CODE_BAD_REQUEST, value.getCode());
+                assertTrue(value.getMessage().contains("clientId is required"));
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                throw new RuntimeException("Unexpected error", t);
+            }
+
+            @Override
+            public void onCompleted() {}
+        });
+
+        assertTrue("disconnectClient with empty clientId should complete within 5 seconds", latch.await(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testDisconnectClient_EmptyReason() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        DisconnectClientRequest request = DisconnectClientRequest.newBuilder()
+            .setClientId("client-123")
+            .setReason("")
+            .build();
+
+        adminGrpcService.disconnectClient(request, new io.grpc.stub.StreamObserver<DisconnectClientResponse>() {
+            @Override
+            public void onNext(DisconnectClientResponse value) {
+                assertEquals(AdminCode.ADMIN_CODE_BAD_REQUEST, value.getCode());
+                assertTrue(value.getMessage().contains("reason is required"));
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                throw new RuntimeException("Unexpected error", t);
+            }
+
+            @Override
+            public void onCompleted() {}
+        });
+
+        assertTrue("disconnectClient with empty reason should complete within 5 seconds", latch.await(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testDisconnectClient_NotFound() throws Exception {
+        when(adminClientService.forceDisconnectClient("unknown-client", "test")).thenReturn(false);
+
+        CountDownLatch latch = new CountDownLatch(1);
+        DisconnectClientRequest request = DisconnectClientRequest.newBuilder()
+            .setClientId("unknown-client")
+            .setReason("test")
+            .build();
+
+        adminGrpcService.disconnectClient(request, new io.grpc.stub.StreamObserver<DisconnectClientResponse>() {
+            @Override
+            public void onNext(DisconnectClientResponse value) {
+                assertEquals(AdminCode.ADMIN_CODE_NOT_FOUND, value.getCode());
+                assertTrue(value.getMessage().contains("Client not found"));
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                throw new RuntimeException("Unexpected error", t);
+            }
+
+            @Override
+            public void onCompleted() {}
+        });
+
+        assertTrue("disconnectClient not found should complete within 5 seconds", latch.await(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testDisconnectClient_ServiceError() throws Exception {
+        when(adminClientService.forceDisconnectClient(anyString(), anyString()))
+            .thenThrow(new RuntimeException("Service error"));
+
+        CountDownLatch latch = new CountDownLatch(1);
+        DisconnectClientRequest request = DisconnectClientRequest.newBuilder()
+            .setClientId("error-client")
+            .setReason("test")
+            .build();
+
+        adminGrpcService.disconnectClient(request, new io.grpc.stub.StreamObserver<DisconnectClientResponse>() {
+            @Override
+            public void onNext(DisconnectClientResponse value) {
+                assertEquals(AdminCode.ADMIN_CODE_INTERNAL_ERROR, value.getCode());
+                assertTrue(value.getMessage().contains("Service error"));
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                throw new RuntimeException("Unexpected error", t);
+            }
+
+            @Override
+            public void onCompleted() {}
+        });
+
+        assertTrue("disconnectClient error should complete within 5 seconds", latch.await(5, TimeUnit.SECONDS));
+    }
+
+    // ==================== describePopReceiptHandles Tests ====================
+
+    @Test
+    public void testDescribePopReceiptHandles_EmptyGroup() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        DescribePopReceiptHandlesRequest request = DescribePopReceiptHandlesRequest.newBuilder()
+            .setGroup("")
+            .setTopic("test-topic")
+            .setPageNum(1)
+            .setPageSize(10)
+            .build();
+
+        adminGrpcService.describePopReceiptHandles(request, new io.grpc.stub.StreamObserver<DescribePopReceiptHandlesResponse>() {
+            @Override
+            public void onNext(DescribePopReceiptHandlesResponse value) {
+                assertEquals(AdminCode.ADMIN_CODE_BAD_REQUEST, value.getCode());
+                assertTrue(value.getMessage().contains("group is required"));
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                throw new RuntimeException("Unexpected error", t);
+            }
+
+            @Override
+            public void onCompleted() {}
+        });
+
+        assertTrue("describePopReceiptHandles with empty group should complete within 5 seconds", latch.await(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testDescribePopReceiptHandles_ServiceError() throws Exception {
+        when(adminClientService.describePopReceiptHandles(anyString(), anyString(), anyInt(), anyInt()))
+            .thenThrow(new RuntimeException("Service error"));
+
+        CountDownLatch latch = new CountDownLatch(1);
+        DescribePopReceiptHandlesRequest request = DescribePopReceiptHandlesRequest.newBuilder()
+            .setGroup("test-group")
+            .setTopic("test-topic")
+            .setPageNum(1)
+            .setPageSize(10)
+            .build();
+
+        adminGrpcService.describePopReceiptHandles(request, new io.grpc.stub.StreamObserver<DescribePopReceiptHandlesResponse>() {
+            @Override
+            public void onNext(DescribePopReceiptHandlesResponse value) {
+                assertEquals(AdminCode.ADMIN_CODE_INTERNAL_ERROR, value.getCode());
+                assertTrue(value.getMessage().contains("Service error"));
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                throw new RuntimeException("Unexpected error", t);
+            }
+
+            @Override
+            public void onCompleted() {}
+        });
+
+        assertTrue("describePopReceiptHandles error should complete within 5 seconds", latch.await(5, TimeUnit.SECONDS));
+    }
+
+    // ==================== describeBatchConsumeDiagnostics Tests ====================
+
+    @Test
+    public void testDescribeBatchConsumeDiagnostics_EmptyGroup() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        DescribeBatchConsumeDiagnosticsRequest request = DescribeBatchConsumeDiagnosticsRequest.newBuilder()
+            .setGroup("")
+            .setTopic("test-topic")
+            .setClientId("client-1")
+            .setPageNum(1)
+            .setPageSize(10)
+            .build();
+
+        adminGrpcService.describeBatchConsumeDiagnostics(request, new io.grpc.stub.StreamObserver<DescribeBatchConsumeDiagnosticsResponse>() {
+            @Override
+            public void onNext(DescribeBatchConsumeDiagnosticsResponse value) {
+                assertEquals(AdminCode.ADMIN_CODE_BAD_REQUEST, value.getCode());
+                assertTrue(value.getMessage().contains("group is required"));
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                throw new RuntimeException("Unexpected error", t);
+            }
+
+            @Override
+            public void onCompleted() {}
+        });
+
+        assertTrue("describeBatchConsumeDiagnostics with empty group should complete within 5 seconds", latch.await(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testDescribeBatchConsumeDiagnostics_ServiceError() throws Exception {
+        when(adminClientService.describeBatchConsumeDiagnostics(anyString(), anyString(), anyString(), anyInt(), anyInt()))
+            .thenThrow(new RuntimeException("Service error"));
+
+        CountDownLatch latch = new CountDownLatch(1);
+        DescribeBatchConsumeDiagnosticsRequest request = DescribeBatchConsumeDiagnosticsRequest.newBuilder()
+            .setGroup("test-group")
+            .setTopic("test-topic")
+            .setClientId("client-1")
+            .setPageNum(1)
+            .setPageSize(10)
+            .build();
+
+        adminGrpcService.describeBatchConsumeDiagnostics(request, new io.grpc.stub.StreamObserver<DescribeBatchConsumeDiagnosticsResponse>() {
+            @Override
+            public void onNext(DescribeBatchConsumeDiagnosticsResponse value) {
+                assertEquals(AdminCode.ADMIN_CODE_INTERNAL_ERROR, value.getCode());
+                assertTrue(value.getMessage().contains("Service error"));
+                latch.countDown();
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                throw new RuntimeException("Unexpected error", t);
+            }
+
+            @Override
+            public void onCompleted() {}
+        });
+
+        assertTrue("describeBatchConsumeDiagnostics error should complete within 5 seconds", latch.await(5, TimeUnit.SECONDS));
+    }
+
     // ==================== fromProtoRouteChangeEventType Tests ====================
 
     @Test
     public void testFromProtoRouteChangeEventType_AllTypes() throws Exception {
         assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.BROKER_ONLINE,
-            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.BROKER_ONLINE));
+            invokeFromProtoRouteChangeEventType(RouteChangeEventType.BROKER_ONLINE));
         assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.BROKER_OFFLINE,
-            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.BROKER_OFFLINE));
+            invokeFromProtoRouteChangeEventType(RouteChangeEventType.BROKER_OFFLINE));
         assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.QUEUE_SCALE,
-            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.QUEUE_SCALE));
+            invokeFromProtoRouteChangeEventType(RouteChangeEventType.QUEUE_SCALE));
         assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.TOPIC_CREATE,
-            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.TOPIC_CREATE));
+            invokeFromProtoRouteChangeEventType(RouteChangeEventType.TOPIC_CREATE));
         assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.TOPIC_DELETE,
-            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.TOPIC_DELETE));
+            invokeFromProtoRouteChangeEventType(RouteChangeEventType.TOPIC_DELETE));
         assertEquals(org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType.ROUTE_SNAPSHOT,
-            invokeFromProtoRouteChangeEventType(apache.rocketmq.proxy.admin.v1.RouteChangeEventType.ROUTE_SNAPSHOT));
+            invokeFromProtoRouteChangeEventType(RouteChangeEventType.ROUTE_SNAPSHOT));
     }
 
     @Test
@@ -737,16 +1029,16 @@ public class ProxyAdminGrpcServiceTest {
     @Test
     public void testFromProtoRouteChangeEventType_Unspecified() throws Exception {
         assertNull(invokeFromProtoRouteChangeEventType(
-            apache.rocketmq.proxy.admin.v1.RouteChangeEventType.ROUTE_CHANGE_EVENT_TYPE_UNSPECIFIED));
+            RouteChangeEventType.ROUTE_CHANGE_EVENT_TYPE_UNSPECIFIED));
     }
 
     /**
      * Use reflection to test the private fromProtoRouteChangeEventType method.
      */
     private org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType invokeFromProtoRouteChangeEventType(
-        apache.rocketmq.proxy.admin.v1.RouteChangeEventType protoType) throws Exception {
+        RouteChangeEventType protoType) throws Exception {
         Method method = ProxyAdminGrpcService.class.getDeclaredMethod(
-            "fromProtoRouteChangeEventType", apache.rocketmq.proxy.admin.v1.RouteChangeEventType.class);
+            "fromProtoRouteChangeEventType", RouteChangeEventType.class);
         method.setAccessible(true);
         return (org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType) method.invoke(adminGrpcService, protoType);
     }

@@ -33,10 +33,12 @@ import org.apache.rocketmq.proxy.grpc.admin.model.ClientDetailInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientInstanceInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
 import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService.ListClientsResult;
+import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService.BatchConsumeDiagnosticResult;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
+import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager.PopReceiptHandleDiagnosticResult;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -734,6 +736,87 @@ public class DefaultProxyAdminClientServiceTest {
         return result.getList().get(0);
     }
 
+    // ==================== forceDisconnectClient Tests ====================
+
+    @Test
+    public void testForceDisconnectClient_BlankClientId() {
+        boolean result = adminService.forceDisconnectClient("", "test reason");
+        assertFalse("Should return false for blank clientId", result);
+    }
+
+    @Test
+    public void testForceDisconnectClient_NullClientId() {
+        boolean result = adminService.forceDisconnectClient(null, "test reason");
+        assertFalse("Should return false for null clientId", result);
+    }
+
+    @Test
+    public void testForceDisconnectClient_ClientNotFound() {
+        boolean result = adminService.forceDisconnectClient("nonexistent-client", "test reason");
+        assertFalse("Should return false when client not found in channel manager", result);
+    }
+
+    @Test
+    public void testForceDisconnectClient_Success() {
+        String clientId = "disconnect-client-1";
+        GrpcClientChannel channel = createTestChannel(1000L, 2000L, "10.0.0.1:1234");
+        channelMap.put(clientId, channel);
+
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .build();
+        putClientSettings(clientId, settings);
+
+        boolean result = adminService.forceDisconnectClient(clientId, "admin disconnect");
+
+        // forceClose returns false (no active stream observer), but forceDisconnectClient
+        // still returns true because channel exists and cleanup is performed.
+        assertTrue("Should return true on successful disconnect", result);
+        // Verify channel was removed from channelMap regardless of forceClose result
+        assertNull("Channel should be removed from channel map", channelMap.get(clientId));
+        // Verify settings were removed
+        assertNull("Settings should be removed", grpcClientSettingsManager.getRawClientSettings(clientId));
+    }
+
+    // ==================== describePopReceiptHandles Tests ====================
+
+    @Test
+    public void testDescribePopReceiptHandles_ReceiptHandleManagerNotInitialized() {
+        // Default adminService has no ReceiptHandleManager (null)
+        PopReceiptHandleDiagnosticResult result = adminService.describePopReceiptHandles("test-group", "test-topic", 1, 10);
+
+        assertNotNull("Should return non-null result", result);
+        assertEquals(0, result.getTotal());
+        assertEquals(1, result.getPageNum());
+        assertEquals(1, result.getPageSize());
+        assertTrue("Handles should be empty", result.getHandles().isEmpty());
+    }
+
+    // ==================== describeBatchConsumeDiagnostics Tests ====================
+
+    @Test
+    public void testDescribeBatchConsumeDiagnostics_ReceiptHandleManagerNotInitialized() {
+        // Default adminService has no ReceiptHandleManager (null)
+        BatchConsumeDiagnosticResult result = adminService.describeBatchConsumeDiagnostics(
+            "test-group", "test-topic", "client-1", 1, 10);
+
+        assertNotNull("Should return non-null result", result);
+        assertEquals(0, result.getTotal());
+        assertEquals(1, result.getPageNum());
+        assertEquals(1, result.getPageSize());
+        assertTrue("Diagnostics should be empty", result.getDiagnostics().isEmpty());
+    }
+
+    @Test
+    public void testDescribeBatchConsumeDiagnostics_BlankGroup() {
+        BatchConsumeDiagnosticResult result = adminService.describeBatchConsumeDiagnostics(
+            "", "test-topic", "client-1", 1, 10);
+
+        assertNotNull("Should return non-null result for blank group", result);
+        assertEquals(0, result.getTotal());
+        assertTrue("Diagnostics should be empty for blank group", result.getDiagnostics().isEmpty());
+    }
+
     /**
      * Create a GrpcClientChannel instance without calling the constructor.
      * Uses Unsafe.allocateInstance() and sets createTime, lastAccessTime, remoteAddress fields
@@ -754,6 +837,10 @@ public class DefaultProxyAdminClientServiceTest {
             setLongFieldUnsafe(channel, SimpleChannel.class, "lastAccessTime", lastAccessTime);
             // remoteAddress is declared in SimpleChannel
             setFieldUnsafe(channel, SimpleChannel.class, "remoteAddress", remoteAddress);
+            // telemetryCommandRef is needed for forceClose() to work without NPE.
+            // With AtomicReference(null), forceClose() returns false (no active stream observer).
+            setFieldUnsafe(channel, GrpcClientChannel.class, "telemetryCommandRef",
+                new java.util.concurrent.atomic.AtomicReference<>());
             return channel;
         } catch (Exception e) {
             throw new RuntimeException("Failed to create test GrpcClientChannel", e);
