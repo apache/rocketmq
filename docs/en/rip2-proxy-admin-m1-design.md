@@ -119,11 +119,12 @@ small and tested boundary to call:
   `ProxyClientAdminListClientsByTopicRequest` mirror the proposed public request
   fields without importing generated admin protobuf classes. They normalize
   request string fields at the adapter boundary so surrounding whitespace is
-  trimmed and blank strings become missing values before validation. They also
-  require a nonblank `proxy_id` for the explicit `PROXY_ID` scope before context
-  creation, and preserve `proxy_id` only for that scope. Direct DTO use and future
-  protobuf conversion therefore share the same M1 local and broadcast-scope
-  semantics.
+  trimmed and blank strings become missing values before validation. Group and
+  topic request identifiers are bounded by `Validators.GROUP_MAX_LENGTH` and
+  `Validators.TOPIC_MAX_LENGTH` before query construction. They also require a
+  nonblank `proxy_id` for the explicit `PROXY_ID` scope before context creation,
+  and preserve `proxy_id` only for that scope. Direct DTO use and future protobuf
+  conversion therefore share the same M1 local and broadcast-scope semantics.
 - `DefaultClientAdminService` also canonicalizes `LOCAL_PROXY` queries before
   reading the model, dropping accidental `proxyId` filters from direct internal
   callers while still rejecting future non-local scopes in M1.
@@ -969,6 +970,8 @@ Internal adapter tests cover:
 - request DTO string normalization for client id, group, topic, page token, and
   proxy id.
 - request DTO rejection for overlong `PROXY_ID` proxy ids before routing.
+- request DTO and request-converter rejection for overlong group/topic
+  identifiers before query construction.
 - default `LOCAL_PROXY` scope, opaque page-token encode/decode, and proxy id
   pass-through for future scoped queries.
 - activity-level `LOCAL_PROXY` query canonicalization before authorization and

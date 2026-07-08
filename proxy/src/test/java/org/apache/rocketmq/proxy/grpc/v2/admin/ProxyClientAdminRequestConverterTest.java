@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
@@ -168,6 +169,21 @@ public class ProxyClientAdminRequestConverterTest {
     }
 
     @Test
+    public void toListClientsByGroupRequestRejectsOverlongGroupAtAdapterBoundary() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsByGroupRequest(
+                StringUtils.repeat("g", 121),
+                ClientType.PUSH_CONSUMER,
+                20,
+                "",
+                "PROXY_SCOPE_LOCAL_PROXY",
+                ""
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("group max length: 120");
+    }
+
+    @Test
     public void toListClientsByGroupRequestRejectsUnrecognizedClientTypeAtAdapterBoundary() {
         assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
             .toListClientsByGroupRequest(
@@ -218,6 +234,21 @@ public class ProxyClientAdminRequestConverterTest {
             ))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("proxyId is required");
+    }
+
+    @Test
+    public void toListClientsByTopicRequestRejectsOverlongTopicAtAdapterBoundary() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsByTopicRequest(
+                StringUtils.repeat("t", 128),
+                ClientType.SIMPLE_CONSUMER,
+                30,
+                "",
+                "PROXY_SCOPE_LOCAL_PROXY",
+                ""
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("topic max length 127");
     }
 
     @Test

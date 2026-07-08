@@ -144,6 +144,21 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void groupAndTopicRequestsRejectOverlongNames() {
+        assertThatThrownBy(() -> ProxyClientAdminListClientsByGroupRequest.newBuilder()
+            .setGroup(StringUtils.repeat("g", 121))
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("group max length: 120");
+
+        assertThatThrownBy(() -> ProxyClientAdminListClientsByTopicRequest.newBuilder()
+            .setTopic(StringUtils.repeat("t", 128))
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("topic max length 127");
+    }
+
+    @Test
     public void listClientsRequestTrimsPageTokenAndIgnoresProxyIdForLocalScope() {
         ProxyClientAdminListClientsRequest request = ProxyClientAdminListClientsRequest.newBuilder()
             .setPageToken(" v1:Y2xpZW50LWE ")

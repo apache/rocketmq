@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 
 public class ProxyClientAdminListClientsByTopicRequest extends ProxyClientAdminListClientsRequest {
@@ -25,7 +26,7 @@ public class ProxyClientAdminListClientsByTopicRequest extends ProxyClientAdminL
 
     private ProxyClientAdminListClientsByTopicRequest(Builder builder) {
         super(builder);
-        this.topic = builder.topic;
+        this.topic = normalizeTopic(builder.topic);
     }
 
     public static Builder newBuilder() {
@@ -41,6 +42,18 @@ public class ProxyClientAdminListClientsByTopicRequest extends ProxyClientAdminL
         return this.populateQueryBuilder(ProxyClientQuery.newBuilder())
             .setTopic(topic)
             .build();
+    }
+
+    private static String normalizeTopic(String topic) {
+        String normalizedTopic = StringUtils.trimToNull(topic);
+        if (normalizedTopic == null) {
+            return null;
+        }
+        if (normalizedTopic.length() > Validators.TOPIC_MAX_LENGTH) {
+            throw new IllegalArgumentException("topic length exceeds topic max length "
+                + Validators.TOPIC_MAX_LENGTH);
+        }
+        return normalizedTopic;
     }
 
     public static class Builder extends ProxyClientAdminListClientsRequest.Builder<Builder> {
