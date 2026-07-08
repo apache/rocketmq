@@ -231,7 +231,9 @@ small and tested boundary to call:
   peer and validates inbound response messages before returning them to the
   message client.
 - `ProxyClientAdminPeerMessageClient` adapts the object-level peer-client
-  contract to a raw message transport. `ProxyClientAdminPeerMessageHandler`
+  contract to a raw message transport. It validates the target `proxyId` before
+  encoding a JSON request or invoking the transport, so overlong target ids fail
+  before any raw peer payload is sent. `ProxyClientAdminPeerMessageHandler`
   adapts raw messages back to the local peer executor. Raw transport failures
   are converted into peer error responses, and interrupted raw peer calls restore
   the thread interrupted flag before returning that error, including interrupts
@@ -709,7 +711,8 @@ Recommended implementation order after public API ownership is confirmed:
    enabled. It remains an internal peer endpoint, not the public
    `ProxyAdminService` API. The raw peer request codec preserves and rejects
    any inbound `proxyId` field instead of silently dropping it at the JSON
-   boundary.
+   boundary, and the message client rejects overlong target proxy ids before
+   raw request encoding or transport invocation.
 3. Add a coordinator service that fans out local-page requests, merges results in
   `(client_id, proxy_id)` order, and emits coordinator-owned opaque page tokens.
    This branch includes the first proto-free coordinator slice for

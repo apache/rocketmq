@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
@@ -34,6 +35,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -216,6 +218,25 @@ public class ProxyClientAdminPeerMessageClientTest {
         assertThat(response.getErrorCode()).isEqualTo(Code.BAD_REQUEST.name());
         assertThat(response.getErrorMessage()).contains("request is required");
         assertThat(transport.requestMessages("proxy-a")).isNull();
+    }
+
+    @Test
+    public void messagePeerClientRejectsOverlongProxyIdBeforeTransportCall() {
+        RecordingMessageTransport transport = new RecordingMessageTransport();
+        transport.addProxy("proxy-a", null);
+        ProxyClientAdminPeerClient peerClient = new ProxyClientAdminPeerMessageClient(transport);
+        String proxyId = StringUtils.repeat("p", 256);
+
+        assertThatThrownBy(() -> peerClient.execute(
+            proxyContext(),
+            proxyId,
+            ProxyClientAdminPeerRequest.newBuilder()
+                .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+                .build()
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
+        assertThat(transport.requestMessages(proxyId)).isNull();
     }
 
     @Test
