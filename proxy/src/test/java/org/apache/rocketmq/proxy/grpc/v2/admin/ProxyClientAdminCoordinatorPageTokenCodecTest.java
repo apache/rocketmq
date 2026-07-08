@@ -172,6 +172,44 @@ public class ProxyClientAdminCoordinatorPageTokenCodecTest {
             .hasMessageContaining("peer page token proxyId length exceeds 255");
     }
 
+    @Test
+    public void tokenRejectsOverlongClientCursors() {
+        String clientId = StringUtils.repeat("c", 256);
+
+        assertThatThrownBy(() -> ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setLastClientId(clientId)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("lastClientId length exceeds 255");
+
+        assertThatThrownBy(() -> ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .putPeerPageToken("proxy-a", clientId)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer page token length exceeds 255");
+    }
+
+    @Test
+    public void tokenRejectsReservedCoordinatorClientCursors() {
+        assertThatThrownBy(() -> ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setLastClientId("cp1:client-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("lastClientId must not use reserved page token prefix")
+            .hasMessageContaining("cp1:client-a");
+
+        assertThatThrownBy(() -> ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .putPeerPageToken("proxy-a", "cp1:client-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer page token must not use reserved page token prefix")
+            .hasMessageContaining("cp1:client-a");
+    }
+
     private static Map.Entry<String, String> entry(String key, String value) {
         return new java.util.AbstractMap.SimpleImmutableEntry<>(key, value);
     }

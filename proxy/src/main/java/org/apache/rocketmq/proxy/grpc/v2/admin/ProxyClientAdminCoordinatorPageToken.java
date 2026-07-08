@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public class ProxyClientAdminCoordinatorPageToken {
@@ -45,7 +46,7 @@ public class ProxyClientAdminCoordinatorPageToken {
         this.topic = StringUtils.trimToNull(builder.topic);
         this.clientType = normalizeClientType(builder.clientType);
         this.proxyId = ProxyClientAdminPeerIds.normalizeOptionalProxyId(builder.proxyId, "proxyId");
-        this.lastClientId = StringUtils.trimToNull(builder.lastClientId);
+        this.lastClientId = normalizeOptionalClientCursor(builder.lastClientId, "lastClientId");
         this.lastProxyId = ProxyClientAdminPeerIds.normalizeOptionalProxyId(builder.lastProxyId, "lastProxyId");
         this.createTimeMillis = builder.createTimeMillis;
         this.peerPageTokens = normalizePeerPageTokens(builder.peerPageTokens);
@@ -111,7 +112,7 @@ public class ProxyClientAdminCoordinatorPageToken {
             String proxyId = ProxyClientAdminPeerIds.normalizeOptionalProxyId(
                 entry.getKey(), "peer page token proxyId"
             );
-            String pageToken = StringUtils.trimToNull(entry.getValue());
+            String pageToken = normalizeOptionalClientCursor(entry.getValue(), "peer page token");
             if (proxyId != null && pageToken != null) {
                 sortedPeerPageTokens.put(proxyId, pageToken);
             }
@@ -120,6 +121,14 @@ public class ProxyClientAdminCoordinatorPageToken {
             return Collections.emptyMap();
         }
         return Collections.unmodifiableMap(new LinkedHashMap<>(sortedPeerPageTokens));
+    }
+
+    private static String normalizeOptionalClientCursor(String clientCursor, String fieldName) {
+        String normalizedClientCursor = StringUtils.trimToNull(clientCursor);
+        if (normalizedClientCursor == null) {
+            return null;
+        }
+        return ProxyClientInfo.normalizeClientId(normalizedClientCursor, fieldName);
     }
 
     public static class Builder {

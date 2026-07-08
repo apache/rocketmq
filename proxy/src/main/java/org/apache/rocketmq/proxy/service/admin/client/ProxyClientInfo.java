@@ -65,7 +65,7 @@ public class ProxyClientInfo {
         return normalizeClientId(clientId, "clientId");
     }
 
-    static String normalizeClientId(String clientId, String fieldName) {
+    public static String normalizeClientId(String clientId, String fieldName) {
         String normalizedClientId = StringUtils.trimToNull(clientId);
         if (normalizedClientId == null) {
             throw new IllegalArgumentException(fieldName + " is required");

@@ -662,7 +662,10 @@ emitted global cursor (`client_id` plus `proxy_id`), token creation time, and at
 least one peer cursor;
 otherwise the coordinator rejects it as an incomplete progress token instead of
 restarting from the first peer page or interpreting duplicate client ids
-ambiguously.
+ambiguously. The coordinator token object also validates the embedded
+`lastClientId` and per-peer page token values as local client-id cursors,
+rejecting overlong values and reserved coordinator `cp<digits>:` prefixes before
+encoding, decoded token reuse, or peer fan-out.
 
 When the coordinator builds a next token, it preserves a peer's own next-page
 token after that peer's returned page has been fully emitted. If the global
@@ -1059,6 +1062,8 @@ Internal adapter tests cover:
 - coordinator page-token TTL rejection before peer discovery.
 - coordinator page-token rejection for overlong embedded proxy ids before
   encoding or decoded token reuse.
+- coordinator page-token rejection for overlong or reserved embedded client-id
+  cursor values before encoding, decoded token reuse, or peer fan-out.
 - query construction rejection for overlong `PROXY_ID` proxy ids before
   coordinator peer routing.
 - real peer gRPC fan-out from coordinator through `ProxyClientAdminPeerGrpcTransport`
