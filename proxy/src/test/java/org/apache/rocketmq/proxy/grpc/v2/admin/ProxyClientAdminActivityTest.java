@@ -20,6 +20,8 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Code;
 import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletionException;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -905,6 +907,57 @@ public class ProxyClientAdminActivityTest {
         assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
         assertThat(result.getStatus().getMessage()).contains("boom");
         assertThat(result.getBody()).isNull();
+    }
+
+    @Test
+    public void listClientsRestoresInterruptWhenDelegateFailureWrapsInterruptedException() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        when(delegate.listClients(query))
+            .thenThrow(new CompletionException(new InterruptedException("list clients interrupted")));
+
+        try {
+            ProxyClientAdminResult<ProxyClientPage> result = activity.listClients(proxyContext(), query);
+
+            assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(result.getStatus().getMessage()).contains("list clients interrupted");
+            assertThat(result.getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void listClientViewsRestoresInterruptWhenResponseConversionWrapsInterruptedException() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientQuery query = ProxyClientQuery.newBuilder().build();
+        ProxyClientPage page = new ProxyClientPage(Collections.emptyList(), "") {
+            @Override
+            public List<ProxyClientInfo> getClients() {
+                throw new CompletionException(new InterruptedException("page conversion interrupted"));
+            }
+        };
+        when(delegate.listClients(query)).thenReturn(page);
+
+        try {
+            ProxyClientAdminResult<ProxyClientAdminPageView> result = activity.listClientViews(proxyContext(), query);
+
+            assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(result.getStatus().getMessage()).contains("page conversion interrupted");
+            assertThat(result.getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
     }
 
     private static AuthorizingClientAdminService authorizingService(ProxyClientReadService readService) {

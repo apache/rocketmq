@@ -211,6 +211,7 @@ public class ProxyClientAdminActivity {
                 body
             );
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
     }
@@ -223,8 +224,13 @@ public class ProxyClientAdminActivity {
         try {
             return new ProxyClientAdminResult<>(result.getStatus(), converter.apply(result.getBody()));
         } catch (Throwable t) {
+            this.restoreInterruptedStatus(t);
             return new ProxyClientAdminResult<>(ResponseBuilder.getInstance().buildStatus(t), null);
         }
+    }
+
+    private void restoreInterruptedStatus(Throwable t) {
+        ProxyClientAdminInterrupts.restoreInterruptedStatus(t);
     }
 
     private <T> T requireRequest(T request) {
