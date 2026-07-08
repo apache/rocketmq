@@ -85,7 +85,7 @@ public class ProxyAdminGrpcServiceTest {
 
     @Before
     public void before() {
-        MockitoAnnotations.initMocks( this);
+        MockitoAnnotations.initMocks(this);
         adminGrpcService = new ProxyAdminGrpcService(adminClientService, 2);
     }
 
