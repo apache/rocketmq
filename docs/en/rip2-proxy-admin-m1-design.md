@@ -116,7 +116,7 @@ contest submission:
 | Response fields: `clientId`, `language`, `version`, `localAddress`, `remoteAddress`, and `connectionTime` | Response views already expose the equivalent metadata, including client version and connect time. | Preserve the existing response view and align public proto field names with the contest wording. |
 | Error codes compatible with RocketMQ gRPC status codes | `ResponseBuilder` and admin endpoint handler already map internal exceptions to v2 `Status`. | Extend tests for new validation errors and the future public endpoint. |
 | Independent ACL resource `proxy.admin.client` | Client-admin authorization now uses the logical resource name `proxy.admin.client`, encoded as `Admin:proxy.admin.client` in the RocketMQ ACL resource model. | Keep the future public endpoint on the same LIST/GET policy. |
-| Separate query thread pool | A proto-free endpoint shell exists, but the public admin query path does not yet own a dedicated executor. | Add a bounded admin query executor before registering the public endpoint. |
+| Separate query thread pool | The proto-free endpoint executor now runs admin queries on a dedicated bounded executor by default: 4 threads, queue capacity 10000, and the `ProxyClientAdminQueryThread_` thread-name prefix. | Keep the future generated public endpoint on this executor boundary. |
 | OpenTelemetry metrics, traces, and logs | Metrics wrappers exist for admin service calls. | Add contest-specific metric labels and trace/log attributes for operation, result, filters, duration, and result size. |
 | Unit tests and E2E tests | Unit and internal peer tests exist; public endpoint E2E is blocked by generated stubs. | Add unit coverage for new filters now and add in-process public gRPC E2E once generated stubs are available. |
 | English and Chinese documentation | English design and discussion docs exist. | Add a Chinese user-facing doc and update English usage docs before final submission. |
@@ -232,6 +232,13 @@ small and tested boundary to call:
   requires the context factory to return a non-null `ProxyContext` before the
   endpoint handler can run, so broken admin context initialization is reported as
   a status response instead of leaking into activity execution.
+  The default gRPC activity wires this executor to a dedicated admin query
+  thread pool with 4 threads, queue capacity 10000, and thread names prefixed by
+  `ProxyClientAdminQueryThread_`. The pool is configurable through
+  `proxyClientAdminQueryThreadPoolNums` and
+  `proxyClientAdminQueryThreadPoolQueueCapacity`, is shut down with the default
+  activity lifecycle, and maps executor rejection to the normal admin status
+  response path.
 - `ProxyClientAdminContextFactory` runs the admin gRPC context pipeline and
   builds a `ProxyContext` for future admin RPCs without applying the messaging
   RPC client-id requirement or generic messaging authorization. Admin

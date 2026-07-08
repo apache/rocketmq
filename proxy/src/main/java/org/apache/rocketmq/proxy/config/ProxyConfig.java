@@ -180,6 +180,8 @@ public class ProxyConfig implements ConfigFile {
     private int grpcRouteThreadQueueCapacity = 10000;
     private int grpcClientManagerThreadPoolNums = PROCESSOR_NUMBER;
     private int grpcClientManagerThreadQueueCapacity = 10000;
+    private int proxyClientAdminQueryThreadPoolNums = 4;
+    private int proxyClientAdminQueryThreadPoolQueueCapacity = 10000;
     private int grpcTransactionThreadPoolNums = PROCESSOR_NUMBER;
     private int grpcTransactionThreadQueueCapacity = 10000;
 
@@ -816,6 +818,22 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcClientManagerThreadQueueCapacity(int grpcClientManagerThreadQueueCapacity) {
         this.grpcClientManagerThreadQueueCapacity = grpcClientManagerThreadQueueCapacity;
+    }
+
+    public int getProxyClientAdminQueryThreadPoolNums() {
+        return proxyClientAdminQueryThreadPoolNums;
+    }
+
+    public void setProxyClientAdminQueryThreadPoolNums(int proxyClientAdminQueryThreadPoolNums) {
+        this.proxyClientAdminQueryThreadPoolNums = proxyClientAdminQueryThreadPoolNums;
+    }
+
+    public int getProxyClientAdminQueryThreadPoolQueueCapacity() {
+        return proxyClientAdminQueryThreadPoolQueueCapacity;
+    }
+
+    public void setProxyClientAdminQueryThreadPoolQueueCapacity(int proxyClientAdminQueryThreadPoolQueueCapacity) {
+        this.proxyClientAdminQueryThreadPoolQueueCapacity = proxyClientAdminQueryThreadPoolQueueCapacity;
     }
 
     public int getGrpcTransactionThreadPoolNums() {

@@ -23,10 +23,16 @@ import apache.rocketmq.v2.Status;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
@@ -41,6 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -88,6 +95,88 @@ public class ProxyClientAdminEndpointExecutorTest {
             same(responseObserver),
             same(responseFactory)
         );
+    }
+
+    @Test
+    public void listClientsRunsOnSuppliedQueryExecutorThread() throws Exception {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, queryExecutor);
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        CountDownLatch invoked = new CountDownLatch(1);
+        AtomicReference<String> threadName = new AtomicReference<>();
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+        doAnswer(invocation -> {
+            threadName.set(Thread.currentThread().getName());
+            invoked.countDown();
+            return null;
+        }).when(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+
+        try {
+            executor.listClients(
+                headers,
+                protoRequest,
+                ignored -> internalRequest,
+                responseObserver,
+                responseFactory
+            );
+
+            assertThat(invoked.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(threadName.get()).startsWith("ProxyClientAdminQueryThread-test-");
+        } finally {
+            queryExecutor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void shutdownStopsSuppliedQueryExecutor() {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, queryExecutor);
+
+        executor.shutdown();
+
+        assertThat(queryExecutor.isShutdown()).isTrue();
+    }
+
+    @Test
+    public void mapsRejectedQueryExecutorToResponseStatus() {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(
+                contextFactory,
+                new ProxyClientAdminEndpointHandler(),
+                queryExecutor
+            );
+        queryExecutor.shutdown();
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+            responseObserver,
+            TestAdminResponse::new
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
     }
 
     @Test

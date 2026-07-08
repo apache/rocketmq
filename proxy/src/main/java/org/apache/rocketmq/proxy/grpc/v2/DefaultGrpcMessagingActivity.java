@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
@@ -129,6 +130,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
     protected ProxyClientAdminScopeRouter proxyClientAdminScopeRouter;
     protected ProxyClientAdminContextFactory proxyClientAdminContextFactory;
     protected ProxyClientAdminEndpointHandler proxyClientAdminEndpointHandler;
+    protected ExecutorService proxyClientAdminQueryExecutor;
     protected ProxyClientAdminEndpointExecutor proxyClientAdminEndpointExecutor;
 
     protected DefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
@@ -201,10 +203,13 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             }
         }
         this.proxyClientAdminEndpointHandler = new ProxyClientAdminEndpointHandler(this.proxyClientAdminScopeRouter);
+        this.proxyClientAdminQueryExecutor = this.createProxyClientAdminQueryExecutor();
         this.proxyClientAdminEndpointExecutor = new ProxyClientAdminEndpointExecutor(
             this.proxyClientAdminContextFactory,
-            this.proxyClientAdminEndpointHandler
+            this.proxyClientAdminEndpointHandler,
+            this.proxyClientAdminQueryExecutor
         );
+        this.appendShutdown(this.proxyClientAdminEndpointExecutor::shutdown);
         ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(this.proxyClientReadService::snapshotStats);
         this.appendShutdown(() -> ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(null));
 
@@ -266,12 +271,36 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         );
     }
 
+    protected ExecutorService createProxyClientAdminQueryExecutor() {
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        int threadPoolNums = proxyConfig.getProxyClientAdminQueryThreadPoolNums();
+        int queueCapacity = proxyConfig.getProxyClientAdminQueryThreadPoolQueueCapacity();
+        this.requireProxyClientAdminQueryExecutorConfig(threadPoolNums, queueCapacity);
+        return ThreadUtils.newThreadPoolExecutor(
+            threadPoolNums,
+            threadPoolNums,
+            0L,
+            TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>(queueCapacity),
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread_")
+        );
+    }
+
     private void requireProxyClientReadServiceCleanerConfig(long inactiveTimeoutMillis, long cleanupIntervalMillis) {
         if (inactiveTimeoutMillis <= 0) {
             throw new IllegalArgumentException("inactiveTimeoutMillis must be positive");
         }
         if (cleanupIntervalMillis <= 0) {
             throw new IllegalArgumentException("cleanupIntervalMillis must be positive");
+        }
+    }
+
+    private void requireProxyClientAdminQueryExecutorConfig(int threadPoolNums, int queueCapacity) {
+        if (threadPoolNums <= 0) {
+            throw new IllegalArgumentException("proxyClientAdminQueryThreadPoolNums must be positive");
+        }
+        if (queueCapacity <= 0) {
+            throw new IllegalArgumentException("proxyClientAdminQueryThreadPoolQueueCapacity must be positive");
         }
     }
 

@@ -18,6 +18,10 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingActivity;
@@ -64,6 +68,29 @@ public class GrpcProxyAdminWiringTest extends InitConfigTest {
         ProxyClientAdminScopeRouter scopeRouter = activity.getProxyClientAdminScopeRouter();
 
         assertThat(scopeRouter).isNotNull();
+    }
+
+    @Test
+    public void createDefaultActivityUsesDedicatedAdminQueryExecutor() throws Exception {
+        ConfigurationManager.getProxyConfig().setProxyClientAdminQueryThreadPoolNums(1);
+        ConfigurationManager.getProxyConfig().setProxyClientAdminQueryThreadPoolQueueCapacity(7);
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+
+        try {
+            ProxyClientAdminEndpointExecutor endpointExecutor = activity.getProxyClientAdminEndpointExecutor();
+
+            Field queryExecutorField = ProxyClientAdminEndpointExecutor.class.getDeclaredField("queryExecutor");
+            queryExecutorField.setAccessible(true);
+            ThreadPoolExecutor queryExecutor = (ThreadPoolExecutor) queryExecutorField.get(endpointExecutor);
+            assertThat(queryExecutor.getCorePoolSize()).isEqualTo(1);
+            assertThat(queryExecutor.getMaximumPoolSize()).isEqualTo(1);
+            assertThat(queryExecutor.getQueue().remainingCapacity()).isEqualTo(7);
+
+            Future<String> threadNameFuture = queryExecutor.submit(() -> Thread.currentThread().getName());
+            assertThat(threadNameFuture.get(5, TimeUnit.SECONDS)).startsWith("ProxyClientAdminQueryThread");
+        } finally {
+            activity.shutdown();
+        }
     }
 
     @Test

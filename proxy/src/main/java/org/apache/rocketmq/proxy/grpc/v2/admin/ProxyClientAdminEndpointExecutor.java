@@ -22,6 +22,11 @@ import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
@@ -34,17 +39,31 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 public class ProxyClientAdminEndpointExecutor {
     private final ProxyClientAdminContextFactory contextFactory;
     private final ProxyClientAdminEndpointHandler endpointHandler;
+    private final ExecutorService queryExecutor;
 
     public ProxyClientAdminEndpointExecutor(ProxyClientAdminContextFactory contextFactory,
         ProxyClientAdminEndpointHandler endpointHandler) {
+        this(contextFactory, endpointHandler, new DirectExecutorService());
+    }
+
+    public ProxyClientAdminEndpointExecutor(ProxyClientAdminContextFactory contextFactory,
+        ProxyClientAdminEndpointHandler endpointHandler, ExecutorService queryExecutor) {
         if (contextFactory == null) {
             throw new IllegalArgumentException("contextFactory is required");
         }
         if (endpointHandler == null) {
             throw new IllegalArgumentException("endpointHandler is required");
         }
+        if (queryExecutor == null) {
+            throw new IllegalArgumentException("queryExecutor is required");
+        }
         this.contextFactory = contextFactory;
         this.endpointHandler = endpointHandler;
+        this.queryExecutor = queryExecutor;
+    }
+
+    public void shutdown() {
+        this.queryExecutor.shutdown();
     }
 
     public <P extends GeneratedMessageV3, R> void listClients(P protoRequest,
@@ -169,6 +188,25 @@ public class ProxyClientAdminEndpointExecutor {
         BiFunction<Status, T, R> responseFactory,
         EndpointCall<D, T, R> endpointCall) {
         StreamObserver<R> requiredResponseObserver = this.requireResponseObserver(responseObserver);
+        try {
+            this.queryExecutor.execute(() -> this.executeOnQueryExecutor(
+                headers,
+                protoRequest,
+                requestAdapter,
+                requiredResponseObserver,
+                responseFactory,
+                endpointCall
+            ));
+        } catch (Throwable t) {
+            this.writeFailure(requiredResponseObserver, responseFactory, t);
+        }
+    }
+
+    private <P extends GeneratedMessageV3, D, T, R> void executeOnQueryExecutor(Metadata headers, P protoRequest,
+        Function<P, D> requestAdapter,
+        StreamObserver<R> responseObserver,
+        BiFunction<Status, T, R> responseFactory,
+        EndpointCall<D, T, R> endpointCall) {
         BiFunction<Status, T, R> requiredResponseFactory = null;
         try {
             requiredResponseFactory = this.requireResponseFactory(responseFactory);
@@ -180,17 +218,22 @@ public class ProxyClientAdminEndpointExecutor {
             ProxyContext ctx = this.requireProxyContext(
                 this.contextFactory.create(this.normalizeMetadata(headers), requiredProtoRequest)
             );
-            endpointCall.execute(ctx, request, requiredResponseObserver, requiredResponseFactory);
+            endpointCall.execute(ctx, request, responseObserver, requiredResponseFactory);
         } catch (Throwable t) {
-            this.restoreInterruptedStatus(t);
-            if (requiredResponseFactory == null) {
-                ProxyClientAdminGrpcErrorWriter.write(requiredResponseObserver, t);
-                return;
-            }
-            this.endpointHandler.handle(requiredResponseObserver, () -> {
-                return this.throwUnchecked(t);
-            }, requiredResponseFactory);
+            this.writeFailure(responseObserver, requiredResponseFactory, t);
         }
+    }
+
+    private <T, R> void writeFailure(StreamObserver<R> responseObserver,
+        BiFunction<Status, T, R> responseFactory, Throwable t) {
+        this.restoreInterruptedStatus(t);
+        if (responseFactory == null) {
+            ProxyClientAdminGrpcErrorWriter.write(responseObserver, t);
+            return;
+        }
+        this.endpointHandler.handle(responseObserver, () -> {
+            return this.throwUnchecked(t);
+        }, responseFactory);
     }
 
     private <P, D> Function<P, D> requireRequestAdapter(Function<P, D> requestAdapter) {
@@ -323,5 +366,36 @@ public class ProxyClientAdminEndpointExecutor {
     private interface EndpointCall<D, T, R> {
         void execute(ProxyContext ctx, D request, StreamObserver<R> responseObserver,
             BiFunction<Status, T, R> responseFactory);
+    }
+
+    private static class DirectExecutorService extends AbstractExecutorService {
+        @Override
+        public void shutdown() {
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return false;
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return false;
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) {
+            return true;
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            command.run();
+        }
     }
 }
