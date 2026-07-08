@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
@@ -42,8 +43,8 @@ public class ProxyClientAdminCoordinatorPageToken {
             throw new IllegalArgumentException("scope is required");
         }
         this.scope = builder.scope;
-        this.group = StringUtils.trimToNull(builder.group);
-        this.topic = StringUtils.trimToNull(builder.topic);
+        this.group = normalizeGroup(builder.group);
+        this.topic = normalizeTopic(builder.topic);
         this.clientType = normalizeClientType(builder.clientType);
         this.proxyId = ProxyClientAdminPeerIds.normalizeOptionalProxyId(builder.proxyId, "proxyId");
         this.lastClientId = normalizeOptionalClientCursor(builder.lastClientId, "lastClientId");
@@ -100,6 +101,30 @@ public class ProxyClientAdminCoordinatorPageToken {
             throw new IllegalArgumentException("Unsupported client type: " + clientType);
         }
         return clientType;
+    }
+
+    private static String normalizeGroup(String group) {
+        String normalizedGroup = StringUtils.trimToNull(group);
+        if (normalizedGroup == null) {
+            return null;
+        }
+        if (normalizedGroup.length() > Validators.GROUP_MAX_LENGTH) {
+            throw new IllegalArgumentException("group length exceeds group max length: "
+                + Validators.GROUP_MAX_LENGTH);
+        }
+        return normalizedGroup;
+    }
+
+    private static String normalizeTopic(String topic) {
+        String normalizedTopic = StringUtils.trimToNull(topic);
+        if (normalizedTopic == null) {
+            return null;
+        }
+        if (normalizedTopic.length() > Validators.TOPIC_MAX_LENGTH) {
+            throw new IllegalArgumentException("topic length exceeds topic max length "
+                + Validators.TOPIC_MAX_LENGTH);
+        }
+        return normalizedTopic;
     }
 
     private static Map<String, String> normalizePeerPageTokens(Map<String, String> peerPageTokens) {

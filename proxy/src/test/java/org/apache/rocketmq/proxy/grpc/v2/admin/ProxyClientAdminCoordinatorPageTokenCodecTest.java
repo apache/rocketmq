@@ -173,6 +173,23 @@ public class ProxyClientAdminCoordinatorPageTokenCodecTest {
     }
 
     @Test
+    public void tokenRejectsOverlongGroupAndTopicFilters() {
+        assertThatThrownBy(() -> ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setGroup(StringUtils.repeat("g", 121))
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("group max length: 120");
+
+        assertThatThrownBy(() -> ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setTopic(StringUtils.repeat("t", 128))
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("topic max length 127");
+    }
+
+    @Test
     public void tokenRejectsOverlongClientCursors() {
         String clientId = StringUtils.repeat("c", 256);
 
