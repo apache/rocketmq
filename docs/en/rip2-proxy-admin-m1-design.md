@@ -1043,6 +1043,11 @@ Internal adapter tests cover:
   invocation.
 - activity-level `DescribeClient` rejection for reserved coordinator page-token
   client-id prefixes before ACL or delegate invocation.
+- public endpoint-executor pre-validation for overlong group/topic filters
+  before `ProxyContext` creation or endpoint handling.
+- public endpoint-executor pre-validation for overlong and reserved-prefix
+  `DescribeClient` client ids before `ProxyContext` creation or endpoint
+  handling.
 - response view conversion, stable collection snapshots, and null-safe string
   metadata normalization.
 - endpoint handler success response writing, error response writing, and thrown
@@ -1160,6 +1165,28 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
 The run reported `Tests run: 487, Failures: 0, Errors: 0, Skipped: 0` and ended
 with `BUILD SUCCESS`. The same JDK 17 JaCoCo instrumentation noise appeared in
 the log, but Maven exited successfully.
+
+On 2026-07-08 Asia/Shanghai time, the public endpoint-executor boundary was
+hardened before `ProxyContext` creation: group/topic filters now reject overlong
+values, and `DescribeClient` now rejects overlong or reserved coordinator
+client-id prefixes even if a future adapter or test double bypasses request DTO
+builders. The focused red/green checks first failed with `BAD_REQUEST` expected
+but `INTERNAL_SERVER_ERROR` returned from the context-creation path, then passed
+after the executor reused the shared identifier validators.
+
+The final broad verification for this checkpoint used:
+
+```bash
+JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+  mvn -pl proxy -am \
+  '-Dtest=ProxyClientAdmin*Test,TimedProxyClientAdminPeerClientTest,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ClientActivityTest#testConsumerTelemetryUpdatesProxyClientReadService+testProducerTelemetryUpdatesProxyClientReadService' \
+  -DfailIfNoTests=false test -DskipITs
+```
+
+After `5564a8606`, Maven reported
+`Tests run: 607, Failures: 0, Errors: 0, Skipped: 0` and ended with
+`BUILD SUCCESS`. JDK 17 JaCoCo instrumentation stack traces remained
+environment noise because Surefire and Maven both completed successfully.
 
 ## Synthetic Benchmark
 
