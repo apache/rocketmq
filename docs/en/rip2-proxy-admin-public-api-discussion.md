@@ -14,11 +14,13 @@ decision is where and how the public protobuf API should land.
 
 ## Current Upstream Status
 
-After fetching `upstream/develop` at commit `0e4ccf1b6` on 2026-07-08, this
-RocketMQ repository does not contain a public `ProxyAdminService` protobuf API
-or `.proto` source files to update directly. The proxy module consumes generated
-`apache.rocketmq.v2.MessagingServiceGrpc` classes from the external
-`rocketmq-apis` project.
+After fetching `upstream/develop` at commit `0e4ccf1b6` and `upstream/main` at
+commit `45937936b` on 2026-07-08, this RocketMQ repository does not contain a
+public `ProxyAdminService` protobuf API or `.proto` source files to update
+directly. The proxy module consumes generated
+`apache.rocketmq.v2.MessagingServiceGrpc` classes from `rocketmq-proto:2.1.2`,
+which also does not contain `ProxyAdminServiceGrpc`,
+`ListClientsByGroup`, or `DescribeClient` generated classes.
 
 Because of that ownership boundary, this fork should keep the API as a proposal
 until the community confirms the protobuf location and compatibility process.
