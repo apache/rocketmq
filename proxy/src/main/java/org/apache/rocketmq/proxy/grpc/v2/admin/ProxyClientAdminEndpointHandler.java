@@ -22,11 +22,17 @@ import apache.rocketmq.v2.Status;
 import io.grpc.stub.StreamObserver;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
 
 public class ProxyClientAdminEndpointHandler {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+
     private final ProxyClientAdminActivity proxyClientAdminActivity;
     private final ProxyClientAdminScopeRouter proxyClientAdminScopeRouter;
 
@@ -51,7 +57,9 @@ public class ProxyClientAdminEndpointHandler {
     public <R> void listClients(ProxyContext ctx, ProxyClientAdminListClientsRequest request,
         StreamObserver<R> responseObserver,
         BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
-        this.handle(
+        this.handleObserved(
+            ClientAdminOperation.LIST_CLIENTS,
+            request,
             responseObserver,
             () -> this.listClientViews(ctx, request),
             responseFactory
@@ -61,7 +69,9 @@ public class ProxyClientAdminEndpointHandler {
     public <R> void describeClient(ProxyContext ctx, ProxyClientAdminDescribeClientRequest request,
         StreamObserver<R> responseObserver,
         BiFunction<Status, ProxyClientAdminClientView, R> responseFactory) {
-        this.handle(
+        this.handleObserved(
+            ClientAdminOperation.DESCRIBE_CLIENT,
+            request,
             responseObserver,
             () -> this.describeClientView(ctx, request),
             responseFactory
@@ -71,7 +81,9 @@ public class ProxyClientAdminEndpointHandler {
     public <R> void listClientsByGroup(ProxyContext ctx, ProxyClientAdminListClientsByGroupRequest request,
         StreamObserver<R> responseObserver,
         BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
-        this.handle(
+        this.handleObserved(
+            ClientAdminOperation.LIST_CLIENTS_BY_GROUP,
+            request,
             responseObserver,
             () -> this.listClientViewsByGroup(ctx, request),
             responseFactory
@@ -81,7 +93,9 @@ public class ProxyClientAdminEndpointHandler {
     public <R> void listClientsByTopic(ProxyContext ctx, ProxyClientAdminListClientsByTopicRequest request,
         StreamObserver<R> responseObserver,
         BiFunction<Status, ProxyClientAdminPageView, R> responseFactory) {
-        this.handle(
+        this.handleObserved(
+            ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
+            request,
             responseObserver,
             () -> this.listClientViewsByTopic(ctx, request),
             responseFactory
@@ -106,6 +120,32 @@ public class ProxyClientAdminEndpointHandler {
         } catch (Throwable t) {
             this.restoreInterruptedStatus(t);
             ProxyClientAdminGrpcErrorWriter.write(requiredResponseObserver, t);
+        }
+    }
+
+    private <T, R> void handleObserved(ClientAdminOperation operation, Object request,
+        StreamObserver<R> responseObserver, Supplier<ProxyClientAdminResult<T>> action,
+        BiFunction<Status, T, R> responseFactory) {
+        this.handle(
+            responseObserver,
+            () -> this.observeResult(operation, request, action),
+            responseFactory
+        );
+    }
+
+    private <T> ProxyClientAdminResult<T> observeResult(ClientAdminOperation operation, Object request,
+        Supplier<ProxyClientAdminResult<T>> action) {
+        try {
+            ProxyClientAdminResult<T> result = this.requireAction(action).get();
+            ProxyClientAdminObservability.observe(log, operation, request, result);
+            return result;
+        } catch (Throwable t) {
+            ProxyClientAdminResult<T> result = new ProxyClientAdminResult<>(
+                ResponseBuilder.getInstance().buildStatus(t),
+                null
+            );
+            ProxyClientAdminObservability.observe(log, operation, request, result);
+            throw t;
         }
     }
 

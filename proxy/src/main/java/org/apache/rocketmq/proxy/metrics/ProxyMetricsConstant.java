@@ -29,11 +29,15 @@ public class ProxyMetricsConstant {
         "rocketmq_proxy_client_admin_request_latency";
 
     public static final String LABEL_CLIENT_TYPE = "client_type";
+    public static final String LABEL_FILTERS = "filters";
     public static final String LABEL_INDEX_TYPE = "index_type";
     public static final String LABEL_OPERATION = "operation";
+    public static final String LABEL_PAGE_SIZE = "page_size";
     public static final String LABEL_PROXY_MODE = "proxy_mode";
     public static final String LABEL_RESULT = "result";
+    public static final String LABEL_RESULT_SIZE = "result_size";
     public static final String LABEL_SCOPE = "scope";
+    public static final String LABEL_STATUS = "status";
 
     public static final String INDEX_TYPE_GROUP = "group";
     public static final String INDEX_TYPE_TOPIC = "topic";

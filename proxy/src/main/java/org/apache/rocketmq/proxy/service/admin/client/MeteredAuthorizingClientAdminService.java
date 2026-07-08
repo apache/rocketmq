@@ -50,6 +50,8 @@ public class MeteredAuthorizingClientAdminService extends AuthorizingClientAdmin
         return this.record(
             ClientAdminOperation.LIST_CLIENTS,
             this.scopeOf(query),
+            query,
+            null,
             () -> super.listClients(requestContext, query)
         );
     }
@@ -59,6 +61,8 @@ public class MeteredAuthorizingClientAdminService extends AuthorizingClientAdmin
         return this.record(
             ClientAdminOperation.DESCRIBE_CLIENT,
             ProxyClientScope.LOCAL_PROXY,
+            null,
+            "client_id",
             () -> super.describeClient(requestContext, clientId)
         );
     }
@@ -69,6 +73,8 @@ public class MeteredAuthorizingClientAdminService extends AuthorizingClientAdmin
         return this.record(
             ClientAdminOperation.LIST_CLIENTS_BY_GROUP,
             this.scopeOf(query),
+            query,
+            "group",
             () -> super.listClientsByGroup(requestContext, group, query)
         );
     }
@@ -79,15 +85,21 @@ public class MeteredAuthorizingClientAdminService extends AuthorizingClientAdmin
         return this.record(
             ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
             this.scopeOf(query),
+            query,
+            "topic",
             () -> super.listClientsByTopic(requestContext, topic, query)
         );
     }
 
-    private <T> T record(ClientAdminOperation operation, ProxyClientScope scope, Supplier<T> supplier) {
+    private <T> T record(ClientAdminOperation operation, ProxyClientScope scope, ProxyClientQuery query,
+        String filter, Supplier<T> supplier) {
         long startNanos = this.nanoTimeSupplier.getAsLong();
         ClientAdminMetricsResult result = ClientAdminMetricsResult.OK;
+        int resultSize = 0;
         try {
-            return supplier.get();
+            T body = supplier.get();
+            resultSize = ClientAdminMetricsContext.resultSizeOf(body);
+            return body;
         } catch (RuntimeException e) {
             result = ClientAdminMetricsClassifier.classify(e);
             throw e;
@@ -95,14 +107,30 @@ public class MeteredAuthorizingClientAdminService extends AuthorizingClientAdmin
             result = ClientAdminMetricsResult.INTERNAL_ERROR;
             throw e;
         } finally {
-            this.recordMetrics(operation, result, this.elapsedMillis(startNanos), scope);
+            this.recordMetrics(
+                operation,
+                result,
+                this.elapsedMillis(startNanos),
+                scope,
+                query,
+                filter,
+                resultSize
+            );
         }
     }
 
     private void recordMetrics(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis,
-        ProxyClientScope scope) {
+        ProxyClientScope scope, ProxyClientQuery query, String filter, int resultSize) {
         try {
-            this.metricsRecorder.record(operation, result, latencyMillis, scope);
+            this.metricsRecorder.record(ClientAdminMetricsContext.newBuilder()
+                .setOperation(operation)
+                .setResult(result)
+                .setLatencyMillis(latencyMillis)
+                .setScope(scope)
+                .setQuery(query)
+                .addFilter(filter)
+                .setResultSize(resultSize)
+                .build());
         } catch (Throwable e) {
             log.warn("record client admin metrics failed. operation:{}, result:{}, scope:{}",
                 operation, result, scope, e);

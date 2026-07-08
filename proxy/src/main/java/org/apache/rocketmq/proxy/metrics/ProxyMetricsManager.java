@@ -54,6 +54,8 @@ import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsContext;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsRecorder;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
@@ -78,11 +80,15 @@ import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_PROXY_ID;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_TOPIC;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_CLIENT_TYPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_FILTERS;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_INDEX_TYPE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_OPERATION;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PAGE_SIZE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PROXY_MODE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT_SIZE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_SCOPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_STATUS;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.NODE_TYPE_PROXY;
 
 public class ProxyMetricsManager implements StartAndShutdown {
@@ -203,15 +209,59 @@ public class ProxyMetricsManager implements StartAndShutdown {
         if (operation == null || result == null) {
             return;
         }
+        recordProxyClientAdminRequest(ClientAdminMetricsContext.newBuilder()
+            .setOperation(operation)
+            .setResult(result)
+            .setLatencyMillis(latencyMillis)
+            .setScope(scope)
+            .build());
+    }
+
+    public static void recordProxyClientAdminRequest(ClientAdminMetricsContext context) {
+        if (context == null) {
+            return;
+        }
+        ClientAdminOperation operation = context.getOperation();
+        ClientAdminMetricsResult result = context.getResult();
+        if (operation == null || result == null) {
+            return;
+        }
         AttributesBuilder attributesBuilder = newAttributesBuilder()
             .put(LABEL_OPERATION, operation.name().toLowerCase(Locale.ROOT))
             .put(LABEL_RESULT, result.name().toLowerCase(Locale.ROOT));
-        if (scope != null) {
-            attributesBuilder.put(LABEL_SCOPE, scope.name().toLowerCase(Locale.ROOT));
+        if (context.getScope() != null) {
+            attributesBuilder.put(LABEL_SCOPE, context.getScope().name().toLowerCase(Locale.ROOT));
+        }
+        if (StringUtils.isNotBlank(context.getStatus())) {
+            attributesBuilder.put(LABEL_STATUS, context.getStatus());
+        }
+        if (StringUtils.isNotBlank(context.getFilters())) {
+            attributesBuilder.put(LABEL_FILTERS, context.getFilters());
+        }
+        if (context.getPageSize() >= 0) {
+            attributesBuilder.put(LABEL_PAGE_SIZE, context.getPageSize());
+        }
+        if (context.getResultSize() >= 0) {
+            attributesBuilder.put(LABEL_RESULT_SIZE, context.getResultSize());
         }
         Attributes attributes = attributesBuilder.build();
         proxyClientAdminRequestsTotal.add(1L, attributes);
-        proxyClientAdminRequestLatency.record(Math.max(0L, latencyMillis), attributes);
+        proxyClientAdminRequestLatency.record(context.getLatencyMillis(), attributes);
+    }
+
+    public static ClientAdminMetricsRecorder proxyClientAdminMetricsRecorder() {
+        return new ClientAdminMetricsRecorder() {
+            @Override
+            public void record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis,
+                ProxyClientScope scope) {
+                recordProxyClientAdminRequest(operation, result, latencyMillis, scope);
+            }
+
+            @Override
+            public void record(ClientAdminMetricsContext context) {
+                recordProxyClientAdminRequest(context);
+            }
+        };
     }
 
     public static void recordProxyClientReadModelOperation(ProxyClientReadServiceOperation operation) {

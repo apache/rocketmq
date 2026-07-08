@@ -149,7 +149,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.authorizingClientAdminService = new MeteredAuthorizingClientAdminService(
             this.clientAdminService,
             clientAdminAuthorizationService,
-            ProxyMetricsManager::recordProxyClientAdminRequest
+            ProxyMetricsManager.proxyClientAdminMetricsRecorder()
         );
         this.proxyClientAdminActivity = new ProxyClientAdminActivity(this.authorizingClientAdminService);
         boolean enableCrossProxyQuery = ConfigurationManager.getProxyConfig()
@@ -186,7 +186,7 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
             proxyClientAdminCoordinatorService,
             enableCrossProxyQuery,
             clientAdminAuthorizationService,
-            ProxyMetricsManager::recordProxyClientAdminRequest
+            ProxyMetricsManager.proxyClientAdminMetricsRecorder()
         );
         this.proxyClientAdminContextFactory =
             GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(messagingProcessor);

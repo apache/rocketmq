@@ -23,8 +23,15 @@ import io.grpc.stub.StreamObserver;
 import java.util.Collections;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.ch.qos.logback.classic.Level;
+import org.apache.rocketmq.logging.ch.qos.logback.classic.Logger;
+import org.apache.rocketmq.logging.ch.qos.logback.classic.spi.ILoggingEvent;
+import org.apache.rocketmq.logging.ch.qos.logback.core.read.ListAppender;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -308,6 +315,41 @@ public class ProxyClientAdminEndpointHandlerTest {
         assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("request is required");
         assertThat(responseCaptor.getValue().getBody()).isNull();
+    }
+
+    @Test
+    public void describeClientFailureWritesStructuredLogWithoutClientIdValue() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminEndpointHandler handler = new ProxyClientAdminEndpointHandler(activity);
+        StreamObserver<TestAdminResponse> observer = mock(StreamObserver.class);
+        ProxyContext ctx = ProxyContext.create();
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("private-client-id")
+            .build();
+        when(activity.describeClientView(ctx, request)).thenReturn(new ProxyClientAdminResult<>(
+            ResponseBuilder.getInstance().buildStatus(Code.NOT_FOUND, "missing private-client-id"),
+            null
+        ));
+        Logger logger = (Logger) LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        Level originalLevel = logger.getLevel();
+        appender.start();
+        logger.addAppender(appender);
+        logger.setLevel(Level.WARN);
+        try {
+            handler.describeClient(ctx, request, observer, TestAdminResponse::new);
+        } finally {
+            logger.detachAppender(appender);
+            logger.setLevel(originalLevel);
+        }
+
+        assertThat(appender.list)
+            .anySatisfy(event -> {
+                assertThat(event.getFormattedMessage()).contains("proxy client admin request failed");
+                assertThat(event.getFormattedMessage()).contains(ClientAdminOperation.DESCRIBE_CLIENT.name());
+                assertThat(event.getFormattedMessage()).contains("not_found");
+                assertThat(event.getFormattedMessage()).doesNotContain("private-client-id");
+            });
     }
 
     @Test

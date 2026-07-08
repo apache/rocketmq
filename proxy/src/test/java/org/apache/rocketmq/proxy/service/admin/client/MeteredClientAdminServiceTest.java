@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.service.admin.client;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -69,6 +70,41 @@ public class MeteredClientAdminServiceTest {
 
         assertThat(service.listClients(query)).isSameAs(page);
         assertThat(scopes).containsExactly(ProxyClientScope.ALL_PROXIES);
+    }
+
+    @Test
+    public void listClientsRecordsContestObservabilityContext() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setClientIdPrefix("client-")
+            .setClientLanguage("JAVA")
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(200L)
+            .setPageSize(42)
+            .build();
+        ProxyClientPage page = new ProxyClientPage(Arrays.asList(
+            client("client-a"),
+            client("client-b")
+        ), "");
+        when(delegate.listClients(query)).thenReturn(page);
+        List<ClientAdminMetricsContext> contexts = new ArrayList<>();
+
+        MeteredClientAdminService service = new MeteredClientAdminService(
+            delegate,
+            new CapturingContextRecorder(contexts),
+            clock()
+        );
+
+        assertThat(service.listClients(query)).isSameAs(page);
+        assertThat(contexts).hasSize(1);
+        ClientAdminMetricsContext context = contexts.get(0);
+        assertThat(context.getOperation()).isEqualTo(ClientAdminOperation.LIST_CLIENTS);
+        assertThat(context.getResult()).isEqualTo(ClientAdminMetricsResult.OK);
+        assertThat(context.getLatencyMillis()).isEqualTo(1L);
+        assertThat(context.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(context.getPageSize()).isEqualTo(42);
+        assertThat(context.getFilters()).isEqualTo("client_id_prefix,client_language,connect_time_range");
+        assertThat(context.getResultSize()).isEqualTo(2);
     }
 
     @Test
@@ -285,6 +321,39 @@ public class MeteredClientAdminServiceTest {
     private static java.util.function.LongSupplier clock() {
         AtomicLong clock = new AtomicLong(0L);
         return () -> clock.getAndAdd(1_000_000L);
+    }
+
+    private static ProxyClientInfo client(String clientId) {
+        return new ProxyClientInfo(
+            clientId,
+            null,
+            Collections.emptySet(),
+            Collections.emptySet(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        );
+    }
+
+    private static class CapturingContextRecorder implements ClientAdminMetricsRecorder {
+        private final List<ClientAdminMetricsContext> contexts;
+
+        private CapturingContextRecorder(List<ClientAdminMetricsContext> contexts) {
+            this.contexts = contexts;
+        }
+
+        @Override
+        public void record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis,
+            ProxyClientScope scope) {
+        }
+
+        @Override
+        public void record(ClientAdminMetricsContext context) {
+            this.contexts.add(context);
+        }
     }
 
     private static class Record {

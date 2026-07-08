@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsContext;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
@@ -61,9 +62,14 @@ import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_PROXY_ID;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_TOPIC;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_CLIENT_TYPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_FILTERS;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_INDEX_TYPE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_OPERATION;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PAGE_SIZE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT_SIZE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_SCOPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_STATUS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -258,6 +264,48 @@ public class ProxyMetricsManagerTest extends InitConfigTest {
             "all_proxies".equals(attributes.get(AttributeKey.stringKey("scope")))));
         verify(requestLatency).record(eq(12L), argThat(attributes ->
             "all_proxies".equals(attributes.get(AttributeKey.stringKey("scope")))));
+    }
+
+    @Test
+    public void initMetricsRecordsProxyClientAdminContestAttributes() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        LongCounter requestCounter = mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        LongHistogram requestLatency = mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+
+        ProxyMetricsManager.initMetrics(
+            meter,
+            Attributes::builder,
+            () -> new ProxyClientReadServiceStats(0L, 0L, 0L, Collections.emptyMap())
+        );
+
+        ProxyMetricsManager.recordProxyClientAdminRequest(ClientAdminMetricsContext.newBuilder()
+            .setOperation(ClientAdminOperation.LIST_CLIENTS)
+            .setResult(ClientAdminMetricsResult.INTERNAL_ERROR)
+            .setLatencyMillis(12L)
+            .setScope(ProxyClientScope.LOCAL_PROXY)
+            .setStatus("internal_server_error")
+            .setPageSize(100)
+            .setFilters("client_id_prefix,client_language")
+            .setResultSize(3)
+            .build());
+
+        verify(requestCounter).add(eq(1L), argThat(attributes ->
+            "list_clients".equals(attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
+                && "internal_error".equals(attributes.get(AttributeKey.stringKey(LABEL_RESULT)))
+                && "local_proxy".equals(attributes.get(AttributeKey.stringKey(LABEL_SCOPE)))
+                && "internal_server_error".equals(attributes.get(AttributeKey.stringKey(LABEL_STATUS)))
+                && "client_id_prefix,client_language".equals(attributes.get(AttributeKey.stringKey(LABEL_FILTERS)))
+                && Long.valueOf(100L).equals(attributes.get(AttributeKey.longKey(LABEL_PAGE_SIZE)))
+                && Long.valueOf(3L).equals(attributes.get(AttributeKey.longKey(LABEL_RESULT_SIZE)))));
+        verify(requestLatency).record(eq(12L), argThat(attributes ->
+            "internal_server_error".equals(attributes.get(AttributeKey.stringKey(LABEL_STATUS)))
+                && Long.valueOf(100L).equals(attributes.get(AttributeKey.longKey(LABEL_PAGE_SIZE)))
+                && Long.valueOf(3L).equals(attributes.get(AttributeKey.longKey(LABEL_RESULT_SIZE)))));
     }
 
     @Test

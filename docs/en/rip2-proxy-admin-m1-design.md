@@ -117,7 +117,7 @@ contest submission:
 | Error codes compatible with RocketMQ gRPC status codes | `ResponseBuilder` and admin endpoint handler already map internal exceptions to v2 `Status`. | Extend tests for new validation errors and the future public endpoint. |
 | Independent ACL resource `proxy.admin.client` | Client-admin authorization now uses the logical resource name `proxy.admin.client`, encoded as `Admin:proxy.admin.client` in the RocketMQ ACL resource model. | Keep the future public endpoint on the same LIST/GET policy. |
 | Separate query thread pool | The proto-free endpoint executor now runs admin queries on a dedicated bounded executor by default: 4 threads, queue capacity 10000, and the `ProxyClientAdminQueryThread_` thread-name prefix. | Keep the future generated public endpoint on this executor boundary. |
-| OpenTelemetry metrics, traces, and logs | Metrics wrappers exist for admin service calls. | Add contest-specific metric labels and trace/log attributes for operation, result, filters, duration, and result size. |
+| OpenTelemetry metrics, traces, and logs | Admin service metrics now include operation, result, scope, status, page size, filter presence, result size, and duration. The proto-free endpoint also writes matching trace attributes and structured failure logs without sensitive identifiers. | Keep the future public endpoint on the same low-cardinality labels and attributes. |
 | Unit tests and E2E tests | Unit and internal peer tests exist; public endpoint E2E is blocked by generated stubs. | Add unit coverage for new filters now and add in-process public gRPC E2E once generated stubs are available. |
 | English and Chinese documentation | English design and discussion docs exist. | Add a Chinese user-facing doc and update English usage docs before final submission. |
 | 1M client query benchmark | Read-model and coordinator JMH benchmarks exist. | Extend benchmark scenarios for prefix, language, connect-time range, and `pageSize=100`. |
@@ -950,18 +950,27 @@ It also records read-model upsert/remove mutation counters.
 
 The current internal admin service wrapper records:
 
-- admin query counters by operation, result code, and proxy query scope.
-- admin query latency histograms by operation, result code, and proxy query
-  scope.
+- admin query counters by operation, result code, proxy query scope, status,
+  page size, filter presence, and result size.
+- admin query latency histograms by operation, result code, proxy query scope,
+  status, page size, filter presence, and result size.
 
 Metrics are recorded around the authorizing admin service, not only around the
 read-model service. This means ACL denials are reported as `UNAUTHORIZED`, while
 successful reads, bad requests, not-found responses, and unexpected internal
 errors are still counted once at the public admin operation boundary.
 
-The `scope` label is intentionally low cardinality. It records
-`local_proxy`, `all_proxies`, or `proxy_id`, but it does not include the target
-proxy id or any client, group, or topic identifier.
+The `scope` and `filters` labels are intentionally low cardinality. `scope`
+records `local_proxy`, `all_proxies`, or `proxy_id`, but it does not include the
+target proxy id. `filters` records only filter names such as
+`client_id_prefix`, `client_language`, or `connect_time_range`; it does not
+include any client, group, topic, proxy, or subject identifier.
+
+The proto-free endpoint records OpenTelemetry span attributes for operation,
+scope, status, page size, filter presence, and result size. It also writes a
+structured warning for failed admin requests with operation, status, result,
+scope, filters, page size, and result size. The failure log deliberately omits
+client ids, group names, topic names, proxy ids, and auth subjects.
 
 Internal coordinator scopes use the same one-operation boundary at the scope
 router. The router records exactly one operation metric for a coordinator-scope
@@ -983,8 +992,8 @@ Metric recording is best effort. Read-model mutation recorder failures and
 admin query metrics recorder failures are logged but do not mask successful
 lifecycle/admin operations or the original service exception.
 
-The public adapter should reuse these low-cardinality operation and result labels
-when the API surface is finalized.
+The public adapter should reuse these low-cardinality metric labels, trace
+attributes, and structured log fields when the API surface is finalized.
 
 ## Error Semantics
 

@@ -21,6 +21,13 @@ public interface ClientAdminMetricsRecorder {
     void record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis,
         ProxyClientScope scope);
 
+    default void record(ClientAdminMetricsContext context) {
+        if (context == null) {
+            return;
+        }
+        this.record(context.getOperation(), context.getResult(), context.getLatencyMillis(), context.getScope());
+    }
+
     default void record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis) {
         this.record(operation, result, latencyMillis, null);
     }
