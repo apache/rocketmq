@@ -341,11 +341,7 @@ public class ProxyClientAdminCoordinatorService {
     }
 
     private String requireClientId(String clientId) {
-        String normalizedClientId = StringUtils.trimToNull(clientId);
-        if (normalizedClientId == null) {
-            throw new IllegalArgumentException("clientId is required");
-        }
-        return normalizedClientId;
+        return ProxyClientInfo.normalizeClientId(clientId);
     }
 
     private String requireProxyId(String proxyId) {

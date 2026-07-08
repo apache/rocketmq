@@ -1194,6 +1194,23 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void describeClientAllProxiesRejectsReservedClientIdBeforePeerDiscovery() {
+        CountingDiscoveryPeerClient peerClient = new CountingDiscoveryPeerClient();
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientAdminDescribeClientRequest request = mock(ProxyClientAdminDescribeClientRequest.class);
+        when(request.getScope()).thenReturn(ProxyClientScope.ALL_PROXIES);
+        when(request.getClientId()).thenReturn("cp1:client-a");
+
+        ProxyClientAdminResult<ProxyClientInfo> result = service.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("clientId must not use reserved page token prefix");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.discoveryCount).isEqualTo(0);
+        assertThat(peerClient.executeCount).isEqualTo(0);
+    }
+
+    @Test
     public void describeClientProxyIdRejectsMissingProxyIdAtRequestBoundary() {
         assertThatThrownBy(() -> ProxyClientAdminDescribeClientRequest.newBuilder()
             .setScope(ProxyClientScope.PROXY_ID)
