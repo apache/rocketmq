@@ -95,6 +95,10 @@ public class ProxyConfig implements ConfigFile {
     private boolean enableGrpcEpoll = false;
     private int grpcThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int grpcThreadPoolQueueCapacity = 100000;
+    private boolean enableProxyAdminGrpcServer = false;
+    private Integer proxyAdminGrpcServerPort = 8082;
+    private int proxyAdminGrpcThreadPoolNums = 4;
+    private int proxyAdminGrpcThreadPoolQueueCapacity = 10000;
 
     /**
      * Maximum number of concurrent gRPC calls allowed per client connection.
@@ -492,6 +496,22 @@ public class ProxyConfig implements ConfigFile {
         this.grpcServerPort = grpcServerPort;
     }
 
+    public boolean isEnableProxyAdminGrpcServer() {
+        return enableProxyAdminGrpcServer;
+    }
+
+    public void setEnableProxyAdminGrpcServer(boolean enableProxyAdminGrpcServer) {
+        this.enableProxyAdminGrpcServer = enableProxyAdminGrpcServer;
+    }
+
+    public Integer getProxyAdminGrpcServerPort() {
+        return proxyAdminGrpcServerPort;
+    }
+
+    public void setProxyAdminGrpcServerPort(Integer proxyAdminGrpcServerPort) {
+        this.proxyAdminGrpcServerPort = proxyAdminGrpcServerPort;
+    }
+
     public long getGrpcShutdownTimeSeconds() {
         return grpcShutdownTimeSeconds;
     }
@@ -818,6 +838,22 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcClientManagerThreadQueueCapacity(int grpcClientManagerThreadQueueCapacity) {
         this.grpcClientManagerThreadQueueCapacity = grpcClientManagerThreadQueueCapacity;
+    }
+
+    public int getProxyAdminGrpcThreadPoolNums() {
+        return proxyAdminGrpcThreadPoolNums;
+    }
+
+    public void setProxyAdminGrpcThreadPoolNums(int proxyAdminGrpcThreadPoolNums) {
+        this.proxyAdminGrpcThreadPoolNums = proxyAdminGrpcThreadPoolNums;
+    }
+
+    public int getProxyAdminGrpcThreadPoolQueueCapacity() {
+        return proxyAdminGrpcThreadPoolQueueCapacity;
+    }
+
+    public void setProxyAdminGrpcThreadPoolQueueCapacity(int proxyAdminGrpcThreadPoolQueueCapacity) {
+        this.proxyAdminGrpcThreadPoolQueueCapacity = proxyAdminGrpcThreadPoolQueueCapacity;
     }
 
     public int getProxyClientAdminQueryThreadPoolNums() {

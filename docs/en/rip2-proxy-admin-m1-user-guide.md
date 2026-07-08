@@ -97,6 +97,16 @@ must not log the subject value in plain text.
 
 ## Execution And Observability
 
+The public admin gRPC service should run on an admin-only server once generated
+`ProxyAdminService` classes are available. The current branch already carries
+the startup gate and admin server executor. Defaults:
+
+- `enableProxyAdminGrpcServer = false`
+- `proxyAdminGrpcServerPort = 8082`
+- `proxyAdminGrpcThreadPoolNums = 4`
+- `proxyAdminGrpcThreadPoolQueueCapacity = 10000`
+- server thread name prefix `ProxyAdminGrpcRequestExecutorThread`
+
 Admin queries run on a dedicated executor so they do not block the messaging
 write path. Defaults:
 

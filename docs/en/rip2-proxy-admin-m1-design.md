@@ -115,7 +115,7 @@ contest submission:
 | Error codes compatible with RocketMQ gRPC status codes | `ResponseBuilder` and admin endpoint handler already map internal exceptions to v2 `Status`. | Extend tests for new validation errors and the future public endpoint. |
 | Independent ACL resource `proxy.admin.client` | Client-admin authorization now uses the logical resource name `proxy.admin.client`, encoded as `Admin:proxy.admin.client` in the RocketMQ ACL resource model. | Keep the future public endpoint on the same LIST/GET policy. |
 | Separate query thread pool | The proto-free endpoint executor now runs admin queries on a dedicated bounded executor by default: 4 threads, queue capacity 10000, and the `ProxyClientAdminQueryThread_` thread-name prefix. | Keep the future generated public endpoint on this executor boundary. |
-| Admin service and port isolation | Startup seams exist for adding admin bindable services, but the public admin service and separate admin gRPC port are not registered yet. | Add a standalone public admin server/port after generated protobuf classes are available. |
+| Admin service and port isolation | A separate admin gRPC server gate now exists with its own port and request executor. The generated public admin service is still blocked by `rocketmq-apis` ownership. | Register the standalone public admin service on the admin server after generated protobuf classes are available. |
 | OpenTelemetry metrics, traces, and logs | Admin service metrics now include operation, result, scope, status, page size, filter presence, result size, and duration. The proto-free endpoint also writes matching trace attributes and structured failure logs without sensitive identifiers. | Keep the future public endpoint on the same low-cardinality labels and attributes. |
 | Unit tests and E2E tests | Unit and internal peer tests exist; public endpoint E2E is blocked by generated stubs. | Add unit coverage for new filters now and add in-process public gRPC E2E once generated stubs are available. |
 | English and Chinese documentation | English design, English user guide, Chinese user guide, and public API discussion docs exist. | Keep all docs synchronized with the final public endpoint and benchmark results before final submission. |
@@ -353,10 +353,13 @@ small and tested boundary to call:
   of unbounded coordinator tokens and peer error payloads.
 - `ProxyStartup.createGrpcBindableServices(...)` now has a tested package-private
   overload for appending additional `BindableService` instances after the
-  messaging service while reusing the same `DefaultGrpcMessagingActivity`. It
-  also appends the internal peer gRPC service when cross-proxy query support is
-  enabled. The future public `GrpcProxyAdminApplication` can use the same
-  multi-service startup seam once generated protobuf classes are available.
+  messaging service while reusing the same `DefaultGrpcMessagingActivity`.
+  Admin services use `ProxyStartup.createProxyAdminGrpcBindableServices(...)`
+  instead. That admin service list appends future public admin services first
+  and then the internal peer gRPC service when cross-proxy query support creates
+  one. The admin list is registered only on the separate admin gRPC server when
+  `enableProxyAdminGrpcServer` is enabled, keeping admin and peer RPCs off the
+  data-plane messaging server.
 
 The request DTOs convert pagination, client type, scope, and optional proxy id
 into `ProxyClientQuery`. Required identifiers such as client id, group, and

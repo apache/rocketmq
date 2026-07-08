@@ -92,6 +92,15 @@ gRPC request pipeline 会把认证后的 subject 传入 `ProxyContext`。Admin e
 
 ## 执行线程池和可观测性
 
+生成的 `ProxyAdminService` 类可用后，公开 admin gRPC service 应运行在独立
+admin server 上。本分支已经包含启动开关和 admin server executor。默认值：
+
+- `enableProxyAdminGrpcServer = false`
+- `proxyAdminGrpcServerPort = 8082`
+- `proxyAdminGrpcThreadPoolNums = 4`
+- `proxyAdminGrpcThreadPoolQueueCapacity = 10000`
+- server 线程名前缀 `ProxyAdminGrpcRequestExecutorThread`
+
 Admin 查询使用独立 executor，避免阻塞 messaging 写路径。默认值：
 
 - `proxyClientAdminQueryThreadPoolNums = 4`
