@@ -321,6 +321,16 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void describeClientRequestRejectsReservedClientIdPrefix() {
+        assertThatThrownBy(() -> ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("cp1:client-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientId must not use reserved page token prefix")
+            .hasMessageContaining("cp1:client-a");
+    }
+
+    @Test
     public void describeClientRequestMapsUnspecifiedPublicScopeNameToLocalProxy() {
         ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
             .setClientId("client-a")

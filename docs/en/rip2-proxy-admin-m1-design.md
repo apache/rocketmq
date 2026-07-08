@@ -130,7 +130,8 @@ small and tested boundary to call:
   trimmed and blank strings become missing values before validation. Group and
   topic request identifiers are bounded by `Validators.GROUP_MAX_LENGTH` and
   `Validators.TOPIC_MAX_LENGTH` before query construction, and describe-client
-  ids are bounded by `Validators.CHARACTER_MAX_LENGTH`. They also require a
+  ids are bounded by `Validators.CHARACTER_MAX_LENGTH` and reject the reserved
+  coordinator page-token prefix. They also require a
   nonblank `proxy_id` for the explicit `PROXY_ID` scope before context creation,
   and preserve `proxy_id` only for that scope. Direct DTO use and future protobuf
   conversion therefore share the same M1 local and broadcast-scope semantics.
@@ -992,6 +993,8 @@ Internal adapter tests cover:
   identifiers before query construction.
 - request DTO, request-converter, and response-view rejection for overlong
   client ids before endpoint handling or protobuf response construction.
+- describe-client request DTO rejection for reserved coordinator page-token
+  client-id prefixes before endpoint handling.
 - default `LOCAL_PROXY` scope, opaque page-token encode/decode, and proxy id
   pass-through for future scoped queries.
 - activity-level `LOCAL_PROXY` query canonicalization before authorization and

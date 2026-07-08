@@ -665,12 +665,8 @@ public class ProxyClientAdminActivityTest {
         ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
             new AuthorizingClientAdminService(delegate, authorizationService)
         );
-        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
-            .setClientId("cp1:client-a")
-            .build();
-
         ProxyClientAdminResult<ProxyClientAdminClientView> result =
-            activity.describeClientView(proxyContext(), request);
+            activity.describeClientView(proxyContext(), "cp1:client-a");
 
         assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(result.getStatus().getMessage()).contains("clientId must not use reserved page token prefix");
