@@ -115,7 +115,7 @@ contest submission:
 | `pageSize <= 100` | Client-admin query page size is capped at 100 in `ProxyClientQuery`. | Keep the generated public endpoint and benchmark scenarios on the same cap. |
 | Response fields: `clientId`, `language`, `version`, `localAddress`, `remoteAddress`, and `connectionTime` | Response views already expose the equivalent metadata, including client version and connect time. | Preserve the existing response view and align public proto field names with the contest wording. |
 | Error codes compatible with RocketMQ gRPC status codes | `ResponseBuilder` and admin endpoint handler already map internal exceptions to v2 `Status`. | Extend tests for new validation errors and the future public endpoint. |
-| Independent ACL resource `proxy.admin.client` | The branch has an authorization facade, but earlier M1 text used cluster-level LIST/GET as the first approximation. | Move client-admin authorization to LIST/GET on `proxy.admin.client`. |
+| Independent ACL resource `proxy.admin.client` | Client-admin authorization now uses the logical resource name `proxy.admin.client`, encoded as `Admin:proxy.admin.client` in the RocketMQ ACL resource model. | Keep the future public endpoint on the same LIST/GET policy. |
 | Separate query thread pool | A proto-free endpoint shell exists, but the public admin query path does not yet own a dedicated executor. | Add a bounded admin query executor before registering the public endpoint. |
 | OpenTelemetry metrics, traces, and logs | Metrics wrappers exist for admin service calls. | Add contest-specific metric labels and trace/log attributes for operation, result, filters, duration, and result size. |
 | Unit tests and E2E tests | Unit and internal peer tests exist; public endpoint E2E is blocked by generated stubs. | Add unit coverage for new filters now and add in-process public gRPC E2E once generated stubs are available. |
@@ -900,6 +900,9 @@ resource:
 
 The current internal implementation provides `ClientAdminAuthPolicy`,
 `DefaultClientAdminAuthorizationService`, and `AuthorizingClientAdminService`.
+`ClientAdminAuthPolicy` maps that logical resource to
+`Admin:proxy.admin.client` so the permission is independent from the configured
+cluster name while still using the existing typed RocketMQ ACL model.
 The admin gRPC request pipeline copies the authenticated access key into
 `ProxyContext` as a `Subject`, and `ClientAdminRequestContext.from` derives the
 admin request context from `ProxyContext`. The source IP used for ACL is

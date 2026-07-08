@@ -19,8 +19,11 @@ package org.apache.rocketmq.proxy.service.admin.client;
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authorization.context.DefaultAuthorizationContext;
 import org.apache.rocketmq.auth.authorization.model.Resource;
+import org.apache.rocketmq.common.resource.ResourcePattern;
+import org.apache.rocketmq.common.resource.ResourceType;
 
 public class ClientAdminAuthPolicy {
+    public static final String PROXY_ADMIN_CLIENT_RESOURCE = "proxy.admin.client";
 
     public DefaultAuthorizationContext newContext(Subject subject, ClientAdminOperation operation, String clusterName,
         String sourceIp) {
@@ -29,7 +32,7 @@ public class ClientAdminAuthPolicy {
         }
         DefaultAuthorizationContext context = DefaultAuthorizationContext.of(
             subject,
-            Resource.ofCluster(clusterName),
+            Resource.of(ResourceType.ADMIN, PROXY_ADMIN_CLIENT_RESOURCE, ResourcePattern.LITERAL),
             operation.getRequiredAction(),
             sourceIp
         );

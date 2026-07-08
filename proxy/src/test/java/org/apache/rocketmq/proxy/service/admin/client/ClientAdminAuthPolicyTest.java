@@ -30,14 +30,14 @@ public class ClientAdminAuthPolicyTest {
     private final ClientAdminAuthPolicy authPolicy = new ClientAdminAuthPolicy();
 
     @Test
-    public void listClientOperationsRequireClusterList() {
+    public void listClientOperationsRequireProxyAdminClientList() {
         assertRequirement(ClientAdminOperation.LIST_CLIENTS, Action.LIST);
         assertRequirement(ClientAdminOperation.LIST_CLIENTS_BY_GROUP, Action.LIST);
         assertRequirement(ClientAdminOperation.LIST_CLIENTS_BY_TOPIC, Action.LIST);
     }
 
     @Test
-    public void describeClientRequiresClusterGet() {
+    public void describeClientRequiresProxyAdminClientGet() {
         assertRequirement(ClientAdminOperation.DESCRIBE_CLIENT, Action.GET);
     }
 
@@ -57,8 +57,9 @@ public class ClientAdminAuthPolicyTest {
         );
 
         assertThat(context.getSubject().getSubjectKey()).isEqualTo("User:admin");
-        assertThat(context.getResource().getResourceType()).isEqualTo(ResourceType.CLUSTER);
-        assertThat(context.getResource().getResourceKey()).isEqualTo("Cluster:DefaultCluster");
+        assertThat(context.getResource().getResourceType()).isEqualTo(ResourceType.ADMIN);
+        assertThat(context.getResource().getResourceName()).isEqualTo(ClientAdminAuthPolicy.PROXY_ADMIN_CLIENT_RESOURCE);
+        assertThat(context.getResource().getResourceKey()).isEqualTo("Admin:proxy.admin.client");
         assertThat(context.getActions()).containsExactly(expectedAction);
         assertThat(context.getSourceIp()).isEqualTo("127.0.0.1");
     }

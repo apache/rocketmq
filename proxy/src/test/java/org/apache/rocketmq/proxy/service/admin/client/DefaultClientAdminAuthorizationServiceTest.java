@@ -24,6 +24,8 @@ import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.resource.ResourcePattern;
+import org.apache.rocketmq.common.resource.ResourceType;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -31,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -72,7 +75,8 @@ public class DefaultClientAdminAuthorizationServiceTest {
         User admin = User.of("admin");
         DefaultAuthorizationContext context = DefaultAuthorizationContext.of(
             admin,
-            Resource.ofCluster("DefaultCluster"),
+            Resource.of(ResourceType.ADMIN, ClientAdminAuthPolicy.PROXY_ADMIN_CLIENT_RESOURCE,
+                ResourcePattern.LITERAL),
             Action.LIST,
             "127.0.0.1"
         );
@@ -89,6 +93,55 @@ public class DefaultClientAdminAuthorizationServiceTest {
         ArgumentCaptor<List> contextCaptor = ArgumentCaptor.forClass(List.class);
         verify(authorizationEvaluator).evaluate(contextCaptor.capture());
         assertThat(contextCaptor.getValue()).containsExactly(context);
+    }
+
+    @Test
+    public void authorizeBuildsProxyAdminClientResourceWhenEnabled() {
+        AuthConfig authConfig = authConfig(true);
+        AuthorizationEvaluator authorizationEvaluator = mock(AuthorizationEvaluator.class);
+        ClientAdminAuthorizationService authorizationService = new DefaultClientAdminAuthorizationService(
+            authConfig,
+            new ClientAdminAuthPolicy(),
+            authorizationEvaluator
+        );
+        User admin = User.of("admin");
+
+        authorizationService.authorize(
+            admin,
+            ClientAdminOperation.DESCRIBE_CLIENT,
+            "127.0.0.1"
+        );
+
+        @SuppressWarnings("rawtypes")
+        ArgumentCaptor<List> contextCaptor = ArgumentCaptor.forClass(List.class);
+        verify(authorizationEvaluator).evaluate(contextCaptor.capture());
+        assertThat(contextCaptor.getValue()).hasSize(1);
+        DefaultAuthorizationContext context = (DefaultAuthorizationContext) contextCaptor.getValue().get(0);
+        assertThat(context.getSubject()).isSameAs(admin);
+        assertThat(context.getResource().getResourceType()).isEqualTo(ResourceType.ADMIN);
+        assertThat(context.getResource().getResourceName()).isEqualTo(ClientAdminAuthPolicy.PROXY_ADMIN_CLIENT_RESOURCE);
+        assertThat(context.getActions()).containsExactly(Action.GET);
+        assertThat(context.getSourceIp()).isEqualTo("127.0.0.1");
+    }
+
+    @Test
+    public void authorizePropagatesAuthorizationFailure() {
+        AuthConfig authConfig = authConfig(true);
+        AuthorizationEvaluator authorizationEvaluator = mock(AuthorizationEvaluator.class);
+        ClientAdminAuthorizationService authorizationService = new DefaultClientAdminAuthorizationService(
+            authConfig,
+            new ClientAdminAuthPolicy(),
+            authorizationEvaluator
+        );
+        doThrow(new AuthorizationException("denied")).when(authorizationEvaluator).evaluate(anyList());
+
+        assertThatThrownBy(() -> authorizationService.authorize(
+            User.of("admin"),
+            ClientAdminOperation.LIST_CLIENTS,
+            "127.0.0.1"
+        ))
+            .isInstanceOf(AuthorizationException.class)
+            .hasMessageContaining("denied");
     }
 
     @Test

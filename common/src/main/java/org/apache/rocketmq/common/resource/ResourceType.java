@@ -31,7 +31,9 @@ public enum ResourceType {
 
     TOPIC((byte) 4, "Topic"),
 
-    GROUP((byte) 5, "Group");
+    GROUP((byte) 5, "Group"),
+
+    ADMIN((byte) 6, "Admin");
 
     @JSONField(value = true)
     private final byte code;
