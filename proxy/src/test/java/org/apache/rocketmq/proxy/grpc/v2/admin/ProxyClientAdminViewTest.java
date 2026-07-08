@@ -133,6 +133,16 @@ public class ProxyClientAdminViewTest {
         assertThat(view.getNextPageToken()).isEmpty();
     }
 
+    @Test
+    public void pageViewRejectsOverlongNextPageToken() {
+        assertThatThrownBy(() -> new ProxyClientAdminPageView(
+            Collections.singletonList(clientView("client-a")),
+            StringUtils.repeat("t", 4097)
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("nextPageToken length exceeds 4096");
+    }
+
     private static ProxyClientAdminClientView clientView(String clientId) {
         return new ProxyClientAdminClientView(
             clientId,

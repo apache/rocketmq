@@ -24,7 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 public final class ProxyClientAdminPageTokenCodec {
     private static final ProxyClientAdminPageTokenCodec INSTANCE = new ProxyClientAdminPageTokenCodec();
     private static final String VERSION_1_PREFIX = "v1:";
-    private static final int MAX_PUBLIC_PAGE_TOKEN_LENGTH = 4096;
+    static final int MAX_PUBLIC_PAGE_TOKEN_LENGTH = 4096;
 
     private ProxyClientAdminPageTokenCodec() {
     }

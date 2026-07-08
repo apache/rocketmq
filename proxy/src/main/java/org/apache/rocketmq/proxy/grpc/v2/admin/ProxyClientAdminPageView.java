@@ -28,7 +28,17 @@ public class ProxyClientAdminPageView {
 
     public ProxyClientAdminPageView(List<ProxyClientAdminClientView> clients, String nextPageToken) {
         this.clients = immutableCopy(clients);
-        this.nextPageToken = StringUtils.trimToEmpty(nextPageToken);
+        this.nextPageToken = normalizeNextPageToken(nextPageToken);
+    }
+
+    private static String normalizeNextPageToken(String nextPageToken) {
+        String normalizedNextPageToken = StringUtils.trimToEmpty(nextPageToken);
+        if (normalizedNextPageToken.length() > ProxyClientAdminPageTokenCodec.MAX_PUBLIC_PAGE_TOKEN_LENGTH) {
+            throw new IllegalArgumentException(
+                "nextPageToken length exceeds " + ProxyClientAdminPageTokenCodec.MAX_PUBLIC_PAGE_TOKEN_LENGTH
+            );
+        }
+        return normalizedNextPageToken;
     }
 
     private static List<ProxyClientAdminClientView> immutableCopy(List<ProxyClientAdminClientView> values) {
