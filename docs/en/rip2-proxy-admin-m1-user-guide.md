@@ -150,7 +150,8 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
 ```
 
 Use the JMH commands in `docs/en/rip2-proxy-admin-m1-design.md` for local
-1M-client benchmark runs.
+1M-client benchmark runs. A completed 1M local run is recorded in
+`docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
 
 ## Known M1 Limits
 

@@ -1384,6 +1384,11 @@ benchmarks:
 These numbers are a launcher and classpath sanity check for the small
 1000-client smoke scenario, not a formal performance claim.
 
+The 2026-07-08 local 1M-client run is recorded in
+`docs/en/rip2-proxy-admin-m1-benchmark-report.md`. In that run, every local
+read-model query path stayed below the 1 second P99 target; the heaviest path
+was `listByConnectTimeRangePage` at 344.793 ms P99.
+
 Use the same classpath preparation and omit the `-p`, `-wi`, `-i`, `-r`, `-w`,
 `-f`, and `-t` overrides for the full default 1M-client run:
 

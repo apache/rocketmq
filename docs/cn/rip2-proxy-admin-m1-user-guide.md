@@ -142,7 +142,8 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
 ```
 
 1M client JMH benchmark 的启动方式见
-`docs/en/rip2-proxy-admin-m1-design.md`。
+`docs/en/rip2-proxy-admin-m1-design.md`。本机已完成的 1M 运行结果见
+`docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。
 
 ## M1 限制
 
