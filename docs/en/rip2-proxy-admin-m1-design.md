@@ -133,7 +133,10 @@ small and tested boundary to call:
   conversion therefore share the same M1 local and broadcast-scope semantics.
 - `DefaultClientAdminService` also canonicalizes `LOCAL_PROXY` queries before
   reading the model, dropping accidental `proxyId` filters from direct internal
-  callers while still rejecting future non-local scopes in M1.
+  callers while still rejecting future non-local scopes in M1. Direct
+  `DescribeClient` calls reuse the read-model client-id validator so overlong
+  ids and coordinator page-token prefixes are rejected as malformed requests
+  before lookup rather than being reported as missing clients.
 - `ProxyClientAdminScopeRouter` keeps the default `LOCAL_PROXY` path on
   `ProxyClientAdminActivity` and routes explicitly enabled coordinator scopes to
   `ProxyClientAdminCoordinatorService` after authorization. Router-level
@@ -992,6 +995,8 @@ Internal adapter tests cover:
   delegate calls.
 - service-level `LOCAL_PROXY` query canonicalization that drops accidental
   proxy-id filters before querying the local read model.
+- service-level `DescribeClient` rejection for overlong client ids and reserved
+  coordinator page-token prefixes before read-model lookup.
 - activity overloads for request DTOs.
 - activity-level rejection of unsupported M1 scopes before ACL or delegate
   invocation.

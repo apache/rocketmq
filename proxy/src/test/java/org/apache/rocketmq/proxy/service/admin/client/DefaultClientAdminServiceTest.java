@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.Validators;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -99,6 +101,26 @@ public class DefaultClientAdminServiceTest {
         assertThatThrownBy(() -> adminService.describeClient(" "))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("clientId is required");
+    }
+
+    @Test
+    public void describeClientRejectsOverlongClientIdBeforeLookup() {
+        ClientAdminService adminService = new DefaultClientAdminService(new ProxyClientReadService());
+
+        assertThatThrownBy(() -> adminService.describeClient(StringUtils.repeat("c",
+            Validators.CHARACTER_MAX_LENGTH + 1)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientId length exceeds " + Validators.CHARACTER_MAX_LENGTH);
+    }
+
+    @Test
+    public void describeClientRejectsReservedPageTokenPrefixBeforeLookup() {
+        ClientAdminService adminService = new DefaultClientAdminService(new ProxyClientReadService());
+
+        assertThatThrownBy(() -> adminService.describeClient("cp1:client-a"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientId must not use reserved page token prefix")
+            .hasMessageContaining("cp1:client-a");
     }
 
     @Test
