@@ -25,6 +25,7 @@ import io.grpc.stub.StreamObserver;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
@@ -234,13 +235,33 @@ public class ProxyClientAdminEndpointExecutor {
             && StringUtils.isBlank(((ProxyClientAdminDescribeClientRequest) request).getClientId())) {
             throw new IllegalArgumentException("clientId is required");
         }
-        if (request instanceof ProxyClientAdminListClientsByGroupRequest
-            && StringUtils.isBlank(((ProxyClientAdminListClientsByGroupRequest) request).getGroup())) {
+        if (request instanceof ProxyClientAdminListClientsByGroupRequest) {
+            this.requirePublicEndpointGroup(((ProxyClientAdminListClientsByGroupRequest) request).getGroup());
+        }
+        if (request instanceof ProxyClientAdminListClientsByTopicRequest) {
+            this.requirePublicEndpointTopic(((ProxyClientAdminListClientsByTopicRequest) request).getTopic());
+        }
+    }
+
+    private void requirePublicEndpointGroup(String group) {
+        String normalizedGroup = StringUtils.trimToNull(group);
+        if (normalizedGroup == null) {
             throw new IllegalArgumentException("group is required");
         }
-        if (request instanceof ProxyClientAdminListClientsByTopicRequest
-            && StringUtils.isBlank(((ProxyClientAdminListClientsByTopicRequest) request).getTopic())) {
+        if (normalizedGroup.length() > Validators.GROUP_MAX_LENGTH) {
+            throw new IllegalArgumentException("group length exceeds group max length: "
+                + Validators.GROUP_MAX_LENGTH);
+        }
+    }
+
+    private void requirePublicEndpointTopic(String topic) {
+        String normalizedTopic = StringUtils.trimToNull(topic);
+        if (normalizedTopic == null) {
             throw new IllegalArgumentException("topic is required");
+        }
+        if (normalizedTopic.length() > Validators.TOPIC_MAX_LENGTH) {
+            throw new IllegalArgumentException("topic length exceeds topic max length "
+                + Validators.TOPIC_MAX_LENGTH);
         }
     }
 

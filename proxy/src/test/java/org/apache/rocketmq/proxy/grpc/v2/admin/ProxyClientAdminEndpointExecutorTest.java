@@ -26,6 +26,7 @@ import io.grpc.stub.StreamObserver;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
@@ -40,6 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -718,6 +720,36 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void listClientsByGroupRejectsOverlongGroupBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        ProxyClientAdminListClientsByGroupRequest internalRequest =
+            mock(ProxyClientAdminListClientsByGroupRequest.class);
+        when(internalRequest.getScope()).thenReturn(ProxyClientScope.LOCAL_PROXY);
+        when(internalRequest.getGroup()).thenReturn(StringUtils.repeat("g", 121));
+
+        executor.listClientsByGroup(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage())
+            .contains("group length exceeds group max length: 120");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByGroup(any(), any(), any(), any());
+    }
+
+    @Test
     public void listClientsByTopicRejectsProxyIdScopeBeforeCreatingContextForPublicEndpoint() {
         ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
         ProxyClientAdminEndpointExecutor executor =
@@ -797,6 +829,36 @@ public class ProxyClientAdminEndpointExecutorTest {
         verify(responseObserver).onCompleted();
         assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("topic is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByTopic(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByTopicRejectsOverlongTopicBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        ProxyClientAdminListClientsByTopicRequest internalRequest =
+            mock(ProxyClientAdminListClientsByTopicRequest.class);
+        when(internalRequest.getScope()).thenReturn(ProxyClientScope.LOCAL_PROXY);
+        when(internalRequest.getTopic()).thenReturn(StringUtils.repeat("t", 128));
+
+        executor.listClientsByTopic(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage())
+            .contains("topic length exceeds topic max length 127");
         assertThat(responseCaptor.getValue().getBody()).isNull();
         verify(contextFactory, never()).create(any(), any());
         verify(endpointHandler, never()).listClientsByTopic(any(), any(), any(), any());
