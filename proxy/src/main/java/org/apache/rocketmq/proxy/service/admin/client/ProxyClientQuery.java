@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 public class ProxyClientQuery {
     public static final int DEFAULT_PAGE_SIZE = 100;
     public static final int MAX_PAGE_SIZE = 1000;
+    private static final int MAX_PROXY_ID_LENGTH = 255;
 
     private final String group;
     private final String topic;
@@ -38,7 +39,7 @@ public class ProxyClientQuery {
         this.pageSize = builder.pageSize;
         this.pageToken = StringUtils.trimToNull(builder.pageToken);
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
-        this.proxyId = StringUtils.trimToNull(builder.proxyId);
+        this.proxyId = normalizeProxyId(builder.proxyId);
     }
 
     public static Builder newBuilder() {
@@ -100,6 +101,17 @@ public class ProxyClientQuery {
             return null;
         }
         return clientType;
+    }
+
+    private static String normalizeProxyId(String proxyId) {
+        String normalizedProxyId = StringUtils.trimToNull(proxyId);
+        if (normalizedProxyId == null) {
+            return null;
+        }
+        if (normalizedProxyId.length() > MAX_PROXY_ID_LENGTH) {
+            throw new IllegalArgumentException("proxyId length exceeds " + MAX_PROXY_ID_LENGTH);
+        }
+        return normalizedProxyId;
     }
 
     public static class Builder {

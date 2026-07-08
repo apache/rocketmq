@@ -18,9 +18,11 @@
 package org.apache.rocketmq.proxy.service.admin.client;
 
 import apache.rocketmq.v2.ClientType;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ProxyClientQueryTest {
 
@@ -48,6 +50,16 @@ public class ProxyClientQueryTest {
             .build();
 
         assertThat(query.getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
+    public void queryRejectsOverlongProxyId() {
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId(StringUtils.repeat("p", 256))
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
     }
 
     @Test

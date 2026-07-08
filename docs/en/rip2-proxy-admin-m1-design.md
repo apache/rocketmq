@@ -929,6 +929,7 @@ M1 tests cover:
 - stable client id ordering and pagination.
 - reserved coordinator page-token client id prefix rejection.
 - read-model client metadata rejection for overlong proxy ids before indexing.
+- read-model query rejection for overlong proxy id filters before lookup.
 - index refresh when upserting changed group/topic/type data.
 - client and index deletion on remove.
 - invalid page token rejection.
@@ -1001,8 +1002,8 @@ Internal adapter tests cover:
 - coordinator page-token TTL rejection before peer discovery.
 - coordinator page-token rejection for overlong embedded proxy ids before
   encoding or decoded token reuse.
-- coordinator `PROXY_ID` query rejection for overlong proxy ids before peer
-  routing.
+- query construction rejection for overlong `PROXY_ID` proxy ids before
+  coordinator peer routing.
 - real peer gRPC fan-out from coordinator through `ProxyClientAdminPeerGrpcTransport`
   into two in-process Netty peer services, verifying merged `ALL_PROXIES`
   results and proxy id stamping.

@@ -936,23 +936,6 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
-    public void listClientsProxyIdRejectsOverlongProxyIdBeforePeerCall() {
-        RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
-        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
-        ProxyClientQuery query = ProxyClientQuery.newBuilder()
-            .setScope(ProxyClientScope.PROXY_ID)
-            .setProxyId(StringUtils.repeat("p", 256))
-            .build();
-
-        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
-
-        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
-        assertThat(result.getStatus().getMessage()).contains("proxyId length exceeds 255");
-        assertThat(result.getBody()).isNull();
-        assertThat(peerClient.executedProxyIds()).isEmpty();
-    }
-
-    @Test
     public void listClientsProxyIdRejectsCoordinatorPageTokenBeforePeerCall() {
         RecordingPeerClient peerClient = new RecordingPeerClient("proxy-a");
         peerClient.addPage("proxy-a", page(Collections.singletonList(client("client-b")), ""));
