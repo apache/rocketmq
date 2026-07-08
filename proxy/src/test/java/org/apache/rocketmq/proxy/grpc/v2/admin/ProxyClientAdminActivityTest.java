@@ -22,6 +22,7 @@ import apache.rocketmq.v2.Code;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -700,6 +701,27 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void listClientViewsByGroupRejectsOverlongRequestGroupBeforeAuthorization() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientAdminListClientsByGroupRequest request = mock(ProxyClientAdminListClientsByGroupRequest.class);
+        when(request.getScope()).thenReturn(ProxyClientScope.LOCAL_PROXY);
+        when(request.getGroup()).thenReturn(StringUtils.repeat("g", 121));
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByGroup(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("group length exceeds group max length: 120");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(delegate, never()).listClientsByGroup(anyString(), any(ProxyClientQuery.class));
+    }
+
+    @Test
     public void listClientViewsByTopicRejectsMissingRequestTopicBeforeAuthorization() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
@@ -716,6 +738,27 @@ public class ProxyClientAdminActivityTest {
 
         assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
         assertThat(result.getStatus().getMessage()).contains("topic is required");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(delegate, never()).listClientsByTopic(anyString(), any(ProxyClientQuery.class));
+    }
+
+    @Test
+    public void listClientViewsByTopicRejectsOverlongRequestTopicBeforeAuthorization() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientAdminListClientsByTopicRequest request = mock(ProxyClientAdminListClientsByTopicRequest.class);
+        when(request.getScope()).thenReturn(ProxyClientScope.LOCAL_PROXY);
+        when(request.getTopic()).thenReturn(StringUtils.repeat("t", 128));
+
+        ProxyClientAdminResult<ProxyClientAdminPageView> result =
+            activity.listClientViewsByTopic(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("topic length exceeds topic max length 127");
         assertThat(result.getBody()).isNull();
         verify(authorizationService, never()).authorize(any(), any(), any());
         verify(delegate, never()).listClientsByTopic(anyString(), any(ProxyClientQuery.class));

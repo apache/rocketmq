@@ -21,6 +21,7 @@ import apache.rocketmq.v2.Code;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
@@ -130,8 +131,8 @@ public class ProxyClientAdminActivity {
         return this.execute(() -> {
             ProxyClientAdminListClientsByGroupRequest requiredRequest = this.requireRequest(request);
             this.validateLocalProxyScope(requiredRequest.getScope());
-            ProxyClientQuery effectiveQuery = requiredRequest.toQuery();
             String requiredGroup = this.requireGroup(requiredRequest.getGroup());
+            ProxyClientQuery effectiveQuery = requiredRequest.toQuery();
             return this.clientAdminService.listClientsByGroup(
                 ClientAdminRequestContext.from(ctx),
                 requiredGroup,
@@ -174,8 +175,8 @@ public class ProxyClientAdminActivity {
         return this.execute(() -> {
             ProxyClientAdminListClientsByTopicRequest requiredRequest = this.requireRequest(request);
             this.validateLocalProxyScope(requiredRequest.getScope());
-            ProxyClientQuery effectiveQuery = requiredRequest.toQuery();
             String requiredTopic = this.requireTopic(requiredRequest.getTopic());
+            ProxyClientQuery effectiveQuery = requiredRequest.toQuery();
             return this.clientAdminService.listClientsByTopic(
                 ClientAdminRequestContext.from(ctx),
                 requiredTopic,
@@ -249,6 +250,10 @@ public class ProxyClientAdminActivity {
         if (StringUtils.isBlank(normalizedGroup)) {
             throw new IllegalArgumentException("group is required");
         }
+        if (normalizedGroup.length() > Validators.GROUP_MAX_LENGTH) {
+            throw new IllegalArgumentException("group length exceeds group max length: "
+                + Validators.GROUP_MAX_LENGTH);
+        }
         return normalizedGroup;
     }
 
@@ -256,6 +261,10 @@ public class ProxyClientAdminActivity {
         String normalizedTopic = StringUtils.trimToNull(topic);
         if (StringUtils.isBlank(normalizedTopic)) {
             throw new IllegalArgumentException("topic is required");
+        }
+        if (normalizedTopic.length() > Validators.TOPIC_MAX_LENGTH) {
+            throw new IllegalArgumentException("topic length exceeds topic max length "
+                + Validators.TOPIC_MAX_LENGTH);
         }
         return normalizedTopic;
     }
