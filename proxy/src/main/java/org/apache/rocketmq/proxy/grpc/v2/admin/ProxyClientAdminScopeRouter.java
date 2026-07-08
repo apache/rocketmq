@@ -431,9 +431,7 @@ public class ProxyClientAdminScopeRouter {
     }
 
     private void requireClientId(String clientId) {
-        if (StringUtils.isBlank(clientId)) {
-            throw new IllegalArgumentException("clientId is required");
-        }
+        ProxyClientInfo.normalizeClientId(clientId);
     }
 
     private void requireGroup(String group) {

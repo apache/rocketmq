@@ -713,6 +713,39 @@ public class ProxyClientAdminScopeRouterTest {
     }
 
     @Test
+    public void describeClientAllProxiesRejectsReservedClientIdBeforeAuthorization() {
+        ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
+        ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ClientAdminMetricsRecorder metricsRecorder = mock(ClientAdminMetricsRecorder.class);
+        ProxyClientAdminScopeRouter router = new ProxyClientAdminScopeRouter(
+            activity,
+            coordinator,
+            true,
+            authorizationService,
+            metricsRecorder
+        );
+        ProxyClientAdminDescribeClientRequest request = mock(ProxyClientAdminDescribeClientRequest.class);
+        when(request.getScope()).thenReturn(ProxyClientScope.ALL_PROXIES);
+        when(request.getClientId()).thenReturn("cp1:client-a");
+
+        ProxyClientAdminResult<ProxyClientInfo> result = router.describeClient(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("clientId must not use reserved page token prefix");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(coordinator, never()).describeClient(any(), any());
+        verify(metricsRecorder).record(
+            eq(ClientAdminOperation.DESCRIBE_CLIENT),
+            eq(ClientAdminMetricsResult.BAD_REQUEST),
+            anyLong(),
+            eq(ProxyClientScope.ALL_PROXIES)
+        );
+        verifyNoMoreInteractions(metricsRecorder);
+    }
+
+    @Test
     public void listClientsByGroupAllProxiesDelegatesToCoordinator() {
         ProxyClientAdminActivity activity = mock(ProxyClientAdminActivity.class);
         ProxyClientAdminCoordinatorService coordinator = mock(ProxyClientAdminCoordinatorService.class);
