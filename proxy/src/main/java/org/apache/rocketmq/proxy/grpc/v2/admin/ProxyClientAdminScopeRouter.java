@@ -23,6 +23,7 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -438,11 +439,19 @@ public class ProxyClientAdminScopeRouter {
         if (StringUtils.isBlank(group)) {
             throw new IllegalArgumentException("group is required");
         }
+        if (StringUtils.trim(group).length() > Validators.GROUP_MAX_LENGTH) {
+            throw new IllegalArgumentException("group length exceeds group max length: "
+                + Validators.GROUP_MAX_LENGTH);
+        }
     }
 
     private void requireTopic(String topic) {
         if (StringUtils.isBlank(topic)) {
             throw new IllegalArgumentException("topic is required");
+        }
+        if (StringUtils.trim(topic).length() > Validators.TOPIC_MAX_LENGTH) {
+            throw new IllegalArgumentException("topic length exceeds topic max length "
+                + Validators.TOPIC_MAX_LENGTH);
         }
     }
 
