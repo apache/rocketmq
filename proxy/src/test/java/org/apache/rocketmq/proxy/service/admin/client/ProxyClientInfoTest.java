@@ -46,6 +46,13 @@ public class ProxyClientInfoTest {
     }
 
     @Test
+    public void constructorRejectsOverlongClientId() {
+        assertThatThrownBy(() -> client(StringUtils.repeat("c", 256)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientId length exceeds 255");
+    }
+
+    @Test
     public void constructorTreatsUnspecifiedClientTypeAsMissing() {
         ProxyClientInfo clientInfo = client("client-a", ClientType.CLIENT_TYPE_UNSPECIFIED);
 

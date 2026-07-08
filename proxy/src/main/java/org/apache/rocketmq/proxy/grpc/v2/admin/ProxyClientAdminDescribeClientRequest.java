@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public class ProxyClientAdminDescribeClientRequest {
@@ -26,7 +27,7 @@ public class ProxyClientAdminDescribeClientRequest {
     private final String proxyId;
 
     private ProxyClientAdminDescribeClientRequest(Builder builder) {
-        this.clientId = builder.clientId;
+        this.clientId = normalizeClientId(builder.clientId);
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
         this.proxyId = this.scope == ProxyClientScope.PROXY_ID ? requireProxyId(builder.proxyId) : null;
     }
@@ -49,6 +50,17 @@ public class ProxyClientAdminDescribeClientRequest {
 
     private static String requireProxyId(String proxyId) {
         return ProxyClientAdminPeerIds.requireProxyId(proxyId);
+    }
+
+    private static String normalizeClientId(String clientId) {
+        String normalizedClientId = StringUtils.trimToNull(clientId);
+        if (normalizedClientId == null) {
+            return null;
+        }
+        if (normalizedClientId.length() > Validators.CHARACTER_MAX_LENGTH) {
+            throw new IllegalArgumentException("clientId length exceeds " + Validators.CHARACTER_MAX_LENGTH);
+        }
+        return normalizedClientId;
     }
 
     public static class Builder {

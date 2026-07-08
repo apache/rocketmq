@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import apache.rocketmq.v2.ClientType;
 import java.util.Arrays;
 import java.util.Collections;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,6 +44,13 @@ public class ProxyClientAdminViewTest {
         ProxyClientAdminClientView view = clientView(" client-a ");
 
         assertThat(view.getClientId()).isEqualTo("client-a");
+    }
+
+    @Test
+    public void clientViewRejectsOverlongClientId() {
+        assertThatThrownBy(() -> clientView(StringUtils.repeat("c", 256)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientId length exceeds 255");
     }
 
     @Test

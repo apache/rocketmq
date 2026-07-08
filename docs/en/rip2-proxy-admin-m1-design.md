@@ -121,7 +121,8 @@ small and tested boundary to call:
   request string fields at the adapter boundary so surrounding whitespace is
   trimmed and blank strings become missing values before validation. Group and
   topic request identifiers are bounded by `Validators.GROUP_MAX_LENGTH` and
-  `Validators.TOPIC_MAX_LENGTH` before query construction. They also require a
+  `Validators.TOPIC_MAX_LENGTH` before query construction, and describe-client
+  ids are bounded by `Validators.CHARACTER_MAX_LENGTH`. They also require a
   nonblank `proxy_id` for the explicit `PROXY_ID` scope before context creation,
   and preserve `proxy_id` only for that scope. Direct DTO use and future protobuf
   conversion therefore share the same M1 local and broadcast-scope semantics.
@@ -493,9 +494,10 @@ unnecessary full-snapshot copies for common paginated reads and selective
 group/topic/type/proxy queries.
 
 The read model normalizes client ids by trimming surrounding whitespace before
-storing, looking up, or removing entries. Group and topic index values are also
-trimmed, de-duplicated by the index sets, and blank values are ignored. Group
-and topic values are bounded by the existing RocketMQ client limits before
+storing, looking up, or removing entries. Client ids are bounded by
+`Validators.CHARACTER_MAX_LENGTH` before indexing. Group and topic index values
+are also trimmed, de-duplicated by the index sets, and blank values are ignored.
+Group and topic values are bounded by the existing RocketMQ client limits before
 indexing or query lookup: group names use `Validators.GROUP_MAX_LENGTH` and
 topic names use `Validators.TOPIC_MAX_LENGTH`. Proxy ids are indexed with the
 same sorted-set structure so future `PROXY_ID` and fan-out merge paths can
@@ -931,6 +933,7 @@ M1 tests cover:
 
 - stable client id ordering and pagination.
 - reserved coordinator page-token client id prefix rejection.
+- read-model client metadata rejection for overlong client ids before indexing.
 - read-model client metadata rejection for overlong proxy ids before indexing.
 - read-model query rejection for overlong proxy id filters before lookup.
 - read-model client metadata rejection for overlong group/topic names before
@@ -972,6 +975,8 @@ Internal adapter tests cover:
 - request DTO rejection for overlong `PROXY_ID` proxy ids before routing.
 - request DTO and request-converter rejection for overlong group/topic
   identifiers before query construction.
+- request DTO, request-converter, and response-view rejection for overlong
+  client ids before endpoint handling or protobuf response construction.
 - default `LOCAL_PROXY` scope, opaque page-token encode/decode, and proxy id
   pass-through for future scoped queries.
 - activity-level `LOCAL_PROXY` query canonicalization before authorization and

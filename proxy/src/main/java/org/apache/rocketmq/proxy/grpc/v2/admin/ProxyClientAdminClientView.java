@@ -24,6 +24,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.Validators;
 
 public class ProxyClientAdminClientView {
     private final String clientId;
@@ -65,6 +66,9 @@ public class ProxyClientAdminClientView {
         String normalizedClientId = StringUtils.trimToNull(clientId);
         if (normalizedClientId == null) {
             throw new IllegalArgumentException("clientId is required");
+        }
+        if (normalizedClientId.length() > Validators.CHARACTER_MAX_LENGTH) {
+            throw new IllegalArgumentException("clientId length exceeds " + Validators.CHARACTER_MAX_LENGTH);
         }
         return normalizedClientId;
     }

@@ -312,6 +312,15 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void describeClientRequestRejectsOverlongClientId() {
+        assertThatThrownBy(() -> ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId(StringUtils.repeat("c", 256))
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientId length exceeds 255");
+    }
+
+    @Test
     public void describeClientRequestMapsUnspecifiedPublicScopeNameToLocalProxy() {
         ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
             .setClientId("client-a")

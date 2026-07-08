@@ -66,6 +66,9 @@ public class ProxyClientInfo {
         if (normalizedClientId == null) {
             throw new IllegalArgumentException("clientId is required");
         }
+        if (normalizedClientId.length() > Validators.CHARACTER_MAX_LENGTH) {
+            throw new IllegalArgumentException("clientId length exceeds " + Validators.CHARACTER_MAX_LENGTH);
+        }
         if (isCoordinatorPageTokenPrefix(normalizedClientId)) {
             throw new IllegalArgumentException("clientId must not use reserved page token prefix: "
                 + normalizedClientId);

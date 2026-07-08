@@ -122,6 +122,18 @@ public class ProxyClientAdminRequestConverterTest {
     }
 
     @Test
+    public void toDescribeClientRequestRejectsOverlongClientIdAtAdapterBoundary() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toDescribeClientRequest(
+                StringUtils.repeat("c", 256),
+                "PROXY_SCOPE_LOCAL_PROXY",
+                ""
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientId length exceeds 255");
+    }
+
+    @Test
     public void toListClientsByGroupRequestMapsPublicFields() {
         String pageToken = ProxyClientAdminCoordinatorPageTokenCodec.getInstance().encode(
             ProxyClientAdminCoordinatorPageToken.newBuilder()
