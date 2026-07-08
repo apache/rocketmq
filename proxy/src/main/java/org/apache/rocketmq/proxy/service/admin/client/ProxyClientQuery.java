@@ -38,8 +38,8 @@ public class ProxyClientQuery {
         this.topic = normalizeTopic(builder.topic);
         this.clientType = normalizeClientType(builder.clientType);
         this.pageSize = builder.pageSize;
-        this.pageToken = StringUtils.trimToNull(builder.pageToken);
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
+        this.pageToken = normalizePageToken(builder.pageToken, this.scope);
         this.proxyId = normalizeProxyId(builder.proxyId);
     }
 
@@ -126,6 +126,17 @@ public class ProxyClientQuery {
                 + Validators.TOPIC_MAX_LENGTH);
         }
         return normalizedTopic;
+    }
+
+    private static String normalizePageToken(String pageToken, ProxyClientScope scope) {
+        String normalizedPageToken = StringUtils.trimToNull(pageToken);
+        if (normalizedPageToken == null) {
+            return null;
+        }
+        if (scope != ProxyClientScope.LOCAL_PROXY) {
+            return normalizedPageToken;
+        }
+        return ProxyClientInfo.normalizeClientId(normalizedPageToken, "pageToken");
     }
 
     private static String normalizeProxyId(String proxyId) {

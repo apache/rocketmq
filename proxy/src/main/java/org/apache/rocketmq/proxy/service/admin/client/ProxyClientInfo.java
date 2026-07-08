@@ -62,15 +62,19 @@ public class ProxyClientInfo {
     }
 
     public static String normalizeClientId(String clientId) {
+        return normalizeClientId(clientId, "clientId");
+    }
+
+    static String normalizeClientId(String clientId, String fieldName) {
         String normalizedClientId = StringUtils.trimToNull(clientId);
         if (normalizedClientId == null) {
-            throw new IllegalArgumentException("clientId is required");
+            throw new IllegalArgumentException(fieldName + " is required");
         }
         if (normalizedClientId.length() > Validators.CHARACTER_MAX_LENGTH) {
-            throw new IllegalArgumentException("clientId length exceeds " + Validators.CHARACTER_MAX_LENGTH);
+            throw new IllegalArgumentException(fieldName + " length exceeds " + Validators.CHARACTER_MAX_LENGTH);
         }
         if (isCoordinatorPageTokenPrefix(normalizedClientId)) {
-            throw new IllegalArgumentException("clientId must not use reserved page token prefix: "
+            throw new IllegalArgumentException(fieldName + " must not use reserved page token prefix: "
                 + normalizedClientId);
         }
         return normalizedClientId;

@@ -81,6 +81,41 @@ public class ProxyClientQueryTest {
     }
 
     @Test
+    public void queryRejectsOverlongPageToken() {
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
+            .setPageToken(StringUtils.repeat("c", 256))
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pageToken length exceeds 255");
+    }
+
+    @Test
+    public void queryRejectsReservedCoordinatorPageTokenPrefix() {
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
+            .setPageToken("cp1:client-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pageToken must not use reserved page token prefix")
+            .hasMessageContaining("cp1:client-a");
+    }
+
+    @Test
+    public void queryPreservesCoordinatorPageTokenForCoordinatorScopes() {
+        ProxyClientQuery allProxiesQuery = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setPageToken(" cp1:cursor ")
+            .build();
+        ProxyClientQuery proxyIdQuery = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId("proxy-a")
+            .setPageToken(" cp1:cursor ")
+            .build();
+
+        assertThat(allProxiesQuery.getPageToken()).isEqualTo("cp1:cursor");
+        assertThat(proxyIdQuery.getPageToken()).isEqualTo("cp1:cursor");
+    }
+
+    @Test
     public void queryTreatsUnspecifiedClientTypeAsNoFilter() {
         ProxyClientQuery query = ProxyClientQuery.newBuilder()
             .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)

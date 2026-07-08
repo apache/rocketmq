@@ -531,10 +531,15 @@ lock-striped or immutable-snapshot indexes without changing the service API.
 
 Pagination is bounded by `ProxyClientQuery.MAX_PAGE_SIZE`. Non-positive page
 sizes use `DEFAULT_PAGE_SIZE`. Page tokens are based on the last client id
-returned by the previous page. Unfiltered pages advance through the maintained
-sorted client id index. Filtered pages advance through the sorted candidate set
-after group/topic/type indexes have been intersected. When a token is supplied,
-it must exist in that candidate set; otherwise `ProxyClientReadService` throws
+returned by the previous page. Because `LOCAL_PROXY` read-model page tokens are
+client-id cursors, `ProxyClientQuery` trims them, rejects overlong values using
+the same `Validators.CHARACTER_MAX_LENGTH` bound as client ids, and rejects the
+reserved coordinator `cp<digits>:` prefix before lookup. Coordinator scopes
+preserve coordinator-owned tokens for the coordinator token codecs to decode and
+validate. Unfiltered pages advance through the maintained sorted client id
+index. Filtered pages advance through the sorted candidate set after
+group/topic/type indexes have been intersected. When a token is supplied, it
+must exist in that candidate set; otherwise `ProxyClientReadService` throws
 `IllegalArgumentException`.
 
 The public adapter treats page tokens as opaque values. The current M1 codec
@@ -956,6 +961,10 @@ M1 tests cover:
 - read-model client metadata rejection for overlong client ids before indexing.
 - read-model client metadata rejection for overlong proxy ids before indexing.
 - read-model query rejection for overlong proxy id filters before lookup.
+- read-model query rejection for overlong page tokens before lookup.
+- local read-model query rejection for reserved coordinator page-token prefixes
+  before lookup while coordinator scopes preserve coordinator-owned tokens for
+  coordinator validation.
 - read-model client metadata rejection for overlong group/topic names before
   indexing.
 - read-model query rejection for overlong group/topic filters before lookup.
