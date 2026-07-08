@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
+import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Context;
@@ -26,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -33,6 +35,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
@@ -198,8 +201,19 @@ public class ProxyClientAdminEndpointExecutor {
                 endpointCall
             ));
         } catch (Throwable t) {
-            this.writeFailure(requiredResponseObserver, responseFactory, t);
+            this.writeFailure(requiredResponseObserver, responseFactory, this.toQueryExecutorFailure(t));
         }
+    }
+
+    private Throwable toQueryExecutorFailure(Throwable t) {
+        if (t instanceof RejectedExecutionException) {
+            return new GrpcProxyException(
+                Code.TOO_MANY_REQUESTS,
+                "proxy admin query executor rejected request",
+                t
+            );
+        }
+        return t;
     }
 
     private <P extends GeneratedMessageV3, D, T, R> void executeOnQueryExecutor(Metadata headers, P protoRequest,
