@@ -28,18 +28,18 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 public class DecodeMessageIdCommand implements SubCommand {
     @Override
     public String commandName() {
-        return "DecodeMessageId";
+        return "decodeMessageId";
     }
 
     @Override
     public String commandDesc() {
-        return "decode unique message ID";
+        return "Decode unique message ID.";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
         Option opt = new Option("i", "messageId", true, "unique message ID");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
         return options;
     }
@@ -50,14 +50,8 @@ public class DecodeMessageIdCommand implements SubCommand {
         String messageId = commandLine.getOptionValue('i').trim();
 
         try {
-            System.out.printf("ip=%s", MessageClientIDSetter.getIPStrFromID(messageId));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        try {
-            String date = UtilAll.formatDate(MessageClientIDSetter.getNearlyTimeFromID(messageId), UtilAll.YYYY_MM_DD_HH_MM_SS_SSS);
-            System.out.printf("date=%s", date);
+            System.out.printf("IP: %s%n", MessageClientIDSetter.getIPStrFromID(messageId));
+            System.out.printf("Date: %s%n", UtilAll.formatDate(MessageClientIDSetter.getNearlyTimeFromID(messageId), UtilAll.YYYY_MM_DD_HH_MM_SS_SSS));
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         }
