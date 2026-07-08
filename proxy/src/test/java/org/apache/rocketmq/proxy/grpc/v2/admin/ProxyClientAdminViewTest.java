@@ -150,6 +150,25 @@ public class ProxyClientAdminViewTest {
     }
 
     @Test
+    public void clientViewRejectsOverlongProxyId() {
+        assertThatThrownBy(() -> new ProxyClientAdminClientView(
+            "client-a",
+            ClientType.PRODUCER,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            StringUtils.repeat("p", 256),
+            100L,
+            200L
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
+    }
+
+    @Test
     public void pageViewRejectsNullClientEntries() {
         assertThatThrownBy(() -> new ProxyClientAdminPageView(
             Arrays.asList(clientView("client-a"), null),

@@ -110,13 +110,14 @@ small and tested boundary to call:
   response views. They avoid exposing the mutable internal read-model classes as
   the eventual protobuf adapter contract. The views require a nonblank client
   id, reject null client entries in pages, snapshot collections, trim nullable
-  string metadata to empty public strings, normalize repeated `groups` and
-  `topics` entries by trimming, bounding them to the existing RocketMQ
-  group/topic length limits, de-duplicating, and dropping blank values, and
-  normalize blank public next-page tokens to an empty string. Public
-  `nextPageToken` values are capped at 4096 characters at the response-view
-  boundary so direct adapter or peer conversion cannot emit a token larger than
-  the future public request decoder accepts.
+  string metadata to empty public strings, cap response `proxyId` values at
+  255 characters, normalize repeated `groups` and `topics` entries by trimming,
+  bounding them to the existing RocketMQ group/topic length limits,
+  de-duplicating, and dropping blank values, and normalize blank public
+  next-page tokens to an empty string. Public `nextPageToken` values are capped
+  at 4096 characters at the response-view boundary so direct adapter or peer
+  conversion cannot emit a token larger than the future public request decoder
+  accepts.
 - `ProxyClientAdminListClientsRequest`,
   `ProxyClientAdminDescribeClientRequest`,
   `ProxyClientAdminListClientsByGroupRequest`, and
@@ -442,8 +443,9 @@ The internal model uses `ProxyClientInfo`:
 - `lastActiveTimeMillis`: most recent successful telemetry or heartbeat time.
 
 The internal public-view adapter trims nullable string metadata such as language,
-addresses, client version, and proxy id, and normalizes missing or blank values
-to empty strings before a future protobuf adapter writes response fields. A
+addresses, and client version, trims the proxy id, caps response proxy ids at
+255 characters, and normalizes missing or blank values to empty strings before a
+future protobuf adapter writes response fields. A
 missing or `UNRECOGNIZED` public-view client type is normalized to
 `CLIENT_TYPE_UNSPECIFIED` so generated protobuf responses never need to write a
 null or unknown enum value. Internally, `CLIENT_TYPE_UNSPECIFIED` snapshots and
