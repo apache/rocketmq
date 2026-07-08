@@ -961,6 +961,7 @@ Internal adapter tests cover:
 - request DTO conversion to `ProxyClientQuery`.
 - request DTO string normalization for client id, group, topic, page token, and
   proxy id.
+- request DTO rejection for overlong `PROXY_ID` proxy ids before routing.
 - default `LOCAL_PROXY` scope, opaque page-token encode/decode, and proxy id
   pass-through for future scoped queries.
 - activity-level `LOCAL_PROXY` query canonicalization before authorization and

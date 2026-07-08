@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
@@ -104,6 +105,42 @@ public class ProxyClientAdminRequestTest {
 
         assertThat(request.toQuery().getScope()).isEqualTo(ProxyClientScope.PROXY_ID);
         assertThat(request.toQuery().getProxyId()).isEqualTo("proxy-a");
+    }
+
+    @Test
+    public void proxyIdScopedRequestsRejectOverlongProxyIds() {
+        String proxyId = StringUtils.repeat("p", 256);
+
+        assertThatThrownBy(() -> ProxyClientAdminListClientsRequest.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId(proxyId)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
+
+        assertThatThrownBy(() -> ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("client-a")
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId(proxyId)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
+
+        assertThatThrownBy(() -> ProxyClientAdminListClientsByGroupRequest.newBuilder()
+            .setGroup("group-a")
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId(proxyId)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
+
+        assertThatThrownBy(() -> ProxyClientAdminListClientsByTopicRequest.newBuilder()
+            .setTopic("topic-a")
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId(proxyId)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
     }
 
     @Test

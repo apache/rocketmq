@@ -48,10 +48,7 @@ public class ProxyClientAdminDescribeClientRequest {
     }
 
     private static String requireProxyId(String proxyId) {
-        if (proxyId == null) {
-            throw new IllegalArgumentException("proxyId is required");
-        }
-        return proxyId;
+        return ProxyClientAdminPeerIds.requireProxyId(proxyId);
     }
 
     public static class Builder {
