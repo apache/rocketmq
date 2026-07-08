@@ -254,7 +254,7 @@ public class ProxyAdminGrpcService {
         }
         if (currentConcurrency > DESCRIBE_CLIENT_CONCURRENCY_LIMIT) {
             // Over limit: reject
-            log.warn("DescribeClient concurrency limit reached: {}/{}", currentConcurrency, DESCRIBE_CLIENT_CONCURRENCY_LIMIT);
+        log.warn("DescribeClient concurrency limit reached: {}/{}", currentConcurrency, DESCRIBE_CLIENT_CONCURRENCY_LIMIT);
             return false;
         }
         // Medium load: sample at SAMPLING_RATE_UNDER_LOAD
@@ -731,6 +731,9 @@ public class ProxyAdminGrpcService {
     int enforcePageSize(int pageSize) {
         if (pageSize <= 0) {
             return 20; // default
+        }
+        if (pageSize > MAX_PAGE_SIZE) {
+            log.warn("Requested page size {} exceeds maximum {}, capping to {}", pageSize, MAX_PAGE_SIZE, MAX_PAGE_SIZE);
         }
         return Math.min(pageSize, MAX_PAGE_SIZE);
     }

@@ -339,7 +339,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             }
 
             ReceiptHandleGroup handleGroup = entry.getValue();
-            totalHandleCount += handleGroup.getHandleNum();
+            totalHandleCount += (int) handleGroup.getHandleNum();
             totalMessageCount += handleGroup.getMsgCount();
 
             // Scan handles in this group
@@ -450,7 +450,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             });
 
             // Handle count is per-group (one ReceiptHandleGroup per Channel+group key)
-            aggregator.unackedHandleCount += handleGroup.getHandleNum();
+            aggregator.unackedHandleCount += (int) handleGroup.getHandleNum();
         }
 
         // Build per-channel data list

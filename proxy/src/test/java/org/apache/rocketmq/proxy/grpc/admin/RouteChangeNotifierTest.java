@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEvent;
 import org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;

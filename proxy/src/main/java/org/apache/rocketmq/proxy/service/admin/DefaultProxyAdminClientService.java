@@ -195,7 +195,9 @@ public class DefaultProxyAdminClientService implements ProxyAdminClientService {
         heartbeatLog.addFirst(new HeartbeatRecord(clientId, now, true));
         heartbeatLogCounter.incrementAndGet();
 
-        // Evict old entries to bound memory usage
+        // Evict old entries to bound memory usage.
+        // removeLast() is safe here because the while-loop condition
+        // (size() > MAX_HEARTBEAT_HISTORY_SIZE * 1000) guarantees the deque is non-empty.
         while (heartbeatLog.size() > MAX_HEARTBEAT_HISTORY_SIZE * 1000) {
             heartbeatLog.removeLast();
         }

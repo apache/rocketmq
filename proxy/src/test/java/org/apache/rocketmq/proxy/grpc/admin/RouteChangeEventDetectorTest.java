@@ -20,7 +20,6 @@ package org.apache.rocketmq.proxy.grpc.admin;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEvent;
 import org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType;
 import org.apache.rocketmq.proxy.grpc.admin.model.TopicRouteSnapshot;

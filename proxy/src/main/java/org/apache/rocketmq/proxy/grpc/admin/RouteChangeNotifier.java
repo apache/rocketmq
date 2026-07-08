@@ -19,7 +19,6 @@ package org.apache.rocketmq.proxy.grpc.admin;
 
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,7 +32,6 @@ import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsResponse;
-import apache.rocketmq.proxy.admin.v1.RouteChangeEvent.Builder;
 
 /**
  * Manages route change event subscriptions and broadcasts events to subscribers.

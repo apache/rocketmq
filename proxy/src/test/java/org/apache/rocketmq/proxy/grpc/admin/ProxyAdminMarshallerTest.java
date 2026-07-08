@@ -27,17 +27,11 @@ import apache.rocketmq.proxy.admin.v1.ListClientsByTopicRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsRequest;
 import apache.rocketmq.proxy.admin.v1.ListClientsResponse;
 import apache.rocketmq.proxy.admin.v1.GetConfigRequest;
-import apache.rocketmq.proxy.admin.v1.GetConfigResponse;
 import apache.rocketmq.proxy.admin.v1.UpdateConfigRequest;
-import apache.rocketmq.proxy.admin.v1.UpdateConfigResponse;
 import apache.rocketmq.proxy.admin.v1.DisconnectClientRequest;
-import apache.rocketmq.proxy.admin.v1.DisconnectClientResponse;
 import apache.rocketmq.proxy.admin.v1.DescribePopReceiptHandlesRequest;
-import apache.rocketmq.proxy.admin.v1.DescribePopReceiptHandlesResponse;
 import apache.rocketmq.proxy.admin.v1.DescribeBatchConsumeDiagnosticsRequest;
-import apache.rocketmq.proxy.admin.v1.DescribeBatchConsumeDiagnosticsResponse;
 import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsRequest;
-import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsResponse;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
