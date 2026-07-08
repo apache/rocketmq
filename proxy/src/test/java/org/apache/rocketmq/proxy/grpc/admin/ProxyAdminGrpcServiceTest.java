@@ -44,6 +44,7 @@ import apache.rocketmq.proxy.admin.v1.Pagination;
 import apache.rocketmq.proxy.admin.v1.RouteChangeEventType;
 import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsRequest;
 import apache.rocketmq.proxy.admin.v1.SubscribeRouteEventsResponse;
+import io.grpc.stub.StreamObserver;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientDetailInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ClientInstanceInfo;
 import org.apache.rocketmq.proxy.grpc.admin.model.ListClientsFilter;
@@ -52,6 +53,8 @@ import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService.ListClien
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -75,12 +78,14 @@ import static org.mockito.Mockito.when;
  */
 public class ProxyAdminGrpcServiceTest {
 
+    @Mock
     private ProxyAdminClientService adminClientService;
     private RouteChangeNotifier routeChangeNotifier;
     private ProxyAdminGrpcService adminGrpcService;
 
     @Before
     public void before() {
+        MockitoAnnotations.initMocks( this);
         adminGrpcService = new ProxyAdminGrpcService(adminClientService, 2);
     }
 
@@ -688,6 +693,16 @@ public class ProxyAdminGrpcServiceTest {
 
     @Test
     public void testSubscribeRouteEvents_DelegatesToNotifier() throws Exception {
+        CountDownLatch subscribeLatch = new CountDownLatch(1);
+        routeChangeNotifier = new RouteChangeNotifier(null) {
+            @Override
+            public void subscribe(List<String> topics,
+                                  List<org.apache.rocketmq.proxy.grpc.admin.model.RouteChangeEventType> eventTypes,
+                                  StreamObserver<SubscribeRouteEventsResponse> responseObserver) {
+                responseObserver.onCompleted();
+                subscribeLatch.countDown();
+            }
+        };
         ProxyAdminGrpcService serviceWithNotifier = new ProxyAdminGrpcService(
             adminClientService, 2, routeChangeNotifier);
 
@@ -715,10 +730,10 @@ public class ProxyAdminGrpcServiceTest {
             }
         });
 
-        // Verify that subscribe was called on the notifier
-        verify(routeChangeNotifier).subscribe(any(), any(), any());
         assertTrue("subscribeRouteEvents should respond within 5 seconds",
             latch.await(5, TimeUnit.SECONDS));
+        assertTrue("subscribe should be delegated to routeChangeNotifier",
+            subscribeLatch.await(5, TimeUnit.SECONDS));
     }
 
     // ==================== disconnectClient Tests ====================
