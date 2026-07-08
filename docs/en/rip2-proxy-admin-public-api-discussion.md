@@ -49,15 +49,22 @@ coordinator and peer transport semantics.
 The documentation-only draft is maintained in
 `docs/en/rip2-proxy-admin-m1-public-api-draft.proto`.
 
-The proposed unary RPCs are:
+The proposed contest-facing unary RPCs are:
 
-- `ListClients`
-- `DescribeClient`
-- `ListClientsByGroup`
-- `ListClientsByTopic`
+- `ListClient`
+- `GetClient`
+- `ListClientByGroup`
+- `ListClientByTopic`
 
 The response model returns an existing v2 `Status` plus either a `ProxyClient`
 or a page of `ProxyClient` entries. Error responses should be status-only.
+
+The public request shape should follow the RIP-2 issue filters:
+`clientId`, `clientIdPrefix`, `group`, `topic`, `clientLanguage`,
+`connectTimeStart`, `connectTimeEnd`, `pageNum`, and `pageSize`. `pageNum` is
+1-based and `pageSize` is capped at 100. The branch still has an internal
+page-token path for coordinator experiments, but that token representation is
+not the contest-facing public contract.
 
 The draft currently includes `proxy_id` in `ProxyClient` responses. Local M1
 responses can populate it with the serving proxy name, and future cross-proxy
@@ -104,19 +111,19 @@ failure semantics.
 
 ## Pagination
 
-Public page tokens should be opaque. Clients must not rely on token contents or
-assume the token is a client id.
+The contest-facing public API should use `pageNum` and `pageSize`. `pageNum` is
+1-based, `pageSize` is capped at 100, and stable ordering is by client id for
+local queries.
 
-The internal M1 local read model uses the last emitted client id as its cursor
-because local results are sorted by client id. The public adapter should encode
-that internal token as a versioned opaque token and should reject malformed,
-unknown-version, overlong, or noncanonical versioned tokens.
+The internal M1 local read model already has a page-token path because local
+results are sorted by client id and the coordinator experiment needs per-peer
+cursors. That token path should remain internal unless the community later
+chooses an opaque token contract for cross-proxy pagination.
 
-Future cross-proxy pagination should use coordinator-owned tokens that carry
-scope, filters, last emitted `(client_id, proxy_id)`, per-peer cursors, and
-token creation time. Expired coordinator tokens should be rejected before peer
-fan-out. The local page-token format should not become the cross-proxy public
-contract.
+Future cross-proxy pagination can still use coordinator-owned tokens internally
+to carry scope, filters, last emitted `(client_id, proxy_id)`, per-peer cursors,
+and token creation time. Expired coordinator tokens should be rejected before
+peer fan-out.
 
 ## Endpoint Implementation Shape
 
@@ -161,8 +168,9 @@ land. Once community review starts, avoid reshuffling field numbers.
    enabled, or should they be deferred entirely?
 4. What deployment-level control should gate the public admin service
    registration?
-5. Are the proposed `LIST` and `GET` cluster-level ACL mappings sufficient for
-   M1, or should client-query-specific resources be introduced later?
+5. Is `proxy.admin.client` the accepted client-query ACL resource name for
+   `LIST` and `GET`, or should the resource name follow another admin-resource
+   convention?
 6. Should the first public release expose `proxy_id` in `ProxyClient` responses
    for local results, or return it only for future cross-proxy scopes?
 
@@ -175,7 +183,8 @@ ownership decision:
 - gRPC client lifecycle writes into the read model.
 - internal `ClientAdminService` and `ProxyClientAdminActivity`.
 - request DTOs and response views matching the proposed public model.
-- scope mapper and page-token codec.
+- scope mapper, internal page-token codec, and future public page-number
+  adapter.
 - endpoint executor and endpoint handler, including the M1 public
   `LOCAL_PROXY` scope gate before request context creation.
 - authorization facade and metrics hooks.

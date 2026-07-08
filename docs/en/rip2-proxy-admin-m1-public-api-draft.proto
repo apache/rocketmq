@@ -32,17 +32,17 @@ option java_package = "apache.rocketmq.v2";
 //
 // The M1 adapter normalizes request string fields before internal validation:
 // surrounding whitespace is trimmed, and blank values are treated as absent.
-// Public clients should treat page tokens as opaque and should not rely on
-// whitespace being preserved in identifiers or tokens. Versioned tokens must
-// use the canonical no-padding encoding produced by the proxy adapter.
+// Public contest-facing requests use page_num/page_size, with page_size capped
+// at 100. The existing internal page-token path remains an implementation
+// detail for coordinator experiments and early adapter tests.
 
 service ProxyAdminService {
-  rpc ListClients(ListClientsRequest) returns (ListClientsResponse);
-  rpc DescribeClient(DescribeClientRequest) returns (DescribeClientResponse);
-  rpc ListClientsByGroup(ListClientsByGroupRequest)
-      returns (ListClientsByGroupResponse);
-  rpc ListClientsByTopic(ListClientsByTopicRequest)
-      returns (ListClientsByTopicResponse);
+  rpc ListClient(ListClientRequest) returns (ListClientResponse);
+  rpc GetClient(GetClientRequest) returns (GetClientResponse);
+  rpc ListClientByGroup(ListClientByGroupRequest)
+      returns (ListClientByGroupResponse);
+  rpc ListClientByTopic(ListClientByTopicRequest)
+      returns (ListClientByTopicResponse);
 }
 
 enum ProxyScope {
@@ -58,28 +58,35 @@ enum ProxyScope {
   PROXY_SCOPE_PROXY_ID = 3;
 }
 
-message ListClientsRequest {
-  // Opaque to public clients. M1 may internally encode the last client id.
-  // Unknown, malformed, or noncanonical versioned tokens are rejected.
-  string page_token = 1;
-  int32 page_size = 2;
-  // CLIENT_TYPE_UNSPECIFIED means no type filter. UNRECOGNIZED is rejected.
-  ClientType client_type = 3;
-  ProxyScope scope = 4;
+message ListClientRequest {
+  // Exact client id filter. Empty means no exact-id filter.
+  string client_id = 1;
+  string client_id_prefix = 2;
+  string group = 3;
+  string topic = 4;
+  string client_language = 5;
+  int64 connect_time_start_millis = 6;
+  int64 connect_time_end_millis = 7;
+  // Public page numbers are 1-based. M1 rejects values smaller than 1.
+  int32 page_num = 8;
+  // M1 caps page_size at 100.
+  int32 page_size = 9;
+  ProxyScope scope = 10;
 
   // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
   // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
   // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
-  string proxy_id = 5;
+  string proxy_id = 11;
 }
 
-message ListClientsResponse {
+message ListClientResponse {
   Status status = 1;
   repeated ProxyClient clients = 2;
-  string next_page_token = 3;
+  // True when another page can be requested with page_num + 1.
+  bool has_more = 3;
 }
 
-message DescribeClientRequest {
+message GetClientRequest {
   string client_id = 1;
   ProxyScope scope = 2;
 
@@ -89,53 +96,57 @@ message DescribeClientRequest {
   string proxy_id = 3;
 }
 
-message DescribeClientResponse {
+message GetClientResponse {
   Status status = 1;
   ProxyClient client = 2;
 }
 
-message ListClientsByGroupRequest {
+message ListClientByGroupRequest {
   string group = 1;
-  // Opaque to public clients. Unknown, malformed, or noncanonical versioned
-  // tokens are rejected.
-  string page_token = 2;
-  int32 page_size = 3;
-  // CLIENT_TYPE_UNSPECIFIED means no type filter. UNRECOGNIZED is rejected.
-  ClientType client_type = 4;
-  ProxyScope scope = 5;
+  string client_id = 2;
+  string client_id_prefix = 3;
+  string client_language = 4;
+  int64 connect_time_start_millis = 5;
+  int64 connect_time_end_millis = 6;
+  int32 page_num = 7;
+  // M1 caps page_size at 100.
+  int32 page_size = 8;
+  ProxyScope scope = 9;
 
   // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
   // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
   // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
-  string proxy_id = 6;
+  string proxy_id = 10;
 }
 
-message ListClientsByGroupResponse {
+message ListClientByGroupResponse {
   Status status = 1;
   repeated ProxyClient clients = 2;
-  string next_page_token = 3;
+  bool has_more = 3;
 }
 
-message ListClientsByTopicRequest {
+message ListClientByTopicRequest {
   string topic = 1;
-  // Opaque to public clients. Unknown, malformed, or noncanonical versioned
-  // tokens are rejected.
-  string page_token = 2;
-  int32 page_size = 3;
-  // CLIENT_TYPE_UNSPECIFIED means no type filter. UNRECOGNIZED is rejected.
-  ClientType client_type = 4;
-  ProxyScope scope = 5;
+  string client_id = 2;
+  string client_id_prefix = 3;
+  string client_language = 4;
+  int64 connect_time_start_millis = 5;
+  int64 connect_time_end_millis = 6;
+  int32 page_num = 7;
+  // M1 caps page_size at 100.
+  int32 page_size = 8;
+  ProxyScope scope = 9;
 
   // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
   // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
   // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
-  string proxy_id = 6;
+  string proxy_id = 10;
 }
 
-message ListClientsByTopicResponse {
+message ListClientByTopicResponse {
   Status status = 1;
   repeated ProxyClient clients = 2;
-  string next_page_token = 3;
+  bool has_more = 3;
 }
 
 message ProxyClient {
@@ -147,12 +158,12 @@ message ProxyClient {
   repeated string groups = 3;
   repeated string topics = 4;
 
-  // Server-normalized metadata. Missing or blank values are returned as empty
-  // strings.
+  // Server-normalized metadata required by the RIP-2 contest issue. Missing or
+  // blank values are returned as empty strings.
   string language = 5;
   string remote_address = 6;
   string local_address = 7;
-  string client_version = 8;
+  string version = 8;
   int64 connect_time_millis = 9;
   int64 last_active_time_millis = 10;
   string proxy_id = 11;
