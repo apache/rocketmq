@@ -51,8 +51,8 @@ public class ProxyClientAdminClientView {
         String proxyId, long connectTimeMillis, long lastActiveTimeMillis) {
         this.clientId = normalizeClientId(clientId);
         this.clientType = normalizeClientType(clientType);
-        this.groups = immutableCopy(groups);
-        this.topics = immutableCopy(topics);
+        this.groups = immutableCopy(groups, "group", Validators.GROUP_MAX_LENGTH);
+        this.topics = immutableCopy(topics, "topic", Validators.TOPIC_MAX_LENGTH);
         this.language = normalizeMetadata(language);
         this.remoteAddress = normalizeMetadata(remoteAddress);
         this.localAddress = normalizeMetadata(localAddress);
@@ -81,7 +81,7 @@ public class ProxyClientAdminClientView {
         return clientType;
     }
 
-    private static List<String> immutableCopy(List<String> values) {
+    private static List<String> immutableCopy(List<String> values, String valueName, int maxLength) {
         if (values == null || values.isEmpty()) {
             return Collections.emptyList();
         }
@@ -89,6 +89,7 @@ public class ProxyClientAdminClientView {
         for (String value : values) {
             String normalizedValue = StringUtils.trimToNull(value);
             if (normalizedValue != null) {
+                validateLength(valueName, normalizedValue, maxLength);
                 result.add(normalizedValue);
             }
         }
@@ -96,6 +97,16 @@ public class ProxyClientAdminClientView {
             return Collections.emptyList();
         }
         return Collections.unmodifiableList(new ArrayList<>(result));
+    }
+
+    private static void validateLength(String valueName, String value, int maxLength) {
+        if (value.length() <= maxLength) {
+            return;
+        }
+        if ("group".equals(valueName)) {
+            throw new IllegalArgumentException("group length exceeds group max length: " + maxLength);
+        }
+        throw new IllegalArgumentException("topic length exceeds topic max length " + maxLength);
     }
 
     private static String normalizeMetadata(String value) {

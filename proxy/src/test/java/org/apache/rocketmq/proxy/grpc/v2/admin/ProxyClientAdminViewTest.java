@@ -91,6 +91,42 @@ public class ProxyClientAdminViewTest {
     }
 
     @Test
+    public void clientViewRejectsOverlongGroupEntries() {
+        assertThatThrownBy(() -> new ProxyClientAdminClientView(
+            "client-a",
+            ClientType.PUSH_CONSUMER,
+            Collections.singletonList(StringUtils.repeat("g", 121)),
+            Collections.emptyList(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("group length exceeds group max length: 120");
+    }
+
+    @Test
+    public void clientViewRejectsOverlongTopicEntries() {
+        assertThatThrownBy(() -> new ProxyClientAdminClientView(
+            "client-a",
+            ClientType.PRODUCER,
+            Collections.emptyList(),
+            Collections.singletonList(StringUtils.repeat("t", 128)),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("topic length exceeds topic max length 127");
+    }
+
+    @Test
     public void clientViewNormalizesStringMetadataFields() {
         ProxyClientAdminClientView view = new ProxyClientAdminClientView(
             "client-a",

@@ -111,7 +111,8 @@ small and tested boundary to call:
   the eventual protobuf adapter contract. The views require a nonblank client
   id, reject null client entries in pages, snapshot collections, trim nullable
   string metadata to empty public strings, normalize repeated `groups` and
-  `topics` entries by trimming, de-duplicating, and dropping blank values, and
+  `topics` entries by trimming, bounding them to the existing RocketMQ
+  group/topic length limits, de-duplicating, and dropping blank values, and
   normalize blank public next-page tokens to an empty string. Public
   `nextPageToken` values are capped at 4096 characters at the response-view
   boundary so direct adapter or peer conversion cannot emit a token larger than
