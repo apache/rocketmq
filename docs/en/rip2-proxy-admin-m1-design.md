@@ -728,7 +728,7 @@ Recommended implementation order after public API ownership is confirmed:
    directly to the requested proxy id, reuse the same peer error mapping, and
    preserve the target peer's page token. The
    coordinator trims, validates, and sorts discovered peer ids before fan-out,
-   rejects empty, blank, or duplicate peer ids as internal discovery errors,
+   rejects empty, blank, overlong, or duplicate peer ids as internal discovery errors,
    rejects coordinator page tokens that reference peers outside the current
    discovery set as bad requests, and validates each peer response `proxyId`
    before accepting its body so a misrouted or stale peer transport result is

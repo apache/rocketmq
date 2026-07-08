@@ -359,9 +359,11 @@ public class ProxyClientAdminCoordinatorService {
         List<String> normalizedProxyIds = new ArrayList<>(proxyIds.size());
         Set<String> seenProxyIds = new HashSet<>();
         for (String proxyId : proxyIds) {
-            String normalizedProxyId = StringUtils.trimToNull(proxyId);
-            if (normalizedProxyId == null) {
-                throw new IllegalStateException("peer proxyId is required");
+            String normalizedProxyId;
+            try {
+                normalizedProxyId = ProxyClientAdminPeerIds.requirePeerProxyId(proxyId);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalStateException(e.getMessage(), e);
             }
             if (!seenProxyIds.add(normalizedProxyId)) {
                 throw new IllegalStateException("Duplicate peer proxyId: " + normalizedProxyId);

@@ -672,6 +672,22 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
+    public void listClientsAllProxiesRejectsOverlongDiscoveredProxyId() {
+        OverlongDiscoveryPeerClient peerClient = new OverlongDiscoveryPeerClient();
+        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .build();
+
+        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(result.getStatus().getMessage()).contains("peer proxyId length exceeds 255");
+        assertThat(result.getBody()).isNull();
+        assertThat(peerClient.executeCount).isEqualTo(0);
+    }
+
+    @Test
     public void listClientsAllProxiesRejectsEmptyPeerDiscovery() {
         EmptyDiscoveryPeerClient peerClient = new EmptyDiscoveryPeerClient();
         ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
@@ -1416,6 +1432,22 @@ public class ProxyClientAdminCoordinatorServiceTest {
         @Override
         public List<String> listProxyIds() {
             return Collections.singletonList(" ");
+        }
+
+        @Override
+        public ProxyClientAdminPeerResponse<?> execute(ProxyContext ctx, String proxyId,
+            ProxyClientAdminPeerRequest request) {
+            this.executeCount++;
+            return ProxyClientAdminPeerResponse.success("proxy-a", page(Collections.emptyList(), ""));
+        }
+    }
+
+    private static class OverlongDiscoveryPeerClient implements ProxyClientAdminPeerClient {
+        private int executeCount;
+
+        @Override
+        public List<String> listProxyIds() {
+            return Collections.singletonList(StringUtils.repeat("p", 256));
         }
 
         @Override
