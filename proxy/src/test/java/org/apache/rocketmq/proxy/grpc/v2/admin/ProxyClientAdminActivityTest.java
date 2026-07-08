@@ -659,6 +659,27 @@ public class ProxyClientAdminActivityTest {
     }
 
     @Test
+    public void describeClientViewRejectsReservedClientIdPrefixBeforeAuthorization() {
+        ClientAdminService delegate = mock(ClientAdminService.class);
+        ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);
+        ProxyClientAdminActivity activity = new ProxyClientAdminActivity(
+            new AuthorizingClientAdminService(delegate, authorizationService)
+        );
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("cp1:client-a")
+            .build();
+
+        ProxyClientAdminResult<ProxyClientAdminClientView> result =
+            activity.describeClientView(proxyContext(), request);
+
+        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(result.getStatus().getMessage()).contains("clientId must not use reserved page token prefix");
+        assertThat(result.getBody()).isNull();
+        verify(authorizationService, never()).authorize(any(), any(), any());
+        verify(delegate, never()).describeClient(anyString());
+    }
+
+    @Test
     public void listClientViewsByGroupRejectsMissingRequestGroupBeforeAuthorization() {
         ClientAdminService delegate = mock(ClientAdminService.class);
         ClientAdminAuthorizationService authorizationService = mock(ClientAdminAuthorizationService.class);

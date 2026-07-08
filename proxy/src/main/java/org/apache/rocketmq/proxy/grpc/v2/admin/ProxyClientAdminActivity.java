@@ -235,11 +235,7 @@ public class ProxyClientAdminActivity {
     }
 
     private String requireClientId(String clientId) {
-        String normalizedClientId = StringUtils.trimToNull(clientId);
-        if (StringUtils.isBlank(normalizedClientId)) {
-            throw new IllegalArgumentException("clientId is required");
-        }
-        return normalizedClientId;
+        return ProxyClientInfo.normalizeClientId(clientId);
     }
 
     private String requireGroup(String group) {

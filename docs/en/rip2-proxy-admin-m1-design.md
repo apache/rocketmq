@@ -104,6 +104,9 @@ small and tested boundary to call:
   invoking authorization or read-model queries, and canonicalizes low-level
   `ProxyClientQuery` overloads so accidental `proxyId` filters are removed
   before authorization, metrics, or delegate execution.
+  Describe-client identifiers also reuse the read-model client-id validator at
+  the activity boundary, so malformed ids are rejected before ACL or delegate
+  execution.
 - `ProxyClientAdminResult` preserves the public status/body split expected by a
   gRPC endpoint while keeping the internal service API simple.
 - `ProxyClientAdminClientView` and `ProxyClientAdminPageView` are public-facing
@@ -1000,6 +1003,8 @@ Internal adapter tests cover:
 - activity overloads for request DTOs.
 - activity-level rejection of unsupported M1 scopes before ACL or delegate
   invocation.
+- activity-level `DescribeClient` rejection for reserved coordinator page-token
+  client-id prefixes before ACL or delegate invocation.
 - response view conversion, stable collection snapshots, and null-safe string
   metadata normalization.
 - endpoint handler success response writing, error response writing, and thrown
