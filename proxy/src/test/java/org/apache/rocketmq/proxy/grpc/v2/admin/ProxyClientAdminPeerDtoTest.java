@@ -74,6 +74,27 @@ public class ProxyClientAdminPeerDtoTest {
     }
 
     @Test
+    public void peerListRequestRejectsOverlongPageToken() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setPageToken(StringUtils.repeat("c", 256))
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pageToken length exceeds 255");
+    }
+
+    @Test
+    public void peerListRequestRejectsReservedCoordinatorPageTokenPrefix() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.LIST_CLIENTS)
+            .setPageToken("cp1:client-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pageToken must not use reserved page token prefix")
+            .hasMessageContaining("cp1:client-a");
+    }
+
+    @Test
     public void peerRequestValidatesOperationSpecificFields() {
         assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder().build())
             .isInstanceOf(IllegalArgumentException.class)

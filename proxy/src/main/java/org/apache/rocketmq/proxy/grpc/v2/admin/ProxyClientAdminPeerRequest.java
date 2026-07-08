@@ -44,7 +44,7 @@ public class ProxyClientAdminPeerRequest {
         this.topic = StringUtils.trimToNull(builder.topic);
         this.clientType = normalizeClientType(builder.clientType);
         this.pageSize = ProxyClientQuery.boundPageSize(builder.pageSize);
-        this.pageToken = StringUtils.trimToNull(builder.pageToken);
+        this.pageToken = normalizePageToken(this.operation, builder.pageToken);
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
         if (this.scope != ProxyClientScope.LOCAL_PROXY) {
             throw new IllegalArgumentException("Unsupported peer request scope: " + this.scope);
@@ -167,6 +167,20 @@ public class ProxyClientAdminPeerRequest {
             return ProxyClientInfo.normalizeClientId(normalizedClientId);
         }
         return normalizedClientId;
+    }
+
+    private static String normalizePageToken(ProxyClientAdminPeerOperation operation, String pageToken) {
+        String normalizedPageToken = StringUtils.trimToNull(pageToken);
+        if (normalizedPageToken == null) {
+            return null;
+        }
+        if (operation == ProxyClientAdminPeerOperation.DESCRIBE_CLIENT) {
+            return normalizedPageToken;
+        }
+        return ProxyClientQuery.newBuilder()
+            .setPageToken(normalizedPageToken)
+            .build()
+            .getPageToken();
     }
 
     private static ClientType normalizeClientType(ClientType clientType) {

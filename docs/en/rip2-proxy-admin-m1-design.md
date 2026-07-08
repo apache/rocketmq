@@ -703,7 +703,10 @@ Recommended implementation order after public API ownership is confirmed:
    values because peer targeting is owned by the coordinator and peer client.
    Peer `DescribeClient` requests also reject malformed client ids, including
    reserved coordinator page-token prefixes, before converting into the local
-   activity request model.
+   activity request model. Peer list requests treat `pageToken` as a local
+   read-model client-id cursor and reject overlong values or reserved
+   coordinator page-token prefixes before the request reaches the peer-local
+   executor.
    The coordinator lowers `ALL_PROXIES` and `PROXY_ID` requests to local peer
    requests before fan-out.
    It also includes a local peer executor seam
@@ -1071,6 +1074,8 @@ Internal adapter tests cover:
   coordinator page-token construction.
 - peer `DescribeClient` request rejection for reserved coordinator page-token
   client-id prefixes before peer-local execution.
+- peer list request rejection for overlong local page tokens and reserved
+  coordinator page-token prefixes before peer-local execution.
 - in-process peer transport request/response bounds around local handler
   invocation.
 - peer error response code length rejection before peer payload encoding and at

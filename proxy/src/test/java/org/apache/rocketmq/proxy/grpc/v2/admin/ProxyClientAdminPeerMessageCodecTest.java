@@ -246,6 +246,16 @@ public class ProxyClientAdminPeerMessageCodecTest {
     }
 
     @Test
+    public void requestCodecRejectsReservedCoordinatorPageTokenForPeerListRequest() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeRequest(
+            "{\"operation\":\"LIST_CLIENTS\",\"pageToken\":\"cp1:client-a\"}"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pageToken must not use reserved page token prefix")
+            .hasMessageContaining("cp1:client-a");
+    }
+
+    @Test
     public void requestCodecRejectsUnknownOperationAsBadRequestBoundaryError() {
         assertThatThrownBy(() -> ProxyClientAdminPeerMessageCodec.getInstance().decodeRequest(
             "{\"operation\":\"LIST_CLIENTS_FROM_MARS\"}"
