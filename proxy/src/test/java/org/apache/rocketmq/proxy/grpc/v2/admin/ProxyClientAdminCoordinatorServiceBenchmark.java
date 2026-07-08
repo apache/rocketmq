@@ -63,8 +63,8 @@ public class ProxyClientAdminCoordinatorServiceBenchmark {
     @Param({"10000"})
     public int topicCount;
 
-    @Param({"1000"})
-    public int pageSize;
+    @Param({"100"})
+    public int pageSize = ProxyClientQuery.MAX_PAGE_SIZE;
 
     private ProxyClientAdminCoordinatorService coordinatorService;
     private ProxyContext proxyContext;
@@ -163,6 +163,58 @@ public class ProxyClientAdminCoordinatorServiceBenchmark {
             topic,
             ProxyClientQuery.newBuilder()
                 .setScope(ProxyClientScope.ALL_PROXIES)
+                .setPageSize(this.pageSize)
+                .build()
+        ));
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ProxyClientPage listAllProxiesByClientIdPrefixPage() {
+        return this.requirePage(this.coordinatorService.listClients(
+            this.proxyContext,
+            ProxyClientQuery.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setClientIdPrefix("client-000")
+                .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
+                .setPageSize(this.pageSize)
+                .build()
+        ));
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ProxyClientPage listAllProxiesByLanguagePage() {
+        return this.requirePage(this.coordinatorService.listClients(
+            this.proxyContext,
+            ProxyClientQuery.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setClientLanguage("JAVA")
+                .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
+                .setPageSize(this.pageSize)
+                .build()
+        ));
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ProxyClientPage listAllProxiesByConnectTimeRangePage() {
+        return this.requirePage(this.coordinatorService.listClients(
+            this.proxyContext,
+            ProxyClientQuery.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .setConnectTimeStartMillis(100L)
+                .setConnectTimeEndMillis(100L)
+                .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
                 .setPageSize(this.pageSize)
                 .build()
         ));

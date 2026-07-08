@@ -39,8 +39,18 @@ public class ProxyClientAdminCoordinatorServiceBenchmarkTest {
         assertThat(benchmark.listAllProxiesNextPage().getClients()).isNotEmpty();
         assertThat(benchmark.listAllProxiesByGroupPage().getClients()).isNotEmpty();
         assertThat(benchmark.listAllProxiesByTopicPage().getClients()).isNotEmpty();
+        assertThat(benchmark.listAllProxiesByClientIdPrefixPage().getClients()).isNotEmpty();
+        assertThat(benchmark.listAllProxiesByLanguagePage().getClients()).isNotEmpty();
+        assertThat(benchmark.listAllProxiesByConnectTimeRangePage().getClients()).isNotEmpty();
         assertThat(benchmark.listProxyIdPage().getClients()).isNotEmpty();
         assertThat(benchmark.describeClientAllProxies()).isNotNull();
+    }
+
+    @Test
+    public void defaultBenchmarkUsesOfficialPageSizeCap() {
+        ProxyClientAdminCoordinatorServiceBenchmark benchmark = new ProxyClientAdminCoordinatorServiceBenchmark();
+
+        assertThat(benchmark.pageSize).isEqualTo(100);
     }
 
     @Test

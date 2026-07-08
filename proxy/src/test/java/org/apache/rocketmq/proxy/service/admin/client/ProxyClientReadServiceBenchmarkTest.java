@@ -37,6 +37,9 @@ public class ProxyClientReadServiceBenchmarkTest {
         assertThat(benchmark.listByGroupPage().getClients()).isNotEmpty();
         assertThat(benchmark.listByTopicPage().getClients()).isNotEmpty();
         assertThat(benchmark.listByProxyIdPage().getClients()).isNotEmpty();
+        assertThat(benchmark.listByClientIdPrefixPage().getClients()).isNotEmpty();
+        assertThat(benchmark.listByLanguagePage().getClients()).isNotEmpty();
+        assertThat(benchmark.listByConnectTimeRangePage().getClients()).isNotEmpty();
         assertThat(benchmark.describeClient()).isNotNull();
     }
 
@@ -51,9 +54,9 @@ public class ProxyClientReadServiceBenchmarkTest {
 
         ProxyClientPage nextPage = benchmark.listNextPage();
 
-        assertThat(nextPage.getClients()).hasSize(500);
-        assertThat(nextPage.getClients().get(0).getClientId()).isEqualTo("client-0001000");
-        assertThat(nextPage.getNextPageToken()).isEmpty();
+        assertThat(nextPage.getClients()).hasSize(ProxyClientQuery.MAX_PAGE_SIZE);
+        assertThat(nextPage.getClients().get(0).getClientId()).isEqualTo("client-0000100");
+        assertThat(nextPage.getNextPageToken()).isEqualTo("client-0000199");
     }
 
     @Test

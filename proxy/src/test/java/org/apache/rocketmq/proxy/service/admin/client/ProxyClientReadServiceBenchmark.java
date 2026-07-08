@@ -137,6 +137,47 @@ public class ProxyClientReadServiceBenchmark {
     public ProxyClientPage listByProxyIdPage() {
         return this.readService.listClients(ProxyClientQuery.newBuilder()
             .setProxyId(this.proxyIds[nextIndex(this.proxyCount)])
+            .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build());
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ProxyClientPage listByClientIdPrefixPage() {
+        return this.readService.listClients(ProxyClientQuery.newBuilder()
+            .setClientIdPrefix("client-000")
+            .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build());
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ProxyClientPage listByLanguagePage() {
+        return this.readService.listClients(ProxyClientQuery.newBuilder()
+            .setClientLanguage("JAVA")
+            .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build());
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ProxyClientPage listByConnectTimeRangePage() {
+        return this.readService.listClients(ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(100L)
+            .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .build());
     }

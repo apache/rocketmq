@@ -120,7 +120,7 @@ contest submission:
 | OpenTelemetry metrics, traces, and logs | Admin service metrics now include operation, result, scope, status, page size, filter presence, result size, and duration. The proto-free endpoint also writes matching trace attributes and structured failure logs without sensitive identifiers. | Keep the future public endpoint on the same low-cardinality labels and attributes. |
 | Unit tests and E2E tests | Unit and internal peer tests exist; public endpoint E2E is blocked by generated stubs. | Add unit coverage for new filters now and add in-process public gRPC E2E once generated stubs are available. |
 | English and Chinese documentation | English design and discussion docs exist. | Add a Chinese user-facing doc and update English usage docs before final submission. |
-| 1M client query benchmark | Read-model and coordinator JMH benchmarks exist. | Extend benchmark scenarios for prefix, language, connect-time range, and `pageSize=100`. |
+| 1M client query benchmark | Read-model and coordinator JMH benchmarks cover unfiltered, group, topic, proxy-id, prefix, language, connect-time range, and `pageSize=100` scenarios. | Run full 1M JMH locally before final submission and attach representative results. |
 
 ## Implemented Internal Adapter Preparation
 
@@ -1281,6 +1281,9 @@ metadata and measures the steady-state local query paths that M1 exposes:
 - group-filtered listing.
 - topic-filtered listing.
 - proxy-id-filtered listing.
+- client-id-prefix-filtered listing.
+- client-language-filtered listing.
+- connect-time-range-filtered listing.
 - direct client lookup.
 
 The cross-proxy coordinator experiment also includes
@@ -1292,11 +1295,14 @@ read models behind a real `ProxyClientAdminCoordinatorService` and
 - all-proxies next-page listing.
 - all-proxies group-filtered listing.
 - all-proxies topic-filtered listing.
+- all-proxies client-id-prefix-filtered listing.
+- all-proxies client-language-filtered listing.
+- all-proxies connect-time-range-filtered listing.
 - targeted `PROXY_ID` listing.
 - all-proxies client lookup.
 
 The default benchmark parameters model 1,000,000 clients, 1,000 groups, 10,000
-topics, 100 proxy ids, and a coordinator page size of 1,000. The benchmark
+topics, 100 proxy ids, and a coordinator page size of 100. The benchmark
 annotations run one fork, three one-second warmup iterations, five five-second
 measurement iterations, and four worker threads.
 
@@ -1343,11 +1349,14 @@ The clean compile step is intentional. On 2026-07-06, an incremental
 forks reported unresolved benchmark methods even though the real benchmark
 class contained those methods. After `clean test-compile`,
 `ProxyClientReadServiceBenchmark_jmhType_B1` correctly extended
-`ProxyClientReadServiceBenchmark`, and the smoke run completed all six
+`ProxyClientReadServiceBenchmark`, and the smoke run completed all local
 benchmarks:
 
 - `describeClient`: sample 2378, about 0.0001 ms/op.
 - `listByGroupPage`: sample 3223, about 0.003 ms/op.
+- `listByClientIdPrefixPage`: prefix-filtered page scan.
+- `listByConnectTimeRangePage`: connect-time-range-filtered page scan.
+- `listByLanguagePage`: client-language-filtered page scan.
 - `listByProxyIdPage`: sample 3442, about 0.009 ms/op.
 - `listByTopicPage`: sample 3119, about 0.003 ms/op.
 - `listFirstPage`: sample 1763, about 0.022 ms/op.
