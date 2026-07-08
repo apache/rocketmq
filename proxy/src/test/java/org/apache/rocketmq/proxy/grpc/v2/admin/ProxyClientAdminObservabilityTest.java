@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 import apache.rocketmq.v2.Code;
 import java.util.Arrays;
 import java.util.Collections;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsContext;
 import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
@@ -27,6 +28,10 @@ import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class ProxyClientAdminObservabilityTest {
 
@@ -82,6 +87,24 @@ public class ProxyClientAdminObservabilityTest {
         assertThat(context.getFilters()).isEqualTo("client_id");
         assertThat(context.getResultSize()).isZero();
         assertThat(context.getFilters()).doesNotContain("private-client-id");
+    }
+
+    @Test
+    public void observeIgnoresObservabilityFailureWithoutLogger() {
+        ProxyClientAdminObservability.observe(null, null, null, null);
+    }
+
+    @Test
+    public void observeWarnsWhenObservabilityFails() {
+        Logger log = mock(Logger.class);
+
+        ProxyClientAdminObservability.observe(log, null, null, null);
+
+        verify(log).warn(
+            eq("record proxy client admin observability failed. operation:{}, error:{}"),
+            any(),
+            eq(IllegalArgumentException.class.getSimpleName())
+        );
     }
 
     private static ProxyClientAdminClientView clientView(String clientId) {

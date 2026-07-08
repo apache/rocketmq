@@ -65,6 +65,25 @@ public class ProxyClientAdminPeerGrpcTargetParserTest {
     }
 
     @Test
+    public void parseRejectsMalformedBracketedIpv6Hosts() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(
+            "proxy-v6=[2001:db8::1"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("host:port");
+        assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(
+            "proxy-v6=[2001:db8::1]"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("host:port");
+        assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(
+            "proxy-v6=[2001:db8::1]=18080"
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("host:port");
+    }
+
+    @Test
     public void parseReturnsEmptyListForBlankConfig() {
         assertThat(ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(null)).isEmpty();
         assertThat(ProxyClientAdminPeerGrpcTargetParser.getInstance().parse(" ")).isEmpty();
@@ -129,6 +148,25 @@ public class ProxyClientAdminPeerGrpcTargetParserTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("port must be between 1 and 65535");
         assertThatThrownBy(() -> ProxyClientAdminPeerGrpcTargetParser.getInstance().parse("proxy-a=127.0.0.1:65536"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("port must be between 1 and 65535");
+    }
+
+    @Test
+    public void targetConstructorTrimsFieldsAndRejectsInvalidPorts() {
+        ProxyClientAdminPeerGrpcTarget target = new ProxyClientAdminPeerGrpcTarget(
+            " proxy-a ",
+            " 127.0.0.1 ",
+            8080
+        );
+
+        assertThat(target.getProxyId()).isEqualTo("proxy-a");
+        assertThat(target.getHost()).isEqualTo("127.0.0.1");
+        assertThat(target.getPort()).isEqualTo(8080);
+        assertThatThrownBy(() -> new ProxyClientAdminPeerGrpcTarget("proxy-a", "127.0.0.1", 0))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("port must be between 1 and 65535");
+        assertThatThrownBy(() -> new ProxyClientAdminPeerGrpcTarget("proxy-a", "127.0.0.1", 65536))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("port must be between 1 and 65535");
     }

@@ -238,6 +238,24 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void listClientsSupportsOpenEndedConnectTimeRanges() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 100L, 200L));
+        service.upsertClient(client("client-b", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 200L, 300L));
+        service.upsertClient(client("client-c", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 300L, 400L));
+
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(200L)
+            .build()).getClients())).containsExactly("client-b", "client-c");
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setConnectTimeEndMillis(200L)
+            .build()).getClients())).containsExactly("client-a", "client-b");
+    }
+
+    @Test
     public void removeClientDeletesContestIndexes() {
         ProxyClientReadService service = new ProxyClientReadService();
         service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),

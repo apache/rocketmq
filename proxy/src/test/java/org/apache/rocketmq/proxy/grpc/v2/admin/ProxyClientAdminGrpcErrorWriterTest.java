@@ -80,6 +80,27 @@ public class ProxyClientAdminGrpcErrorWriterTest {
         }
     }
 
+    @Test
+    public void writeOmitsDescriptionWhenMessageIsNullOrEmpty() {
+        CapturingStreamObserver nullMessageObserver = new CapturingStreamObserver();
+
+        ProxyClientAdminGrpcErrorWriter.write(nullMessageObserver, new RuntimeException((String) null));
+
+        assertThat(nullMessageObserver.error).isInstanceOf(StatusRuntimeException.class);
+        StatusRuntimeException nullMessageError = (StatusRuntimeException) nullMessageObserver.error;
+        assertThat(nullMessageError.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INTERNAL);
+        assertThat(nullMessageError.getStatus().getDescription()).isNull();
+
+        CapturingStreamObserver emptyMessageObserver = new CapturingStreamObserver();
+
+        ProxyClientAdminGrpcErrorWriter.write(emptyMessageObserver, new RuntimeException(""));
+
+        assertThat(emptyMessageObserver.error).isInstanceOf(StatusRuntimeException.class);
+        StatusRuntimeException emptyMessageError = (StatusRuntimeException) emptyMessageObserver.error;
+        assertThat(emptyMessageError.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INTERNAL);
+        assertThat(emptyMessageError.getStatus().getDescription()).isNull();
+    }
+
     private static class CapturingStreamObserver implements StreamObserver<Object> {
         private Throwable error;
 

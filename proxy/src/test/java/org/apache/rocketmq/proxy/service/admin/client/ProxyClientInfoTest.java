@@ -53,6 +53,21 @@ public class ProxyClientInfoTest {
     }
 
     @Test
+    public void constructorRejectsReservedCoordinatorPageTokenClientIdPrefix() {
+        assertThatThrownBy(() -> client("cp1:client-a"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("reserved page token prefix");
+    }
+
+    @Test
+    public void constructorAllowsClientIdsThatOnlyLookSimilarToCoordinatorPageTokenPrefix() {
+        assertThat(client("cp:client-a").getClientId()).isEqualTo("cp:client-a");
+        assertThat(client("ap1:client-a").getClientId()).isEqualTo("ap1:client-a");
+        assertThat(client("cx1:client-a").getClientId()).isEqualTo("cx1:client-a");
+        assertThat(client("cpa:client-a").getClientId()).isEqualTo("cpa:client-a");
+    }
+
+    @Test
     public void constructorTreatsUnspecifiedClientTypeAsMissing() {
         ProxyClientInfo clientInfo = client("client-a", ClientType.CLIENT_TYPE_UNSPECIFIED);
 

@@ -150,6 +150,7 @@ public class ProxyClientAdminEndpointIntegrationTest extends InitConfigTest {
         try {
             TestAdminResponse response = listClients(
                 activity.getProxyClientAdminEndpointExecutor(),
+                headersWithoutAuthSubject(),
                 ProxyClientAdminListClientsRequest.newBuilder()
                     .setPageSize(100)
                     .build()
@@ -164,8 +165,13 @@ public class ProxyClientAdminEndpointIntegrationTest extends InitConfigTest {
 
     private static TestAdminResponse listClients(ProxyClientAdminEndpointExecutor executor,
         ProxyClientAdminListClientsRequest request) throws Exception {
+        return listClients(executor, headers(), request);
+    }
+
+    private static TestAdminResponse listClients(ProxyClientAdminEndpointExecutor executor, Metadata headers,
+        ProxyClientAdminListClientsRequest request) throws Exception {
         CapturingObserver observer = new CapturingObserver();
-        executor.listClients(headers(), PROTO_REQUEST, ignored -> request, observer, TestAdminResponse::new);
+        executor.listClients(headers, PROTO_REQUEST, ignored -> request, observer, TestAdminResponse::new);
         return observer.awaitResponse();
     }
 
@@ -195,6 +201,13 @@ public class ProxyClientAdminEndpointIntegrationTest extends InitConfigTest {
         headers.put(GrpcConstants.REMOTE_ADDRESS, "127.0.0.1:8080");
         headers.put(GrpcConstants.LOCAL_ADDRESS, "192.168.0.1:8080");
         headers.put(GrpcConstants.AUTHORIZATION_AK, "admin");
+        return headers;
+    }
+
+    private static Metadata headersWithoutAuthSubject() {
+        Metadata headers = new Metadata();
+        headers.put(GrpcConstants.REMOTE_ADDRESS, "127.0.0.1:8080");
+        headers.put(GrpcConstants.LOCAL_ADDRESS, "192.168.0.1:8080");
         return headers;
     }
 

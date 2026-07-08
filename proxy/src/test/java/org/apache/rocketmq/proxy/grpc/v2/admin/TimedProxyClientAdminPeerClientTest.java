@@ -120,6 +120,19 @@ public class TimedProxyClientAdminPeerClientTest {
     }
 
     @Test
+    public void listProxyIdsUsesExecutionExceptionWhenCauseIsMissing() {
+        TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+            new StaticPeerClient(ProxyClientAdminPeerResponse.success("proxy-a", "ok")),
+            new NullCauseExecutionExceptionExecutorService(),
+            1000L
+        );
+
+        assertThatThrownBy(client::listProxyIds)
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining(ExecutionException.class.getSimpleName());
+    }
+
+    @Test
     public void listProxyIdsCancelsDelegateWhenInterruptedWhileWaiting() {
         InterruptingExecutorService executor = new InterruptingExecutorService();
         TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
@@ -322,6 +335,25 @@ public class TimedProxyClientAdminPeerClientTest {
     }
 
     @Test
+    public void executeUsesExecutionExceptionWhenCauseIsMissing() {
+        TimedProxyClientAdminPeerClient client = new TimedProxyClientAdminPeerClient(
+            new StaticPeerClient(ProxyClientAdminPeerResponse.success("proxy-a", "ok")),
+            new NullCauseExecutionExceptionExecutorService(),
+            1000L
+        );
+
+        ProxyClientAdminPeerResponse<?> response = client.execute(
+            ProxyContext.create(),
+            "proxy-a",
+            request()
+        );
+
+        assertThat(response.isSuccess()).isFalse();
+        assertThat(response.getErrorCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR.name());
+        assertThat(response.getErrorMessage()).contains(ExecutionException.class.getSimpleName());
+    }
+
+    @Test
     public void executeMapsNullDelegateResponseToInternalServerError() {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
@@ -419,6 +451,68 @@ public class TimedProxyClientAdminPeerClientTest {
 
         @Override
         public void execute(Runnable command) {
+        }
+    }
+
+    private static class NullCauseExecutionExceptionExecutorService extends AbstractExecutorService {
+        @Override
+        public <T> Future<T> submit(Callable<T> task) {
+            return new NullCauseExecutionExceptionFuture<>();
+        }
+
+        @Override
+        public void shutdown() {
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return false;
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return false;
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) {
+            return true;
+        }
+
+        @Override
+        public void execute(Runnable command) {
+        }
+    }
+
+    private static class NullCauseExecutionExceptionFuture<T> implements Future<T> {
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            return false;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+
+        @Override
+        public boolean isDone() {
+            return true;
+        }
+
+        @Override
+        public T get() throws ExecutionException {
+            throw new ExecutionException((Throwable) null);
+        }
+
+        @Override
+        public T get(long timeout, TimeUnit unit) throws ExecutionException {
+            throw new ExecutionException((Throwable) null);
         }
     }
 

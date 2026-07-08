@@ -108,6 +108,17 @@ public class ProxyClientAdminRequestTest {
     }
 
     @Test
+    public void describeClientRequestDefaultsNullScopeToLocalProxy() {
+        ProxyClientAdminDescribeClientRequest request = ProxyClientAdminDescribeClientRequest.newBuilder()
+            .setClientId("client-a")
+            .setScope(null)
+            .build();
+
+        assertThat(request.getScope()).isEqualTo(ProxyClientScope.LOCAL_PROXY);
+        assertThat(request.getProxyId()).isNull();
+    }
+
+    @Test
     public void proxyIdScopedRequestsRejectOverlongProxyIds() {
         String proxyId = StringUtils.repeat("p", 256);
 

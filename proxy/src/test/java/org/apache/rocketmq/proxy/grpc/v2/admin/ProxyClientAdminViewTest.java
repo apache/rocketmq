@@ -80,6 +80,34 @@ public class ProxyClientAdminViewTest {
     }
 
     @Test
+    public void clientViewTreatsNullAndUnspecifiedClientTypeAsUnspecified() {
+        assertThat(new ProxyClientAdminClientView(
+            "client-a",
+            null,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        ).getClientType()).isEqualTo(ClientType.CLIENT_TYPE_UNSPECIFIED);
+        assertThat(new ProxyClientAdminClientView(
+            "client-a",
+            ClientType.CLIENT_TYPE_UNSPECIFIED,
+            Collections.emptyList(),
+            Collections.emptyList(),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        ).getClientType()).isEqualTo(ClientType.CLIENT_TYPE_UNSPECIFIED);
+    }
+
+    @Test
     public void clientViewNormalizesGroupAndTopicEntries() {
         ProxyClientAdminClientView view = new ProxyClientAdminClientView(
             "client-a",
@@ -96,6 +124,39 @@ public class ProxyClientAdminViewTest {
 
         assertThat(view.getGroups()).containsExactly("group-b", "group-a");
         assertThat(view.getTopics()).containsExactly("topic-b", "topic-a");
+    }
+
+    @Test
+    public void clientViewNormalizesNullAndBlankOnlyGroupTopicLists() {
+        ProxyClientAdminClientView nullListsView = new ProxyClientAdminClientView(
+            "client-a",
+            ClientType.PUSH_CONSUMER,
+            null,
+            null,
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        );
+        ProxyClientAdminClientView blankListsView = new ProxyClientAdminClientView(
+            "client-b",
+            ClientType.PUSH_CONSUMER,
+            Arrays.asList(null, "", " "),
+            Arrays.asList(null, "", " "),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        );
+
+        assertThat(nullListsView.getGroups()).isEmpty();
+        assertThat(nullListsView.getTopics()).isEmpty();
+        assertThat(blankListsView.getGroups()).isEmpty();
+        assertThat(blankListsView.getTopics()).isEmpty();
     }
 
     @Test
