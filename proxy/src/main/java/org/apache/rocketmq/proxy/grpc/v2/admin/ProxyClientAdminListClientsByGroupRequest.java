@@ -18,7 +18,6 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 
 public class ProxyClientAdminListClientsByGroupRequest extends ProxyClientAdminListClientsRequest {
@@ -42,18 +41,6 @@ public class ProxyClientAdminListClientsByGroupRequest extends ProxyClientAdminL
         return this.populateQueryBuilder(ProxyClientQuery.newBuilder())
             .setGroup(group)
             .build();
-    }
-
-    private static String normalizeGroup(String group) {
-        String normalizedGroup = StringUtils.trimToNull(group);
-        if (normalizedGroup == null) {
-            return null;
-        }
-        if (normalizedGroup.length() > Validators.GROUP_MAX_LENGTH) {
-            throw new IllegalArgumentException("group length exceeds group max length: "
-                + Validators.GROUP_MAX_LENGTH);
-        }
-        return normalizedGroup;
     }
 
     public static class Builder extends ProxyClientAdminListClientsRequest.Builder<Builder> {

@@ -43,6 +43,25 @@ public final class ProxyClientAdminRequestConverter {
             .build();
     }
 
+    public ProxyClientAdminListClientsRequest toListClientsRequest(String clientId, String clientIdPrefix,
+        String group, String topic, String clientLanguage, Long connectTimeStartMillis, Long connectTimeEndMillis,
+        int pageNum, int pageSize, String scopeName, String proxyId) {
+        ProxyClientScope scope = this.decodeScope(scopeName);
+        return ProxyClientAdminListClientsRequest.newBuilder()
+            .setClientId(clientId)
+            .setClientIdPrefix(clientIdPrefix)
+            .setGroup(group)
+            .setTopic(topic)
+            .setClientLanguage(clientLanguage)
+            .setConnectTimeStartMillis(connectTimeStartMillis)
+            .setConnectTimeEndMillis(connectTimeEndMillis)
+            .setPageNum(pageNum)
+            .setPageSize(pageSize)
+            .setScope(scope)
+            .setProxyId(this.proxyIdForScope(scope, proxyId))
+            .build();
+    }
+
     public ProxyClientAdminDescribeClientRequest toDescribeClientRequest(String clientId, String scopeName,
         String proxyId) {
         ProxyClientScope scope = this.decodeScope(scopeName);
@@ -67,6 +86,24 @@ public final class ProxyClientAdminRequestConverter {
             .build();
     }
 
+    public ProxyClientAdminListClientsByGroupRequest toListClientsByGroupRequest(String group, String clientId,
+        String clientIdPrefix, String clientLanguage, Long connectTimeStartMillis, Long connectTimeEndMillis,
+        int pageNum, int pageSize, String scopeName, String proxyId) {
+        ProxyClientScope scope = this.decodeScope(scopeName);
+        return ProxyClientAdminListClientsByGroupRequest.newBuilder()
+            .setGroup(group)
+            .setClientId(clientId)
+            .setClientIdPrefix(clientIdPrefix)
+            .setClientLanguage(clientLanguage)
+            .setConnectTimeStartMillis(connectTimeStartMillis)
+            .setConnectTimeEndMillis(connectTimeEndMillis)
+            .setPageNum(pageNum)
+            .setPageSize(pageSize)
+            .setScope(scope)
+            .setProxyId(this.proxyIdForScope(scope, proxyId))
+            .build();
+    }
+
     public ProxyClientAdminListClientsByTopicRequest toListClientsByTopicRequest(String topic, ClientType clientType,
         int pageSize, String pageToken, String scopeName, String proxyId) {
         ProxyClientScope scope = this.decodeScope(scopeName);
@@ -76,6 +113,24 @@ public final class ProxyClientAdminRequestConverter {
             .setClientType(clientType)
             .setPageSize(pageSize)
             .setPageToken(pageToken)
+            .setScope(scope)
+            .setProxyId(this.proxyIdForScope(scope, proxyId))
+            .build();
+    }
+
+    public ProxyClientAdminListClientsByTopicRequest toListClientsByTopicRequest(String topic, String clientId,
+        String clientIdPrefix, String clientLanguage, Long connectTimeStartMillis, Long connectTimeEndMillis,
+        int pageNum, int pageSize, String scopeName, String proxyId) {
+        ProxyClientScope scope = this.decodeScope(scopeName);
+        return ProxyClientAdminListClientsByTopicRequest.newBuilder()
+            .setTopic(topic)
+            .setClientId(clientId)
+            .setClientIdPrefix(clientIdPrefix)
+            .setClientLanguage(clientLanguage)
+            .setConnectTimeStartMillis(connectTimeStartMillis)
+            .setConnectTimeEndMillis(connectTimeEndMillis)
+            .setPageNum(pageNum)
+            .setPageSize(pageSize)
             .setScope(scope)
             .setProxyId(this.proxyIdForScope(scope, proxyId))
             .build();

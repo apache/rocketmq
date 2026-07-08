@@ -77,11 +77,12 @@ public endpoint until that endpoint is explicitly wired to a reviewed peer
 transport and coordinator contract.
 
 The RIP-2 issue lists `pageNum` and `pageSize` for the public API and caps
-`pageSize` at 100. The next implementation checkpoint should add public
-`pageNum/pageSize` semantics while preserving the existing opaque `pageToken`
-support for internal coordinator experiments and early adapter tests. Public
-clients must not depend on the internal page-token representation when that
-compatibility path is present.
+`pageSize` at 100. This branch carries those semantics through
+`ProxyClientQuery`, `ProxyClientReadService`, and the proto-free admin request
+DTOs. The existing opaque `pageToken` support remains an internal compatibility
+path for coordinator experiments and early adapter tests. Public clients must
+not depend on the internal page-token representation when that compatibility
+path is present.
 
 This fork should not directly modify `rocketmq-apis` for M1. The branch should
 first carry the internal read model, authorization, metrics, and adapter seams,
@@ -110,8 +111,8 @@ contest submission:
 | RIP-2 requirement | Current branch state | Next action |
 | --- | --- | --- |
 | Public admin gRPC surface with `ListClient`, `GetClient`, `ListClientByGroup`, and `ListClientByTopic` | Internal proto-free activity and endpoint executor exist; no generated public `ProxyAdminService` is registered. | Keep a standalone `ProxyAdminService` draft in docs and wire the real endpoint after `rocketmq-apis` ownership is confirmed. |
-| Filters: `clientId`, `clientIdPrefix`, `group`, `topic`, `clientLanguage`, `connectTimeStart`, `connectTimeEnd`, `pageNum`, and `pageSize` | Internal queries support group, topic, client type, proxy scope, and page tokens. | Add the missing contest filters and public `pageNum/pageSize` behavior to the read model and adapter DTOs. |
-| `pageSize <= 100` | The internal read model currently allows a larger bounded page size for early internal callers. | Cap public/client-admin query page size at 100 and update tests and benchmarks. |
+| Filters: `clientId`, `clientIdPrefix`, `group`, `topic`, `clientLanguage`, `connectTimeStart`, `connectTimeEnd`, `pageNum`, and `pageSize` | Internal queries, the read model, and proto-free request DTOs support these fields. | Map the same fields from generated public protobuf requests once `rocketmq-apis` ownership is confirmed. |
+| `pageSize <= 100` | Client-admin query page size is capped at 100 in `ProxyClientQuery`. | Keep the generated public endpoint and benchmark scenarios on the same cap. |
 | Response fields: `clientId`, `language`, `version`, `localAddress`, `remoteAddress`, and `connectionTime` | Response views already expose the equivalent metadata, including client version and connect time. | Preserve the existing response view and align public proto field names with the contest wording. |
 | Error codes compatible with RocketMQ gRPC status codes | `ResponseBuilder` and admin endpoint handler already map internal exceptions to v2 `Status`. | Extend tests for new validation errors and the future public endpoint. |
 | Independent ACL resource `proxy.admin.client` | The branch has an authorization facade, but earlier M1 text used cluster-level LIST/GET as the first approximation. | Move client-admin authorization to LIST/GET on `proxy.admin.client`. |
@@ -519,7 +520,8 @@ lexicographic order so public responses remain deterministic even though the
 internal read-model snapshots use sets.
 
 `ProxyClientPage` returns a list of `ProxyClientInfo` plus a `nextPageToken`.
-`ProxyClientQuery` carries optional group, topic, client type, page size, page
+`ProxyClientQuery` carries optional client id, client id prefix, group, topic,
+client language, connect-time range, client type, page number, page size, page
 token, scope, and proxy id filters. `CLIENT_TYPE_UNSPECIFIED` is normalized to a
 missing client type filter in `ProxyClientQuery`, so direct read-model callers
 and future public request adapters share the same no-filter semantics.
@@ -537,6 +539,8 @@ validation boundaries.
 - `topic -> sorted clientId set`
 - `clientType -> sorted clientId set`
 - `proxyId -> sorted clientId set`
+- `clientLanguage -> sorted clientId set`
+- `connectTimeMillis -> sorted clientId set`
 
 All listing results are ordered by client id. Upsert first removes the old
 client's index entries and then writes the new snapshot. Remove deletes the
@@ -558,10 +562,11 @@ controls the fixed-delay maintenance interval.
 
 Unfiltered scans iterate the maintained sorted client id index directly instead
 of copying all client ids on every request. Filtered scans collect only the
-requested secondary indexes, copy the smallest candidate index, and intersect the
-remaining candidates. This keeps the M1 read model simple while avoiding
-unnecessary full-snapshot copies for common paginated reads and selective
-group/topic/type/proxy queries.
+requested secondary indexes or sorted client-id range, copy the smallest
+candidate index, and intersect the remaining candidates. This keeps the M1 read
+model simple while avoiding unnecessary full-snapshot copies for common
+paginated reads and selective client id, prefix, group, topic, language,
+connect-time, type, and proxy queries.
 
 The read model normalizes client ids by trimming surrounding whitespace before
 storing, looking up, or removing entries. Client ids are bounded by
@@ -569,9 +574,12 @@ storing, looking up, or removing entries. Client ids are bounded by
 are also trimmed, de-duplicated by the index sets, and blank values are ignored.
 Group and topic values are bounded by the existing RocketMQ client limits before
 indexing or query lookup: group names use `Validators.GROUP_MAX_LENGTH` and
-topic names use `Validators.TOPIC_MAX_LENGTH`. Proxy ids are indexed with the
-same sorted-set structure so future `PROXY_ID` and fan-out merge paths can
-restrict a query to one source proxy without changing pagination order.
+topic names use `Validators.TOPIC_MAX_LENGTH`. Proxy ids and client languages
+are indexed with the same sorted-set structure so future `PROXY_ID` and fan-out
+merge paths can restrict a query to one source proxy without changing pagination
+order. Connect-time range queries read a bounded range from a sorted
+connect-time index and then merge its client-id sets back into stable client-id
+order.
 Client ids with the `cp<digits>:` prefix are rejected because that namespace is
 reserved for coordinator-owned page tokens; accepting them into the local read
 model would make a local next-page token ambiguous or unencodable.
@@ -583,18 +591,27 @@ lock-striped or immutable-snapshot indexes without changing the service API.
 
 ## Pagination
 
-Pagination is bounded by `ProxyClientQuery.MAX_PAGE_SIZE`. Non-positive page
-sizes use `DEFAULT_PAGE_SIZE`. Page tokens are based on the last client id
-returned by the previous page. Because `LOCAL_PROXY` read-model page tokens are
-client-id cursors, `ProxyClientQuery` trims them, rejects overlong values using
-the same `Validators.CHARACTER_MAX_LENGTH` bound as client ids, and rejects the
-reserved coordinator `cp<digits>:` prefix before lookup. Coordinator scopes
-preserve coordinator-owned tokens for the coordinator token codecs to decode and
-validate. Unfiltered pages advance through the maintained sorted client id
-index. Filtered pages advance through the sorted candidate set after
-group/topic/type indexes have been intersected. When a token is supplied, it
-must exist in that candidate set; otherwise `ProxyClientReadService` throws
+Pagination is bounded by `ProxyClientQuery.MAX_PAGE_SIZE`, which is 100 to match
+the RIP-2 public API requirement. Non-positive page sizes use
+`DEFAULT_PAGE_SIZE`. Public request DTOs use one-based `pageNum` plus `pageSize`;
+the read model applies the page-number offset after all requested filters have
+been intersected in stable client-id order.
+
+Page tokens are still supported as an internal compatibility path. Local page
+tokens are based on the last client id returned by the previous page. Because
+`LOCAL_PROXY` read-model page tokens are client-id cursors, `ProxyClientQuery`
+trims them, rejects overlong values using the same
+`Validators.CHARACTER_MAX_LENGTH` bound as client ids, and rejects the reserved
+coordinator `cp<digits>:` prefix before lookup. Coordinator scopes preserve
+coordinator-owned tokens for the coordinator token codecs to decode and
+validate. When a token is supplied, it takes precedence over `pageNum` and must
+exist in the filtered candidate set; otherwise `ProxyClientReadService` throws
 `IllegalArgumentException`.
+
+Unfiltered pages advance through the maintained sorted client id index.
+Filtered pages advance through the sorted candidate set after the requested
+client id, prefix, group, topic, language, connect-time, type, and proxy indexes
+have been intersected.
 
 The public adapter treats page tokens as opaque values. The current M1 codec
 accepts canonical `v1:` tokens and legacy bare read-model tokens, rejects

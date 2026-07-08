@@ -22,11 +22,19 @@ import org.apache.rocketmq.client.Validators;
 
 public class ProxyClientQuery {
     public static final int DEFAULT_PAGE_SIZE = 100;
-    public static final int MAX_PAGE_SIZE = 1000;
+    public static final int DEFAULT_PAGE_NUM = 1;
+    public static final int MAX_PAGE_SIZE = 100;
     private static final int MAX_PROXY_ID_LENGTH = 255;
+    private static final int MAX_CLIENT_LANGUAGE_LENGTH = 255;
 
+    private final String clientId;
+    private final String clientIdPrefix;
     private final String group;
     private final String topic;
+    private final String clientLanguage;
+    private final Long connectTimeStartMillis;
+    private final Long connectTimeEndMillis;
+    private final int pageNum;
     private final ClientType clientType;
     private final int pageSize;
     private final String pageToken;
@@ -34,8 +42,16 @@ public class ProxyClientQuery {
     private final String proxyId;
 
     private ProxyClientQuery(Builder builder) {
+        this.clientId = normalizeOptionalClientId(builder.clientId, "clientId");
+        this.clientIdPrefix = normalizeClientIdPrefix(builder.clientIdPrefix);
         this.group = normalizeGroup(builder.group);
         this.topic = normalizeTopic(builder.topic);
+        this.clientLanguage = normalizeClientLanguage(builder.clientLanguage);
+        this.connectTimeStartMillis = normalizeConnectTimeMillis(builder.connectTimeStartMillis,
+            "connectTimeStartMillis");
+        this.connectTimeEndMillis = normalizeConnectTimeMillis(builder.connectTimeEndMillis, "connectTimeEndMillis");
+        validateConnectTimeRange(this.connectTimeStartMillis, this.connectTimeEndMillis);
+        this.pageNum = normalizePageNum(builder.pageNum);
         this.clientType = normalizeClientType(builder.clientType);
         this.pageSize = builder.pageSize;
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
@@ -56,13 +72,27 @@ public class ProxyClientQuery {
 
     public Builder toBuilder() {
         return newBuilder()
+            .setClientId(this.clientId)
+            .setClientIdPrefix(this.clientIdPrefix)
             .setGroup(this.group)
             .setTopic(this.topic)
+            .setClientLanguage(this.clientLanguage)
+            .setConnectTimeStartMillis(this.connectTimeStartMillis)
+            .setConnectTimeEndMillis(this.connectTimeEndMillis)
+            .setPageNum(this.pageNum)
             .setClientType(this.clientType)
             .setPageSize(this.pageSize)
             .setPageToken(this.pageToken)
             .setScope(this.scope)
             .setProxyId(this.proxyId);
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public String getClientIdPrefix() {
+        return clientIdPrefix;
     }
 
     public String getGroup() {
@@ -71,6 +101,22 @@ public class ProxyClientQuery {
 
     public String getTopic() {
         return topic;
+    }
+
+    public String getClientLanguage() {
+        return clientLanguage;
+    }
+
+    public Long getConnectTimeStartMillis() {
+        return connectTimeStartMillis;
+    }
+
+    public Long getConnectTimeEndMillis() {
+        return connectTimeEndMillis;
+    }
+
+    public int getPageNum() {
+        return pageNum;
     }
 
     public ClientType getClientType() {
@@ -95,6 +141,60 @@ public class ProxyClientQuery {
 
     public int getBoundedPageSize() {
         return boundPageSize(pageSize);
+    }
+
+    private static String normalizeOptionalClientId(String clientId, String fieldName) {
+        String normalizedClientId = StringUtils.trimToNull(clientId);
+        if (normalizedClientId == null) {
+            return null;
+        }
+        return ProxyClientInfo.normalizeClientId(normalizedClientId, fieldName);
+    }
+
+    private static String normalizeClientIdPrefix(String clientIdPrefix) {
+        String normalizedClientIdPrefix = StringUtils.trimToNull(clientIdPrefix);
+        if (normalizedClientIdPrefix == null) {
+            return null;
+        }
+        if (normalizedClientIdPrefix.length() > Validators.CHARACTER_MAX_LENGTH) {
+            throw new IllegalArgumentException("clientIdPrefix length exceeds " + Validators.CHARACTER_MAX_LENGTH);
+        }
+        return normalizedClientIdPrefix;
+    }
+
+    private static String normalizeClientLanguage(String clientLanguage) {
+        String normalizedClientLanguage = StringUtils.trimToNull(clientLanguage);
+        if (normalizedClientLanguage == null) {
+            return null;
+        }
+        if (normalizedClientLanguage.length() > MAX_CLIENT_LANGUAGE_LENGTH) {
+            throw new IllegalArgumentException("clientLanguage length exceeds " + MAX_CLIENT_LANGUAGE_LENGTH);
+        }
+        return normalizedClientLanguage;
+    }
+
+    private static Long normalizeConnectTimeMillis(Long connectTimeMillis, String fieldName) {
+        if (connectTimeMillis == null) {
+            return null;
+        }
+        if (connectTimeMillis < 0) {
+            throw new IllegalArgumentException(fieldName + " must be greater than or equal to 0");
+        }
+        return connectTimeMillis;
+    }
+
+    private static void validateConnectTimeRange(Long connectTimeStartMillis, Long connectTimeEndMillis) {
+        if (connectTimeStartMillis != null && connectTimeEndMillis != null
+            && connectTimeStartMillis > connectTimeEndMillis) {
+            throw new IllegalArgumentException("connectTimeStartMillis must not exceed connectTimeEndMillis");
+        }
+    }
+
+    private static int normalizePageNum(int pageNum) {
+        if (pageNum < 1) {
+            throw new IllegalArgumentException("pageNum must be greater than or equal to 1");
+        }
+        return pageNum;
     }
 
     private static ClientType normalizeClientType(ClientType clientType) {
@@ -154,13 +254,29 @@ public class ProxyClientQuery {
     }
 
     public static class Builder {
+        private String clientId;
+        private String clientIdPrefix;
         private String group;
         private String topic;
+        private String clientLanguage;
+        private Long connectTimeStartMillis;
+        private Long connectTimeEndMillis;
+        private int pageNum = DEFAULT_PAGE_NUM;
         private ClientType clientType;
         private int pageSize = DEFAULT_PAGE_SIZE;
         private String pageToken;
         private ProxyClientScope scope = ProxyClientScope.LOCAL_PROXY;
         private String proxyId;
+
+        public Builder setClientId(String clientId) {
+            this.clientId = clientId;
+            return this;
+        }
+
+        public Builder setClientIdPrefix(String clientIdPrefix) {
+            this.clientIdPrefix = clientIdPrefix;
+            return this;
+        }
 
         public Builder setGroup(String group) {
             this.group = group;
@@ -169,6 +285,26 @@ public class ProxyClientQuery {
 
         public Builder setTopic(String topic) {
             this.topic = topic;
+            return this;
+        }
+
+        public Builder setClientLanguage(String clientLanguage) {
+            this.clientLanguage = clientLanguage;
+            return this;
+        }
+
+        public Builder setConnectTimeStartMillis(Long connectTimeStartMillis) {
+            this.connectTimeStartMillis = connectTimeStartMillis;
+            return this;
+        }
+
+        public Builder setConnectTimeEndMillis(Long connectTimeEndMillis) {
+            this.connectTimeEndMillis = connectTimeEndMillis;
+            return this;
+        }
+
+        public Builder setPageNum(int pageNum) {
+            this.pageNum = pageNum;
             return this;
         }
 

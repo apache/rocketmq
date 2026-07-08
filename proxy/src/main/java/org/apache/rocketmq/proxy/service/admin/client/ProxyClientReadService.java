@@ -22,7 +22,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.NavigableSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +43,8 @@ public class ProxyClientReadService {
     private final Map<String, NavigableSet<String>> topicIndex = new HashMap<>();
     private final Map<ClientType, NavigableSet<String>> clientTypeIndex = new HashMap<>();
     private final Map<String, NavigableSet<String>> proxyIdIndex = new HashMap<>();
+    private final Map<String, NavigableSet<String>> clientLanguageIndex = new HashMap<>();
+    private final NavigableMap<Long, NavigableSet<String>> connectTimeIndex = new TreeMap<>();
     private final Consumer<ProxyClientReadServiceOperation> operationRecorder;
 
     public ProxyClientReadService() {
@@ -121,8 +125,15 @@ public class ProxyClientReadService {
         }
 
         int pageSize = effectiveQuery.getBoundedPageSize();
+        long skipCount = StringUtils.isBlank(pageToken)
+            ? ((long) effectiveQuery.getPageNum() - 1L) * pageSize
+            : 0L;
         List<ProxyClientInfo> clients = new ArrayList<>(pageSize);
         Iterator<String> iterator = clientIds.iterator();
+        while (iterator.hasNext() && skipCount > 0) {
+            iterator.next();
+            skipCount--;
+        }
         while (iterator.hasNext() && clients.size() < pageSize) {
             clients.add(this.clientIdTable.get(iterator.next()));
         }
@@ -136,6 +147,12 @@ public class ProxyClientReadService {
 
     private NavigableSet<String> getCandidateClientIds(ProxyClientQuery query) {
         List<NavigableSet<String>> candidateIndexes = new ArrayList<>(4);
+        if (StringUtils.isNotBlank(query.getClientId())) {
+            candidateIndexes.add(this.getClientIdCandidate(query.getClientId()));
+        }
+        if (StringUtils.isNotBlank(query.getClientIdPrefix())) {
+            candidateIndexes.add(this.getClientIdPrefixCandidates(query.getClientIdPrefix()));
+        }
         if (StringUtils.isNotBlank(query.getGroup())) {
             candidateIndexes.add(this.getIndexClientIds(this.groupIndex, query.getGroup()));
         }
@@ -148,6 +165,13 @@ public class ProxyClientReadService {
         if (StringUtils.isNotBlank(query.getProxyId())) {
             candidateIndexes.add(this.getIndexClientIds(this.proxyIdIndex, query.getProxyId()));
         }
+        if (StringUtils.isNotBlank(query.getClientLanguage())) {
+            candidateIndexes.add(this.getIndexClientIds(this.clientLanguageIndex, query.getClientLanguage()));
+        }
+        if (query.getConnectTimeStartMillis() != null || query.getConnectTimeEndMillis() != null) {
+            candidateIndexes.add(this.getConnectTimeClientIds(query.getConnectTimeStartMillis(),
+                query.getConnectTimeEndMillis()));
+        }
         if (candidateIndexes.isEmpty()) {
             return this.clientIdIndex;
         }
@@ -158,6 +182,42 @@ public class ProxyClientReadService {
             if (candidateIndex != smallestCandidateIndex) {
                 clientIds.retainAll(candidateIndex);
             }
+        }
+        return clientIds;
+    }
+
+    private NavigableSet<String> getClientIdCandidate(String clientId) {
+        NavigableSet<String> clientIds = new TreeSet<>();
+        if (this.clientIdTable.containsKey(clientId)) {
+            clientIds.add(clientId);
+        }
+        return clientIds;
+    }
+
+    private NavigableSet<String> getClientIdPrefixCandidates(String clientIdPrefix) {
+        NavigableSet<String> clientIds = new TreeSet<>();
+        for (String clientId : this.clientIdIndex.tailSet(clientIdPrefix, true)) {
+            if (!clientId.startsWith(clientIdPrefix)) {
+                break;
+            }
+            clientIds.add(clientId);
+        }
+        return clientIds;
+    }
+
+    private NavigableSet<String> getConnectTimeClientIds(Long connectTimeStartMillis, Long connectTimeEndMillis) {
+        NavigableMap<Long, NavigableSet<String>> rangeIndex;
+        if (connectTimeStartMillis != null && connectTimeEndMillis != null) {
+            rangeIndex = this.connectTimeIndex.subMap(connectTimeStartMillis, true, connectTimeEndMillis, true);
+        } else if (connectTimeStartMillis != null) {
+            rangeIndex = this.connectTimeIndex.tailMap(connectTimeStartMillis, true);
+        } else {
+            rangeIndex = this.connectTimeIndex.headMap(connectTimeEndMillis, true);
+        }
+
+        NavigableSet<String> clientIds = new TreeSet<>();
+        for (NavigableSet<String> indexedClientIds : rangeIndex.values()) {
+            clientIds.addAll(indexedClientIds);
         }
         return clientIds;
     }
@@ -194,6 +254,11 @@ public class ProxyClientReadService {
         if (clientInfo.getProxyId() != null) {
             this.addIndex(this.proxyIdIndex, clientInfo.getProxyId(), clientId);
         }
+        String clientLanguage = normalizeIndexValue(clientInfo.getLanguage());
+        if (clientLanguage != null) {
+            this.addIndex(this.clientLanguageIndex, clientLanguage, clientId);
+        }
+        this.addIndex(this.connectTimeIndex, clientInfo.getConnectTimeMillis(), clientId);
     }
 
     private void removeIndexes(ProxyClientInfo clientInfo) {
@@ -210,6 +275,11 @@ public class ProxyClientReadService {
         if (clientInfo.getProxyId() != null) {
             this.removeIndex(this.proxyIdIndex, clientInfo.getProxyId(), clientId);
         }
+        String clientLanguage = normalizeIndexValue(clientInfo.getLanguage());
+        if (clientLanguage != null) {
+            this.removeIndex(this.clientLanguageIndex, clientLanguage, clientId);
+        }
+        this.removeIndex(this.connectTimeIndex, clientInfo.getConnectTimeMillis(), clientId);
     }
 
     private <T> void addIndex(Map<T, NavigableSet<String>> index, T key, String clientId) {
@@ -242,5 +312,9 @@ public class ProxyClientReadService {
 
     private static String normalizeClientId(String clientId) {
         return StringUtils.trimToNull(clientId);
+    }
+
+    private static String normalizeIndexValue(String value) {
+        return StringUtils.trimToNull(value);
     }
 }

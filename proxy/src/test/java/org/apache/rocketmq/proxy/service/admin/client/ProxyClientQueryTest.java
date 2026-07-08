@@ -137,23 +137,69 @@ public class ProxyClientQueryTest {
     @Test
     public void queryTrimsStringFiltersAndNormalizesBlankValues() {
         ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setClientId(" client-a ")
+            .setClientIdPrefix(" client- ")
             .setGroup(" group-a ")
             .setTopic("\ttopic-a\t")
+            .setClientLanguage(" JAVA ")
             .setPageToken(" client-a ")
             .setProxyId(" ")
             .build();
 
+        assertThat(query.getClientId()).isEqualTo("client-a");
+        assertThat(query.getClientIdPrefix()).isEqualTo("client-");
         assertThat(query.getGroup()).isEqualTo("group-a");
         assertThat(query.getTopic()).isEqualTo("topic-a");
+        assertThat(query.getClientLanguage()).isEqualTo("JAVA");
         assertThat(query.getPageToken()).isEqualTo("client-a");
         assertThat(query.getProxyId()).isNull();
     }
 
     @Test
+    public void querySupportsContestPaginationAndConnectTimeFilters() {
+        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(200L)
+            .setPageNum(3)
+            .setPageSize(101)
+            .build();
+
+        assertThat(query.getConnectTimeStartMillis()).isEqualTo(100L);
+        assertThat(query.getConnectTimeEndMillis()).isEqualTo(200L);
+        assertThat(query.getPageNum()).isEqualTo(3);
+        assertThat(query.getBoundedPageSize()).isEqualTo(100);
+    }
+
+    @Test
+    public void queryRejectsInvalidPageNum() {
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
+            .setPageNum(0)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pageNum must be greater than or equal to 1");
+    }
+
+    @Test
+    public void queryRejectsInvalidConnectTimeRange() {
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(200L)
+            .setConnectTimeEndMillis(100L)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("connectTimeStartMillis must not exceed connectTimeEndMillis");
+    }
+
+    @Test
     public void toBuilderCopiesAllQueryFields() {
         ProxyClientQuery query = ProxyClientQuery.newBuilder()
+            .setClientId("client-a")
+            .setClientIdPrefix("client-")
             .setGroup("group-a")
             .setTopic("topic-a")
+            .setClientLanguage("JAVA")
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(200L)
+            .setPageNum(2)
             .setClientType(ClientType.PUSH_CONSUMER)
             .setPageSize(10)
             .setPageToken("client-a")
@@ -163,8 +209,14 @@ public class ProxyClientQueryTest {
 
         ProxyClientQuery copiedQuery = query.toBuilder().build();
 
+        assertThat(copiedQuery.getClientId()).isEqualTo("client-a");
+        assertThat(copiedQuery.getClientIdPrefix()).isEqualTo("client-");
         assertThat(copiedQuery.getGroup()).isEqualTo("group-a");
         assertThat(copiedQuery.getTopic()).isEqualTo("topic-a");
+        assertThat(copiedQuery.getClientLanguage()).isEqualTo("JAVA");
+        assertThat(copiedQuery.getConnectTimeStartMillis()).isEqualTo(100L);
+        assertThat(copiedQuery.getConnectTimeEndMillis()).isEqualTo(200L);
+        assertThat(copiedQuery.getPageNum()).isEqualTo(2);
         assertThat(copiedQuery.getClientType()).isEqualTo(ClientType.PUSH_CONSUMER);
         assertThat(copiedQuery.getPageSize()).isEqualTo(10);
         assertThat(copiedQuery.getPageToken()).isEqualTo("client-a");

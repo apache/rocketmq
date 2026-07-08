@@ -152,6 +152,112 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void listClientsFiltersByContestFieldsInClientIdOrder() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-d", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 150L, 300L));
+        service.upsertClient(client("client-b", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 200L, 300L));
+        service.upsertClient(client("client-a", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-a"),
+            "CPP", "proxy-a", 150L, 300L));
+        service.upsertClient(client("client-c", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-b"),
+            "JAVA", "proxy-a", 150L, 300L));
+        service.upsertClient(client("other-client", ClientType.PUSH_CONSUMER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 150L, 300L));
+
+        ProxyClientPage page = service.listClients(ProxyClientQuery.newBuilder()
+            .setClientIdPrefix("client-")
+            .setGroup("group-a")
+            .setTopic("topic-a")
+            .setClientLanguage("JAVA")
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(200L)
+            .build());
+
+        assertThat(clientIds(page.getClients())).containsExactly("client-b", "client-d");
+    }
+
+    @Test
+    public void listClientsExactClientIdIntersectsOtherContestFields() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 100L, 200L));
+
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setClientId("client-a")
+            .setClientIdPrefix("client-")
+            .setClientLanguage("JAVA")
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(100L)
+            .build()).getClients())).containsExactly("client-a");
+        assertThat(service.listClients(ProxyClientQuery.newBuilder()
+            .setClientId("client-a")
+            .setClientIdPrefix("missing-")
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void listClientsSupportsOneBasedPageNum() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+        service.upsertClient(client("client-b", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+        service.upsertClient(client("client-c", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+        service.upsertClient(client("client-d", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+        service.upsertClient(client("client-e", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+
+        ProxyClientPage page = service.listClients(ProxyClientQuery.newBuilder()
+            .setPageNum(2)
+            .setPageSize(2)
+            .build());
+
+        assertThat(clientIds(page.getClients())).containsExactly("client-c", "client-d");
+        assertThat(page.getNextPageToken()).isEqualTo("client-d");
+    }
+
+    @Test
+    public void upsertClientRefreshesLanguageAndConnectTimeIndexes() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 100L, 200L));
+
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "CPP", "proxy-a", 300L, 400L));
+
+        assertThat(service.listClients(ProxyClientQuery.newBuilder()
+            .setClientLanguage("JAVA")
+            .build()).getClients()).isEmpty();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(100L)
+            .build()).getClients()).isEmpty();
+        assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
+            .setClientLanguage("CPP")
+            .setConnectTimeStartMillis(300L)
+            .setConnectTimeEndMillis(300L)
+            .build()).getClients())).containsExactly("client-a");
+    }
+
+    @Test
+    public void removeClientDeletesContestIndexes() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 100L, 200L));
+
+        service.removeClient("client-a");
+
+        assertThat(service.listClients(ProxyClientQuery.newBuilder().setClientId("client-a").build()).getClients())
+            .isEmpty();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder().setClientIdPrefix("client-").build()).getClients())
+            .isEmpty();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder().setClientLanguage("JAVA").build()).getClients())
+            .isEmpty();
+        assertThat(service.listClients(ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(100L)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
     public void upsertClientRefreshesProxyIdIndex() {
         ProxyClientReadService service = new ProxyClientReadService();
         service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"), "proxy-a"));
@@ -441,17 +547,22 @@ public class ProxyClientReadServiceTest {
 
     private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics,
         String proxyId, long lastActiveTimeMillis) {
+        return client(clientId, clientType, groups, topics, "JAVA", proxyId, 100L, lastActiveTimeMillis);
+    }
+
+    private static ProxyClientInfo client(String clientId, ClientType clientType, Set<String> groups, Set<String> topics,
+        String language, String proxyId, long connectTimeMillis, long lastActiveTimeMillis) {
         return new ProxyClientInfo(
             clientId,
             clientType,
             groups,
             topics,
-            "JAVA",
+            language,
             "127.0.0.1:8080",
             "192.168.0.1:8080",
             "V5_0_0",
             proxyId,
-            100L,
+            connectTimeMillis,
             lastActiveTimeMillis
         );
     }
