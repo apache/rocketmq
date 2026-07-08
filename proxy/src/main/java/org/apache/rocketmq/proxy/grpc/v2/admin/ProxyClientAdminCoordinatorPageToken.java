@@ -44,9 +44,9 @@ public class ProxyClientAdminCoordinatorPageToken {
         this.group = StringUtils.trimToNull(builder.group);
         this.topic = StringUtils.trimToNull(builder.topic);
         this.clientType = normalizeClientType(builder.clientType);
-        this.proxyId = StringUtils.trimToNull(builder.proxyId);
+        this.proxyId = ProxyClientAdminPeerIds.normalizeOptionalProxyId(builder.proxyId, "proxyId");
         this.lastClientId = StringUtils.trimToNull(builder.lastClientId);
-        this.lastProxyId = StringUtils.trimToNull(builder.lastProxyId);
+        this.lastProxyId = ProxyClientAdminPeerIds.normalizeOptionalProxyId(builder.lastProxyId, "lastProxyId");
         this.createTimeMillis = builder.createTimeMillis;
         this.peerPageTokens = normalizePeerPageTokens(builder.peerPageTokens);
     }
@@ -108,7 +108,9 @@ public class ProxyClientAdminCoordinatorPageToken {
 
         Map<String, String> sortedPeerPageTokens = new TreeMap<>();
         for (Map.Entry<String, String> entry : peerPageTokens.entrySet()) {
-            String proxyId = StringUtils.trimToNull(entry.getKey());
+            String proxyId = ProxyClientAdminPeerIds.normalizeOptionalProxyId(
+                entry.getKey(), "peer page token proxyId"
+            );
             String pageToken = StringUtils.trimToNull(entry.getValue());
             if (proxyId != null && pageToken != null) {
                 sortedPeerPageTokens.put(proxyId, pageToken);

@@ -146,6 +146,32 @@ public class ProxyClientAdminCoordinatorPageTokenCodecTest {
             .hasMessageContaining("scope is required");
     }
 
+    @Test
+    public void tokenRejectsOverlongProxyIds() {
+        String proxyId = StringUtils.repeat("p", 256);
+
+        assertThatThrownBy(() -> ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.PROXY_ID)
+            .setProxyId(proxyId)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
+
+        assertThatThrownBy(() -> ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .setLastProxyId(proxyId)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("lastProxyId length exceeds 255");
+
+        assertThatThrownBy(() -> ProxyClientAdminCoordinatorPageToken.newBuilder()
+            .setScope(ProxyClientScope.ALL_PROXIES)
+            .putPeerPageToken(proxyId, "client-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("peer page token proxyId length exceeds 255");
+    }
+
     private static Map.Entry<String, String> entry(String key, String value) {
         return new java.util.AbstractMap.SimpleImmutableEntry<>(key, value);
     }

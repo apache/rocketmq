@@ -998,6 +998,8 @@ Internal adapter tests cover:
 - coordinator pagination rejecting peer pages that are not strictly ordered by
   `client_id`.
 - coordinator page-token TTL rejection before peer discovery.
+- coordinator page-token rejection for overlong embedded proxy ids before
+  encoding or decoded token reuse.
 - coordinator `PROXY_ID` query rejection for overlong proxy ids before peer
   routing.
 - real peer gRPC fan-out from coordinator through `ProxyClientAdminPeerGrpcTransport`

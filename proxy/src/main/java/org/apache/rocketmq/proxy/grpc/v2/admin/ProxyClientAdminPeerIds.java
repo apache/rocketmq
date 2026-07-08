@@ -37,6 +37,17 @@ final class ProxyClientAdminPeerIds {
         return requireProxyId(proxyId, "localProxyId");
     }
 
+    static String normalizeOptionalProxyId(String proxyId, String fieldName) {
+        String normalizedProxyId = StringUtils.trimToNull(proxyId);
+        if (normalizedProxyId == null) {
+            return null;
+        }
+        if (normalizedProxyId.length() > MAX_PROXY_ID_LENGTH) {
+            throw new IllegalArgumentException(fieldName + " length exceeds " + MAX_PROXY_ID_LENGTH);
+        }
+        return normalizedProxyId;
+    }
+
     private static String requireProxyId(String proxyId, String fieldName) {
         String normalizedProxyId = StringUtils.trimToNull(proxyId);
         if (normalizedProxyId == null) {
