@@ -696,6 +696,9 @@ Recommended implementation order after public API ownership is confirmed:
    read-model queries. Peer requests now reject coordinator scopes and only
    carry `LOCAL_PROXY` execution semantics; they also reject explicit `proxyId`
    values because peer targeting is owned by the coordinator and peer client.
+   Peer `DescribeClient` requests also reject malformed client ids, including
+   reserved coordinator page-token prefixes, before converting into the local
+   activity request model.
    The coordinator lowers `ALL_PROXIES` and `PROXY_ID` requests to local peer
    requests before fan-out.
    It also includes a local peer executor seam
@@ -1057,6 +1060,8 @@ Internal adapter tests cover:
 - static peer gRPC target rejection for overlong proxy ids and host names.
 - peer client and transport discovery rejection for overlong proxy ids before
   coordinator page-token construction.
+- peer `DescribeClient` request rejection for reserved coordinator page-token
+  client-id prefixes before peer-local execution.
 - in-process peer transport request/response bounds around local handler
   invocation.
 - peer error response code length rejection before peer payload encoding and at

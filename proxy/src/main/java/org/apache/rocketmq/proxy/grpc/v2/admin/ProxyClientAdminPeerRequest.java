@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.ClientType;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
@@ -38,7 +39,7 @@ public class ProxyClientAdminPeerRequest {
             throw new IllegalArgumentException("operation is required");
         }
         this.operation = builder.operation;
-        this.clientId = StringUtils.trimToNull(builder.clientId);
+        this.clientId = normalizeClientId(this.operation, builder.clientId);
         this.group = StringUtils.trimToNull(builder.group);
         this.topic = StringUtils.trimToNull(builder.topic);
         this.clientType = normalizeClientType(builder.clientType);
@@ -158,6 +159,14 @@ public class ProxyClientAdminPeerRequest {
         if (value != null) {
             throw new IllegalArgumentException(operation + " request must not set " + fieldName);
         }
+    }
+
+    private static String normalizeClientId(ProxyClientAdminPeerOperation operation, String clientId) {
+        String normalizedClientId = StringUtils.trimToNull(clientId);
+        if (operation == ProxyClientAdminPeerOperation.DESCRIBE_CLIENT && normalizedClientId != null) {
+            return ProxyClientInfo.normalizeClientId(normalizedClientId);
+        }
+        return normalizedClientId;
     }
 
     private static ClientType normalizeClientType(ClientType clientType) {

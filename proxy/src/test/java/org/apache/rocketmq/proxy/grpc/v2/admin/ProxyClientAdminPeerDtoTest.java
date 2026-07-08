@@ -210,6 +210,17 @@ public class ProxyClientAdminPeerDtoTest {
     }
 
     @Test
+    public void peerDescribeRequestRejectsReservedClientIdPrefix() {
+        assertThatThrownBy(() -> ProxyClientAdminPeerRequest.newBuilder()
+            .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
+            .setClientId("cp1:client-a")
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("clientId must not use reserved page token prefix")
+            .hasMessageContaining("cp1:client-a");
+    }
+
+    @Test
     public void peerDescribeRequestRejectsLocalQueryConversion() {
         ProxyClientAdminPeerRequest request = ProxyClientAdminPeerRequest.newBuilder()
             .setOperation(ProxyClientAdminPeerOperation.DESCRIBE_CLIENT)
