@@ -23,6 +23,8 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 
 public class ProxyClientInfo {
+    private static final int MAX_PROXY_ID_LENGTH = 255;
+
     private final String clientId;
     private final ClientType clientType;
     private final Set<String> groups;
@@ -53,7 +55,7 @@ public class ProxyClientInfo {
         this.remoteAddress = remoteAddress;
         this.localAddress = localAddress;
         this.clientVersion = clientVersion;
-        this.proxyId = StringUtils.trimToNull(proxyId);
+        this.proxyId = normalizeProxyId(proxyId);
         this.connectTimeMillis = connectTimeMillis;
         this.lastActiveTimeMillis = lastActiveTimeMillis;
     }
@@ -88,6 +90,17 @@ public class ProxyClientInfo {
             return null;
         }
         return clientType;
+    }
+
+    private static String normalizeProxyId(String proxyId) {
+        String normalizedProxyId = StringUtils.trimToNull(proxyId);
+        if (normalizedProxyId == null) {
+            return null;
+        }
+        if (normalizedProxyId.length() > MAX_PROXY_ID_LENGTH) {
+            throw new IllegalArgumentException("proxyId length exceeds " + MAX_PROXY_ID_LENGTH);
+        }
+        return normalizedProxyId;
     }
 
     private static Set<String> normalize(Set<String> values) {

@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.service.admin.client;
 
 import apache.rocketmq.v2.ClientType;
 import java.util.Collections;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,11 +58,22 @@ public class ProxyClientInfoTest {
         assertThat(clientInfo.getClientType()).isNull();
     }
 
+    @Test
+    public void constructorRejectsOverlongProxyId() {
+        assertThatThrownBy(() -> client("client-a", ClientType.PRODUCER, StringUtils.repeat("p", 256)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyId length exceeds 255");
+    }
+
     private static ProxyClientInfo client(String clientId) {
         return client(clientId, ClientType.PRODUCER);
     }
 
     private static ProxyClientInfo client(String clientId, ClientType clientType) {
+        return client(clientId, clientType, null);
+    }
+
+    private static ProxyClientInfo client(String clientId, ClientType clientType, String proxyId) {
         return new ProxyClientInfo(
             clientId,
             clientType,
@@ -71,6 +83,7 @@ public class ProxyClientInfoTest {
             "127.0.0.1:8080",
             "192.168.0.1:8080",
             "V5_0_0",
+            proxyId,
             100L,
             200L
         );

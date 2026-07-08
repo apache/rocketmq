@@ -928,6 +928,7 @@ M1 tests cover:
 
 - stable client id ordering and pagination.
 - reserved coordinator page-token client id prefix rejection.
+- read-model client metadata rejection for overlong proxy ids before indexing.
 - index refresh when upserting changed group/topic/type data.
 - client and index deletion on remove.
 - invalid page token rejection.
