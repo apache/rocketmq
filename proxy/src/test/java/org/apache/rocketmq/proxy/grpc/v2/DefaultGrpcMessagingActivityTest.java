@@ -36,6 +36,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
@@ -729,6 +730,20 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
         assertThat(activity.proxyClientReadService.getClient("client-active")).isNotNull();
     }
 
+    @Test
+    public void initRejectsInvalidReadServiceCleanerConfigBeforeCreatingExecutor() {
+        ConfigurationManager.getProxyConfig().setEnableProxyClientReadServiceCleaner(true);
+        ConfigurationManager.getProxyConfig().setProxyClientReadServiceCleanerInactiveTimeoutMillis(0L);
+        ConfigurationManager.getProxyConfig().setProxyClientReadServiceCleanerIntervalMillis(1000L);
+        CleanerExecutorTrackingDefaultGrpcMessagingActivity.reset();
+
+        assertThatThrownBy(() -> new CleanerExecutorTrackingDefaultGrpcMessagingActivity(this.messagingProcessor))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("inactiveTimeoutMillis must be positive");
+
+        assertThat(CleanerExecutorTrackingDefaultGrpcMessagingActivity.executorCreated()).isFalse();
+    }
+
     private static StreamObserver<TelemetryCommand> noopTelemetryObserver() {
         return new StreamObserver<TelemetryCommand>() {
             @Override
@@ -895,6 +910,28 @@ public class DefaultGrpcMessagingActivityTest extends InitConfigTest {
             ClientAdminService clientAdminService) {
             this.capturedClientAdminService = clientAdminService;
             return super.createProxyClientAdminPeerLocalExecutor(localProxyId, clientAdminService);
+        }
+    }
+
+    private static class CleanerExecutorTrackingDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        private static boolean executorCreated;
+
+        private CleanerExecutorTrackingDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        private static void reset() {
+            executorCreated = false;
+        }
+
+        private static boolean executorCreated() {
+            return executorCreated;
+        }
+
+        @Override
+        protected ScheduledExecutorService createProxyClientReadServiceCleanerExecutor() {
+            executorCreated = true;
+            throw new AssertionError("cleaner executor should not be created for invalid config");
         }
     }
 

@@ -247,16 +247,32 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         if (!proxyConfig.isEnableProxyClientReadServiceCleaner()) {
             return null;
         }
-        ScheduledExecutorService scheduledExecutorService = ThreadUtils.newSingleThreadScheduledExecutor(
-            new ThreadFactoryImpl("ProxyClientReadServiceCleaner_")
-        );
+        long inactiveTimeoutMillis = proxyConfig.getProxyClientReadServiceCleanerInactiveTimeoutMillis();
+        long cleanupIntervalMillis = proxyConfig.getProxyClientReadServiceCleanerIntervalMillis();
+        this.requireProxyClientReadServiceCleanerConfig(inactiveTimeoutMillis, cleanupIntervalMillis);
+        ScheduledExecutorService scheduledExecutorService = this.createProxyClientReadServiceCleanerExecutor();
         return new ProxyClientReadServiceCleaner(
             this.proxyClientReadService,
-            proxyConfig.getProxyClientReadServiceCleanerInactiveTimeoutMillis(),
-            proxyConfig.getProxyClientReadServiceCleanerIntervalMillis(),
+            inactiveTimeoutMillis,
+            cleanupIntervalMillis,
             scheduledExecutorService,
             System::currentTimeMillis
         );
+    }
+
+    protected ScheduledExecutorService createProxyClientReadServiceCleanerExecutor() {
+        return ThreadUtils.newSingleThreadScheduledExecutor(
+            new ThreadFactoryImpl("ProxyClientReadServiceCleaner_")
+        );
+    }
+
+    private void requireProxyClientReadServiceCleanerConfig(long inactiveTimeoutMillis, long cleanupIntervalMillis) {
+        if (inactiveTimeoutMillis <= 0) {
+            throw new IllegalArgumentException("inactiveTimeoutMillis must be positive");
+        }
+        if (cleanupIntervalMillis <= 0) {
+            throw new IllegalArgumentException("cleanupIntervalMillis must be positive");
+        }
     }
 
     protected String localProxyId() {
