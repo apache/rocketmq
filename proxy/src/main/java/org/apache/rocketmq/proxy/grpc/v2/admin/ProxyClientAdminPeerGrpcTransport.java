@@ -193,6 +193,7 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
         if (currentMetadata != null) {
             metadata.merge(currentMetadata);
         }
+        this.removeKnownAdminMetadata(metadata);
         if (ctx == null) {
             return metadata;
         }
@@ -213,6 +214,16 @@ public class ProxyClientAdminPeerGrpcTransport implements ProxyClientAdminPeerMe
         }
         metadata.removeAll(key);
         metadata.put(key, normalizedValue);
+    }
+
+    private void removeKnownAdminMetadata(Metadata metadata) {
+        metadata.removeAll(GrpcConstants.AUTHORIZATION_AK);
+        metadata.removeAll(GrpcConstants.REMOTE_ADDRESS);
+        metadata.removeAll(GrpcConstants.LOCAL_ADDRESS);
+        metadata.removeAll(GrpcConstants.CLIENT_ID);
+        metadata.removeAll(GrpcConstants.LANGUAGE);
+        metadata.removeAll(GrpcConstants.CLIENT_VERSION);
+        metadata.removeAll(GrpcConstants.NAMESPACE_ID);
     }
 
     private String subjectUsername(Subject subject) {

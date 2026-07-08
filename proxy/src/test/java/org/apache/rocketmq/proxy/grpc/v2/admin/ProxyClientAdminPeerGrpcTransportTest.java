@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.Code;
 import io.grpc.Channel;
+import io.grpc.Context;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
@@ -211,6 +212,38 @@ public class ProxyClientAdminPeerGrpcTransportTest {
         assertThat(invoker.requestMessage).isEqualTo("{\"operation\":\"LIST_CLIENTS\"}");
         assertThat(invoker.metadata.get(GrpcConstants.REMOTE_ADDRESS)).isEqualTo("127.0.0.1:8080");
         assertThat(invoker.metadata.get(GrpcConstants.LOCAL_ADDRESS)).isEqualTo("127.0.0.1:8081");
+    }
+
+    @Test
+    public void grpcTransportDoesNotForwardStaleKnownMetadataWhenContextOmitsIt() {
+        Metadata.Key<String> customKey = Metadata.Key.of("x-custom", Metadata.ASCII_STRING_MARSHALLER);
+        Metadata currentHeaders = new Metadata();
+        currentHeaders.put(GrpcConstants.AUTHORIZATION_AK, "stale-admin");
+        currentHeaders.put(GrpcConstants.REMOTE_ADDRESS, "stale-remote");
+        currentHeaders.put(GrpcConstants.CLIENT_ID, "stale-client");
+        currentHeaders.put(GrpcConstants.LANGUAGE, "stale-language");
+        currentHeaders.put(customKey, "custom-value");
+        Map<String, Channel> channels = new LinkedHashMap<>();
+        channels.put("proxy-a", mock(Channel.class));
+        String responseMessage = ProxyClientAdminPeerMessageCodec.getInstance().encodePageResponse(
+            ProxyClientAdminPeerResponse.success("proxy-a", new ProxyClientPage(Collections.emptyList(), ""))
+        );
+        RecordingInvoker invoker = new RecordingInvoker(responseMessage);
+        ProxyClientAdminPeerGrpcTransport transport = new ProxyClientAdminPeerGrpcTransport(channels, invoker);
+
+        Context.current().withValue(GrpcConstants.METADATA, currentHeaders).run(() ->
+            transport.execute(
+                ProxyContext.create().setSubject(User.of("fresh-admin")),
+                "proxy-a",
+                "{\"operation\":\"LIST_CLIENTS\"}"
+            )
+        );
+
+        assertThat(invoker.metadata.get(GrpcConstants.AUTHORIZATION_AK)).isEqualTo("fresh-admin");
+        assertThat(invoker.metadata.get(GrpcConstants.REMOTE_ADDRESS)).isNull();
+        assertThat(invoker.metadata.get(GrpcConstants.CLIENT_ID)).isNull();
+        assertThat(invoker.metadata.get(GrpcConstants.LANGUAGE)).isNull();
+        assertThat(invoker.metadata.get(customKey)).isEqualTo("custom-value");
     }
 
     @Test

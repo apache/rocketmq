@@ -283,9 +283,12 @@ small and tested boundary to call:
   message boundary. The peer transport forwards the current admin
   `ProxyContext` into gRPC metadata, including the authenticated user subject
   and request address/client attributes, so the peer-side context factory sees
-  the same admin caller context as the coordinator. Static peer gRPC channels
-  are shut down gracefully with a bounded wait when the shared activity stops,
-  and are forced closed if they do not terminate in time. Dynamic discovery,
+  the same admin caller context as the coordinator. Known admin metadata keys
+  from the ambient gRPC context are cleared before the `ProxyContext` values are
+  written, so stale authorization or request identity headers cannot leak into a
+  peer call; unrelated metadata can still pass through. Static peer gRPC
+  channels are shut down gracefully with a bounded wait when the shared activity
+  stops, and are forced closed if they do not terminate in time. Dynamic discovery,
   secure channel options, and deeper production channel tuning remain follow-up
   work. Static target lists must include the local `proxyName`; otherwise
   startup rejects the configuration so `ALL_PROXIES` queries do not silently omit
@@ -1078,6 +1081,8 @@ Internal adapter tests cover:
 - real peer gRPC fan-out from coordinator through `ProxyClientAdminPeerGrpcTransport`
   into two in-process Netty peer services, verifying merged `ALL_PROXIES`
   results and proxy id stamping.
+- peer gRPC metadata propagation from `ProxyContext` while clearing stale known
+  admin metadata keys from the ambient gRPC context.
 - local peer executor rejection for overlong configured local proxy ids before
   response stamping.
 - peer gRPC transport request and response payload bounds before and after the
