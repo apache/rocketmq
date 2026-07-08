@@ -619,19 +619,16 @@ public class ProxyClientAdminCoordinatorServiceTest {
     }
 
     @Test
-    public void listClientsAllProxiesRejectsUnsupportedClientTypeBeforePeerDiscovery() {
+    public void listClientsAllProxiesCannotBuildUnsupportedClientTypeQueryBeforePeerDiscovery() {
         CountingDiscoveryPeerClient peerClient = new CountingDiscoveryPeerClient();
-        ProxyClientAdminCoordinatorService service = new ProxyClientAdminCoordinatorService(peerClient);
-        ProxyClientQuery query = ProxyClientQuery.newBuilder()
+
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
             .setScope(ProxyClientScope.ALL_PROXIES)
             .setClientType(ClientType.UNRECOGNIZED)
-            .build();
-
-        ProxyClientAdminResult<ProxyClientPage> result = service.listClients(proxyContext(), query);
-
-        assertThat(result.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
-        assertThat(result.getStatus().getMessage()).contains("Unsupported client type").contains("UNRECOGNIZED");
-        assertThat(result.getBody()).isNull();
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported client type")
+            .hasMessageContaining("UNRECOGNIZED");
         assertThat(peerClient.discoveryCount).isEqualTo(0);
         assertThat(peerClient.executeCount).isEqualTo(0);
     }

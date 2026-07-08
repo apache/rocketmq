@@ -475,6 +475,9 @@ internal read-model snapshots use sets.
 token, scope, and proxy id filters. `CLIENT_TYPE_UNSPECIFIED` is normalized to a
 missing client type filter in `ProxyClientQuery`, so direct read-model callers
 and future public request adapters share the same no-filter semantics.
+`UNRECOGNIZED` client type values are rejected at query construction, keeping
+direct service calls aligned with the public request adapter and coordinator
+validation boundaries.
 
 ## Read Model and Indexes
 
@@ -975,6 +978,8 @@ M1 tests cover:
 - local read-model query rejection for reserved coordinator page-token prefixes
   before lookup while coordinator scopes preserve coordinator-owned tokens for
   coordinator validation.
+- read-model query rejection for `UNRECOGNIZED` client type filters before
+  service or read-model execution.
 - read-model client metadata rejection for overlong group/topic names before
   indexing.
 - read-model query rejection for overlong group/topic filters before lookup.

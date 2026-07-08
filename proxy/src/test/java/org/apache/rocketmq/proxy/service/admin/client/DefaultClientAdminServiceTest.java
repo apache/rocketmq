@@ -183,12 +183,10 @@ public class DefaultClientAdminServiceTest {
     }
 
     @Test
-    public void listClientsRejectsUnsupportedClientType() {
-        ClientAdminService adminService = new DefaultClientAdminService(new ProxyClientReadService());
-
-        assertThatThrownBy(() -> adminService.listClients(ProxyClientQuery.newBuilder()
+    public void listClientsCannotBuildUnsupportedClientTypeQuery() {
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
             .setClientType(ClientType.UNRECOGNIZED)
-            .build()))
+            .build())
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Unsupported client type")
             .hasMessageContaining("UNRECOGNIZED");

@@ -101,6 +101,9 @@ public class ProxyClientQuery {
         if (clientType == ClientType.CLIENT_TYPE_UNSPECIFIED) {
             return null;
         }
+        if (clientType == ClientType.UNRECOGNIZED) {
+            throw new IllegalArgumentException("Unsupported client type: " + clientType);
+        }
         return clientType;
     }
 

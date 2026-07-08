@@ -125,6 +125,16 @@ public class ProxyClientQueryTest {
     }
 
     @Test
+    public void queryRejectsUnrecognizedClientType() {
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
+            .setClientType(ClientType.UNRECOGNIZED)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Unsupported client type")
+            .hasMessageContaining("UNRECOGNIZED");
+    }
+
+    @Test
     public void queryTrimsStringFiltersAndNormalizesBlankValues() {
         ProxyClientQuery query = ProxyClientQuery.newBuilder()
             .setGroup(" group-a ")
