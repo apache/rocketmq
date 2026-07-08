@@ -636,6 +636,65 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void describeClientRejectsOverlongClientIdBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminClientView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        ProxyClientAdminDescribeClientRequest internalRequest =
+            mock(ProxyClientAdminDescribeClientRequest.class);
+        when(internalRequest.getScope()).thenReturn(ProxyClientScope.LOCAL_PROXY);
+        when(internalRequest.getClientId()).thenReturn(StringUtils.repeat("c", 256));
+
+        executor.describeClient(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("clientId length exceeds 255");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).describeClient(any(), any(), any(), any());
+    }
+
+    @Test
+    public void describeClientRejectsReservedClientIdBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminClientView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        ProxyClientAdminDescribeClientRequest internalRequest =
+            mock(ProxyClientAdminDescribeClientRequest.class);
+        when(internalRequest.getScope()).thenReturn(ProxyClientScope.LOCAL_PROXY);
+        when(internalRequest.getClientId()).thenReturn("cp1:client-a");
+
+        executor.describeClient(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage())
+            .contains("clientId must not use reserved page token prefix");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).describeClient(any(), any(), any(), any());
+    }
+
+    @Test
     public void listClientsByGroupRejectsAllProxiesScopeBeforeCreatingContextForPublicEndpoint() {
         ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
         ProxyClientAdminEndpointExecutor executor =

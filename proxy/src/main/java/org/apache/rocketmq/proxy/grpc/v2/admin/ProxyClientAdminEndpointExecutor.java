@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public class ProxyClientAdminEndpointExecutor {
@@ -231,9 +232,8 @@ public class ProxyClientAdminEndpointExecutor {
     }
 
     private void requirePublicEndpointIdentifiers(Object request) {
-        if (request instanceof ProxyClientAdminDescribeClientRequest
-            && StringUtils.isBlank(((ProxyClientAdminDescribeClientRequest) request).getClientId())) {
-            throw new IllegalArgumentException("clientId is required");
+        if (request instanceof ProxyClientAdminDescribeClientRequest) {
+            this.requirePublicEndpointClientId(((ProxyClientAdminDescribeClientRequest) request).getClientId());
         }
         if (request instanceof ProxyClientAdminListClientsByGroupRequest) {
             this.requirePublicEndpointGroup(((ProxyClientAdminListClientsByGroupRequest) request).getGroup());
@@ -241,6 +241,10 @@ public class ProxyClientAdminEndpointExecutor {
         if (request instanceof ProxyClientAdminListClientsByTopicRequest) {
             this.requirePublicEndpointTopic(((ProxyClientAdminListClientsByTopicRequest) request).getTopic());
         }
+    }
+
+    private void requirePublicEndpointClientId(String clientId) {
+        ProxyClientInfo.normalizeClientId(clientId);
     }
 
     private void requirePublicEndpointGroup(String group) {
