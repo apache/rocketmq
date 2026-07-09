@@ -46,6 +46,11 @@ OLD_BROAD_RESULT = "Tests run: 728, Failures: 0, Errors: 0, Skipped: 0"
 OLD_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T04:04:54+08:00"
 OLD_BROAD_FINISHED_AT = "Finished at: 2026-07-10T05:14:32+08:00"
 OLD_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T04:07:14+08:00"
+PUBLIC_REVIEW_ARTIFACT_LINKS = (
+    "https://github.com/apache/rocketmq/pull/10603",
+    "https://github.com/apache/rocketmq-apis/pull/112",
+    "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687",
+)
 
 REQUIRED_DOCS = (
     "docs/en/rip2-proxy-admin-m1-submission-package.md",
@@ -361,6 +366,9 @@ def check_submission_evidence(root, errors):
                 errors.append(f"package smoke evidence missing {token}")
             else:
                 errors.append(f"submission evidence missing {token}")
+    for link in PUBLIC_REVIEW_ARTIFACT_LINKS:
+        if link not in combined_docs:
+            errors.append(f"submission evidence missing public review artifact link {link}")
     stale_tokens = (
         OLD_FOCUSED_RESULT,
         OLD_BROAD_RESULT,

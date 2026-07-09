@@ -209,6 +209,9 @@ Finished at: 2026-07-10T06:27:48+08:00
 0.681 ms
 Dashboard CLIENT-01
 external validation item
+https://github.com/apache/rocketmq/pull/10603
+https://github.com/apache/rocketmq-apis/pull/112
+https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687
 """
     for rel in rip2_submission_guard.REQUIRED_DOCS:
         write(root / rel, submission)
@@ -772,6 +775,33 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("unfinished plan checkbox" in error for error in errors))
+
+    def test_guard_reports_missing_public_review_artifact_link(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            for rel in rip2_submission_guard.REQUIRED_DOCS:
+                path = root / rel
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "https://github.com/apache/rocketmq/pull/10603\n",
+                        "",
+                    ),
+                    encoding="utf-8",
+                )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("public review artifact link" in error for error in errors))
 
 
 if __name__ == "__main__":
