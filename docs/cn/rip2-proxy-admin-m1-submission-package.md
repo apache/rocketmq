@@ -4,7 +4,13 @@
 
 本文汇总 `rip2-proxy-admin-m1` 分支，可用于最终 PR、issue comment 或比赛提交。
 
-已同步到远端的最新 RocketMQ 实现 checkpoint：
+已同步到远端的最新 RocketMQ 分支 HEAD：
+
+```text
+bfd490fe2b658b00704d0901943b1458020e7bf3 Refresh RIP-2 scope gate evidence
+```
+
+已同步到远端的最新 RocketMQ 代码实现 checkpoint：
 
 ```text
 4b4a113b17b03964a1f894ab0297f6e26d7ba38a Cover public grpc scope gate
@@ -34,7 +40,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 
 | 比赛要求 | 当前状态 | 证据 |
 | --- | --- | --- |
-| public admin service，包含 `ListClients`、`DescribeClient`、`ListClientsByGroup`、`ListClientsByTopic` | 已通过生成版 `ProxyAdminServiceGrpc` 暴露，默认注册到独立 admin gRPC server。 | `GrpcProxyAdminApplication`、`ProxyStartup`、`GrpcProxyAdminApplicationTest`、[rocketmq-apis/admin.proto](https://github.com/pilichoumao/rocketmq-apis/blob/rip2-proxy-admin-public-api/apache/rocketmq/v2/admin.proto)。 |
+| public admin service，包含 `ListClients`、`DescribeClient`、`ListClientsByGroup`、`ListClientsByTopic` | 已通过生成版 `ProxyAdminServiceGrpc` 暴露；当 `enableProxyAdminGrpcServer=true` 时注册到独立 admin gRPC server。 | `GrpcProxyAdminApplication`、`ProxyStartup`、`GrpcProxyAdminApplicationTest`、[rocketmq-apis/admin.proto](https://github.com/pilichoumao/rocketmq-apis/blob/rip2-proxy-admin-public-api/apache/rocketmq/v2/admin.proto)。 |
 | 在线 client read model | 已实现 `clientId`、group、topic、client type、language、connect time 和 proxy id 索引。 | `ProxyClientReadService`、`ProxyClientInfo`、`ProxyClientQuery`、`ProxyClientPage`。 |
 | 官方过滤字段 | 已支持 exact client id、client id prefix、group、topic、client language、connect time range、`pageNum >= 1`、`pageSize <= 100`。 | `GrpcProxyAdminApplicationTest`、`ProxyClientQueryTest`、`ProxyClientReadServiceTest`、`ProxyClientAdminRequestConverterTest`。 |
 | 生命周期写入 | 已覆盖 telemetry settings、heartbeat、unregister、termination、stream completion 和 error cleanup。 | `ClientActivityTest`、`DefaultGrpcMessagingActivityTest`。 |
