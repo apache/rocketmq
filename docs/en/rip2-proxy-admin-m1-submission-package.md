@@ -11,7 +11,7 @@ comment because this file may itself change when evidence is refreshed. The
 latest synchronized RocketMQ implementation-code checkpoint is:
 
 ```text
-05b17ccc5c88a7a33c8fbe5dc152438b654dc6ca Gate public proxy-id scope before proxy id validation
+bc83087f5f40dc2cfbcc083dba59619a4b7acc78 Optimize proxy client read model indexes
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -262,7 +262,7 @@ successfully.
 
 Benchmark evidence:
 
-- Local read-model worst P99: `listByConnectTimeRangePage` at 344.793 ms.
+- Local read-model worst P99: `listByTopicPage` at 0.681 ms.
 - Coordinator experiment worst P99: `listAllProxiesNextPage` at 9.011 ms.
 - Full report: `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
 
@@ -321,7 +321,7 @@ Result: `Tests run: 725, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 1M synthetic client JMH on Apple M4, 16 GB, Temurin JDK 17.0.18:
 
-- local read-model worst P99: 344.793 ms.
+- local read-model worst P99: 0.681 ms.
 - internal coordinator experiment worst P99: 9.011 ms.
 
 See `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.

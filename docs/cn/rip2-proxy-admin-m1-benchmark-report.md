@@ -13,8 +13,8 @@ protobuf API 被社区接受前，M1 公共语义仍然只承诺 `LOCAL_PROXY`�
 
 | 项目 | 值 |
 | --- | --- |
-| 日期 | 2026-07-08 |
-| Commit | `251c18567f37` |
+| 日期 | 2026-07-10 |
+| Read-model commit | `bc83087f5f40` |
 | 机器 | Apple M4 |
 | 逻辑 CPU | 10 |
 | 内存 | 16 GB |
@@ -25,17 +25,21 @@ protobuf API 被社区接受前，M1 公共语义仍然只承诺 `LOCAL_PROXY`�
 
 ## 构建和启动方式
 
-Benchmark 先执行 clean proxy test compile，确保 JMH 生成类来自当前源码：
+Read-model benchmark 前，已重新编译修改后的 proxy 源码，并跑过聚焦
+read-model 单测：
 
 ```bash
 export JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home
-mvn -pl proxy -am -DskipTests -DskipITs clean test-compile
+mvn -pl proxy -am \
+  "-Dtest=ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientQueryTest,ProxyClientInfoTest,ProxyClientReadServiceCleanerTest" \
+  -DfailIfNoTests=false test -DskipITs
 mvn -pl proxy -DskipTests -DskipITs dependency:build-classpath \
   -Dmdep.includeScope=test \
   -Dmdep.outputFile=/tmp/rocketmq-proxy-test-classpath.txt
 ```
 
-本次 compile 以 `BUILD SUCCESS` 结束，耗时 01:40。
+聚焦测试结果为 `Tests run: 65, Failures: 0, Errors: 0`，并以
+`BUILD SUCCESS` 结束。
 
 ## Read Model 1M 结果
 
@@ -48,32 +52,36 @@ mvn -pl proxy -DskipTests -DskipITs dependency:build-classpath \
   org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark \
   -p clientCount=1000000 -p groupCount=1000 -p topicCount=10000 -p proxyCount=100 \
   -jvmArgsAppend "-Xms2g -Xmx6g" \
-  -rf json -rff /tmp/rip2-readmodel-jmh-1m.json \
-  > /tmp/rip2-readmodel-jmh-1m.txt 2>&1
+  -rf json -rff /tmp/rip2-readmodel-jmh-1m-optimized-full.json
 ```
 
-JMH 运行完成，耗时 00:05:01，并写入
-`/tmp/rip2-readmodel-jmh-1m.json`。
+JMH 运行完成，耗时 00:05:04，并写入
+`/tmp/rip2-readmodel-jmh-1m-optimized-full.json`。
 
 | Operation | Score ms/op | P50 | P95 | P99 | Max |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `describeClient` | 0.001 | 0.000 | 0.001 | 0.016 | 2.617 |
-| `listByClientIdPrefixPage` | 3.207 | 0.656 | 0.752 | 0.839 | 4815.061 |
-| `listByConnectTimeRangePage` | 74.320 | 35.914 | 233.597 | 344.793 | 541.065 |
-| `listByGroupPage` | 0.088 | 0.020 | 0.028 | 0.040 | 482.869 |
-| `listByLanguagePage` | 77.623 | 40.370 | 225.496 | 318.673 | 606.077 |
-| `listByProxyIdPage` | 0.710 | 0.182 | 0.209 | 0.242 | 2382.365 |
-| `listByTopicPage` | 0.048 | 0.008 | 0.012 | 0.016 | 233.570 |
-| `listFirstPage` | 0.012 | 0.003 | 0.009 | 0.010 | 49.807 |
-| `listNextPage` | 0.014 | 0.003 | 0.009 | 0.011 | 41.091 |
+| `describeClient` | 0.001 | 0.000 | 0.001 | 0.017 | 3.027 |
+| `listByClientIdPrefixPage` | 3.080 | 0.551 | 0.584 | 0.603 | 10519.314 |
+| `listByConnectTimeRangePage` | 0.007 | 0.001 | 0.029 | 0.069 | 200.540 |
+| `listByGroupPage` | 0.020 | 0.005 | 0.007 | 0.561 | 17.433 |
+| `listByLanguagePage` | 0.008 | 0.002 | 0.011 | 0.087 | 206.832 |
+| `listByProxyIdPage` | 0.011 | 0.003 | 0.003 | 0.004 | 355.467 |
+| `listByTopicPage` | 0.023 | 0.005 | 0.008 | 0.681 | 20.972 |
+| `listFirstPage` | 0.012 | 0.002 | 0.007 | 0.012 | 376.439 |
+| `listNextPage` | 0.012 | 0.002 | 0.007 | 0.008 | 125.960 |
 
-最慢 read-model P99 是 `listByConnectTimeRangePage`，为 344.793 ms。所有
+最慢 read-model P99 是 `listByTopicPage`，为 0.681 ms。所有
 read-model 查询的 P99 都低于 1 秒目标。
 
 Max 列保留了本机 sample-time 采集中的调度和 GC 尾部尖刺，作为透明记录；
 本 checkpoint 对齐的比赛目标是 P99。
 
 ## Coordinator 1M 结果
+
+下面的 coordinator 结果保留 2026-07-08 内部探索运行数据，commit 为
+`251c18567f37`。本次 `bc83087f5f40` read-model checkpoint 未重跑
+coordinator，因为 public M1 合约仍然只承诺 `LOCAL_PROXY`，coordinator 不属于
+public 性能承诺。
 
 命令：
 
@@ -111,8 +119,9 @@ JMH 写入 `/tmp/rip2-coordinator-jmh-1m.json`。
 - 本地 read model 在 1M synthetic client 下满足所有已实现官方查询形态的
   P99 小于 1 秒目标：无过滤分页、group、topic、prefix、language、
   connect-time range、proxy-id 和 describe。
-- language 与 connect-time 查询是本地最重路径，因为 synthetic 数据把所有
-  client 放在同一种语言和同一个连接时间桶里。
+- 单 language 和单 connect-time synthetic 桶现在不会再为 page-bounded read
+  物化 1,000,000 个 client 的候选集副本；本地 read model 会复用现有单过滤索引，
+  只在组合多个过滤条件时才物化交集。
 - Coordinator 实验在 100 个 synthetic proxy shard 和 `pageSize=100` 下仍有
   较低 P99，但它不属于 M1 公共承诺。
 - 真实 public endpoint benchmark 仍受 `rocketmq-apis` 归属 gate 阻塞；当前

@@ -9,7 +9,7 @@
 checkpoint：
 
 ```text
-05b17ccc5c88a7a33c8fbe5dc152438b654dc6ca Gate public proxy-id scope before proxy id validation
+bc83087f5f40dc2cfbcc083dba59619a4b7acc78 Optimize proxy client read model indexes
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -250,7 +250,7 @@ stack traces。只有在 Surefire 零 failure/error 且 Maven 成功退出时，
 
 Benchmark 证据：
 
-- local read-model 最慢 P99：`listByConnectTimeRangePage`，344.793 ms。
+- local read-model 最慢 P99：`listByTopicPage`，0.681 ms。
 - coordinator 实验最慢 P99：`listAllProxiesNextPage`，9.011 ms。
 - 完整报告：`docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。
 
@@ -309,7 +309,7 @@ Result: `Tests run: 725, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 1M synthetic client JMH on Apple M4, 16 GB, Temurin JDK 17.0.18:
 
-- local read-model worst P99: 344.793 ms.
+- local read-model worst P99: 0.681 ms.
 - internal coordinator experiment worst P99: 9.011 ms.
 
 See `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.

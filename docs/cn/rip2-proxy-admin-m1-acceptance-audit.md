@@ -20,7 +20,7 @@
 | --- | --- | --- | --- |
 | Proxy Admin 架构和 proto 定义通过社区 review。 | review 中。 | Draft PR #10603 和 #112 已作为 review artifact 打开。设计采用独立 `ProxyAdminService` 和独立 admin gRPC server。 | 社区需要确认 proto 归属、字段编号、生成 artifact 版本和发布路径，然后才能把 PR 视为 merge-ready。 |
 | 4 个核心 client query RPC 完整实现，支持过滤和分页。 | 本地已实现并测试。 | `GrpcProxyAdminApplication` 暴露 `ListClients`、`DescribeClient`、`ListClientsByGroup`、`ListClientsByTopic`；`GrpcProxyAdminApplicationTest` 使用生成版 Server/Channel 调用。 | 上游合并等待正式 `rocketmq-proto` artifact。 |
-| 1M client 下分页查询 P99 < 1s，且无 OOM 风险。 | 本地已验证。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md` 记录 1M synthetic clients 下 local read-model 最慢 P99 为 344.793 ms。 | 查询路径实现变化后需要重跑。 |
+| 1M client 下分页查询 P99 < 1s，且无 OOM 风险。 | 本地已验证。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md` 记录 1M synthetic clients 下 single-index read-path 优化后的 local read-model 最慢 P99 为 0.681 ms。 | 查询路径实现变化后需要重跑。 |
 | ACL 2.0 使用独立 `proxy.admin.client` 资源。 | 已实现并测试。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`；list 类 RPC 需要 `LIST`，describe 需要 `GET`。 | 资源命名仍待社区 review。 |
 | Admin 接口启用 OpenTelemetry metrics。 | 已围绕 admin service wrapper 实现并测试。 | `MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ClientAdminMetricsContextTest`、`ProxyClientAdminObservabilityTest`；维度包括 operation、scope、status/result、duration、filters、page size 和 result size。 | 生产 dashboard 接入不在当前分支内。 |
 | 与 RIP-1 Dashboard CLIENT-01 完成 E2E 联调。 | 尚未在本地 Dashboard 环境证明。 | `GrpcProxyAdminApplicationTest` 已通过生成版 gRPC Server/Channel 验证 `DescribeClient` 返回 Dashboard-facing client view 字段：client id、type、groups、topics、language、remote/local address、version、connect time、last active time、proxy id。 | 需要包含 RIP-1 Dashboard client 的外部集成环境。 |

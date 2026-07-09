@@ -15,8 +15,8 @@ protobuf API is accepted.
 
 | Item | Value |
 | --- | --- |
-| Date | 2026-07-08 |
-| Commit | `251c18567f37` |
+| Date | 2026-07-10 |
+| Read-model commit | `bc83087f5f40` |
 | Machine | Apple M4 |
 | Logical CPUs | 10 |
 | Memory | 16 GB |
@@ -27,18 +27,21 @@ protobuf API is accepted.
 
 ## Build And Launcher
 
-The benchmark used a clean proxy test compile so JMH generated classes were
-rebuilt from the current sources:
+Before the read-model benchmark, the modified proxy sources were recompiled and
+the focused read-model tests passed:
 
 ```bash
 export JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home
-mvn -pl proxy -am -DskipTests -DskipITs clean test-compile
+mvn -pl proxy -am \
+  "-Dtest=ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientQueryTest,ProxyClientInfoTest,ProxyClientReadServiceCleanerTest" \
+  -DfailIfNoTests=false test -DskipITs
 mvn -pl proxy -DskipTests -DskipITs dependency:build-classpath \
   -Dmdep.includeScope=test \
   -Dmdep.outputFile=/tmp/rocketmq-proxy-test-classpath.txt
 ```
 
-The compile finished with `BUILD SUCCESS` in 01:40.
+The focused test run finished with `Tests run: 65, Failures: 0, Errors: 0` and
+`BUILD SUCCESS`.
 
 ## Read Model 1M Result
 
@@ -51,26 +54,25 @@ Command:
   org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark \
   -p clientCount=1000000 -p groupCount=1000 -p topicCount=10000 -p proxyCount=100 \
   -jvmArgsAppend "-Xms2g -Xmx6g" \
-  -rf json -rff /tmp/rip2-readmodel-jmh-1m.json \
-  > /tmp/rip2-readmodel-jmh-1m.txt 2>&1
+  -rf json -rff /tmp/rip2-readmodel-jmh-1m-optimized-full.json
 ```
 
-JMH completed in 00:05:01 and wrote
-`/tmp/rip2-readmodel-jmh-1m.json`.
+JMH completed in 00:05:04 and wrote
+`/tmp/rip2-readmodel-jmh-1m-optimized-full.json`.
 
 | Operation | Score ms/op | P50 | P95 | P99 | Max |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `describeClient` | 0.001 | 0.000 | 0.001 | 0.016 | 2.617 |
-| `listByClientIdPrefixPage` | 3.207 | 0.656 | 0.752 | 0.839 | 4815.061 |
-| `listByConnectTimeRangePage` | 74.320 | 35.914 | 233.597 | 344.793 | 541.065 |
-| `listByGroupPage` | 0.088 | 0.020 | 0.028 | 0.040 | 482.869 |
-| `listByLanguagePage` | 77.623 | 40.370 | 225.496 | 318.673 | 606.077 |
-| `listByProxyIdPage` | 0.710 | 0.182 | 0.209 | 0.242 | 2382.365 |
-| `listByTopicPage` | 0.048 | 0.008 | 0.012 | 0.016 | 233.570 |
-| `listFirstPage` | 0.012 | 0.003 | 0.009 | 0.010 | 49.807 |
-| `listNextPage` | 0.014 | 0.003 | 0.009 | 0.011 | 41.091 |
+| `describeClient` | 0.001 | 0.000 | 0.001 | 0.017 | 3.027 |
+| `listByClientIdPrefixPage` | 3.080 | 0.551 | 0.584 | 0.603 | 10519.314 |
+| `listByConnectTimeRangePage` | 0.007 | 0.001 | 0.029 | 0.069 | 200.540 |
+| `listByGroupPage` | 0.020 | 0.005 | 0.007 | 0.561 | 17.433 |
+| `listByLanguagePage` | 0.008 | 0.002 | 0.011 | 0.087 | 206.832 |
+| `listByProxyIdPage` | 0.011 | 0.003 | 0.003 | 0.004 | 355.467 |
+| `listByTopicPage` | 0.023 | 0.005 | 0.008 | 0.681 | 20.972 |
+| `listFirstPage` | 0.012 | 0.002 | 0.007 | 0.012 | 376.439 |
+| `listNextPage` | 0.012 | 0.002 | 0.007 | 0.008 | 125.960 |
 
-Worst read-model P99: `listByConnectTimeRangePage` at 344.793 ms.
+Worst read-model P99: `listByTopicPage` at 0.681 ms.
 All read-model operations stayed below the 1 second P99 target.
 
 The max column includes workstation scheduling and GC outliers observed during
@@ -78,6 +80,11 @@ sample-time collection. It is retained for transparency, but the contest target
 tracked here is P99.
 
 ## Coordinator 1M Result
+
+The coordinator results below are retained from the earlier 2026-07-08 internal
+experiment at commit `251c18567f37`. They were not rerun in the
+`bc83087f5f40` read-model checkpoint because the public M1 contract remains
+`LOCAL_PROXY` and the coordinator is not part of the public performance claim.
 
 Command:
 
@@ -116,9 +123,10 @@ discussion.
 - The local read model satisfies the 1M synthetic client P99 target for all
   implemented official query shapes: unfiltered page, group, topic, prefix,
   language, connect-time range, proxy-id, and describe.
-- Language and connect-time filters are intentionally the heaviest local paths
-  because the synthetic data puts all clients in the same language and
-  connection-time bucket.
+- The single-language and single-connect-time synthetic buckets no longer
+  materialize 1,000,000-client candidate copies for page-bounded reads; the
+  local read model reuses the existing single filter index and only materializes
+  intersections when multiple filters are combined.
 - The coordinator experiment shows low P99 latency with 100 synthetic proxy
   shards and `pageSize=100`, but it is not part of the public M1 promise.
 - Public endpoint numbers remain blocked on the `rocketmq-apis` ownership gate;
