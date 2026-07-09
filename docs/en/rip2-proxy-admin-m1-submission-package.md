@@ -10,7 +10,7 @@ Latest synchronized RocketMQ implementation checkpoint before this evidence
 refresh:
 
 ```text
-bac4852a1c76a5796cb6a7af94d9e21839597cee Refresh RIP-2 broad verification evidence
+17d3273a267a5155efeaf91593e2a121dbdb3cb4 Refresh RIP-2 package smoke evidence
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -45,7 +45,7 @@ branch currently compiles against the local
 | ACL | Implemented with logical resource `proxy.admin.client`; list RPCs use `LIST`, describe uses `GET`. | `ClientAdminAuthPolicyTest`, `DefaultClientAdminAuthorizationServiceTest`, `AuthorizingClientAdminServiceTest`. |
 | Independent admin execution | Implemented admin query executor and dedicated admin gRPC server registration. | `ProxyClientAdminEndpointExecutor`, `ProxyStartup`, `GrpcProxyAdminWiringTest`, `ProxyStartupTest`. |
 | Observability | Implemented metrics, trace attributes, and structured failure logs with low-cardinality labels. | `ProxyMetricsManagerTest`, `MeteredClientAdminServiceTest`, `MeteredAuthorizingClientAdminServiceTest`, `ProxyClientAdminObservabilityTest`. |
-| E2E / integration coverage | Generated public gRPC Server/Channel tests cover all four RPCs, filtering, scope rejection, default pagination, and not found semantics. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`. |
+| E2E / integration coverage | Generated public gRPC Server/Channel tests cover all four RPCs, filtering, scope rejection, default pagination, not found semantics, and Dashboard-facing client view fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`. |
 | 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. All local read-model P99 values are below 1 second. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
 | English and Chinese docs | Completed for user guide, benchmark report, and submission package. | `docs/en/rip2-proxy-admin-m1-user-guide.md`, `docs/cn/rip2-proxy-admin-m1-user-guide.md`. |
 
@@ -158,9 +158,10 @@ topic names, and proxy ids.
 
 Final verification commands below were run with JDK 17 after the generated
 public endpoint and package-smoke build fix were present in the working tree.
-The focused public endpoint verification, broad proxy admin verification, and
-package smoke were refreshed on July 10, 2026 Asia/Shanghai after the reviewer
-runbook checkpoint.
+The focused public endpoint verification was refreshed after adding generated
+gRPC coverage for Dashboard-facing client view fields. Broad proxy admin
+verification and package smoke were also refreshed on July 10, 2026
+Asia/Shanghai after the reviewer runbook checkpoint.
 
 Focused generated public API verification:
 
@@ -174,9 +175,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 36, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 37, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T00:20:59+08:00
+Finished at: 2026-07-10T00:38:35+08:00
 ```
 
 Broad proxy admin verification:
@@ -191,9 +192,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 707, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 708, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T00:26:22+08:00
+Finished at: 2026-07-10T00:44:52+08:00
 ```
 
 Package smoke:
@@ -293,7 +294,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 707, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 708, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 

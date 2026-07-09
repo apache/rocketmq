@@ -7,7 +7,7 @@
 本次 evidence refresh 前，已同步到远端的 RocketMQ 实现 checkpoint：
 
 ```text
-bac4852a1c76a5796cb6a7af94d9e21839597cee Refresh RIP-2 broad verification evidence
+17d3273a267a5155efeaf91593e2a121dbdb3cb4 Refresh RIP-2 package smoke evidence
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -41,7 +41,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
-| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、过滤、scope 拒绝、默认分页和 not found 语义；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
+| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、过滤、scope 拒绝、默认分页、not found 语义和 Dashboard-facing client view 字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
 | 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、benchmark report 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`。 |
 
@@ -151,9 +151,10 @@ Admin labels、trace 和日志属性：
 ## 验证快照
 
 以下最终验证命令均使用 JDK 17 运行，运行时工作区已包含生成版 public endpoint
-和 package smoke 构建修复。Focused public endpoint、broad proxy admin 验证和
-package smoke 已在 reviewer runbook checkpoint 后，于 2026-07-10 Asia/Shanghai
-重新刷新。
+和 package smoke 构建修复。Focused public endpoint 验证已在新增
+Dashboard-facing client view 字段 generated gRPC 覆盖后刷新；broad proxy admin
+验证和 package smoke 也已在 reviewer runbook checkpoint 后，于 2026-07-10
+Asia/Shanghai 重新刷新。
 
 Focused generated public API verification：
 
@@ -167,9 +168,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 36, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 37, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T00:20:59+08:00
+Finished at: 2026-07-10T00:38:35+08:00
 ```
 
 Broad proxy admin verification：
@@ -184,9 +185,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 707, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 708, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T00:26:22+08:00
+Finished at: 2026-07-10T00:44:52+08:00
 ```
 
 Package smoke：
@@ -284,7 +285,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 707, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 708, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
