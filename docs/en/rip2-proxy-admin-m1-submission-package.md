@@ -199,7 +199,7 @@ Focused public endpoint/startup verification was refreshed again after adding
 the generated public service descriptor test. Broad proxy admin verification
 was refreshed again on the latest branch head after the descriptor and
 Dashboard-facing tests were included in the broad suite. Package smoke was
-refreshed on the same implementation checkpoint.
+refreshed again on the latest branch head after the submission guard was added.
 
 Focused generated public API verification:
 
@@ -280,7 +280,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T04:07:14+08:00
+Finished at: 2026-07-10T06:27:48+08:00
 ```
 
 Lightweight submission guard:

@@ -186,7 +186,8 @@ generated gRPC 证据后刷新；随后又在新增 generated public gRPC endpoi
 benchmark setup 测试后刷新；随后又在新增 generated public service descriptor
 测试后刷新 focused public endpoint/startup verification；随后又在 descriptor 和
 Dashboard-facing 测试纳入 broad suite 后，在最新分支 HEAD 上刷新 broad proxy
-admin verification。Package smoke 已在同一实现 checkpoint 上刷新。
+admin verification；随后又在新增 submission guard 后，在最新分支 HEAD 上刷新
+package smoke。
 
 Focused generated public API verification：
 
@@ -267,7 +268,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T04:07:14+08:00
+Finished at: 2026-07-10T06:27:48+08:00
 ```
 
 轻量提交门禁：

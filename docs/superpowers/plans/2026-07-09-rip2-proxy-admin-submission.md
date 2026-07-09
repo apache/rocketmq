@@ -1722,6 +1722,9 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `python3 dev/rip2_submission_guard.py --check-remote --check-github` verifies
   the RocketMQ draft PR, rocketmq-apis draft PR, and RIP-2 issue comment all
   reference the current branch HEAD and include submission-guard evidence.
+- [x] Package smoke refreshed after the submission guard:
+  `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
+  `BUILD SUCCESS`, finished at `2026-07-10T06:27:48+08:00`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact
