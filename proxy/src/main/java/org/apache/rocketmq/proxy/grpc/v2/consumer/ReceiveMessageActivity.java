@@ -245,12 +245,10 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                 MessageQueueSelector messageQueueSelector = messageQueueView.getReadSelector();
 
                 if (StringUtils.isNotBlank(brokerName)) {
-                    addressableMessageQueue = messageQueueSelector.getQueueByBrokerName(brokerName);
+                    return messageQueueSelector.getQueueByBrokerName(brokerName);
                 }
 
-                if (addressableMessageQueue == null) {
-                    addressableMessageQueue = messageQueueSelector.selectOne(true);
-                }
+                addressableMessageQueue = messageQueueSelector.selectOne(true);
                 return addressableMessageQueue;
             } catch (Throwable t) {
                 return null;
