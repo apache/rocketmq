@@ -1,98 +1,95 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// Documentation-only RIP-2 public API draft.
-// This file is intentionally placed under docs/ and is not part of the Maven
-// build or protobuf generation. The real API should land only after
-// rocketmq-apis ownership and compatibility are confirmed by the community.
-
+// Documentation mirror for the RIP-2 contest branch. The authoritative source
+// is apache/rocketmq/v2/admin.proto in the rocketmq-apis branch
+// rip2-proxy-admin-public-api.
 syntax = "proto3";
+
+import "apache/rocketmq/v2/definition.proto";
 
 package apache.rocketmq.v2;
 
+option cc_enable_arenas = true;
+option csharp_namespace = "Apache.Rocketmq.V2";
 option java_multiple_files = true;
 option java_package = "apache.rocketmq.v2";
+option java_generate_equals_and_hash = true;
+option java_string_check_utf8 = true;
+option java_outer_classname = "MQAdmin";
 
-// The final file should import or colocate the existing v2 Status and
-// ClientType definitions according to the rocketmq-apis ownership decision.
-//
-// The M1 adapter normalizes request string fields before internal validation:
-// surrounding whitespace is trimmed, and blank values are treated as absent.
-// Public contest-facing requests use page_num/page_size, with page_size capped
-// at 100. The existing internal page-token path remains an implementation
-// detail for coordinator experiments and early adapter tests.
+message ChangeLogLevelRequest {
+  enum Level {
+    TRACE = 0;
+    DEBUG = 1;
+    INFO = 2;
+    WARN = 3;
+    ERROR = 4;
+  }
+  Level level = 1;
+}
 
+message ChangeLogLevelResponse { string remark = 1; }
+
+service Admin {
+  rpc ChangeLogLevel(ChangeLogLevelRequest) returns (ChangeLogLevelResponse) {}
+}
+
+// ProxyAdminService is the public Proxy admin interface. M1 exposes online
+// client query APIs. Future modules can add proxy config, quota, route,
+// connection, and diagnosis APIs without mixing with the data-plane
+// MessagingService.
 service ProxyAdminService {
-  rpc ListClients(ListClientsRequest) returns (ListClientsResponse);
-  rpc DescribeClient(DescribeClientRequest) returns (DescribeClientResponse);
+  rpc ListClients(ListClientsRequest) returns (ListClientsResponse) {}
+  rpc DescribeClient(DescribeClientRequest) returns (DescribeClientResponse) {}
   rpc ListClientsByGroup(ListClientsByGroupRequest)
-      returns (ListClientsByGroupResponse);
+      returns (ListClientsByGroupResponse) {}
   rpc ListClientsByTopic(ListClientsByTopicRequest)
-      returns (ListClientsByTopicResponse);
+      returns (ListClientsByTopicResponse) {}
 }
 
 enum ProxyScope {
   PROXY_SCOPE_UNSPECIFIED = 0;
-
-  // M1 public endpoints accept only the default or explicit local scope.
   PROXY_SCOPE_LOCAL_PROXY = 1;
-
-  // Reserved for future fan-out and targeted proxy query semantics. M1 public
-  // endpoints reject these scopes with BAD_REQUEST before request context
-  // creation.
   PROXY_SCOPE_ALL_PROXIES = 2;
   PROXY_SCOPE_PROXY_ID = 3;
 }
 
 message ListClientsRequest {
-  // Exact client id filter. Empty means no exact-id filter.
   string client_id = 1;
   string client_id_prefix = 2;
   string group = 3;
   string topic = 4;
   string client_language = 5;
-  int64 connect_time_start_millis = 6;
-  int64 connect_time_end_millis = 7;
-  // Public page numbers are 1-based. M1 rejects values smaller than 1.
+  optional int64 connect_time_start_millis = 6;
+  optional int64 connect_time_end_millis = 7;
   int32 page_num = 8;
-  // M1 caps page_size at 100.
   int32 page_size = 9;
   ProxyScope scope = 10;
-
-  // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
-  // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
-  // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
   string proxy_id = 11;
 }
 
 message ListClientsResponse {
   Status status = 1;
   repeated ProxyClient clients = 2;
-  // True when another page can be requested with page_num + 1.
   bool has_more = 3;
 }
 
 message DescribeClientRequest {
   string client_id = 1;
   ProxyScope scope = 2;
-
-  // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
-  // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
-  // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
   string proxy_id = 3;
 }
 
@@ -106,16 +103,11 @@ message ListClientsByGroupRequest {
   string client_id = 2;
   string client_id_prefix = 3;
   string client_language = 4;
-  int64 connect_time_start_millis = 5;
-  int64 connect_time_end_millis = 6;
+  optional int64 connect_time_start_millis = 5;
+  optional int64 connect_time_end_millis = 6;
   int32 page_num = 7;
-  // M1 caps page_size at 100.
   int32 page_size = 8;
   ProxyScope scope = 9;
-
-  // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
-  // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
-  // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
   string proxy_id = 10;
 }
 
@@ -130,16 +122,11 @@ message ListClientsByTopicRequest {
   string client_id = 2;
   string client_id_prefix = 3;
   string client_language = 4;
-  int64 connect_time_start_millis = 5;
-  int64 connect_time_end_millis = 6;
+  optional int64 connect_time_start_millis = 5;
+  optional int64 connect_time_end_millis = 6;
   int32 page_num = 7;
-  // M1 caps page_size at 100.
   int32 page_size = 8;
   ProxyScope scope = 9;
-
-  // Future PROXY_SCOPE_PROXY_ID requests must set this field. M1 public
-  // endpoints reject PROXY_SCOPE_PROXY_ID before request context creation and
-  // ignore this field for PROXY_SCOPE_LOCAL_PROXY.
   string proxy_id = 10;
 }
 
@@ -152,14 +139,8 @@ message ListClientsByTopicResponse {
 message ProxyClient {
   string client_id = 1;
   ClientType client_type = 2;
-
-  // Server-normalized, nonblank, de-duplicated values. M1 responses use
-  // deterministic lexicographic order.
   repeated string groups = 3;
   repeated string topics = 4;
-
-  // Server-normalized metadata required by the RIP-2 contest issue. Missing or
-  // blank values are returned as empty strings.
   string language = 5;
   string remote_address = 6;
   string local_address = 7;

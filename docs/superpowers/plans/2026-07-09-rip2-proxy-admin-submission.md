@@ -79,7 +79,7 @@ Current repo:
 **Files:**
 - Read only: current repository
 
-- [ ] **Step 1: Confirm branch, upstream delta, and clean worktree**
+- [x] **Step 1: Confirm branch, upstream delta, and clean worktree**
 
 Run:
 
@@ -99,7 +99,7 @@ Expected:
 
 Expected `git diff --check`: no output.
 
-- [ ] **Step 2: Re-run the existing broad proxy verification before changing code**
+- [x] **Step 2: Re-run the existing broad proxy verification before changing code**
 
 Run:
 
@@ -117,7 +117,7 @@ BUILD SUCCESS
 
 JDK 17 may print JaCoCo 0.8.5 instrumentation stack traces. Treat them as noise only when Surefire reports zero failures/errors and Maven exits successfully.
 
-- [ ] **Step 3: Commit only if baseline docs have drifted**
+- [x] **Step 3: Commit only if baseline docs have drifted**
 
 Run:
 
@@ -136,7 +136,7 @@ Expected: clean. If not clean because test tools generated untracked files, insp
 - Read: `../rocketmq-apis/java/BUILD.bazel`
 - Read: `../rocketmq-apis/java/VERSION`
 
-- [ ] **Step 1: Prepare the sibling `rocketmq-apis` checkout**
+- [x] **Step 1: Prepare the sibling `rocketmq-apis` checkout**
 
 Run:
 
@@ -164,7 +164,7 @@ or:
 Reset branch 'rip2-proxy-admin-public-api'
 ```
 
-- [ ] **Step 2: Replace `apache/rocketmq/v2/admin.proto` with the formal M1 API**
+- [x] **Step 2: Replace `apache/rocketmq/v2/admin.proto` with the formal M1 API**
 
 Edit `../rocketmq-apis/apache/rocketmq/v2/admin.proto` so the complete file is:
 
@@ -317,7 +317,7 @@ message ProxyClient {
 }
 ```
 
-- [ ] **Step 3: Verify `rocketmq-apis` still generates Java**
+- [x] **Step 3: Verify `rocketmq-apis` still generates Java**
 
 Run:
 
@@ -332,7 +332,7 @@ Expected:
 INFO: Build completed successfully
 ```
 
-- [ ] **Step 4: Install a local generated artifact for current-repo verification**
+- [x] **Step 4: Install a local generated artifact for current-repo verification**
 
 Run:
 
@@ -367,7 +367,7 @@ Expected:
 apache/rocketmq/v2/ProxyAdminServiceGrpc.class
 ```
 
-- [ ] **Step 5: Commit the API branch**
+- [x] **Step 5: Commit the API branch**
 
 Run:
 
@@ -391,7 +391,7 @@ Expected:
 - Modify: `pom.xml`
 - Modify: `docs/en/rip2-proxy-admin-m1-public-api-draft.proto`
 
-- [ ] **Step 1: Update Maven dependency version**
+- [x] **Step 1: Update Maven dependency version**
 
 In `./pom.xml`, change:
 
@@ -405,7 +405,7 @@ to:
 <rocketmq-proto.version>2.2.0-rip2-SNAPSHOT</rocketmq-proto.version>
 ```
 
-- [ ] **Step 2: Verify generated symbols are visible to the proxy module**
+- [x] **Step 2: Verify generated symbols are visible to the proxy module**
 
 Run:
 
@@ -420,7 +420,7 @@ Expected:
 BUILD SUCCESS
 ```
 
-- [ ] **Step 3: Mirror the final public proto into documentation**
+- [x] **Step 3: Mirror the final public proto into documentation**
 
 Copy the complete `rocketmq-apis/apache/rocketmq/v2/admin.proto` content from Task 2 into:
 
