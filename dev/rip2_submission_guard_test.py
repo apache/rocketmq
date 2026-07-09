@@ -228,6 +228,25 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(any("broad verification" in error for error in errors))
 
+    def test_guard_reports_pom_proto_version_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(root / "pom.xml", "<rocketmq-proto.version>2.1.2</rocketmq-proto.version>\n")
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("rocketmq-proto.version" in error for error in errors))
+
     def test_guard_reports_stale_package_smoke_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)

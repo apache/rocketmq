@@ -33,6 +33,7 @@ EXPECTED_BRANCH = "rip2-proxy-admin-m1"
 EXPECTED_APIS_BRANCH = "rip2-proxy-admin-public-api"
 DEFAULT_APIS_REMOTE = "auto"
 PROTO_VERSION = "2.2.0-rip2-SNAPSHOT"
+PROTO_VERSION_XML = f"<rocketmq-proto.version>{PROTO_VERSION}</rocketmq-proto.version>"
 FOCUSED_RESULT = "Tests run: 54, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T05:58:49+08:00"
 BROAD_RESULT = "Tests run: 730, Failures: 0, Errors: 0, Skipped: 0"
@@ -119,6 +120,12 @@ def check_required_files(root, errors):
         path = root / rel
         if not path.is_file():
             errors.append(f"missing required file: {rel}")
+
+
+def check_maven_proto_version(root, errors):
+    pom_text = read_text(root / "pom.xml", errors)
+    if PROTO_VERSION_XML not in pom_text:
+        errors.append(f"pom.xml missing required rocketmq-proto.version {PROTO_VERSION}")
 
 
 def check_git_state(root, errors, check_remote, command_runner=run_command):
@@ -340,6 +347,7 @@ def run_checks(
     m2_repository = Path(m2_repository).expanduser().resolve()
     errors = []
     check_required_files(root, errors)
+    check_maven_proto_version(root, errors)
     if check_git:
         check_git_state(root, errors, check_remote, command_runner=command_runner)
     if check_apis_remote:
