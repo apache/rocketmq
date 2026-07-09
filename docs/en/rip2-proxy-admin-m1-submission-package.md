@@ -218,6 +218,11 @@ Acceptance audit:
 - `docs/en/rip2-proxy-admin-m1-acceptance-audit.md`
 - `docs/cn/rip2-proxy-admin-m1-acceptance-audit.md`
 
+Reviewer reproduction runbook:
+
+- `docs/en/rip2-proxy-admin-m1-review-runbook.md`
+- `docs/cn/rip2-proxy-admin-m1-review-runbook.md`
+
 Latest package-level JaCoCo coverage from the broad verification:
 
 | Package | Instruction | Branch | Line |

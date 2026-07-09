@@ -12,6 +12,7 @@
 | RIP-2 tracking issue comment | https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687 |
 | 实现分支 | `pilichoumao/rocketmq:rip2-proxy-admin-m1` |
 | API 分支 | `pilichoumao/rocketmq-apis:rip2-proxy-admin-public-api` |
+| 评审复现手册 | `docs/cn/rip2-proxy-admin-m1-review-runbook.md` |
 
 ## M1 初始版本验收
 

@@ -211,6 +211,11 @@ benchmark 生成能力。
 - `docs/en/rip2-proxy-admin-m1-acceptance-audit.md`
 - `docs/cn/rip2-proxy-admin-m1-acceptance-audit.md`
 
+评审复现手册：
+
+- `docs/en/rip2-proxy-admin-m1-review-runbook.md`
+- `docs/cn/rip2-proxy-admin-m1-review-runbook.md`
+
 Broad verification 的最新包级 JaCoCo 覆盖率：
 
 | Package | Instruction | Branch | Line |

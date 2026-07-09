@@ -14,6 +14,7 @@ environment.
 | RIP-2 tracking issue comment | https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687 |
 | Implementation branch | `pilichoumao/rocketmq:rip2-proxy-admin-m1` |
 | API branch | `pilichoumao/rocketmq-apis:rip2-proxy-admin-public-api` |
+| Reviewer reproduction runbook | `docs/en/rip2-proxy-admin-m1-review-runbook.md` |
 
 ## M1 Initial Release Acceptance
 
