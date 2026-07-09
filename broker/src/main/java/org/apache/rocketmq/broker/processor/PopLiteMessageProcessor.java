@@ -113,6 +113,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
             request.decodeCommandCustomHeader(PopLiteMessageRequestHeader.class, true);
         final PopLiteMessageResponseHeader responseHeader = (PopLiteMessageResponseHeader) response.readCustomHeader();
 
+        // validation
         RemotingCommand preCheckResponse = preCheck(ctx, requestHeader, response);
         if (preCheckResponse != null) {
             return preCheckResponse;
@@ -160,6 +161,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         responseHeader.setOrderCountInfo(rst.getObject1().toString());
         // Since a single read operation potentially retrieving messages from multiple LMQs,
         // we no longer utilize startOffset and msgOffset
+        // write response to socket channel
         NettyRemotingAbstract.writeResponse(channel, request, response, null, brokerController.getBrokerMetricsManager().getRemotingMetricsManager());
         return null;
     }
@@ -260,6 +262,20 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         return byteBuffer.array();
     }
 
+    /**
+     * Pop up to {@code maxNum} messages across all LMQ topics the given
+     * client is subscribed to, returning both the merged
+     * {@link GetMessageResult} and a concatenated per-offset order-count
+     * string.
+     *
+     * <p>Each LMQ subscribed by the client is visited in turn via
+     * {@link LiteEventDispatcher#getEventIterator}; the same client may
+     * appear in multiple LMQs. A {@link HashSet} deduplicates visits
+     * within a single call. In exclusive mode, an
+     * {@link ExclusiveEvictionTombstones} check rejects pulls on LMQs
+     * from which this client was previously evicted, so it does not
+     * re-consume messages already handled by the new owner.
+     */
     public Pair<StringBuilder, GetMessageResult> popByClientId(String clientHost, String parentTopic, String group,
         String clientId, long popTime, long invisibleTime, int maxNum, String attemptId) {
         GetMessageResult getMessageResult = new GetMessageResult();
