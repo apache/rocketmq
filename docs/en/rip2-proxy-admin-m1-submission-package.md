@@ -6,10 +6,10 @@ This package summarizes the `rip2-proxy-admin-m1` branch for the RIP-2 Proxy
 Admin online client query contest task. It is meant to be copied into the final
 PR, issue comment, or contest submission.
 
-Latest verified code checkpoint before this submission-docs update:
+Latest committed implementation checkpoint before this final submission update:
 
 ```text
-43bf299d01370e08a74ff067a5d5f2359b995ded Cover RIP-2 public proxy admin RPCs
+63501b87df992c452ec527f8e74f7e3ce33c5cb5 Exclude generated test sources from checkstyle
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -20,8 +20,9 @@ exploration, docs, and 1M synthetic client benchmark evidence.
 
 This branch now contains the generated public `ProxyAdminService` endpoint
 wiring. The authoritative protobuf source is the linked `rocketmq-apis`
-`rip2-proxy-admin-public-api` branch. For contest verification, the generated
-Java artifact is installed locally as
+`rip2-proxy-admin-public-api` branch at
+`c372905ce927cf8957333e7ac07877f295fd7ec9`. For contest verification, the
+generated Java artifact is installed locally as
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT`.
 
 ## Requirement Matrix
@@ -146,26 +147,65 @@ topic names, and proxy ids.
 
 ## Verification Snapshot
 
-Latest broad proxy verification before the generated public endpoint checkpoint:
+All final verification commands below were run on July 9, 2026
+Asia/Shanghai with JDK 17 after the generated public endpoint and package-smoke
+build fix were present in the working tree.
+
+Focused generated public API verification:
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+mvn -pl proxy -am \
+-Dtest=GrpcProxyAdminApplicationTest,ProxyStartupTest,GrpcProxyAdminWiringTest \
+-DfailIfNoTests=false test -DskipITs
+```
+
+Result:
+
+```text
+Tests run: 36, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+Finished at: 2026-07-09T23:23:31+08:00
+```
+
+Broad proxy admin verification:
+
+```bash
+JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
 mvn -pl proxy -am \
 "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result on 2026-07-08 Asia/Shanghai:
+Result:
 
 ```text
-Tests run: 700, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 707, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
+Finished at: 2026-07-09T23:21:13+08:00
 ```
 
-Final generated public endpoint verification is recorded in the final Task 8
-submission update after the focused, broad, and package commands are run.
+Package smoke:
 
-Package-level JaCoCo coverage from that run:
+```bash
+JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+mvn -pl proxy -am -DskipTests package -DskipITs
+```
+
+Result:
+
+```text
+BUILD SUCCESS
+Finished at: 2026-07-09T23:19:45+08:00
+```
+
+The package smoke originally exposed stale JMH annotation-generated test sources
+under `target/generated-test-sources/test-annotations` being included in the
+second `source:jar` checkstyle pass. The final `pom.xml` fixes this by keeping
+Checkstyle on hand-written test sources while preserving test compilation and
+benchmark generation.
+
+Latest package-level JaCoCo coverage from the broad verification:
 
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
@@ -230,7 +270,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 700, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 707, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 

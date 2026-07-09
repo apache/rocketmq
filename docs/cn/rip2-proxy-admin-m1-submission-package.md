@@ -4,10 +4,10 @@
 
 本文汇总 `rip2-proxy-admin-m1` 分支，可用于最终 PR、issue comment 或比赛提交。
 
-本提交包更新前最新已验证代码 checkpoint：
+本次最终提交包更新前的最新已提交实现 checkpoint：
 
 ```text
-43bf299d01370e08a74ff067a5d5f2359b995ded Cover RIP-2 public proxy admin RPCs
+63501b87df992c452ec527f8e74f7e3ce33c5cb5 Exclude generated test sources from checkstyle
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -16,8 +16,9 @@
 可观测性、内部跨 proxy 探索、文档和 1M synthetic client benchmark。
 
 本分支已包含生成版公开 `ProxyAdminService` endpoint 接线。权威 protobuf
-来源是配套的 `rocketmq-apis` `rip2-proxy-admin-public-api` 分支。为了完成
-参赛验证，生成版 Java artifact 以
+来源是配套的 `rocketmq-apis` `rip2-proxy-admin-public-api` 分支，commit 为
+`c372905ce927cf8957333e7ac07877f295fd7ec9`。为了完成参赛验证，
+生成版 Java artifact 以
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` 安装到本机 Maven。
 
 ## 要求对照
@@ -140,26 +141,63 @@ Admin labels、trace 和日志属性：
 
 ## 验证快照
 
-生成版 public endpoint checkpoint 前的最新 broad proxy verification：
+以下最终验证命令均在 2026-07-09 Asia/Shanghai 使用 JDK 17 运行，运行时
+工作区已包含生成版 public endpoint 和 package smoke 构建修复。
+
+Focused generated public API verification：
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+mvn -pl proxy -am \
+-Dtest=GrpcProxyAdminApplicationTest,ProxyStartupTest,GrpcProxyAdminWiringTest \
+-DfailIfNoTests=false test -DskipITs
+```
+
+结果：
+
+```text
+Tests run: 36, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+Finished at: 2026-07-09T23:23:31+08:00
+```
+
+Broad proxy admin verification：
+
+```bash
+JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
 mvn -pl proxy -am \
 "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-2026-07-08 Asia/Shanghai 运行结果：
+结果：
 
 ```text
-Tests run: 700, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 707, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
+Finished at: 2026-07-09T23:21:13+08:00
 ```
 
-最终生成版 public endpoint 验证会在 Task 8 focused、broad 和 package 命令运行后
-回填到最终提交更新中。
+Package smoke：
 
-该次运行的包级 JaCoCo 覆盖率：
+```bash
+JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+mvn -pl proxy -am -DskipTests package -DskipITs
+```
+
+结果：
+
+```text
+BUILD SUCCESS
+Finished at: 2026-07-09T23:19:45+08:00
+```
+
+Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
+下的 JMH annotation-generated test sources 被第二次 `source:jar` checkstyle
+扫描的问题。最终 `pom.xml` 将 Checkstyle 限定在手写测试源，同时保留测试编译和
+benchmark 生成能力。
+
+Broad verification 的最新包级 JaCoCo 覆盖率：
 
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
@@ -223,7 +261,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 700, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 707, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 

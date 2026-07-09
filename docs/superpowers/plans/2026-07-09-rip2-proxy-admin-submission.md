@@ -1478,7 +1478,7 @@ Expected:
 **Files:**
 - Read only except documentation timestamp updates from Task 7
 
-- [ ] **Step 1: Run focused public API tests**
+- [x] **Step 1: Run focused public API tests**
 
 Run:
 
@@ -1494,7 +1494,7 @@ Failures: 0, Errors: 0
 BUILD SUCCESS
 ```
 
-- [ ] **Step 2: Run broad proxy verification**
+- [x] **Step 2: Run broad proxy verification**
 
 Run:
 
@@ -1512,7 +1512,7 @@ BUILD SUCCESS
 
 Record the exact Surefire summary in both submission package docs.
 
-- [ ] **Step 3: Run compile/package smoke**
+- [x] **Step 3: Run compile/package smoke**
 
 Run:
 
@@ -1527,7 +1527,7 @@ Expected:
 BUILD SUCCESS
 ```
 
-- [ ] **Step 4: Run static whitespace checks**
+- [x] **Step 4: Run static whitespace checks**
 
 Run:
 
@@ -1539,7 +1539,7 @@ git diff --check
 
 Expected: no output.
 
-- [ ] **Step 5: Confirm final worktree and commit graph**
+- [x] **Step 5: Confirm final worktree and commit graph**
 
 Run:
 
@@ -1569,7 +1569,7 @@ If public push is not allowed, stop and report the local branch and commit hash 
 - Modify if verification numbers changed: `docs/en/rip2-proxy-admin-m1-submission-package.md`
 - Modify if verification numbers changed: `docs/cn/rip2-proxy-admin-m1-submission-package.md`
 
-- [ ] **Step 1: Prepare the submission summary**
+- [x] **Step 1: Prepare the submission summary**
 
 Generate the Taiyi submission or PR description with this command:
 
@@ -1622,7 +1622,7 @@ cat target/rip2-proxy-admin-submission.md
 
 Expected: `target/rip2-proxy-admin-submission.md` contains concrete commit hashes, not shell variables.
 
-- [ ] **Step 2: Final acceptance checklist**
+- [x] **Step 2: Final acceptance checklist**
 
 Confirm every line is true before declaring the project submit-ready:
 
@@ -1638,7 +1638,7 @@ Confirm every line is true before declaring the project submit-ready:
 [ ] Worktree is clean or only contains intentionally uncommitted submission notes.
 ```
 
-- [ ] **Step 3: Commit any final doc-only hash updates**
+- [x] **Step 3: Commit any final doc-only hash updates**
 
 Run:
 
