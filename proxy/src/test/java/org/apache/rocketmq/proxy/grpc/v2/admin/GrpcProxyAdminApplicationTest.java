@@ -486,6 +486,63 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void listClientsHonorsExactClientIdAndCapsPageSizeThroughGeneratedGrpcService() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            for (int i = 0; i < 101; i++) {
+                readService(activity).upsertClient(client(String.format("cap-client-%03d", i),
+                    ClientType.PRODUCER, "group-a", "topic-a", "JAVA", 100L + i));
+            }
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse cappedPage = stub.listClients(ListClientsRequest.newBuilder()
+                .setPageNum(1)
+                .setPageSize(101)
+                .build());
+
+            assertThat(cappedPage.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(cappedPage.getClientsList()).hasSize(100);
+            assertThat(cappedPage.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .startsWith("cap-client-000")
+                .endsWith("cap-client-099");
+            assertThat(cappedPage.getHasMore()).isTrue();
+
+            ListClientsResponse exactClient = stub.listClients(ListClientsRequest.newBuilder()
+                .setClientId("cap-client-100")
+                .setPageNum(1)
+                .setPageSize(101)
+                .build());
+
+            assertThat(exactClient.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(exactClient.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("cap-client-100");
+            assertThat(exactClient.getHasMore()).isFalse();
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void listClientsByGroupAndTopicHonorContestFiltersAndPaginationThroughGeneratedGrpcService()
         throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
