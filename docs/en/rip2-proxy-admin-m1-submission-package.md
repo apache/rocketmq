@@ -164,7 +164,7 @@ pagination for `ListClientsByGroup` / `ListClientsByTopic`, exact client id
 filtering, and public `pageSize` capping. Broad proxy admin verification was
 also refreshed on July 10, 2026 Asia/Shanghai after generated public gRPC
 authorization coverage for all four RPCs landed. Package smoke was refreshed
-earlier on the same day.
+on the same HEAD.
 
 Focused generated public API verification:
 
@@ -211,7 +211,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T00:51:32+08:00
+Finished at: 2026-07-10T02:05:10+08:00
 ```
 
 The package smoke originally exposed stale JMH annotation-generated test sources

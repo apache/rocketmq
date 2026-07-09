@@ -157,7 +157,7 @@ Dashboard-facing client view 字段、contest filters、scope gates、bad reques
 `ListClientsByTopic` grouped filter pagination、exact client id 过滤和 public
 `pageSize` capped pagination generated gRPC 覆盖后刷新；broad proxy admin 验证
 也已在四个 RPC 的 generated public gRPC authorization 覆盖落地后于 2026-07-10
-Asia/Shanghai 重新刷新。Package smoke 已在同日稍早刷新。
+Asia/Shanghai 重新刷新。Package smoke 已在同一 HEAD 上刷新。
 
 Focused generated public API verification：
 
@@ -204,7 +204,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T00:51:32+08:00
+Finished at: 2026-07-10T02:05:10+08:00
 ```
 
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`

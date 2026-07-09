@@ -16,6 +16,13 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 BUILD SUCCESS
 ```
 
+提交分支上最新记录的 package smoke：
+
+```text
+BUILD SUCCESS
+Finished at: 2026-07-10T02:05:10+08:00
+```
+
 ## 启动公开 admin gRPC server
 
 使用常规 local 或 cluster Proxy 配置，并设置：
