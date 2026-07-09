@@ -11,7 +11,7 @@ comment because this file may itself change when evidence is refreshed. The
 latest synchronized RocketMQ implementation-code checkpoint is:
 
 ```text
-4b4a113b17b03964a1f894ab0297f6e26d7ba38a Cover public grpc scope gate
+1be774ae6eccae66936a205fcb5b34c5ad99dd0f Reject negative proxy admin query page size
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -177,8 +177,10 @@ filtering while capping public `pageSize` values above 100. It was refreshed
 again after adding generated gRPC evidence that explicit `LOCAL_PROXY` ignores
 reserved `proxy_id` for all four RPCs. It was refreshed again after adding
 generated gRPC and converter evidence that negative public `pageSize` values are
-rejected as `BAD_REQUEST` for all list-style RPCs. Package smoke was refreshed
-on the same HEAD.
+rejected as `BAD_REQUEST` for all list-style RPCs. It was refreshed again after
+aligning the core `ProxyClientQuery` page-size guard with the public adapter so
+direct internal query construction rejects negative values too. Package smoke
+was refreshed on the same HEAD.
 
 Focused generated public API verification:
 
@@ -194,7 +196,7 @@ Result:
 ```text
 Tests run: 51, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:34:11+08:00
+Finished at: 2026-07-10T03:48:53+08:00
 ```
 
 Broad proxy admin verification:
@@ -209,9 +211,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 723, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 724, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:35:27+08:00
+Finished at: 2026-07-10T03:50:11+08:00
 ```
 
 Package smoke:
@@ -225,7 +227,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T03:36:38+08:00
+Finished at: 2026-07-10T03:51:26+08:00
 ```
 
 The package smoke originally exposed stale JMH annotation-generated test sources
@@ -311,7 +313,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 723, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 724, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 

@@ -9,7 +9,7 @@
 checkpoint：
 
 ```text
-4b4a113b17b03964a1f894ab0297f6e26d7ba38a Cover public grpc scope gate
+1be774ae6eccae66936a205fcb5b34c5ad99dd0f Reject negative proxy admin query page size
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -169,7 +169,9 @@ generated gRPC 证据后刷新；随后又在新增 `ListClientsByGroup` 和
 explicit `LOCAL_PROXY` 下四个 RPC 均忽略 reserved `proxy_id` 字段的
 generated gRPC 证据后刷新；随后又在新增负数 public `pageSize` 对所有
 list-style RPC 均返回 `BAD_REQUEST` 的 generated gRPC 和 converter 证据后刷新
-broad proxy admin 验证。Package smoke 已在同一 HEAD 上刷新。
+broad proxy admin 验证；随后又在将核心 `ProxyClientQuery` page-size guard
+与 public adapter 对齐、让直接内部 query 构造也拒绝负数后刷新。Package smoke
+已在同一 HEAD 上刷新。
 
 Focused generated public API verification：
 
@@ -185,7 +187,7 @@ mvn -pl proxy -am \
 ```text
 Tests run: 51, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:34:11+08:00
+Finished at: 2026-07-10T03:48:53+08:00
 ```
 
 Broad proxy admin verification：
@@ -200,9 +202,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 723, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 724, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:35:27+08:00
+Finished at: 2026-07-10T03:50:11+08:00
 ```
 
 Package smoke：
@@ -216,7 +218,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T03:36:38+08:00
+Finished at: 2026-07-10T03:51:26+08:00
 ```
 
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
@@ -300,7 +302,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 723, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 724, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
