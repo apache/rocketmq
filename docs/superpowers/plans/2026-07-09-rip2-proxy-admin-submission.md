@@ -1678,6 +1678,9 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
 - [x] Public API draft PR opened: https://github.com/apache/rocketmq-apis/pull/112
 - [x] RocketMQ implementation draft PR opened: https://github.com/apache/rocketmq/pull/10603
 - [x] RIP-2 tracking issue summary posted: https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687
+- [x] Generated public gRPC endpoint 1M benchmark added and documented:
+  `GrpcProxyAdminApplicationBenchmark` reports worst public endpoint P99 at
+  3.576 ms on 1,000,000 synthetic clients.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

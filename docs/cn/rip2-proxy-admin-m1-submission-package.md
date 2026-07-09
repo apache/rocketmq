@@ -44,7 +44,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
 | E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、bad-request contract mapping、not found 语义和 Dashboard-facing client view 字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
-| 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
+| 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model 和 generated public gRPC endpoint P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、public API discussion、benchmark report、smoke guide、review runbook、acceptance audit 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`docs/cn/rip2-proxy-admin-public-api-discussion.md`。 |
 
 ## API 摘要
@@ -172,7 +172,8 @@ list-style RPC 均返回 `BAD_REQUEST` 的 generated gRPC 和 converter 证据�
 broad proxy admin 验证；随后又在将核心 `ProxyClientQuery` page-size guard
 与 public adapter 对齐、让直接内部 query 构造也拒绝负数后刷新；随后又在新增
 `PROXY_SCOPE_PROXY_ID` 即使省略 `proxy_id` 也先按 M1 scope gate 拒绝的
-generated gRPC 证据后刷新。Package smoke 已在同一 HEAD 上刷新。
+generated gRPC 证据后刷新；随后又在新增 generated public gRPC endpoint
+benchmark setup 测试后刷新。Package smoke 已在同一 HEAD 上刷新。
 
 Focused generated public API verification：
 
@@ -203,9 +204,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 726, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 728, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T04:49:56+08:00
+Finished at: 2026-07-10T05:14:32+08:00
 ```
 
 Package smoke：
@@ -251,6 +252,8 @@ stack traces。只有在 Surefire 零 failure/error 且 Maven 成功退出时，
 Benchmark 证据：
 
 - local read-model 最慢 P99：`listByTopicPage`，0.681 ms。
+- generated public gRPC endpoint 最慢 P99：
+  `listClientsByClientIdPrefix`，3.576 ms。
 - coordinator 实验最慢 P99：`listAllProxiesNextPage`，9.011 ms。
 - 完整报告：`docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。
 
@@ -284,7 +287,8 @@ Implemented:
 - dedicated admin query executor and independent admin gRPC server registration.
 - low-cardinality metrics, trace attributes, and sanitized failure logs.
 - internal cross-proxy coordinator and peer transport experiments behind config.
-- English/Chinese docs and 1M synthetic client benchmark report.
+- English/Chinese docs and 1M synthetic client benchmark report covering the
+  local read model and generated public gRPC endpoint.
 
 The authoritative public proto is published in
 `pilichoumao/rocketmq-apis:rip2-proxy-admin-public-api`. For contest
@@ -303,13 +307,14 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 726, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 728, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
 1M synthetic client JMH on Apple M4, 16 GB, Temurin JDK 17.0.18:
 
 - local read-model worst P99: 0.681 ms.
+- generated public gRPC endpoint worst P99: 3.576 ms.
 - internal coordinator experiment worst P99: 9.011 ms.
 
 See `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
@@ -333,7 +338,7 @@ The branch is ready for community review of the proxy-side foundation:
 - dedicated admin query executor and admin server registration.
 - metrics/tracing/logging coverage.
 - generated public gRPC Server/Channel tests, in-process endpoint/peer tests,
-  and 1M synthetic benchmark report.
+  and 1M synthetic benchmark report covering the read model and public endpoint.
 - English and Chinese user docs.
 
 The public API source is published at

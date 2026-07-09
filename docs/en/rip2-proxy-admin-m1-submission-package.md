@@ -47,7 +47,7 @@ branch currently compiles against the local
 | Independent admin execution | Implemented admin query executor and dedicated admin gRPC server registration. | `ProxyClientAdminEndpointExecutor`, `ProxyStartup`, `GrpcProxyAdminWiringTest`, `ProxyStartupTest`. |
 | Observability | Implemented metrics, trace attributes, and structured failure logs with low-cardinality labels. | `ProxyMetricsManagerTest`, `MeteredClientAdminServiceTest`, `MeteredAuthorizingClientAdminServiceTest`, `ProxyClientAdminObservabilityTest`. |
 | E2E / integration coverage | Generated public gRPC Server/Channel tests cover all four RPCs, official filters, public pagination/hasMore, omitted public pagination defaults, non-local scope rejection across every public RPC, `PROXY_SCOPE_PROXY_ID` rejection before proxy-id validation, bad-request contract mapping, not found semantics, and Dashboard-facing client view fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`. |
-| 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. All local read-model P99 values are below 1 second. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
+| 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. All local read-model and generated public gRPC endpoint P99 values are below 1 second. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
 | English and Chinese docs | Completed for user guide, public API discussion, benchmark report, smoke guide, review runbook, acceptance audit, and submission package. | `docs/en/rip2-proxy-admin-m1-user-guide.md`, `docs/cn/rip2-proxy-admin-m1-user-guide.md`, `docs/en/rip2-proxy-admin-public-api-discussion.md`, `docs/cn/rip2-proxy-admin-public-api-discussion.md`. |
 
 ## API Summary
@@ -182,7 +182,9 @@ aligning the core `ProxyClientQuery` page-size guard with the public adapter so
 direct internal query construction rejects negative values too. It was
 refreshed again after adding generated gRPC evidence that
 `PROXY_SCOPE_PROXY_ID` is gated as an M1 scope error before proxy-id validation
-even when `proxy_id` is omitted. Package smoke was refreshed on the same HEAD.
+even when `proxy_id` is omitted. Broad proxy admin verification was refreshed
+again after adding the generated public gRPC endpoint benchmark setup test.
+Package smoke was refreshed on the same HEAD.
 
 Focused generated public API verification:
 
@@ -213,9 +215,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 726, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 728, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T04:49:56+08:00
+Finished at: 2026-07-10T05:14:32+08:00
 ```
 
 Package smoke:
@@ -263,6 +265,8 @@ successfully.
 Benchmark evidence:
 
 - Local read-model worst P99: `listByTopicPage` at 0.681 ms.
+- Generated public gRPC endpoint worst P99:
+  `listClientsByClientIdPrefix` at 3.576 ms.
 - Coordinator experiment worst P99: `listAllProxiesNextPage` at 9.011 ms.
 - Full report: `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
 
@@ -296,7 +300,8 @@ Implemented:
 - dedicated admin query executor and independent admin gRPC server registration.
 - low-cardinality metrics, trace attributes, and sanitized failure logs.
 - internal cross-proxy coordinator and peer transport experiments behind config.
-- English/Chinese docs and 1M synthetic client benchmark report.
+- English/Chinese docs and 1M synthetic client benchmark report covering the
+  local read model and generated public gRPC endpoint.
 
 The authoritative public proto is published in
 `pilichoumao/rocketmq-apis:rip2-proxy-admin-public-api`. For contest
@@ -315,13 +320,14 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 726, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 728, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
 1M synthetic client JMH on Apple M4, 16 GB, Temurin JDK 17.0.18:
 
 - local read-model worst P99: 0.681 ms.
+- generated public gRPC endpoint worst P99: 3.576 ms.
 - internal coordinator experiment worst P99: 9.011 ms.
 
 See `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
@@ -345,7 +351,7 @@ The branch is ready for community review of the proxy-side foundation:
 - dedicated admin query executor and admin server registration.
 - metrics/tracing/logging coverage.
 - generated public gRPC Server/Channel tests, in-process endpoint/peer tests,
-  and 1M synthetic benchmark report.
+  and 1M synthetic benchmark report covering the read model and public endpoint.
 - English and Chinese user docs.
 
 The public API source is published at

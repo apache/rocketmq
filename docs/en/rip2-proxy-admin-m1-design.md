@@ -142,7 +142,7 @@ current contest-submission state and the remaining community gates:
 | OpenTelemetry metrics, traces, and logs | Admin service metrics now include operation, result, scope, status, page size, filter presence, result size, and duration. The proto-free endpoint also writes matching trace attributes and structured failure logs without sensitive identifiers. | Keep the generated public endpoint on the same low-cardinality labels and attributes. |
 | Unit tests and E2E tests | Unit, internal peer, and generated public gRPC Server/Channel tests exist. | Add more cases only if community review changes the public contract. |
 | English and Chinese documentation | English and Chinese user, smoke, benchmark, and submission docs are present. | Keep PR/issue links current as review progresses. |
-| 1M client query benchmark | Read-model and coordinator JMH benchmarks cover unfiltered, group, topic, proxy-id, prefix, language, connect-time range, and `pageSize=100` scenarios. | Re-run only if implementation changes affect hot query paths. |
+| 1M client query benchmark | Read-model, generated public gRPC endpoint, and coordinator JMH benchmarks cover unfiltered, group, topic, proxy-id, prefix, language, connect-time range, and `pageSize=100` scenarios. | Re-run only if implementation changes affect hot query paths or the public adapter. |
 
 ## Final Acceptance Matrix
 
@@ -1369,6 +1369,19 @@ read models behind a real `ProxyClientAdminCoordinatorService` and
 - targeted `PROXY_ID` listing.
 - all-proxies client lookup.
 
+The generated public endpoint includes
+`GrpcProxyAdminApplicationBenchmark`. It starts a real generated
+`ProxyAdminServiceGrpc` server and blocking client channel on local loopback,
+then measures the public adapter path for:
+
+- `DescribeClient`.
+- `ListClients`.
+- `ListClients` with client-id-prefix filter.
+- `ListClients` with client-language filter.
+- `ListClients` with connect-time-range filter.
+- `ListClientsByGroup`.
+- `ListClientsByTopic`.
+
 The default benchmark parameters model 1,000,000 clients, 1,000 groups, 10,000
 topics, 100 proxy ids, and a coordinator page size of 100. The benchmark
 annotations run one fork, three one-second warmup iterations, five five-second
@@ -1380,7 +1393,7 @@ data assumptions:
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  -Dtest=ProxyClientReadServiceBenchmarkTest,ProxyClientAdminCoordinatorServiceBenchmarkTest \
+  -Dtest=ProxyClientReadServiceBenchmarkTest,ProxyClientAdminCoordinatorServiceBenchmarkTest,GrpcProxyAdminApplicationBenchmarkTest \
   -DfailIfNoTests=false test -DskipITs
 ```
 
@@ -1412,6 +1425,17 @@ Use the same launcher shape for the coordinator benchmark:
   -wi 0 -i 1 -r 100ms -w 100ms -f 1 -t 1
 ```
 
+Use the same launcher shape for the generated public endpoint benchmark:
+
+```bash
+"$JAVA_HOME/bin/java" \
+  -cp "proxy/target/test-classes:proxy/target/classes:$(cat /tmp/rocketmq-proxy-test-classpath.txt)" \
+  org.openjdk.jmh.Main \
+  org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplicationBenchmark \
+  -p clientCount=1000 -p groupCount=10 -p topicCount=20 -p proxyCount=5 \
+  -wi 1 -i 1 -r 1 -w 1 -f 1 -t 1
+```
+
 The clean compile step is intentional. On 2026-07-06, an incremental
 `test-compile` left stale JMH-generated classes under `proxy/target`, and JMH
 forks reported unresolved benchmark methods even though the real benchmark
@@ -1437,6 +1461,12 @@ The 2026-07-10 local 1M-client run at commit `bc83087f5f40` is recorded in
 `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. In that run, every local
 read-model query path stayed below the 1 second P99 target; the heaviest path
 was `listByTopicPage` at 0.681 ms P99.
+
+The 2026-07-10 generated public gRPC endpoint 1M-client run is recorded in the
+same report. It used Temurin JDK 17.0.18, four benchmark threads, one warmup
+iteration, three two-second measurement iterations, and `-Xms2g -Xmx6g`. Every
+public endpoint path stayed below the 1 second P99 target; the heaviest path
+was `listClientsByClientIdPrefix` at 3.576 ms P99.
 
 Use the same classpath preparation and omit the `-p`, `-wi`, `-i`, `-r`, `-w`,
 `-f`, and `-t` overrides for the full default 1M-client run:
