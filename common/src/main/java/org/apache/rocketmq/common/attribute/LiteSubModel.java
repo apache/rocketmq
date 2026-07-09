@@ -17,6 +17,19 @@
 
 package org.apache.rocketmq.common.attribute;
 
+/**
+ * Subscription model for Lite Topic groups.
+ *
+ * <ul>
+ *   <li>{@link #Shared} — multiple clients in the same group can each
+ *   independently subscribe to and pull from the same LMQ. A given
+ *   message is delivered to whichever client pops it first.</li>
+ *   <li>{@link #Exclusive} — only one client at a time can pull from a
+ *   given LMQ within the same group. A new subscriber evicts the
+ *   previous holder; an in-flight message is treated as already
+ *   consumed once.</li>
+ * </ul>
+ */
 public enum LiteSubModel {
     Shared,
     Exclusive
