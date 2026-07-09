@@ -557,6 +557,61 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void publicServiceRejectsNegativePageSizeForListStyleRpcs() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            readService(activity).upsertClient(client("client-negative-page-size", ClientType.PRODUCER,
+                "group-negative-page-size", "topic-negative-page-size"));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse listResponse = stub.listClients(ListClientsRequest.newBuilder()
+                .setPageNum(1)
+                .setPageSize(-1)
+                .build());
+            assertThat(listResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(listResponse.getStatus().getMessage()).contains("pageSize");
+
+            apache.rocketmq.v2.ListClientsByGroupResponse groupResponse = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setGroup("group-negative-page-size")
+                    .setPageNum(1)
+                    .setPageSize(-1)
+                    .build());
+            assertThat(groupResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(groupResponse.getStatus().getMessage()).contains("pageSize");
+
+            apache.rocketmq.v2.ListClientsByTopicResponse topicResponse = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setTopic("topic-negative-page-size")
+                    .setPageNum(1)
+                    .setPageSize(-1)
+                    .build());
+            assertThat(topicResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(topicResponse.getStatus().getMessage()).contains("pageSize");
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void publicServiceErrorResponsesDoNotCarryResultBodies() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;

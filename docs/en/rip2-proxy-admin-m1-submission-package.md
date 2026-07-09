@@ -41,7 +41,7 @@ branch currently compiles against the local
 | --- | --- | --- |
 | Public admin service with `ListClients`, `DescribeClient`, `ListClientsByGroup`, and `ListClientsByTopic` | Exposed through generated `ProxyAdminServiceGrpc` and registered on the independent admin gRPC server when `enableProxyAdminGrpcServer=true`. | `GrpcProxyAdminApplication`, `ProxyStartup`, `GrpcProxyAdminApplicationTest`, [rocketmq-apis/admin.proto](https://github.com/pilichoumao/rocketmq-apis/blob/rip2-proxy-admin-public-api/apache/rocketmq/v2/admin.proto). |
 | Online client read model | Implemented with `clientId`, group, topic, client type, language, connect time, and proxy id indexes. | `ProxyClientReadService`, `ProxyClientInfo`, `ProxyClientQuery`, `ProxyClientPage`. |
-| Official filters | Implemented: exact client id, client id prefix, group, topic, client language, connect time range, `pageNum >= 1`, `pageSize <= 100`. | `GrpcProxyAdminApplicationTest`, `ProxyClientQueryTest`, `ProxyClientReadServiceTest`, `ProxyClientAdminRequestConverterTest`. |
+| Official filters | Implemented: exact client id, client id prefix, group, topic, client language, connect time range, `pageNum >= 1`, omitted `pageSize` defaults, negative `pageSize` rejection, and `pageSize <= 100`. | `GrpcProxyAdminApplicationTest`, `ProxyClientQueryTest`, `ProxyClientReadServiceTest`, `ProxyClientAdminRequestConverterTest`. |
 | Lifecycle population | Implemented for telemetry settings, heartbeat, unregister, termination, stream completion, and error cleanup. | `ClientActivityTest`, `DefaultGrpcMessagingActivityTest`. |
 | ACL | Implemented with logical resource `proxy.admin.client`; list RPCs use `LIST`, describe uses `GET`. | `ClientAdminAuthPolicyTest`, `DefaultClientAdminAuthorizationServiceTest`, `AuthorizingClientAdminServiceTest`. |
 | Independent admin execution | Implemented admin query executor and dedicated admin gRPC server registration. | `ProxyClientAdminEndpointExecutor`, `ProxyStartup`, `GrpcProxyAdminWiringTest`, `ProxyStartupTest`. |
@@ -175,8 +175,10 @@ was refreshed again after adding generated gRPC evidence that
 `ListClientsByGroup` and `ListClientsByTopic` honor exact `client_id`
 filtering while capping public `pageSize` values above 100. It was refreshed
 again after adding generated gRPC evidence that explicit `LOCAL_PROXY` ignores
-reserved `proxy_id` for all four RPCs. Package smoke was refreshed on the same
-HEAD.
+reserved `proxy_id` for all four RPCs. It was refreshed again after adding
+generated gRPC and converter evidence that negative public `pageSize` values are
+rejected as `BAD_REQUEST` for all list-style RPCs. Package smoke was refreshed
+on the same HEAD.
 
 Focused generated public API verification:
 
@@ -190,9 +192,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 51, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:19:23+08:00
+Finished at: 2026-07-10T03:34:11+08:00
 ```
 
 Broad proxy admin verification:
@@ -207,9 +209,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 721, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 723, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:20:41+08:00
+Finished at: 2026-07-10T03:35:27+08:00
 ```
 
 Package smoke:
@@ -223,7 +225,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T03:21:48+08:00
+Finished at: 2026-07-10T03:36:38+08:00
 ```
 
 The package smoke originally exposed stale JMH annotation-generated test sources
@@ -309,7 +311,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 721, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 723, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
@@ -334,7 +336,7 @@ The branch is ready for community review of the proxy-side foundation:
 - local online-client read model and lifecycle writes.
 - `ListClients`, `DescribeClient`, `ListClientsByGroup`, and
   `ListClientsByTopic` through generated public gRPC stubs.
-- official filters and `pageSize <= 100`.
+- official filters, negative `pageSize` rejection, and `pageSize <= 100`.
 - independent ACL resource `Admin:proxy.admin.client`.
 - dedicated admin query executor and admin server registration.
 - metrics/tracing/logging coverage.

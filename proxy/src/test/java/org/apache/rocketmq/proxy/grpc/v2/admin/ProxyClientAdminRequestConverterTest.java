@@ -106,6 +106,26 @@ public class ProxyClientAdminRequestConverterTest {
     }
 
     @Test
+    public void toListClientsRequestRejectsNegativePageSizeAtAdapterBoundary() {
+        assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
+            .toListClientsRequest(
+                "client-a",
+                "",
+                "",
+                "",
+                "",
+                null,
+                null,
+                1,
+                -1,
+                "PROXY_SCOPE_LOCAL_PROXY",
+                ""
+            ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pageSize must be greater than or equal to 0");
+    }
+
+    @Test
     public void toListClientsRequestRejectsMissingProxyIdForProxyIdScope() {
         assertThatThrownBy(() -> ProxyClientAdminRequestConverter.getInstance()
             .toListClientsRequest(

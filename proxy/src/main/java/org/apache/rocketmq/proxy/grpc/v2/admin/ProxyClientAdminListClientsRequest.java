@@ -54,7 +54,7 @@ public class ProxyClientAdminListClientsRequest {
         this.validateConnectTimeRange(this.connectTimeStartMillis, this.connectTimeEndMillis);
         this.pageNum = normalizePageNum(builder.pageNum);
         this.clientType = builder.clientType;
-        this.pageSize = ProxyClientQuery.boundPageSize(builder.pageSize);
+        this.pageSize = normalizePageSize(builder.pageSize);
         this.pageToken = builder.pageToken;
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
         this.proxyId = this.scope == ProxyClientScope.PROXY_ID ? requireProxyId(builder.proxyId) : null;
@@ -217,6 +217,13 @@ public class ProxyClientAdminListClientsRequest {
             throw new IllegalArgumentException("pageNum must be greater than or equal to 1");
         }
         return pageNum;
+    }
+
+    private static int normalizePageSize(int pageSize) {
+        if (pageSize < 0) {
+            throw new IllegalArgumentException("pageSize must be greater than or equal to 0");
+        }
+        return ProxyClientQuery.boundPageSize(pageSize);
     }
 
     private ClientType normalizeClientType(ClientType clientType) {

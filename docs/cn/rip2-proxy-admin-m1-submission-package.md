@@ -38,7 +38,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | --- | --- | --- |
 | public admin service，包含 `ListClients`、`DescribeClient`、`ListClientsByGroup`、`ListClientsByTopic` | 已通过生成版 `ProxyAdminServiceGrpc` 暴露；当 `enableProxyAdminGrpcServer=true` 时注册到独立 admin gRPC server。 | `GrpcProxyAdminApplication`、`ProxyStartup`、`GrpcProxyAdminApplicationTest`、[rocketmq-apis/admin.proto](https://github.com/pilichoumao/rocketmq-apis/blob/rip2-proxy-admin-public-api/apache/rocketmq/v2/admin.proto)。 |
 | 在线 client read model | 已实现 `clientId`、group、topic、client type、language、connect time 和 proxy id 索引。 | `ProxyClientReadService`、`ProxyClientInfo`、`ProxyClientQuery`、`ProxyClientPage`。 |
-| 官方过滤字段 | 已支持 exact client id、client id prefix、group、topic、client language、connect time range、`pageNum >= 1`、`pageSize <= 100`。 | `GrpcProxyAdminApplicationTest`、`ProxyClientQueryTest`、`ProxyClientReadServiceTest`、`ProxyClientAdminRequestConverterTest`。 |
+| 官方过滤字段 | 已支持 exact client id、client id prefix、group、topic、client language、connect time range、`pageNum >= 1`、省略 `pageSize` 默认值、负数 `pageSize` 拒绝和 `pageSize <= 100`。 | `GrpcProxyAdminApplicationTest`、`ProxyClientQueryTest`、`ProxyClientReadServiceTest`、`ProxyClientAdminRequestConverterTest`。 |
 | 生命周期写入 | 已覆盖 telemetry settings、heartbeat、unregister、termination、stream completion 和 error cleanup。 | `ClientActivityTest`、`DefaultGrpcMessagingActivityTest`。 |
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
@@ -167,8 +167,9 @@ generated gRPC 证据后刷新；随后又在新增 `ListClientsByGroup` 和
 `ListClientsByTopic` 同时支持精确 `client_id` 过滤并将 public `pageSize`
 大于 100 的请求 capped 到 100 的 generated gRPC 证据后刷新；随后又在新增
 explicit `LOCAL_PROXY` 下四个 RPC 均忽略 reserved `proxy_id` 字段的
-generated gRPC 证据后刷新 broad proxy admin 验证。Package smoke 已在同一
-HEAD 上刷新。
+generated gRPC 证据后刷新；随后又在新增负数 public `pageSize` 对所有
+list-style RPC 均返回 `BAD_REQUEST` 的 generated gRPC 和 converter 证据后刷新
+broad proxy admin 验证。Package smoke 已在同一 HEAD 上刷新。
 
 Focused generated public API verification：
 
@@ -182,9 +183,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 51, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:19:23+08:00
+Finished at: 2026-07-10T03:34:11+08:00
 ```
 
 Broad proxy admin verification：
@@ -199,9 +200,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 721, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 723, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:20:41+08:00
+Finished at: 2026-07-10T03:35:27+08:00
 ```
 
 Package smoke：
@@ -215,7 +216,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T03:21:48+08:00
+Finished at: 2026-07-10T03:36:38+08:00
 ```
 
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
@@ -299,7 +300,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 721, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 723, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
@@ -324,7 +325,7 @@ The branch is ready for community review of the proxy-side foundation:
 - local online-client read model and lifecycle writes.
 - `ListClients`, `DescribeClient`, `ListClientsByGroup`, and
   `ListClientsByTopic` through generated public gRPC stubs.
-- official filters and `pageSize <= 100`.
+- official filters, negative `pageSize` rejection, and `pageSize <= 100`.
 - independent ACL resource `Admin:proxy.admin.client`.
 - dedicated admin query executor and admin server registration.
 - metrics/tracing/logging coverage.
