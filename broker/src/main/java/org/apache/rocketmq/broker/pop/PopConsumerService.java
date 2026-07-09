@@ -535,7 +535,6 @@ public class PopConsumerService extends ServiceThread {
 
         List<PopConsumerRecord> ckRecords = new ArrayList<>(changeRecords.size());
         List<PopConsumerRecord> ackRecords = new ArrayList<>(changeRecords.size());
-        List<PopConsumerRecord> storeAckRecords = new ArrayList<>(changeRecords.size());
 
         for (ChangeInvisibleTimeRequestEntry changeRecord : changeRecords) {
             if (brokerConfig.isPopConsumerKVServiceLog()) {
@@ -546,15 +545,11 @@ public class PopConsumerService extends ServiceThread {
                     changeRecord.getChangedPopTime(), changeRecord.getChangedInvisibleTime());
             }
 
-            PopConsumerRecord ckRecord = new PopConsumerRecord(
-                changeRecord.getChangedPopTime(), changeRecord.getConsumerGroup(), changeRecord.getTopic(),
-                changeRecord.getQueueId(), 0, changeRecord.getChangedInvisibleTime(), changeRecord.getOffset(),
-                null, changeRecord.isSuspend());
-
             PopConsumerRecord ackRecord = new PopConsumerRecord(
                 changeRecord.getPopTime(), changeRecord.getConsumerGroup(), changeRecord.getTopic(),
                 changeRecord.getQueueId(), 0, changeRecord.getOldInvisibleTime(), changeRecord.getOffset(),
                 null, changeRecord.isSuspend());
+            ackRecords.add(ackRecord);
 
             boolean skipWrite = brokerConfig.isPopReviveSkipIfGroupAbsent() &&
                 !brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(changeRecord.getConsumerGroup());
@@ -565,19 +560,18 @@ public class PopConsumerService extends ServiceThread {
                     changeRecord.getConsumerGroup(), changeRecord.getTopic(), changeRecord.getQueueId(),
                     changeRecord.getOffset());
             } else {
+                PopConsumerRecord ckRecord = new PopConsumerRecord(
+                    changeRecord.getChangedPopTime(), changeRecord.getConsumerGroup(), changeRecord.getTopic(),
+                    changeRecord.getQueueId(), 0, changeRecord.getChangedInvisibleTime(), changeRecord.getOffset(),
+                    null, changeRecord.isSuspend());
                 ckRecords.add(ckRecord);
-            }
-
-            ackRecords.add(ackRecord);
-            if (skipWrite || ckRecord.getVisibilityTimeout() != ackRecord.getVisibilityTimeout()) {
-                storeAckRecords.add(ackRecord);
             }
         }
 
         if (brokerConfig.isEnablePopBufferMerge() && popConsumerCache != null) {
             popConsumerCache.writeAndDeleteRecords(ckRecords, ackRecords);
         } else {
-            this.popConsumerStore.writeAndDeleteRecords(ckRecords, storeAckRecords);
+            this.popConsumerStore.writeAndDeleteRecords(ckRecords, ackRecords);
         }
     }
 
