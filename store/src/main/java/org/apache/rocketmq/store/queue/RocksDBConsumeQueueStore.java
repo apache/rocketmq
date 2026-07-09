@@ -643,6 +643,23 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         return this.rocksDBConsumeQueueOffsetTable.getMaxPhyOffset();
     }
 
+    /**
+     * Lazily look up or create the {@link RocksDBConsumeQueue} for
+     * {@code (topic, queueId)}.
+     *
+     * <p>The lookup walks two levels of
+     * {@link ConcurrentHashMap ConcurrentHashMaps}:
+     * {@code consumeQueueTable → topic → queueId → ConsumeQueue}.
+     * Missing entries are created with a small initial capacity — the
+     * inner map is sized to 1 for LMQ topics (only queueId 0 is ever
+     * used) and 8 otherwise. The {@code putIfAbsent} pattern is used
+     * for both insertions so concurrent callers always observe a
+     * single instance per {@code (topic, queueId)}.
+     *
+     * <p>Because the {@code consumeQueueTable} map is initialized
+     * lazily (see {@link #recoverOffsetTable}), this method may also
+     * create entries on first access after a broker restart.
+     */
     @Override
     public ConsumeQueueInterface findOrCreateConsumeQueue(String topic, int queueId) {
         ConcurrentMap<Integer, ConsumeQueueInterface> map = this.consumeQueueTable.get(topic);
