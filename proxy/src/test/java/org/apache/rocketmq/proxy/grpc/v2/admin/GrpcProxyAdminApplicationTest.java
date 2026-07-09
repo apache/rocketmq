@@ -198,6 +198,70 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void publicServiceMapsInvalidContestParametersToBadRequest() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse negativePageNum = stub.listClients(ListClientsRequest.newBuilder()
+                .setPageNum(-1)
+                .setPageSize(100)
+                .build());
+            assertThat(negativePageNum.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(negativePageNum.getStatus().getMessage()).contains("pageNum");
+
+            ListClientsResponse reversedConnectTime = stub.listClients(ListClientsRequest.newBuilder()
+                .setConnectTimeStartMillis(200L)
+                .setConnectTimeEndMillis(100L)
+                .setPageSize(100)
+                .build());
+            assertThat(reversedConnectTime.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(reversedConnectTime.getStatus().getMessage()).contains("connectTimeStartMillis");
+
+            ListClientsResponse unrecognizedScope = stub.listClients(ListClientsRequest.newBuilder()
+                .setScopeValue(99)
+                .setPageSize(100)
+                .build());
+            assertThat(unrecognizedScope.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(unrecognizedScope.getStatus().getMessage()).contains("Unsupported proxy scope");
+
+            apache.rocketmq.v2.ListClientsByGroupResponse missingGroup = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setPageSize(100)
+                    .build());
+            assertThat(missingGroup.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(missingGroup.getStatus().getMessage()).contains("group is required");
+
+            apache.rocketmq.v2.ListClientsByTopicResponse missingTopic = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setPageSize(100)
+                    .build());
+            assertThat(missingTopic.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(missingTopic.getStatus().getMessage()).contains("topic is required");
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void listClientsByGroupAndTopicThroughGeneratedGrpcService() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
