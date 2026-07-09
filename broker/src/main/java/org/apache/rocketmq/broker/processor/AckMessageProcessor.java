@@ -631,6 +631,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
      */
     protected RemotingCommand ackLite(AckMessageRequestHeader requestHeader, BatchAckMessageRequestBody batchAckBody,
         final RemotingCommand response, final Channel channel) {
+        // validation
         if (batchAckBody != null) {
             POP_LOGGER.warn("bad request, batch ack lite, {}", batchAckBody);
             response.setCode(ResponseCode.ILLEGAL_OPERATION);
@@ -676,6 +677,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         if (ackOffset < oldOffset) {
             return response;
         }
+
         String lockKey = KeyBuilder.buildPopLiteLockKey(group, lmqName);
         while (!consumerLockService.tryLock(lockKey)) {
         }
@@ -687,9 +689,11 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             }
             long nextOffset = consumerOrderInfoManager.commitAndNext(lmqName, group, 0, ackOffset, popTime);
             if (nextOffset > -1L) {
+                // admin related feature
                 if (!consumerOffsetManager.hasOffsetReset(lmqName, group, 0)) {
                     consumerOffsetManager.commitOffset("AckLiteHost", group, lmqName, 0, nextOffset);
                 }
+
                 if (!consumerOrderInfoManager.checkBlock(null, lmqName, group, 0, invisibleTime)) {
                     this.brokerController.getLiteEventDispatcher().dispatch(group, lmqName, 0, nextOffset, -1);
                 }
