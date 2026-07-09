@@ -53,7 +53,7 @@ public class ProxyClientQuery {
         validateConnectTimeRange(this.connectTimeStartMillis, this.connectTimeEndMillis);
         this.pageNum = normalizePageNum(builder.pageNum);
         this.clientType = normalizeClientType(builder.clientType);
-        this.pageSize = builder.pageSize;
+        this.pageSize = normalizePageSize(builder.pageSize);
         this.scope = builder.scope == null ? ProxyClientScope.LOCAL_PROXY : builder.scope;
         this.pageToken = normalizePageToken(builder.pageToken, this.scope);
         this.proxyId = normalizeProxyId(builder.proxyId);
@@ -64,10 +64,11 @@ public class ProxyClientQuery {
     }
 
     public static int boundPageSize(int pageSize) {
-        if (pageSize <= 0) {
+        int normalizedPageSize = normalizePageSize(pageSize);
+        if (normalizedPageSize == 0) {
             return DEFAULT_PAGE_SIZE;
         }
-        return Math.min(pageSize, MAX_PAGE_SIZE);
+        return Math.min(normalizedPageSize, MAX_PAGE_SIZE);
     }
 
     public Builder toBuilder() {
@@ -195,6 +196,13 @@ public class ProxyClientQuery {
             throw new IllegalArgumentException("pageNum must be greater than or equal to 1");
         }
         return pageNum;
+    }
+
+    private static int normalizePageSize(int pageSize) {
+        if (pageSize < 0) {
+            throw new IllegalArgumentException("pageSize must be greater than or equal to 0");
+        }
+        return pageSize;
     }
 
     private static ClientType normalizeClientType(ClientType clientType) {

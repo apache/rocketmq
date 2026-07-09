@@ -180,6 +180,15 @@ public class ProxyClientQueryTest {
     }
 
     @Test
+    public void queryRejectsNegativePageSize() {
+        assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
+            .setPageSize(-1)
+            .build())
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("pageSize must be greater than or equal to 0");
+    }
+
+    @Test
     public void queryRejectsInvalidConnectTimeRange() {
         assertThatThrownBy(() -> ProxyClientQuery.newBuilder()
             .setConnectTimeStartMillis(200L)
