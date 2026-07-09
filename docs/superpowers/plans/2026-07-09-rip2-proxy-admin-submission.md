@@ -1732,6 +1732,10 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `dev/rip2_submission_guard.py` now requires the local submission evidence to
   keep the RocketMQ draft PR, rocketmq-apis draft PR, and RIP-2 issue-comment
   links visible for reviewers.
+- [x] Public PR metadata guard added:
+  `dev/rip2_submission_guard.py --check-github` now verifies the RocketMQ and
+  rocketmq-apis review PRs remain open draft PRs from the expected
+  `pilichoumao` branches into the expected Apache base branches.
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
   `BUILD SUCCESS`, finished at `2026-07-10T06:27:48+08:00`.

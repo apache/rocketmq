@@ -23,6 +23,7 @@ use the runbook for those full reproductions.
 """
 
 import argparse
+import json
 import subprocess
 import sys
 import zipfile
@@ -174,6 +175,31 @@ GITHUB_ARTIFACTS = (
     (
         "RIP-2 issue comment",
         ["gh", "api", "repos/apache/rocketmq/issues/comments/4926996687", "--jq", ".body"],
+    ),
+)
+
+GITHUB_PR_METADATA = (
+    (
+        "RocketMQ PR #10603",
+        ["gh", "pr", "view", "10603", "--repo", "apache/rocketmq"],
+        {
+            "state": "OPEN",
+            "isDraft": True,
+            "headRefName": EXPECTED_BRANCH,
+            "baseRefName": "develop",
+            "headRepositoryOwner.login": "pilichoumao",
+        },
+    ),
+    (
+        "rocketmq-apis PR #112",
+        ["gh", "pr", "view", "112", "--repo", "apache/rocketmq-apis"],
+        {
+            "state": "OPEN",
+            "isDraft": True,
+            "headRefName": EXPECTED_APIS_BRANCH,
+            "baseRefName": "main",
+            "headRepositoryOwner.login": "pilichoumao",
+        },
     ),
 )
 
@@ -455,6 +481,37 @@ def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
             errors.append(f"{label} does not include full submission guard command")
         if "RIP-2 submission guard passed." not in body:
             errors.append(f"{label} does not include submission guard evidence")
+    for label, base_args, expected_metadata in GITHUB_PR_METADATA:
+        args = base_args + [
+            "--json",
+            "state,isDraft,headRefName,baseRefName,headRepositoryOwner",
+            "--jq",
+            ".",
+        ]
+        code, body, stderr = command_runner(args, cwd=root)
+        if code != 0:
+            errors.append(f"cannot read {label} metadata: {stderr}")
+            continue
+        try:
+            metadata = json.loads(body)
+        except json.JSONDecodeError as exc:
+            errors.append(f"cannot parse {label} metadata: {exc}")
+            continue
+        for key, expected_value in expected_metadata.items():
+            actual_value = nested_value(metadata, key)
+            if actual_value != expected_value:
+                errors.append(
+                    f"{label} metadata expected {key}={expected_value!r}, got {actual_value!r}"
+                )
+
+
+def nested_value(data, key):
+    value = data
+    for part in key.split("."):
+        if not isinstance(value, dict):
+            return None
+        value = value.get(part)
+    return value
 
 
 def run_checks(

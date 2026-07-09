@@ -222,12 +222,55 @@ https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687
     create_snapshot_jar(m2_repository)
 
 
-def fake_github_runner(expected_head, rocketmq_body, api_body, issue_body, apis_head=None):
+def fake_github_runner(
+    expected_head,
+    rocketmq_body,
+    api_body,
+    issue_body,
+    apis_head=None,
+    rocketmq_metadata=None,
+    api_metadata=None,
+):
+    rocketmq_metadata = rocketmq_metadata or (
+        '{"state":"OPEN","isDraft":true,"headRefName":"rip2-proxy-admin-m1",'
+        '"baseRefName":"develop","headRepositoryOwner":{"login":"pilichoumao"}}'
+    )
+    api_metadata = api_metadata or (
+        '{"state":"OPEN","isDraft":true,"headRefName":"rip2-proxy-admin-public-api",'
+        '"baseRefName":"main","headRepositoryOwner":{"login":"pilichoumao"}}'
+    )
+
     def run(args, cwd):
         if args == ["git", "rev-parse", "HEAD"]:
             if Path(cwd).name == "rocketmq-apis":
                 return 0, apis_head or expected_head, ""
             return 0, expected_head, ""
+        if args == [
+            "gh",
+            "pr",
+            "view",
+            "10603",
+            "--repo",
+            "apache/rocketmq",
+            "--json",
+            "state,isDraft,headRefName,baseRefName,headRepositoryOwner",
+            "--jq",
+            ".",
+        ]:
+            return 0, rocketmq_metadata, ""
+        if args == [
+            "gh",
+            "pr",
+            "view",
+            "112",
+            "--repo",
+            "apache/rocketmq-apis",
+            "--json",
+            "state,isDraft,headRefName,baseRefName,headRepositoryOwner",
+            "--jq",
+            ".",
+        ]:
+            return 0, api_metadata, ""
         if args == [
             "gh",
             "pr",
@@ -753,6 +796,39 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("RIP-2 issue comment" in error and "rocketmq-apis HEAD" in error for error in errors))
+
+    def test_guard_reports_unexpected_github_pr_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            body = github_body(expected_head, apis_head)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                command_runner=fake_github_runner(
+                    expected_head,
+                    body,
+                    body,
+                    body,
+                    apis_head=apis_head,
+                    rocketmq_metadata=(
+                        '{"state":"CLOSED","isDraft":false,"headRefName":"other",'
+                        '"baseRefName":"main","headRepositoryOwner":{"login":"someone-else"}}'
+                    ),
+                ),
+            )
+
+            self.assertTrue(any("RocketMQ PR #10603 metadata" in error for error in errors))
 
     def test_guard_reports_unfinished_plan_checkbox(self):
         with tempfile.TemporaryDirectory() as tmp:
