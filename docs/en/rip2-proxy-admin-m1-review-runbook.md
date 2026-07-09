@@ -134,6 +134,7 @@ BUILD SUCCESS
 sed -n '1,120p' docs/en/rip2-proxy-admin-m1-acceptance-audit.md
 sed -n '1,120p' docs/en/rip2-proxy-admin-m1-submission-package.md
 sed -n '1,120p' docs/en/rip2-proxy-admin-m1-final-smoke.md
+sed -n '1,160p' docs/en/rip2-proxy-admin-m1-dashboard-contract.md
 ```
 
 The acceptance audit distinguishes locally verified items from external gates.
@@ -142,4 +143,5 @@ The remaining gates are:
 - `rocketmq-apis` public proto proposal acceptance.
 - official `rocketmq-proto` artifact publication with `ProxyAdminServiceGrpc`.
 - Dashboard CLIENT-01 joint E2E in an environment that contains the RIP-1
-  dashboard client.
+  dashboard client. The field-level contract is recorded in
+  `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`.

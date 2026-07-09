@@ -92,6 +92,10 @@ in the target cluster during manual smoke. `clients` may be empty when no gRPC
 clients are online. The unit and integration tests seed synthetic clients to
 validate non-empty responses.
 
+For the field-level Dashboard CLIENT-01 handoff contract and a non-empty
+`DescribeClient` example, see
+`docs/en/rip2-proxy-admin-m1-dashboard-contract.md`.
+
 ## M1 Scope Rule
 
 The public M1 endpoint supports omitted scope and

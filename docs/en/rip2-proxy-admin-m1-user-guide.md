@@ -17,6 +17,9 @@ The final contest submission entry point is
 matrix, verification snapshot, PR links, issue comment link, and the explicit
 public protobuf ownership gate.
 
+Dashboard CLIENT-01 field-level integration is documented in
+`docs/en/rip2-proxy-admin-m1-dashboard-contract.md`.
+
 M1 supports `LOCAL_PROXY` semantics. Cross-proxy fan-out and `PROXY_ID` routing
 exist as internal experiments, but the public M1 contract should expose only the
 current proxy's online clients.

@@ -89,6 +89,9 @@ grpcurl -plaintext \
 ID。如果当前没有在线 gRPC 客户端，`clients` 可以为空。单元测试和集成测试会注入
 synthetic clients 来验证非空响应。
 
+字段级 Dashboard CLIENT-01 交接契约和非空 `DescribeClient` 示例见
+`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。
+
 ## M1 scope 规则
 
 公开 M1 端点只支持省略 scope 或 `PROXY_SCOPE_LOCAL_PROXY`。

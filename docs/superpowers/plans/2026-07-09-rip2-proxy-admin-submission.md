@@ -1686,6 +1686,11 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   summary now reference implementation-code checkpoint
   `7b89ba60fca2a18859519f7b2b822f73c2f4ed2c`, broad verification
   `Tests run: 728`, and public endpoint P99 `3.576 ms`.
+- [x] Dashboard CLIENT-01 field-level handoff contract added:
+  `docs/en/rip2-proxy-admin-m1-dashboard-contract.md` and
+  `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md` map `ProxyClient` fields,
+  example `DescribeClient` output, pagination, errors, and M1 scope limits for
+  external RIP-1 Dashboard E2E.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

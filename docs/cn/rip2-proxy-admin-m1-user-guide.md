@@ -14,6 +14,9 @@ read model、授权封装、metrics、无 proto 依赖的 admin adapter、生成
 包含要求对照、验证快照、PR 链接、issue comment 链接，以及明确的 public
 protobuf 归属 gate。
 
+Dashboard CLIENT-01 字段级联调契约见
+`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。
+
 M1 对外语义建议只暴露 `LOCAL_PROXY`，即查询当前 proxy 进程上的在线客户端。
 跨 proxy fan-out 和 `PROXY_ID` 查询目前属于内部探索能力，不建议作为 M1 公共
 接口承诺。

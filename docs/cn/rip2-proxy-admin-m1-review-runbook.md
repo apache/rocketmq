@@ -132,10 +132,12 @@ BUILD SUCCESS
 sed -n '1,120p' docs/cn/rip2-proxy-admin-m1-acceptance-audit.md
 sed -n '1,120p' docs/cn/rip2-proxy-admin-m1-submission-package.md
 sed -n '1,120p' docs/cn/rip2-proxy-admin-m1-final-smoke.md
+sed -n '1,160p' docs/cn/rip2-proxy-admin-m1-dashboard-contract.md
 ```
 
 验收审计会区分本地已验证项和外部门禁。剩余门禁为：
 
 - `rocketmq-apis` public proto proposal 被社区接受。
 - 发布包含 `ProxyAdminServiceGrpc` 的正式 `rocketmq-proto` artifact。
-- 在包含 RIP-1 dashboard client 的环境中完成 Dashboard CLIENT-01 联调。
+- 在包含 RIP-1 dashboard client 的环境中完成 Dashboard CLIENT-01 联调。字段级
+  契约已记录在 `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。
