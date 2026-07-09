@@ -1683,8 +1683,9 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   3.576 ms on 1,000,000 synthetic clients.
 - [x] GitHub review artifacts refreshed after the public endpoint benchmark:
   Apache RocketMQ PR #10603, rocketmq-apis PR #112, and the RIP-2 issue
-  summary now point at implementation head `7b89ba60fca2a18859519f7b2b822f73c2f4ed2c`,
-  broad verification `Tests run: 728`, and public endpoint P99 `3.576 ms`.
+  summary now reference implementation-code checkpoint
+  `7b89ba60fca2a18859519f7b2b822f73c2f4ed2c`, broad verification
+  `Tests run: 728`, and public endpoint P99 `3.576 ms`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

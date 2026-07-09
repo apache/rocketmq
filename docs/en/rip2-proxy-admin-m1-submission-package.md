@@ -16,7 +16,7 @@ latest synchronized RocketMQ implementation-code checkpoint is:
 
 The live draft PRs and RIP-2 issue summary were refreshed after that checkpoint
 to include the generated public gRPC endpoint 1M benchmark, the `728`-test broad
-verification result, and the latest implementation branch head.
+verification result, and the latest implementation-code checkpoint.
 
 The branch implements the proxy-side foundation and generated public endpoint
 for `ProxyAdminService` online-client queries: read model, lifecycle writes,
