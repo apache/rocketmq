@@ -92,6 +92,13 @@ REQUIRED_PROTO_RPC_SIGNATURES = (
     "rpc ListClientsByTopic ( ListClientsByTopicRequest ) returns ( ListClientsByTopicResponse )",
 )
 
+REQUIRED_PROXY_SCOPE_VALUES = (
+    "PROXY_SCOPE_UNSPECIFIED = 0",
+    "PROXY_SCOPE_LOCAL_PROXY = 1",
+    "PROXY_SCOPE_ALL_PROXIES = 2",
+    "PROXY_SCOPE_PROXY_ID = 3",
+)
+
 REQUIRED_JAR_ENTRIES = (
     "apache/rocketmq/v2/ProxyAdminServiceGrpc.class",
     "apache/rocketmq/v2/ProxyScope.class",
@@ -262,6 +269,9 @@ def check_proto(root, apis_root, errors):
     for signature in REQUIRED_PROTO_RPC_SIGNATURES:
         if signature not in normalized_proto:
             errors.append(f"public API draft proto missing signature {signature}")
+    for value in REQUIRED_PROXY_SCOPE_VALUES:
+        if value not in normalized_proto:
+            errors.append(f"public API draft proto missing enum value {value}")
 
 
 def check_generated_artifact(m2_repository, errors):

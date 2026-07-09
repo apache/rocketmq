@@ -36,6 +36,8 @@ service ProxyAdminService {
 enum ProxyScope {
   PROXY_SCOPE_UNSPECIFIED = 0;
   PROXY_SCOPE_LOCAL_PROXY = 1;
+  PROXY_SCOPE_ALL_PROXIES = 2;
+  PROXY_SCOPE_PROXY_ID = 3;
 }
 
 message ListClientsRequest {}
@@ -389,6 +391,27 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("ListClientsByGroupResponse" in error for error in errors))
+
+    def test_guard_reports_proto_missing_proxy_scope_enum_value(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            incomplete_proto = PROTO.replace("  PROXY_SCOPE_ALL_PROXIES = 2;\n", "")
+            write(root / "docs/en/rip2-proxy-admin-m1-public-api-draft.proto", incomplete_proto)
+            write(apis_root / "apache/rocketmq/v2/admin.proto", incomplete_proto)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("PROXY_SCOPE_ALL_PROXIES = 2" in error for error in errors))
 
     def test_guard_reports_unbalanced_required_markdown_fences(self):
         with tempfile.TemporaryDirectory() as tmp:
