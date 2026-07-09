@@ -289,6 +289,10 @@ Lightweight submission guard:
 python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github
 ```
 
+`--check-apis-remote` auto-detects the upstream remote configured for
+`../rocketmq-apis/rip2-proxy-admin-public-api`, so reviewers can use the same
+command whether the companion API remote is named `origin` or `fork`.
+
 Result:
 
 ```text

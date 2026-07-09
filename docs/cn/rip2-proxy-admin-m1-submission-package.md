@@ -277,6 +277,10 @@ Finished at: 2026-07-10T06:27:48+08:00
 python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github
 ```
 
+`--check-apis-remote` 会自动识别
+`../rocketmq-apis/rip2-proxy-admin-public-api` 配置的 upstream remote，因此无论
+配套 API remote 名为 `origin` 还是 `fork`，reviewer 都可以使用同一个命令。
+
 结果：
 
 ```text

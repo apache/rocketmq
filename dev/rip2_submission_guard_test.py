@@ -164,6 +164,28 @@ def fake_apis_git_runner(branch, status, head, remote_head):
     return run
 
 
+def fake_apis_upstream_git_runner(upstream, head, remote_head):
+    def run(args, cwd):
+        if args == ["git", "branch", "--show-current"]:
+            return 0, "rip2-proxy-admin-public-api", ""
+        if args == ["git", "status", "--short", "--untracked-files=all"]:
+            return 0, "", ""
+        if args == ["git", "rev-parse", "HEAD"]:
+            return 0, head, ""
+        if args == ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]:
+            return 0, upstream, ""
+        if args == [
+            "git",
+            "ls-remote",
+            "origin",
+            "refs/heads/rip2-proxy-admin-public-api",
+        ]:
+            return 0, f"{remote_head}\trefs/heads/rip2-proxy-admin-public-api", ""
+        return 1, "", "unexpected command: " + " ".join(args)
+
+    return run
+
+
 class Rip2SubmissionGuardTest(unittest.TestCase):
     def test_guard_passes_when_required_submission_evidence_is_present(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -287,9 +309,34 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
                 check_git=False,
                 check_remote=False,
                 check_apis_remote=True,
+                apis_remote="fork",
                 command_runner=fake_apis_git_runner(
                     "rip2-proxy-admin-public-api",
                     "",
+                    "apis-head",
+                    "apis-head",
+                ),
+            )
+
+            self.assertEqual([], errors)
+
+    def test_guard_auto_detects_apis_upstream_remote(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_apis_remote=True,
+                command_runner=fake_apis_upstream_git_runner(
+                    "origin/rip2-proxy-admin-public-api",
                     "apis-head",
                     "apis-head",
                 ),
@@ -312,6 +359,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
                 check_git=False,
                 check_remote=False,
                 check_apis_remote=True,
+                apis_remote="fork",
                 command_runner=fake_apis_git_runner(
                     "rip2-proxy-admin-public-api",
                     "",

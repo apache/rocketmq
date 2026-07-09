@@ -1720,10 +1720,10 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `dev/rip2_submission_guard_test.py`.
 - [x] GitHub review artifact guard added:
   `python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github`
-  verifies the RocketMQ fork branch, companion rocketmq-apis fork branch,
-  RocketMQ draft PR, rocketmq-apis draft PR, and RIP-2 issue comment all
-  reference the current RocketMQ and rocketmq-apis heads and include
-  submission-guard evidence.
+  verifies the RocketMQ fork branch, companion rocketmq-apis proposal branch
+  through its configured upstream remote, RocketMQ draft PR, rocketmq-apis draft
+  PR, and RIP-2 issue comment all reference the current RocketMQ and
+  rocketmq-apis heads and include submission-guard evidence.
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
   `BUILD SUCCESS`, finished at `2026-07-10T06:27:48+08:00`.

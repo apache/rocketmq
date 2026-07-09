@@ -144,10 +144,12 @@ RIP-2 submission guard passed.
 
 When validating the fork branches themselves, add `--check-remote` to verify
 `origin/rip2-proxy-admin-m1` matches `HEAD`, and add `--check-apis-remote` to
-verify `../rocketmq-apis` branch `rip2-proxy-admin-public-api` matches
-`fork/rip2-proxy-admin-public-api`. Add `--check-github` to also verify the two
-draft PR descriptions and the RIP-2 issue comment reference the same RocketMQ
-and rocketmq-apis heads and include the submission-guard evidence:
+verify `../rocketmq-apis` branch `rip2-proxy-admin-public-api` matches its
+configured upstream remote. The default API remote mode is `auto`, so this works
+for both a reviewer clone whose API remote is `origin` and a local checkout
+whose API remote is `fork`. Add `--check-github` to also verify the two draft PR
+descriptions and the RIP-2 issue comment reference the same RocketMQ and
+rocketmq-apis heads and include the submission-guard evidence:
 
 ```bash
 python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github

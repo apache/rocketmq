@@ -31,7 +31,7 @@ from pathlib import Path
 
 EXPECTED_BRANCH = "rip2-proxy-admin-m1"
 EXPECTED_APIS_BRANCH = "rip2-proxy-admin-public-api"
-DEFAULT_APIS_REMOTE = "fork"
+DEFAULT_APIS_REMOTE = "auto"
 PROTO_VERSION = "2.2.0-rip2-SNAPSHOT"
 FOCUSED_RESULT = "Tests run: 54, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T05:58:49+08:00"
@@ -152,6 +152,32 @@ def check_git_state(root, errors, check_remote, command_runner=run_command):
         errors.append(f"origin/{EXPECTED_BRANCH} is {remote_head}, local HEAD is {head}")
 
 
+def resolve_apis_remote(apis_root, errors, apis_remote, command_runner=run_command):
+    if apis_remote != "auto":
+        return apis_remote
+
+    code, upstream, stderr = command_runner(
+        ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+        cwd=apis_root,
+    )
+    if code != 0:
+        errors.append(
+            "cannot determine rocketmq-apis upstream remote for auto check: "
+            f"{stderr}. Use --apis-remote <remote> to override."
+        )
+        return ""
+    if "/" not in upstream:
+        errors.append(f"rocketmq-apis upstream remote is malformed: {upstream}")
+        return ""
+    remote_name, remote_branch = upstream.split("/", 1)
+    if remote_branch != EXPECTED_APIS_BRANCH:
+        errors.append(
+            f"expected rocketmq-apis upstream branch {EXPECTED_APIS_BRANCH}, got {upstream}"
+        )
+        return ""
+    return remote_name
+
+
 def check_apis_git_state(apis_root, errors, check_remote, apis_remote, command_runner=run_command):
     code, branch, stderr = command_runner(["git", "branch", "--show-current"], cwd=apis_root)
     if code != 0:
@@ -172,16 +198,19 @@ def check_apis_git_state(apis_root, errors, check_remote, apis_remote, command_r
     if code != 0:
         errors.append(f"cannot determine rocketmq-apis HEAD: {stderr}")
         return
+    remote_name = resolve_apis_remote(apis_root, errors, apis_remote, command_runner=command_runner)
+    if not remote_name:
+        return
     code, remote, stderr = command_runner(
-        ["git", "ls-remote", apis_remote, f"refs/heads/{EXPECTED_APIS_BRANCH}"],
+        ["git", "ls-remote", remote_name, f"refs/heads/{EXPECTED_APIS_BRANCH}"],
         cwd=apis_root,
     )
     if code != 0:
-        errors.append(f"cannot query {apis_remote}/{EXPECTED_APIS_BRANCH}: {stderr}")
+        errors.append(f"cannot query {remote_name}/{EXPECTED_APIS_BRANCH}: {stderr}")
         return
     remote_head = remote.split()[0] if remote else ""
     if remote_head != head:
-        errors.append(f"{apis_remote}/{EXPECTED_APIS_BRANCH} is {remote_head}, local HEAD is {head}")
+        errors.append(f"{remote_name}/{EXPECTED_APIS_BRANCH} is {remote_head}, local HEAD is {head}")
 
 
 def check_proto(root, apis_root, errors):
@@ -342,7 +371,10 @@ def parse_args(argv):
     parser.add_argument(
         "--apis-remote",
         default=DEFAULT_APIS_REMOTE,
-        help=f"rocketmq-apis remote name used with --check-apis-remote. Defaults to {DEFAULT_APIS_REMOTE}.",
+        help=(
+            "rocketmq-apis remote name used with --check-apis-remote. Defaults to auto, "
+            "which uses the branch upstream remote."
+        ),
     )
     parser.add_argument("--check-github", action="store_true", help="Check public PR and issue text references HEAD.")
     return parser.parse_args(argv)

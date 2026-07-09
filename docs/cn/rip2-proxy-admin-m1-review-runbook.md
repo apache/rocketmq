@@ -142,10 +142,11 @@ RIP-2 submission guard passed.
 
 如果正在验证 fork 分支本身，可以追加 `--check-remote`，确认
 `origin/rip2-proxy-admin-m1` 与 `HEAD` 一致；追加 `--check-apis-remote`，确认
-`../rocketmq-apis` 的 `rip2-proxy-admin-public-api` 分支与
-`fork/rip2-proxy-admin-public-api` 一致。追加 `--check-github` 还会确认两个 draft
-PR 描述和 RIP-2 issue comment 均引用同一个 RocketMQ HEAD 和 rocketmq-apis
-HEAD，并包含提交门禁证据：
+`../rocketmq-apis` 的 `rip2-proxy-admin-public-api` 分支与它配置的 upstream
+remote 一致。API remote 默认使用 `auto`，因此 reviewer 从 fork clone、remote 名为
+`origin` 的场景，以及本机 checkout 使用 `fork` remote 的场景都能使用同一个命令。
+追加 `--check-github` 还会确认两个 draft PR 描述和 RIP-2 issue comment 均引用同一个
+RocketMQ HEAD 和 rocketmq-apis HEAD，并包含提交门禁证据：
 
 ```bash
 python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github
