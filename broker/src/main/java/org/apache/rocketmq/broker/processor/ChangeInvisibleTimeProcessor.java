@@ -462,6 +462,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
     protected CompletableFuture<RemotingCommand> processChangeInvisibleTimeForLite(
         ChangeInvisibleTimeRequestHeader requestHeader,
         RemotingCommand response, ChangeInvisibleTimeResponseHeader responseHeader) {
+        // validation
         if (StringUtils.isBlank(requestHeader.getLiteTopic())) {
             return null;
         }
