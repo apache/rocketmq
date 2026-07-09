@@ -4,13 +4,9 @@
 
 本文汇总 `rip2-proxy-admin-m1` 分支，可用于最终 PR、issue comment 或比赛提交。
 
-已同步到远端的最新 RocketMQ 分支 HEAD：
-
-```text
-bfd490fe2b658b00704d0901943b1458020e7bf3 Refresh RIP-2 scope gate evidence
-```
-
-已同步到远端的最新 RocketMQ 代码实现 checkpoint：
+当前远端分支 HEAD 由 draft PR 和 RIP-2 issue comment 维护，因为本文档本身
+可能会随着证据刷新继续提交。已同步到远端的最新 RocketMQ 代码实现
+checkpoint：
 
 ```text
 4b4a113b17b03964a1f894ab0297f6e26d7ba38a Cover public grpc scope gate

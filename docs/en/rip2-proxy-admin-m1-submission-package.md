@@ -6,13 +6,9 @@ This package summarizes the `rip2-proxy-admin-m1` branch for the RIP-2 Proxy
 Admin online client query contest task. It is meant to be copied into the final
 PR, issue comment, or contest submission.
 
-Latest synchronized RocketMQ branch head:
-
-```text
-bfd490fe2b658b00704d0901943b1458020e7bf3 Refresh RIP-2 scope gate evidence
-```
-
-Latest synchronized RocketMQ implementation-code checkpoint:
+The current remote branch head is maintained in the draft PRs and RIP-2 issue
+comment because this file may itself change when evidence is refreshed. The
+latest synchronized RocketMQ implementation-code checkpoint is:
 
 ```text
 4b4a113b17b03964a1f894ab0297f6e26d7ba38a Cover public grpc scope gate
