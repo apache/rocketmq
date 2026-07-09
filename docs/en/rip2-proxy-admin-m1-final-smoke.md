@@ -21,7 +21,7 @@ Latest recorded package smoke on the submission branch:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T02:05:10+08:00
+Finished at: 2026-07-10T02:15:29+08:00
 ```
 
 ## Start Proxy With Public Admin Server

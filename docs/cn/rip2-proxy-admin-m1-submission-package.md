@@ -7,7 +7,7 @@
 已同步到远端的最新 RocketMQ 实现 checkpoint：
 
 ```text
-75cc4f0f1342252c3697bcd39b19b8661a9f2ae7 Cover public grpc admin authorization
+bef07076a202a85dbb985ba4dd3e96ecb9b8dd7c Cover public grpc describe validation
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -155,9 +155,10 @@ Admin labels、trace 和日志属性：
 Dashboard-facing client view 字段、contest filters、scope gates、bad requests
 和 sparse client metadata 默认值、`ListClientsByGroup` /
 `ListClientsByTopic` grouped filter pagination、exact client id 过滤和 public
-`pageSize` capped pagination generated gRPC 覆盖后刷新；broad proxy admin 验证
-也已在四个 RPC 的 generated public gRPC authorization 覆盖落地后于 2026-07-10
-Asia/Shanghai 重新刷新。Package smoke 已在同一 HEAD 上刷新。
+`pageSize` capped pagination、四个 RPC authorization mapping、缺失
+`DescribeClient.client_id` 校验 generated gRPC 覆盖后刷新；broad proxy admin
+验证也已在 generated public gRPC missing-client-id validation 覆盖落地后于
+2026-07-10 Asia/Shanghai 重新刷新。Package smoke 已在同一 HEAD 上刷新。
 
 Focused generated public API verification：
 
@@ -171,9 +172,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 44, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:00:18+08:00
+Finished at: 2026-07-10T02:12:38+08:00
 ```
 
 Broad proxy admin verification：
@@ -188,9 +189,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 714, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 715, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:01:24+08:00
+Finished at: 2026-07-10T02:13:40+08:00
 ```
 
 Package smoke：
@@ -204,7 +205,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T02:05:10+08:00
+Finished at: 2026-07-10T02:15:29+08:00
 ```
 
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
@@ -288,7 +289,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 714, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 715, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
