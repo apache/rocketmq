@@ -4,39 +4,43 @@
 
 This document describes the RIP-2 M1 admin query behavior implemented in this
 branch. The proxy already has the internal read model, authorization facade,
-metrics, proto-free admin adapter, dedicated admin executor, and benchmark
-coverage. The public `ProxyAdminService` protobuf endpoint is intentionally not
-registered in this fork until the `rocketmq-apis` ownership and compatibility
-decision is made.
+metrics, proto-free admin adapter, generated public `ProxyAdminService`
+endpoint, dedicated admin executor, and benchmark coverage. The public endpoint
+is built against the local contest artifact
+`org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT`, generated from the
+companion `rocketmq-apis` proposal branch. Upstream merge remains gated by the
+community decision for protobuf ownership, field numbers, generated artifact
+version, and publication path.
 
 The final contest submission entry point is
 `docs/en/rip2-proxy-admin-m1-submission-package.md`. It contains the requirement
-matrix, verification snapshot, PR description draft, issue comment draft, and
-the explicit public protobuf ownership gate.
+matrix, verification snapshot, PR links, issue comment link, and the explicit
+public protobuf ownership gate.
 
 M1 supports `LOCAL_PROXY` semantics. Cross-proxy fan-out and `PROXY_ID` routing
 exist as internal experiments, but the public M1 contract should expose only the
 current proxy's online clients.
 
-## Proposed Public Service
+## Public Service
 
-The recommended public API is a standalone `ProxyAdminService`, separate from
-the existing `MessagingService`.
+The public API proposal is a standalone `ProxyAdminService`, separate from the
+existing `MessagingService`.
 
-Planned RPCs:
+Implemented RPCs:
 
 - `ListClients`
 - `DescribeClient`
 - `ListClientsByGroup`
 - `ListClientsByTopic`
 
-The endpoint adapter should only translate protobuf requests and responses. It
-should reuse the existing admin activity/service for validation, authorization,
-metrics, error mapping, pagination, and read-model queries.
+`GrpcProxyAdminApplication` only translates protobuf requests and responses. It
+reuses the existing admin endpoint executor/activity/service for validation,
+authorization, metrics, error mapping, pagination, and read-model queries.
 
 ## Query Fields
 
-Supported query fields in the internal service and proto-free adapter:
+Supported query fields in the generated endpoint, internal service, and
+proto-free adapter:
 
 | Field | Meaning |
 | --- | --- |
@@ -71,13 +75,14 @@ Client responses expose:
 - `topics`
 - `proxyId`
 
-The public proto can choose final field names, but it should preserve the contest
-fields: client id, language, version, local address, remote address, and
-connection time.
+The current public API proposal preserves the contest fields: client id,
+language, version, local address, remote address, and connection time. Final
+field numbers and publication location still require community review.
 
 ## Error Semantics
 
-The proto-free endpoint maps failures to RocketMQ v2 `Status` codes:
+The generated public endpoint and proto-free endpoint map failures to RocketMQ
+v2 `Status` codes:
 
 | Case | Code |
 | --- | --- |
@@ -102,9 +107,10 @@ must not log the subject value in plain text.
 
 ## Execution And Observability
 
-The public admin gRPC service should run on an admin-only server once generated
-`ProxyAdminService` classes are available. The current branch already carries
-the startup gate and admin server executor. Defaults:
+The public admin gRPC service runs on the admin-only server when
+`enableProxyAdminGrpcServer=true`. The generated service is registered through
+`ProxyStartup.createProxyAdminGrpcBindableServices(...)`, separate from the
+data-plane `MessagingService` server. Defaults:
 
 - `enableProxyAdminGrpcServer = false`
 - `proxyAdminGrpcServerPort = 8082`
@@ -150,7 +156,7 @@ Run the current broader pre-submit proxy suite:
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  -Dtest=ProxyClientAdmin*Test,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest \
+  "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
   -DfailIfNoTests=false test -DskipITs
 ```
 
@@ -160,8 +166,9 @@ Use the JMH commands in `docs/en/rip2-proxy-admin-m1-design.md` for local
 
 ## Known M1 Limits
 
-- No public generated gRPC endpoint is registered until `rocketmq-apis`
-  ownership is confirmed.
+- The generated public gRPC endpoint is present in this contest branch, but it
+  depends on the local `rocketmq-proto:2.2.0-rip2-SNAPSHOT` artifact until the
+  `rocketmq-apis` proposal is accepted and published.
 - Public M1 scope is `LOCAL_PROXY`; cross-proxy query remains internal
   exploratory work.
 - The read model is in-memory and process-local. It is rebuilt from client

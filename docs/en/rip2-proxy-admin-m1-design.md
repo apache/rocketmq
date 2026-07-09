@@ -1,11 +1,34 @@
 # RIP-2 Proxy Admin M1 Design
 
+## Current Status
+
+This document started as the M1 internal-foundation design. The final contest
+branch now goes further: it consumes a locally generated
+`org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` artifact from the
+companion `rocketmq-apis` proposal branch, adds the generated public
+`ProxyAdminServiceGrpc` adapter, and registers `GrpcProxyAdminApplication` on
+the independent Proxy admin gRPC server.
+
+The public API and RocketMQ implementation are published for community review as
+draft PRs:
+
+- `rocketmq-apis`: https://github.com/apache/rocketmq-apis/pull/112
+- `rocketmq`: https://github.com/apache/rocketmq/pull/10603
+- RIP-2 tracking issue comment:
+  https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687
+
+The remaining gate is no longer local endpoint implementation. It is the
+community decision for protobuf ownership, field numbers, generated artifact
+version, and publication path. Historical sections that discuss an
+"endpoint-ready" internal stage describe the earlier milestone and should be
+read with this status update in mind.
+
 ## Goals
 
-RIP-2 Proxy Admin M1 adds the first internal building block for online client
-query through RocketMQ Proxy. The milestone focuses on a local proxy read model
-that is updated by the existing gRPC client lifecycle and can later be exposed
-through an admin gRPC adapter.
+RIP-2 Proxy Admin M1 adds online client query through RocketMQ Proxy. The
+milestone focuses on a local proxy read model updated by the existing gRPC
+client lifecycle and exposed through a generated public admin gRPC adapter in
+the contest branch.
 
 M1 should support:
 
@@ -18,11 +41,10 @@ M1 should support:
 
 ## Non-Goals
 
-M1 does not change `rocketmq-apis`, generate new public protobuf stubs, or define
-the final cross-proxy protocol. It does not add a new public admin endpoint,
-persistence, or a distributed client registry. The current branch includes
-internal ACL and read-model metric hooks, but those hooks are not exposed as a
-new public admin API until the adapter and protobuf ownership are resolved.
+M1 does not define the final cross-proxy public protocol, persistence, or a
+distributed client registry. The contest branch proposes `rocketmq-apis` changes
+in a sibling draft PR and consumes a local generated artifact so the public
+endpoint can be tested end to end before the official artifact is published.
 
 ## Current Proxy and gRPC Structure
 
@@ -51,7 +73,9 @@ the registration contract.
 ## API Draft
 
 The public API shape is intentionally a draft because the protobuf ownership and
-compatibility process should be discussed before changing `rocketmq-apis`.
+compatibility process still requires community review. The companion
+`rocketmq-apis` draft PR now carries the proposed proto source; this repository
+consumes its locally generated Java artifact for contest verification.
 
 ## Public API Decision Record
 
@@ -82,15 +106,13 @@ path for coordinator experiments and early adapter tests. Public clients must
 not depend on the internal page-token representation when that compatibility
 path is present.
 
-This fork should not directly modify `rocketmq-apis` for M1. The branch should
-first carry the internal read model, authorization, metrics, and adapter seams,
-plus this API proposal, so the final protobuf ownership and compatibility
-decision can be discussed with the community before generated public stubs are
-introduced.
+The first internal-foundation phase avoided modifying `rocketmq-apis`. The final
+contest branch now uses a sibling `rocketmq-apis` fork branch for the formal API
+proposal, while still keeping the upstream merge gated on community review.
 
-The documentation-only API sketch is captured in
-`docs/en/rip2-proxy-admin-m1-public-api-draft.proto`; it is not part of Maven or
-protobuf generation.
+The mirrored API sketch is captured in
+`docs/en/rip2-proxy-admin-m1-public-api-draft.proto`; the authoritative source
+for generated stubs is the sibling `rocketmq-apis` branch.
 
 A community-ready discussion draft is captured in
 `docs/en/rip2-proxy-admin-public-api-discussion.md`. It summarizes the proposed
@@ -102,24 +124,24 @@ implementation shape, compatibility notes, and open questions for the
 
 The publicly available RIP-2 tracking issue
 `apache/rocketmq#10599` describes the contest target as a Proxy Admin gRPC
-surface for online client query. This branch currently satisfies the internal
-service foundation, but the following items remain before the work is a complete
-contest submission:
+surface for online client query. This branch now contains both the internal
+foundation and generated public endpoint wiring. The matrix below records the
+current contest-submission state and the remaining community gates:
 
 | RIP-2 requirement | Current branch state | Next action |
 | --- | --- | --- |
-| Public admin gRPC surface with `ListClients`, `DescribeClient`, `ListClientsByGroup`, and `ListClientsByTopic` | Internal proto-free activity and endpoint executor exist; no generated public `ProxyAdminService` is registered. | Keep a standalone `ProxyAdminService` draft in docs and wire the real endpoint after `rocketmq-apis` ownership is confirmed. |
-| Filters: `clientId`, `clientIdPrefix`, `group`, `topic`, `clientLanguage`, `connectTimeStart`, `connectTimeEnd`, `pageNum`, and `pageSize` | Internal queries, the read model, and proto-free request DTOs support these fields. | Map the same fields from generated public protobuf requests once `rocketmq-apis` ownership is confirmed. |
-| `pageSize <= 100` | Client-admin query page size is capped at 100 in `ProxyClientQuery`. | Keep the generated public endpoint and benchmark scenarios on the same cap. |
-| Response fields: `clientId`, `language`, `version`, `localAddress`, `remoteAddress`, and `connectionTime` | Response views already expose the equivalent metadata, including client version and connect time. | Preserve the existing response view and align public proto field names with the contest wording. |
-| Error codes compatible with RocketMQ gRPC status codes | `ResponseBuilder` and admin endpoint handler already map internal exceptions to v2 `Status`. | Extend tests for new validation errors and the future public endpoint. |
-| Independent ACL resource `proxy.admin.client` | Client-admin authorization now uses the logical resource name `proxy.admin.client`, encoded as `Admin:proxy.admin.client` in the RocketMQ ACL resource model. | Keep the future public endpoint on the same LIST/GET policy. |
-| Separate query thread pool | The proto-free endpoint executor now runs admin queries on a dedicated bounded executor by default: 4 threads, queue capacity 10000, and the `ProxyClientAdminQueryThread_` thread-name prefix. | Keep the future generated public endpoint on this executor boundary. |
-| Admin service and port isolation | A separate admin gRPC server gate now exists with its own port and request executor. The generated public admin service is still blocked by `rocketmq-apis` ownership. | Register the standalone public admin service on the admin server after generated protobuf classes are available. |
-| OpenTelemetry metrics, traces, and logs | Admin service metrics now include operation, result, scope, status, page size, filter presence, result size, and duration. The proto-free endpoint also writes matching trace attributes and structured failure logs without sensitive identifiers. | Keep the future public endpoint on the same low-cardinality labels and attributes. |
-| Unit tests and E2E tests | Unit and internal peer tests exist; public endpoint E2E is blocked by generated stubs. | Add unit coverage for new filters now and add in-process public gRPC E2E once generated stubs are available. |
-| English and Chinese documentation | English design, English user guide, Chinese user guide, and public API discussion docs exist. | Keep all docs synchronized with the final public endpoint and benchmark results before final submission. |
-| 1M client query benchmark | Read-model and coordinator JMH benchmarks cover unfiltered, group, topic, proxy-id, prefix, language, connect-time range, and `pageSize=100` scenarios. | Run full 1M JMH locally before final submission and attach representative results. |
+| Public admin gRPC surface with `ListClients`, `DescribeClient`, `ListClientsByGroup`, and `ListClientsByTopic` | Generated `GrpcProxyAdminApplication` extends `ProxyAdminServiceGrpc.ProxyAdminServiceImplBase` and delegates all four RPCs. | Upstream merge waits for `rocketmq-apis` PR #112 and official artifact publication. |
+| Filters: `clientId`, `clientIdPrefix`, `group`, `topic`, `clientLanguage`, `connectTimeStart`, `connectTimeEnd`, `pageNum`, and `pageSize` | Internal queries, read model, proto-free request DTOs, and generated public adapter support these fields. | Keep field names and numbers stable through community review. |
+| `pageSize <= 100` | Client-admin query page size is capped at 100 in `ProxyClientQuery` and public adapter tests. | Keep benchmark and smoke scenarios on the same cap. |
+| Response fields: `clientId`, `language`, `version`, `localAddress`, `remoteAddress`, and `connectionTime` | Generated `ProxyClient` responses expose the equivalent metadata, including client version and connect time. | Keep the proposed proto aligned with RIP-2 field expectations. |
+| Error codes compatible with RocketMQ gRPC status codes | `ResponseBuilder`, endpoint handler, and generated adapter tests map internal exceptions to v2 `Status`. | Keep new public errors status-only and covered by generated gRPC tests. |
+| Independent ACL resource `proxy.admin.client` | Client-admin authorization now uses the logical resource name `proxy.admin.client`, encoded as `Admin:proxy.admin.client` in the RocketMQ ACL resource model. | Keep the generated public endpoint on the same LIST/GET policy. |
+| Separate query thread pool | The proto-free endpoint executor now runs admin queries on a dedicated bounded executor by default: 4 threads, queue capacity 10000, and the `ProxyClientAdminQueryThread_` thread-name prefix. | Keep the generated public endpoint on this executor boundary. |
+| Admin service and port isolation | A separate admin gRPC server gate exists with its own port and request executor, and `GrpcProxyAdminApplication` is registered on that server. | Keep the server disabled by default unless `enableProxyAdminGrpcServer=true`. |
+| OpenTelemetry metrics, traces, and logs | Admin service metrics now include operation, result, scope, status, page size, filter presence, result size, and duration. The proto-free endpoint also writes matching trace attributes and structured failure logs without sensitive identifiers. | Keep the generated public endpoint on the same low-cardinality labels and attributes. |
+| Unit tests and E2E tests | Unit, internal peer, and generated public gRPC Server/Channel tests exist. | Add more cases only if community review changes the public contract. |
+| English and Chinese documentation | English and Chinese user, smoke, benchmark, and submission docs are present. | Keep PR/issue links current as review progresses. |
+| 1M client query benchmark | Read-model and coordinator JMH benchmarks cover unfiltered, group, topic, proxy-id, prefix, language, connect-time range, and `pageSize=100` scenarios. | Re-run only if implementation changes affect hot query paths. |
 
 ## Final Acceptance Matrix
 
@@ -129,7 +151,7 @@ following acceptance points are all true:
 | Acceptance point | Required final state |
 | --- | --- |
 | Public service contract | A reviewed standalone `ProxyAdminService` contract exposes `ListClients`, `DescribeClient`, `ListClientsByGroup`, and `ListClientsByTopic` without extending the data-plane `MessagingService`. |
-| Public endpoint implementation | A generated public gRPC adapter is registered only after `rocketmq-apis` ownership is settled; until then the repo carries a documentation-only draft and an endpoint-ready internal adapter. |
+| Public endpoint implementation | A generated public gRPC adapter is implemented and registered on the independent admin gRPC server in this contest branch; upstream merge remains gated by `rocketmq-apis` ownership and artifact publication. |
 | Isolation | Admin queries are isolated from data-plane traffic by service boundary, ACL resource, dedicated query executor, and a separate admin gRPC server/port when the public endpoint is enabled. |
 | Query semantics | All official filters are pushed into the read model or service layer, `pageNum` is 1-based, `pageSize` is capped at 100, and M1 public scope is `LOCAL_PROXY`. |
 | Security | List-style RPCs require `LIST` on `proxy.admin.client`; `DescribeClient` requires `GET` on `proxy.admin.client`; missing or unauthorized subjects are rejected before query execution. |
@@ -141,8 +163,8 @@ following acceptance points are all true:
 ## Implemented Internal Adapter Preparation
 
 The branch now includes a proto-independent internal admin adapter surface. It
-does not register a public gRPC service yet, but it gives the future endpoint a
-small and tested boundary to call:
+also registers a generated public gRPC service in the final contest branch. The
+internal adapter remains the tested boundary that the public endpoint calls:
 
 - `ProxyClientAdminActivity` owns the request execution boundary for client
   admin queries. It accepts `ProxyContext`, calls `AuthorizingClientAdminService`,
@@ -207,7 +229,7 @@ small and tested boundary to call:
   lands. It drops `proxy_id` for the default or explicit public `LOCAL_PROXY`
   scope and for `ALL_PROXIES`, preserving it only with the future `PROXY_ID`
   scope so broadcast-style queries cannot accidentally carry a target-proxy
-  filter into coordinator page tokens. The future public endpoint shell still
+  filter into coordinator page tokens. The generated public endpoint shell still
   rejects non-`LOCAL_PROXY` scopes before request context creation for M1; the
   converted cross-proxy DTOs are reserved for the internal scope router and for a
   later public rollout after the coordinator contract is accepted.
@@ -642,8 +664,8 @@ have been intersected.
 The public adapter treats page tokens as opaque values. The current M1 codec
 accepts canonical `v1:` tokens and legacy bare read-model tokens, rejects
 unknown or non-canonical versioned tokens, and caps incoming public page tokens
-at 4096 characters to bound decode work before the future public endpoint is
-registered. The encoder enforces the same cap so the adapter does not emit a
+at 4096 characters to bound decode work in the public endpoint. The encoder
+enforces the same cap so the adapter does not emit a
 next-page token that the next request would reject.
 
 This gives stable pagination for the local snapshot and avoids offset-based
@@ -1435,11 +1457,12 @@ forked VMs inherit the complete test runtime classpath.
 
 ## Public Endpoint Landing Route
 
-After `rocketmq-apis` ownership and compatibility are confirmed, add or consume
-generated admin protobuf classes for a standalone `ProxyAdminService`. The proxy
-implementation should then add a dedicated `GrpcProxyAdminApplication extends
-ProxyAdminServiceGrpc.ProxyAdminServiceImplBase`; it should not add admin RPCs
-to the existing messaging application.
+The contest branch has landed the generated endpoint route by consuming a local
+`rocketmq-proto:2.2.0-rip2-SNAPSHOT` artifact from the sibling
+`rocketmq-apis` proposal branch. The proxy implementation adds a dedicated
+`GrpcProxyAdminApplication extends
+ProxyAdminServiceGrpc.ProxyAdminServiceImplBase`; it does not add admin RPCs to
+the existing messaging application.
 
 `ProxyStartup` can register the new application beside the existing messaging
 service because `GrpcServerBuilder` already supports repeated `addService(...)`
@@ -1454,14 +1477,13 @@ GrpcServerBuilder.newBuilder(...)
   .addService(ProtoReflectionService...)
 ```
 
-This branch keeps that path proto-free through a default-empty
-`ProxyAdminServiceFactory` seam in `ProxyStartup.createGrpcBindableServices`.
-The factory receives the same `DefaultGrpcMessagingActivity` used by
-`GrpcMessagingApplication`; once generated admin stubs are available, it should
-return a `GrpcProxyAdminApplication` built from that shared activity so the
-public endpoint and messaging lifecycle observe the same read model.
+This branch now registers `GrpcProxyAdminApplication` through
+`ProxyStartup.createProxyAdminBindableServices(...)` when the independent admin
+gRPC server is enabled. The service is built from the same
+`DefaultGrpcMessagingActivity` used by `GrpcMessagingApplication`, so the public
+endpoint and messaging lifecycle observe the same read model.
 
-The endpoint adapter should stay thin:
+The endpoint adapter stays thin:
 
 - read headers and build `ProxyContext` through
   `GrpcRequestPipelineFactory.createProxyClientAdminContextFactory(...)`.
@@ -1480,25 +1502,21 @@ The endpoint adapter should stay thin:
 
 ### Public Endpoint Rollout Checklist
 
-The remaining public endpoint work should start only after the community agrees
-where the protobuf API lives. Once that is settled, the implementation can land
-as a narrow adapter over the internal code already in this branch:
+The local contest branch has completed the narrow adapter over the internal code
+already in this branch. The remaining upstream rollout items are community and
+artifact-publication gates:
 
-Current branch status: after fetching `upstream/develop` at commit `0e4ccf1b6`
-and `upstream/main` at commit `45937936b` on 2026-07-08, `git grep` still finds
-no upstream `ProxyAdminService`, `ProxyScope`, `ListClientsByGroup`, or
-`ListClientsByTopic` protobuf API to consume. The upstream tree also contains no
-`.proto` source files; the proxy module consumes generated
-`apache.rocketmq.v2.MessagingServiceGrpc` classes from `rocketmq-proto:2.1.2`.
-The `rocketmq-proto:2.1.2` jar does not contain `ProxyAdminServiceGrpc`,
-`ListClientsByGroup`, or `DescribeClient` generated classes. The
-documentation-only draft remains under `docs/en`, and this fork should continue
-to avoid modifying `rocketmq-apis` until that ownership decision is explicit.
+Current branch status: the authoritative proto proposal is in
+`pilichoumao/rocketmq-apis:rip2-proxy-admin-public-api` and draft PR
+https://github.com/apache/rocketmq-apis/pull/112. The RocketMQ implementation
+draft PR https://github.com/apache/rocketmq/pull/10603 compiles against the
+locally installed generated artifact. It should remain draft until Apache
+publishes an official compatible `rocketmq-proto` artifact.
 
-The internal code is ready for a thin generated endpoint adapter once that
-decision is made: lifecycle writes, read-model queries, request DTOs, scope and
-page-token adapters, authorization, metrics, status mapping, context propagation,
-and startup service-registration seams are already covered in this branch.
+The internal and generated endpoint code are ready for review: lifecycle writes,
+read-model queries, request DTOs, scope and page-token adapters, authorization,
+metrics, status mapping, context propagation, and startup service-registration
+seams are covered in this branch.
 
 1. Decide the `rocketmq-apis` file location and whether the service should live
    beside the existing v2 messaging APIs or in a dedicated admin file.
@@ -1529,15 +1547,14 @@ and startup service-registration seams are already covered in this branch.
 9. Require an explicit, nonblank `proxyName` before enabling cross-proxy
    coordinator scopes. `LOCAL_PROXY` can keep the default local-only fallback, but
    `ALL_PROXIES` and `PROXY_ID` must use stable, configured peer ids.
-10. Register `GrpcProxyAdminApplication` beside `GrpcMessagingApplication` in
-   `ProxyStartup.createGrpcBindableServices`, using the same
-   `DefaultGrpcMessagingActivity` instance so lifecycle writes, read-model
-   queries, ACL, metrics, and context propagation share one in-process state
-   holder.
-11. Keep endpoint methods free of business logic. They should adapt protobuf
+10. Register `GrpcProxyAdminApplication` on the independent admin gRPC server,
+   using the same `DefaultGrpcMessagingActivity` instance so lifecycle writes,
+   read-model queries, ACL, metrics, and context propagation share one
+   in-process state holder. Done in the contest branch.
+11. Keep endpoint methods free of business logic. They adapt protobuf
    requests and responses only; authorization, validation, pagination, metrics,
-   and error mapping should stay behind `ProxyClientAdminEndpointExecutor` and
-   `ProxyClientAdminEndpointHandler`.
+   and error mapping stay behind `ProxyClientAdminEndpointExecutor` and
+   `ProxyClientAdminEndpointHandler`. Done in the contest branch.
 
 Cross-proxy fan-out, new ACL granularity, and new metrics labels should be added
 behind the same service/activity boundary instead of being embedded into the
@@ -1562,8 +1579,10 @@ generated gRPC application.
    authorizing request boundary. Done.
 9. Document the latest upstream public API status and the M1 remote-sync
    boundary. Done.
-10. Discuss public protobuf ownership before changing `rocketmq-apis`.
-11. Add the public admin gRPC/protobuf adapter.
+10. Discuss public protobuf ownership before changing `rocketmq-apis`. The
+   companion API draft PR is open for that discussion.
+11. Add the public admin gRPC/protobuf adapter. Done in the contest branch using
+   the locally generated snapshot artifact.
 12. Wire the adapter through `AuthorizingClientAdminService`; internal ACL policy,
    request context propagation, and service are already in place.
 13. Extend metrics with admin query counters and latency histograms. Done.

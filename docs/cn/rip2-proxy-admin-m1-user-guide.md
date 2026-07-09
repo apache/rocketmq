@@ -3,36 +3,40 @@
 ## 当前状态
 
 本文说明本分支已经实现的 RIP-2 M1 admin 查询行为。当前代码已经包含内部
-read model、授权封装、metrics、无 proto 依赖的 admin adapter、独立 admin
-查询线程池以及 benchmark 覆盖。由于 `rocketmq-apis` 的归属和兼容性还需要
-社区确认，本 fork 还没有直接注册公开的 `ProxyAdminService` protobuf endpoint。
+read model、授权封装、metrics、无 proto 依赖的 admin adapter、生成版公开
+`ProxyAdminService` endpoint、独立 admin 查询线程池以及 benchmark 覆盖。
+公开 endpoint 当前依赖本地 contest artifact
+`org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT`，该 artifact 由配套
+`rocketmq-apis` proposal 分支生成。上游合并仍受 protobuf 归属、字段编号、
+生成 artifact 版本和发布路径的社区决策约束。
 
 最终参赛提交入口是 `docs/cn/rip2-proxy-admin-m1-submission-package.md`，其中
-包含要求对照、验证快照、PR 描述草稿、issue comment 草稿，以及明确的 public
+包含要求对照、验证快照、PR 链接、issue comment 链接，以及明确的 public
 protobuf 归属 gate。
 
 M1 对外语义建议只暴露 `LOCAL_PROXY`，即查询当前 proxy 进程上的在线客户端。
 跨 proxy fan-out 和 `PROXY_ID` 查询目前属于内部探索能力，不建议作为 M1 公共
 接口承诺。
 
-## 推荐公共服务
+## 公共服务
 
-推荐新增独立的 `ProxyAdminService`，不要扩展现有 `MessagingService`。
+当前 public API proposal 新增独立的 `ProxyAdminService`，不扩展现有
+`MessagingService`。
 
-计划 RPC：
+已实现 RPC：
 
 - `ListClients`
 - `DescribeClient`
 - `ListClientsByGroup`
 - `ListClientsByTopic`
 
-未来公开 endpoint adapter 只负责 protobuf request/response 转换。实际校验、
-授权、metrics、错误映射、分页和查询逻辑都复用当前已经实现的 admin
-activity/service。
+`GrpcProxyAdminApplication` 只负责 protobuf request/response 转换。实际校验、
+授权、metrics、错误映射、分页和查询逻辑都复用当前已经实现的 admin endpoint
+executor、activity 和 service。
 
 ## 查询字段
 
-内部 service 和无 proto adapter 已支持以下字段：
+生成版 endpoint、内部 service 和无 proto adapter 已支持以下字段：
 
 | 字段 | 含义 |
 | --- | --- |
@@ -67,12 +71,14 @@ activity/service。
 - `topics`
 - `proxyId`
 
-最终 public proto 字段名可以由社区确认，但应保留赛题要求的 client id、
-language、version、local address、remote address 和 connection time 信息。
+当前 public API proposal 已保留赛题要求的 client id、language、version、
+local address、remote address 和 connection time 信息。最终字段编号和发布位置
+仍需社区 review。
 
 ## 错误语义
 
-无 proto endpoint 已将异常映射为 RocketMQ v2 `Status`：
+生成版公开 endpoint 和无 proto endpoint 都会将异常映射为 RocketMQ v2
+`Status`：
 
 | 场景 | Code |
 | --- | --- |
@@ -96,8 +102,10 @@ gRPC request pipeline 会把认证后的 subject 传入 `ProxyContext`。Admin e
 
 ## 执行线程池和可观测性
 
-生成的 `ProxyAdminService` 类可用后，公开 admin gRPC service 应运行在独立
-admin server 上。本分支已经包含启动开关和 admin server executor。默认值：
+公开 admin gRPC service 在 `enableProxyAdminGrpcServer=true` 时运行在独立
+admin server 上。生成版 service 通过
+`ProxyStartup.createProxyAdminGrpcBindableServices(...)` 注册，和数据面
+`MessagingService` server 分离。默认值：
 
 - `enableProxyAdminGrpcServer = false`
 - `proxyAdminGrpcServerPort = 8082`
@@ -141,7 +149,7 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  -Dtest=ProxyClientAdmin*Test,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest \
+  "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
   -DfailIfNoTests=false test -DskipITs
 ```
 
@@ -151,7 +159,9 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
 
 ## M1 限制
 
-- `rocketmq-apis` 归属确认前，本分支不注册公开生成版 gRPC endpoint。
+- 本 contest 分支已经包含生成版公开 gRPC endpoint，但在 `rocketmq-apis`
+  proposal 被接受并发布前，仍依赖本地
+  `rocketmq-proto:2.2.0-rip2-SNAPSHOT` artifact。
 - 公共 M1 scope 为 `LOCAL_PROXY`；跨 proxy 查询仍是内部探索。
 - read model 是进程内内存模型，proxy 重启后依赖客户端生命周期事件重新构建。
 - `pageSize` 最大为 `100`；调用方应使用 `pageNum` 获取后续页。
