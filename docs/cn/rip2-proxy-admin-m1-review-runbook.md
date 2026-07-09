@@ -91,7 +91,7 @@ mvn -pl proxy -am \
 预期：
 
 ```text
-Tests run: 52, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 

@@ -6,7 +6,7 @@ This package summarizes the `rip2-proxy-admin-m1` branch for the RIP-2 Proxy
 Admin online client query contest task. It is meant to be copied into the final
 PR, issue comment, or contest submission.
 
-The latest synchronized RocketMQ implementation branch head is:
+The latest synchronized RocketMQ implementation-code checkpoint is:
 
 ```text
 573c716e136845dbd42669d78fd725a18d845435 Cover proxy admin grpc service descriptor
@@ -18,10 +18,12 @@ The latest generated public gRPC endpoint 1M benchmark code checkpoint is:
 7b89ba60fca2a18859519f7b2b822f73c2f4ed2c Add proxy admin public grpc benchmark
 ```
 
-The live draft PRs and RIP-2 issue summary have been refreshed through the
-branch head above to include the generated public gRPC endpoint 1M benchmark,
-the `728`-test broad verification result, Dashboard table/detail field evidence,
-and the generated service descriptor verification evidence.
+The live draft PRs and RIP-2 issue summary have been refreshed through that
+implementation-code checkpoint to include the generated public gRPC endpoint
+1M benchmark, the `728`-test broad verification result, Dashboard table/detail
+field evidence, and the generated service descriptor verification evidence.
+Later documentation-only evidence refresh commits may move the branch head
+without changing the implementation checkpoint above.
 
 The branch implements the proxy-side foundation and generated public endpoint
 for `ProxyAdminService` online-client queries: read model, lifecycle writes,
@@ -193,7 +195,9 @@ refreshed again after adding generated gRPC evidence that
 `PROXY_SCOPE_PROXY_ID` is gated as an M1 scope error before proxy-id validation
 even when `proxy_id` is omitted. Broad proxy admin verification was refreshed
 again after adding the generated public gRPC endpoint benchmark setup test.
-Package smoke was refreshed on the same HEAD.
+Focused public endpoint/startup verification was refreshed again after adding
+the generated public service descriptor test. Package smoke was refreshed on
+the same implementation checkpoint.
 
 Focused generated public API verification:
 
@@ -207,9 +211,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 52, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T04:04:54+08:00
+Finished at: 2026-07-10T05:58:49+08:00
 ```
 
 Focused Dashboard table/detail field verification:

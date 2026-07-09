@@ -4,7 +4,7 @@
 
 本文汇总 `rip2-proxy-admin-m1` 分支，可用于最终 PR、issue comment 或比赛提交。
 
-已同步到远端的最新 RocketMQ 实现分支 HEAD：
+已同步到远端的最新 RocketMQ 实现代码 checkpoint：
 
 ```text
 573c716e136845dbd42669d78fd725a18d845435 Cover proxy admin grpc service descriptor
@@ -16,9 +16,11 @@
 7b89ba60fca2a18859519f7b2b822f73c2f4ed2c Add proxy admin public grpc benchmark
 ```
 
-live draft PR 和 RIP-2 issue summary 已同步到上述分支 HEAD，包含 generated
-public gRPC endpoint 1M benchmark、`728` tests broad verification、Dashboard
-表格/详情字段证据，以及 generated service descriptor verification 证据。
+live draft PR 和 RIP-2 issue summary 已同步到上述实现代码 checkpoint，包含
+generated public gRPC endpoint 1M benchmark、`728` tests broad verification、
+Dashboard 表格/详情字段证据，以及 generated service descriptor verification
+证据。后续纯文档证据刷新 commit 可能继续推进分支 HEAD，但不会改变上述实现
+checkpoint。
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
 生成版公开 endpoint：read model、客户端生命周期写入、service 层、参数校验、
@@ -181,7 +183,9 @@ broad proxy admin 验证；随后又在将核心 `ProxyClientQuery` page-size gu
 与 public adapter 对齐、让直接内部 query 构造也拒绝负数后刷新；随后又在新增
 `PROXY_SCOPE_PROXY_ID` 即使省略 `proxy_id` 也先按 M1 scope gate 拒绝的
 generated gRPC 证据后刷新；随后又在新增 generated public gRPC endpoint
-benchmark setup 测试后刷新。Package smoke 已在同一 HEAD 上刷新。
+benchmark setup 测试后刷新；随后又在新增 generated public service descriptor
+测试后刷新 focused public endpoint/startup verification。Package smoke 已在同一
+实现 checkpoint 上刷新。
 
 Focused generated public API verification：
 
@@ -195,9 +199,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 52, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T04:04:54+08:00
+Finished at: 2026-07-10T05:58:49+08:00
 ```
 
 Dashboard 表格/详情字段 focused verification：
