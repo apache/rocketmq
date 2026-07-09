@@ -170,8 +170,11 @@ RPC and `PROXY_ID` remains gated for every RPC. Broad proxy admin verification
 was refreshed again after adding generated gRPC evidence that `BAD_REQUEST`
 and `UNAUTHORIZED` error responses do not carry result bodies. It was refreshed
 again after adding generated gRPC evidence that omitted public `pageNum` /
-`pageSize` defaults return the first 100 clients for all list-style RPCs.
-Package smoke was refreshed on the same HEAD.
+`pageSize` defaults return the first 100 clients for all list-style RPCs. It
+was refreshed again after adding generated gRPC evidence that
+`ListClientsByGroup` and `ListClientsByTopic` honor exact `client_id`
+filtering while capping public `pageSize` values above 100. Package smoke was
+refreshed on the same HEAD.
 
 Focused generated public API verification:
 
@@ -185,9 +188,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 49, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:00:41+08:00
+Finished at: 2026-07-10T03:10:24+08:00
 ```
 
 Broad proxy admin verification:
@@ -202,9 +205,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 719, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 720, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:01:49+08:00
+Finished at: 2026-07-10T03:11:33+08:00
 ```
 
 Package smoke:
@@ -218,7 +221,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T03:02:58+08:00
+Finished at: 2026-07-10T03:12:45+08:00
 ```
 
 The package smoke originally exposed stale JMH annotation-generated test sources
@@ -304,7 +307,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 719, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 720, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 

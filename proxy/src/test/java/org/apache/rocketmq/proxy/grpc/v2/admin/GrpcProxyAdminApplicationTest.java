@@ -808,6 +808,95 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void listClientsByGroupAndTopicHonorExactClientIdAndCapPageSizeThroughGeneratedGrpcService()
+        throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            for (int i = 0; i < 101; i++) {
+                readService(activity).upsertClient(client(String.format("filter-cap-client-%03d", i),
+                    ClientType.PRODUCER, "group-filter-cap", "topic-filter-cap", "JAVA", 100L + i));
+            }
+            readService(activity).upsertClient(client("filter-cap-client-other", ClientType.PRODUCER,
+                "group-other", "topic-other", "JAVA", 100L));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            apache.rocketmq.v2.ListClientsByGroupResponse cappedGroupPage = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setGroup("group-filter-cap")
+                    .setPageNum(1)
+                    .setPageSize(101)
+                    .build());
+            assertThat(cappedGroupPage.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(cappedGroupPage.getClientsList()).hasSize(100);
+            assertThat(cappedGroupPage.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .startsWith("filter-cap-client-000")
+                .endsWith("filter-cap-client-099");
+            assertThat(cappedGroupPage.getHasMore()).isTrue();
+
+            apache.rocketmq.v2.ListClientsByTopicResponse cappedTopicPage = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setTopic("topic-filter-cap")
+                    .setPageNum(1)
+                    .setPageSize(101)
+                    .build());
+            assertThat(cappedTopicPage.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(cappedTopicPage.getClientsList()).hasSize(100);
+            assertThat(cappedTopicPage.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .startsWith("filter-cap-client-000")
+                .endsWith("filter-cap-client-099");
+            assertThat(cappedTopicPage.getHasMore()).isTrue();
+
+            apache.rocketmq.v2.ListClientsByGroupResponse exactGroupClient = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setGroup("group-filter-cap")
+                    .setClientId("filter-cap-client-100")
+                    .setPageNum(1)
+                    .setPageSize(101)
+                    .build());
+            assertThat(exactGroupClient.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(exactGroupClient.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("filter-cap-client-100");
+            assertThat(exactGroupClient.getHasMore()).isFalse();
+
+            apache.rocketmq.v2.ListClientsByTopicResponse exactTopicClient = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setTopic("topic-filter-cap")
+                    .setClientId("filter-cap-client-100")
+                    .setPageNum(1)
+                    .setPageSize(101)
+                    .build());
+            assertThat(exactTopicClient.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(exactTopicClient.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("filter-cap-client-100");
+            assertThat(exactTopicClient.getHasMore()).isFalse();
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void listClientsDefaultsOmittedPublicPaginationThroughGeneratedGrpcService() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
