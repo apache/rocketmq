@@ -22,6 +22,12 @@ commit 为 `c372905ce927cf8957333e7ac07877f295fd7ec9`。为了完成参赛验证
 生成版 Java artifact 以
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` 安装到本机 Maven。
 
+Public API proposal 也已创建为 draft PR
+[apache/rocketmq-apis#112](https://github.com/apache/rocketmq-apis/pull/112)。
+当前 RocketMQ 实现分支依赖从该 proposal 本地生成并安装的
+`rocketmq-proto:2.2.0-rip2-SNAPSHOT`，因此 RocketMQ 主实现 PR 应在 API
+归属和 artifact 发布路径明确后再进入上游 CI。
+
 ## 要求对照
 
 | 比赛要求 | 当前状态 | 证据 |
@@ -251,7 +257,8 @@ The authoritative public proto is published in
 `pilichoumao/rocketmq-apis:rip2-proxy-admin-public-api`. For contest
 verification this branch depends on local
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` generated from that
-proto. Upstream publication of the proto still needs community review.
+proto. Draft PR https://github.com/apache/rocketmq-apis/pull/112 tracks the
+upstream API review.
 
 ## Tests
 
@@ -295,6 +302,7 @@ The branch is ready for community review of the proxy-side foundation:
 
 The public API source is published at
 https://github.com/pilichoumao/rocketmq-apis/tree/rip2-proxy-admin-public-api.
+The API proposal draft PR is https://github.com/apache/rocketmq-apis/pull/112.
 The remaining community question is whether Apache accepts the proposed service
 name, field names, field numbers, and upstream publication path.
 ```

@@ -436,7 +436,7 @@ Keep this extra comment immediately above `syntax = "proto3";`:
 // rip2-proxy-admin-public-api.
 ```
 
-- [ ] **Step 4: Commit the dependency and doc mirror**
+- [x] **Step 4: Commit the dependency and doc mirror**
 
 Run:
 
@@ -1627,15 +1627,15 @@ Expected: `target/rip2-proxy-admin-submission.md` contains concrete commit hashe
 Confirm every line is true before declaring the project submit-ready:
 
 ```text
-[ ] rocketmq-apis has formal ProxyAdminService proto in apache/rocketmq/v2/admin.proto.
-[ ] Local Maven has org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT with ProxyAdminServiceGrpc.
-[ ] Current rocketmq branch compiles against generated ProxyAdminServiceGrpc.
-[ ] GrpcProxyAdminApplication delegates all four public RPCs.
-[ ] ProxyStartup registers GrpcProxyAdminApplication on the independent admin gRPC server.
-[ ] Public generated gRPC service tests pass through a real Server/ManagedChannel.
-[ ] Existing endpoint-ready, ACL, metrics, lifecycle, and read-model tests still pass.
-[ ] Submission docs include final commit hashes and exact verification output.
-[ ] Worktree is clean or only contains intentionally uncommitted submission notes.
+[x] rocketmq-apis has formal ProxyAdminService proto in apache/rocketmq/v2/admin.proto.
+[x] Local Maven has org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT with ProxyAdminServiceGrpc.
+[x] Current rocketmq branch compiles against generated ProxyAdminServiceGrpc.
+[x] GrpcProxyAdminApplication delegates all four public RPCs.
+[x] ProxyStartup registers GrpcProxyAdminApplication on the independent admin gRPC server.
+[x] Public generated gRPC service tests pass through a real Server/ManagedChannel.
+[x] Existing endpoint-ready, ACL, metrics, lifecycle, and read-model tests still pass.
+[x] Submission docs include final commit hashes and exact verification output.
+[x] Worktree is clean or only contains intentionally uncommitted submission notes.
 ```
 
 - [x] **Step 3: Commit any final doc-only hash updates**
