@@ -43,7 +43,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
-| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、官方过滤字段、public pagination/hasMore、所有 public RPC 的非 local scope 拒绝、bad-request contract mapping、默认分页、not found 语义和 Dashboard-facing client view 字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
+| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、bad-request contract mapping、not found 语义和 Dashboard-facing client view 字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
 | 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、public API discussion、benchmark report、smoke guide、review runbook、acceptance audit 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`docs/cn/rip2-proxy-admin-public-api-discussion.md`。 |
 
@@ -161,8 +161,10 @@ Dashboard-facing client view 字段、contest filters、scope gates、bad reques
 `DescribeClient.client_id` 校验 generated gRPC 覆盖后刷新；随后又在新增
 explicit `LOCAL_PROXY` 对四个 RPC 成功、`PROXY_ID` 对四个 RPC 保持 gated 的
 generated gRPC 证据后刷新；随后又在新增 `BAD_REQUEST` 和 `UNAUTHORIZED`
-错误响应均不携带结果体的 generated gRPC 证据后刷新 broad proxy admin 验证。
-Package smoke 已在同一 HEAD 上刷新。
+错误响应均不携带结果体的 generated gRPC 证据后刷新；随后又在新增省略 public
+`pageNum` / `pageSize` 时所有 list-style RPC 均返回第一页 100 个 client 的
+generated gRPC 证据后刷新 broad proxy admin 验证。Package smoke 已在同一 HEAD
+上刷新。
 
 Focused generated public API verification：
 
@@ -176,9 +178,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:50:57+08:00
+Finished at: 2026-07-10T03:00:41+08:00
 ```
 
 Broad proxy admin verification：
@@ -193,9 +195,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 718, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 719, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:52:06+08:00
+Finished at: 2026-07-10T03:01:49+08:00
 ```
 
 Package smoke：
@@ -209,7 +211,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T02:53:29+08:00
+Finished at: 2026-07-10T03:02:58+08:00
 ```
 
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
@@ -293,7 +295,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 718, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 719, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 

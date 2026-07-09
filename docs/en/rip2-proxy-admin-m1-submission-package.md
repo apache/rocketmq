@@ -46,7 +46,7 @@ branch currently compiles against the local
 | ACL | Implemented with logical resource `proxy.admin.client`; list RPCs use `LIST`, describe uses `GET`. | `ClientAdminAuthPolicyTest`, `DefaultClientAdminAuthorizationServiceTest`, `AuthorizingClientAdminServiceTest`. |
 | Independent admin execution | Implemented admin query executor and dedicated admin gRPC server registration. | `ProxyClientAdminEndpointExecutor`, `ProxyStartup`, `GrpcProxyAdminWiringTest`, `ProxyStartupTest`. |
 | Observability | Implemented metrics, trace attributes, and structured failure logs with low-cardinality labels. | `ProxyMetricsManagerTest`, `MeteredClientAdminServiceTest`, `MeteredAuthorizingClientAdminServiceTest`, `ProxyClientAdminObservabilityTest`. |
-| E2E / integration coverage | Generated public gRPC Server/Channel tests cover all four RPCs, official filters, public pagination/hasMore, non-local scope rejection across every public RPC, bad-request contract mapping, default pagination, not found semantics, and Dashboard-facing client view fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`. |
+| E2E / integration coverage | Generated public gRPC Server/Channel tests cover all four RPCs, official filters, public pagination/hasMore, omitted public pagination defaults, non-local scope rejection across every public RPC, bad-request contract mapping, not found semantics, and Dashboard-facing client view fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`. |
 | 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. All local read-model P99 values are below 1 second. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
 | English and Chinese docs | Completed for user guide, public API discussion, benchmark report, smoke guide, review runbook, acceptance audit, and submission package. | `docs/en/rip2-proxy-admin-m1-user-guide.md`, `docs/cn/rip2-proxy-admin-m1-user-guide.md`, `docs/en/rip2-proxy-admin-public-api-discussion.md`, `docs/cn/rip2-proxy-admin-public-api-discussion.md`. |
 
@@ -168,8 +168,10 @@ missing `DescribeClient.client_id` validation. It was refreshed again after
 adding generated gRPC evidence that explicit `LOCAL_PROXY` succeeds for every
 RPC and `PROXY_ID` remains gated for every RPC. Broad proxy admin verification
 was refreshed again after adding generated gRPC evidence that `BAD_REQUEST`
-and `UNAUTHORIZED` error responses do not carry result bodies. Package smoke
-was refreshed on the same HEAD.
+and `UNAUTHORIZED` error responses do not carry result bodies. It was refreshed
+again after adding generated gRPC evidence that omitted public `pageNum` /
+`pageSize` defaults return the first 100 clients for all list-style RPCs.
+Package smoke was refreshed on the same HEAD.
 
 Focused generated public API verification:
 
@@ -183,9 +185,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:50:57+08:00
+Finished at: 2026-07-10T03:00:41+08:00
 ```
 
 Broad proxy admin verification:
@@ -200,9 +202,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 718, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 719, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:52:06+08:00
+Finished at: 2026-07-10T03:01:49+08:00
 ```
 
 Package smoke:
@@ -216,7 +218,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T02:53:29+08:00
+Finished at: 2026-07-10T03:02:58+08:00
 ```
 
 The package smoke originally exposed stale JMH annotation-generated test sources
@@ -302,7 +304,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 718, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 719, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
