@@ -167,8 +167,9 @@ filtering, public `pageSize` capping, all four RPC authorization mapping, and
 missing `DescribeClient.client_id` validation. It was refreshed again after
 adding generated gRPC evidence that explicit `LOCAL_PROXY` succeeds for every
 RPC and `PROXY_ID` remains gated for every RPC. Broad proxy admin verification
-was refreshed again after adding generated gRPC evidence that error responses
-do not carry result bodies. Package smoke was refreshed on the same HEAD.
+was refreshed again after adding generated gRPC evidence that `BAD_REQUEST`
+and `UNAUTHORIZED` error responses do not carry result bodies. Package smoke
+was refreshed on the same HEAD.
 
 Focused generated public API verification:
 
@@ -184,7 +185,7 @@ Result:
 ```text
 Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:40:38+08:00
+Finished at: 2026-07-10T02:50:57+08:00
 ```
 
 Broad proxy admin verification:
@@ -201,7 +202,7 @@ Result:
 ```text
 Tests run: 718, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:41:38+08:00
+Finished at: 2026-07-10T02:52:06+08:00
 ```
 
 Package smoke:
@@ -215,7 +216,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T02:43:18+08:00
+Finished at: 2026-07-10T02:53:29+08:00
 ```
 
 The package smoke originally exposed stale JMH annotation-generated test sources

@@ -563,11 +563,14 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
                 .setPageSize(100)
                 .build());
             assertThat(listResponse.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+            assertThat(listResponse.getClientsCount()).isZero();
+            assertThat(listResponse.getHasMore()).isFalse();
 
             DescribeClientResponse describeResponse = stub.describeClient(DescribeClientRequest.newBuilder()
                 .setClientId("client-a")
                 .build());
             assertThat(describeResponse.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+            assertThat(describeResponse.hasClient()).isFalse();
 
             apache.rocketmq.v2.ListClientsByGroupResponse groupResponse = stub.listClientsByGroup(
                 apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
@@ -575,6 +578,8 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
                     .setPageSize(100)
                     .build());
             assertThat(groupResponse.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+            assertThat(groupResponse.getClientsCount()).isZero();
+            assertThat(groupResponse.getHasMore()).isFalse();
 
             apache.rocketmq.v2.ListClientsByTopicResponse topicResponse = stub.listClientsByTopic(
                 apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
@@ -582,6 +587,8 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
                     .setPageSize(100)
                     .build());
             assertThat(topicResponse.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+            assertThat(topicResponse.getClientsCount()).isZero();
+            assertThat(topicResponse.getHasMore()).isFalse();
         } finally {
             ConfigurationManager.getAuthConfig().setAuthorizationEnabled(false);
             if (channel != null) {
