@@ -213,6 +213,23 @@ BUILD SUCCESS
 Finished at: 2026-07-10T05:38:56+08:00
 ```
 
+Public service descriptor focused verification：
+
+```bash
+JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+mvn -pl proxy -am \
+-Dtest=GrpcProxyAdminApplicationTest#bindServiceExposesGeneratedProxyAdminUnaryMethods \
+-DfailIfNoTests=false test -DskipITs
+```
+
+结果：
+
+```text
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+Finished at: 2026-07-10T05:47:33+08:00
+```
+
 Broad proxy admin verification：
 
 ```bash

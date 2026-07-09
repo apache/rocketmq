@@ -26,10 +26,13 @@ import apache.rocketmq.v2.ListClientsResponse;
 import apache.rocketmq.v2.ProxyAdminServiceGrpc;
 import apache.rocketmq.v2.ProxyClient;
 import apache.rocketmq.v2.ProxyScope;
+import io.grpc.MethodDescriptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
+import io.grpc.ServerMethodDefinition;
+import io.grpc.ServerServiceDefinition;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -60,6 +63,29 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     public void setUp() throws Throwable {
         super.before();
         when(this.messagingProcessor.getProxyRelayService()).thenReturn(this.proxyRelayService);
+    }
+
+    @Test
+    public void bindServiceExposesGeneratedProxyAdminUnaryMethods() {
+        GrpcProxyAdminApplication service =
+            new GrpcProxyAdminApplication(org.mockito.Mockito.mock(ProxyClientAdminEndpointExecutor.class));
+
+        ServerServiceDefinition definition = service.bindService();
+
+        assertThat(definition.getServiceDescriptor().getName())
+            .isEqualTo("apache.rocketmq.v2.ProxyAdminService");
+        assertThat(definition.getMethods())
+            .extracting(method -> method.getMethodDescriptor().getFullMethodName())
+            .containsExactlyInAnyOrder(
+                "apache.rocketmq.v2.ProxyAdminService/ListClients",
+                "apache.rocketmq.v2.ProxyAdminService/DescribeClient",
+                "apache.rocketmq.v2.ProxyAdminService/ListClientsByGroup",
+                "apache.rocketmq.v2.ProxyAdminService/ListClientsByTopic"
+            );
+        assertUnaryMethod(definition, ProxyAdminServiceGrpc.getListClientsMethod());
+        assertUnaryMethod(definition, ProxyAdminServiceGrpc.getDescribeClientMethod());
+        assertUnaryMethod(definition, ProxyAdminServiceGrpc.getListClientsByGroupMethod());
+        assertUnaryMethod(definition, ProxyAdminServiceGrpc.getListClientsByTopicMethod());
     }
 
     @Test
@@ -1388,6 +1414,17 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
         Field field = DefaultGrpcMessagingActivity.class.getDeclaredField("proxyClientReadService");
         field.setAccessible(true);
         return (ProxyClientReadService) field.get(activity);
+    }
+
+    private static void assertUnaryMethod(ServerServiceDefinition definition,
+        MethodDescriptor<?, ?> expectedMethod) {
+        ServerMethodDefinition<?, ?> method = definition.getMethod(expectedMethod.getFullMethodName());
+        assertThat(method).isNotNull();
+        assertThat(method.getMethodDescriptor().getType()).isEqualTo(MethodDescriptor.MethodType.UNARY);
+        assertThat(method.getMethodDescriptor().getRequestMarshaller())
+            .isEqualTo(expectedMethod.getRequestMarshaller());
+        assertThat(method.getMethodDescriptor().getResponseMarshaller())
+            .isEqualTo(expectedMethod.getResponseMarshaller());
     }
 
     private static ProxyClientInfo client(String clientId, ClientType clientType, String group, String topic) {

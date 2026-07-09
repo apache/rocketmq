@@ -1695,6 +1695,10 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `GrpcProxyAdminApplicationTest#listClientsReturnsDashboardTableFieldsThroughGeneratedGrpcService`
   directly verifies `ListClients` returns Dashboard table fields, complementing
   the existing `DescribeClient` detail-field coverage.
+- [x] Public service descriptor generated gRPC coverage added:
+  `GrpcProxyAdminApplicationTest#bindServiceExposesGeneratedProxyAdminUnaryMethods`
+  fixes the generated service name `apache.rocketmq.v2.ProxyAdminService`,
+  all four public method names, and unary method descriptors.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact
