@@ -7,7 +7,7 @@
 已同步到远端的最新 RocketMQ 实现 checkpoint：
 
 ```text
-87481b0ac70df352f237602270d9b7119306275b Cover dashboard client view fields
+27d87ae711437258670a754b081c3c6b0cdc6d79 Cover public grpc bad request contract
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -41,7 +41,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
-| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、过滤、scope 拒绝、默认分页、not found 语义和 Dashboard-facing client view 字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
+| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、过滤、scope 拒绝、bad-request contract mapping、默认分页、not found 语义和 Dashboard-facing client view 字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
 | 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、benchmark report 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`。 |
 
@@ -167,9 +167,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 37, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 38, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T00:38:35+08:00
+Finished at: 2026-07-10T00:58:03+08:00
 ```
 
 Broad proxy admin verification：
@@ -184,9 +184,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 708, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 709, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T00:44:52+08:00
+Finished at: 2026-07-10T00:59:13+08:00
 ```
 
 Package smoke：
@@ -284,7 +284,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 708, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 709, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
