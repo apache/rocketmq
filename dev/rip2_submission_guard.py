@@ -30,6 +30,8 @@ from pathlib import Path
 
 
 EXPECTED_BRANCH = "rip2-proxy-admin-m1"
+EXPECTED_APIS_BRANCH = "rip2-proxy-admin-public-api"
+DEFAULT_APIS_REMOTE = "fork"
 PROTO_VERSION = "2.2.0-rip2-SNAPSHOT"
 FOCUSED_RESULT = "Tests run: 54, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T05:58:49+08:00"
@@ -150,6 +152,38 @@ def check_git_state(root, errors, check_remote, command_runner=run_command):
         errors.append(f"origin/{EXPECTED_BRANCH} is {remote_head}, local HEAD is {head}")
 
 
+def check_apis_git_state(apis_root, errors, check_remote, apis_remote, command_runner=run_command):
+    code, branch, stderr = command_runner(["git", "branch", "--show-current"], cwd=apis_root)
+    if code != 0:
+        errors.append(f"cannot determine rocketmq-apis branch: {stderr}")
+    elif branch != EXPECTED_APIS_BRANCH:
+        errors.append(f"expected rocketmq-apis branch {EXPECTED_APIS_BRANCH}, got {branch}")
+
+    code, status, stderr = command_runner(["git", "status", "--short", "--untracked-files=all"], cwd=apis_root)
+    if code != 0:
+        errors.append(f"cannot determine rocketmq-apis git status: {stderr}")
+    elif status:
+        errors.append(f"rocketmq-apis working tree is not clean:\n{status}")
+
+    if not check_remote:
+        return
+
+    code, head, stderr = command_runner(["git", "rev-parse", "HEAD"], cwd=apis_root)
+    if code != 0:
+        errors.append(f"cannot determine rocketmq-apis HEAD: {stderr}")
+        return
+    code, remote, stderr = command_runner(
+        ["git", "ls-remote", apis_remote, f"refs/heads/{EXPECTED_APIS_BRANCH}"],
+        cwd=apis_root,
+    )
+    if code != 0:
+        errors.append(f"cannot query {apis_remote}/{EXPECTED_APIS_BRANCH}: {stderr}")
+        return
+    remote_head = remote.split()[0] if remote else ""
+    if remote_head != head:
+        errors.append(f"{apis_remote}/{EXPECTED_APIS_BRANCH} is {remote_head}, local HEAD is {head}")
+
+
 def check_proto(root, apis_root, errors):
     doc_proto_path = root / "docs/en/rip2-proxy-admin-m1-public-api-draft.proto"
     api_proto_path = apis_root / "apache/rocketmq/v2/admin.proto"
@@ -228,10 +262,14 @@ def check_source_wiring(root, errors):
             errors.append(f"GrpcProxyAdminApplication missing {token}")
 
 
-def check_github_artifacts(root, errors, command_runner=run_command):
+def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
     code, head, stderr = command_runner(["git", "rev-parse", "HEAD"], cwd=root)
     if code != 0:
         errors.append(f"cannot determine HEAD for GitHub artifact checks: {stderr}")
+        return
+    code, apis_head, stderr = command_runner(["git", "rev-parse", "HEAD"], cwd=apis_root)
+    if code != 0:
+        errors.append(f"cannot determine rocketmq-apis HEAD for GitHub artifact checks: {stderr}")
         return
     for label, args in GITHUB_ARTIFACTS:
         code, body, stderr = command_runner(args, cwd=root)
@@ -240,6 +278,8 @@ def check_github_artifacts(root, errors, command_runner=run_command):
             continue
         if head not in body:
             errors.append(f"{label} does not reference current HEAD {head}")
+        if apis_head not in body:
+            errors.append(f"{label} does not reference rocketmq-apis HEAD {apis_head}")
         if "RIP-2 submission guard passed." not in body:
             errors.append(f"{label} does not include submission guard evidence")
 
@@ -250,6 +290,8 @@ def run_checks(
     m2_repository,
     check_git=True,
     check_remote=False,
+    check_apis_remote=False,
+    apis_remote=DEFAULT_APIS_REMOTE,
     check_github=False,
     command_runner=run_command,
 ):
@@ -260,12 +302,20 @@ def run_checks(
     check_required_files(root, errors)
     if check_git:
         check_git_state(root, errors, check_remote, command_runner=command_runner)
+    if check_apis_remote:
+        check_apis_git_state(
+            apis_root,
+            errors,
+            check_remote=True,
+            apis_remote=apis_remote,
+            command_runner=command_runner,
+        )
     check_proto(root, apis_root, errors)
     check_generated_artifact(m2_repository, errors)
     check_submission_evidence(root, errors)
     check_source_wiring(root, errors)
     if check_github:
-        check_github_artifacts(root, errors, command_runner=command_runner)
+        check_github_artifacts(root, apis_root, errors, command_runner=command_runner)
     return errors
 
 
@@ -284,6 +334,16 @@ def parse_args(argv):
     )
     parser.add_argument("--skip-git", action="store_true", help="Skip branch and worktree checks.")
     parser.add_argument("--check-remote", action="store_true", help="Check origin/rip2-proxy-admin-m1 equals HEAD.")
+    parser.add_argument(
+        "--check-apis-remote",
+        action="store_true",
+        help="Check the sibling rocketmq-apis proposal branch equals its configured remote.",
+    )
+    parser.add_argument(
+        "--apis-remote",
+        default=DEFAULT_APIS_REMOTE,
+        help=f"rocketmq-apis remote name used with --check-apis-remote. Defaults to {DEFAULT_APIS_REMOTE}.",
+    )
     parser.add_argument("--check-github", action="store_true", help="Check public PR and issue text references HEAD.")
     return parser.parse_args(argv)
 
@@ -296,6 +356,8 @@ def main(argv=None):
         m2_repository=args.m2_repository,
         check_git=not args.skip_git,
         check_remote=args.check_remote,
+        check_apis_remote=args.check_apis_remote,
+        apis_remote=args.apis_remote,
         check_github=args.check_github,
     )
     if errors:

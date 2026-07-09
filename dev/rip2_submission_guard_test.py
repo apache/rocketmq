@@ -99,9 +99,11 @@ external validation item
     create_snapshot_jar(m2_repository)
 
 
-def fake_github_runner(expected_head, rocketmq_body, api_body, issue_body):
+def fake_github_runner(expected_head, rocketmq_body, api_body, issue_body, apis_head=None):
     def run(args, cwd):
         if args == ["git", "rev-parse", "HEAD"]:
+            if Path(cwd).name == "rocketmq-apis":
+                return 0, apis_head or expected_head, ""
             return 0, expected_head, ""
         if args == [
             "gh",
@@ -137,6 +139,26 @@ def fake_github_runner(expected_head, rocketmq_body, api_body, issue_body):
             ".body",
         ]:
             return 0, issue_body, ""
+        return 1, "", "unexpected command: " + " ".join(args)
+
+    return run
+
+
+def fake_apis_git_runner(branch, status, head, remote_head):
+    def run(args, cwd):
+        if args == ["git", "branch", "--show-current"]:
+            return 0, branch, ""
+        if args == ["git", "status", "--short", "--untracked-files=all"]:
+            return 0, status, ""
+        if args == ["git", "rev-parse", "HEAD"]:
+            return 0, head, ""
+        if args == [
+            "git",
+            "ls-remote",
+            "fork",
+            "refs/heads/rip2-proxy-admin-public-api",
+        ]:
+            return 0, f"{remote_head}\trefs/heads/rip2-proxy-admin-public-api", ""
         return 1, "", "unexpected command: " + " ".join(args)
 
     return run
@@ -211,7 +233,8 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             m2_repository = base / "m2"
             create_submission_tree(root, apis_root, m2_repository)
             expected_head = "abc123"
-            body = expected_head + "\nRIP-2 submission guard passed.\n"
+            apis_head = "apis456"
+            body = expected_head + "\n" + apis_head + "\nRIP-2 submission guard passed.\n"
 
             errors = rip2_submission_guard.run_checks(
                 root=root,
@@ -220,7 +243,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
                 check_git=False,
                 check_remote=False,
                 check_github=True,
-                command_runner=fake_github_runner(expected_head, body, body, body),
+                command_runner=fake_github_runner(expected_head, body, body, body, apis_head=apis_head),
             )
 
             self.assertEqual([], errors)
@@ -233,7 +256,8 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             m2_repository = base / "m2"
             create_submission_tree(root, apis_root, m2_repository)
             expected_head = "abc123"
-            good_body = expected_head + "\nRIP-2 submission guard passed.\n"
+            apis_head = "apis456"
+            good_body = expected_head + "\n" + apis_head + "\nRIP-2 submission guard passed.\n"
             stale_body = "stale-head\nRIP-2 submission guard passed.\n"
 
             errors = rip2_submission_guard.run_checks(
@@ -243,10 +267,90 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
                 check_git=False,
                 check_remote=False,
                 check_github=True,
-                command_runner=fake_github_runner(expected_head, good_body, stale_body, good_body),
+                command_runner=fake_github_runner(expected_head, good_body, stale_body, good_body, apis_head=apis_head),
             )
 
             self.assertTrue(any("rocketmq-apis PR #112" in error and "current HEAD" in error for error in errors))
+
+    def test_guard_can_verify_apis_branch_remote_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_apis_remote=True,
+                command_runner=fake_apis_git_runner(
+                    "rip2-proxy-admin-public-api",
+                    "",
+                    "apis-head",
+                    "apis-head",
+                ),
+            )
+
+            self.assertEqual([], errors)
+
+    def test_guard_reports_apis_remote_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_apis_remote=True,
+                command_runner=fake_apis_git_runner(
+                    "rip2-proxy-admin-public-api",
+                    "",
+                    "local-apis-head",
+                    "remote-apis-head",
+                ),
+            )
+
+            self.assertTrue(any("fork/rip2-proxy-admin-public-api" in error for error in errors))
+
+    def test_guard_reports_github_artifact_missing_apis_head(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            good_body = expected_head + "\n" + apis_head + "\nRIP-2 submission guard passed.\n"
+            missing_apis_body = expected_head + "\nRIP-2 submission guard passed.\n"
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                command_runner=fake_github_runner(
+                    expected_head,
+                    good_body,
+                    good_body,
+                    missing_apis_body,
+                    apis_head=apis_head,
+                ),
+            )
+
+            self.assertTrue(any("RIP-2 issue comment" in error and "rocketmq-apis HEAD" in error for error in errors))
 
 
 if __name__ == "__main__":

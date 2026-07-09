@@ -286,7 +286,7 @@ Finished at: 2026-07-10T06:27:48+08:00
 Lightweight submission guard:
 
 ```bash
-python3 dev/rip2_submission_guard.py --check-remote --check-github
+python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github
 ```
 
 Result:
@@ -391,7 +391,7 @@ Result: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 Lightweight submission guard:
 
 ```bash
-python3 dev/rip2_submission_guard.py --check-remote --check-github
+python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github
 ```
 
 Result: `RIP-2 submission guard passed.`

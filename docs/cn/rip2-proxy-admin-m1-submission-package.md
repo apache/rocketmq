@@ -274,7 +274,7 @@ Finished at: 2026-07-10T06:27:48+08:00
 轻量提交门禁：
 
 ```bash
-python3 dev/rip2_submission_guard.py --check-remote --check-github
+python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github
 ```
 
 结果：
@@ -377,7 +377,7 @@ Result: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 轻量提交门禁：
 
 ```bash
-python3 dev/rip2_submission_guard.py --check-remote --check-github
+python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github
 ```
 
 Result: `RIP-2 submission guard passed.`
