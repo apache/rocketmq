@@ -9,7 +9,7 @@ PR, issue comment, or contest submission.
 Latest synchronized RocketMQ implementation checkpoint:
 
 ```text
-bef07076a202a85dbb985ba4dd3e96ecb9b8dd7c Cover public grpc describe validation
+4b4a113b17b03964a1f894ab0297f6e26d7ba38a Cover public grpc scope gate
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -162,10 +162,11 @@ gRPC coverage for Dashboard-facing client view fields, contest filters, scope
 gates, bad requests, sparse client metadata defaults, grouped filter
 pagination for `ListClientsByGroup` / `ListClientsByTopic`, exact client id
 filtering, public `pageSize` capping, all four RPC authorization mapping, and
-missing `DescribeClient.client_id` validation. Broad proxy admin verification
-was also refreshed on July 10, 2026 Asia/Shanghai after generated public gRPC
-missing-client-id validation landed. Package smoke was refreshed on the same
-HEAD.
+missing `DescribeClient.client_id` validation. It was refreshed again after
+adding generated gRPC evidence that explicit `LOCAL_PROXY` succeeds for every
+RPC and `PROXY_ID` remains gated for every RPC. Broad proxy admin verification
+was also refreshed on July 10, 2026 Asia/Shanghai after this public scope gate
+coverage landed. Package smoke was refreshed on the same HEAD.
 
 Focused generated public API verification:
 
@@ -179,9 +180,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 44, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 46, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:12:38+08:00
+Finished at: 2026-07-10T02:22:58+08:00
 ```
 
 Broad proxy admin verification:
@@ -196,9 +197,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 715, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 717, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:13:40+08:00
+Finished at: 2026-07-10T02:24:01+08:00
 ```
 
 Package smoke:
@@ -212,7 +213,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T02:15:29+08:00
+Finished at: 2026-07-10T02:25:08+08:00
 ```
 
 The package smoke originally exposed stale JMH annotation-generated test sources
@@ -298,7 +299,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 715, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 717, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
