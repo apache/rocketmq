@@ -7,7 +7,7 @@
 已同步到远端的最新 RocketMQ 实现 checkpoint：
 
 ```text
-8055e751bab0d075a358f2792e1b0fd0ae897060 Cover public grpc contest filters
+84eb8e531a3cbceb6594483ed9b383ea0da615a5 Cover public grpc sparse client metadata
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -152,8 +152,10 @@ Admin labels、trace 和日志属性：
 
 以下最终验证命令均使用 JDK 17 运行，运行时工作区已包含生成版 public endpoint
 和 package smoke 构建修复。Focused public endpoint 验证已在新增
-Dashboard-facing client view 字段 generated gRPC 覆盖后刷新；broad proxy admin
-验证和 package smoke 也已于 2026-07-10 Asia/Shanghai 重新刷新。
+Dashboard-facing client view 字段、contest filters、scope gates、bad requests
+和 sparse client metadata 默认值 generated gRPC 覆盖后刷新；broad proxy admin
+验证也已在 sparse metadata 覆盖落地后于 2026-07-10 Asia/Shanghai 重新刷新。
+Package smoke 已在同日稍早刷新。
 
 Focused generated public API verification：
 
@@ -167,9 +169,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 39, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 40, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T01:22:19+08:00
+Finished at: 2026-07-10T01:33:23+08:00
 ```
 
 Broad proxy admin verification：
@@ -184,9 +186,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 710, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 711, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T01:23:29+08:00
+Finished at: 2026-07-10T01:34:34+08:00
 ```
 
 Package smoke：
@@ -284,7 +286,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 710, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 711, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
