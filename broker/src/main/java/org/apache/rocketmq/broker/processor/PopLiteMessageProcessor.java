@@ -21,6 +21,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.opentelemetry.api.common.Attributes;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.lite.ExclusiveEvictionTombstones;
 import org.apache.rocketmq.broker.lite.LiteEventDispatcher;
 import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
 import org.apache.rocketmq.broker.longpolling.PollingResult;
@@ -263,18 +264,17 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
     }
 
     /**
-     * Pop up to {@code maxNum} messages across all LMQ topics the given
-     * client is subscribed to, returning both the merged
-     * {@link GetMessageResult} and a concatenated per-offset order-count
-     * string.
+     * Pop up to {@code maxNum} messages, returning both
+     * 1. the merged {@link GetMessageResult}
+     * 2. concatenated per-offset order-count string.
      *
-     * <p>Each LMQ subscribed by the client is visited in turn via
-     * {@link LiteEventDispatcher#getEventIterator}; the same client may
-     * appear in multiple LMQs. A {@link HashSet} deduplicates visits
-     * within a single call. In exclusive mode, an
-     * {@link ExclusiveEvictionTombstones} check rejects pulls on LMQs
-     * from which this client was previously evicted, so it does not
-     * re-consume messages already handled by the new owner.
+     * <p>Each LMQ subscribed by the client is visited in turn via {@link LiteEventDispatcher#getEventIterator};
+     * the same client may appear in multiple LMQs.
+     * A {@link HashSet} deduplicates visits within a single call.
+     *
+     * <p>In exclusive mode, an {@link ExclusiveEvictionTombstones} check
+     * rejects pulls on LMQs from which this client was previously evicted,
+     * so it does not re-consume messages already handled by the new owner.
      */
     public Pair<StringBuilder, GetMessageResult> popByClientId(String clientHost, String parentTopic, String group,
         String clientId, long popTime, long invisibleTime, int maxNum, String attemptId) {
