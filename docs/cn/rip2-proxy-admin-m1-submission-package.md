@@ -4,10 +4,10 @@
 
 本文汇总 `rip2-proxy-admin-m1` 分支，可用于最终 PR、issue comment 或比赛提交。
 
-当前已同步到远端的 RocketMQ 实现分支头：
+本次 evidence refresh 前，已同步到远端的 RocketMQ 实现 checkpoint：
 
 ```text
-6d8f951f186281cbfdf9891995e9c3c3907bdf8a Add RIP-2 reviewer reproduction runbook
+8150485d0c0d570cc7ecd55d0a8865861e650325 Refresh RIP-2 submission evidence
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -151,8 +151,8 @@ Admin labels、trace 和日志属性：
 ## 验证快照
 
 以下最终验证命令均使用 JDK 17 运行，运行时工作区已包含生成版 public endpoint
-和 package smoke 构建修复。Focused public endpoint 验证已在 reviewer
-runbook checkpoint 后，于 2026-07-10 Asia/Shanghai 重新刷新。
+和 package smoke 构建修复。Focused public endpoint 和 broad proxy admin 验证
+已在 reviewer runbook checkpoint 后，于 2026-07-10 Asia/Shanghai 重新刷新。
 
 Focused generated public API verification：
 
@@ -185,7 +185,7 @@ mvn -pl proxy -am \
 ```text
 Tests run: 707, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-09T23:21:13+08:00
+Finished at: 2026-07-10T00:26:22+08:00
 ```
 
 Package smoke：

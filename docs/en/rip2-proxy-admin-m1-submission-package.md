@@ -6,10 +6,11 @@ This package summarizes the `rip2-proxy-admin-m1` branch for the RIP-2 Proxy
 Admin online client query contest task. It is meant to be copied into the final
 PR, issue comment, or contest submission.
 
-Current synchronized RocketMQ implementation branch head:
+Latest synchronized RocketMQ implementation checkpoint before this evidence
+refresh:
 
 ```text
-6d8f951f186281cbfdf9891995e9c3c3907bdf8a Add RIP-2 reviewer reproduction runbook
+8150485d0c0d570cc7ecd55d0a8865861e650325 Refresh RIP-2 submission evidence
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -157,8 +158,8 @@ topic names, and proxy ids.
 
 Final verification commands below were run with JDK 17 after the generated
 public endpoint and package-smoke build fix were present in the working tree.
-The focused public endpoint verification was refreshed on July 10, 2026
-Asia/Shanghai after the reviewer runbook checkpoint.
+The focused public endpoint and broad proxy admin verification were refreshed
+on July 10, 2026 Asia/Shanghai after the reviewer runbook checkpoint.
 
 Focused generated public API verification:
 
@@ -191,7 +192,7 @@ Result:
 ```text
 Tests run: 707, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-09T23:21:13+08:00
+Finished at: 2026-07-10T00:26:22+08:00
 ```
 
 Package smoke:
