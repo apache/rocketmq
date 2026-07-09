@@ -149,6 +149,126 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
         }
     }
 
+    @Test
+    public void listClientsByGroupAndTopicThroughGeneratedGrpcService() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            readService(activity).upsertClient(client("client-a", ClientType.PUSH_CONSUMER, "group-a", "topic-a"));
+            readService(activity).upsertClient(client("client-b", ClientType.PRODUCER, "group-b", "topic-b"));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            assertThat(stub.listClientsByGroup(apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                .setGroup("group-a")
+                .setPageSize(100)
+                .build()).getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-a");
+
+            assertThat(stub.listClientsByTopic(apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                .setTopic("topic-b")
+                .setPageSize(100)
+                .build()).getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-b");
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
+    public void listClientsDefaultsPageNumAndHonorsOptionalConnectTime() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            readService(activity).upsertClient(client("client-a", ClientType.PRODUCER, "group-a", "topic-a"));
+            readService(activity).upsertClient(client("client-b", ClientType.PRODUCER, "group-a", "topic-a"));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse response = stub.listClients(ListClientsRequest.newBuilder()
+                .setConnectTimeStartMillis(100)
+                .setConnectTimeEndMillis(100)
+                .setPageSize(100)
+                .build());
+
+            assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(response.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-a", "client-b");
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
+    public void describeMissingClientReturnsNotFoundStatus() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            DescribeClientResponse response = stub.describeClient(DescribeClientRequest.newBuilder()
+                .setClientId("missing-client")
+                .build());
+
+            assertThat(response.getStatus().getCode()).isEqualTo(Code.NOT_FOUND);
+            assertThat(response.hasClient()).isFalse();
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
     private static ProxyClientReadService readService(DefaultGrpcMessagingActivity activity) throws Exception {
         Field field = DefaultGrpcMessagingActivity.class.getDeclaredField("proxyClientReadService");
         field.setAccessible(true);

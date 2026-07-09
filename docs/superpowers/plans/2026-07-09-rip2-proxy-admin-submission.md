@@ -1061,7 +1061,7 @@ Expected:
 **Files:**
 - Modify: `proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java`
 
-- [ ] **Step 1: Add tests for `ListClientsByGroup`, `ListClientsByTopic`, default page number, optional connect time, and not found**
+- [x] **Step 1: Add tests for `ListClientsByGroup`, `ListClientsByTopic`, default page number, optional connect time, and not found**
 
 Append these test methods to `GrpcProxyAdminApplicationTest`:
 
@@ -1187,7 +1187,7 @@ Append these test methods to `GrpcProxyAdminApplicationTest`:
     }
 ```
 
-- [ ] **Step 2: Run public service tests**
+- [x] **Step 2: Run public service tests**
 
 Run:
 
@@ -1203,7 +1203,7 @@ Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
-- [ ] **Step 3: Commit public endpoint coverage**
+- [x] **Step 3: Commit public endpoint coverage**
 
 Run:
 
