@@ -232,6 +232,7 @@ def fake_github_runner(
     api_metadata=None,
     rocketmq_feedback=None,
     api_feedback=None,
+    issue_metadata=None,
 ):
     rocketmq_metadata = rocketmq_metadata or (
         '{"state":"OPEN","isDraft":true,"headRefName":"rip2-proxy-admin-m1",'
@@ -243,6 +244,11 @@ def fake_github_runner(
     )
     rocketmq_feedback = rocketmq_feedback or '{"comments":[],"reviews":[]}'
     api_feedback = api_feedback or '{"comments":[],"reviews":[]}'
+    issue_metadata = issue_metadata or (
+        '{"state":"OPEN",'
+        '"title":"[RIP-2] Proxy Admin gRPC Interface Surface (M1: Online Client Query Module)",'
+        '"comments":[{"url":"https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"}]}'
+    )
 
     def run(args, cwd):
         if args == ["git", "rev-parse", "HEAD"]:
@@ -301,6 +307,19 @@ def fake_github_runner(
             ".",
         ]:
             return 0, api_feedback, ""
+        if args == [
+            "gh",
+            "issue",
+            "view",
+            "10599",
+            "--repo",
+            "apache/rocketmq",
+            "--json",
+            "state,title,comments",
+            "--jq",
+            ".",
+        ]:
+            return 0, issue_metadata, ""
         if args == [
             "gh",
             "pr",
@@ -889,6 +908,43 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("RocketMQ PR #10603 has unreviewed feedback" in error for error in errors))
+
+    def test_guard_reports_issue_comment_after_submission_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            body = github_body(expected_head, apis_head)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                command_runner=fake_github_runner(
+                    expected_head,
+                    body,
+                    body,
+                    body,
+                    apis_head=apis_head,
+                    issue_metadata=(
+                        '{"state":"OPEN",'
+                        '"title":"[RIP-2] Proxy Admin gRPC Interface Surface (M1: Online Client Query Module)",'
+                        '"comments":['
+                        '{"url":"https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"},'
+                        '{"url":"https://github.com/apache/rocketmq/issues/10599#issuecomment-5000000000"}'
+                        ']}'
+                    ),
+                ),
+            )
+
+            self.assertTrue(any("RIP-2 issue has comments after submission summary" in error for error in errors))
 
     def test_guard_reports_unfinished_plan_checkbox(self):
         with tempfile.TemporaryDirectory() as tmp:

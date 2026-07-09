@@ -37,6 +37,7 @@ PROTO_VERSION = "2.2.0-rip2-SNAPSHOT"
 PROTO_VERSION_XML = f"<rocketmq-proto.version>{PROTO_VERSION}</rocketmq-proto.version>"
 FULL_GUARD_COMMAND = "python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github"
 PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
+RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
 FOCUSED_RESULT = "Tests run: 54, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T05:58:49+08:00"
 BROAD_RESULT = "Tests run: 730, Failures: 0, Errors: 0, Skipped: 0"
@@ -50,7 +51,7 @@ OLD_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T04:07:14+08:00"
 PUBLIC_REVIEW_ARTIFACT_LINKS = (
     "https://github.com/apache/rocketmq/pull/10603",
     "https://github.com/apache/rocketmq-apis/pull/112",
-    "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687",
+    RIP2_ISSUE_COMMENT_URL,
 )
 
 REQUIRED_DOCS = (
@@ -212,6 +213,11 @@ GITHUB_PR_FEEDBACK = (
         "rocketmq-apis PR #112",
         ["gh", "pr", "view", "112", "--repo", "apache/rocketmq-apis"],
     ),
+)
+
+GITHUB_ISSUE_METADATA = (
+    "RIP-2 issue #10599",
+    ["gh", "issue", "view", "10599", "--repo", "apache/rocketmq"],
 )
 
 
@@ -531,6 +537,35 @@ def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
             errors.append(
                 f"{label} has unreviewed feedback: {comment_count} comments, {review_count} reviews"
             )
+    check_github_issue_metadata(root, errors, command_runner=command_runner)
+
+
+def check_github_issue_metadata(root, errors, command_runner=run_command):
+    label, base_args = GITHUB_ISSUE_METADATA
+    args = base_args + ["--json", "state,title,comments", "--jq", "."]
+    code, body, stderr = command_runner(args, cwd=root)
+    if code != 0:
+        errors.append(f"cannot read {label}: {stderr}")
+        return
+    try:
+        issue = json.loads(body)
+    except json.JSONDecodeError as exc:
+        errors.append(f"cannot parse {label}: {exc}")
+        return
+    if issue.get("state") != "OPEN":
+        errors.append(f"{label} expected state OPEN, got {issue.get('state')!r}")
+    title = issue.get("title") or ""
+    if "[RIP-2]" not in title or "Proxy Admin" not in title:
+        errors.append(f"{label} title no longer matches RIP-2 Proxy Admin: {title!r}")
+    comments = issue.get("comments") or []
+    if not comments:
+        errors.append(f"{label} has no comments; expected submission summary comment")
+        return
+    last_comment_url = comments[-1].get("url") if isinstance(comments[-1], dict) else None
+    if last_comment_url != RIP2_ISSUE_COMMENT_URL:
+        errors.append(
+            f"RIP-2 issue has comments after submission summary: latest comment is {last_comment_url!r}"
+        )
 
 
 def nested_value(data, key):
