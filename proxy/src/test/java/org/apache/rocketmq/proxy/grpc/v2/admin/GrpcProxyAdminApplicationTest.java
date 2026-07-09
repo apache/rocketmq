@@ -32,6 +32,7 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import java.lang.reflect.Field;
 import java.util.Collections;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
@@ -326,6 +327,60 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
             assertThat(missingTopic.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
             assertThat(missingTopic.getStatus().getMessage()).contains("topic is required");
         } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
+    public void publicServiceMapsMissingAuthSubjectToUnauthorizedThroughGeneratedGrpcService() throws Exception {
+        ConfigurationManager.getAuthConfig().setAuthorizationEnabled(true);
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse listResponse = stub.listClients(ListClientsRequest.newBuilder()
+                .setPageSize(100)
+                .build());
+            assertThat(listResponse.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+
+            DescribeClientResponse describeResponse = stub.describeClient(DescribeClientRequest.newBuilder()
+                .setClientId("client-a")
+                .build());
+            assertThat(describeResponse.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+
+            apache.rocketmq.v2.ListClientsByGroupResponse groupResponse = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setGroup("group-a")
+                    .setPageSize(100)
+                    .build());
+            assertThat(groupResponse.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+
+            apache.rocketmq.v2.ListClientsByTopicResponse topicResponse = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setTopic("topic-a")
+                    .setPageSize(100)
+                    .build());
+            assertThat(topicResponse.getStatus().getCode()).isEqualTo(Code.UNAUTHORIZED);
+        } finally {
+            ConfigurationManager.getAuthConfig().setAuthorizationEnabled(false);
             if (channel != null) {
                 channel.shutdownNow();
             }
