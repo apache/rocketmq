@@ -459,7 +459,7 @@ Expected:
 - Create: `proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplication.java`
 - Create: `proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java`
 
-- [ ] **Step 1: Write the failing public gRPC service test**
+- [x] **Step 1: Write the failing public gRPC service test**
 
 Create `./proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java`:
 
@@ -638,7 +638,7 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
 }
 ```
 
-- [ ] **Step 2: Run the new test and verify the expected failure**
+- [x] **Step 2: Run the new test and verify the expected failure**
 
 Run:
 
@@ -656,7 +656,7 @@ cannot find symbol
 
 If the failure is about `ProxyAdminServiceGrpc`, go back to Task 2 and reinstall the generated `rocketmq-proto` artifact.
 
-- [ ] **Step 3: Implement `GrpcProxyAdminApplication`**
+- [x] **Step 3: Implement `GrpcProxyAdminApplication`**
 
 Create `./proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplication.java`:
 
@@ -887,7 +887,7 @@ public class GrpcProxyAdminApplication extends ProxyAdminServiceGrpc.ProxyAdminS
 }
 ```
 
-- [ ] **Step 4: Run the new test and verify it passes**
+- [x] **Step 4: Run the new test and verify it passes**
 
 Run:
 
