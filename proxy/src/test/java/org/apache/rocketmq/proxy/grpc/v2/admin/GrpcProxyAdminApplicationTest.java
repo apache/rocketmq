@@ -280,6 +280,81 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void publicServiceIgnoresProxyIdForLocalProxyScopeForEveryRpc() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            readService(activity).upsertClient(client("client-local-proxy-id", ClientType.PRODUCER,
+                "group-local-proxy-id", "topic-local-proxy-id"));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse listResponse = stub.listClients(ListClientsRequest.newBuilder()
+                .setScope(ProxyScope.PROXY_SCOPE_LOCAL_PROXY)
+                .setProxyId("future-proxy")
+                .setPageNum(1)
+                .setPageSize(100)
+                .build());
+            assertThat(listResponse.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(listResponse.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-local-proxy-id");
+
+            DescribeClientResponse describeResponse = stub.describeClient(DescribeClientRequest.newBuilder()
+                .setClientId("client-local-proxy-id")
+                .setScope(ProxyScope.PROXY_SCOPE_LOCAL_PROXY)
+                .setProxyId("future-proxy")
+                .build());
+            assertThat(describeResponse.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(describeResponse.getClient().getClientId()).isEqualTo("client-local-proxy-id");
+
+            apache.rocketmq.v2.ListClientsByGroupResponse groupResponse = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setGroup("group-local-proxy-id")
+                    .setScope(ProxyScope.PROXY_SCOPE_LOCAL_PROXY)
+                    .setProxyId("future-proxy")
+                    .setPageNum(1)
+                    .setPageSize(100)
+                    .build());
+            assertThat(groupResponse.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(groupResponse.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-local-proxy-id");
+
+            apache.rocketmq.v2.ListClientsByTopicResponse topicResponse = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setTopic("topic-local-proxy-id")
+                    .setScope(ProxyScope.PROXY_SCOPE_LOCAL_PROXY)
+                    .setProxyId("future-proxy")
+                    .setPageNum(1)
+                    .setPageSize(100)
+                    .build());
+            assertThat(topicResponse.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(topicResponse.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-local-proxy-id");
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void publicServiceRejectsNonLocalM1ScopeForEveryRpc() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;

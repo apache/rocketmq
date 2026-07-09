@@ -165,8 +165,10 @@ generated gRPC 证据后刷新；随后又在新增 `BAD_REQUEST` 和 `UNAUTHORI
 `pageNum` / `pageSize` 时所有 list-style RPC 均返回第一页 100 个 client 的
 generated gRPC 证据后刷新；随后又在新增 `ListClientsByGroup` 和
 `ListClientsByTopic` 同时支持精确 `client_id` 过滤并将 public `pageSize`
-大于 100 的请求 capped 到 100 的 generated gRPC 证据后刷新 broad proxy admin
-验证。Package smoke 已在同一 HEAD 上刷新。
+大于 100 的请求 capped 到 100 的 generated gRPC 证据后刷新；随后又在新增
+explicit `LOCAL_PROXY` 下四个 RPC 均忽略 reserved `proxy_id` 字段的
+generated gRPC 证据后刷新 broad proxy admin 验证。Package smoke 已在同一
+HEAD 上刷新。
 
 Focused generated public API verification：
 
@@ -180,9 +182,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 49, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:10:24+08:00
+Finished at: 2026-07-10T03:19:23+08:00
 ```
 
 Broad proxy admin verification：
@@ -197,9 +199,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 720, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 721, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:11:33+08:00
+Finished at: 2026-07-10T03:20:41+08:00
 ```
 
 Package smoke：
@@ -213,7 +215,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T03:12:45+08:00
+Finished at: 2026-07-10T03:21:48+08:00
 ```
 
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
@@ -297,7 +299,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 720, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 721, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
