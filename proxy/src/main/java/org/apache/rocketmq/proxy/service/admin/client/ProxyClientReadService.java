@@ -146,7 +146,7 @@ public class ProxyClientReadService {
     }
 
     private NavigableSet<String> getCandidateClientIds(ProxyClientQuery query) {
-        List<NavigableSet<String>> candidateIndexes = new ArrayList<>(4);
+        List<NavigableSet<String>> candidateIndexes = new ArrayList<>(8);
         if (StringUtils.isNotBlank(query.getClientId())) {
             candidateIndexes.add(this.getClientIdCandidate(query.getClientId()));
         }
@@ -174,6 +174,9 @@ public class ProxyClientReadService {
         }
         if (candidateIndexes.isEmpty()) {
             return this.clientIdIndex;
+        }
+        if (candidateIndexes.size() == 1) {
+            return candidateIndexes.get(0);
         }
 
         NavigableSet<String> smallestCandidateIndex = this.smallestCandidateIndex(candidateIndexes);
@@ -215,6 +218,13 @@ public class ProxyClientReadService {
             rangeIndex = this.connectTimeIndex.headMap(connectTimeEndMillis, true);
         }
 
+        if (rangeIndex.isEmpty()) {
+            return new TreeSet<>();
+        }
+        if (rangeIndex.size() == 1) {
+            return rangeIndex.firstEntry().getValue();
+        }
+
         NavigableSet<String> clientIds = new TreeSet<>();
         for (NavigableSet<String> indexedClientIds : rangeIndex.values()) {
             clientIds.addAll(indexedClientIds);
@@ -237,7 +247,7 @@ public class ProxyClientReadService {
         if (clientIds == null) {
             return new TreeSet<>();
         }
-        return new TreeSet<>(clientIds);
+        return clientIds;
     }
 
     private void addIndexes(ProxyClientInfo clientInfo) {

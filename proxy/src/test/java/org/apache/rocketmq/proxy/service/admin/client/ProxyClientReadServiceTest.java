@@ -18,10 +18,15 @@
 package org.apache.rocketmq.proxy.service.admin.client;
 
 import apache.rocketmq.v2.ClientType;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Test;
@@ -253,6 +258,26 @@ public class ProxyClientReadServiceTest {
         assertThat(clientIds(service.listClients(ProxyClientQuery.newBuilder()
             .setConnectTimeEndMillis(200L)
             .build()).getClients())).containsExactly("client-a", "client-b");
+    }
+
+    @Test
+    public void singleFilterQueriesReuseExistingIndexesForPageBoundedReads() throws Exception {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 100L, 200L));
+        service.upsertClient(client("client-b", ClientType.PRODUCER, set("group-a"), set("topic-b"),
+            "JAVA", "proxy-a", 100L, 200L));
+
+        Map<String, NavigableSet<String>> clientLanguageIndex = fieldValue(service, "clientLanguageIndex");
+        NavigableMap<Long, NavigableSet<String>> connectTimeIndex = fieldValue(service, "connectTimeIndex");
+
+        assertThat(candidateClientIds(service, ProxyClientQuery.newBuilder()
+            .setClientLanguage("JAVA")
+            .build())).isSameAs(clientLanguageIndex.get("JAVA"));
+        assertThat(candidateClientIds(service, ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(100L)
+            .build())).isSameAs(connectTimeIndex.get(100L));
     }
 
     @Test
@@ -587,6 +612,22 @@ public class ProxyClientReadServiceTest {
 
     private static Set<String> set(String... values) {
         return new HashSet<>(Arrays.asList(values));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T fieldValue(Object target, String fieldName) throws Exception {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return (T) field.get(target);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static NavigableSet<String> candidateClientIds(ProxyClientReadService service,
+        ProxyClientQuery query) throws Exception {
+        Method method = ProxyClientReadService.class.getDeclaredMethod("getCandidateClientIds",
+            ProxyClientQuery.class);
+        method.setAccessible(true);
+        return (NavigableSet<String>) method.invoke(service, query);
     }
 
     private static List<String> clientIds(List<ProxyClientInfo> clients) {
