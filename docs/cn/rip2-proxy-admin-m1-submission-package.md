@@ -4,10 +4,10 @@
 
 本文汇总 `rip2-proxy-admin-m1` 分支，可用于最终 PR、issue comment 或比赛提交。
 
-本次最终提交包更新前的最新已提交实现 checkpoint：
+post-plan PR 链接更新前的最新已提交实现 checkpoint：
 
 ```text
-63501b87df992c452ec527f8e74f7e3ce33c5cb5 Exclude generated test sources from checkstyle
+b1eb7d4b0b7fc77715535718e1d4d0250fe8abeb Document RIP-2 API proposal PR
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -24,9 +24,11 @@ commit 为 `c372905ce927cf8957333e7ac07877f295fd7ec9`。为了完成参赛验证
 
 Public API proposal 也已创建为 draft PR
 [apache/rocketmq-apis#112](https://github.com/apache/rocketmq-apis/pull/112)。
-当前 RocketMQ 实现分支依赖从该 proposal 本地生成并安装的
-`rocketmq-proto:2.2.0-rip2-SNAPSHOT`，因此 RocketMQ 主实现 PR 应在 API
-归属和 artifact 发布路径明确后再进入上游 CI。
+RocketMQ 实现也已创建为 draft PR
+[apache/rocketmq#10603](https://github.com/apache/rocketmq/pull/10603)，用于
+proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成并安装的
+`rocketmq-proto:2.2.0-rip2-SNAPSHOT`，因此在 API 归属和 artifact 发布路径
+明确前仍不应作为可直接合并的上游 CI PR 处理。
 
 ## 要求对照
 
@@ -258,7 +260,8 @@ The authoritative public proto is published in
 verification this branch depends on local
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` generated from that
 proto. Draft PR https://github.com/apache/rocketmq-apis/pull/112 tracks the
-upstream API review.
+upstream API review. Draft PR https://github.com/apache/rocketmq/pull/10603
+tracks the downstream RocketMQ implementation review.
 
 ## Tests
 
@@ -303,6 +306,7 @@ The branch is ready for community review of the proxy-side foundation:
 The public API source is published at
 https://github.com/pilichoumao/rocketmq-apis/tree/rip2-proxy-admin-public-api.
 The API proposal draft PR is https://github.com/apache/rocketmq-apis/pull/112.
+The RocketMQ implementation draft PR is https://github.com/apache/rocketmq/pull/10603.
 The remaining community question is whether Apache accepts the proposed service
 name, field names, field numbers, and upstream publication path.
 ```

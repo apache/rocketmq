@@ -1672,3 +1672,14 @@ Spec coverage:
 - OpenTelemetry / observability: existing metered service and broad verification remain required.
 
 No task should reimplement the read model, lifecycle hooks, ACL policy, or internal cross-proxy coordinator. Those are already present and covered. The plan only closes the official public API and submission gap.
+
+## Post-Plan Community Review Artifacts
+
+- [x] Public API draft PR opened: https://github.com/apache/rocketmq-apis/pull/112
+- [x] RocketMQ implementation draft PR opened: https://github.com/apache/rocketmq/pull/10603
+
+The RocketMQ implementation draft PR is intentionally marked draft because it
+depends on the local contest artifact
+`org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT`, generated from the
+companion `rocketmq-apis` proposal branch. It should remain downstream of the
+API ownership and artifact publication decision.

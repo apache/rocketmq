@@ -6,10 +6,10 @@ This package summarizes the `rip2-proxy-admin-m1` branch for the RIP-2 Proxy
 Admin online client query contest task. It is meant to be copied into the final
 PR, issue comment, or contest submission.
 
-Latest committed implementation checkpoint before this final submission update:
+Latest committed implementation checkpoint before the post-plan PR-link update:
 
 ```text
-63501b87df992c452ec527f8e74f7e3ce33c5cb5 Exclude generated test sources from checkstyle
+b1eb7d4b0b7fc77715535718e1d4d0250fe8abeb Document RIP-2 API proposal PR
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -27,8 +27,10 @@ verification, the generated Java artifact is installed locally as
 
 The public API proposal is also opened as draft PR
 [apache/rocketmq-apis#112](https://github.com/apache/rocketmq-apis/pull/112).
-The RocketMQ implementation PR should stay downstream of that API decision
-because this branch currently compiles against the local
+The RocketMQ implementation is opened as draft PR
+[apache/rocketmq#10603](https://github.com/apache/rocketmq/pull/10603) for
+proxy-side review. It remains downstream of the API decision because this
+branch currently compiles against the local
 `rocketmq-proto:2.2.0-rip2-SNAPSHOT` artifact generated from the proposal.
 
 ## Requirement Matrix
@@ -266,7 +268,8 @@ The authoritative public proto is published in
 verification this branch depends on local
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` generated from that
 proto. Draft PR https://github.com/apache/rocketmq-apis/pull/112 tracks the
-upstream API review.
+upstream API review. Draft PR https://github.com/apache/rocketmq/pull/10603
+tracks the downstream RocketMQ implementation review.
 
 ## Tests
 
@@ -311,6 +314,7 @@ The branch is ready for community review of the proxy-side foundation:
 The public API source is published at
 https://github.com/pilichoumao/rocketmq-apis/tree/rip2-proxy-admin-public-api.
 The API proposal draft PR is https://github.com/apache/rocketmq-apis/pull/112.
+The RocketMQ implementation draft PR is https://github.com/apache/rocketmq/pull/10603.
 The remaining community question is whether Apache accepts the proposed service
 name, field names, field numbers, and upstream publication path.
 ```
