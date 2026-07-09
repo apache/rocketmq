@@ -247,6 +247,25 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(any("public API draft proto mirror" in error for error in errors))
 
+    def test_guard_reports_unbalanced_required_markdown_fences(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(root / "docs/en/rip2-proxy-admin-m1-submission-package.md", "```bash\nunterminated\n")
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("unbalanced markdown code fences" in error for error in errors))
+
     def test_guard_can_verify_public_github_review_artifacts(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)

@@ -275,6 +275,13 @@ def check_submission_evidence(root, errors):
                 errors.append(f"stale focused verification evidence remains: {token}")
 
 
+def check_required_markdown_fences(root, errors):
+    for rel in REQUIRED_DOCS:
+        text = read_text(root / rel, errors)
+        if text.count("```") % 2 != 0:
+            errors.append(f"unbalanced markdown code fences in {rel}")
+
+
 def check_source_wiring(root, errors):
     app_text = read_text(
         root / "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplication.java",
@@ -342,6 +349,7 @@ def run_checks(
     check_proto(root, apis_root, errors)
     check_generated_artifact(m2_repository, errors)
     check_submission_evidence(root, errors)
+    check_required_markdown_fences(root, errors)
     check_source_wiring(root, errors)
     if check_github:
         check_github_artifacts(root, apis_root, errors, command_runner=command_runner)
