@@ -4,17 +4,21 @@
 
 本文汇总 `rip2-proxy-admin-m1` 分支，可用于最终 PR、issue comment 或比赛提交。
 
-当前远端分支 HEAD 由 draft PR 和 RIP-2 issue comment 维护，因为本文档本身
-可能会随着证据刷新继续提交。已同步到远端的最新 RocketMQ 代码实现
-checkpoint：
+已同步到远端的最新 RocketMQ 实现分支 HEAD：
+
+```text
+573c716e136845dbd42669d78fd725a18d845435 Cover proxy admin grpc service descriptor
+```
+
+最新 generated public gRPC endpoint 1M benchmark 代码 checkpoint：
 
 ```text
 7b89ba60fca2a18859519f7b2b822f73c2f4ed2c Add proxy admin public grpc benchmark
 ```
 
-该 checkpoint 后，live draft PR 和 RIP-2 issue summary 已同步 generated public
-gRPC endpoint 1M benchmark、`728` tests broad verification 结果和最新实现分支
-代码 checkpoint。
+live draft PR 和 RIP-2 issue summary 已同步到上述分支 HEAD，包含 generated
+public gRPC endpoint 1M benchmark、`728` tests broad verification、Dashboard
+表格/详情字段证据，以及 generated service descriptor verification 证据。
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
 生成版公开 endpoint：read model、客户端生命周期写入、service 层、参数校验、
@@ -47,7 +51,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
-| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、bad-request contract mapping、not found 语义，以及 Dashboard-facing `ListClients` 表格字段和 `DescribeClient` 详情字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。 |
+| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖 public service descriptor、四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、bad-request contract mapping、not found 语义，以及 Dashboard-facing `ListClients` 表格字段和 `DescribeClient` 详情字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。 |
 | 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model 和 generated public gRPC endpoint P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、Dashboard integration contract、public API discussion、benchmark report、smoke guide、review runbook、acceptance audit 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`、`docs/en/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`docs/cn/rip2-proxy-admin-public-api-discussion.md`。 |
 

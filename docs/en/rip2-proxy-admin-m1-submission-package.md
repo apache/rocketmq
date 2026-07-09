@@ -6,17 +6,22 @@ This package summarizes the `rip2-proxy-admin-m1` branch for the RIP-2 Proxy
 Admin online client query contest task. It is meant to be copied into the final
 PR, issue comment, or contest submission.
 
-The current remote branch head is maintained in the draft PRs and RIP-2 issue
-comment because this file may itself change when evidence is refreshed. The
-latest synchronized RocketMQ implementation-code checkpoint is:
+The latest synchronized RocketMQ implementation branch head is:
+
+```text
+573c716e136845dbd42669d78fd725a18d845435 Cover proxy admin grpc service descriptor
+```
+
+The latest generated public gRPC endpoint 1M benchmark code checkpoint is:
 
 ```text
 7b89ba60fca2a18859519f7b2b822f73c2f4ed2c Add proxy admin public grpc benchmark
 ```
 
-The live draft PRs and RIP-2 issue summary were refreshed after that checkpoint
-to include the generated public gRPC endpoint 1M benchmark, the `728`-test broad
-verification result, and the latest implementation-code checkpoint.
+The live draft PRs and RIP-2 issue summary have been refreshed through the
+branch head above to include the generated public gRPC endpoint 1M benchmark,
+the `728`-test broad verification result, Dashboard table/detail field evidence,
+and the generated service descriptor verification evidence.
 
 The branch implements the proxy-side foundation and generated public endpoint
 for `ProxyAdminService` online-client queries: read model, lifecycle writes,
@@ -50,7 +55,7 @@ branch currently compiles against the local
 | ACL | Implemented with logical resource `proxy.admin.client`; list RPCs use `LIST`, describe uses `GET`. | `ClientAdminAuthPolicyTest`, `DefaultClientAdminAuthorizationServiceTest`, `AuthorizingClientAdminServiceTest`. |
 | Independent admin execution | Implemented admin query executor and dedicated admin gRPC server registration. | `ProxyClientAdminEndpointExecutor`, `ProxyStartup`, `GrpcProxyAdminWiringTest`, `ProxyStartupTest`. |
 | Observability | Implemented metrics, trace attributes, and structured failure logs with low-cardinality labels. | `ProxyMetricsManagerTest`, `MeteredClientAdminServiceTest`, `MeteredAuthorizingClientAdminServiceTest`, `ProxyClientAdminObservabilityTest`. |
-| E2E / integration coverage | Generated public gRPC Server/Channel tests cover all four RPCs, official filters, public pagination/hasMore, omitted public pagination defaults, non-local scope rejection across every public RPC, `PROXY_SCOPE_PROXY_ID` rejection before proxy-id validation, bad-request contract mapping, not found semantics, and Dashboard-facing `ListClients` table plus `DescribeClient` detail fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`, `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`. |
+| E2E / integration coverage | Generated public gRPC Server/Channel tests cover the public service descriptor, all four RPCs, official filters, public pagination/hasMore, omitted public pagination defaults, non-local scope rejection across every public RPC, `PROXY_SCOPE_PROXY_ID` rejection before proxy-id validation, bad-request contract mapping, not found semantics, and Dashboard-facing `ListClients` table plus `DescribeClient` detail fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`, `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`. |
 | 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. All local read-model and generated public gRPC endpoint P99 values are below 1 second. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
 | English and Chinese docs | Completed for user guide, Dashboard integration contract, public API discussion, benchmark report, smoke guide, review runbook, acceptance audit, and submission package. | `docs/en/rip2-proxy-admin-m1-user-guide.md`, `docs/cn/rip2-proxy-admin-m1-user-guide.md`, `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`, `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`, `docs/en/rip2-proxy-admin-public-api-discussion.md`, `docs/cn/rip2-proxy-admin-public-api-discussion.md`. |
 

@@ -1699,6 +1699,11 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `GrpcProxyAdminApplicationTest#bindServiceExposesGeneratedProxyAdminUnaryMethods`
   fixes the generated service name `apache.rocketmq.v2.ProxyAdminService`,
   all four public method names, and unary method descriptors.
+- [x] Submission package head evidence refreshed:
+  `docs/en/rip2-proxy-admin-m1-submission-package.md` and
+  `docs/cn/rip2-proxy-admin-m1-submission-package.md` now distinguish the
+  latest pushed implementation head `573c716e136845dbd42669d78fd725a18d845435`
+  from the earlier 1M benchmark code checkpoint `7b89ba60fca2a18859519f7b2b822f73c2f4ed2c`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact
