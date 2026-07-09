@@ -4,6 +4,11 @@
 命令假设当前工作目录是 `rocketmq` 仓库根目录，配套 API 仓库位于
 `../rocketmq-apis`。
 
+相关 public API 讨论文档：
+
+- `docs/en/rip2-proxy-admin-public-api-discussion.md`
+- `docs/cn/rip2-proxy-admin-public-api-discussion.md`
+
 ## 1. 前置依赖
 
 使用 JDK 17、Maven、Bazel、Git 和 `rg`。运行 Maven 前请确保 JDK 17 是

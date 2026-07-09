@@ -5,6 +5,11 @@ This runbook lets a reviewer reproduce the generated public
 current working directory is the `rocketmq` repository root and the companion
 API checkout is available at `../rocketmq-apis`.
 
+Related public API discussion docs:
+
+- `docs/en/rip2-proxy-admin-public-api-discussion.md`
+- `docs/cn/rip2-proxy-admin-public-api-discussion.md`
+
 ## 1. Prerequisites
 
 Use JDK 17, Maven, Bazel, Git, and `rg`. Ensure JDK 17 is the active Java on

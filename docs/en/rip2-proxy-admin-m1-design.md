@@ -115,7 +115,8 @@ The mirrored API sketch is captured in
 for generated stubs is the sibling `rocketmq-apis` branch.
 
 A community-ready discussion draft is captured in
-`docs/en/rip2-proxy-admin-public-api-discussion.md`. It summarizes the proposed
+`docs/en/rip2-proxy-admin-public-api-discussion.md` and
+`docs/cn/rip2-proxy-admin-public-api-discussion.md`. It summarizes the proposed
 standalone service, M1 local-only behavior, page-token contract, endpoint
 implementation shape, compatibility notes, and open questions for the
 `rocketmq-apis` ownership decision.

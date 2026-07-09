@@ -46,7 +46,7 @@ branch currently compiles against the local
 | Observability | Implemented metrics, trace attributes, and structured failure logs with low-cardinality labels. | `ProxyMetricsManagerTest`, `MeteredClientAdminServiceTest`, `MeteredAuthorizingClientAdminServiceTest`, `ProxyClientAdminObservabilityTest`. |
 | E2E / integration coverage | Generated public gRPC Server/Channel tests cover all four RPCs, filtering, scope rejection, bad-request contract mapping, default pagination, not found semantics, and Dashboard-facing client view fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`. |
 | 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. All local read-model P99 values are below 1 second. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
-| English and Chinese docs | Completed for user guide, benchmark report, and submission package. | `docs/en/rip2-proxy-admin-m1-user-guide.md`, `docs/cn/rip2-proxy-admin-m1-user-guide.md`. |
+| English and Chinese docs | Completed for user guide, public API discussion, benchmark report, smoke guide, review runbook, acceptance audit, and submission package. | `docs/en/rip2-proxy-admin-m1-user-guide.md`, `docs/cn/rip2-proxy-admin-m1-user-guide.md`, `docs/en/rip2-proxy-admin-public-api-discussion.md`, `docs/cn/rip2-proxy-admin-public-api-discussion.md`. |
 
 ## API Summary
 

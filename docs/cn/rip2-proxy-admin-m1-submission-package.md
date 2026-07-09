@@ -43,7 +43,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
 | E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、过滤、scope 拒绝、bad-request contract mapping、默认分页、not found 语义和 Dashboard-facing client view 字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
 | 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
-| 中英文文档 | 已完成 user guide、benchmark report 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`。 |
+| 中英文文档 | 已完成 user guide、public API discussion、benchmark report、smoke guide、review runbook、acceptance audit 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`docs/cn/rip2-proxy-admin-public-api-discussion.md`。 |
 
 ## API 摘要
 
