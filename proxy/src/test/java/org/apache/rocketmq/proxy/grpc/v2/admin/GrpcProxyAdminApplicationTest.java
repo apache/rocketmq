@@ -486,6 +486,111 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void listClientsByGroupAndTopicHonorContestFiltersAndPaginationThroughGeneratedGrpcService()
+        throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            readService(activity).upsertClient(client("shared-alpha-1", ClientType.PRODUCER, "group-a",
+                "topic-a", "JAVA", 100L));
+            readService(activity).upsertClient(client("shared-alpha-2", ClientType.PRODUCER, "group-a",
+                "topic-a", "JAVA", 200L));
+            readService(activity).upsertClient(client("shared-beta-1", ClientType.PRODUCER, "group-a",
+                "topic-a", "CPP", 100L));
+            readService(activity).upsertClient(client("shared-alpha-other", ClientType.PRODUCER, "group-b",
+                "topic-b", "JAVA", 100L));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            apache.rocketmq.v2.ListClientsByGroupResponse firstGroupPage = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setGroup("group-a")
+                    .setClientIdPrefix("shared-alpha")
+                    .setClientLanguage("JAVA")
+                    .setConnectTimeStartMillis(50L)
+                    .setConnectTimeEndMillis(250L)
+                    .setPageNum(1)
+                    .setPageSize(1)
+                    .build());
+
+            assertThat(firstGroupPage.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(firstGroupPage.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("shared-alpha-1");
+            assertThat(firstGroupPage.getHasMore()).isTrue();
+
+            apache.rocketmq.v2.ListClientsByGroupResponse secondGroupPage = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setGroup("group-a")
+                    .setClientIdPrefix("shared-alpha")
+                    .setClientLanguage("JAVA")
+                    .setConnectTimeStartMillis(50L)
+                    .setConnectTimeEndMillis(250L)
+                    .setPageNum(2)
+                    .setPageSize(1)
+                    .build());
+
+            assertThat(secondGroupPage.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(secondGroupPage.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("shared-alpha-2");
+            assertThat(secondGroupPage.getHasMore()).isFalse();
+
+            apache.rocketmq.v2.ListClientsByTopicResponse firstTopicPage = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setTopic("topic-a")
+                    .setClientIdPrefix("shared-alpha")
+                    .setClientLanguage("JAVA")
+                    .setConnectTimeStartMillis(50L)
+                    .setConnectTimeEndMillis(250L)
+                    .setPageNum(1)
+                    .setPageSize(1)
+                    .build());
+
+            assertThat(firstTopicPage.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(firstTopicPage.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("shared-alpha-1");
+            assertThat(firstTopicPage.getHasMore()).isTrue();
+
+            apache.rocketmq.v2.ListClientsByTopicResponse secondTopicPage = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setTopic("topic-a")
+                    .setClientIdPrefix("shared-alpha")
+                    .setClientLanguage("JAVA")
+                    .setConnectTimeStartMillis(50L)
+                    .setConnectTimeEndMillis(250L)
+                    .setPageNum(2)
+                    .setPageSize(1)
+                    .build());
+
+            assertThat(secondTopicPage.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(secondTopicPage.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("shared-alpha-2");
+            assertThat(secondTopicPage.getHasMore()).isFalse();
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void describeMissingClientReturnsNotFoundStatus() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
