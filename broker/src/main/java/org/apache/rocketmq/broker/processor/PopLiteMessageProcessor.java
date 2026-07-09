@@ -165,16 +165,18 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
     }
 
     /**
-     * Validate the Pop Lite request before any actual Pop work is done.
-     * Returns a ready-to-send error {@link RemotingCommand} when the
-     * request must be rejected, or {@code null} when the request
-     * passes all checks and Pop may proceed.
+     * Validate the Pop Lite request:
+     * Returns a ready-to-send error {@link RemotingCommand} when failed,
+     * or {@code null} when passes all checks and Pop may proceed.
      *
-     * <p>The checks are layered as: timeout / broker permission /
-     * batch-size cap, then topic existence and readability, then
-     * topic message type must be {@link TopicMessageType#LITE}, and
-     * finally the subscription group exists, is enabled, and its
-     * {@code liteBindTopic} matches the requested topic.
+     * <p>The checks are layered as:
+     * - timeout
+     * - broker permission
+     * - batch-size cap
+     * - topic existence and readability
+     * - topic message type must be {@link TopicMessageType#LITE}
+     * - the subscription group exists, is enabled,
+     *   and its {@code liteBindTopic} matches the requested topic.
      */
     @VisibleForTesting
     public RemotingCommand preCheck(ChannelHandlerContext ctx,
