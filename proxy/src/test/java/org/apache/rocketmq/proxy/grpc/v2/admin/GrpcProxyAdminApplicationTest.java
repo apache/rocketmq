@@ -161,6 +161,53 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void describeClientReturnsDefaultValuesForSparseClientMetadata() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            readService(activity).upsertClient(sparseClient("client-sparse"));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            DescribeClientResponse response = stub.describeClient(DescribeClientRequest.newBuilder()
+                .setClientId("client-sparse")
+                .build());
+
+            assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+            ProxyClient client = response.getClient();
+            assertThat(client.getClientId()).isEqualTo("client-sparse");
+            assertThat(client.getClientType()).isEqualTo(ClientType.CLIENT_TYPE_UNSPECIFIED);
+            assertThat(client.getGroupsList()).isEmpty();
+            assertThat(client.getTopicsList()).isEmpty();
+            assertThat(client.getLanguage()).isEmpty();
+            assertThat(client.getRemoteAddress()).isEmpty();
+            assertThat(client.getLocalAddress()).isEmpty();
+            assertThat(client.getVersion()).isEmpty();
+            assertThat(client.getConnectTimeMillis()).isEqualTo(300L);
+            assertThat(client.getLastActiveTimeMillis()).isEqualTo(400L);
+            assertThat(client.getProxyId()).isEmpty();
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void publicServiceRejectsNonLocalM1ScopeForEveryRpc() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
@@ -497,6 +544,22 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
             "proxy-a",
             connectTimeMillis,
             connectTimeMillis + 100L
+        );
+    }
+
+    private static ProxyClientInfo sparseClient(String clientId) {
+        return new ProxyClientInfo(
+            clientId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            300L,
+            400L
         );
     }
 }
