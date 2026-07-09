@@ -89,7 +89,7 @@ from client-facing messaging RPCs.
 The public contest-facing method names should follow the RIP-2 tracking issue:
 `ListClients`, `DescribeClient`, `ListClientsByGroup`, and
 `ListClientsByTopic`. These names now match the internal service boundary used
-by this branch, so the future generated endpoint adapter can stay thin and avoid
+by this branch, so the generated endpoint adapter stays thin and avoids
 renaming logic around the read model.
 
 The first public API should accept only `LOCAL_PROXY` unless the community also
@@ -181,7 +181,7 @@ internal adapter remains the tested boundary that the public endpoint calls:
   gRPC endpoint while keeping the internal service API simple.
 - `ProxyClientAdminClientView` and `ProxyClientAdminPageView` are public-facing
   response views. They avoid exposing the mutable internal read-model classes as
-  the eventual protobuf adapter contract. The views require a nonblank client
+  the generated protobuf adapter contract. The views require a nonblank client
   id, reject overlong ids and reserved coordinator page-token prefixes, reject
   null client entries in pages, snapshot collections, trim nullable
   string metadata to empty public strings, cap response `proxyId` values at
@@ -250,7 +250,7 @@ internal adapter remains the tested boundary that the public endpoint calls:
   `PROXY_SCOPE_ALL_PROXIES` and `PROXY_SCOPE_PROXY_ID` into the internal request
   model, rejects unprefixed internal enum names at the public adapter boundary,
   and rejects unknown scope names before they reach the service layer.
-- `ProxyClientAdminEndpointHandler` centralizes the future unary endpoint
+- `ProxyClientAdminEndpointHandler` centralizes the unary endpoint
   response flow: execute an activity action, convert thrown exceptions through
   `ResponseBuilder`, build a response from `Status` and optional body, and write
   it through `ResponseWriter`. Handler-level action and response-conversion
@@ -415,14 +415,14 @@ future `PROXY_ID` support. The protobuf default `CLIENT_TYPE_UNSPECIFIED` is
 normalized to no client type filter, while `UNRECOGNIZED` client type values
 are rejected as `BAD_REQUEST`.
 
-The future generated endpoint should only translate protobuf messages to these
-DTOs, call `ProxyClientAdminActivity`, and translate the result view back to a
-protobuf response. Authorization, error mapping, metrics, pagination bounds, and
-read-model queries should remain behind the existing activity/service boundary.
-The generated unary methods should use `ProxyClientAdminEndpointHandler` for
-the common result-to-`StreamObserver` flow and should use
-`ProxyClientAdminEndpointExecutor` when they need the shared request conversion
-and context-pipeline boundary. Request adapter failures are returned as status
+The generated endpoint translates protobuf messages to these DTOs, calls
+`ProxyClientAdminActivity`, and translates the result view back to a protobuf
+response. Authorization, error mapping, metrics, pagination bounds, and
+read-model queries remain behind the existing activity/service boundary. The
+generated unary methods use `ProxyClientAdminEndpointHandler` for the common
+result-to-`StreamObserver` flow and use `ProxyClientAdminEndpointExecutor` when
+they need the shared request conversion and context-pipeline boundary. Request
+adapter failures are returned as status
 responses before `ProxyClientAdminContextFactory` is invoked. Response factories
 must return a non-null response; a null response is treated as an internal
 adapter error and mapped through the same status response path. Non-`OK` results
@@ -963,7 +963,7 @@ admin request context from `ProxyContext`. The source IP used for ACL is
 normalized from the gRPC remote address by parsing the host portion, including
 bracketed IPv6 host-and-port values, matching the existing remoting-side source
 address intent. The admin pipeline intentionally does not run generic messaging
-authorization; this lets the future public adapter reject unsupported M1 scopes
+authorization; this lets the generated public adapter reject unsupported M1 scopes
 before ACL, then authorize once through `AuthorizingClientAdminService` before
 delegating to read-model queries while keeping the first admin surface
 consistent with existing management actions. When authorization is enabled, a
