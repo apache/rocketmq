@@ -220,14 +220,13 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
 
     protected void renewMessageBatch(ProxyContext context, ReceiptHandleGroupKey key, ReceiptHandleGroup group,
         List<RenewMessage> renewMessageList) {
-        Map<String, List<RenewEventData>> eventDataMap = new HashMap<>();
+        List<RenewEventData> eventDataList = new ArrayList<>();
         for (RenewMessage renewMessage : renewMessageList) {
             try {
                 group.computeIfPresent(renewMessage.getMsgID(), renewMessage.getHandleStr(), messageReceiptHandle -> {
                     RenewEventData renewEventData = prepareRenewMessage(context, key, messageReceiptHandle);
                     if (renewEventData.getEventType() != null) {
-                        String batchKey = renewEventData.getEventType().name() + "@" + renewEventData.getRenewTime();
-                        eventDataMap.computeIfAbsent(batchKey, ignore -> new ArrayList<>()).add(renewEventData);
+                        eventDataList.add(renewEventData);
                     }
                     return renewEventData.getResultFuture();
                 }, 0);
@@ -236,15 +235,17 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             }
         }
 
-        for (List<RenewEventData> renewEventDataList : eventDataMap.values()) {
-            List<MessageReceiptHandle> handleList = new ArrayList<>(renewEventDataList.size());
-            List<CompletableFuture<AckResult>> futureList = new ArrayList<>(renewEventDataList.size());
-            for (RenewEventData renewEventData : renewEventDataList) {
+        if (!eventDataList.isEmpty()) {
+            List<MessageReceiptHandle> handleList = new ArrayList<>(eventDataList.size());
+            List<Long> renewTimeList = new ArrayList<>(eventDataList.size());
+            List<CompletableFuture<AckResult>> futureList = new ArrayList<>(eventDataList.size());
+            for (RenewEventData renewEventData : eventDataList) {
                 handleList.add(renewEventData.getMessageReceiptHandle());
+                renewTimeList.add(renewEventData.getRenewTime());
                 futureList.add(renewEventData.getAckFuture());
             }
-            RenewEventData first = renewEventDataList.get(0);
-            eventListener.fireEvent(new RenewEvent(key, handleList, first.getRenewTime(), first.getEventType(), futureList));
+            eventListener.fireEvent(new RenewEvent(key, handleList, renewTimeList,
+                eventDataList.get(0).getEventType(), futureList));
         }
     }
 
@@ -324,9 +325,9 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         if (proxyConfig.isEnableBatchChangeInvisibleTime()) {
             fireClearGroupEventBatch(key, handleGroup, proxyConfig);
         } else {
-            handleGroup.scan((msgID, handle, v) -> {
+            handleGroup.scan((msgId, handle, v) -> {
                 try {
-                    handleGroup.computeIfPresent(msgID, handle, messageReceiptHandle -> {
+                    handleGroup.computeIfPresent(msgId, handle, messageReceiptHandle -> {
                         CompletableFuture<AckResult> future = new CompletableFuture<>();
                         eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle,
                             proxyConfig.getInvisibleTimeMillisWhenClear(), RenewEvent.EventType.CLEAR_GROUP, future));
@@ -360,7 +361,12 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             }
         });
         if (!handleList.isEmpty()) {
-            eventListener.fireEvent(new RenewEvent(key, handleList, proxyConfig.getInvisibleTimeMillisWhenClear(),
+            long clearInvisibleTime = proxyConfig.getInvisibleTimeMillisWhenClear();
+            List<Long> renewTimeList = new ArrayList<>(handleList.size());
+            for (int i = 0; i < handleList.size(); i++) {
+                renewTimeList.add(clearInvisibleTime);
+            }
+            eventListener.fireEvent(new RenewEvent(key, handleList, renewTimeList,
                 RenewEvent.EventType.CLEAR_GROUP, futureList));
         }
     }

@@ -27,6 +27,7 @@ public class RenewEvent {
     protected MessageReceiptHandle messageReceiptHandle;
     protected List<MessageReceiptHandle> messageReceiptHandleList;
     protected long renewTime;
+    protected List<Long> renewTimeList;
     protected EventType eventType;
     protected CompletableFuture<AckResult> future;
     protected List<CompletableFuture<AckResult>> futureList;
@@ -43,18 +44,20 @@ public class RenewEvent {
         this.messageReceiptHandle = messageReceiptHandle;
         this.messageReceiptHandleList = Collections.singletonList(messageReceiptHandle);
         this.renewTime = renewTime;
+        this.renewTimeList = Collections.singletonList(renewTime);
         this.eventType = eventType;
         this.future = future;
         this.futureList = Collections.singletonList(future);
     }
 
-    public RenewEvent(ReceiptHandleGroupKey key, List<MessageReceiptHandle> messageReceiptHandleList, long renewTime,
-        EventType eventType, List<CompletableFuture<AckResult>> futureList) {
+    public RenewEvent(ReceiptHandleGroupKey key, List<MessageReceiptHandle> messageReceiptHandleList,
+        List<Long> renewTimeList, EventType eventType, List<CompletableFuture<AckResult>> futureList) {
         this.key = key;
         this.messageReceiptHandleList = messageReceiptHandleList;
         this.messageReceiptHandle = messageReceiptHandleList == null || messageReceiptHandleList.isEmpty() ?
             null : messageReceiptHandleList.get(0);
-        this.renewTime = renewTime;
+        this.renewTimeList = renewTimeList;
+        this.renewTime = renewTimeList == null || renewTimeList.isEmpty() ? 0 : renewTimeList.get(0);
         this.eventType = eventType;
         this.futureList = futureList;
         this.future = futureList == null || futureList.isEmpty() ? null : futureList.get(0);
@@ -74,6 +77,10 @@ public class RenewEvent {
 
     public long getRenewTime() {
         return renewTime;
+    }
+
+    public List<Long> getRenewTimeList() {
+        return renewTimeList;
     }
 
     public EventType getEventType() {

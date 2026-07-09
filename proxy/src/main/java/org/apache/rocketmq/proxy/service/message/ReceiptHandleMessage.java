@@ -24,15 +24,21 @@ public class ReceiptHandleMessage {
     private final ReceiptHandle receiptHandle;
     private final String messageId;
     private final String liteTopic;
+    private final long invisibleTime;
 
     public ReceiptHandleMessage(ReceiptHandle receiptHandle, String messageId) {
-        this(receiptHandle, messageId, null);
+        this(receiptHandle, messageId, null, -1);
     }
 
     public ReceiptHandleMessage(ReceiptHandle receiptHandle, String messageId, String liteTopic) {
+        this(receiptHandle, messageId, liteTopic, -1);
+    }
+
+    public ReceiptHandleMessage(ReceiptHandle receiptHandle, String messageId, String liteTopic, long invisibleTime) {
         this.receiptHandle = receiptHandle;
         this.messageId = messageId;
         this.liteTopic = liteTopic;
+        this.invisibleTime = invisibleTime;
     }
 
     public ReceiptHandle getReceiptHandle() {
@@ -45,5 +51,9 @@ public class ReceiptHandleMessage {
 
     public String getLiteTopic() {
         return liteTopic;
+    }
+
+    public long getInvisibleTime() {
+        return invisibleTime;
     }
 }

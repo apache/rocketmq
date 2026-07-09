@@ -75,6 +75,7 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
 
     protected void batchChangeInvisibleTime(ProxyContext context, RenewEvent event) {
         List<MessageReceiptHandle> messageReceiptHandleList = event.getMessageReceiptHandleList();
+        List<Long> renewTimeList = event.getRenewTimeList();
         List<CompletableFuture<AckResult>> futureList = event.getFutureList();
         Map<String, List<Integer>> indexesByGroupAndTopic = new HashMap<>();
         for (int i = 0; i < messageReceiptHandleList.size(); i++) {
@@ -85,38 +86,21 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
 
         for (List<Integer> indexes : indexesByGroupAndTopic.values()) {
             MessageReceiptHandle firstHandle = messageReceiptHandleList.get(indexes.get(0));
-            if (indexes.size() == 1) {
-                int index = indexes.get(0);
-                CompletableFuture<AckResult> future = futureList.get(index);
-                ReceiptHandle handle = ReceiptHandle.decode(firstHandle.getReceiptHandleStr());
-                messagingProcessor
-                    .changeInvisibleTime(context, handle, firstHandle.getMessageId(),
-                        firstHandle.getGroup(), firstHandle.getTopic(),
-                        event.getRenewTime(), firstHandle.getLiteTopic())
-                    .whenComplete((ackResult, throwable) -> {
-                        if (throwable != null) {
-                            future.completeExceptionally(throwable);
-                        } else {
-                            future.complete(ackResult);
-                        }
-                    });
-                continue;
-            }
-
             List<ReceiptHandleMessage> handleMessageList = new ArrayList<>(indexes.size());
             for (Integer index : indexes) {
                 MessageReceiptHandle messageReceiptHandle = messageReceiptHandleList.get(index);
                 handleMessageList.add(new ReceiptHandleMessage(
                     ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr()),
                     messageReceiptHandle.getMessageId(),
-                    messageReceiptHandle.getLiteTopic()));
+                    messageReceiptHandle.getLiteTopic(),
+                    renewTimeList.get(index)));
             }
             messagingProcessor.batchChangeInvisibleTime(
                     context,
                     handleMessageList,
                     firstHandle.getGroup(),
                     firstHandle.getTopic(),
-                    event.getRenewTime(),
+                    renewTimeList.get(indexes.get(0)),
                     MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
                     false)
                 .whenComplete((results, throwable) -> {

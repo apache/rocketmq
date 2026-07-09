@@ -185,7 +185,7 @@ public class ClusterMessageService implements MessageService {
             entry.setQueueId(handle.getQueueId());
             entry.setExtraInfo(handle.getReceiptHandle());
             entry.setOffset(handle.getOffset());
-            entry.setInvisibleTime(invisibleTime);
+            entry.setInvisibleTime(message.getInvisibleTime() > 0 ? message.getInvisibleTime() : invisibleTime);
             entry.setLiteTopic(message.getLiteTopic());
             entry.setSuspend(suspend);
             return entry;

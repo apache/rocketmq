@@ -520,26 +520,34 @@ public class ConsumerProcessor extends AbstractProcessor {
     protected CompletableFuture<List<BatchChangeInvisibleTimeResult>> processBrokerChangeInvisibleTime(
         ProxyContext ctx, String consumerGroup, String topic, List<ReceiptHandleMessage> handleMessageList,
         long invisibleTime, long timeoutMillis, boolean suspend) {
-        if (handleMessageList.size() == 1) {
-            return fallbackChangeInvisibleTime(ctx, consumerGroup, topic, handleMessageList, invisibleTime,
-                timeoutMillis, suspend);
-        }
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         int batchMaxNum = Math.max(1, proxyConfig.getBatchChangeInvisibleTimeMaxNum());
-        if (handleMessageList.size() > batchMaxNum) {
-            CompletableFuture<List<BatchChangeInvisibleTimeResult>> resultFuture =
-                CompletableFuture.completedFuture(new ArrayList<BatchChangeInvisibleTimeResult>(handleMessageList.size()));
-            for (int fromIndex = 0; fromIndex < handleMessageList.size(); fromIndex += batchMaxNum) {
-                int toIndex = Math.min(handleMessageList.size(), fromIndex + batchMaxNum);
-                List<ReceiptHandleMessage> batchHandleList = handleMessageList.subList(fromIndex, toIndex);
-                // Keep oversized chunks sequential to avoid sending many write-heavy batches to the same broker at once.
-                resultFuture = resultFuture.thenCompose(results -> processBrokerChangeInvisibleTime(ctx, consumerGroup,
-                    topic, batchHandleList, invisibleTime, timeoutMillis, suspend).thenApply(batchResults -> {
+        if (handleMessageList.size() <= batchMaxNum) {
+            return executeBrokerBatchChangeInvisibleTime(ctx, consumerGroup, topic, handleMessageList,
+                invisibleTime, timeoutMillis, suspend);
+        }
+        CompletableFuture<List<BatchChangeInvisibleTimeResult>> resultFuture =
+            CompletableFuture.completedFuture(new ArrayList<>(handleMessageList.size()));
+        for (int fromIndex = 0; fromIndex < handleMessageList.size(); fromIndex += batchMaxNum) {
+            int toIndex = Math.min(handleMessageList.size(), fromIndex + batchMaxNum);
+            List<ReceiptHandleMessage> batchHandleList = handleMessageList.subList(fromIndex, toIndex);
+            // Keep oversized chunks sequential to avoid sending many write-heavy batches to the same broker at once.
+            resultFuture = resultFuture.thenCompose(results ->
+                executeBrokerBatchChangeInvisibleTime(ctx, consumerGroup, topic, batchHandleList,
+                    invisibleTime, timeoutMillis, suspend).thenApply(batchResults -> {
                         results.addAll(batchResults);
                         return results;
                     }));
-            }
-            return resultFuture;
+        }
+        return resultFuture;
+    }
+
+    private CompletableFuture<List<BatchChangeInvisibleTimeResult>> executeBrokerBatchChangeInvisibleTime(
+        ProxyContext ctx, String consumerGroup, String topic, List<ReceiptHandleMessage> handleMessageList,
+        long invisibleTime, long timeoutMillis, boolean suspend) {
+        if (handleMessageList.size() == 1) {
+            return fallbackChangeInvisibleTime(ctx, consumerGroup, topic, handleMessageList, invisibleTime,
+                timeoutMillis, suspend);
         }
         CompletableFuture<List<BatchChangeInvisibleTimeResult>> future = new CompletableFuture<>();
         this.serviceManager.getMessageService().batchChangeInvisibleTime(

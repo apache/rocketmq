@@ -502,7 +502,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     @Test
     public void testBatchChangeInvisibleTimeSplitOversizedBrokerGroup() throws Throwable {
         String brokerName = "brokerName1";
-        assertEquals(1024, ConfigurationManager.getProxyConfig().getBatchChangeInvisibleTimeMaxNum());
+        assertEquals(2048, ConfigurationManager.getProxyConfig().getBatchChangeInvisibleTimeMaxNum());
         int batchMaxNum = ConfigurationManager.getProxyConfig().getBatchChangeInvisibleTimeMaxNum();
         List<ReceiptHandleMessage> receiptHandleMessageList = new ArrayList<>();
         long now = System.currentTimeMillis();

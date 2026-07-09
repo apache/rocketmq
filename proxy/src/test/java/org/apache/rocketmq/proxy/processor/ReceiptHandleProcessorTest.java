@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -50,6 +51,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -278,6 +280,75 @@ public class ReceiptHandleProcessorTest extends InitConfigTest {
         Mockito.verify(messagingProcessor, Mockito.never()).batchChangeInvisibleTime(
             Mockito.any(), Mockito.anyList(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(),
             Mockito.anyLong(), Mockito.anyBoolean());
+    }
+
+    @Test
+    public void testBatchRenewWithPerEntryInvisibleTime() throws Exception {
+        ConfigurationManager.getProxyConfig().setEnableBatchChangeInvisibleTime(true);
+        Mockito.when(consumerManager.findChannel(Mockito.eq(CONSUMER_GROUP), Mockito.eq(PROXY_CONTEXT.getChannel())))
+            .thenReturn(Mockito.mock(ClientChannelInfo.class));
+
+        RenewStrategyPolicy renewPolicy = new RenewStrategyPolicy();
+        long firstExpectedInvisibleTime = renewPolicy.nextDelayDuration(0);
+        long secondExpectedInvisibleTime = renewPolicy.nextDelayDuration(3);
+        assertNotEquals(firstExpectedInvisibleTime, secondExpectedInvisibleTime);
+
+        String anotherMsgId = MessageClientIDSetter.createUniqID();
+        MessageReceiptHandle anotherHandle = new MessageReceiptHandle(
+            CONSUMER_GROUP, TOPIC, QUEUE_ID,
+            ReceiptHandle.builder()
+                .startOffset(0L)
+                .retrieveTime(System.currentTimeMillis() - INVISIBLE_TIME
+                    + ConfigurationManager.getProxyConfig().getRenewAheadTimeMillis() - 5)
+                .invisibleTime(INVISIBLE_TIME)
+                .reviveQueueId(1)
+                .topicType(ReceiptHandle.NORMAL_TOPIC)
+                .brokerName(BROKER_NAME)
+                .queueId(QUEUE_ID)
+                .offset(OFFSET + 1)
+                .commitLogOffset(0L)
+                .build().encode(),
+            anotherMsgId, OFFSET + 1, RECONSUME_TIMES);
+        for (int i = 0; i < 3; i++) {
+            anotherHandle.incrementRenewTimes();
+        }
+
+        ArgumentCaptor<List> handleMessageListCaptor = ArgumentCaptor.forClass(List.class);
+        Mockito.doAnswer((Answer<CompletableFuture<List<BatchChangeInvisibleTimeResult>>>) invocation -> {
+            List<ReceiptHandleMessage> handleMessageList = invocation.getArgument(1, List.class);
+            List<BatchChangeInvisibleTimeResult> results = new ArrayList<>(handleMessageList.size());
+            for (ReceiptHandleMessage handleMessage : handleMessageList) {
+                AckResult ackResult = new AckResult();
+                ackResult.setStatus(AckStatus.OK);
+                ackResult.setExtraInfo(handleMessage.getReceiptHandle().encode());
+                results.add(new BatchChangeInvisibleTimeResult(handleMessage, ackResult));
+            }
+            return CompletableFuture.completedFuture(results);
+        }).when(messagingProcessor).batchChangeInvisibleTime(
+            Mockito.any(), handleMessageListCaptor.capture(), Mockito.eq(CONSUMER_GROUP), Mockito.eq(TOPIC),
+            Mockito.anyLong(), Mockito.eq(MessagingProcessor.DEFAULT_TIMEOUT_MILLS), Mockito.eq(false));
+
+        receiptHandleProcessor.addReceiptHandle(
+            PROXY_CONTEXT, PROXY_CONTEXT.getChannel(), CONSUMER_GROUP, MSG_ID, messageReceiptHandle);
+        receiptHandleProcessor.addReceiptHandle(
+            PROXY_CONTEXT, PROXY_CONTEXT.getChannel(), CONSUMER_GROUP, anotherMsgId, anotherHandle);
+
+        java.lang.reflect.Method method = DefaultReceiptHandleManager.class.getDeclaredMethod("scheduleRenewTask");
+        method.setAccessible(true);
+        method.invoke(receiptHandleProcessor.receiptHandleManager);
+
+        Mockito.verify(messagingProcessor, Mockito.timeout(10000).times(1)).batchChangeInvisibleTime(
+            Mockito.any(), Mockito.anyList(), Mockito.eq(CONSUMER_GROUP), Mockito.eq(TOPIC),
+            Mockito.anyLong(), Mockito.eq(MessagingProcessor.DEFAULT_TIMEOUT_MILLS), Mockito.eq(false));
+
+        List<ReceiptHandleMessage> capturedList = handleMessageListCaptor.getValue();
+        assertEquals(2, capturedList.size());
+        ReceiptHandleMessage first = capturedList.stream()
+            .filter(m -> m.getReceiptHandle().getOffset() == OFFSET).findFirst().orElseThrow(AssertionError::new);
+        ReceiptHandleMessage second = capturedList.stream()
+            .filter(m -> m.getReceiptHandle().getOffset() == OFFSET + 1).findFirst().orElseThrow(AssertionError::new);
+        assertEquals(firstExpectedInvisibleTime, first.getInvisibleTime());
+        assertEquals(secondExpectedInvisibleTime, second.getInvisibleTime());
     }
 
 }

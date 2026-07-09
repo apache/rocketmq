@@ -457,7 +457,7 @@ public class LocalMessageService implements MessageService {
             entry.setQueueId(handle.getQueueId());
             entry.setExtraInfo(handle.getReceiptHandle());
             entry.setOffset(handle.getOffset());
-            entry.setInvisibleTime(invisibleTime);
+            entry.setInvisibleTime(receiptHandleMessage.getInvisibleTime() > 0 ? receiptHandleMessage.getInvisibleTime() : invisibleTime);
             entry.setLiteTopic(receiptHandleMessage.getLiteTopic());
             entry.setSuspend(suspend);
             entries.add(entry);
