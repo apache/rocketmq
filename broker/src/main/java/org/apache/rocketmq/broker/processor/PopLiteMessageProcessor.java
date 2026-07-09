@@ -284,6 +284,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
 
         boolean isExclusiveGroup = LiteMetadataUtil.isSubLiteExclusive(group, brokerController);
         Set<String> processed = new HashSet<>(); // deduplication in one request
+
         Iterator<String> iterator = liteEventDispatcher.getEventIterator(clientId);
         while (total.get() < maxNum && iterator.hasNext()) {
             String lmqName = iterator.next(); // here event represents a lmq name
@@ -293,13 +294,16 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
             if (!processed.add(lmqName)) {
                 continue; // wait for next pop request or re-fetch in current process, here prefer the former approach
             }
+
             // Tombstone check: reject pull if this client was evicted from the liteTopic (exclusive mode)
             if (isExclusiveGroup && brokerController.getLiteSubscriptionRegistry().hasExclusiveEvictionTombstone(clientId, lmqName)) {
                 LOGGER.info("popLiteTopic rejected by tombstone: clientId={}, group={}, lmqName={}", clientId, group, lmqName);
                 continue;
             }
+
             Pair<StringBuilder, GetMessageResult> pair = popLiteTopic(parentTopic, clientHost, group, lmqName,
                 maxNum - total.get(), popTime, invisibleTime, attemptId);
+
             if (null == pair || pair.getObject2().getMessageCount() <= 0) {
                 continue;
             }
@@ -317,6 +321,24 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         return new Pair<>(orderCountInfoAll, getMessageResult);
     }
 
+    /**
+     * Pop from a single LMQ under the per-(group, lmqName) lock,
+     * blocking on {@code consumerOrderInfoManager} for FIFO ordering,
+     * and recording the result via
+     * {@link ConsumerOrderInfoManager#update}.
+     *
+     * <p>The {@code popConsumerLockService} prevents concurrent Pop
+     * against the same (group, lmqName). If the LMQ is currently
+     * {@link #isFifoBlocked blocked} by an in-flight batch from a
+     * prior Pop (with the same {@code attemptId}), the call returns
+     * {@code null} without reading.
+     *
+     * <p>Returns {@code null} on lock contention, FIFO block, or
+     * any internal error; otherwise the pair is
+     * (order-count-info, getMessageResult) where
+     * {@link GetMessageResult} may have zero messages if the queue
+     * was empty at pop time.
+     */
     @VisibleForTesting
     public Pair<StringBuilder, GetMessageResult> popLiteTopic(String parentTopic, String clientHost, String group,
         String lmqName, long maxNum, long popTime, long invisibleTime, String attemptId) {
