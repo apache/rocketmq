@@ -482,6 +482,65 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void publicServiceErrorResponsesDoNotCarryResultBodies() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse listResponse = stub.listClients(ListClientsRequest.newBuilder()
+                .setPageNum(-1)
+                .setPageSize(100)
+                .build());
+            assertThat(listResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(listResponse.getClientsCount()).isZero();
+            assertThat(listResponse.getHasMore()).isFalse();
+
+            DescribeClientResponse describeResponse = stub.describeClient(DescribeClientRequest.newBuilder()
+                .build());
+            assertThat(describeResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(describeResponse.hasClient()).isFalse();
+
+            apache.rocketmq.v2.ListClientsByGroupResponse groupResponse = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setPageNum(1)
+                    .setPageSize(100)
+                    .build());
+            assertThat(groupResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(groupResponse.getClientsCount()).isZero();
+            assertThat(groupResponse.getHasMore()).isFalse();
+
+            apache.rocketmq.v2.ListClientsByTopicResponse topicResponse = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setPageNum(1)
+                    .setPageSize(100)
+                    .build());
+            assertThat(topicResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(topicResponse.getClientsCount()).isZero();
+            assertThat(topicResponse.getHasMore()).isFalse();
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void publicServiceMapsMissingAuthSubjectToUnauthorizedThroughGeneratedGrpcService() throws Exception {
         ConfigurationManager.getAuthConfig().setAuthorizationEnabled(true);
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);

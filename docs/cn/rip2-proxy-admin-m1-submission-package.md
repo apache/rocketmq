@@ -160,9 +160,8 @@ Dashboard-facing client view 字段、contest filters、scope gates、bad reques
 `pageSize` capped pagination、四个 RPC authorization mapping、缺失
 `DescribeClient.client_id` 校验 generated gRPC 覆盖后刷新；随后又在新增
 explicit `LOCAL_PROXY` 对四个 RPC 成功、`PROXY_ID` 对四个 RPC 保持 gated 的
-generated gRPC 证据后刷新；broad proxy admin 验证也已在该 public scope gate
-覆盖落地后于 2026-07-10 Asia/Shanghai 重新刷新。Package smoke 已在同一 HEAD
-上刷新。
+generated gRPC 证据后刷新；随后又在新增错误响应不携带结果体的 generated
+gRPC 证据后刷新 broad proxy admin 验证。Package smoke 已在同一 HEAD 上刷新。
 
 Focused generated public API verification：
 
@@ -176,9 +175,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 46, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 47, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:22:58+08:00
+Finished at: 2026-07-10T02:40:38+08:00
 ```
 
 Broad proxy admin verification：
@@ -193,9 +192,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 717, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 718, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T02:24:01+08:00
+Finished at: 2026-07-10T02:41:38+08:00
 ```
 
 Package smoke：
@@ -209,7 +208,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T02:25:08+08:00
+Finished at: 2026-07-10T02:43:18+08:00
 ```
 
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
@@ -293,7 +292,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 717, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 718, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
