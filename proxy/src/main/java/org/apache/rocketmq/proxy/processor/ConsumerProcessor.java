@@ -625,8 +625,10 @@ public class ConsumerProcessor extends AbstractProcessor {
         CompletableFuture<BatchChangeInvisibleTimeResult>[] futures = new CompletableFuture[handleMessageList.size()];
         for (int i = 0; i < handleMessageList.size(); i++) {
             ReceiptHandleMessage handleMessage = handleMessageList.get(i);
+            long entryInvisibleTime = handleMessage.getInvisibleTime() > 0
+                ? handleMessage.getInvisibleTime() : invisibleTime;
             futures[i] = this.changeInvisibleTime(ctx, handleMessage.getReceiptHandle(), handleMessage.getMessageId(),
-                    consumerGroup, topic, invisibleTime, handleMessage.getLiteTopic(), timeoutMillis, suspend)
+                    consumerGroup, topic, entryInvisibleTime, handleMessage.getLiteTopic(), timeoutMillis, suspend)
                 .thenApply(ackResult -> new BatchChangeInvisibleTimeResult(handleMessage, ackResult))
                 .exceptionally(throwable -> new BatchChangeInvisibleTimeResult(handleMessage,
                     new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, throwable.getMessage(), throwable)));
