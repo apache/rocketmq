@@ -228,6 +228,28 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(any("broad verification" in error for error in errors))
 
+    def test_guard_reports_stale_package_smoke_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(
+                root / "docs/en/rip2-proxy-admin-m1-final-smoke.md",
+                "Finished at: 2026-07-10T04:07:14+08:00\n",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("stale package smoke evidence" in error for error in errors))
+
     def test_guard_reports_proto_mirror_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)

@@ -41,6 +41,7 @@ OLD_FOCUSED_RESULT = "Tests run: 52, Failures: 0, Errors: 0, Skipped: 0"
 OLD_BROAD_RESULT = "Tests run: 728, Failures: 0, Errors: 0, Skipped: 0"
 OLD_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T04:04:54+08:00"
 OLD_BROAD_FINISHED_AT = "Finished at: 2026-07-10T05:14:32+08:00"
+OLD_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T04:07:14+08:00"
 
 REQUIRED_DOCS = (
     "docs/en/rip2-proxy-admin-m1-submission-package.md",
@@ -266,10 +267,13 @@ def check_submission_evidence(root, errors):
         OLD_BROAD_RESULT,
         OLD_FOCUSED_FINISHED_AT,
         OLD_BROAD_FINISHED_AT,
+        OLD_PACKAGE_SMOKE_FINISHED_AT,
     )
     for token in stale_tokens:
         if token in combined_docs:
-            if "728" in token or "05:14:32" in token:
+            if "04:07:14" in token:
+                errors.append(f"stale package smoke evidence remains: {token}")
+            elif "728" in token or "05:14:32" in token:
                 errors.append(f"stale broad verification evidence remains: {token}")
             else:
                 errors.append(f"stale focused verification evidence remains: {token}")
