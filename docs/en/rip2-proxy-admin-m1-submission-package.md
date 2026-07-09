@@ -9,7 +9,7 @@ PR, issue comment, or contest submission.
 Latest synchronized RocketMQ implementation checkpoint:
 
 ```text
-b9dc178157bea62d7886c498e0289d52926d3f3f Cover public grpc grouped filter pagination
+968fbab2f1585c55827624d051920493bab4a478 Cover public grpc exact client pagination
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -159,11 +159,11 @@ Final verification commands below were run with JDK 17 after the generated
 public endpoint and package-smoke build fix were present in the working tree.
 The focused public endpoint verification was refreshed after adding generated
 gRPC coverage for Dashboard-facing client view fields, contest filters, scope
-gates, bad requests, sparse client metadata defaults, and grouped filter
-pagination for `ListClientsByGroup` / `ListClientsByTopic`. Broad proxy admin
-verification was also refreshed on July 10, 2026 Asia/Shanghai after the
-grouped filter coverage landed. Package smoke was refreshed earlier on the same
-day.
+gates, bad requests, sparse client metadata defaults, grouped filter
+pagination for `ListClientsByGroup` / `ListClientsByTopic`, exact client id
+filtering, and public `pageSize` capping. Broad proxy admin verification was
+also refreshed on July 10, 2026 Asia/Shanghai after the exact client pagination
+coverage landed. Package smoke was refreshed earlier on the same day.
 
 Focused generated public API verification:
 
@@ -177,9 +177,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 41, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 42, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T01:42:29+08:00
+Finished at: 2026-07-10T01:52:34+08:00
 ```
 
 Broad proxy admin verification:
@@ -194,9 +194,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 712, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 713, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T01:43:45+08:00
+Finished at: 2026-07-10T01:53:36+08:00
 ```
 
 Package smoke:
@@ -296,7 +296,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 712, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 713, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
