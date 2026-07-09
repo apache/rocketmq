@@ -1677,6 +1677,7 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
 
 - [x] Public API draft PR opened: https://github.com/apache/rocketmq-apis/pull/112
 - [x] RocketMQ implementation draft PR opened: https://github.com/apache/rocketmq/pull/10603
+- [x] RIP-2 tracking issue summary posted: https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

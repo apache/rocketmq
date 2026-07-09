@@ -292,7 +292,9 @@ Result: `Tests run: 707, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 See `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
 ````
 
-## Issue Comment Draft
+## Issue Comment
+
+Posted to [apache/rocketmq#10599](https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687):
 
 ```markdown
 I have prepared the RIP-2 Proxy Admin online client query implementation branch
