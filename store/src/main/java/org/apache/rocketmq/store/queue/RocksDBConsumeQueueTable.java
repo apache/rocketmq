@@ -137,11 +137,16 @@ public class RocksDBConsumeQueueTable {
      */
     public List<ByteBuffer> rangeQuery(final String topic, final int queueId, final long startIndex, final int num) throws RocksDBException {
         final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
+        // column family list, same for each key
         final List<ColumnFamilyHandle> defaultCFHList = new ArrayList<>(num);
+        // result list
         final ByteBuffer[] resultList = new ByteBuffer[num];
+        // index list: 0, 1, 2, ...
         final List<Integer> kvIndexList = new ArrayList<>(num);
+        // key list for multiGet
         final List<byte[]> kvKeyList = new ArrayList<>(num);
 
+        // build keys
         for (int i = 0; i < num; i++) {
             final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, startIndex + i);
             kvIndexList.add(i);
@@ -149,6 +154,7 @@ public class RocksDBConsumeQueueTable {
             defaultCFHList.add(this.defaultCFH);
         }
 
+        // multiGet
         int keyNum = kvIndexList.size();
         if (keyNum > 0) {
             List<byte[]> kvValueList = this.rocksDBStorage.multiGet(defaultCFHList, kvKeyList);
@@ -166,6 +172,7 @@ public class RocksDBConsumeQueueTable {
             }
         }
 
+        // reorder result list
         final int resultSize = resultList.length;
         List<ByteBuffer> bbValueList = new ArrayList<>(resultSize);
         for (int i = 0; i < resultSize; i++) {
