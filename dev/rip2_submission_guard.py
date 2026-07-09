@@ -39,15 +39,18 @@ FULL_GUARD_COMMAND = "python3 dev/rip2_submission_guard.py --check-remote --chec
 PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
 FOCUSED_RESULT = "Tests run: 54, Failures: 0, Errors: 0, Skipped: 0"
-FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T05:58:49+08:00"
+FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T07:52:28+08:00"
 BROAD_RESULT = "Tests run: 730, Failures: 0, Errors: 0, Skipped: 0"
-BROAD_FINISHED_AT = "Finished at: 2026-07-10T06:06:44+08:00"
-PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T06:27:48+08:00"
+BROAD_FINISHED_AT = "Finished at: 2026-07-10T07:53:37+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T07:54:35+08:00"
 OLD_FOCUSED_RESULT = "Tests run: 52, Failures: 0, Errors: 0, Skipped: 0"
 OLD_BROAD_RESULT = "Tests run: 728, Failures: 0, Errors: 0, Skipped: 0"
 OLD_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T04:04:54+08:00"
 OLD_BROAD_FINISHED_AT = "Finished at: 2026-07-10T05:14:32+08:00"
 OLD_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T04:07:14+08:00"
+PREVIOUS_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T05:58:49+08:00"
+PREVIOUS_BROAD_FINISHED_AT = "Finished at: 2026-07-10T06:06:44+08:00"
+PREVIOUS_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T06:27:48+08:00"
 PUBLIC_REVIEW_ARTIFACT_LINKS = (
     "https://github.com/apache/rocketmq/pull/10603",
     "https://github.com/apache/rocketmq-apis/pull/112",
@@ -429,6 +432,9 @@ def check_submission_evidence(root, errors):
         OLD_FOCUSED_FINISHED_AT,
         OLD_BROAD_FINISHED_AT,
         OLD_PACKAGE_SMOKE_FINISHED_AT,
+        PREVIOUS_FOCUSED_FINISHED_AT,
+        PREVIOUS_BROAD_FINISHED_AT,
+        PREVIOUS_PACKAGE_SMOKE_FINISHED_AT,
     )
     for token in stale_tokens:
         if token in combined_docs:

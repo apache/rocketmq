@@ -203,7 +203,7 @@ mvn -pl proxy -am \
 ```text
 Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T05:58:49+08:00
+Finished at: 2026-07-10T07:52:28+08:00
 ```
 
 Dashboard 表格/详情字段 focused verification：
@@ -254,7 +254,7 @@ mvn -pl proxy -am \
 ```text
 Tests run: 730, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T06:06:44+08:00
+Finished at: 2026-07-10T07:53:37+08:00
 ```
 
 Package smoke：
@@ -268,7 +268,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T06:27:48+08:00
+Finished at: 2026-07-10T07:54:35+08:00
 ```
 
 轻量提交门禁：

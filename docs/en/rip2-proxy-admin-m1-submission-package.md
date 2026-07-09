@@ -215,7 +215,7 @@ Result:
 ```text
 Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T05:58:49+08:00
+Finished at: 2026-07-10T07:52:28+08:00
 ```
 
 Focused Dashboard table/detail field verification:
@@ -266,7 +266,7 @@ Result:
 ```text
 Tests run: 730, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T06:06:44+08:00
+Finished at: 2026-07-10T07:53:37+08:00
 ```
 
 Package smoke:
@@ -280,7 +280,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T06:27:48+08:00
+Finished at: 2026-07-10T07:54:35+08:00
 ```
 
 Lightweight submission guard:

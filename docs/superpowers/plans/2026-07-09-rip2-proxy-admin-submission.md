@@ -1707,11 +1707,11 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
 - [x] Focused public endpoint/startup verification evidence refreshed after the
   generated public service descriptor test:
   `Tests run: 54, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`,
-  finished at `2026-07-10T05:58:49+08:00`.
+  finished at `2026-07-10T07:52:28+08:00`.
 - [x] Broad proxy admin verification evidence refreshed on the latest branch
   head after descriptor and Dashboard-facing tests were included in the broad
   suite: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`,
-  `BUILD SUCCESS`, finished at `2026-07-10T06:06:44+08:00`.
+  `BUILD SUCCESS`, finished at `2026-07-10T07:53:37+08:00`.
 - [x] Lightweight submission guard added:
   `dev/rip2_submission_guard.py` checks required RIP-2 files, the local
   `rocketmq-proto:2.2.0-rip2-SNAPSHOT` generated artifact, proto mirror
@@ -1748,9 +1748,14 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `dev/rip2_submission_guard.py --check-github` now treats absent GitHub checks
   as acceptable for the current draft review branches, but fails if reported PR
   checks appear and any check is not passing or explicitly skipped.
+- [x] Maven verification evidence refreshed after guard hardening:
+  focused public endpoint/startup verification, broad proxy admin verification,
+  and package smoke were rerun with Temurin JDK 17.0.18 after the reviewer
+  guard hardening checkpoints, and the submission evidence timestamps were
+  refreshed accordingly.
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
-  `BUILD SUCCESS`, finished at `2026-07-10T06:27:48+08:00`.
+  `BUILD SUCCESS`, finished at `2026-07-10T07:54:35+08:00`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact
