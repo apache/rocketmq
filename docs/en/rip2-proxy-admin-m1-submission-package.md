@@ -213,6 +213,11 @@ second `source:jar` checkstyle pass. The final `pom.xml` fixes this by keeping
 Checkstyle on hand-written test sources while preserving test compilation and
 benchmark generation.
 
+Acceptance audit:
+
+- `docs/en/rip2-proxy-admin-m1-acceptance-audit.md`
+- `docs/cn/rip2-proxy-admin-m1-acceptance-audit.md`
+
 Latest package-level JaCoCo coverage from the broad verification:
 
 | Package | Instruction | Branch | Line |

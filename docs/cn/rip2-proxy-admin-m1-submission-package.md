@@ -206,6 +206,11 @@ Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
 扫描的问题。最终 `pom.xml` 将 Checkstyle 限定在手写测试源，同时保留测试编译和
 benchmark 生成能力。
 
+验收审计：
+
+- `docs/en/rip2-proxy-admin-m1-acceptance-audit.md`
+- `docs/cn/rip2-proxy-admin-m1-acceptance-audit.md`
+
 Broad verification 的最新包级 JaCoCo 覆盖率：
 
 | Package | Instruction | Branch | Line |
