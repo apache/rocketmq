@@ -56,9 +56,20 @@ def create_snapshot_jar(m2_repository):
     )
     jar_path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(jar_path, "w") as jar_file:
-        jar_file.writestr("apache/rocketmq/v2/ProxyAdminServiceGrpc.class", b"")
-        jar_file.writestr("apache/rocketmq/v2/ListClientsRequest.class", b"")
-        jar_file.writestr("apache/rocketmq/v2/ProxyClient.class", b"")
+        for entry in rip2_submission_guard.REQUIRED_JAR_ENTRIES:
+            jar_file.writestr(entry, b"")
+
+
+def create_snapshot_jar_without(m2_repository, missing_entry):
+    jar_path = (
+        m2_repository
+        / "org/apache/rocketmq/rocketmq-proto/2.2.0-rip2-SNAPSHOT"
+        / "rocketmq-proto-2.2.0-rip2-SNAPSHOT.jar"
+    )
+    with zipfile.ZipFile(jar_path, "w") as jar_file:
+        for entry in rip2_submission_guard.REQUIRED_JAR_ENTRIES:
+            if entry != missing_entry:
+                jar_file.writestr(entry, b"")
 
 
 def create_submission_tree(root, apis_root, m2_repository):
@@ -247,6 +258,31 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("rocketmq-proto.version" in error for error in errors))
+
+    def test_guard_reports_generated_artifact_missing_public_rpc_classes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            create_snapshot_jar_without(
+                m2_repository,
+                "apache/rocketmq/v2/DescribeClientResponse.class",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any("DescribeClientResponse.class" in error for error in errors),
+                "guard should require generated public RPC response classes",
+            )
 
     def test_guard_reports_stale_package_smoke_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:

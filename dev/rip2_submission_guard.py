@@ -81,7 +81,15 @@ REQUIRED_PROTO_MESSAGES = (
 
 REQUIRED_JAR_ENTRIES = (
     "apache/rocketmq/v2/ProxyAdminServiceGrpc.class",
+    "apache/rocketmq/v2/ProxyScope.class",
     "apache/rocketmq/v2/ListClientsRequest.class",
+    "apache/rocketmq/v2/ListClientsResponse.class",
+    "apache/rocketmq/v2/DescribeClientRequest.class",
+    "apache/rocketmq/v2/DescribeClientResponse.class",
+    "apache/rocketmq/v2/ListClientsByGroupRequest.class",
+    "apache/rocketmq/v2/ListClientsByGroupResponse.class",
+    "apache/rocketmq/v2/ListClientsByTopicRequest.class",
+    "apache/rocketmq/v2/ListClientsByTopicResponse.class",
     "apache/rocketmq/v2/ProxyClient.class",
 )
 
