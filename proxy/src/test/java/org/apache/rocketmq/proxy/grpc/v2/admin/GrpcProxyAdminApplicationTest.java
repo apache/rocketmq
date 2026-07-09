@@ -209,6 +209,77 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void publicServiceAcceptsExplicitLocalProxyScopeForEveryRpc() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            readService(activity).upsertClient(client("client-local", ClientType.PRODUCER, "group-local",
+                "topic-local"));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse listResponse = stub.listClients(ListClientsRequest.newBuilder()
+                .setScope(ProxyScope.PROXY_SCOPE_LOCAL_PROXY)
+                .setPageNum(1)
+                .setPageSize(100)
+                .build());
+            assertThat(listResponse.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(listResponse.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-local");
+
+            DescribeClientResponse describeResponse = stub.describeClient(DescribeClientRequest.newBuilder()
+                .setClientId("client-local")
+                .setScope(ProxyScope.PROXY_SCOPE_LOCAL_PROXY)
+                .build());
+            assertThat(describeResponse.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(describeResponse.getClient().getClientId()).isEqualTo("client-local");
+
+            apache.rocketmq.v2.ListClientsByGroupResponse groupResponse = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setGroup("group-local")
+                    .setScope(ProxyScope.PROXY_SCOPE_LOCAL_PROXY)
+                    .setPageNum(1)
+                    .setPageSize(100)
+                    .build());
+            assertThat(groupResponse.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(groupResponse.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-local");
+
+            apache.rocketmq.v2.ListClientsByTopicResponse topicResponse = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setTopic("topic-local")
+                    .setScope(ProxyScope.PROXY_SCOPE_LOCAL_PROXY)
+                    .setPageNum(1)
+                    .setPageSize(100)
+                    .build());
+            assertThat(topicResponse.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(topicResponse.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-local");
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void publicServiceRejectsNonLocalM1ScopeForEveryRpc() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
@@ -262,6 +333,79 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
                     .build());
             assertThat(topicResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
             assertThat(topicResponse.getStatus().getMessage()).contains("only supports LOCAL_PROXY");
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
+    public void publicServiceRejectsProxyIdM1ScopeForEveryRpc() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            readService(activity).upsertClient(client("client-proxy-id", ClientType.PRODUCER, "group-proxy-id",
+                "topic-proxy-id"));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse listResponse = stub.listClients(ListClientsRequest.newBuilder()
+                .setScope(ProxyScope.PROXY_SCOPE_PROXY_ID)
+                .setProxyId("proxy-a")
+                .setPageNum(1)
+                .setPageSize(100)
+                .build());
+            assertThat(listResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(listResponse.getStatus().getMessage()).contains("only supports LOCAL_PROXY");
+            assertThat(listResponse.getStatus().getMessage()).contains("PROXY_ID");
+
+            DescribeClientResponse describeResponse = stub.describeClient(DescribeClientRequest.newBuilder()
+                .setClientId("client-proxy-id")
+                .setScope(ProxyScope.PROXY_SCOPE_PROXY_ID)
+                .setProxyId("proxy-a")
+                .build());
+            assertThat(describeResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(describeResponse.getStatus().getMessage()).contains("only supports LOCAL_PROXY");
+            assertThat(describeResponse.getStatus().getMessage()).contains("PROXY_ID");
+
+            apache.rocketmq.v2.ListClientsByGroupResponse groupResponse = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setGroup("group-proxy-id")
+                    .setScope(ProxyScope.PROXY_SCOPE_PROXY_ID)
+                    .setProxyId("proxy-a")
+                    .setPageNum(1)
+                    .setPageSize(100)
+                    .build());
+            assertThat(groupResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(groupResponse.getStatus().getMessage()).contains("only supports LOCAL_PROXY");
+            assertThat(groupResponse.getStatus().getMessage()).contains("PROXY_ID");
+
+            apache.rocketmq.v2.ListClientsByTopicResponse topicResponse = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setTopic("topic-proxy-id")
+                    .setScope(ProxyScope.PROXY_SCOPE_PROXY_ID)
+                    .setProxyId("proxy-a")
+                    .setPageNum(1)
+                    .setPageSize(100)
+                    .build());
+            assertThat(topicResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(topicResponse.getStatus().getMessage()).contains("only supports LOCAL_PROXY");
+            assertThat(topicResponse.getStatus().getMessage()).contains("PROXY_ID");
         } finally {
             if (channel != null) {
                 channel.shutdownNow();
