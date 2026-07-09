@@ -21,7 +21,7 @@ Latest recorded package smoke on the submission branch:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T03:51:26+08:00
+Finished at: 2026-07-10T04:07:14+08:00
 ```
 
 ## Start Proxy With Public Admin Server
@@ -98,3 +98,6 @@ The public M1 endpoint supports omitted scope and
 `PROXY_SCOPE_LOCAL_PROXY`. It rejects `PROXY_SCOPE_ALL_PROXIES` and
 `PROXY_SCOPE_PROXY_ID` until the community finalizes multi-proxy discovery,
 authorization, timeout, and page ownership semantics.
+`PROXY_SCOPE_PROXY_ID` is rejected as an M1 scope error even when `proxy_id` is
+omitted, so public callers see the same scope-gate contract before proxy-id
+validation.

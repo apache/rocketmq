@@ -20,7 +20,7 @@ BUILD SUCCESS
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T03:51:26+08:00
+Finished at: 2026-07-10T04:07:14+08:00
 ```
 
 ## 启动公开 admin gRPC server
@@ -94,3 +94,5 @@ synthetic clients 来验证非空响应。
 公开 M1 端点只支持省略 scope 或 `PROXY_SCOPE_LOCAL_PROXY`。
 `PROXY_SCOPE_ALL_PROXIES` 和 `PROXY_SCOPE_PROXY_ID` 会被拒绝，直到社区确认
 多 Proxy discovery、鉴权、超时和分页归属语义。
+即使省略 `proxy_id`，`PROXY_SCOPE_PROXY_ID` 也会先按 M1 scope gate 被拒绝，
+保证 public caller 在 proxy-id 校验前看到一致的 scope-gate contract。

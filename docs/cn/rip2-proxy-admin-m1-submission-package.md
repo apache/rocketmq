@@ -9,7 +9,7 @@
 checkpoint：
 
 ```text
-1be774ae6eccae66936a205fcb5b34c5ad99dd0f Reject negative proxy admin query page size
+05b17ccc5c88a7a33c8fbe5dc152438b654dc6ca Gate public proxy-id scope before proxy id validation
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -43,7 +43,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
-| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、bad-request contract mapping、not found 语义和 Dashboard-facing client view 字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
+| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、bad-request contract mapping、not found 语义和 Dashboard-facing client view 字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
 | 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、public API discussion、benchmark report、smoke guide、review runbook、acceptance audit 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`docs/cn/rip2-proxy-admin-public-api-discussion.md`。 |
 
@@ -170,8 +170,9 @@ explicit `LOCAL_PROXY` 下四个 RPC 均忽略 reserved `proxy_id` 字段的
 generated gRPC 证据后刷新；随后又在新增负数 public `pageSize` 对所有
 list-style RPC 均返回 `BAD_REQUEST` 的 generated gRPC 和 converter 证据后刷新
 broad proxy admin 验证；随后又在将核心 `ProxyClientQuery` page-size guard
-与 public adapter 对齐、让直接内部 query 构造也拒绝负数后刷新。Package smoke
-已在同一 HEAD 上刷新。
+与 public adapter 对齐、让直接内部 query 构造也拒绝负数后刷新；随后又在新增
+`PROXY_SCOPE_PROXY_ID` 即使省略 `proxy_id` 也先按 M1 scope gate 拒绝的
+generated gRPC 证据后刷新。Package smoke 已在同一 HEAD 上刷新。
 
 Focused generated public API verification：
 
@@ -185,9 +186,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 51, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 52, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:48:53+08:00
+Finished at: 2026-07-10T04:04:54+08:00
 ```
 
 Broad proxy admin verification：
@@ -202,9 +203,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 724, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 725, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:50:11+08:00
+Finished at: 2026-07-10T04:06:02+08:00
 ```
 
 Package smoke：
@@ -218,7 +219,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T03:51:26+08:00
+Finished at: 2026-07-10T04:07:14+08:00
 ```
 
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
@@ -278,7 +279,7 @@ Implemented:
 - internal `ClientAdminService`, proto-free `ProxyClientAdminActivity`, and
   generated `GrpcProxyAdminApplication`.
 - generated public endpoint executor/handler with `LOCAL_PROXY` public-scope
-  validation.
+  validation, including `PROXY_ID` gating before proxy-id validation.
 - ACL facade using `Admin:proxy.admin.client` with LIST/GET actions.
 - dedicated admin query executor and independent admin gRPC server registration.
 - low-cardinality metrics, trace attributes, and sanitized failure logs.
@@ -302,7 +303,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 724, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 725, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 

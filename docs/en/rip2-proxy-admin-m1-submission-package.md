@@ -11,7 +11,7 @@ comment because this file may itself change when evidence is refreshed. The
 latest synchronized RocketMQ implementation-code checkpoint is:
 
 ```text
-1be774ae6eccae66936a205fcb5b34c5ad99dd0f Reject negative proxy admin query page size
+05b17ccc5c88a7a33c8fbe5dc152438b654dc6ca Gate public proxy-id scope before proxy id validation
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -46,7 +46,7 @@ branch currently compiles against the local
 | ACL | Implemented with logical resource `proxy.admin.client`; list RPCs use `LIST`, describe uses `GET`. | `ClientAdminAuthPolicyTest`, `DefaultClientAdminAuthorizationServiceTest`, `AuthorizingClientAdminServiceTest`. |
 | Independent admin execution | Implemented admin query executor and dedicated admin gRPC server registration. | `ProxyClientAdminEndpointExecutor`, `ProxyStartup`, `GrpcProxyAdminWiringTest`, `ProxyStartupTest`. |
 | Observability | Implemented metrics, trace attributes, and structured failure logs with low-cardinality labels. | `ProxyMetricsManagerTest`, `MeteredClientAdminServiceTest`, `MeteredAuthorizingClientAdminServiceTest`, `ProxyClientAdminObservabilityTest`. |
-| E2E / integration coverage | Generated public gRPC Server/Channel tests cover all four RPCs, official filters, public pagination/hasMore, omitted public pagination defaults, non-local scope rejection across every public RPC, bad-request contract mapping, not found semantics, and Dashboard-facing client view fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`. |
+| E2E / integration coverage | Generated public gRPC Server/Channel tests cover all four RPCs, official filters, public pagination/hasMore, omitted public pagination defaults, non-local scope rejection across every public RPC, `PROXY_SCOPE_PROXY_ID` rejection before proxy-id validation, bad-request contract mapping, not found semantics, and Dashboard-facing client view fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`. |
 | 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. All local read-model P99 values are below 1 second. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
 | English and Chinese docs | Completed for user guide, public API discussion, benchmark report, smoke guide, review runbook, acceptance audit, and submission package. | `docs/en/rip2-proxy-admin-m1-user-guide.md`, `docs/cn/rip2-proxy-admin-m1-user-guide.md`, `docs/en/rip2-proxy-admin-public-api-discussion.md`, `docs/cn/rip2-proxy-admin-public-api-discussion.md`. |
 
@@ -179,8 +179,10 @@ reserved `proxy_id` for all four RPCs. It was refreshed again after adding
 generated gRPC and converter evidence that negative public `pageSize` values are
 rejected as `BAD_REQUEST` for all list-style RPCs. It was refreshed again after
 aligning the core `ProxyClientQuery` page-size guard with the public adapter so
-direct internal query construction rejects negative values too. Package smoke
-was refreshed on the same HEAD.
+direct internal query construction rejects negative values too. It was
+refreshed again after adding generated gRPC evidence that
+`PROXY_SCOPE_PROXY_ID` is gated as an M1 scope error before proxy-id validation
+even when `proxy_id` is omitted. Package smoke was refreshed on the same HEAD.
 
 Focused generated public API verification:
 
@@ -194,9 +196,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 51, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 52, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:48:53+08:00
+Finished at: 2026-07-10T04:04:54+08:00
 ```
 
 Broad proxy admin verification:
@@ -211,9 +213,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 724, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 725, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T03:50:11+08:00
+Finished at: 2026-07-10T04:06:02+08:00
 ```
 
 Package smoke:
@@ -227,7 +229,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T03:51:26+08:00
+Finished at: 2026-07-10T04:07:14+08:00
 ```
 
 The package smoke originally exposed stale JMH annotation-generated test sources
@@ -289,7 +291,7 @@ Implemented:
 - internal `ClientAdminService`, proto-free `ProxyClientAdminActivity`, and
   generated `GrpcProxyAdminApplication`.
 - generated public endpoint executor/handler with `LOCAL_PROXY` public-scope
-  validation.
+  validation, including `PROXY_ID` gating before proxy-id validation.
 - ACL facade using `Admin:proxy.admin.client` with LIST/GET actions.
 - dedicated admin query executor and independent admin gRPC server registration.
 - low-cardinality metrics, trace attributes, and sanitized failure logs.
@@ -313,7 +315,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 724, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 725, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
