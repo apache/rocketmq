@@ -16,8 +16,9 @@
 可观测性、内部跨 proxy 探索、文档和 1M synthetic client benchmark。
 
 本分支已包含生成版公开 `ProxyAdminService` endpoint 接线。权威 protobuf
-来源是配套的 `rocketmq-apis` `rip2-proxy-admin-public-api` 分支，commit 为
-`c372905ce927cf8957333e7ac07877f295fd7ec9`。为了完成参赛验证，
+来源已发布到
+[pilichoumao/rocketmq-apis:rip2-proxy-admin-public-api](https://github.com/pilichoumao/rocketmq-apis/tree/rip2-proxy-admin-public-api)，
+commit 为 `c372905ce927cf8957333e7ac07877f295fd7ec9`。为了完成参赛验证，
 生成版 Java artifact 以
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` 安装到本机 Maven。
 
@@ -25,7 +26,7 @@
 
 | 比赛要求 | 当前状态 | 证据 |
 | --- | --- | --- |
-| public admin service，包含 `ListClients`、`DescribeClient`、`ListClientsByGroup`、`ListClientsByTopic` | 已通过生成版 `ProxyAdminServiceGrpc` 暴露，默认注册到独立 admin gRPC server。 | `GrpcProxyAdminApplication`、`ProxyStartup`、`GrpcProxyAdminApplicationTest`、`rocketmq-apis/apache/rocketmq/v2/admin.proto`。 |
+| public admin service，包含 `ListClients`、`DescribeClient`、`ListClientsByGroup`、`ListClientsByTopic` | 已通过生成版 `ProxyAdminServiceGrpc` 暴露，默认注册到独立 admin gRPC server。 | `GrpcProxyAdminApplication`、`ProxyStartup`、`GrpcProxyAdminApplicationTest`、[rocketmq-apis/admin.proto](https://github.com/pilichoumao/rocketmq-apis/blob/rip2-proxy-admin-public-api/apache/rocketmq/v2/admin.proto)。 |
 | 在线 client read model | 已实现 `clientId`、group、topic、client type、language、connect time 和 proxy id 索引。 | `ProxyClientReadService`、`ProxyClientInfo`、`ProxyClientQuery`、`ProxyClientPage`。 |
 | 官方过滤字段 | 已支持 exact client id、client id prefix、group、topic、client language、connect time range、`pageNum >= 1`、`pageSize <= 100`。 | `ProxyClientQueryTest`、`ProxyClientReadServiceTest`、`ProxyClientAdminRequestConverterTest`。 |
 | 生命周期写入 | 已覆盖 telemetry settings、heartbeat、unregister、termination、stream completion 和 error cleanup。 | `ClientActivityTest`、`DefaultGrpcMessagingActivityTest`。 |
@@ -246,11 +247,11 @@ Implemented:
 - internal cross-proxy coordinator and peer transport experiments behind config.
 - English/Chinese docs and 1M synthetic client benchmark report.
 
-The authoritative public proto is prepared in the sibling `rocketmq-apis`
-branch `rip2-proxy-admin-public-api`. For contest verification this branch
-depends on local `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT`
-generated from that proto. Upstream publication of the proto still needs
-community review.
+The authoritative public proto is published in
+`pilichoumao/rocketmq-apis:rip2-proxy-admin-public-api`. For contest
+verification this branch depends on local
+`org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` generated from that
+proto. Upstream publication of the proto still needs community review.
 
 ## Tests
 
@@ -292,10 +293,10 @@ The branch is ready for community review of the proxy-side foundation:
   and 1M synthetic benchmark report.
 - English and Chinese user docs.
 
-The public API source is prepared in the sibling `rocketmq-apis`
-`rip2-proxy-admin-public-api` branch. The remaining community question is how
-to publish that proto upstream and whether the proposed service name, field
-names, and field numbers are acceptable.
+The public API source is published at
+https://github.com/pilichoumao/rocketmq-apis/tree/rip2-proxy-admin-public-api.
+The remaining community question is whether Apache accepts the proposed service
+name, field names, field numbers, and upstream publication path.
 ```
 
 ## 最终检查清单
