@@ -2,28 +2,30 @@
 
 ## Purpose
 
-This note is a community-discussion draft for the RIP-2 Proxy Admin online
-client query API. It is intentionally documentation-only. It does not modify
-`rocketmq-apis`, generate protobuf classes, or register a new public endpoint in
-this fork.
+This note started as a community-discussion draft for the RIP-2 Proxy Admin
+online client query API. The current contest branch now carries the downstream
+implementation and a companion `rocketmq-apis` proposal branch, so this file is
+kept as the rationale and review checklist for the public contract.
 
-The implementation branch already carries a proto-free internal adapter, local
-read model, authorization facade, metrics hooks, lifecycle integration,
-cross-proxy coordinator seams, and startup registration seams. The remaining
-decision is where and how the public protobuf API should land.
+The implementation branch now includes a generated public
+`ProxyAdminServiceGrpc` adapter, local read model, authorization facade, metrics
+hooks, lifecycle integration, independent admin gRPC server registration, and
+cross-proxy coordinator seams. The remaining decision is the upstream protobuf
+ownership, field numbering, artifact version, and publication path.
 
 ## Current Upstream Status
 
-After fetching `upstream/develop` at commit `0e4ccf1b6` and `upstream/main` at
-commit `45937936b` on 2026-07-08, this RocketMQ repository does not contain a
-public `ProxyAdminService` protobuf API or `.proto` source files to update
-directly. The proxy module consumes generated
-`apache.rocketmq.v2.MessagingServiceGrpc` classes from `rocketmq-proto:2.1.2`,
-which also does not contain `ProxyAdminServiceGrpc`,
-`ListClientsByGroup`, or `DescribeClient` generated classes.
+As of the final contest refresh on 2026-07-10, upstream RocketMQ still does not
+contain an accepted public `ProxyAdminService` protobuf API. The companion API
+proposal is open as <https://github.com/apache/rocketmq-apis/pull/112>, and the
+RocketMQ implementation draft is open as
+<https://github.com/apache/rocketmq/pull/10603>.
 
-Because of that ownership boundary, this fork should keep the API as a proposal
-until the community confirms the protobuf location and compatibility process.
+For local contest verification, the implementation branch consumes
+`org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT`, generated from the
+companion `rocketmq-apis` proposal branch. Until the community accepts the
+protobuf location and publishes an official artifact, the public API remains a
+proposal even though the downstream endpoint is implemented and tested.
 
 ## Recommendation
 
@@ -48,8 +50,11 @@ coordinator and peer transport semantics.
 
 ## Proposed RPCs
 
-The documentation-only draft is maintained in
-`docs/en/rip2-proxy-admin-m1-public-api-draft.proto`.
+The proposal mirror is maintained in
+`docs/en/rip2-proxy-admin-m1-public-api-draft.proto`. The authoritative proposal
+source for local verification is
+`../rocketmq-apis/apache/rocketmq/v2/admin.proto` on the
+`rip2-proxy-admin-public-api` branch.
 
 The proposed contest-facing unary RPCs are:
 
@@ -129,9 +134,9 @@ peer fan-out.
 
 ## Endpoint Implementation Shape
 
-Once generated public protobuf classes are available, add a dedicated
+The branch implements a dedicated
 `GrpcProxyAdminApplication extends ProxyAdminServiceGrpc.ProxyAdminServiceImplBase`.
-Do not add admin methods to `GrpcMessagingApplication`.
+It does not add admin methods to `GrpcMessagingApplication`.
 
 Each generated unary method should stay thin:
 
@@ -144,9 +149,9 @@ Each generated unary method should stay thin:
 - keep authorization, validation, pagination, metrics, and error mapping behind
   the existing activity, scope router, endpoint handler, and service layer.
 
-`ProxyStartup.createGrpcBindableServices` already has a default-empty
-`ProxyAdminServiceFactory` seam so the future application can be registered
-beside `GrpcMessagingApplication` with the same shared activity.
+`ProxyStartup.createProxyAdminGrpcBindableServices` registers the public
+`GrpcProxyAdminApplication` on the independent admin gRPC server with the same
+shared `DefaultGrpcMessagingActivity`.
 
 ## Compatibility
 
@@ -178,8 +183,8 @@ land. Once community review starts, avoid reshuffling field numbers.
 
 ## Implementation State In This Branch
 
-This branch is ready for a thin generated endpoint adapter after the API
-ownership decision:
+This branch is ready for proxy-side review while the public API ownership
+decision proceeds:
 
 - local read model with stable pagination and secondary indexes.
 - gRPC client lifecycle writes into the read model.
@@ -189,8 +194,10 @@ ownership decision:
   adapter.
 - endpoint executor and endpoint handler, including the M1 public
   `LOCAL_PROXY` scope gate before request context creation.
+- generated `GrpcProxyAdminApplication` for `ListClients`, `DescribeClient`,
+  `ListClientsByGroup`, and `ListClientsByTopic`.
+- independent admin gRPC server registration through `ProxyStartup`.
 - authorization facade and metrics hooks.
-- startup service-registration seam for a future standalone admin application.
 - internal coordinator, peer gRPC service, static peer transport, timeout
   handling, and coordinator-scope metrics for cross-proxy experiments without
   modifying public protobuf APIs.

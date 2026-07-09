@@ -4,10 +4,10 @@
 
 本文汇总 `rip2-proxy-admin-m1` 分支，可用于最终 PR、issue comment 或比赛提交。
 
-本次 evidence refresh 前，已同步到远端的 RocketMQ 实现 checkpoint：
+已同步到远端的最新 RocketMQ 实现 checkpoint：
 
 ```text
-17d3273a267a5155efeaf91593e2a121dbdb3cb4 Refresh RIP-2 package smoke evidence
+87481b0ac70df352f237602270d9b7119306275b Cover dashboard client view fields
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -153,8 +153,7 @@ Admin labels、trace 和日志属性：
 以下最终验证命令均使用 JDK 17 运行，运行时工作区已包含生成版 public endpoint
 和 package smoke 构建修复。Focused public endpoint 验证已在新增
 Dashboard-facing client view 字段 generated gRPC 覆盖后刷新；broad proxy admin
-验证和 package smoke 也已在 reviewer runbook checkpoint 后，于 2026-07-10
-Asia/Shanghai 重新刷新。
+验证和 package smoke 也已于 2026-07-10 Asia/Shanghai 重新刷新。
 
 Focused generated public API verification：
 
@@ -201,7 +200,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T00:31:10+08:00
+Finished at: 2026-07-10T00:51:32+08:00
 ```
 
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
