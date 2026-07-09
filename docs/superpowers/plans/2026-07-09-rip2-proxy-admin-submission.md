@@ -1718,6 +1718,10 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   alignment with `../rocketmq-apis`, focused/broad verification evidence, and
   optional git remote state. Unit coverage lives in
   `dev/rip2_submission_guard_test.py`.
+- [x] GitHub review artifact guard added:
+  `python3 dev/rip2_submission_guard.py --check-remote --check-github` verifies
+  the RocketMQ draft PR, rocketmq-apis draft PR, and RIP-2 issue comment all
+  reference the current branch HEAD and include submission-guard evidence.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

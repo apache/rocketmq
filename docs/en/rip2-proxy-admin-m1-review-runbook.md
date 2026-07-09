@@ -143,7 +143,13 @@ RIP-2 submission guard passed.
 ```
 
 When validating the fork branch itself, add `--check-remote` to verify
-`origin/rip2-proxy-admin-m1` matches `HEAD`.
+`origin/rip2-proxy-admin-m1` matches `HEAD`. Add `--check-github` to also verify
+the two draft PR descriptions and the RIP-2 issue comment reference the same
+HEAD and include the submission-guard evidence:
+
+```bash
+python3 dev/rip2_submission_guard.py --check-remote --check-github
+```
 
 ```bash
 sed -n '1,120p' docs/en/rip2-proxy-admin-m1-acceptance-audit.md

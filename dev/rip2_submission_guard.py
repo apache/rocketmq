@@ -80,6 +80,21 @@ REQUIRED_JAR_ENTRIES = (
     "apache/rocketmq/v2/ProxyClient.class",
 )
 
+GITHUB_ARTIFACTS = (
+    (
+        "RocketMQ PR #10603",
+        ["gh", "pr", "view", "10603", "--repo", "apache/rocketmq", "--json", "body", "--jq", ".body"],
+    ),
+    (
+        "rocketmq-apis PR #112",
+        ["gh", "pr", "view", "112", "--repo", "apache/rocketmq-apis", "--json", "body", "--jq", ".body"],
+    ),
+    (
+        "RIP-2 issue comment",
+        ["gh", "api", "repos/apache/rocketmq/issues/comments/4926996687", "--jq", ".body"],
+    ),
+)
+
 
 def run_command(args, cwd):
     result = subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=False)
@@ -103,14 +118,14 @@ def check_required_files(root, errors):
             errors.append(f"missing required file: {rel}")
 
 
-def check_git_state(root, errors, check_remote):
-    code, branch, stderr = run_command(["git", "branch", "--show-current"], cwd=root)
+def check_git_state(root, errors, check_remote, command_runner=run_command):
+    code, branch, stderr = command_runner(["git", "branch", "--show-current"], cwd=root)
     if code != 0:
         errors.append(f"cannot determine current branch: {stderr}")
     elif branch != EXPECTED_BRANCH:
         errors.append(f"expected branch {EXPECTED_BRANCH}, got {branch}")
 
-    code, status, stderr = run_command(["git", "status", "--short", "--untracked-files=all"], cwd=root)
+    code, status, stderr = command_runner(["git", "status", "--short", "--untracked-files=all"], cwd=root)
     if code != 0:
         errors.append(f"cannot determine git status: {stderr}")
     elif status:
@@ -119,11 +134,11 @@ def check_git_state(root, errors, check_remote):
     if not check_remote:
         return
 
-    code, head, stderr = run_command(["git", "rev-parse", "HEAD"], cwd=root)
+    code, head, stderr = command_runner(["git", "rev-parse", "HEAD"], cwd=root)
     if code != 0:
         errors.append(f"cannot determine HEAD: {stderr}")
         return
-    code, remote, stderr = run_command(
+    code, remote, stderr = command_runner(
         ["git", "ls-remote", "origin", f"refs/heads/{EXPECTED_BRANCH}"],
         cwd=root,
     )
@@ -213,18 +228,44 @@ def check_source_wiring(root, errors):
             errors.append(f"GrpcProxyAdminApplication missing {token}")
 
 
-def run_checks(root, apis_root, m2_repository, check_git=True, check_remote=False):
+def check_github_artifacts(root, errors, command_runner=run_command):
+    code, head, stderr = command_runner(["git", "rev-parse", "HEAD"], cwd=root)
+    if code != 0:
+        errors.append(f"cannot determine HEAD for GitHub artifact checks: {stderr}")
+        return
+    for label, args in GITHUB_ARTIFACTS:
+        code, body, stderr = command_runner(args, cwd=root)
+        if code != 0:
+            errors.append(f"cannot read {label}: {stderr}")
+            continue
+        if head not in body:
+            errors.append(f"{label} does not reference current HEAD {head}")
+        if "RIP-2 submission guard passed." not in body:
+            errors.append(f"{label} does not include submission guard evidence")
+
+
+def run_checks(
+    root,
+    apis_root,
+    m2_repository,
+    check_git=True,
+    check_remote=False,
+    check_github=False,
+    command_runner=run_command,
+):
     root = Path(root).resolve()
     apis_root = Path(apis_root).resolve()
     m2_repository = Path(m2_repository).expanduser().resolve()
     errors = []
     check_required_files(root, errors)
     if check_git:
-        check_git_state(root, errors, check_remote)
+        check_git_state(root, errors, check_remote, command_runner=command_runner)
     check_proto(root, apis_root, errors)
     check_generated_artifact(m2_repository, errors)
     check_submission_evidence(root, errors)
     check_source_wiring(root, errors)
+    if check_github:
+        check_github_artifacts(root, errors, command_runner=command_runner)
     return errors
 
 
@@ -243,6 +284,7 @@ def parse_args(argv):
     )
     parser.add_argument("--skip-git", action="store_true", help="Skip branch and worktree checks.")
     parser.add_argument("--check-remote", action="store_true", help="Check origin/rip2-proxy-admin-m1 equals HEAD.")
+    parser.add_argument("--check-github", action="store_true", help="Check public PR and issue text references HEAD.")
     return parser.parse_args(argv)
 
 
@@ -254,6 +296,7 @@ def main(argv=None):
         m2_repository=args.m2_repository,
         check_git=not args.skip_git,
         check_remote=args.check_remote,
+        check_github=args.check_github,
     )
     if errors:
         print("RIP-2 submission guard failed:")

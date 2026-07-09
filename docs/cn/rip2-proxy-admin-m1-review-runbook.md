@@ -141,7 +141,12 @@ RIP-2 submission guard passed.
 ```
 
 如果正在验证 fork 分支本身，可以追加 `--check-remote`，确认
-`origin/rip2-proxy-admin-m1` 与 `HEAD` 一致。
+`origin/rip2-proxy-admin-m1` 与 `HEAD` 一致。追加 `--check-github` 还会确认两个
+draft PR 描述和 RIP-2 issue comment 均引用同一个 HEAD，并包含提交门禁证据：
+
+```bash
+python3 dev/rip2_submission_guard.py --check-remote --check-github
+```
 
 ```bash
 sed -n '1,120p' docs/cn/rip2-proxy-admin-m1-acceptance-audit.md
