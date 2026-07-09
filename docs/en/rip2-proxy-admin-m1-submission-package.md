@@ -9,7 +9,7 @@ PR, issue comment, or contest submission.
 Latest synchronized RocketMQ implementation checkpoint:
 
 ```text
-968fbab2f1585c55827624d051920493bab4a478 Cover public grpc exact client pagination
+75cc4f0f1342252c3697bcd39b19b8661a9f2ae7 Cover public grpc admin authorization
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -162,8 +162,9 @@ gRPC coverage for Dashboard-facing client view fields, contest filters, scope
 gates, bad requests, sparse client metadata defaults, grouped filter
 pagination for `ListClientsByGroup` / `ListClientsByTopic`, exact client id
 filtering, and public `pageSize` capping. Broad proxy admin verification was
-also refreshed on July 10, 2026 Asia/Shanghai after the exact client pagination
-coverage landed. Package smoke was refreshed earlier on the same day.
+also refreshed on July 10, 2026 Asia/Shanghai after generated public gRPC
+authorization coverage for all four RPCs landed. Package smoke was refreshed
+earlier on the same day.
 
 Focused generated public API verification:
 
@@ -177,9 +178,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 42, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T01:52:34+08:00
+Finished at: 2026-07-10T02:00:18+08:00
 ```
 
 Broad proxy admin verification:
@@ -194,9 +195,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 713, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 714, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T01:53:36+08:00
+Finished at: 2026-07-10T02:01:24+08:00
 ```
 
 Package smoke:
@@ -296,7 +297,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 713, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 714, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 

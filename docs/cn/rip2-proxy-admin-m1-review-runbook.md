@@ -91,7 +91,7 @@ mvn -pl proxy -am \
 预期：
 
 ```text
-Tests run: 42, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -110,7 +110,7 @@ mvn -pl proxy -am \
 最终记录的预期结果：
 
 ```text
-Tests run: 713, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 714, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 

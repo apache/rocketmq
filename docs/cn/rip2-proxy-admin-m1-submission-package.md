@@ -7,7 +7,7 @@
 已同步到远端的最新 RocketMQ 实现 checkpoint：
 
 ```text
-968fbab2f1585c55827624d051920493bab4a478 Cover public grpc exact client pagination
+75cc4f0f1342252c3697bcd39b19b8661a9f2ae7 Cover public grpc admin authorization
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -156,8 +156,8 @@ Dashboard-facing client view 字段、contest filters、scope gates、bad reques
 和 sparse client metadata 默认值、`ListClientsByGroup` /
 `ListClientsByTopic` grouped filter pagination、exact client id 过滤和 public
 `pageSize` capped pagination generated gRPC 覆盖后刷新；broad proxy admin 验证
-也已在 exact client pagination 覆盖落地后于 2026-07-10 Asia/Shanghai 重新刷新。
-Package smoke 已在同日稍早刷新。
+也已在四个 RPC 的 generated public gRPC authorization 覆盖落地后于 2026-07-10
+Asia/Shanghai 重新刷新。Package smoke 已在同日稍早刷新。
 
 Focused generated public API verification：
 
@@ -171,9 +171,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 42, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T01:52:34+08:00
+Finished at: 2026-07-10T02:00:18+08:00
 ```
 
 Broad proxy admin verification：
@@ -188,9 +188,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 713, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 714, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T01:53:36+08:00
+Finished at: 2026-07-10T02:01:24+08:00
 ```
 
 Package smoke：
@@ -288,7 +288,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 713, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 714, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
