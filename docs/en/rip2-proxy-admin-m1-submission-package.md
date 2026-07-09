@@ -11,8 +11,12 @@ comment because this file may itself change when evidence is refreshed. The
 latest synchronized RocketMQ implementation-code checkpoint is:
 
 ```text
-bc83087f5f40dc2cfbcc083dba59619a4b7acc78 Optimize proxy client read model indexes
+7b89ba60fca2a18859519f7b2b822f73c2f4ed2c Add proxy admin public grpc benchmark
 ```
+
+The live draft PRs and RIP-2 issue summary were refreshed after that checkpoint
+to include the generated public gRPC endpoint 1M benchmark, the `728`-test broad
+verification result, and the latest implementation branch head.
 
 The branch implements the proxy-side foundation and generated public endpoint
 for `ProxyAdminService` online-client queries: read model, lifecycle writes,

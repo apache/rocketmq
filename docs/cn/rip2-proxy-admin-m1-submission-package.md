@@ -9,8 +9,12 @@
 checkpoint：
 
 ```text
-bc83087f5f40dc2cfbcc083dba59619a4b7acc78 Optimize proxy client read model indexes
+7b89ba60fca2a18859519f7b2b822f73c2f4ed2c Add proxy admin public grpc benchmark
 ```
+
+该 checkpoint 后，live draft PR 和 RIP-2 issue summary 已同步 generated public
+gRPC endpoint 1M benchmark、`728` tests broad verification 结果和最新实现分支
+HEAD。
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
 生成版公开 endpoint：read model、客户端生命周期写入、service 层、参数校验、
