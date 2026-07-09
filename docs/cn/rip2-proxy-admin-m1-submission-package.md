@@ -7,31 +7,31 @@
 本提交包更新前最新已验证代码 checkpoint：
 
 ```text
-54263a5c0da96a95068c0aa47a54eda7b749cbcd Improve RIP-2 proxy admin test coverage
+43bf299d01370e08a74ff067a5d5f2359b995ded Cover RIP-2 public proxy admin RPCs
 ```
 
-本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力：
-read model、客户端生命周期写入、service 层、参数校验、授权、endpoint-ready
-adapter、独立 admin 查询线程池、可观测性、内部跨 proxy 探索、文档和 1M
-synthetic client benchmark。
+本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
+生成版公开 endpoint：read model、客户端生命周期写入、service 层、参数校验、
+授权、generated gRPC adapter、独立 admin server 接线、独立 admin 查询线程池、
+可观测性、内部跨 proxy 探索、文档和 1M synthetic client benchmark。
 
-唯一硬性外部门禁是 public protobuf 归属。当前 RocketMQ 仓库消费的是已生成的
-`rocketmq-proto` 类，本仓库内没有 standalone `ProxyAdminService` 的 public
-`.proto` 源文件。因此本 fork 只保留 public API 草案，不把生成版 public
-endpoint 伪装成已经注册完成。
+本分支已包含生成版公开 `ProxyAdminService` endpoint 接线。权威 protobuf
+来源是配套的 `rocketmq-apis` `rip2-proxy-admin-public-api` 分支。为了完成
+参赛验证，生成版 Java artifact 以
+`org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` 安装到本机 Maven。
 
 ## 要求对照
 
 | 比赛要求 | 当前状态 | 证据 |
 | --- | --- | --- |
-| public admin service，包含 `ListClients`、`DescribeClient`、`ListClientsByGroup`、`ListClientsByTopic` | endpoint-ready 内部 adapter 已完成；生成版 public `ProxyAdminServiceGrpc` 受 `rocketmq-apis` 归属阻塞。 | `docs/en/rip2-proxy-admin-m1-public-api-draft.proto`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/admin`。 |
+| public admin service，包含 `ListClients`、`DescribeClient`、`ListClientsByGroup`、`ListClientsByTopic` | 已通过生成版 `ProxyAdminServiceGrpc` 暴露，默认注册到独立 admin gRPC server。 | `GrpcProxyAdminApplication`、`ProxyStartup`、`GrpcProxyAdminApplicationTest`、`rocketmq-apis/apache/rocketmq/v2/admin.proto`。 |
 | 在线 client read model | 已实现 `clientId`、group、topic、client type、language、connect time 和 proxy id 索引。 | `ProxyClientReadService`、`ProxyClientInfo`、`ProxyClientQuery`、`ProxyClientPage`。 |
 | 官方过滤字段 | 已支持 exact client id、client id prefix、group、topic、client language、connect time range、`pageNum >= 1`、`pageSize <= 100`。 | `ProxyClientQueryTest`、`ProxyClientReadServiceTest`、`ProxyClientAdminRequestConverterTest`。 |
 | 生命周期写入 | 已覆盖 telemetry settings、heartbeat、unregister、termination、stream completion 和 error cleanup。 | `ClientActivityTest`、`DefaultGrpcMessagingActivityTest`。 |
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
-| 独立 admin 执行路径 | 已实现 admin query executor，并在 startup 中预留独立 admin gRPC server seam。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
+| 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
-| E2E / integration 覆盖 | 生成版 public gRPC E2E 受 protobuf 归属阻塞；当前通过 proto-free in-process endpoint integration 和 peer tests 覆盖同一服务路径。 | `ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
+| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖四个 RPC、过滤、scope 拒绝、默认分页和 not found 语义；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`。 |
 | 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、benchmark report 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`。 |
 
@@ -76,7 +76,7 @@ Public admin server gate 和 executor 默认值：
 
 | 配置 | 默认值 | 含义 |
 | --- | ---: | --- |
-| `enableProxyAdminGrpcServer` | `false` | 为兼容性保留 future public admin gRPC server opt-in。 |
+| `enableProxyAdminGrpcServer` | `false` | 为兼容性保留 public admin gRPC server opt-in。 |
 | `proxyAdminGrpcServerPort` | `8082` | 独立 admin gRPC 端口。 |
 | `proxyAdminGrpcThreadPoolNums` | `4` | 独立 admin server request executor 线程数。 |
 | `proxyAdminGrpcThreadPoolQueueCapacity` | `10000` | 独立 admin server request queue 容量。 |
@@ -140,7 +140,7 @@ Admin labels、trace 和日志属性：
 
 ## 验证快照
 
-最新 broad proxy verification：
+生成版 public endpoint checkpoint 前的最新 broad proxy verification：
 
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
@@ -155,6 +155,9 @@ mvn -pl proxy -am \
 Tests run: 700, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
+
+最终生成版 public endpoint 验证会在 Task 8 focused、broad 和 package 命令运行后
+回填到最终提交更新中。
 
 该次运行的包级 JaCoCo 覆盖率：
 
@@ -186,8 +189,8 @@ Benchmark 证据：
 ````markdown
 ## Summary
 
-This PR implements the proxy-side RIP-2 online client query foundation for a
-future standalone `ProxyAdminService`.
+This PR implements the proxy-side RIP-2 online client query foundation and
+generated public gRPC endpoint for a standalone `ProxyAdminService`.
 
 Implemented:
 
@@ -195,21 +198,21 @@ Implemented:
   events.
 - query semantics for client id, client id prefix, group, topic, language,
   connect time range, `pageNum`, and `pageSize <= 100`.
-- internal `ClientAdminService` and proto-free `ProxyClientAdminActivity`.
-- endpoint-ready executor/handler with `LOCAL_PROXY` public-scope validation.
+- internal `ClientAdminService`, proto-free `ProxyClientAdminActivity`, and
+  generated `GrpcProxyAdminApplication`.
+- generated public endpoint executor/handler with `LOCAL_PROXY` public-scope
+  validation.
 - ACL facade using `Admin:proxy.admin.client` with LIST/GET actions.
-- dedicated admin query executor and startup seam for a future independent
-  admin gRPC server.
+- dedicated admin query executor and independent admin gRPC server registration.
 - low-cardinality metrics, trace attributes, and sanitized failure logs.
 - internal cross-proxy coordinator and peer transport experiments behind config.
 - English/Chinese docs and 1M synthetic client benchmark report.
 
-Public generated `ProxyAdminServiceGrpc` registration is intentionally not part
-of this branch because this repository currently consumes generated
-`rocketmq-proto` classes and the public API ownership/field-number decision
-needs community confirmation first. The proposed API is documented in
-`docs/en/rip2-proxy-admin-m1-public-api-draft.proto` and
-`docs/en/rip2-proxy-admin-public-api-discussion.md`.
+The authoritative public proto is prepared in the sibling `rocketmq-apis`
+branch `rip2-proxy-admin-public-api`. For contest verification this branch
+depends on local `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT`
+generated from that proto. Upstream publication of the proto still needs
+community review.
 
 ## Tests
 
@@ -242,20 +245,19 @@ The branch is ready for community review of the proxy-side foundation:
 
 - local online-client read model and lifecycle writes.
 - `ListClients`, `DescribeClient`, `ListClientsByGroup`, and
-  `ListClientsByTopic` semantics through an endpoint-ready internal adapter.
+  `ListClientsByTopic` through generated public gRPC stubs.
 - official filters and `pageSize <= 100`.
 - independent ACL resource `Admin:proxy.admin.client`.
-- dedicated admin query executor and admin server startup seam.
+- dedicated admin query executor and admin server registration.
 - metrics/tracing/logging coverage.
-- in-process endpoint/peer integration tests and 1M synthetic benchmark report.
+- generated public gRPC Server/Channel tests, in-process endpoint/peer tests,
+  and 1M synthetic benchmark report.
 - English and Chinese user docs.
 
-The remaining question is public API ownership: should the standalone
-`ProxyAdminService` proto land in `rocketmq-apis`, and are the service name,
-field names, and field numbers in
-`docs/en/rip2-proxy-admin-m1-public-api-draft.proto` acceptable? Until that is
-confirmed, the branch does not register generated public `ProxyAdminServiceGrpc`
-stubs.
+The public API source is prepared in the sibling `rocketmq-apis`
+`rip2-proxy-admin-public-api` branch. The remaining community question is how
+to publish that proto upstream and whether the proposed service name, field
+names, and field numbers are acceptable.
 ```
 
 ## 最终检查清单
@@ -263,6 +265,8 @@ stubs.
 - 保持 `origin` 为 `https://github.com/pilichoumao/rocketmq.git`。
 - 不向 `apache/rocketmq` push。
 - 任意代码改动后重新跑 broad proxy verification。
+- 手工验证运行中 Proxy 时，按 `docs/cn/rip2-proxy-admin-m1-final-smoke.md`
+  执行最终冒烟。
 - 最终 commit 前执行 `git diff --check`。
 - 普通 push 失败时使用代理：
 

@@ -1228,7 +1228,7 @@ Expected:
 - Create: `docs/en/rip2-proxy-admin-m1-final-smoke.md`
 - Create: `docs/cn/rip2-proxy-admin-m1-final-smoke.md`
 
-- [ ] **Step 1: Add English smoke guide**
+- [x] **Step 1: Add English smoke guide**
 
 Create `./docs/en/rip2-proxy-admin-m1-final-smoke.md`:
 
@@ -1328,7 +1328,7 @@ The public M1 endpoint supports omitted scope and
 authorization, timeout, and page ownership semantics.
 ```
 
-- [ ] **Step 2: Add Chinese smoke guide**
+- [x] **Step 2: Add Chinese smoke guide**
 
 Create `./docs/cn/rip2-proxy-admin-m1-final-smoke.md`:
 
@@ -1424,7 +1424,7 @@ synthetic clients 来验证非空响应。
 多 Proxy discovery、鉴权、超时和分页归属语义。
 ```
 
-- [ ] **Step 3: Refresh submission package status**
+- [x] **Step 3: Refresh submission package status**
 
 In both submission package files, update the current status section so it says:
 
@@ -1453,7 +1453,7 @@ Update the requirement table rows:
 
 Update verification section after Task 8 with the actual command and result.
 
-- [ ] **Step 4: Commit docs**
+- [x] **Step 4: Commit docs**
 
 Run:
 
