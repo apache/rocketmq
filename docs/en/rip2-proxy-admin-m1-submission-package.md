@@ -20,7 +20,7 @@ The latest generated public gRPC endpoint 1M benchmark code checkpoint is:
 
 The live draft PRs and RIP-2 issue summary have been refreshed through that
 implementation-code checkpoint to include the generated public gRPC endpoint
-1M benchmark, the `728`-test broad verification result, Dashboard table/detail
+1M benchmark, the `730`-test broad verification result, Dashboard table/detail
 field evidence, and the generated service descriptor verification evidence.
 Later documentation-only evidence refresh commits may move the branch head
 without changing the implementation checkpoint above.
@@ -196,8 +196,10 @@ refreshed again after adding generated gRPC evidence that
 even when `proxy_id` is omitted. Broad proxy admin verification was refreshed
 again after adding the generated public gRPC endpoint benchmark setup test.
 Focused public endpoint/startup verification was refreshed again after adding
-the generated public service descriptor test. Package smoke was refreshed on
-the same implementation checkpoint.
+the generated public service descriptor test. Broad proxy admin verification
+was refreshed again on the latest branch head after the descriptor and
+Dashboard-facing tests were included in the broad suite. Package smoke was
+refreshed on the same implementation checkpoint.
 
 Focused generated public API verification:
 
@@ -262,9 +264,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 728, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 730, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T05:14:32+08:00
+Finished at: 2026-07-10T06:06:44+08:00
 ```
 
 Package smoke:
@@ -372,7 +374,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 728, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 

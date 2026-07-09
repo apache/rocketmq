@@ -17,7 +17,7 @@
 ```
 
 live draft PR 和 RIP-2 issue summary 已同步到上述实现代码 checkpoint，包含
-generated public gRPC endpoint 1M benchmark、`728` tests broad verification、
+generated public gRPC endpoint 1M benchmark、`730` tests broad verification、
 Dashboard 表格/详情字段证据，以及 generated service descriptor verification
 证据。后续纯文档证据刷新 commit 可能继续推进分支 HEAD，但不会改变上述实现
 checkpoint。
@@ -184,8 +184,9 @@ broad proxy admin 验证；随后又在将核心 `ProxyClientQuery` page-size gu
 `PROXY_SCOPE_PROXY_ID` 即使省略 `proxy_id` 也先按 M1 scope gate 拒绝的
 generated gRPC 证据后刷新；随后又在新增 generated public gRPC endpoint
 benchmark setup 测试后刷新；随后又在新增 generated public service descriptor
-测试后刷新 focused public endpoint/startup verification。Package smoke 已在同一
-实现 checkpoint 上刷新。
+测试后刷新 focused public endpoint/startup verification；随后又在 descriptor 和
+Dashboard-facing 测试纳入 broad suite 后，在最新分支 HEAD 上刷新 broad proxy
+admin verification。Package smoke 已在同一实现 checkpoint 上刷新。
 
 Focused generated public API verification：
 
@@ -250,9 +251,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 728, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 730, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T05:14:32+08:00
+Finished at: 2026-07-10T06:06:44+08:00
 ```
 
 Package smoke：
@@ -358,7 +359,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 728, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 

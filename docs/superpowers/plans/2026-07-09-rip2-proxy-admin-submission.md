@@ -1685,7 +1685,7 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   Apache RocketMQ PR #10603, rocketmq-apis PR #112, and the RIP-2 issue
   summary now reference implementation-code checkpoint
   `7b89ba60fca2a18859519f7b2b822f73c2f4ed2c`, broad verification
-  `Tests run: 728`, and public endpoint P99 `3.576 ms`.
+  `Tests run: 730`, and public endpoint P99 `3.576 ms`.
 - [x] Dashboard CLIENT-01 field-level handoff contract added:
   `docs/en/rip2-proxy-admin-m1-dashboard-contract.md` and
   `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md` map `ProxyClient` fields,
@@ -1708,6 +1708,10 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   generated public service descriptor test:
   `Tests run: 54, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`,
   finished at `2026-07-10T05:58:49+08:00`.
+- [x] Broad proxy admin verification evidence refreshed on the latest branch
+  head after descriptor and Dashboard-facing tests were included in the broad
+  suite: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`,
+  `BUILD SUCCESS`, finished at `2026-07-10T06:06:44+08:00`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact
