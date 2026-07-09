@@ -99,7 +99,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
-
+        // parse request
         final long beginTimeMills = brokerController.getMessageStore().now();
         Channel channel = ctx.channel();
         request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
@@ -112,6 +112,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         final PopLiteMessageRequestHeader requestHeader =
             request.decodeCommandCustomHeader(PopLiteMessageRequestHeader.class, true);
         final PopLiteMessageResponseHeader responseHeader = (PopLiteMessageResponseHeader) response.readCustomHeader();
+
         RemotingCommand preCheckResponse = preCheck(ctx, requestHeader, response);
         if (preCheckResponse != null) {
             return preCheckResponse;
@@ -128,6 +129,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
             group, clientId, popTime, invisibleTime, maxNum, requestHeader.getAttemptId());
 
         final GetMessageResult getMessageResult = rst.getObject2();
+        // format response or long polling(do not support grpc client)
         if (getMessageResult != null && getMessageResult.getMessageCount() > 0) {
             final byte[] r = readGetMessageResult(getMessageResult);
             brokerController.getBrokerStatsManager().incGroupGetLatency(group, parentTopic, 0,
@@ -139,6 +141,7 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
             response.setRemark(GetMessageStatus.FOUND.name());
             response.setBody(r);
         } else {
+            // polling is useless for grpc client
             response.setRemark(GetMessageStatus.NO_MESSAGE_IN_QUEUE.name());
             PollingResult pollingResult = popLiteLongPollingService.polling(ctx, request, requestHeader.getBornTime(),
                 requestHeader.getPollTime(), clientId, group);
@@ -161,6 +164,18 @@ public class PopLiteMessageProcessor implements NettyRequestProcessor {
         return null;
     }
 
+    /**
+     * Validate the Pop Lite request before any actual Pop work is done.
+     * Returns a ready-to-send error {@link RemotingCommand} when the
+     * request must be rejected, or {@code null} when the request
+     * passes all checks and Pop may proceed.
+     *
+     * <p>The checks are layered as: timeout / broker permission /
+     * batch-size cap, then topic existence and readability, then
+     * topic message type must be {@link TopicMessageType#LITE}, and
+     * finally the subscription group exists, is enabled, and its
+     * {@code liteBindTopic} matches the requested topic.
+     */
     @VisibleForTesting
     public RemotingCommand preCheck(ChannelHandlerContext ctx,
         PopLiteMessageRequestHeader requestHeader, RemotingCommand response) {
