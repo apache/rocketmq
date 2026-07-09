@@ -29,16 +29,23 @@ package apache.rocketmq.v2;
 service ProxyAdminService {
   rpc ListClients(ListClientsRequest) returns (ListClientsResponse) {}
   rpc DescribeClient(DescribeClientRequest) returns (DescribeClientResponse) {}
-  rpc ListClientsByGroup(ListClientsByGroupRequest) returns (ListClientsResponse) {}
-  rpc ListClientsByTopic(ListClientsByTopicRequest) returns (ListClientsResponse) {}
+  rpc ListClientsByGroup(ListClientsByGroupRequest) returns (ListClientsByGroupResponse) {}
+  rpc ListClientsByTopic(ListClientsByTopicRequest) returns (ListClientsByTopicResponse) {}
+}
+
+enum ProxyScope {
+  PROXY_SCOPE_UNSPECIFIED = 0;
+  PROXY_SCOPE_LOCAL_PROXY = 1;
 }
 
 message ListClientsRequest {}
+message ListClientsResponse {}
 message DescribeClientRequest {}
 message DescribeClientResponse {}
 message ListClientsByGroupRequest {}
+message ListClientsByGroupResponse {}
 message ListClientsByTopicRequest {}
-message ListClientsResponse {}
+message ListClientsByTopicResponse {}
 message ProxyClient {}
 """
 
@@ -361,6 +368,27 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("public API draft proto mirror" in error for error in errors))
+
+    def test_guard_reports_proto_missing_public_rpc_response_messages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            incomplete_proto = PROTO.replace("message ListClientsByGroupResponse {}\n", "")
+            write(root / "docs/en/rip2-proxy-admin-m1-public-api-draft.proto", incomplete_proto)
+            write(apis_root / "apache/rocketmq/v2/admin.proto", incomplete_proto)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("ListClientsByGroupResponse" in error for error in errors))
 
     def test_guard_reports_unbalanced_required_markdown_fences(self):
         with tempfile.TemporaryDirectory() as tmp:

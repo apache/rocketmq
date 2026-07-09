@@ -73,11 +73,23 @@ REQUIRED_FILES = (
 
 REQUIRED_PROTO_MESSAGES = (
     "service ProxyAdminService",
-    "rpc ListClients",
-    "rpc DescribeClient",
-    "rpc ListClientsByGroup",
-    "rpc ListClientsByTopic",
+    "enum ProxyScope",
+    "message ListClientsRequest",
+    "message ListClientsResponse",
+    "message DescribeClientRequest",
+    "message DescribeClientResponse",
+    "message ListClientsByGroupRequest",
+    "message ListClientsByGroupResponse",
+    "message ListClientsByTopicRequest",
+    "message ListClientsByTopicResponse",
     "message ProxyClient",
+)
+
+REQUIRED_PROTO_RPC_SIGNATURES = (
+    "rpc ListClients ( ListClientsRequest ) returns ( ListClientsResponse )",
+    "rpc DescribeClient ( DescribeClientRequest ) returns ( DescribeClientResponse )",
+    "rpc ListClientsByGroup ( ListClientsByGroupRequest ) returns ( ListClientsByGroupResponse )",
+    "rpc ListClientsByTopic ( ListClientsByTopicRequest ) returns ( ListClientsByTopicResponse )",
 )
 
 REQUIRED_JAR_ENTRIES = (
@@ -241,6 +253,15 @@ def check_proto(root, apis_root, errors):
     for token in REQUIRED_PROTO_MESSAGES:
         if token not in doc_proto:
             errors.append(f"public API draft proto missing {token}")
+    normalized_proto = " ".join(
+        doc_proto
+        .replace("(", " ( ")
+        .replace(")", " ) ")
+        .split()
+    )
+    for signature in REQUIRED_PROTO_RPC_SIGNATURES:
+        if signature not in normalized_proto:
+            errors.append(f"public API draft proto missing signature {signature}")
 
 
 def check_generated_artifact(m2_repository, errors):
