@@ -99,6 +99,46 @@ REQUIRED_PROXY_SCOPE_VALUES = (
     "PROXY_SCOPE_PROXY_ID = 3",
 )
 
+REQUIRED_PROTO_FIELDS = (
+    "string client_id = 1",
+    "string client_id_prefix = 2",
+    "string group = 3",
+    "string topic = 4",
+    "string client_language = 5",
+    "optional int64 connect_time_start_millis = 6",
+    "optional int64 connect_time_end_millis = 7",
+    "int32 page_num = 8",
+    "int32 page_size = 9",
+    "ProxyScope scope = 10",
+    "string proxy_id = 11",
+    "Status status = 1",
+    "repeated ProxyClient clients = 2",
+    "bool has_more = 3",
+    "ProxyClient client = 2",
+    "ProxyScope scope = 2",
+    "string proxy_id = 3",
+    "string group = 1",
+    "string client_id = 2",
+    "string client_id_prefix = 3",
+    "string client_language = 4",
+    "optional int64 connect_time_start_millis = 5",
+    "optional int64 connect_time_end_millis = 6",
+    "int32 page_num = 7",
+    "int32 page_size = 8",
+    "ProxyScope scope = 9",
+    "string proxy_id = 10",
+    "string topic = 1",
+    "ClientType client_type = 2",
+    "repeated string groups = 3",
+    "repeated string topics = 4",
+    "string language = 5",
+    "string remote_address = 6",
+    "string local_address = 7",
+    "string version = 8",
+    "int64 connect_time_millis = 9",
+    "int64 last_active_time_millis = 10",
+)
+
 REQUIRED_JAR_ENTRIES = (
     "apache/rocketmq/v2/ProxyAdminServiceGrpc.class",
     "apache/rocketmq/v2/ProxyScope.class",
@@ -272,6 +312,9 @@ def check_proto(root, apis_root, errors):
     for value in REQUIRED_PROXY_SCOPE_VALUES:
         if value not in normalized_proto:
             errors.append(f"public API draft proto missing enum value {value}")
+    for field in REQUIRED_PROTO_FIELDS:
+        if field not in normalized_proto:
+            errors.append(f"public API draft proto missing field {field}")
 
 
 def check_generated_artifact(m2_repository, errors):

@@ -40,15 +40,88 @@ enum ProxyScope {
   PROXY_SCOPE_PROXY_ID = 3;
 }
 
-message ListClientsRequest {}
-message ListClientsResponse {}
-message DescribeClientRequest {}
-message DescribeClientResponse {}
-message ListClientsByGroupRequest {}
-message ListClientsByGroupResponse {}
-message ListClientsByTopicRequest {}
-message ListClientsByTopicResponse {}
-message ProxyClient {}
+message ListClientsRequest {
+  string client_id = 1;
+  string client_id_prefix = 2;
+  string group = 3;
+  string topic = 4;
+  string client_language = 5;
+  optional int64 connect_time_start_millis = 6;
+  optional int64 connect_time_end_millis = 7;
+  int32 page_num = 8;
+  int32 page_size = 9;
+  ProxyScope scope = 10;
+  string proxy_id = 11;
+}
+
+message ListClientsResponse {
+  Status status = 1;
+  repeated ProxyClient clients = 2;
+  bool has_more = 3;
+}
+
+message DescribeClientRequest {
+  string client_id = 1;
+  ProxyScope scope = 2;
+  string proxy_id = 3;
+}
+
+message DescribeClientResponse {
+  Status status = 1;
+  ProxyClient client = 2;
+}
+
+message ListClientsByGroupRequest {
+  string group = 1;
+  string client_id = 2;
+  string client_id_prefix = 3;
+  string client_language = 4;
+  optional int64 connect_time_start_millis = 5;
+  optional int64 connect_time_end_millis = 6;
+  int32 page_num = 7;
+  int32 page_size = 8;
+  ProxyScope scope = 9;
+  string proxy_id = 10;
+}
+
+message ListClientsByGroupResponse {
+  Status status = 1;
+  repeated ProxyClient clients = 2;
+  bool has_more = 3;
+}
+
+message ListClientsByTopicRequest {
+  string topic = 1;
+  string client_id = 2;
+  string client_id_prefix = 3;
+  string client_language = 4;
+  optional int64 connect_time_start_millis = 5;
+  optional int64 connect_time_end_millis = 6;
+  int32 page_num = 7;
+  int32 page_size = 8;
+  ProxyScope scope = 9;
+  string proxy_id = 10;
+}
+
+message ListClientsByTopicResponse {
+  Status status = 1;
+  repeated ProxyClient clients = 2;
+  bool has_more = 3;
+}
+
+message ProxyClient {
+  string client_id = 1;
+  ClientType client_type = 2;
+  repeated string groups = 3;
+  repeated string topics = 4;
+  string language = 5;
+  string remote_address = 6;
+  string local_address = 7;
+  string version = 8;
+  int64 connect_time_millis = 9;
+  int64 last_active_time_millis = 10;
+  string proxy_id = 11;
+}
 """
 
 
@@ -378,7 +451,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             apis_root = base / "rocketmq-apis"
             m2_repository = base / "m2"
             create_submission_tree(root, apis_root, m2_repository)
-            incomplete_proto = PROTO.replace("message ListClientsByGroupResponse {}\n", "")
+            incomplete_proto = PROTO.replace("message ListClientsByGroupResponse", "message MissingListClientsByGroupResponse")
             write(root / "docs/en/rip2-proxy-admin-m1-public-api-draft.proto", incomplete_proto)
             write(apis_root / "apache/rocketmq/v2/admin.proto", incomplete_proto)
 
@@ -412,6 +485,27 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("PROXY_SCOPE_ALL_PROXIES = 2" in error for error in errors))
+
+    def test_guard_reports_proto_missing_public_field_number(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            incomplete_proto = PROTO.replace("  string client_id_prefix = 2;\n", "")
+            write(root / "docs/en/rip2-proxy-admin-m1-public-api-draft.proto", incomplete_proto)
+            write(apis_root / "apache/rocketmq/v2/admin.proto", incomplete_proto)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("string client_id_prefix = 2" in error for error in errors))
 
     def test_guard_reports_unbalanced_required_markdown_fences(self):
         with tempfile.TemporaryDirectory() as tmp:
