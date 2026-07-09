@@ -112,7 +112,7 @@ mvn -pl proxy -am \
 Expected from the recorded final run:
 
 ```text
-Tests run: 725, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 726, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 

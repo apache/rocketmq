@@ -213,9 +213,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 725, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 726, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T04:06:02+08:00
+Finished at: 2026-07-10T04:49:56+08:00
 ```
 
 Package smoke:
@@ -315,7 +315,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 725, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 726, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
