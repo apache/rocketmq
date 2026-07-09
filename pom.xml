@@ -325,7 +325,10 @@
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                            <excludes>**/generated*/**/*</excludes>
+                            <excludes>**/generated*/**/*,**/generated-test-sources/**/*</excludes>
+                            <testSourceDirectories>
+                                <testSourceDirectory>${project.basedir}/src/test/java</testSourceDirectory>
+                            </testSourceDirectories>
                         </configuration>
                         <goals>
                             <goal>check</goal>
