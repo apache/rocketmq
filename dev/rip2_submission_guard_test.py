@@ -170,6 +170,28 @@ def create_submission_tree(root, apis_root, m2_repository):
 """,
     )
     write(
+        root / "proxy/src/main/java/org/apache/rocketmq/proxy/ProxyStartup.java",
+        """class ProxyStartup {
+  void start() {
+    isEnableProxyAdminGrpcServer();
+    getProxyAdminGrpcServerPort();
+    ProtoReflectionService.newInstance();
+  }
+  void createProxyAdminGrpcBindableServices() {
+    new GrpcProxyAdminApplication(null);
+  }
+}
+""",
+    )
+    write(
+        root / "proxy/src/main/java/org/apache/rocketmq/proxy/config/ProxyConfig.java",
+        """class ProxyConfig {
+  private boolean enableProxyAdminGrpcServer = false;
+  private Integer proxyAdminGrpcServerPort = 8082;
+}
+""",
+    )
+    write(
         root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java",
         "class GrpcProxyAdminApplicationTest {}\n",
     )
@@ -506,6 +528,25 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("string client_id_prefix = 2" in error for error in errors))
+
+    def test_guard_reports_missing_public_admin_startup_wiring(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(root / "proxy/src/main/java/org/apache/rocketmq/proxy/ProxyStartup.java", "class ProxyStartup {}\n")
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("ProxyStartup" in error and "GrpcProxyAdminApplication" in error for error in errors))
 
     def test_guard_reports_unbalanced_required_markdown_fences(self):
         with tempfile.TemporaryDirectory() as tmp:

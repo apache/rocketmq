@@ -65,6 +65,8 @@ REQUIRED_DOCS = (
 
 REQUIRED_FILES = (
     "pom.xml",
+    "proxy/src/main/java/org/apache/rocketmq/proxy/ProxyStartup.java",
+    "proxy/src/main/java/org/apache/rocketmq/proxy/config/ProxyConfig.java",
     "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplication.java",
     "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java",
     "proxy/src/test/java/org/apache/rocketmq/proxy/ProxyStartupTest.java",
@@ -395,6 +397,23 @@ def check_source_wiring(root, errors):
     ):
         if token not in app_text:
             errors.append(f"GrpcProxyAdminApplication missing {token}")
+    startup_text = read_text(root / "proxy/src/main/java/org/apache/rocketmq/proxy/ProxyStartup.java", errors)
+    for token in (
+        "GrpcProxyAdminApplication",
+        "createProxyAdminGrpcBindableServices",
+        "isEnableProxyAdminGrpcServer()",
+        "getProxyAdminGrpcServerPort()",
+        "ProtoReflectionService.newInstance()",
+    ):
+        if token not in startup_text:
+            errors.append(f"ProxyStartup missing {token}")
+    config_text = read_text(root / "proxy/src/main/java/org/apache/rocketmq/proxy/config/ProxyConfig.java", errors)
+    for token in (
+        "private boolean enableProxyAdminGrpcServer = false",
+        "private Integer proxyAdminGrpcServerPort = 8082",
+    ):
+        if token not in config_text:
+            errors.append(f"ProxyConfig missing {token}")
 
 
 def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
