@@ -130,6 +130,21 @@ BUILD SUCCESS
 
 ## 7. Inspect Submission Evidence
 
+Run the lightweight submission guard first:
+
+```bash
+python3 dev/rip2_submission_guard.py
+```
+
+Expected:
+
+```text
+RIP-2 submission guard passed.
+```
+
+When validating the fork branch itself, add `--check-remote` to verify
+`origin/rip2-proxy-admin-m1` matches `HEAD`.
+
 ```bash
 sed -n '1,120p' docs/en/rip2-proxy-admin-m1-acceptance-audit.md
 sed -n '1,120p' docs/en/rip2-proxy-admin-m1-submission-package.md

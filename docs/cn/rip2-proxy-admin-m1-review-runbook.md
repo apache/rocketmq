@@ -128,6 +128,21 @@ BUILD SUCCESS
 
 ## 7. 查看提交证据
 
+先运行轻量提交门禁：
+
+```bash
+python3 dev/rip2_submission_guard.py
+```
+
+预期：
+
+```text
+RIP-2 submission guard passed.
+```
+
+如果正在验证 fork 分支本身，可以追加 `--check-remote`，确认
+`origin/rip2-proxy-admin-m1` 与 `HEAD` 一致。
+
 ```bash
 sed -n '1,120p' docs/cn/rip2-proxy-admin-m1-acceptance-audit.md
 sed -n '1,120p' docs/cn/rip2-proxy-admin-m1-submission-package.md

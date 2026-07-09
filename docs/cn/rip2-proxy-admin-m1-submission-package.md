@@ -270,6 +270,18 @@ BUILD SUCCESS
 Finished at: 2026-07-10T04:07:14+08:00
 ```
 
+轻量提交门禁：
+
+```bash
+python3 dev/rip2_submission_guard.py --check-remote
+```
+
+结果：
+
+```text
+RIP-2 submission guard passed.
+```
+
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
 下的 JMH annotation-generated test sources 被第二次 `source:jar` checkstyle
 扫描的问题。最终 `pom.xml` 将 Checkstyle 限定在手写测试源，同时保留测试编译和
@@ -360,6 +372,14 @@ mvn -pl proxy -am \
 ```
 
 Result: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+
+轻量提交门禁：
+
+```bash
+python3 dev/rip2_submission_guard.py --check-remote
+```
+
+Result: `RIP-2 submission guard passed.`
 
 ## Benchmark
 

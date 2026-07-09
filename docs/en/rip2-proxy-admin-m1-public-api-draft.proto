@@ -13,9 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Documentation mirror for the RIP-2 contest branch. The authoritative source
-// is apache/rocketmq/v2/admin.proto in the rocketmq-apis branch
-// rip2-proxy-admin-public-api.
 syntax = "proto3";
 
 import "apache/rocketmq/v2/definition.proto";

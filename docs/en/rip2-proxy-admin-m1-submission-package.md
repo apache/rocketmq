@@ -283,6 +283,18 @@ BUILD SUCCESS
 Finished at: 2026-07-10T04:07:14+08:00
 ```
 
+Lightweight submission guard:
+
+```bash
+python3 dev/rip2_submission_guard.py --check-remote
+```
+
+Result:
+
+```text
+RIP-2 submission guard passed.
+```
+
 The package smoke originally exposed stale JMH annotation-generated test sources
 under `target/generated-test-sources/test-annotations` being included in the
 second `source:jar` checkstyle pass. The final `pom.xml` fixes this by keeping
@@ -375,6 +387,14 @@ mvn -pl proxy -am \
 ```
 
 Result: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+
+Lightweight submission guard:
+
+```bash
+python3 dev/rip2_submission_guard.py --check-remote
+```
+
+Result: `RIP-2 submission guard passed.`
 
 ## Benchmark
 

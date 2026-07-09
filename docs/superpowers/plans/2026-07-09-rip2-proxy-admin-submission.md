@@ -1712,6 +1712,12 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   head after descriptor and Dashboard-facing tests were included in the broad
   suite: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`,
   `BUILD SUCCESS`, finished at `2026-07-10T06:06:44+08:00`.
+- [x] Lightweight submission guard added:
+  `dev/rip2_submission_guard.py` checks required RIP-2 files, the local
+  `rocketmq-proto:2.2.0-rip2-SNAPSHOT` generated artifact, proto mirror
+  alignment with `../rocketmq-apis`, focused/broad verification evidence, and
+  optional git remote state. Unit coverage lives in
+  `dev/rip2_submission_guard_test.py`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact
