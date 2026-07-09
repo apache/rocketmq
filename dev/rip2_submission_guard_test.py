@@ -156,6 +156,16 @@ def fake_github_runner(expected_head, rocketmq_body, api_body, issue_body, apis_
     return run
 
 
+def github_body(rocketmq_head, apis_head=None, guard_command=None):
+    guard_command = guard_command or rip2_submission_guard.FULL_GUARD_COMMAND
+    body = rocketmq_head + "\n"
+    if apis_head:
+        body += apis_head + "\n"
+    body += guard_command + "\n"
+    body += "RIP-2 submission guard passed.\n"
+    return body
+
+
 def fake_apis_git_runner(branch, status, head, remote_head):
     def run(args, cwd):
         if args == ["git", "branch", "--show-current"]:
@@ -380,7 +390,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             create_submission_tree(root, apis_root, m2_repository)
             expected_head = "abc123"
             apis_head = "apis456"
-            body = expected_head + "\n" + apis_head + "\nRIP-2 submission guard passed.\n"
+            body = github_body(expected_head, apis_head)
 
             errors = rip2_submission_guard.run_checks(
                 root=root,
@@ -394,6 +404,33 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertEqual([], errors)
 
+    def test_guard_reports_github_artifact_missing_full_guard_command(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            body = github_body(
+                expected_head,
+                apis_head,
+                guard_command="python3 dev/rip2_submission_guard.py --check-remote --check-github",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                command_runner=fake_github_runner(expected_head, body, body, body, apis_head=apis_head),
+            )
+
+            self.assertTrue(any("full submission guard command" in error for error in errors))
+
     def test_guard_reports_github_artifact_missing_current_head(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -403,8 +440,8 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             create_submission_tree(root, apis_root, m2_repository)
             expected_head = "abc123"
             apis_head = "apis456"
-            good_body = expected_head + "\n" + apis_head + "\nRIP-2 submission guard passed.\n"
-            stale_body = "stale-head\nRIP-2 submission guard passed.\n"
+            good_body = github_body(expected_head, apis_head)
+            stale_body = github_body("stale-head", apis_head)
 
             errors = rip2_submission_guard.run_checks(
                 root=root,
@@ -503,8 +540,8 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             create_submission_tree(root, apis_root, m2_repository)
             expected_head = "abc123"
             apis_head = "apis456"
-            good_body = expected_head + "\n" + apis_head + "\nRIP-2 submission guard passed.\n"
-            missing_apis_body = expected_head + "\nRIP-2 submission guard passed.\n"
+            good_body = github_body(expected_head, apis_head)
+            missing_apis_body = github_body(expected_head)
 
             errors = rip2_submission_guard.run_checks(
                 root=root,

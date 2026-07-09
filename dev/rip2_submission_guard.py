@@ -34,6 +34,7 @@ EXPECTED_APIS_BRANCH = "rip2-proxy-admin-public-api"
 DEFAULT_APIS_REMOTE = "auto"
 PROTO_VERSION = "2.2.0-rip2-SNAPSHOT"
 PROTO_VERSION_XML = f"<rocketmq-proto.version>{PROTO_VERSION}</rocketmq-proto.version>"
+FULL_GUARD_COMMAND = "python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github"
 FOCUSED_RESULT = "Tests run: 54, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T05:58:49+08:00"
 BROAD_RESULT = "Tests run: 730, Failures: 0, Errors: 0, Skipped: 0"
@@ -340,6 +341,8 @@ def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
             errors.append(f"{label} does not reference current HEAD {head}")
         if apis_head not in body:
             errors.append(f"{label} does not reference rocketmq-apis HEAD {apis_head}")
+        if FULL_GUARD_COMMAND not in body:
+            errors.append(f"{label} does not include full submission guard command")
         if "RIP-2 submission guard passed." not in body:
             errors.append(f"{label} does not include submission guard evidence")
 
