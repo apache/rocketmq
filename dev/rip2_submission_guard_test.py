@@ -89,6 +89,7 @@ Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
 Finished at: 2026-07-10T05:58:49+08:00
 Tests run: 730, Failures: 0, Errors: 0, Skipped: 0
 Finished at: 2026-07-10T06:06:44+08:00
+Finished at: 2026-07-10T06:27:48+08:00
 3.576 ms
 0.681 ms
 Dashboard CLIENT-01
@@ -268,6 +269,33 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("stale package smoke evidence" in error for error in errors))
+
+    def test_guard_reports_missing_latest_package_smoke_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            for rel in rip2_submission_guard.REQUIRED_DOCS:
+                path = root / rel
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "Finished at: 2026-07-10T06:27:48+08:00\n",
+                        "",
+                    ),
+                    encoding="utf-8",
+                )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("package smoke evidence" in error for error in errors))
 
     def test_guard_reports_proto_mirror_drift(self):
         with tempfile.TemporaryDirectory() as tmp:

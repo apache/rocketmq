@@ -38,6 +38,7 @@ FOCUSED_RESULT = "Tests run: 54, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T05:58:49+08:00"
 BROAD_RESULT = "Tests run: 730, Failures: 0, Errors: 0, Skipped: 0"
 BROAD_FINISHED_AT = "Finished at: 2026-07-10T06:06:44+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T06:27:48+08:00"
 OLD_FOCUSED_RESULT = "Tests run: 52, Failures: 0, Errors: 0, Skipped: 0"
 OLD_BROAD_RESULT = "Tests run: 728, Failures: 0, Errors: 0, Skipped: 0"
 OLD_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T04:04:54+08:00"
@@ -261,6 +262,7 @@ def check_submission_evidence(root, errors):
         FOCUSED_FINISHED_AT,
         BROAD_RESULT,
         BROAD_FINISHED_AT,
+        PACKAGE_SMOKE_FINISHED_AT,
         "3.576 ms",
         "0.681 ms",
         "Dashboard CLIENT-01",
@@ -268,7 +270,10 @@ def check_submission_evidence(root, errors):
     )
     for token in required_tokens:
         if token not in combined_docs:
-            errors.append(f"submission evidence missing {token}")
+            if token == PACKAGE_SMOKE_FINISHED_AT:
+                errors.append(f"package smoke evidence missing {token}")
+            else:
+                errors.append(f"submission evidence missing {token}")
     stale_tokens = (
         OLD_FOCUSED_RESULT,
         OLD_BROAD_RESULT,
