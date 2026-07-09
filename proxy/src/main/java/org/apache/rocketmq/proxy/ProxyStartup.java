@@ -42,6 +42,7 @@ import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplication;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -292,7 +293,10 @@ public class ProxyStartup {
 
     private static List<BindableService> createProxyAdminBindableServices(
         DefaultGrpcMessagingActivity grpcMessagingActivity) {
-        return Lists.newArrayList();
+        DefaultGrpcMessagingActivity requiredGrpcMessagingActivity = requireGrpcMessagingActivity(grpcMessagingActivity);
+        return Lists.newArrayList(new GrpcProxyAdminApplication(
+            requiredGrpcMessagingActivity.getProxyClientAdminEndpointExecutor()
+        ));
     }
 
     private static DefaultGrpcMessagingActivity requireGrpcMessagingActivity(

@@ -118,6 +118,19 @@ public class GrpcProxyAdminWiringTest extends InitConfigTest {
     }
 
     @Test
+    public void createDefaultActivityExposesAdminEndpointExecutorForPublicGrpcService() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+
+        try {
+            ProxyClientAdminEndpointExecutor endpointExecutor = activity.getProxyClientAdminEndpointExecutor();
+
+            assertThat(endpointExecutor).isNotNull();
+        } finally {
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void createMessagingApplicationUsesSuppliedSharedActivity() throws Exception {
         GrpcMessagingApplication application = GrpcMessagingApplication.create(
             this.messagingProcessor,

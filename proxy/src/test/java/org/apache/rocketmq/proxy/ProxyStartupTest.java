@@ -46,6 +46,8 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplication;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointExecutor;
 import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcService;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -387,6 +389,22 @@ public class ProxyStartupTest {
         assertEquals(2, services.size());
         assertSame(adminService, services.get(0));
         assertSame(peerGrpcService, services.get(1));
+    }
+
+    @Test
+    public void testCreateProxyAdminGrpcBindableServicesRegistersPublicProxyAdminServiceByDefault() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        ProxyClientAdminEndpointExecutor endpointExecutor = mock(ProxyClientAdminEndpointExecutor.class);
+        Mockito.when(sharedActivity.getProxyClientAdminEndpointExecutor()).thenReturn(endpointExecutor);
+
+        List<BindableService> services = ProxyStartup.createProxyAdminGrpcBindableServices(sharedActivity);
+
+        assertEquals(1, services.size());
+        Assert.assertTrue(services.get(0) instanceof GrpcProxyAdminApplication);
     }
 
     @Test

@@ -903,7 +903,7 @@ Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
-- [ ] **Step 5: Commit public gRPC application**
+- [x] **Step 5: Commit public gRPC application**
 
 Run:
 
@@ -928,7 +928,7 @@ Expected:
 - Modify: `proxy/src/test/java/org/apache/rocketmq/proxy/ProxyStartupTest.java`
 - Modify: `proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminWiringTest.java`
 
-- [ ] **Step 1: Add failing startup tests**
+- [x] **Step 1: Add failing startup tests**
 
 In `./proxy/src/test/java/org/apache/rocketmq/proxy/ProxyStartupTest.java`, add imports:
 
@@ -974,7 +974,7 @@ In `./proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdmin
     }
 ```
 
-- [ ] **Step 2: Run tests and verify startup failure**
+- [x] **Step 2: Run tests and verify startup failure**
 
 Run:
 
@@ -992,7 +992,7 @@ Actual   :0
 
 for the default proxy admin bindable services test.
 
-- [ ] **Step 3: Register the public service by default**
+- [x] **Step 3: Register the public service by default**
 
 In `./proxy/src/main/java/org/apache/rocketmq/proxy/ProxyStartup.java`, add import:
 
@@ -1021,7 +1021,7 @@ with:
     }
 ```
 
-- [ ] **Step 4: Run startup and wiring tests**
+- [x] **Step 4: Run startup and wiring tests**
 
 Run:
 
@@ -1037,7 +1037,7 @@ Failures: 0, Errors: 0
 BUILD SUCCESS
 ```
 
-- [ ] **Step 5: Commit startup wiring**
+- [x] **Step 5: Commit startup wiring**
 
 Run:
 
