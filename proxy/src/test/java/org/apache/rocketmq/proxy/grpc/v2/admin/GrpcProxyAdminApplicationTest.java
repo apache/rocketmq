@@ -162,6 +162,58 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void listClientsReturnsDashboardTableFieldsThroughGeneratedGrpcService() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            readService(activity).upsertClient(client("client-dashboard-list", ClientType.PUSH_CONSUMER,
+                "dashboard-group", "dashboard-topic"));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse response = stub.listClients(ListClientsRequest.newBuilder()
+                .setClientId("client-dashboard-list")
+                .setPageNum(1)
+                .setPageSize(100)
+                .build());
+
+            assertThat(response.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(response.getClientsCount()).isEqualTo(1);
+            assertThat(response.getHasMore()).isFalse();
+            ProxyClient client = response.getClients(0);
+            assertThat(client.getClientId()).isEqualTo("client-dashboard-list");
+            assertThat(client.getClientType()).isEqualTo(ClientType.PUSH_CONSUMER);
+            assertThat(client.getGroupsList()).containsExactly("dashboard-group");
+            assertThat(client.getTopicsList()).containsExactly("dashboard-topic");
+            assertThat(client.getLanguage()).isEqualTo("JAVA");
+            assertThat(client.getRemoteAddress()).isEqualTo("127.0.0.1:8080");
+            assertThat(client.getLocalAddress()).isEqualTo("192.168.0.1:8080");
+            assertThat(client.getVersion()).isEqualTo("V5_0_0");
+            assertThat(client.getConnectTimeMillis()).isEqualTo(100L);
+            assertThat(client.getLastActiveTimeMillis()).isEqualTo(200L);
+            assertThat(client.getProxyId()).isEqualTo("proxy-a");
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void describeClientReturnsDefaultValuesForSparseClientMetadata() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;

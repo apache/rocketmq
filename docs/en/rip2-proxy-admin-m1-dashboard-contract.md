@@ -4,8 +4,13 @@ This document is the handoff contract for RIP-1 Dashboard CLIENT-01
 integration. It describes what a dashboard can consume from the generated public
 `apache.rocketmq.v2.ProxyAdminService` endpoint in the RIP-2 M1 branch.
 
-The branch already verifies these fields through
-`GrpcProxyAdminApplicationTest#describeClientReturnsDashboardClientViewFieldsThroughGeneratedGrpcService`.
+The branch already verifies these fields through generated gRPC tests:
+
+- `GrpcProxyAdminApplicationTest#listClientsReturnsDashboardTableFieldsThroughGeneratedGrpcService`
+  covers the table-row payload from `ListClients`.
+- `GrpcProxyAdminApplicationTest#describeClientReturnsDashboardClientViewFieldsThroughGeneratedGrpcService`
+  covers the detail payload from `DescribeClient`.
+
 The remaining gate is an external joint E2E run in an environment that contains
 the RIP-1 Dashboard client.
 
@@ -85,8 +90,9 @@ fields are `0` when the read model has no value.
 
 ## Example Detail Response
 
-The generated public gRPC test seeds the following Dashboard-facing client and
-asserts every field through a real generated gRPC server and channel:
+The generated public gRPC tests seed Dashboard-facing clients and assert every
+field through a real generated gRPC server and channel. A representative
+`DescribeClient` detail payload is:
 
 ```json
 {

@@ -4,10 +4,14 @@
 M1 分支的生成版公开 `apache.rocketmq.v2.ProxyAdminService` endpoint 消费哪些
 字段。
 
-当前分支已经通过
-`GrpcProxyAdminApplicationTest#describeClientReturnsDashboardClientViewFieldsThroughGeneratedGrpcService`
-用真实生成版 gRPC server/channel 验证这些字段。剩余门禁是外部项：需要在包含
-RIP-1 Dashboard client 的环境中完成联合 E2E。
+当前分支已经通过生成版 gRPC 测试验证这些字段：
+
+- `GrpcProxyAdminApplicationTest#listClientsReturnsDashboardTableFieldsThroughGeneratedGrpcService`
+  覆盖 `ListClients` 表格行 payload。
+- `GrpcProxyAdminApplicationTest#describeClientReturnsDashboardClientViewFieldsThroughGeneratedGrpcService`
+  覆盖 `DescribeClient` 详情 payload。
+
+剩余门禁是外部项：需要在包含 RIP-1 Dashboard client 的环境中完成联合 E2E。
 
 ## Endpoint
 
@@ -82,8 +86,9 @@ grpcurl -plaintext \
 
 ## 详情响应示例
 
-生成版 public gRPC 测试会注入以下 Dashboard-facing client，并通过真实生成版
-gRPC server/channel 断言每个字段：
+生成版 public gRPC 测试会注入 Dashboard-facing client，并通过真实生成版
+gRPC server/channel 断言每个字段。下面是一个代表性的 `DescribeClient` 详情
+payload：
 
 ```json
 {

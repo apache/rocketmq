@@ -23,7 +23,7 @@
 | 1M client 下分页查询 P99 < 1s，且无 OOM 风险。 | 本地已验证。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md` 记录 1M synthetic clients 下 local read-model 最慢 P99 为 0.681 ms，生成版 public gRPC endpoint 最慢 P99 为 3.576 ms。 | 查询路径或 public adapter 实现变化后需要重跑。 |
 | ACL 2.0 使用独立 `proxy.admin.client` 资源。 | 已实现并测试。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`；list 类 RPC 需要 `LIST`，describe 需要 `GET`。 | 资源命名仍待社区 review。 |
 | Admin 接口启用 OpenTelemetry metrics。 | 已围绕 admin service wrapper 实现并测试。 | `MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ClientAdminMetricsContextTest`、`ProxyClientAdminObservabilityTest`；维度包括 operation、scope、status/result、duration、filters、page size 和 result size。 | 生产 dashboard 接入不在当前分支内。 |
-| 与 RIP-1 Dashboard CLIENT-01 完成 E2E 联调。 | 尚未在本地 Dashboard 环境证明。 | `GrpcProxyAdminApplicationTest` 已通过生成版 gRPC Server/Channel 验证 `DescribeClient` 返回 Dashboard-facing client view 字段：client id、type、groups、topics、language、remote/local address、version、connect time、last active time、proxy id。`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md` 已记录 Dashboard 交接契约。 | 需要包含 RIP-1 Dashboard client 的外部集成环境。 |
+| 与 RIP-1 Dashboard CLIENT-01 完成 E2E 联调。 | 尚未在本地 Dashboard 环境证明。 | `GrpcProxyAdminApplicationTest` 已通过生成版 gRPC Server/Channel 验证 `ListClients` 和 `DescribeClient` 返回 Dashboard-facing client view 字段：client id、type、groups、topics、language、remote/local address、version、connect time、last active time、proxy id。`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md` 已记录 Dashboard 交接契约。 | 需要包含 RIP-1 Dashboard client 的外部集成环境。 |
 | 提供完整中英文接口文档、鉴权示例和最佳实践。 | 已实现。 | 中英文 user guide、Dashboard contract、final smoke、benchmark report、submission package 和本文。 | review 过程中保持链接更新。 |
 
 ## 整体架构验收

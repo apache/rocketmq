@@ -1691,6 +1691,10 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md` map `ProxyClient` fields,
   example `DescribeClient` output, pagination, errors, and M1 scope limits for
   external RIP-1 Dashboard E2E.
+- [x] Dashboard table-field generated gRPC coverage added:
+  `GrpcProxyAdminApplicationTest#listClientsReturnsDashboardTableFieldsThroughGeneratedGrpcService`
+  directly verifies `ListClients` returns Dashboard table fields, complementing
+  the existing `DescribeClient` detail-field coverage.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact
