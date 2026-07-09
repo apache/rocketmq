@@ -10,7 +10,7 @@ Latest synchronized RocketMQ implementation checkpoint before this evidence
 refresh:
 
 ```text
-8150485d0c0d570cc7ecd55d0a8865861e650325 Refresh RIP-2 submission evidence
+bac4852a1c76a5796cb6a7af94d9e21839597cee Refresh RIP-2 broad verification evidence
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -158,8 +158,9 @@ topic names, and proxy ids.
 
 Final verification commands below were run with JDK 17 after the generated
 public endpoint and package-smoke build fix were present in the working tree.
-The focused public endpoint and broad proxy admin verification were refreshed
-on July 10, 2026 Asia/Shanghai after the reviewer runbook checkpoint.
+The focused public endpoint verification, broad proxy admin verification, and
+package smoke were refreshed on July 10, 2026 Asia/Shanghai after the reviewer
+runbook checkpoint.
 
 Focused generated public API verification:
 
@@ -206,7 +207,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-09T23:19:45+08:00
+Finished at: 2026-07-10T00:31:10+08:00
 ```
 
 The package smoke originally exposed stale JMH annotation-generated test sources

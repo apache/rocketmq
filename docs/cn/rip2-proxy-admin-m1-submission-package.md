@@ -7,7 +7,7 @@
 本次 evidence refresh 前，已同步到远端的 RocketMQ 实现 checkpoint：
 
 ```text
-8150485d0c0d570cc7ecd55d0a8865861e650325 Refresh RIP-2 submission evidence
+bac4852a1c76a5796cb6a7af94d9e21839597cee Refresh RIP-2 broad verification evidence
 ```
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -151,8 +151,9 @@ Admin labels、trace 和日志属性：
 ## 验证快照
 
 以下最终验证命令均使用 JDK 17 运行，运行时工作区已包含生成版 public endpoint
-和 package smoke 构建修复。Focused public endpoint 和 broad proxy admin 验证
-已在 reviewer runbook checkpoint 后，于 2026-07-10 Asia/Shanghai 重新刷新。
+和 package smoke 构建修复。Focused public endpoint、broad proxy admin 验证和
+package smoke 已在 reviewer runbook checkpoint 后，于 2026-07-10 Asia/Shanghai
+重新刷新。
 
 Focused generated public API verification：
 
@@ -199,7 +200,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-09T23:19:45+08:00
+Finished at: 2026-07-10T00:31:10+08:00
 ```
 
 Package smoke 最初暴露出 `target/generated-test-sources/test-annotations`
