@@ -9,7 +9,7 @@ PR, issue comment, or contest submission.
 Latest synchronized RocketMQ implementation checkpoint:
 
 ```text
-84eb8e531a3cbceb6594483ed9b383ea0da615a5 Cover public grpc sparse client metadata
+b9dc178157bea62d7886c498e0289d52926d3f3f Cover public grpc grouped filter pagination
 ```
 
 The branch implements the proxy-side foundation and generated public endpoint
@@ -159,9 +159,11 @@ Final verification commands below were run with JDK 17 after the generated
 public endpoint and package-smoke build fix were present in the working tree.
 The focused public endpoint verification was refreshed after adding generated
 gRPC coverage for Dashboard-facing client view fields, contest filters, scope
-gates, bad requests, and sparse client metadata defaults. Broad proxy admin
-verification was also refreshed on July 10, 2026 Asia/Shanghai after the sparse
-metadata coverage landed. Package smoke was refreshed earlier on the same day.
+gates, bad requests, sparse client metadata defaults, and grouped filter
+pagination for `ListClientsByGroup` / `ListClientsByTopic`. Broad proxy admin
+verification was also refreshed on July 10, 2026 Asia/Shanghai after the
+grouped filter coverage landed. Package smoke was refreshed earlier on the same
+day.
 
 Focused generated public API verification:
 
@@ -175,9 +177,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 40, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 41, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T01:33:23+08:00
+Finished at: 2026-07-10T01:42:29+08:00
 ```
 
 Broad proxy admin verification:
@@ -192,9 +194,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 711, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 712, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T01:34:34+08:00
+Finished at: 2026-07-10T01:43:45+08:00
 ```
 
 Package smoke:
@@ -294,7 +296,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 711, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 712, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 ## Benchmark
 
