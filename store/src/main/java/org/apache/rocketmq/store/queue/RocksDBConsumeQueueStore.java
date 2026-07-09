@@ -651,7 +651,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
      * 2. {@code consumeQueueTable → topic → queueId → ConsumeQueue}.
      *
      * <p></p>Missing entries are created with a small initial capacity:
-     * the inner map is sized to 1 for LMQ topics (only queueId 0 is ever * used) and 8 otherwise.
+     * - the inner map is sized to 1 for LMQ topics (only queueId 0 is ever used)
+     * - and 8 otherwise.
      *
      * <p>Because the {@code consumeQueueTable} map is initialized lazily (see {@link #recoverOffsetTable}),
      * this method may also create entries on first access after a broker restart.
