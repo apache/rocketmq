@@ -35,6 +35,7 @@ DEFAULT_APIS_REMOTE = "auto"
 PROTO_VERSION = "2.2.0-rip2-SNAPSHOT"
 PROTO_VERSION_XML = f"<rocketmq-proto.version>{PROTO_VERSION}</rocketmq-proto.version>"
 FULL_GUARD_COMMAND = "python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github"
+PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 FOCUSED_RESULT = "Tests run: 54, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T05:58:49+08:00"
 BROAD_RESULT = "Tests run: 730, Failures: 0, Errors: 0, Skipped: 0"
@@ -70,6 +71,7 @@ REQUIRED_FILES = (
     "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplication.java",
     "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java",
     "proxy/src/test/java/org/apache/rocketmq/proxy/ProxyStartupTest.java",
+    PLAN_FILE,
     "docs/en/rip2-proxy-admin-m1-public-api-draft.proto",
 ) + REQUIRED_DOCS
 
@@ -383,6 +385,13 @@ def check_required_markdown_fences(root, errors):
             errors.append(f"unbalanced markdown code fences in {rel}")
 
 
+def check_plan_checkboxes(root, errors):
+    plan_text = read_text(root / PLAN_FILE, errors)
+    for line_number, line in enumerate(plan_text.splitlines(), start=1):
+        if line.lstrip().startswith("- [ ]"):
+            errors.append(f"unfinished plan checkbox in {PLAN_FILE}:{line_number}")
+
+
 def check_source_wiring(root, errors):
     app_text = read_text(
         root / "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplication.java",
@@ -471,6 +480,7 @@ def run_checks(
     check_generated_artifact(m2_repository, errors)
     check_submission_evidence(root, errors)
     check_required_markdown_fences(root, errors)
+    check_plan_checkboxes(root, errors)
     check_source_wiring(root, errors)
     if check_github:
         check_github_artifacts(root, apis_root, errors, command_runner=command_runner)

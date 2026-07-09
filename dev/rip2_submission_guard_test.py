@@ -212,6 +212,10 @@ external validation item
 """
     for rel in rip2_submission_guard.REQUIRED_DOCS:
         write(root / rel, submission)
+    write(
+        root / "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md",
+        "- [x] completed step\n",
+    )
     create_snapshot_jar(m2_repository)
 
 
@@ -746,6 +750,28 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("RIP-2 issue comment" in error and "rocketmq-apis HEAD" in error for error in errors))
+
+    def test_guard_reports_unfinished_plan_checkbox(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(
+                root / "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md",
+                "- [x] completed step\n- [ ] unfinished step\n",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("unfinished plan checkbox" in error for error in errors))
 
 
 if __name__ == "__main__":

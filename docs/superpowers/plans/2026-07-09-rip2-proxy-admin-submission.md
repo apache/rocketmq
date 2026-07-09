@@ -1724,6 +1724,10 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   through its configured upstream remote, RocketMQ draft PR, rocketmq-apis draft
   PR, and RIP-2 issue comment all reference the current RocketMQ and
   rocketmq-apis heads and include submission-guard evidence.
+- [x] Plan execution checkbox guard added:
+  `dev/rip2_submission_guard.py` now checks this execution plan for unfinished
+  task checkboxes so future final-submission guard runs fail if plan progress
+  tracking drifts from the completed checkpoint state.
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
   `BUILD SUCCESS`, finished at `2026-07-10T06:27:48+08:00`.
