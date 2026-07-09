@@ -375,6 +375,70 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void listClientsHonorsContestFiltersAndPaginationThroughGeneratedGrpcService() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            readService(activity).upsertClient(client("client-alpha-1", ClientType.PRODUCER, "group-a",
+                "topic-a", "JAVA", 100L));
+            readService(activity).upsertClient(client("client-alpha-2", ClientType.PRODUCER, "group-a",
+                "topic-a", "JAVA", 200L));
+            readService(activity).upsertClient(client("client-beta-1", ClientType.PRODUCER, "group-a",
+                "topic-a", "CPP", 100L));
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse firstPage = stub.listClients(ListClientsRequest.newBuilder()
+                .setClientIdPrefix("client-alpha")
+                .setClientLanguage("JAVA")
+                .setConnectTimeStartMillis(50L)
+                .setConnectTimeEndMillis(250L)
+                .setPageNum(1)
+                .setPageSize(1)
+                .build());
+
+            assertThat(firstPage.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(firstPage.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-alpha-1");
+            assertThat(firstPage.getHasMore()).isTrue();
+
+            ListClientsResponse secondPage = stub.listClients(ListClientsRequest.newBuilder()
+                .setClientIdPrefix("client-alpha")
+                .setClientLanguage("JAVA")
+                .setConnectTimeStartMillis(50L)
+                .setConnectTimeEndMillis(250L)
+                .setPageNum(2)
+                .setPageSize(1)
+                .build());
+
+            assertThat(secondPage.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(secondPage.getClientsList())
+                .extracting(ProxyClient::getClientId)
+                .containsExactly("client-alpha-2");
+            assertThat(secondPage.getHasMore()).isFalse();
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void describeMissingClientReturnsNotFoundStatus() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
@@ -416,18 +480,23 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     private static ProxyClientInfo client(String clientId, ClientType clientType, String group, String topic) {
+        return client(clientId, clientType, group, topic, "JAVA", 100L);
+    }
+
+    private static ProxyClientInfo client(String clientId, ClientType clientType, String group, String topic,
+        String language, long connectTimeMillis) {
         return new ProxyClientInfo(
             clientId,
             clientType,
             Collections.singleton(group),
             Collections.singleton(topic),
-            "JAVA",
+            language,
             "127.0.0.1:8080",
             "192.168.0.1:8080",
             "V5_0_0",
             "proxy-a",
-            100L,
-            200L
+            connectTimeMillis,
+            connectTimeMillis + 100L
         );
     }
 }
