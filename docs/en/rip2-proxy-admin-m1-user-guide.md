@@ -86,12 +86,12 @@ v2 `Status` codes:
 
 | Case | Code |
 | --- | --- |
-| Invalid argument, invalid page token, invalid scope, missing required id | `BAD_REQUEST` |
+| Invalid argument, invalid page token, invalid scope, unsupported M1 public scope, missing required id | `BAD_REQUEST` |
 | Missing client id or empty result for `DescribeClient` | `NOT_FOUND` |
 | Authorization failure or missing subject | `UNAUTHORIZED` |
 | Peer discovery or peer request timeout | `PROXY_TIMEOUT` |
 | Queue saturation in the admin executor | `TOO_MANY_REQUESTS` |
-| Unsupported public scope or unsupported future operation | `NOT_IMPLEMENTED` |
+| Unsupported future operation | `NOT_IMPLEMENTED` |
 | Unexpected runtime failure | `INTERNAL_SERVER_ERROR` |
 
 ## ACL

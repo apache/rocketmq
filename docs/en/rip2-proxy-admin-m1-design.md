@@ -203,10 +203,12 @@ internal adapter remains the tested boundary that the public endpoint calls:
   identifiers are bounded by `Validators.GROUP_MAX_LENGTH` and
   `Validators.TOPIC_MAX_LENGTH` before query construction, and describe-client
   ids are bounded by `Validators.CHARACTER_MAX_LENGTH` and reject the reserved
-  coordinator page-token prefix. They also require a
-  nonblank `proxy_id` for the explicit `PROXY_ID` scope before context creation,
-  and preserve `proxy_id` only for that scope. Direct DTO use and future protobuf
-  conversion therefore share the same M1 local and broadcast-scope semantics.
+  coordinator page-token prefix. For the internal coordinator path, they also
+  require a nonblank `proxy_id` for the explicit `PROXY_ID` scope before context
+  creation, and preserve `proxy_id` only for that scope. The generated public M1
+  endpoint gates `PROXY_SCOPE_ALL_PROXIES` and `PROXY_SCOPE_PROXY_ID` before
+  these DTOs are created, so public callers see the local-scope gate before
+  proxy-id validation.
 - `DefaultClientAdminService` also canonicalizes `LOCAL_PROXY` queries before
   reading the model, dropping accidental `proxyId` filters from direct internal
   callers while still rejecting future non-local scopes in M1. Direct
@@ -387,10 +389,13 @@ internal adapter remains the tested boundary that the public endpoint calls:
 The request DTOs convert pagination, client type, scope, and optional proxy id
 into `ProxyClientQuery`. Required identifiers such as client id, group, and
 topic, plus optional page token and proxy id, are trimmed at this boundary; blank
-values are treated as absent. The adapter rejects missing `proxy_id` immediately
-for explicit `PROXY_ID` scope before building `ClientAdminRequestContext` or
-entering coordinator/peer code. Page tokens pass through the dedicated token codec,
-which encodes the
+values are treated as absent. The internal coordinator DTO path rejects missing
+`proxy_id` immediately for explicit `PROXY_ID` scope before building
+`ClientAdminRequestContext` or entering coordinator/peer code. The generated
+public M1 endpoint rejects `PROXY_SCOPE_PROXY_ID` before this proxy-id check,
+including requests that omit `proxy_id`, so the public contract consistently
+reports the unsupported M1 scope first. Page tokens pass through the dedicated
+token codec, which encodes the
 read-model last-client-id token as a versioned opaque public token and decodes
 versioned or legacy bare tokens back to the internal token.
 Public scope names pass through the scope mapper so future generated protobuf
@@ -1538,9 +1543,12 @@ seams are covered in this branch.
    and backed by configured peer targets or later peer discovery; otherwise they
    should continue to reject `PROXY_SCOPE_ALL_PROXIES` and
    `PROXY_SCOPE_PROXY_ID` with `BAD_REQUEST`.
-7. Reject missing `proxy_id` at the adapter/request DTO boundary whenever the
-   public request selects `PROXY_SCOPE_PROXY_ID`, before creating request context
-   or invoking coordinator/peer code. Continue to ignore `proxy_id` for
+7. Keep M1 public generated adapters gating `PROXY_SCOPE_PROXY_ID` before
+   proxy-id validation, so even a request without `proxy_id` returns the
+   unsupported-scope `BAD_REQUEST`. For a future public coordinator rollout,
+   reject missing `proxy_id` at the adapter/request DTO boundary whenever a
+   request selects `PROXY_SCOPE_PROXY_ID`, before creating request context or
+   invoking coordinator/peer code. Continue to ignore `proxy_id` for
    `PROXY_SCOPE_LOCAL_PROXY` and `PROXY_SCOPE_ALL_PROXIES`.
 8. Preserve coordinator-scope pre-validation before authorization: missing
    `client_id`, `group`, `topic`, malformed page tokens, or unsupported client

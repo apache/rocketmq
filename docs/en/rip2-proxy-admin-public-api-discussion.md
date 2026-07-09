@@ -90,9 +90,11 @@ proxy process. This is the M1 public behavior.
 coordinator. It should stay gated until peer discovery, peer authorization,
 page-token ownership, and failure semantics are accepted.
 
-`PROXY_SCOPE_PROXY_ID` is reserved for querying one named proxy. Requests using
-this scope must provide `proxy_id`; the adapter should reject missing or blank
-`proxy_id` before request context creation or service invocation.
+`PROXY_SCOPE_PROXY_ID` is reserved for querying one named proxy. In the current
+M1 public endpoint, this scope stays gated before proxy-id validation, including
+requests that omit `proxy_id`. In a future public coordinator rollout, requests
+using this scope must provide `proxy_id`; the adapter should then reject missing
+or blank `proxy_id` before request context creation or service invocation.
 
 ## Internal Cross-Proxy Experiment
 

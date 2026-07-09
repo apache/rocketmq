@@ -74,8 +74,10 @@ page-token 路径用于 coordinator 实验，但该 token 不是面向参赛的 
 `PROXY_SCOPE_ALL_PROXIES` 为内部 coordinator fan-out 预留。它应保持 gated，直到 peer
 discovery、peer authorization、page-token ownership 和 failure semantics 被接受。
 
-`PROXY_SCOPE_PROXY_ID` 为查询指定 proxy 预留。使用该 scope 时必须提供 `proxy_id`；
-adapter 应在创建 request context 或调用 service 之前拒绝缺失或空白的 `proxy_id`。
+`PROXY_SCOPE_PROXY_ID` 为查询指定 proxy 预留。当前 M1 public endpoint 会先按
+scope gate 拒绝该 scope，即使请求省略 `proxy_id` 也是如此。未来 public
+coordinator rollout 中，如果使用该 scope，则必须提供 `proxy_id`；届时 adapter
+应在创建 request context 或调用 service 之前拒绝缺失或空白的 `proxy_id`。
 
 ## 内部跨 Proxy 实验
 

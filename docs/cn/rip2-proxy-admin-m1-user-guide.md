@@ -82,12 +82,12 @@ local address、remote address 和 connection time 信息。最终字段编号�
 
 | 场景 | Code |
 | --- | --- |
-| 非法参数、非法 page token、非法 scope、缺少必填 id | `BAD_REQUEST` |
+| 非法参数、非法 page token、非法 scope、M1 不支持的 public scope、缺少必填 id | `BAD_REQUEST` |
 | `DescribeClient` 缺少目标客户端或查询为空 | `NOT_FOUND` |
 | 授权失败或缺少认证 subject | `UNAUTHORIZED` |
 | peer discovery 或 peer request 超时 | `PROXY_TIMEOUT` |
 | admin 查询线程池队列满 | `TOO_MANY_REQUESTS` |
-| 不支持的 public scope 或未来操作 | `NOT_IMPLEMENTED` |
+| 不支持的未来操作 | `NOT_IMPLEMENTED` |
 | 未预期运行时异常 | `INTERNAL_SERVER_ERROR` |
 
 ## ACL
