@@ -221,6 +221,10 @@ public class GrpcProxyAdminApplication extends ProxyAdminServiceGrpc.ProxyAdminS
         if (scope == null) {
             return ProxyScope.PROXY_SCOPE_UNSPECIFIED.name();
         }
+        if (scope == ProxyScope.PROXY_SCOPE_ALL_PROXIES || scope == ProxyScope.PROXY_SCOPE_PROXY_ID) {
+            throw new IllegalArgumentException(
+                "public proxy admin endpoint only supports LOCAL_PROXY scope: " + scope.name());
+        }
         return scope.name();
     }
 }

@@ -493,6 +493,73 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void publicServiceRejectsProxyIdScopeWithoutProxyIdAsM1ScopeGateForEveryRpc() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(activity.getProxyClientAdminEndpointExecutor()))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse listResponse = stub.listClients(ListClientsRequest.newBuilder()
+                .setScope(ProxyScope.PROXY_SCOPE_PROXY_ID)
+                .setPageNum(1)
+                .setPageSize(100)
+                .build());
+            assertThat(listResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(listResponse.getStatus().getMessage()).contains("only supports LOCAL_PROXY");
+            assertThat(listResponse.getStatus().getMessage()).contains("PROXY_ID");
+
+            DescribeClientResponse describeResponse = stub.describeClient(DescribeClientRequest.newBuilder()
+                .setClientId("client-proxy-id")
+                .setScope(ProxyScope.PROXY_SCOPE_PROXY_ID)
+                .build());
+            assertThat(describeResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(describeResponse.getStatus().getMessage()).contains("only supports LOCAL_PROXY");
+            assertThat(describeResponse.getStatus().getMessage()).contains("PROXY_ID");
+
+            apache.rocketmq.v2.ListClientsByGroupResponse groupResponse = stub.listClientsByGroup(
+                apache.rocketmq.v2.ListClientsByGroupRequest.newBuilder()
+                    .setGroup("group-proxy-id")
+                    .setScope(ProxyScope.PROXY_SCOPE_PROXY_ID)
+                    .setPageNum(1)
+                    .setPageSize(100)
+                    .build());
+            assertThat(groupResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(groupResponse.getStatus().getMessage()).contains("only supports LOCAL_PROXY");
+            assertThat(groupResponse.getStatus().getMessage()).contains("PROXY_ID");
+
+            apache.rocketmq.v2.ListClientsByTopicResponse topicResponse = stub.listClientsByTopic(
+                apache.rocketmq.v2.ListClientsByTopicRequest.newBuilder()
+                    .setTopic("topic-proxy-id")
+                    .setScope(ProxyScope.PROXY_SCOPE_PROXY_ID)
+                    .setPageNum(1)
+                    .setPageSize(100)
+                    .build());
+            assertThat(topicResponse.getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+            assertThat(topicResponse.getStatus().getMessage()).contains("only supports LOCAL_PROXY");
+            assertThat(topicResponse.getStatus().getMessage()).contains("PROXY_ID");
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            activity.shutdown();
+        }
+    }
+
+    @Test
     public void publicServiceMapsInvalidContestParametersToBadRequest() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
