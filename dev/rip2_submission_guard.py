@@ -215,6 +215,17 @@ GITHUB_PR_FEEDBACK = (
     ),
 )
 
+GITHUB_PR_CHECKS = (
+    (
+        "RocketMQ PR #10603",
+        ["gh", "pr", "checks", "10603", "--repo", "apache/rocketmq"],
+    ),
+    (
+        "rocketmq-apis PR #112",
+        ["gh", "pr", "checks", "112", "--repo", "apache/rocketmq-apis"],
+    ),
+)
+
 GITHUB_ISSUE_METADATA = (
     "RIP-2 issue #10599",
     ["gh", "issue", "view", "10599", "--repo", "apache/rocketmq"],
@@ -537,7 +548,32 @@ def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
             errors.append(
                 f"{label} has unreviewed feedback: {comment_count} comments, {review_count} reviews"
             )
+    check_github_pr_checks(root, errors, command_runner=command_runner)
     check_github_issue_metadata(root, errors, command_runner=command_runner)
+
+
+def check_github_pr_checks(root, errors, command_runner=run_command):
+    for label, base_args in GITHUB_PR_CHECKS:
+        args = base_args + ["--json", "name,state,bucket,link"]
+        code, stdout, stderr = command_runner(args, cwd=root)
+        output = stdout or stderr
+        if code != 0 and "no checks reported" in output:
+            continue
+        if code != 0 and not stdout:
+            errors.append(f"cannot read {label} checks: {stderr}")
+            continue
+        try:
+            checks = json.loads(stdout)
+        except json.JSONDecodeError as exc:
+            errors.append(f"cannot parse {label} checks: {exc}")
+            continue
+        for check in checks:
+            bucket = check.get("bucket")
+            if bucket not in ("pass", "skipping"):
+                errors.append(
+                    f"{label} has non-passing check {check.get('name')!r}: "
+                    f"bucket={bucket!r}, state={check.get('state')!r}, link={check.get('link')!r}"
+                )
 
 
 def check_github_issue_metadata(root, errors, command_runner=run_command):

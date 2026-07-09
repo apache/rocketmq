@@ -233,6 +233,8 @@ def fake_github_runner(
     rocketmq_feedback=None,
     api_feedback=None,
     issue_metadata=None,
+    rocketmq_checks=None,
+    api_checks=None,
 ):
     rocketmq_metadata = rocketmq_metadata or (
         '{"state":"OPEN","isDraft":true,"headRefName":"rip2-proxy-admin-m1",'
@@ -249,6 +251,8 @@ def fake_github_runner(
         '"title":"[RIP-2] Proxy Admin gRPC Interface Surface (M1: Online Client Query Module)",'
         '"comments":[{"url":"https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"}]}'
     )
+    rocketmq_checks = rocketmq_checks or (1, "", "no checks reported on the 'rip2-proxy-admin-m1' branch")
+    api_checks = api_checks or (1, "", "no checks reported on the 'rip2-proxy-admin-public-api' branch")
 
     def run(args, cwd):
         if args == ["git", "rev-parse", "HEAD"]:
@@ -320,6 +324,28 @@ def fake_github_runner(
             ".",
         ]:
             return 0, issue_metadata, ""
+        if args == [
+            "gh",
+            "pr",
+            "checks",
+            "10603",
+            "--repo",
+            "apache/rocketmq",
+            "--json",
+            "name,state,bucket,link",
+        ]:
+            return rocketmq_checks
+        if args == [
+            "gh",
+            "pr",
+            "checks",
+            "112",
+            "--repo",
+            "apache/rocketmq-apis",
+            "--json",
+            "name,state,bucket,link",
+        ]:
+            return api_checks
         if args == [
             "gh",
             "pr",
@@ -945,6 +971,40 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("RIP-2 issue has comments after submission summary" in error for error in errors))
+
+    def test_guard_reports_failed_github_pr_checks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            body = github_body(expected_head, apis_head)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                command_runner=fake_github_runner(
+                    expected_head,
+                    body,
+                    body,
+                    body,
+                    apis_head=apis_head,
+                    rocketmq_checks=(
+                        1,
+                        '[{"name":"ci","state":"FAILURE","bucket":"fail","link":"https://example.invalid/ci"}]',
+                        "",
+                    ),
+                ),
+            )
+
+            self.assertTrue(any("RocketMQ PR #10603 has non-passing check" in error for error in errors))
 
     def test_guard_reports_unfinished_plan_checkbox(self):
         with tempfile.TemporaryDirectory() as tmp:

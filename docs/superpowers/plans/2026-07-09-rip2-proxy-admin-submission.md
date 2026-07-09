@@ -1744,6 +1744,10 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `dev/rip2_submission_guard.py --check-github` now verifies the RIP-2 tracking
   issue remains open, still matches the Proxy Admin title, and has no comments
   after the published submission-summary comment.
+- [x] Public PR checks guard added:
+  `dev/rip2_submission_guard.py --check-github` now treats absent GitHub checks
+  as acceptable for the current draft review branches, but fails if reported PR
+  checks appear and any check is not passing or explicitly skipped.
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
   `BUILD SUCCESS`, finished at `2026-07-10T06:27:48+08:00`.
