@@ -203,6 +203,17 @@ GITHUB_PR_METADATA = (
     ),
 )
 
+GITHUB_PR_FEEDBACK = (
+    (
+        "RocketMQ PR #10603",
+        ["gh", "pr", "view", "10603", "--repo", "apache/rocketmq"],
+    ),
+    (
+        "rocketmq-apis PR #112",
+        ["gh", "pr", "view", "112", "--repo", "apache/rocketmq-apis"],
+    ),
+)
+
 
 def run_command(args, cwd):
     result = subprocess.run(args, cwd=cwd, text=True, capture_output=True, check=False)
@@ -503,6 +514,23 @@ def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
                 errors.append(
                     f"{label} metadata expected {key}={expected_value!r}, got {actual_value!r}"
                 )
+    for label, base_args in GITHUB_PR_FEEDBACK:
+        args = base_args + ["--json", "comments,reviews", "--jq", "."]
+        code, body, stderr = command_runner(args, cwd=root)
+        if code != 0:
+            errors.append(f"cannot read {label} feedback: {stderr}")
+            continue
+        try:
+            feedback = json.loads(body)
+        except json.JSONDecodeError as exc:
+            errors.append(f"cannot parse {label} feedback: {exc}")
+            continue
+        comment_count = len(feedback.get("comments") or [])
+        review_count = len(feedback.get("reviews") or [])
+        if comment_count or review_count:
+            errors.append(
+                f"{label} has unreviewed feedback: {comment_count} comments, {review_count} reviews"
+            )
 
 
 def nested_value(data, key):
