@@ -93,7 +93,7 @@ mvn -pl proxy -am \
 Expected:
 
 ```text
-Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -112,7 +112,7 @@ mvn -pl proxy -am \
 Expected from the recorded final run:
 
 ```text
-Tests run: 730, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 731, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 

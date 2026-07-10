@@ -266,15 +266,16 @@ deploy_maven(
     )
 
     submission = """
-Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
-Finished at: 2026-07-10T07:52:28+08:00
-Tests run: 730, Failures: 0, Errors: 0, Skipped: 0
-Finished at: 2026-07-10T07:53:37+08:00
-Finished at: 2026-07-10T07:54:35+08:00
+Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
+Finished at: 2026-07-10T08:27:13+08:00
+Tests run: 731, Failures: 0, Errors: 0, Skipped: 0
+Finished at: 2026-07-10T08:28:12+08:00
+Finished at: 2026-07-10T08:31:23+08:00
 3.576 ms
 0.681 ms
 Dashboard CLIENT-01
 external validation item
+publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService
 https://github.com/apache/rocketmq/pull/10603
 https://github.com/apache/rocketmq-apis/pull/112
 https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687
@@ -532,7 +533,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             create_submission_tree(root, apis_root, m2_repository)
             package_path = root / "docs/en/rip2-proxy-admin-m1-submission-package.md"
             package_path.write_text(
-                package_path.read_text(encoding="utf-8").replace("Tests run: 730", "Tests run: 728"),
+                package_path.read_text(encoding="utf-8").replace("Tests run: 731", "Tests run: 730"),
                 encoding="utf-8",
             )
 
@@ -646,7 +647,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
                 path = root / rel
                 path.write_text(
                     path.read_text(encoding="utf-8").replace(
-                        "Finished at: 2026-07-10T07:54:35+08:00\n",
+                        "Finished at: 2026-07-10T08:31:23+08:00\n",
                         "",
                     ),
                     encoding="utf-8",
@@ -661,6 +662,33 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("package smoke evidence" in error for error in errors))
+
+    def test_guard_reports_missing_internal_error_public_endpoint_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            for rel in rip2_submission_guard.REQUIRED_DOCS:
+                path = root / rel
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace(
+                        "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService",
+                        "",
+                    ),
+                    encoding="utf-8",
+                )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("INTERNAL_SERVER_ERROR public endpoint evidence" in error for error in errors))
 
     def test_guard_reports_proto_mirror_drift(self):
         with tempfile.TemporaryDirectory() as tmp:

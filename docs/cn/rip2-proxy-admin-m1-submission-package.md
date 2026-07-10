@@ -7,7 +7,7 @@
 已同步到远端的最新 RocketMQ 实现代码 checkpoint：
 
 ```text
-573c716e136845dbd42669d78fd725a18d845435 Cover proxy admin grpc service descriptor
+37c634fb14a93405991feae7f88aa2ffb0164dac Cover proxy admin internal error status
 ```
 
 最新 generated public gRPC endpoint 1M benchmark 代码 checkpoint：
@@ -17,10 +17,10 @@
 ```
 
 live draft PR 和 RIP-2 issue summary 已同步到上述实现代码 checkpoint，包含
-generated public gRPC endpoint 1M benchmark、`730` tests broad verification、
-Dashboard 表格/详情字段证据，以及 generated service descriptor verification
-证据。后续纯文档证据刷新 commit 可能继续推进分支 HEAD，但不会改变上述实现
-checkpoint。
+generated public gRPC endpoint 1M benchmark、`731` tests broad verification、
+Dashboard 表格/详情字段证据、generated service descriptor verification 证据，
+以及 public `INTERNAL_SERVER_ERROR` status mapping 证据。后续纯文档证据刷新
+commit 可能继续推进分支 HEAD，但不会改变上述实现 checkpoint。
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
 生成版公开 endpoint：read model、客户端生命周期写入、service 层、参数校验、
@@ -53,7 +53,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
-| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖 public service descriptor、四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、bad-request contract mapping、not found 语义，以及 Dashboard-facing `ListClients` 表格字段和 `DescribeClient` 详情字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。 |
+| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖 public service descriptor、四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、bad-request contract mapping、not found 语义、public `INTERNAL_SERVER_ERROR` response mapping，以及 Dashboard-facing `ListClients` 表格字段和 `DescribeClient` 详情字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。 |
 | 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model 和 generated public gRPC endpoint P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、Dashboard integration contract、public API discussion、benchmark report、smoke guide、review runbook、acceptance audit 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`、`docs/en/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`docs/cn/rip2-proxy-admin-public-api-discussion.md`。 |
 
@@ -188,6 +188,11 @@ benchmark setup 测试后刷新；随后又在新增 generated public service de
 Dashboard-facing 测试纳入 broad suite 后，在最新分支 HEAD 上刷新 broad proxy
 admin verification；随后又在新增 submission guard 后，在最新分支 HEAD 上刷新
 package smoke。
+Generated public endpoint verification 现在也覆盖
+`GrpcProxyAdminApplicationTest#publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService`，
+用于证明未预期 endpoint 层失败会作为 public `INTERNAL_SERVER_ERROR` response
+status 返回，而不会泄露为 gRPC transport error。Focused/broad Maven
+verification 与 package smoke 已在这份 reviewer-facing 证据同步后再次刷新。
 
 Focused generated public API verification：
 
@@ -201,9 +206,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T07:52:28+08:00
+Finished at: 2026-07-10T08:27:13+08:00
 ```
 
 Dashboard 表格/详情字段 focused verification：
@@ -252,9 +257,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 730, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 731, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T07:53:37+08:00
+Finished at: 2026-07-10T08:28:12+08:00
 ```
 
 Package smoke：
@@ -268,7 +273,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T07:54:35+08:00
+Finished at: 2026-07-10T08:31:23+08:00
 ```
 
 轻量提交门禁：
@@ -376,7 +381,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 731, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 轻量提交门禁：
 

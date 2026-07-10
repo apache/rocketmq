@@ -1685,7 +1685,7 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   Apache RocketMQ PR #10603, rocketmq-apis PR #112, and the RIP-2 issue
   summary now reference implementation-code checkpoint
   `7b89ba60fca2a18859519f7b2b822f73c2f4ed2c`, broad verification
-  `Tests run: 730`, and public endpoint P99 `3.576 ms`.
+  `Tests run: 731`, and public endpoint P99 `3.576 ms`.
 - [x] Dashboard CLIENT-01 field-level handoff contract added:
   `docs/en/rip2-proxy-admin-m1-dashboard-contract.md` and
   `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md` map `ProxyClient` fields,
@@ -1706,12 +1706,12 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   from the earlier 1M benchmark code checkpoint `7b89ba60fca2a18859519f7b2b822f73c2f4ed2c`.
 - [x] Focused public endpoint/startup verification evidence refreshed after the
   generated public service descriptor test:
-  `Tests run: 54, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`,
-  finished at `2026-07-10T07:52:28+08:00`.
+  `Tests run: 55, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`,
+  finished at `2026-07-10T08:27:13+08:00`.
 - [x] Broad proxy admin verification evidence refreshed on the latest branch
   head after descriptor and Dashboard-facing tests were included in the broad
-  suite: `Tests run: 730, Failures: 0, Errors: 0, Skipped: 0`,
-  `BUILD SUCCESS`, finished at `2026-07-10T07:53:37+08:00`.
+  suite: `Tests run: 731, Failures: 0, Errors: 0, Skipped: 0`,
+  `BUILD SUCCESS`, finished at `2026-07-10T08:28:12+08:00`.
 - [x] Lightweight submission guard added:
   `dev/rip2_submission_guard.py` checks required RIP-2 files, the local
   `rocketmq-proto:2.2.0-rip2-SNAPSHOT` generated artifact, proto mirror
@@ -1765,7 +1765,7 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   the proposed public proto artifact.
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
-  `BUILD SUCCESS`, finished at `2026-07-10T07:54:35+08:00`.
+  `BUILD SUCCESS`, finished at `2026-07-10T08:31:23+08:00`.
 - [x] Generated public endpoint coverage guard added:
   `dev/rip2_submission_guard.py` now verifies that the generated public gRPC
   endpoint tests still cover the service descriptor, success paths, contest
@@ -1776,6 +1776,13 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   verifies that an unexpected endpoint-layer failure is returned as a public
   response `INTERNAL_SERVER_ERROR` status instead of escaping as a transport
   error; the submission guard now requires this coverage.
+- [x] Internal-error public endpoint evidence synchronized into reviewer docs:
+  after adding the public `INTERNAL_SERVER_ERROR` generated gRPC coverage, the
+  focused public endpoint/startup suite was rerun with
+  `Tests run: 55, Failures: 0, Errors: 0, Skipped: 0`, the broad proxy admin
+  suite was rerun with
+  `Tests run: 731, Failures: 0, Errors: 0, Skipped: 0`, and package smoke was
+  rerun with `BUILD SUCCESS`, finished at `2026-07-10T08:31:23+08:00`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

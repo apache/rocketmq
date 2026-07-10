@@ -41,7 +41,7 @@ environment.
 | Criterion | Current status | Evidence | Remaining gate |
 | --- | --- | --- | --- |
 | Unit test coverage of core modules is >=85%. | Locally verified for RIP-2 core packages. | Submission package records `service.admin.client` line coverage 95.48% and `grpc.v2.admin` line coverage 94.52%; branch coverage is also above 85% for both packages. | Re-run coverage after any code changes. |
-| Integration tests cover interfaces, authentication, and exception handling. | Implemented. | Generated gRPC Server/Channel tests, proto-free endpoint integration tests, peer tests, ACL tests, bad-request/not-found/unauthorized/status mapping tests. | Dashboard CLIENT-01 remains an external E2E item. |
+| Integration tests cover interfaces, authentication, and exception handling. | Implemented. | Generated gRPC Server/Channel tests, proto-free endpoint integration tests, peer tests, ACL tests, bad-request/not-found/unauthorized/status mapping tests, and `GrpcProxyAdminApplicationTest#publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService` for public `INTERNAL_SERVER_ERROR` response mapping. | Dashboard CLIENT-01 remains an external E2E item. |
 | Performance benchmark report is available. | Implemented. | English and Chinese benchmark reports include commands, environment, 1M-client read-model, generated public gRPC endpoint, coordinator scenarios, P50/P95/P99, and heap settings. | Re-run if hardware or implementation changes materially. |
 | Bilingual docs are synchronized with the code release. | Implemented for contest branch. | English and Chinese user guides, final smoke guides, benchmark reports, and submission packages are present. | Keep PR and issue links current. |
 
