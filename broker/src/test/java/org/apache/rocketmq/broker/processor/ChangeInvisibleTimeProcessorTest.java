@@ -211,7 +211,7 @@ public class ChangeInvisibleTimeProcessorTest {
 
     @Test
     public void testProcessBatchRequestRejectsOversizedBody() throws Exception {
-        assertThat(brokerController.getBrokerConfig().getBatchChangeInvisibleTimeMaxNum()).isEqualTo(1024);
+        assertThat(brokerController.getBrokerConfig().getBatchChangeInvisibleTimeMaxNum()).isEqualTo(2048);
         int batchMaxNum = brokerController.getBrokerConfig().getBatchChangeInvisibleTimeMaxNum();
         BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
         List<ChangeInvisibleTimeRequestEntry> entries = new ArrayList<>();

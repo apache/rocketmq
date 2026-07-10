@@ -20,7 +20,6 @@ package org.apache.rocketmq.proxy.service.receipt;
 import com.google.common.base.Stopwatch;
 import io.netty.channel.Channel;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
