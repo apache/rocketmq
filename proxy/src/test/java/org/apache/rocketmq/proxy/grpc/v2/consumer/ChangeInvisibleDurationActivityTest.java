@@ -293,6 +293,92 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
     }
 
     @Test
+    public void testChangeInvisibleDurationRestoresOldHandleWhenBrokerReturnsNonOk() throws Throwable {
+        String oldHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000);
+        String msgId = "msgId";
+        grpcChannelManager.createChannel(createContext(), CLIENT_ID);
+        MessageReceiptHandle messageReceiptHandle =
+            new MessageReceiptHandle(CONSUMER_GROUP, TOPIC, 0, oldHandle, msgId, 1, 2);
+        AckResult ackResult = new AckResult();
+        ackResult.setStatus(AckStatus.NO_EXIST);
+        when(this.messagingProcessor.changeInvisibleTime(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyString(),
+            anyLong(),
+            anyString(),
+            anyLong(),
+            anyBoolean()
+        )).thenReturn(CompletableFuture.completedFuture(ackResult));
+        when(messagingProcessor.removeReceiptHandle(any(), any(), anyString(), anyString(), anyString()))
+            .thenReturn(messageReceiptHandle);
+
+        ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(
+            createContext(),
+            ChangeInvisibleDurationRequest.newBuilder()
+                .setInvisibleDuration(Durations.fromSeconds(5))
+                .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .setMessageId(msgId)
+                .setReceiptHandle(oldHandle)
+                .build()
+        ).get();
+
+        assertEquals(Code.INTERNAL_SERVER_ERROR, response.getStatus().getCode());
+        // The old handle was re-registered (restored) and left unmodified.
+        assertEquals(oldHandle, messageReceiptHandle.getReceiptHandleStr());
+        verify(messagingProcessor).addReceiptHandle(any(), any(), eq(CONSUMER_GROUP), eq(msgId),
+            eq(messageReceiptHandle));
+    }
+
+    @Test
+    public void testChangeInvisibleDurationRestoresOldHandleWhenBrokerFutureFails() throws Throwable {
+        String oldHandle = buildReceiptHandle(TOPIC, System.currentTimeMillis(), 3000);
+        String msgId = "msgId";
+        grpcChannelManager.createChannel(createContext(), CLIENT_ID);
+        MessageReceiptHandle messageReceiptHandle =
+            new MessageReceiptHandle(CONSUMER_GROUP, TOPIC, 0, oldHandle, msgId, 1, 2);
+        CompletableFuture<AckResult> ackResultFuture = new CompletableFuture<>();
+        ackResultFuture.completeExceptionally(new RuntimeException("broker boom"));
+        when(this.messagingProcessor.changeInvisibleTime(
+            any(),
+            any(),
+            anyString(),
+            anyString(),
+            anyString(),
+            anyLong(),
+            anyString(),
+            anyLong(),
+            anyBoolean()
+        )).thenReturn(ackResultFuture);
+        when(messagingProcessor.removeReceiptHandle(any(), any(), anyString(), anyString(), anyString()))
+            .thenReturn(messageReceiptHandle);
+
+        try {
+            this.changeInvisibleDurationActivity.changeInvisibleDuration(
+                createContext(),
+                ChangeInvisibleDurationRequest.newBuilder()
+                    .setInvisibleDuration(Durations.fromSeconds(5))
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                    .setMessageId(msgId)
+                    .setReceiptHandle(oldHandle)
+                    .build()
+            ).get();
+            org.junit.Assert.fail("expected ExecutionException");
+        } catch (ExecutionException executionException) {
+            // expected: the failure surfaces to the caller
+        }
+
+        // The old handle was re-registered (restored) and left unmodified.
+        assertEquals(oldHandle, messageReceiptHandle.getReceiptHandleStr());
+        verify(messagingProcessor).addReceiptHandle(any(), any(), eq(CONSUMER_GROUP), eq(msgId),
+            eq(messageReceiptHandle));
+    }
+
+    @Test
     public void testChangeInvisibleDurationInvisibleTimeTooSmall() throws Throwable {
         try {
             this.changeInvisibleDurationActivity.changeInvisibleDuration(

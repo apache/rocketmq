@@ -67,7 +67,14 @@ public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
                 MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
                 request.getSuspend()
             ).thenApply(
-                ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult, messageReceiptHandle, channel));
+                ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult, messageReceiptHandle, channel))
+                .whenComplete((response, throwable) -> {
+                    // The broker call threw (or the callback did): re-register the old managed handle
+                    // so that later renew/ack can still find it, then let the failure propagate.
+                    if (throwable != null) {
+                        restoreReceiptHandle(ctx, request, messageReceiptHandle, channel);
+                    }
+                });
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -89,8 +96,19 @@ public class ChangeInvisibleDurationActivity extends AbstractMessagingActivity {
                 .setReceiptHandle(receiptHandle)
                 .build();
         }
+        // Broker returned a non-OK status: re-register the old managed handle so that later
+        // renew/ack can still find it instead of losing it after the upfront removal.
+        restoreReceiptHandle(ctx, request, messageReceiptHandle, channel);
         return ChangeInvisibleDurationResponse.newBuilder()
             .setStatus(ResponseBuilder.getInstance().buildStatus(Code.INTERNAL_SERVER_ERROR, "changeInvisibleDuration failed: status is abnormal"))
             .build();
+    }
+
+    private void restoreReceiptHandle(ProxyContext ctx, ChangeInvisibleDurationRequest request,
+        MessageReceiptHandle messageReceiptHandle, Channel channel) {
+        if (messageReceiptHandle != null && channel != null) {
+            messagingProcessor.addReceiptHandle(ctx, channel,
+                request.getGroup().getName(), request.getMessageId(), messageReceiptHandle);
+        }
     }
 }
