@@ -974,22 +974,23 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 }
                 this.offsetStore.load();
 
-                // Initialize message deduplicator if enabled
+                // Initialize message deduplicator if enabled and concurrent consumption mode
+                // Deduplication is only supported for concurrent consumption mode
                 if (this.defaultMQPushConsumer.isEnableMessageDeduplication()) {
                     boolean isConcurrentMode = this.getMessageListenerInner() instanceof MessageListenerConcurrently;
-                    if (!isConcurrentMode) {
+                    if (isConcurrentMode) {
+                        this.messageDeduplicator = new MessageDeduplicator(
+                            this.defaultMQPushConsumer.getDeduplicationCacheSize(),
+                            this.defaultMQPushConsumer.getDeduplicationCacheExpireTime());
+                        log.info("Message deduplication enabled for consumer group {} with cacheSize={}, expireTimeMs={}",
+                            this.defaultMQPushConsumer.getConsumerGroup(),
+                            this.defaultMQPushConsumer.getDeduplicationCacheSize(),
+                            this.defaultMQPushConsumer.getDeduplicationCacheExpireTime());
+                    } else {
                         log.warn("Message deduplication is only supported for concurrent consumption mode. " +
-                            "Current listener type: {}. Deduplication will be disabled for orderly and POP consumption.",
+                            "Current listener type: {}. Deduplication will NOT be enabled for orderly or POP consumption.",
                             this.getMessageListenerInner().getClass().getSimpleName());
                     }
-                    this.messageDeduplicator = new MessageDeduplicator(
-                        this.defaultMQPushConsumer.getDeduplicationCacheSize(),
-                        this.defaultMQPushConsumer.getDeduplicationCacheExpireTime());
-                    log.info("Message deduplication enabled for consumer group {} with cacheSize={}, expireTimeMs={}. " +
-                        "Supported mode: concurrent. Not supported: orderly, POP.",
-                        this.defaultMQPushConsumer.getConsumerGroup(),
-                        this.defaultMQPushConsumer.getDeduplicationCacheSize(),
-                        this.defaultMQPushConsumer.getDeduplicationCacheExpireTime());
                 }
 
                 if (this.getMessageListenerInner() instanceof MessageListenerOrderly) {

@@ -127,6 +127,47 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     }
 
     /**
+     * Map the filtered-list ackIndex to the original msgs position.
+     * This is a helper method that can be tested independently.
+     *
+     * @param originalMsgs     The original message list (contains duplicates)
+     * @param filteredMsgs     The filtered message list (duplicates removed)
+     * @param filteredAckIndex The ackIndex from the listener (based on filteredMsgs)
+     * @return The mapped ackIndex for the original list, or -1 if mapping fails
+     */
+    static int mapAckIndex(List<MessageExt> originalMsgs, List<MessageExt> filteredMsgs, int filteredAckIndex) {
+        if (originalMsgs == null || filteredMsgs == null || filteredAckIndex < 0) {
+            return -1;
+        }
+
+        // No duplicates, no mapping needed
+        if (filteredMsgs.size() == originalMsgs.size()) {
+            return Math.min(filteredAckIndex, originalMsgs.size() - 1);
+        }
+
+        // Clamp filteredAckIndex to valid range
+        if (filteredAckIndex >= filteredMsgs.size()) {
+            filteredAckIndex = filteredMsgs.size() - 1;
+        }
+
+        // When all filtered messages succeed, set ackIndex to cover all original messages
+        // This ensures trailing duplicates are not treated as failed
+        if (filteredAckIndex == filteredMsgs.size() - 1) {
+            return originalMsgs.size() - 1;
+        }
+
+        // Partial success: find the position in original msgs that corresponds to filteredMsgs[filteredAckIndex]
+        MessageExt lastAckedMsg = filteredMsgs.get(filteredAckIndex);
+        for (int i = 0; i < originalMsgs.size(); i++) {
+            if (originalMsgs.get(i) == lastAckedMsg) {
+                return i;
+            }
+        }
+
+        return -1; // Should not happen if lists are consistent
+    }
+
+    /**
      * Filter duplicate messages from the list.
      * Creates a new list with non-duplicate messages for consumption.
      *
@@ -527,34 +568,39 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                     }
 
                     // Only mark successfully consumed messages (up to filteredAckIndex)
+                    List<MessageExt> successfullyConsumed = new ArrayList<>(filteredAckIndex + 1);
                     for (int i = 0; i <= filteredAckIndex; i++) {
-                        MessageExt msg = filteredMsgs.get(i);
-                        String dedupKey = MessageDeduplicator.getDeduplicationKey(msg);
-                        if (dedupKey != null) {
-                            MessageDeduplicator deduplicator = ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.getMessageDeduplicator();
-                            if (deduplicator != null) {
-                                deduplicator.markProcessed(dedupKey);
-                            }
-                        }
+                        successfullyConsumed.add(filteredMsgs.get(i));
                     }
+                    markMessagesAsProcessed(successfullyConsumed);
                 }
 
                 // Map filtered-list ackIndex to original msgs position
                 if (hasDuplicates && !filteredMsgs.isEmpty() && filteredAckIndex >= 0) {
-                    // Find the position in original msgs that corresponds to filteredMsgs[filteredAckIndex]
-                    MessageExt lastAckedMsg = filteredMsgs.get(filteredAckIndex);
-                    int originalAckIndex = -1;
-                    for (int i = 0; i < msgs.size(); i++) {
-                        if (msgs.get(i) == lastAckedMsg) {
-                            originalAckIndex = i;
-                            break;
+                    // When all filtered messages succeed, set ackIndex to cover all original messages
+                    // This ensures trailing duplicates are not treated as failed (which would cause unnecessary retry)
+                    if (filteredAckIndex == filteredMsgs.size() - 1) {
+                        // Full success: all filtered messages consumed successfully
+                        // Set ackIndex to cover the entire original batch (including duplicates that were skipped)
+                        context.setAckIndex(msgs.size() - 1);
+                        log.debug("Duplicate messages filtered, full success. Set ackIndex to {} (covers all original messages)",
+                            msgs.size() - 1);
+                    } else {
+                        // Partial success: find the position in original msgs that corresponds to filteredMsgs[filteredAckIndex]
+                        MessageExt lastAckedMsg = filteredMsgs.get(filteredAckIndex);
+                        int originalAckIndex = -1;
+                        for (int i = 0; i < msgs.size(); i++) {
+                            if (msgs.get(i) == lastAckedMsg) {
+                                originalAckIndex = i;
+                                break;
+                            }
                         }
-                    }
 
-                    if (originalAckIndex >= 0) {
-                        context.setAckIndex(originalAckIndex);
-                        log.debug("Duplicate messages filtered, mapped filteredAckIndex {} to originalAckIndex {}",
-                            filteredAckIndex, originalAckIndex);
+                        if (originalAckIndex >= 0) {
+                            context.setAckIndex(originalAckIndex);
+                            log.debug("Duplicate messages filtered, mapped filteredAckIndex {} to originalAckIndex {}",
+                                filteredAckIndex, originalAckIndex);
+                        }
                     }
                 }
                 // If no duplicates, ackIndex already refers to original msgs, no mapping needed

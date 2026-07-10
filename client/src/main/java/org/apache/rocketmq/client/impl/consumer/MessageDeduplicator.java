@@ -91,8 +91,9 @@ public class MessageDeduplicator {
         // Check if entry has expired
         long currentTime = System.currentTimeMillis();
         if (currentTime - timestamp > expireTimeMs) {
-            // Entry expired, remove it and treat as non-duplicate
-            processedMessages.remove(messageKey);
+            // Entry expired, remove it only if the timestamp hasn't been updated by another thread
+            // This prevents race condition with concurrent markProcessed() calls
+            processedMessages.remove(messageKey, timestamp);
             return false;
         }
 

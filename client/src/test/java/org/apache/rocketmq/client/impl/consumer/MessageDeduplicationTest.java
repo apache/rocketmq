@@ -331,17 +331,50 @@ public class MessageDeduplicationTest {
         // 2. newKey2 is NOT marked (will NOT be deduplicated, can retry)
         assertFalse("newKey2 should NOT be marked as processed", deduplicator.isDuplicate(newKey2));
 
-        // 3. ackIndex mapping: filteredMsgs[ackIndex] = newKey1 maps to msgs[1]
-        //    Original list: [dup(at 0), new1(at 1), new2(at 2)]
-        //    Filtered list: [new1(at 0), new2(at 1)]
-        //    listenerAckIndex = 0 (filtered) -> mappedAckIndex = 1 (original)
-        int expectedMappedAckIndex = 1; // Position of newKey1 in original msgs
-        assertEquals("Mapped ackIndex should be position of newKey1 in original list",
-            1, expectedMappedAckIndex);
+        // 3. Verify ackIndex mapping using the actual helper method
+        // Create messages first, then build lists using same objects
+        MessageExt dupMsg = new MessageExt();
+        dupMsg.setMsgId("msg-" + dupKey);
+        dupMsg.setKeys(dupKey);
+
+        MessageExt newMsg1 = new MessageExt();
+        newMsg1.setMsgId("msg-" + newKey1);
+        newMsg1.setKeys(newKey1);
+
+        MessageExt newMsg2 = new MessageExt();
+        newMsg2.setMsgId("msg-" + newKey2);
+        newMsg2.setKeys(newKey2);
+
+        // originalMsgs = [dup, new1, new2]
+        List<MessageExt> originalMsgs = new ArrayList<>();
+        originalMsgs.add(dupMsg);
+        originalMsgs.add(newMsg1);
+        originalMsgs.add(newMsg2);
+
+        // filteredMsgs = [new1, new2] - use same object references!
+        List<MessageExt> filteredMsgs = new ArrayList<>();
+        filteredMsgs.add(newMsg1);
+        filteredMsgs.add(newMsg2);
+
+        // Use the actual mapping method
+        int mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, listenerAckIndex);
+        assertEquals("Mapped ackIndex should be position of newKey1 in original list (index 1)",
+            1, mappedAckIndex);
 
         // After retry, newKey2 would be processed and then marked
         deduplicator.markProcessed(newKey2);
         assertTrue("After retry success, newKey2 should be marked", deduplicator.isDuplicate(newKey2));
+    }
+
+    private List<MessageExt> createMessagesWithKeys(String... keys) {
+        List<MessageExt> msgs = new ArrayList<>();
+        for (String key : keys) {
+            MessageExt msg = new MessageExt();
+            msg.setMsgId("msg-" + key);
+            msg.setKeys(key);
+            msgs.add(msg);
+        }
+        return msgs;
     }
 
     /**
@@ -378,11 +411,179 @@ public class MessageDeduplicationTest {
         assertTrue("newKey1 should be marked", deduplicator.isDuplicate(newKey1));
         assertTrue("newKey2 should be marked", deduplicator.isDuplicate(newKey2));
 
-        // ackIndex mapping for full success: should be msgs.size() - 1 = 2
-        // (all original messages considered successful for offset advancement)
-        int expectedMappedAckIndex = 2; // msgs.size() - 1
+        // Verify ackIndex mapping using the actual helper method
+        // Use same object references for correct mapping
+        MessageExt dupMsg = new MessageExt();
+        dupMsg.setMsgId("msg-" + dupKey);
+        dupMsg.setKeys(dupKey);
+
+        MessageExt newMsg1 = new MessageExt();
+        newMsg1.setMsgId("msg-" + newKey1);
+        newMsg1.setKeys(newKey1);
+
+        MessageExt newMsg2 = new MessageExt();
+        newMsg2.setMsgId("msg-" + newKey2);
+        newMsg2.setKeys(newKey2);
+
+        List<MessageExt> originalMsgs = new ArrayList<>();
+        originalMsgs.add(dupMsg);
+        originalMsgs.add(newMsg1);
+        originalMsgs.add(newMsg2);
+
+        List<MessageExt> filteredMsgs = new ArrayList<>();
+        filteredMsgs.add(newMsg1);
+        filteredMsgs.add(newMsg2);
+
+        // Use the actual mapping method with full success (filteredAckIndex = filteredMsgSize - 1)
+        int mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, filteredMsgSize - 1);
+        assertEquals("For full success, mapped ackIndex should cover all original messages (originalMsgs.size - 1)",
+            2, mappedAckIndex);
+    }
+
+    /**
+     * Test ackIndex mapping for trailing duplicates scenario.
+     * Scenario:
+     * - Original msgs = [new1, new2, dup]
+     * - filteredMsgs = [new1, new2]
+     * - Listener returns full success
+     *
+     * Expected: mappedAckIndex = 2 (covers all original messages including trailing duplicate)
+     */
+    @Test
+    public void testTrailingDuplicateFullSuccess() {
+        String newKey1 = "new-msg-1";
+        String newKey2 = "new-msg-2";
+        String dupKey = "dup-msg";
+
+        // Mark trailing duplicate as processed
+        deduplicator.markProcessed(dupKey);
+
+        // Use same object references for correct mapping
+        MessageExt newMsg1 = new MessageExt();
+        newMsg1.setMsgId("msg-" + newKey1);
+        newMsg1.setKeys(newKey1);
+
+        MessageExt newMsg2 = new MessageExt();
+        newMsg2.setMsgId("msg-" + newKey2);
+        newMsg2.setKeys(newKey2);
+
+        MessageExt dupMsg = new MessageExt();
+        dupMsg.setMsgId("msg-" + dupKey);
+        dupMsg.setKeys(dupKey);
+
+        List<MessageExt> originalMsgs = new ArrayList<>();
+        originalMsgs.add(newMsg1);
+        originalMsgs.add(newMsg2);
+        originalMsgs.add(dupMsg);
+
+        List<MessageExt> filteredMsgs = new ArrayList<>();
+        filteredMsgs.add(newMsg1);
+        filteredMsgs.add(newMsg2);
+
+        // Full success: filteredAckIndex = filteredMsgs.size() - 1 = 1
+        int mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, 1);
+        assertEquals("For full success with trailing duplicate, mapped ackIndex should be originalMsgs.size() - 1",
+            2, mappedAckIndex);
+    }
+
+    /**
+     * Test ackIndex mapping with duplicates in the middle.
+     * Scenario:
+     * - Original msgs = [new1, dup, new2]
+     * - filteredMsgs = [new1, new2]
+     * - Listener returns partial success (only new1 succeeds, ackIndex=0)
+     *
+     * Expected: mappedAckIndex = 0 (position of new1 in original msgs)
+     */
+    @Test
+    public void testMiddleDuplicatePartialSuccess() {
+        String newKey1 = "new-msg-1";
+        String dupKey = "dup-msg";
+        String newKey2 = "new-msg-2";
+
+        // Mark middle duplicate as processed
+        deduplicator.markProcessed(dupKey);
+
+        // Use same object references for correct mapping
+        MessageExt newMsg1 = new MessageExt();
+        newMsg1.setMsgId("msg-" + newKey1);
+        newMsg1.setKeys(newKey1);
+
+        MessageExt dupMsg = new MessageExt();
+        dupMsg.setMsgId("msg-" + dupKey);
+        dupMsg.setKeys(dupKey);
+
+        MessageExt newMsg2 = new MessageExt();
+        newMsg2.setMsgId("msg-" + newKey2);
+        newMsg2.setKeys(newKey2);
+
+        List<MessageExt> originalMsgs = new ArrayList<>();
+        originalMsgs.add(newMsg1);
+        originalMsgs.add(dupMsg);
+        originalMsgs.add(newMsg2);
+
+        List<MessageExt> filteredMsgs = new ArrayList<>();
+        filteredMsgs.add(newMsg1);
+        filteredMsgs.add(newMsg2);
+
+        // Partial success: only first filtered message succeeds (ackIndex=0)
+        int mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, 0);
+        assertEquals("For partial success with middle duplicate, mapped ackIndex should be position of new1 in original (0)",
+            0, mappedAckIndex);
+
+        // Full success: ackIndex = filteredMsgs.size() - 1 = 1
+        mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, 1);
         assertEquals("For full success, mapped ackIndex should cover all original messages",
-            2, expectedMappedAckIndex);
+            2, mappedAckIndex);
+    }
+
+    /**
+     * Test ackIndex mapping with no duplicates (no mapping needed).
+     * Scenario:
+     * - Original msgs = [new1, new2, new3]
+     * - filteredMsgs = [new1, new2, new3] (same size, no duplicates)
+     * - Listener returns partial success (ackIndex=1)
+     *
+     * Expected: mappedAckIndex = 1 (same as filteredAckIndex, no duplicates)
+     */
+    @Test
+    public void testNoDuplicatesAckIndexMapping() {
+        String newKey1 = "new-msg-1";
+        String newKey2 = "new-msg-2";
+        String newKey3 = "new-msg-3";
+
+        // Use same object references for correct mapping
+        MessageExt newMsg1 = new MessageExt();
+        newMsg1.setMsgId("msg-" + newKey1);
+        newMsg1.setKeys(newKey1);
+
+        MessageExt newMsg2 = new MessageExt();
+        newMsg2.setMsgId("msg-" + newKey2);
+        newMsg2.setKeys(newKey2);
+
+        MessageExt newMsg3 = new MessageExt();
+        newMsg3.setMsgId("msg-" + newKey3);
+        newMsg3.setKeys(newKey3);
+
+        List<MessageExt> originalMsgs = new ArrayList<>();
+        originalMsgs.add(newMsg1);
+        originalMsgs.add(newMsg2);
+        originalMsgs.add(newMsg3);
+
+        List<MessageExt> filteredMsgs = new ArrayList<>();
+        filteredMsgs.add(newMsg1);
+        filteredMsgs.add(newMsg2);
+        filteredMsgs.add(newMsg3);
+
+        // No duplicates, ackIndex should be the same
+        int mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, 1);
+        assertEquals("When no duplicates, ackIndex should remain the same",
+            1, mappedAckIndex);
+
+        // Test with large ackIndex
+        mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, Integer.MAX_VALUE);
+        assertEquals("Large ackIndex should be clamped to originalMsgs.size - 1",
+            2, mappedAckIndex);
     }
 
     /**
