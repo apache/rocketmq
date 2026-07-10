@@ -72,6 +72,10 @@ PUBLIC_REVIEW_ARTIFACT_LINKS = (
     RIP2_ISSUE_COMMENT_URL,
 )
 
+STALE_IMPLEMENTATION_CHECKPOINTS = (
+    "573c716e136845dbd42669d78fd725a18d845435",
+)
+
 REQUIRED_DOCS = (
     "docs/en/rip2-proxy-admin-m1-submission-package.md",
     "docs/cn/rip2-proxy-admin-m1-submission-package.md",
@@ -592,6 +596,15 @@ def check_plan_checkboxes(root, errors):
             errors.append(f"unfinished plan checkbox in {PLAN_FILE}:{line_number}")
 
 
+def check_stale_checkpoint_references(root, errors):
+    checked_files = REQUIRED_DOCS + (PLAN_FILE,)
+    for rel in checked_files:
+        text = read_text(root / rel, errors)
+        for checkpoint in STALE_IMPLEMENTATION_CHECKPOINTS:
+            if checkpoint in text:
+                errors.append(f"stale implementation checkpoint {checkpoint} remains in {rel}")
+
+
 def check_source_wiring(root, errors):
     app_text = read_text(
         root / "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplication.java",
@@ -808,6 +821,7 @@ def run_checks(
     check_submission_evidence(root, errors)
     check_required_markdown_fences(root, errors)
     check_plan_checkboxes(root, errors)
+    check_stale_checkpoint_references(root, errors)
     check_source_wiring(root, errors)
     check_required_test_coverage(root, errors)
     if check_github:

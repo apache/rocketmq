@@ -1167,6 +1167,29 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(any("unfinished plan checkbox" in error for error in errors))
 
+    def test_guard_reports_stale_implementation_checkpoint_in_plan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(
+                root / "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md",
+                "- [x] completed step\n"
+                f"{rip2_submission_guard.STALE_IMPLEMENTATION_CHECKPOINTS[0]}\n",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("stale implementation checkpoint" in error for error in errors))
+
     def test_guard_reports_missing_public_review_artifact_link(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
