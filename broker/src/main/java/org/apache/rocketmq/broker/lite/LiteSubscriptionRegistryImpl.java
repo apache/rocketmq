@@ -163,6 +163,17 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
 
         Set<String> lmqNamePrev = thisSub.getLiteTopicSet();
+        // Pre-flight quota check: project the net-new (client, lmqName) references this operation
+        // would register (lmqNames in the new set not already held) against the broker-wide limit.
+        // Like addPartialSubscription, the budget is checked before any mutation; pending removals
+        // are NOT credited, so a set-replacing client at the limit may be denied (conservative). A
+        // re-sync of an identical set has wouldAdd == 0 and passes trivially. Throwing here maps to
+        // LITE_SUBSCRIPTION_QUOTA_EXCEEDED via the processor's existing catch.
+        int wouldAdd = (int) lmqNameNew.stream()
+            .filter(lmqName -> !lmqNamePrev.contains(lmqName))
+            .count();
+        checkQuotaOrThrow(wouldAdd);
+
         // Find topics to remove (in current set but not in new set)
         Set<String> lmqNameRemove = lmqNamePrev.stream()
             .filter(lmqName -> !lmqNameNew.contains(lmqName))
@@ -191,6 +202,22 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                 });
             // Clean exclusive-eviction tombstones for liteTopics no longer in the client's full subscription set
             exclusiveEvictionTombstones.removeStale(clientId, lmqNameNew);
+        }
+    }
+
+    /**
+     * Pre-flight quota check for the request/response registration paths. Throws
+     * {@link LiteQuotaException} (mapped to {@code LITE_SUBSCRIPTION_QUOTA_EXCEEDED} by the
+     * processor) if the projected active count would exceed the configured broker-wide limit.
+     *
+     * @param wouldAdd the number of net-new (client, lmqName) pairs this operation would register;
+     *                0 for a pure "is the broker already at the limit" check
+     */
+    private void checkQuotaOrThrow(int wouldAdd) {
+        long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
+        if ((long) getActiveSubscriptionNum() + wouldAdd > maxCount) {
+            throw new LiteQuotaException("lite subscription quota exceeded " + maxCount
+                + ", current: " + getActiveSubscriptionNum() + ", would add: " + wouldAdd);
         }
     }
 
@@ -235,7 +262,18 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
         ClientGroup clientGroup = new ClientGroup(clientId, group);
         int added = 0;
+        // Cap-and-log, do not throw: this runs on the LiteEventDispatcher background thread with no
+        // client to respond to. Once the broker-wide quota is reached, stop auto-registering new
+        // matches (existing subscriptions keep serving); the periodic re-expand retries next cycle
+        // and picks up registration once room frees up. The guard precedes addLiteTopic so the
+        // subscription's LiteTopicSet stays consistent with liteTopic2Group on early exit.
+        long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
         for (String lmqName : toAdd) {
+            if (getActiveSubscriptionNum() >= maxCount) {
+                LOGGER.warn("reexpandWildcardPatterns capped at lite subscription quota {}, clientId:{}, group:{}, "
+                    + "topic:{}, added:{}, skipped:{}", maxCount, clientId, group, topic, added, toAdd.size() - added);
+                break;
+            }
             thisSub.addLiteTopic(lmqName);
             if (addTopicGroup(clientGroup, lmqName)) {
                 added++;
@@ -272,7 +310,19 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             return 0;
         }
         int added = 0;
+        // Cap-and-log, do not throw: this runs on the message-arriving dispatch hot path with no
+        // client to respond to (an exception here would abort per-message dispatch). Once the
+        // broker-wide quota is reached, stop auto-registering the arriving lmqName; the periodic
+        // doFullDispatchForWildcardGroup re-expand retries and picks it up once room frees up. The
+        // guard precedes addLiteTopic so the subscription's LiteTopicSet stays consistent with
+        // liteTopic2Group on early exit.
+        long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
         for (String group : wildcardGroups) {
+            if (getActiveSubscriptionNum() >= maxCount) {
+                LOGGER.warn("registerArrivingLmqForPatternClients capped at lite subscription quota {}, "
+                    + "topic:{}, lmqName:{}, added:{}", maxCount, parentTopic, lmqName, added);
+                break;
+            }
             for (String clientId : getAllClientIdByGroup(group)) {
                 LiteSubscription thisSub = client2Subscription.get(clientId);
                 if (thisSub == null || CollectionUtils.isEmpty(thisSub.getWildcardPatterns())) {
@@ -283,6 +333,11 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                 }
                 if (!liteLifecycleManager.isSubscriptionActive(parentTopic, lmqName)) {
                     continue; // mirror expandWildcardPatterns sharding guard
+                }
+                if (getActiveSubscriptionNum() >= maxCount) {
+                    LOGGER.warn("registerArrivingLmqForPatternClients capped at lite subscription quota {}, "
+                        + "topic:{}, lmqName:{}, added:{}", maxCount, parentTopic, lmqName, added);
+                    break;
                 }
                 thisSub.addLiteTopic(lmqName);
                 if (addTopicGroup(new ClientGroup(clientId, thisSub.getGroup()), lmqName)) {

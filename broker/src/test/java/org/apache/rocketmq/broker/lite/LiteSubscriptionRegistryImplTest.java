@@ -520,6 +520,138 @@ public class LiteSubscriptionRegistryImplTest {
         assertEquals(1, registry.getActiveSubscriptionNum());
     }
 
+    // ==================== Subscription Quota on All Registration Paths ====================
+
+    /**
+     * addCompleteSubscription (non-wildcard group) must respect maxLiteSubscriptionCount: once the
+     * broker is at the limit, a second client's complete-add is rejected with LiteQuotaException
+     * (mapped to LITE_SUBSCRIPTION_QUOTA_EXCEEDED by the processor) and mutates nothing.
+     */
+    @Test
+    public void testAddCompleteSubscription_NonWildcard_QuotaExceeded() {
+        when(mockBrokerConfig.getMaxLiteSubscriptionCount()).thenReturn(1L);
+        String group = "testGroup";
+        String topic = "testTopic";
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        String clientA = "clientA";
+        String lmq1 = "lmq1";
+        registry.addCompleteSubscription(clientA, group, topic, new HashSet<>(Collections.singletonList(lmq1)), 1L);
+        assertEquals(1, registry.getActiveSubscriptionNum());
+        assertTrue(registry.getLiteSubscription(clientA).getLiteTopicSet().contains(lmq1));
+
+        // clientB's complete-add would push activeNum to 2 (> maxCount=1) -> rejected, no mutation.
+        // (addCompleteSubscription creates a placeholder LiteSubscription for clientB before the
+        // pre-flight check fires, but registers no lmqNames and never increments activeNum.)
+        String clientB = "clientB";
+        String lmq2 = "lmq2";
+        assertThrows(LiteQuotaException.class, () ->
+            registry.addCompleteSubscription(clientB, group, topic, new HashSet<>(Collections.singletonList(lmq2)), 1L));
+        assertEquals(1, registry.getActiveSubscriptionNum());
+        assertTrue(registry.getLiteSubscription(clientB).getLiteTopicSet().isEmpty());
+        // clientA's subscription is intact
+        assertTrue(registry.getLiteSubscription(clientA).getLiteTopicSet().contains(lmq1));
+    }
+
+    /**
+     * addCompleteSubscription (pattern-mode wildcard group) must respect maxLiteSubscriptionCount:
+     * when eager pattern expansion would register more lmqNames than the quota allows, the whole
+     * operation is rejected up front (pre-mutation) with LiteQuotaException and registers nothing.
+     */
+    @Test
+    public void testAddCompleteSubscription_PatternWildcard_QuotaExceeded() {
+        when(mockBrokerConfig.getMaxLiteSubscriptionCount()).thenReturn(1L);
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "order_events";
+        String payRefund = LiteUtil.toLmqName(topic, "pay__refund");
+        String paySuccess = LiteUtil.toLmqName(topic, "pay__success");
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Arrays.asList(payRefund, paySuccess));
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        Set<String> patterns = new HashSet<>(Collections.singletonList("pay__*"));
+        // Both pay__refund and pay__success match -> wouldAdd=2 > maxCount=1 -> rejected pre-mutation.
+        assertThrows(LiteQuotaException.class, () ->
+            registry.addCompleteSubscription(clientId, group, topic, Collections.emptySet(), patterns, 1L));
+
+        assertEquals(0, registry.getActiveSubscriptionNum());
+        LiteSubscription subscription = registry.getLiteSubscription(clientId);
+        assertNotNull(subscription);
+        assertTrue(subscription.getLiteTopicSet().isEmpty());
+    }
+
+    /**
+     * reexpandWildcardPatterns caps at the quota instead of throwing: it registers newly-matched
+     * lmqNames up to the limit, then stops and logs. Runs on the dispatcher background thread with
+     * no client to respond to, so it must not throw. The cap guard precedes addLiteTopic so the
+     * subscription's LiteTopicSet stays consistent with liteTopic2Group on early exit.
+     */
+    @Test
+    public void testReexpandWildcardPatterns_CapsAtQuota() {
+        when(mockBrokerConfig.getMaxLiteSubscriptionCount()).thenReturn(2L);
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "order_events";
+        String payRefund = LiteUtil.toLmqName(topic, "pay__refund");
+        String paySuccess = LiteUtil.toLmqName(topic, "pay__success");
+        String payCancelled = LiteUtil.toLmqName(topic, "pay__cancelled");
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        // initial subscription: only pay__refund exists -> activeNum=1 (room for 1 more)
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Collections.singletonList(payRefund));
+        registry.addCompleteSubscription(clientId, group, topic, Collections.emptySet(),
+            new HashSet<>(Collections.singletonList("pay__*")), 1L);
+        assertEquals(1, registry.getActiveSubscriptionNum());
+
+        // two new matching lite-topics now exist; re-expand has room for only one more
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(
+            Arrays.asList(payRefund, paySuccess, payCancelled));
+        int added = registry.reexpandWildcardPatterns(clientId);
+
+        assertEquals(1, added); // added paySuccess, then capped before payCancelled
+        assertEquals(2, registry.getActiveSubscriptionNum());
+        LiteSubscription subscription = registry.getLiteSubscription(clientId);
+        assertTrue(subscription.getLiteTopicSet().contains(payRefund));
+        assertTrue(subscription.getLiteTopicSet().contains(paySuccess));
+        assertFalse(subscription.getLiteTopicSet().contains(payCancelled));
+    }
+
+    /**
+     * registerArrivingLmqForPatternClients caps at the quota instead of throwing: when the broker is
+     * already at the limit on the message-arriving hot path, it registers nothing and logs rather than
+     * throwing (an exception would abort per-message dispatch). Existing subscriptions are unaffected.
+     */
+    @Test
+    public void testRegisterArrivingLmqForPatternClients_CapsAtQuota() {
+        when(mockBrokerConfig.getMaxLiteSubscriptionCount()).thenReturn(2L);
+        String group = "testGroup";
+        String topic = "order_events";
+        String payRefund = LiteUtil.toLmqName(topic, "pay__refund");
+        String paySuccess = LiteUtil.toLmqName(topic, "pay__success");
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        // two pattern clients subscribed when only pay__refund exists -> activeNum=2 (at limit)
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Collections.singletonList(payRefund));
+        Set<String> patterns = new HashSet<>(Collections.singletonList("pay__*"));
+        registry.addCompleteSubscription("clientA", group, topic, Collections.emptySet(), patterns, 1L);
+        registry.addCompleteSubscription("clientB", group, topic, Collections.emptySet(), patterns, 1L);
+        assertEquals(2, registry.getActiveSubscriptionNum());
+
+        // a new matching lite-topic arrives while at the limit -> nothing registered, no throw
+        int added = registry.registerArrivingLmqForPatternClients(paySuccess);
+
+        assertEquals(0, added);
+        assertEquals(2, registry.getActiveSubscriptionNum());
+        assertFalse(registry.getLiteSubscription("clientA").getLiteTopicSet().contains(paySuccess));
+        assertFalse(registry.getLiteSubscription("clientB").getLiteTopicSet().contains(paySuccess));
+    }
+
     /**
      * reexpandWildcardPatterns picks up lite-topics created after the initial subscription.
      */
