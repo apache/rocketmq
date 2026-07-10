@@ -1817,6 +1817,14 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `Tests run: 731` at `2026-07-10T09:50:12+08:00`, and package smoke passed at
   `2026-07-10T09:51:17+08:00`. Fresh JaCoCo aggregation keeps instruction,
   branch, and line coverage above 85% for both RIP-2 core packages.
+- [x] Public pre-service failure metrics gap closed: request adapter/context
+  failures and query-executor rejection are now recorded before service
+  invocation, while delegated requests remain service-metered to avoid double
+  counting. The submission guard pins the three executor boundary tests and
+  production wiring test. Focused verification passed with `Tests run: 56` at
+  `2026-07-10T10:11:44+08:00`, broad verification passed with
+  `Tests run: 735` at `2026-07-10T10:13:01+08:00`, and package smoke passed at
+  `2026-07-10T10:14:37+08:00`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

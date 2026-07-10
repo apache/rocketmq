@@ -9,7 +9,7 @@ PR, issue comment, or contest submission.
 The latest synchronized RocketMQ implementation-code checkpoint is:
 
 ```text
-6a267c1a483379bd1c934ceeb9b49a6f99fc5f63 Cover proxy admin error response bodies
+1fb8381302ac6feaa25084bbcd5ffbd73014ea4b Meter proxy admin pre-service failures
 ```
 
 The latest generated public gRPC endpoint 1M benchmark code checkpoint is:
@@ -20,7 +20,7 @@ The latest generated public gRPC endpoint 1M benchmark code checkpoint is:
 
 The live draft PRs and RIP-2 issue summary have been refreshed through that
 implementation-code checkpoint to include the generated public gRPC endpoint
-1M benchmark, the `731`-test broad verification result, Dashboard table/detail
+1M benchmark, the `735`-test broad verification result, Dashboard table/detail
 field evidence, generated service descriptor verification evidence, and public
 `BAD_REQUEST` / `UNAUTHORIZED` / `NOT_FOUND` / `INTERNAL_SERVER_ERROR`
 status-mapping and response-body contract evidence.
@@ -58,7 +58,7 @@ branch currently compiles against the local
 | Lifecycle population | Implemented for telemetry settings, heartbeat, unregister, termination, stream completion, and error cleanup. | `ClientActivityTest`, `DefaultGrpcMessagingActivityTest`. |
 | ACL | Implemented with logical resource `proxy.admin.client`; list RPCs use `LIST`, describe uses `GET`. | `ClientAdminAuthPolicyTest`, `DefaultClientAdminAuthorizationServiceTest`, `AuthorizingClientAdminServiceTest`. |
 | Independent admin execution | Implemented admin query executor and dedicated admin gRPC server registration. | `ProxyClientAdminEndpointExecutor`, `ProxyStartup`, `GrpcProxyAdminWiringTest`, `ProxyStartupTest`. |
-| Observability | Implemented metrics, trace attributes, and structured failure logs with low-cardinality labels. | `ProxyMetricsManagerTest`, `MeteredClientAdminServiceTest`, `MeteredAuthorizingClientAdminServiceTest`, `ProxyClientAdminObservabilityTest`. |
+| Observability | Implemented metrics, trace attributes, and structured failure logs with low-cardinality labels. Public failures rejected before service invocation are metered once at the endpoint executor; delegated requests remain service-metered to avoid double counting. | `ProxyMetricsManagerTest`, `MeteredClientAdminServiceTest`, `MeteredAuthorizingClientAdminServiceTest`, `ProxyClientAdminObservabilityTest`, `ProxyClientAdminEndpointExecutorTest`, `GrpcProxyAdminWiringTest`. |
 | E2E / integration coverage | Generated public gRPC Server/Channel tests cover the public service descriptor, all four RPCs, official filters, public pagination/hasMore, omitted public pagination defaults, non-local scope rejection across every public RPC, `PROXY_SCOPE_PROXY_ID` rejection before proxy-id validation, `BAD_REQUEST` and `UNAUTHORIZED` status-only response body contracts, `NOT_FOUND` status/message without a client result body, public `INTERNAL_SERVER_ERROR` response mapping, and Dashboard-facing `ListClients` table plus `DescribeClient` detail fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`, `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`. |
 | 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. All local read-model and generated public gRPC endpoint P99 values are below 1 second. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
 | English and Chinese docs | Completed for user guide, Dashboard integration contract, public API discussion, benchmark report, smoke guide, review runbook, acceptance audit, and submission package. | `docs/en/rip2-proxy-admin-m1-user-guide.md`, `docs/cn/rip2-proxy-admin-m1-user-guide.md`, `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`, `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`, `docs/en/rip2-proxy-admin-public-api-discussion.md`, `docs/cn/rip2-proxy-admin-public-api-discussion.md`. |
@@ -168,6 +168,12 @@ Admin labels and trace/log attributes:
 Failure logs intentionally omit raw auth subjects, client ids, group names,
 topic names, and proxy ids.
 
+The endpoint executor records request-adapter/context validation failures and
+query-executor rejections that occur before the admin service can meter the
+operation. Once a request is delegated to the endpoint handler, the existing
+service wrapper remains the sole metrics owner, preventing duplicate request
+counts.
+
 ## Verification Snapshot
 
 Final verification commands below were run with JDK 17 after the generated
@@ -218,6 +224,13 @@ and
 `GrpcProxyAdminApplicationTest#publicServiceMapsUnauthorizedResponsesWithoutResultBodiesThroughGeneratedGrpcService`,
 which verify `BAD_REQUEST` and `UNAUTHORIZED` responses stay status-only across
 all four public RPCs.
+Endpoint failure metrics are pinned by
+`ProxyClientAdminEndpointExecutorTest#recordsRejectedQueryExecutorMetricsBeforeServiceInvocation`,
+`ProxyClientAdminEndpointExecutorTest#recordsRequestAdapterFailureMetricsBeforeServiceInvocation`,
+and
+`ProxyClientAdminEndpointExecutorTest#successfulEndpointDelegationDoesNotRecordDuplicateFailureMetrics`.
+`GrpcProxyAdminWiringTest#createDefaultActivityWiresEndpointFailureMetricsRecorder`
+verifies the production activity supplies the shared OTel recorder.
 
 Focused generated public API verification:
 
@@ -231,9 +244,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 56, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T09:49:05+08:00
+Finished at: 2026-07-10T10:11:44+08:00
 ```
 
 Focused Dashboard table/detail field verification:
@@ -282,9 +295,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 731, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 735, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T09:50:12+08:00
+Finished at: 2026-07-10T10:13:01+08:00
 ```
 
 Package smoke:
@@ -298,7 +311,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T09:51:17+08:00
+Finished at: 2026-07-10T10:14:37+08:00
 ```
 
 Lightweight submission guard:
@@ -343,7 +356,7 @@ Latest package-level JaCoCo coverage from the broad verification:
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
 | `org/apache/rocketmq/proxy/service/admin/client` | 93.95% | 88.01% | 95.66% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.92% | 85.37% | 94.77% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.82% | 85.58% | 94.75% |
 
 JDK 17 prints JaCoCo 0.8.5 instrumentation stack traces for some JDK and
 Mockito-generated classes in this repository. They are treated as environment
@@ -408,7 +421,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 731, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 735, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 Lightweight submission guard:
 

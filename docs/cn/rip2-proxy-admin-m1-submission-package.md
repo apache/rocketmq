@@ -7,7 +7,7 @@
 已同步到远端的最新 RocketMQ 实现代码 checkpoint：
 
 ```text
-6a267c1a483379bd1c934ceeb9b49a6f99fc5f63 Cover proxy admin error response bodies
+1fb8381302ac6feaa25084bbcd5ffbd73014ea4b Meter proxy admin pre-service failures
 ```
 
 最新 generated public gRPC endpoint 1M benchmark 代码 checkpoint：
@@ -17,7 +17,7 @@
 ```
 
 live draft PR 和 RIP-2 issue summary 已同步到上述实现代码 checkpoint，包含
-generated public gRPC endpoint 1M benchmark、`731` tests broad verification、
+generated public gRPC endpoint 1M benchmark、`735` tests broad verification、
 Dashboard 表格/详情字段证据、generated service descriptor verification 证据，
 以及 public `BAD_REQUEST` / `UNAUTHORIZED` / `NOT_FOUND` /
 `INTERNAL_SERVER_ERROR` status mapping 和 response-body contract 证据。后续纯文档证据刷新
@@ -53,7 +53,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | 生命周期写入 | 已覆盖 telemetry settings、heartbeat、unregister、termination、stream completion 和 error cleanup。 | `ClientActivityTest`、`DefaultGrpcMessagingActivityTest`。 |
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
-| 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
+| 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。进入 service 前被拒绝的 public 请求由 endpoint executor 计量一次；已经委托的请求仍只由 service 计量，避免重复计数。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`、`ProxyClientAdminEndpointExecutorTest`、`GrpcProxyAdminWiringTest`。 |
 | E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖 public service descriptor、四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、`BAD_REQUEST` 和 `UNAUTHORIZED` status-only response body contract、`NOT_FOUND` status/message 且不携带 client result body、public `INTERNAL_SERVER_ERROR` response mapping，以及 Dashboard-facing `ListClients` 表格字段和 `DescribeClient` 详情字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。 |
 | 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model 和 generated public gRPC endpoint P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、Dashboard integration contract、public API discussion、benchmark report、smoke guide、review runbook、acceptance audit 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`、`docs/en/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`docs/cn/rip2-proxy-admin-public-api-discussion.md`。 |
@@ -161,6 +161,10 @@ Admin labels、trace 和日志属性：
 
 失败日志不会记录 auth subject、client id、group、topic 或 proxy id 明文。
 
+Endpoint executor 会记录 admin service 尚无法接管的 request adapter/context
+校验失败和 query executor 拒绝。一旦请求已经委托给 endpoint handler，原有
+service wrapper 仍是唯一 metrics owner，从而避免重复统计请求。
+
 ## 验证快照
 
 以下最终验证命令均使用 JDK 17 运行，运行时工作区已包含生成版 public endpoint
@@ -203,6 +207,14 @@ Generated public error body contract 也由
 `GrpcProxyAdminApplicationTest#publicServiceMapsUnauthorizedResponsesWithoutResultBodiesThroughGeneratedGrpcService`
 固定，验证 `BAD_REQUEST` 和 `UNAUTHORIZED` response 在四个 public RPC 上均保持
 status-only，不携带业务结果体。
+Endpoint failure metrics 由
+`ProxyClientAdminEndpointExecutorTest#recordsRejectedQueryExecutorMetricsBeforeServiceInvocation`、
+`ProxyClientAdminEndpointExecutorTest#recordsRequestAdapterFailureMetricsBeforeServiceInvocation`
+和
+`ProxyClientAdminEndpointExecutorTest#successfulEndpointDelegationDoesNotRecordDuplicateFailureMetrics`
+固定；
+`GrpcProxyAdminWiringTest#createDefaultActivityWiresEndpointFailureMetricsRecorder`
+验证 production activity 注入共享 OTel recorder。
 
 Focused generated public API verification：
 
@@ -216,9 +228,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 56, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T09:49:05+08:00
+Finished at: 2026-07-10T10:11:44+08:00
 ```
 
 Dashboard 表格/详情字段 focused verification：
@@ -267,9 +279,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 731, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 735, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T09:50:12+08:00
+Finished at: 2026-07-10T10:13:01+08:00
 ```
 
 Package smoke：
@@ -283,7 +295,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T09:51:17+08:00
+Finished at: 2026-07-10T10:14:37+08:00
 ```
 
 轻量提交门禁：
@@ -327,7 +339,7 @@ Broad verification 的最新包级 JaCoCo 覆盖率：
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
 | `org/apache/rocketmq/proxy/service/admin/client` | 93.95% | 88.01% | 95.66% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.92% | 85.37% | 94.77% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.82% | 85.58% | 94.75% |
 
 JDK 17 下 JaCoCo 0.8.5 会对部分 JDK 和 Mockito 生成类打印 instrumentation
 stack traces。只有在 Surefire 零 failure/error 且 Maven 成功退出时，才把这些
@@ -391,7 +403,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 731, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 735, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 轻量提交门禁：
 

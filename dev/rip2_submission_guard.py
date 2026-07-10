@@ -39,11 +39,11 @@ PROTO_VERSION_XML = f"<rocketmq-proto.version>{PROTO_VERSION}</rocketmq-proto.ve
 FULL_GUARD_COMMAND = "python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github"
 PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
-FOCUSED_RESULT = "Tests run: 55, Failures: 0, Errors: 0, Skipped: 0"
-FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T09:49:05+08:00"
-BROAD_RESULT = "Tests run: 731, Failures: 0, Errors: 0, Skipped: 0"
-BROAD_FINISHED_AT = "Finished at: 2026-07-10T09:50:12+08:00"
-PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T09:51:17+08:00"
+FOCUSED_RESULT = "Tests run: 56, Failures: 0, Errors: 0, Skipped: 0"
+FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T10:11:44+08:00"
+BROAD_RESULT = "Tests run: 735, Failures: 0, Errors: 0, Skipped: 0"
+BROAD_FINISHED_AT = "Finished at: 2026-07-10T10:13:01+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T10:14:37+08:00"
 INTERNAL_ERROR_PUBLIC_ENDPOINT_TEST = (
     "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService"
 )
@@ -69,6 +69,11 @@ PRE_ERROR_BODY_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T08:47:54+08:
 PRE_COVERAGE_REFRESH_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T09:00:08+08:00"
 PRE_COVERAGE_REFRESH_BROAD_FINISHED_AT = "Finished at: 2026-07-10T09:01:07+08:00"
 PRE_COVERAGE_REFRESH_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T09:02:11+08:00"
+PRE_ENDPOINT_METRICS_FOCUSED_RESULT = "Tests run: 55, Failures: 0, Errors: 0, Skipped: 0"
+PRE_ENDPOINT_METRICS_BROAD_RESULT = "Tests run: 731, Failures: 0, Errors: 0, Skipped: 0"
+PRE_ENDPOINT_METRICS_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T09:49:05+08:00"
+PRE_ENDPOINT_METRICS_BROAD_FINISHED_AT = "Finished at: 2026-07-10T09:50:12+08:00"
+PRE_ENDPOINT_METRICS_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T09:51:17+08:00"
 PUBLIC_REVIEW_ARTIFACT_LINKS = (
     "https://github.com/apache/rocketmq/pull/10603",
     "https://github.com/apache/rocketmq-apis/pull/112",
@@ -231,6 +236,16 @@ REQUIRED_ADMIN_SERVER_ISOLATION_TESTS = (
     "testCreateProxyAdminGrpcBindableServicesRegistersPublicProxyAdminServiceByDefault",
     "testCreateProxyAdminGrpcBindableServicesRegistersAdminBeforePeerService",
     "testCreateProxyAdminServerExecutorUsesIndependentThreadNameAndConfig",
+)
+
+REQUIRED_ENDPOINT_FAILURE_METRICS_TESTS = (
+    "recordsRejectedQueryExecutorMetricsBeforeServiceInvocation",
+    "recordsRequestAdapterFailureMetricsBeforeServiceInvocation",
+    "successfulEndpointDelegationDoesNotRecordDuplicateFailureMetrics",
+)
+
+REQUIRED_ENDPOINT_FAILURE_METRICS_WIRING_TESTS = (
+    "createDefaultActivityWiresEndpointFailureMetricsRecorder",
 )
 
 GITHUB_ARTIFACTS = (
@@ -585,6 +600,11 @@ def check_submission_evidence(root, errors):
         PRE_COVERAGE_REFRESH_FOCUSED_FINISHED_AT,
         PRE_COVERAGE_REFRESH_BROAD_FINISHED_AT,
         PRE_COVERAGE_REFRESH_PACKAGE_SMOKE_FINISHED_AT,
+        PRE_ENDPOINT_METRICS_FOCUSED_RESULT,
+        PRE_ENDPOINT_METRICS_BROAD_RESULT,
+        PRE_ENDPOINT_METRICS_FOCUSED_FINISHED_AT,
+        PRE_ENDPOINT_METRICS_BROAD_FINISHED_AT,
+        PRE_ENDPOINT_METRICS_PACKAGE_SMOKE_FINISHED_AT,
     )
     for token in stale_tokens:
         if token in combined_docs:
@@ -595,17 +615,20 @@ def check_submission_evidence(root, errors):
                 or "08:31:23" in token
                 or "08:47:54" in token
                 or "09:02:11" in token
+                or "09:51:17" in token
             ):
                 errors.append(f"stale package smoke evidence remains: {token}")
             elif (
                 "728" in token
                 or "730" in token
+                or "731" in token
                 or "05:14:32" in token
                 or "06:06:44" in token
                 or "07:53:37" in token
                 or "08:28:12" in token
                 or "08:46:56" in token
                 or "09:01:07" in token
+                or "09:50:12" in token
             ):
                 errors.append(f"stale broad verification evidence remains: {token}")
             else:
@@ -688,6 +711,30 @@ def check_required_test_coverage(root, errors):
         if test_name not in startup_test_text:
             errors.append(
                 "ProxyStartupTest missing admin server isolation coverage: "
+                f"{test_name}"
+            )
+
+    endpoint_executor_test_text = read_text(
+        root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
+        "ProxyClientAdminEndpointExecutorTest.java",
+        errors,
+    )
+    for test_name in REQUIRED_ENDPOINT_FAILURE_METRICS_TESTS:
+        if test_name not in endpoint_executor_test_text:
+            errors.append(
+                "ProxyClientAdminEndpointExecutorTest missing endpoint failure metrics coverage: "
+                f"{test_name}"
+            )
+
+    wiring_test_text = read_text(
+        root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
+        "GrpcProxyAdminWiringTest.java",
+        errors,
+    )
+    for test_name in REQUIRED_ENDPOINT_FAILURE_METRICS_WIRING_TESTS:
+        if test_name not in wiring_test_text:
+            errors.append(
+                "GrpcProxyAdminWiringTest missing endpoint failure metrics coverage: "
                 f"{test_name}"
             )
 

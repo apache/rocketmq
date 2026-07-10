@@ -1039,6 +1039,12 @@ Metric recording is best effort. Read-model mutation recorder failures and
 admin query metrics recorder failures are logged but do not mask successful
 lifecycle/admin operations or the original service exception.
 
+The generated public endpoint also meters failures that happen before service
+invocation, including request-adapter/context validation and query-executor
+rejection. These failures are recorded by `ProxyClientAdminEndpointExecutor`;
+after handler delegation, the service wrapper remains the single metrics owner
+so one public operation produces one request count.
+
 The public adapter should reuse these low-cardinality metric labels, trace
 attributes, and structured log fields when the API surface is finalized.
 
