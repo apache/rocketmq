@@ -265,16 +265,18 @@ deploy_maven(
 """,
     )
 
-    submission = """
-Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
-Finished at: 2026-07-10T08:45:58+08:00
-Tests run: 731, Failures: 0, Errors: 0, Skipped: 0
-Finished at: 2026-07-10T08:46:56+08:00
-Finished at: 2026-07-10T08:47:54+08:00
+    submission = f"""
+{rip2_submission_guard.FOCUSED_RESULT}
+{rip2_submission_guard.FOCUSED_FINISHED_AT}
+{rip2_submission_guard.BROAD_RESULT}
+{rip2_submission_guard.BROAD_FINISHED_AT}
+{rip2_submission_guard.PACKAGE_SMOKE_FINISHED_AT}
 3.576 ms
 0.681 ms
 Dashboard CLIENT-01
 external validation item
+publicServiceMapsBadRequestResponsesWithoutResultBodiesThroughGeneratedGrpcService
+publicServiceMapsUnauthorizedResponsesWithoutResultBodiesThroughGeneratedGrpcService
 publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService
 https://github.com/apache/rocketmq/pull/10603
 https://github.com/apache/rocketmq-apis/pull/112
@@ -647,7 +649,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
                 path = root / rel
                 path.write_text(
                     path.read_text(encoding="utf-8").replace(
-                        "Finished at: 2026-07-10T08:47:54+08:00\n",
+                        f"{rip2_submission_guard.PACKAGE_SMOKE_FINISHED_AT}\n",
                         "",
                     ),
                     encoding="utf-8",

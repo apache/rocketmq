@@ -9,7 +9,7 @@ PR, issue comment, or contest submission.
 The latest synchronized RocketMQ implementation-code checkpoint is:
 
 ```text
-37c634fb14a93405991feae7f88aa2ffb0164dac Cover proxy admin internal error status
+6a267c1a483379bd1c934ceeb9b49a6f99fc5f63 Cover proxy admin error response bodies
 ```
 
 The latest generated public gRPC endpoint 1M benchmark code checkpoint is:
@@ -22,7 +22,8 @@ The live draft PRs and RIP-2 issue summary have been refreshed through that
 implementation-code checkpoint to include the generated public gRPC endpoint
 1M benchmark, the `731`-test broad verification result, Dashboard table/detail
 field evidence, generated service descriptor verification evidence, and public
-`INTERNAL_SERVER_ERROR` status-mapping evidence.
+`BAD_REQUEST` / `UNAUTHORIZED` / `NOT_FOUND` / `INTERNAL_SERVER_ERROR`
+status-mapping and response-body contract evidence.
 Later documentation-only evidence refresh commits may move the branch head
 without changing the implementation checkpoint above.
 
@@ -58,7 +59,7 @@ branch currently compiles against the local
 | ACL | Implemented with logical resource `proxy.admin.client`; list RPCs use `LIST`, describe uses `GET`. | `ClientAdminAuthPolicyTest`, `DefaultClientAdminAuthorizationServiceTest`, `AuthorizingClientAdminServiceTest`. |
 | Independent admin execution | Implemented admin query executor and dedicated admin gRPC server registration. | `ProxyClientAdminEndpointExecutor`, `ProxyStartup`, `GrpcProxyAdminWiringTest`, `ProxyStartupTest`. |
 | Observability | Implemented metrics, trace attributes, and structured failure logs with low-cardinality labels. | `ProxyMetricsManagerTest`, `MeteredClientAdminServiceTest`, `MeteredAuthorizingClientAdminServiceTest`, `ProxyClientAdminObservabilityTest`. |
-| E2E / integration coverage | Generated public gRPC Server/Channel tests cover the public service descriptor, all four RPCs, official filters, public pagination/hasMore, omitted public pagination defaults, non-local scope rejection across every public RPC, `PROXY_SCOPE_PROXY_ID` rejection before proxy-id validation, bad-request contract mapping, `NOT_FOUND` status/message without a client result body, public `INTERNAL_SERVER_ERROR` response mapping, and Dashboard-facing `ListClients` table plus `DescribeClient` detail fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`, `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`. |
+| E2E / integration coverage | Generated public gRPC Server/Channel tests cover the public service descriptor, all four RPCs, official filters, public pagination/hasMore, omitted public pagination defaults, non-local scope rejection across every public RPC, `PROXY_SCOPE_PROXY_ID` rejection before proxy-id validation, `BAD_REQUEST` and `UNAUTHORIZED` status-only response body contracts, `NOT_FOUND` status/message without a client result body, public `INTERNAL_SERVER_ERROR` response mapping, and Dashboard-facing `ListClients` table plus `DescribeClient` detail fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`, `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`. |
 | 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. All local read-model and generated public gRPC endpoint P99 values are below 1 second. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
 | English and Chinese docs | Completed for user guide, Dashboard integration contract, public API discussion, benchmark report, smoke guide, review runbook, acceptance audit, and submission package. | `docs/en/rip2-proxy-admin-m1-user-guide.md`, `docs/cn/rip2-proxy-admin-m1-user-guide.md`, `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`, `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`, `docs/en/rip2-proxy-admin-public-api-discussion.md`, `docs/cn/rip2-proxy-admin-public-api-discussion.md`. |
 
@@ -211,6 +212,12 @@ The generated public `DescribeClient` not-found contract is also pinned by
 `GrpcProxyAdminApplicationTest#describeMissingClientReturnsNotFoundStatusWithoutClientBodyThroughGeneratedGrpcService`,
 which verifies the public `NOT_FOUND` status/message does not include a
 `ProxyClient` result body.
+Generated public error body contracts are pinned by
+`GrpcProxyAdminApplicationTest#publicServiceMapsBadRequestResponsesWithoutResultBodiesThroughGeneratedGrpcService`
+and
+`GrpcProxyAdminApplicationTest#publicServiceMapsUnauthorizedResponsesWithoutResultBodiesThroughGeneratedGrpcService`,
+which verify `BAD_REQUEST` and `UNAUTHORIZED` responses stay status-only across
+all four public RPCs.
 
 Focused generated public API verification:
 
@@ -226,7 +233,7 @@ Result:
 ```text
 Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T08:45:58+08:00
+Finished at: 2026-07-10T09:00:08+08:00
 ```
 
 Focused Dashboard table/detail field verification:
@@ -277,7 +284,7 @@ Result:
 ```text
 Tests run: 731, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T08:46:56+08:00
+Finished at: 2026-07-10T09:01:07+08:00
 ```
 
 Package smoke:
@@ -291,7 +298,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T08:47:54+08:00
+Finished at: 2026-07-10T09:02:11+08:00
 ```
 
 Lightweight submission guard:

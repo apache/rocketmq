@@ -1709,11 +1709,11 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
 - [x] Focused public endpoint/startup verification evidence refreshed after the
   generated public service descriptor test:
   `Tests run: 55, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`,
-  finished at `2026-07-10T08:45:58+08:00`.
+  finished at `2026-07-10T09:00:08+08:00`.
 - [x] Broad proxy admin verification evidence refreshed on the latest branch
   head after descriptor and Dashboard-facing tests were included in the broad
   suite: `Tests run: 731, Failures: 0, Errors: 0, Skipped: 0`,
-  `BUILD SUCCESS`, finished at `2026-07-10T08:46:56+08:00`.
+  `BUILD SUCCESS`, finished at `2026-07-10T09:01:07+08:00`.
 - [x] Lightweight submission guard added:
   `dev/rip2_submission_guard.py` checks required RIP-2 files, the local
   `rocketmq-proto:2.2.0-rip2-SNAPSHOT` generated artifact, proto mirror
@@ -1767,7 +1767,7 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   the proposed public proto artifact.
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
-  `BUILD SUCCESS`, finished at `2026-07-10T08:47:54+08:00`.
+  `BUILD SUCCESS`, finished at `2026-07-10T09:02:11+08:00`.
 - [x] Generated public endpoint coverage guard added:
   `dev/rip2_submission_guard.py` now verifies that the generated public gRPC
   endpoint tests still cover the service descriptor, success paths, contest
@@ -1784,7 +1784,7 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `Tests run: 55, Failures: 0, Errors: 0, Skipped: 0`, the broad proxy admin
   suite was rerun with
   `Tests run: 731, Failures: 0, Errors: 0, Skipped: 0`, and package smoke was
-  rerun with `BUILD SUCCESS`, finished at `2026-07-10T08:47:54+08:00`.
+  rerun with `BUILD SUCCESS`, finished at `2026-07-10T09:02:11+08:00`.
 - [x] Generated public endpoint NOT_FOUND body-contract coverage tightened:
   the submission guard was first made to fail when
   `GrpcProxyAdminApplicationTest#describeMissingClientReturnsNotFoundStatusWithoutClientBodyThroughGeneratedGrpcService`
@@ -1793,6 +1793,18 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `ProxyClient` result body. The focused method verification passed with
   `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`,
   finished at `2026-07-10T08:43:47+08:00`.
+- [x] Generated public endpoint BAD_REQUEST and UNAUTHORIZED body-contract
+  coverage tightened: the submission guard was first made to fail when
+  `GrpcProxyAdminApplicationTest#publicServiceMapsBadRequestResponsesWithoutResultBodiesThroughGeneratedGrpcService`
+  and
+  `GrpcProxyAdminApplicationTest#publicServiceMapsUnauthorizedResponsesWithoutResultBodiesThroughGeneratedGrpcService`
+  were absent; the existing generated gRPC status/body assertions were renamed
+  to those explicit contract names, and the focused method verification passed
+  with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`,
+  finished at `2026-07-10T08:58:23+08:00`. Focused public endpoint/startup
+  verification, broad proxy admin verification, and package smoke were then
+  refreshed at `2026-07-10T09:00:08+08:00`,
+  `2026-07-10T09:01:07+08:00`, and `2026-07-10T09:02:11+08:00`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

@@ -7,7 +7,7 @@
 已同步到远端的最新 RocketMQ 实现代码 checkpoint：
 
 ```text
-37c634fb14a93405991feae7f88aa2ffb0164dac Cover proxy admin internal error status
+6a267c1a483379bd1c934ceeb9b49a6f99fc5f63 Cover proxy admin error response bodies
 ```
 
 最新 generated public gRPC endpoint 1M benchmark 代码 checkpoint：
@@ -19,7 +19,8 @@
 live draft PR 和 RIP-2 issue summary 已同步到上述实现代码 checkpoint，包含
 generated public gRPC endpoint 1M benchmark、`731` tests broad verification、
 Dashboard 表格/详情字段证据、generated service descriptor verification 证据，
-以及 public `INTERNAL_SERVER_ERROR` status mapping 证据。后续纯文档证据刷新
+以及 public `BAD_REQUEST` / `UNAUTHORIZED` / `NOT_FOUND` /
+`INTERNAL_SERVER_ERROR` status mapping 和 response-body contract 证据。后续纯文档证据刷新
 commit 可能继续推进分支 HEAD，但不会改变上述实现 checkpoint。
 
 本分支已经完成 `ProxyAdminService` 在线客户端查询所需的 proxy 侧基础能力和
@@ -53,7 +54,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`。 |
-| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖 public service descriptor、四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、bad-request contract mapping、`NOT_FOUND` status/message 且不携带 client result body、public `INTERNAL_SERVER_ERROR` response mapping，以及 Dashboard-facing `ListClients` 表格字段和 `DescribeClient` 详情字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。 |
+| E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖 public service descriptor、四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、`BAD_REQUEST` 和 `UNAUTHORIZED` status-only response body contract、`NOT_FOUND` status/message 且不携带 client result body、public `INTERNAL_SERVER_ERROR` response mapping，以及 Dashboard-facing `ListClients` 表格字段和 `DescribeClient` 详情字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。 |
 | 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成，所有 local read-model 和 generated public gRPC endpoint P99 均低于 1 秒。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、Dashboard integration contract、public API discussion、benchmark report、smoke guide、review runbook、acceptance audit 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`、`docs/en/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`docs/cn/rip2-proxy-admin-public-api-discussion.md`。 |
 
@@ -196,6 +197,12 @@ verification 与 package smoke 已在这份 reviewer-facing 证据同步后再�
 Generated public `DescribeClient` not-found contract 也由
 `GrpcProxyAdminApplicationTest#describeMissingClientReturnsNotFoundStatusWithoutClientBodyThroughGeneratedGrpcService`
 固定，验证 public `NOT_FOUND` status/message 不会携带 `ProxyClient` result body。
+Generated public error body contract 也由
+`GrpcProxyAdminApplicationTest#publicServiceMapsBadRequestResponsesWithoutResultBodiesThroughGeneratedGrpcService`
+和
+`GrpcProxyAdminApplicationTest#publicServiceMapsUnauthorizedResponsesWithoutResultBodiesThroughGeneratedGrpcService`
+固定，验证 `BAD_REQUEST` 和 `UNAUTHORIZED` response 在四个 public RPC 上均保持
+status-only，不携带业务结果体。
 
 Focused generated public API verification：
 
@@ -211,7 +218,7 @@ mvn -pl proxy -am \
 ```text
 Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T08:45:58+08:00
+Finished at: 2026-07-10T09:00:08+08:00
 ```
 
 Dashboard 表格/详情字段 focused verification：
@@ -262,7 +269,7 @@ mvn -pl proxy -am \
 ```text
 Tests run: 731, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T08:46:56+08:00
+Finished at: 2026-07-10T09:01:07+08:00
 ```
 
 Package smoke：
@@ -276,7 +283,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T08:47:54+08:00
+Finished at: 2026-07-10T09:02:11+08:00
 ```
 
 轻量提交门禁：
