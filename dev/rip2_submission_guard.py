@@ -676,6 +676,9 @@ def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
         if code != 0:
             errors.append(f"cannot read {label}: {stderr}")
             continue
+        for checkpoint in STALE_IMPLEMENTATION_CHECKPOINTS:
+            if checkpoint in body:
+                errors.append(f"{label} contains stale implementation checkpoint {checkpoint}")
         if head not in body:
             errors.append(f"{label} does not reference current HEAD {head}")
         if apis_head not in body:

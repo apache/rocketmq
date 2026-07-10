@@ -905,6 +905,33 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(any("rocketmq-apis PR #112" in error and "current HEAD" in error for error in errors))
 
+    def test_guard_reports_stale_implementation_checkpoint_in_github_artifact(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            stale_body = (
+                github_body(expected_head, apis_head)
+                + rip2_submission_guard.STALE_IMPLEMENTATION_CHECKPOINTS[0]
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                command_runner=fake_github_runner(expected_head, stale_body, stale_body, stale_body,
+                    apis_head=apis_head),
+            )
+
+            self.assertTrue(any("stale implementation checkpoint" in error for error in errors))
+
     def test_guard_can_verify_apis_branch_remote_state(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
