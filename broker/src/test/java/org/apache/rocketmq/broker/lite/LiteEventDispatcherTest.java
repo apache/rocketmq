@@ -119,6 +119,33 @@ public class LiteEventDispatcherTest {
         verify(spyDispatcher).doDispatch("group", lmqName, null);
     }
 
+    /**
+     * On the message-arriving path (group == null), dispatch lazily registers the arriving lmqName
+     * against pattern-mode wildcard clients before fan-out, so a newly-created matching lite-topic
+     * is delivered without waiting for the periodic full dispatch.
+     */
+    @Test
+    public void testDispatch_MessageArrival_RegistersArrivingLmqForPatternClients() {
+        String lmqName = LiteUtil.toLmqName("parentTopic", "child");
+        LiteEventDispatcher spyDispatcher = Mockito.spy(liteEventDispatcher);
+        spyDispatcher.dispatch(null, lmqName, 0, 0L, 0L);
+        verify(liteSubscriptionRegistry).registerArrivingLmqForPatternClients(lmqName);
+        verify(spyDispatcher).doDispatch(null, lmqName, null);
+    }
+
+    /**
+     * On a group-specific dispatch (e.g. ack re-dispatch), the pattern re-expand must NOT run —
+     * registration state is already settled for an explicit group.
+     */
+    @Test
+    public void testDispatch_GroupSpecified_DoesNotRegisterArrivingLmq() {
+        String lmqName = LiteUtil.toLmqName("parentTopic", "child");
+        LiteEventDispatcher spyDispatcher = Mockito.spy(liteEventDispatcher);
+        spyDispatcher.dispatch("someGroup", lmqName, 0, 0L, 0L);
+        verify(liteSubscriptionRegistry, never()).registerArrivingLmqForPatternClients(anyString());
+        verify(spyDispatcher).doDispatch("someGroup", lmqName, null);
+    }
+
     @Test
     public void testDoDispatchWhenWrapperIsNull() {
         when(liteSubscriptionRegistry.getAllSubscriber("group", "lmqName")).thenReturn(null);

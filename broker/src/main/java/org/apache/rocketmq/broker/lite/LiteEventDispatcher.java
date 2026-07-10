@@ -94,6 +94,13 @@ public class LiteEventDispatcher extends ServiceThread {
         if (queueId != 0 || !LiteUtil.isLiteTopicQueue(lmqName)) {
             return;
         }
+        // On the message-arriving path (group == null), lazily register this lmqName against any
+        // pattern-mode wildcard clients whose patterns match it, so the dispatch below can reach
+        // them even for a newly-created lite-topic. The periodic doFullDispatchForWildcardGroup
+        // re-expand remains as a backstop.
+        if (group == null) {
+            liteSubscriptionRegistry.registerArrivingLmqForPatternClients(lmqName);
+        }
         doDispatch(group, lmqName, null);
     }
 

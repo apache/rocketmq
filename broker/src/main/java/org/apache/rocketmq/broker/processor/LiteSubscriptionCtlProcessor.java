@@ -98,9 +98,12 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
                         if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
                             // For a wildcard group, liteTopicSet carries pattern strings (not literal
                             // lmqNames); pass them through verbatim and let the registry expand them.
+                            // lmqNameSet is intentionally empty: pattern-mode registration ignores it
+                            // (lmqNames are derived by expanding the patterns), and passing a set of
+                            // pattern-derived pseudo-lmqNames here would be misleading.
                             Set<String> wildcardPatterns = toWildcardPatterns(entry);
-                            this.liteSubscriptionRegistry.addCompleteSubscription(clientId, group, topic, lmqNameSet,
-                                wildcardPatterns, entry.getVersion());
+                            this.liteSubscriptionRegistry.addCompleteSubscription(clientId, group, topic,
+                                Collections.emptySet(), wildcardPatterns, entry.getVersion());
                         } else {
                             this.liteSubscriptionRegistry.addCompleteSubscription(clientId, group, topic, lmqNameSet,
                                 entry.getVersion());

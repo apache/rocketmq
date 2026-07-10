@@ -69,6 +69,23 @@ public interface LiteSubscriptionRegistry {
      */
     int reexpandWildcardPatterns(String clientId);
 
+    /**
+     * Lazily register the arriving lmqName against any pattern-mode wildcard clients whose stored
+     * patterns match it, so that the current message-arriving dispatch can reach them. This is the
+     * single-lmqName counterpart to {@link #reexpandWildcardPatterns(String)}: it matches only
+     * against the one arriving lmqName (avoiding the O(M) {@code collectByParentTopic} scan on the
+     * message-arriving hot path) and lets a pattern-mode client receive a newly-created matching
+     * lite-topic without waiting for the periodic full-dispatch re-expand.
+     *
+     * <p>Only pattern-mode clients (non-empty {@code wildcardPatterns}) are considered; legacy
+     * wildcard clients are already reachable via the synthetic {@code topic@group} key in
+     * {@link #getAllSubscriber}. Registration is idempotent via {@code addTopicGroup}.
+     *
+     * @param lmqName the full lmqName of the arriving message
+     * @return the number of newly-registered (client, lmqName) pairs
+     */
+    int registerArrivingLmqForPatternClients(String lmqName);
+
     void removeCompleteSubscription(String clientId);
 
     void addListener(LiteCtlListener listener);

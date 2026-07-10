@@ -146,10 +146,17 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             markWildcardGroup(topic, group);
         } else if (isWildcardGroup) {
             // Legacy wildcard group: receive all lite-topics under the parent topic via the
-            // synthetic topic@group key.
+            // synthetic topic@group key. Clear any previously stored patterns so a client that
+            // transitions from pattern mode back to legacy mode is no longer classified as
+            // pattern-mode (doFullDispatchForWildcardGroup / reexpandWildcardPatterns key off a
+            // non-empty wildcardPatterns set).
+            thisSub.setWildcardPatterns(Collections.emptySet());
             lmqNameNew = Collections.singleton(mockLmqNameForWildcardGroup(topic, group));
             markWildcardGroup(topic, group);
         } else {
+            // Non-wildcard group: a normal subscription. Clear stale patterns from any prior
+            // wildcard incarnation so the group is not misclassified downstream.
+            thisSub.setWildcardPatterns(Collections.emptySet());
             lmqNameNew = lmqNameAll.stream()
                 .filter(lmqName -> liteLifecycleManager.isSubscriptionActive(topic, lmqName))
                 .collect(Collectors.toSet());
@@ -237,6 +244,55 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         if (added > 0) {
             LOGGER.info("reexpandWildcardPatterns, clientId:{}, group:{}, topic:{}, newly matched:{}",
                 clientId, group, topic, added);
+        }
+        return added;
+    }
+
+    /**
+     * Single-lmqName counterpart to {@link #reexpandWildcardPatterns(String)} for the
+     * message-arriving dispatch path. When a message arrives on a lite-topic that no pattern-mode
+     * client has been registered for yet (e.g. a newly-created lite-topic), enumerate the parent
+     * topic's pattern-mode wildcard clients and register the ones whose stored patterns match this
+     * lmqName's child. This avoids the O(M) {@code collectByParentTopic} scan that
+     * {@code reexpandWildcardPatterns} performs, matching only against the single arriving lmqName.
+     *
+     * <p>Legacy wildcard clients are NOT touched here: they are already reachable via the synthetic
+     * {@code topic@group} key in {@link #getAllSubscriber}. The periodic
+     * {@code doFullDispatchForWildcardGroup} re-expand remains as a backstop.
+     */
+    @Override
+    public int registerArrivingLmqForPatternClients(String lmqName) {
+        String parentTopic = LiteUtil.getParentTopic(lmqName);
+        String child = LiteUtil.getLiteTopic(lmqName);
+        if (parentTopic == null || child == null) {
+            return 0;
+        }
+        Set<String> wildcardGroups = wildcardGroupMap.get(parentTopic);
+        if (wildcardGroups == null || wildcardGroups.isEmpty()) {
+            return 0;
+        }
+        int added = 0;
+        for (String group : wildcardGroups) {
+            for (String clientId : getAllClientIdByGroup(group)) {
+                LiteSubscription thisSub = client2Subscription.get(clientId);
+                if (thisSub == null || CollectionUtils.isEmpty(thisSub.getWildcardPatterns())) {
+                    continue; // legacy or absent client
+                }
+                if (!LitePatternMatcher.matchesAny(thisSub.getWildcardPatterns(), child)) {
+                    continue;
+                }
+                if (!liteLifecycleManager.isSubscriptionActive(parentTopic, lmqName)) {
+                    continue; // mirror expandWildcardPatterns sharding guard
+                }
+                thisSub.addLiteTopic(lmqName);
+                if (addTopicGroup(new ClientGroup(clientId, thisSub.getGroup()), lmqName)) {
+                    added++;
+                }
+            }
+        }
+        if (added > 0) {
+            LOGGER.info("registerArrivingLmqForPatternClients, topic:{}, lmqName:{}, newly registered:{}",
+                parentTopic, lmqName, added);
         }
         return added;
     }
