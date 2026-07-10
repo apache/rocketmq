@@ -212,6 +212,6 @@ public class PopCheckPoint implements Comparable<PopCheckPoint> {
 
     @Override
     public int compareTo(PopCheckPoint o) {
-        return (int) (this.getStartOffset() - o.getStartOffset());
+        return Long.compare(this.getStartOffset(), o.getStartOffset());
     }
 }
