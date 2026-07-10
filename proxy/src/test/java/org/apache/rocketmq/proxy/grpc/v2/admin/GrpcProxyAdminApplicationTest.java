@@ -757,7 +757,8 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
-    public void publicServiceErrorResponsesDoNotCarryResultBodies() throws Exception {
+    public void publicServiceMapsBadRequestResponsesWithoutResultBodiesThroughGeneratedGrpcService()
+        throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
         ManagedChannel channel = null;
@@ -816,7 +817,8 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
-    public void publicServiceMapsMissingAuthSubjectToUnauthorizedThroughGeneratedGrpcService() throws Exception {
+    public void publicServiceMapsUnauthorizedResponsesWithoutResultBodiesThroughGeneratedGrpcService()
+        throws Exception {
         ConfigurationManager.getAuthConfig().setAuthorizationEnabled(true);
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
