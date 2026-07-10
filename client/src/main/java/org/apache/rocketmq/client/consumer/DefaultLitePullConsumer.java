@@ -159,6 +159,28 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      */
     private long topicMetadataCheckIntervalMillis = 30 * 1000;
 
+    /**
+     * Enable message deduplication based on message keys.
+     * When enabled, duplicate messages will be detected and skipped before consumption.
+     * Default: false (disabled)
+     */
+    private boolean enableMessageDeduplication = false;
+
+    /**
+     * Maximum size of deduplication cache (number of message keys).
+     * Range: [1000, 100000]
+     * Default: 10000
+     */
+    private int deduplicationCacheSize = 10000;
+
+    /**
+     * Deduplication cache entry expire time in milliseconds.
+     * Older entries will be removed during cleanup.
+     * Range: [10000, 3600000] (10s - 1h)
+     * Default: 60000 (1 minute)
+     */
+    private long deduplicationCacheExpireTime = 60000;
+
     private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
 
     /**
@@ -562,6 +584,30 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setTopicMetadataCheckIntervalMillis(long topicMetadataCheckIntervalMillis) {
         this.topicMetadataCheckIntervalMillis = topicMetadataCheckIntervalMillis;
+    }
+
+    public boolean isEnableMessageDeduplication() {
+        return enableMessageDeduplication;
+    }
+
+    public void setEnableMessageDeduplication(boolean enableMessageDeduplication) {
+        this.enableMessageDeduplication = enableMessageDeduplication;
+    }
+
+    public int getDeduplicationCacheSize() {
+        return deduplicationCacheSize;
+    }
+
+    public void setDeduplicationCacheSize(int deduplicationCacheSize) {
+        this.deduplicationCacheSize = deduplicationCacheSize;
+    }
+
+    public long getDeduplicationCacheExpireTime() {
+        return deduplicationCacheExpireTime;
+    }
+
+    public void setDeduplicationCacheExpireTime(long deduplicationCacheExpireTime) {
+        this.deduplicationCacheExpireTime = deduplicationCacheExpireTime;
     }
 
     public void setConsumerGroup(String consumerGroup) {

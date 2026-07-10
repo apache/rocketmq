@@ -122,9 +122,46 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
     }
 
-    @Override
     public int getCorePoolSize() {
         return this.consumeExecutor.getCorePoolSize();
+    }
+
+    /**
+     * Filter duplicate messages from the list.
+     *
+     * @param msgs Message list to filter
+     * @return Number of duplicate messages filtered out
+     */
+    private int filterDuplicateMessages(List<MessageExt> msgs) {
+        MessageDeduplicator deduplicator = this.defaultMQPushConsumerImpl.getMessageDeduplicator();
+        if (deduplicator == null || msgs == null || msgs.isEmpty()) {
+            return 0;
+        }
+
+        int duplicateCount = 0;
+        Iterator<MessageExt> iterator = msgs.iterator();
+        while (iterator.hasNext()) {
+            MessageExt msg = iterator.next();
+            String deduplicationKey = MessageDeduplicator.getDeduplicationKey(msg);
+
+            if (deduplicationKey != null && deduplicator.isDuplicate(deduplicationKey)) {
+                // Duplicate message, remove from list
+                iterator.remove();
+                duplicateCount++;
+                log.warn("Duplicate message detected and filtered. msgId={}, keys={}, topic={}, queueId={}, queueOffset={}",
+                    msg.getMsgId(), msg.getKeys(), msg.getTopic(), msg.getQueueId(), msg.getQueueOffset());
+            } else if (deduplicationKey != null) {
+                // Mark message as processed
+                deduplicator.markProcessed(deduplicationKey);
+            }
+        }
+
+        if (duplicateCount > 0) {
+            log.info("Filtered {} duplicate messages from batch of {} messages for consumer group {}",
+                duplicateCount, msgs.size() + duplicateCount, this.consumerGroup);
+        }
+
+        return duplicateCount;
     }
 
     @Override
@@ -386,6 +423,19 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             ConsumeConcurrentlyStatus status = null;
             defaultMQPushConsumerImpl.tryResetPopRetryTopic(msgs, consumerGroup);
             defaultMQPushConsumerImpl.resetRetryAndNamespace(msgs, defaultMQPushConsumer.getConsumerGroup());
+
+            // Filter duplicate messages if deduplication is enabled
+            int duplicateCount = filterDuplicateMessages(msgs);
+            if (duplicateCount > 0 && msgs.isEmpty()) {
+                // All messages were duplicates, process result without calling listener
+                log.info("All {} messages in batch were duplicates. Skipping listener invocation for queue {}",
+                    duplicateCount, messageQueue);
+                if (!processQueue.isDropped()) {
+                    // Need to remove duplicate messages from processQueue and advance offset
+                    processConsumeResult(ConsumeConcurrentlyStatus.CONSUME_SUCCESS, context, this);
+                }
+                return;
+            }
 
             ConsumeMessageContext consumeMessageContext = null;
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {

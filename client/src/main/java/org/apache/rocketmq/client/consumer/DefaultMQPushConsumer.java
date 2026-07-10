@@ -274,6 +274,28 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int popBatchNums = 32;
 
     /**
+     * Enable message deduplication based on message keys.
+     * When enabled, duplicate messages will be detected and skipped before consumption.
+     * Default: false (disabled)
+     */
+    private boolean enableMessageDeduplication = false;
+
+    /**
+     * Maximum size of deduplication cache (number of message keys).
+     * Range: [1000, 100000]
+     * Default: 10000
+     */
+    private int deduplicationCacheSize = 10000;
+
+    /**
+     * Deduplication cache entry expire time in milliseconds.
+     * Older entries will be removed during cleanup.
+     * Range: [10000, 3600000] (10s - 1h)
+     * Default: 60000 (1 minute)
+     */
+    private long deduplicationCacheExpireTime = 60000;
+
+    /**
      * Maximum time to await message consuming when shutdown consumer, 0 indicates no await.
      */
     private long awaitTerminationMillisWhenShutdown = 0;
@@ -985,6 +1007,30 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setPopBatchNums(int popBatchNums) {
         this.popBatchNums = popBatchNums;
+    }
+
+    public boolean isEnableMessageDeduplication() {
+        return enableMessageDeduplication;
+    }
+
+    public void setEnableMessageDeduplication(boolean enableMessageDeduplication) {
+        this.enableMessageDeduplication = enableMessageDeduplication;
+    }
+
+    public int getDeduplicationCacheSize() {
+        return deduplicationCacheSize;
+    }
+
+    public void setDeduplicationCacheSize(int deduplicationCacheSize) {
+        this.deduplicationCacheSize = deduplicationCacheSize;
+    }
+
+    public long getDeduplicationCacheExpireTime() {
+        return deduplicationCacheExpireTime;
+    }
+
+    public void setDeduplicationCacheExpireTime(long deduplicationCacheExpireTime) {
+        this.deduplicationCacheExpireTime = deduplicationCacheExpireTime;
     }
 
     public boolean isClientRebalance() {
