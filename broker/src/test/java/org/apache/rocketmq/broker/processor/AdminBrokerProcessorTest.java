@@ -44,6 +44,7 @@ import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.lite.LiteLifecycleManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -472,8 +473,8 @@ public class AdminBrokerProcessorTest {
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
-        verify(topicConfigManager).deleteTopicConfig(topic);
-        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1", brokerConfig.isEnableRetryTopicV2()));
+        verify(topicConfigManager).deleteTopicConfig(topic, true);
+        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1", brokerConfig.isEnableRetryTopicV2()), true);
         verify(messageStore, times(2)).deleteTopics(anySet());
     }
 
@@ -521,6 +522,9 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = buildDeleteTopicListRequest(topicList);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(topicConfigManager).deleteTopicConfig("TEST_DELETE_TOPIC_BATCH_A", false);
+        verify(topicConfigManager).deleteTopicConfig("TEST_DELETE_TOPIC_BATCH_B", false);
+        verify(topicConfigManager).persist();
     }
 
     @Test
@@ -562,6 +566,22 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, false);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupListBatchPersist() throws Exception {
+        brokerController.getBrokerConfig().setBatchDeleteSubscriptionGroupMaxRate(0);
+        SubscriptionGroupManager subscriptionGroupManager = mock(SubscriptionGroupManager.class);
+        brokerController.setSubscriptionGroupManager(subscriptionGroupManager);
+
+        List<String> groupList = Arrays.asList("GID-BATCH-A", "GID-BATCH-B", "GID-BATCH-A");
+        RemotingCommand request = buildDeleteSubscriptionGroupListRequest(groupList, false);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        verify(subscriptionGroupManager).deleteSubscriptionGroupConfig("GID-BATCH-A", false);
+        verify(subscriptionGroupManager).deleteSubscriptionGroupConfig("GID-BATCH-B", false);
+        verify(subscriptionGroupManager).persist();
     }
 
     @Test
@@ -623,8 +643,9 @@ public class AdminBrokerProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
         // Verify both the original topic and the retry topic were deleted
-        org.mockito.Mockito.verify(topicConfigManager).deleteTopicConfig("myTopic");
-        org.mockito.Mockito.verify(topicConfigManager).deleteTopicConfig(retryTopic);
+        org.mockito.Mockito.verify(topicConfigManager).deleteTopicConfig("myTopic", false);
+        org.mockito.Mockito.verify(topicConfigManager).deleteTopicConfig(retryTopic, false);
+        org.mockito.Mockito.verify(topicConfigManager).persist();
     }
 
     @Test

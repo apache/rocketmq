@@ -862,10 +862,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 if (LiteMetadataUtil.isLiteMessageType(topic, brokerController)) {
                     brokerController.getLiteLifecycleManager().cleanByParentTopic(topic);
                 }
-                deleteTopicInBroker(topic);
+                deleteTopicInBroker(topic, false);
             }
         } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        } finally {
+            try {
+                this.brokerController.getTopicConfigManager().persist();
+            } catch (Throwable t) {
+                LOGGER.error("Failed to persist topic config after batch delete", t);
+                return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+            }
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -886,13 +893,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
     }
 
-    private void deleteTopicInBroker(String topic) {
-        this.brokerController.getTopicConfigManager().deleteTopicConfig(topic);
+    private void deleteTopicInBroker(String topic, boolean persist) {
+        this.brokerController.getTopicConfigManager().deleteTopicConfig(topic, persist);
         this.brokerController.getTopicQueueMappingManager().delete(topic);
         this.brokerController.getConsumerOffsetManager().cleanOffsetByTopic(topic);
         this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNumByTopicName(topic);
         this.brokerController.getMessageStore().deleteTopics(Sets.newHashSet(topic));
         this.brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().removeTimingCount(topic);
+    }
+
+    private void deleteTopicInBroker(String topic) {
+        deleteTopicInBroker(topic, true);
     }
 
     private RemotingCommand getUnknownCmdResponse(ChannelHandlerContext ctx, RemotingCommand request) {
@@ -1778,7 +1789,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
     private void deleteSubscriptionGroupInBroker(String groupName, boolean cleanOffset) {
-        this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(groupName);
+        deleteSubscriptionGroupInBroker(groupName, cleanOffset, true);
+    }
+
+    private void deleteSubscriptionGroupInBroker(String groupName, boolean cleanOffset, boolean persist) {
+        this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(groupName, persist);
         if (cleanOffset) {
             this.brokerController.getConsumerOffsetManager().removeOffset(groupName);
             this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNumByGroupName(groupName);
@@ -1831,10 +1846,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 }
                 boolean shouldCleanOffset = cleanOffset
                     || LiteMetadataUtil.isLiteGroupType(groupName, this.brokerController);
-                deleteSubscriptionGroupInBroker(groupName, shouldCleanOffset);
+                deleteSubscriptionGroupInBroker(groupName, shouldCleanOffset, false);
             }
         } catch (Throwable t) {
             return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        } finally {
+            try {
+                this.brokerController.getSubscriptionGroupManager().persist();
+            } catch (Throwable t) {
+                LOGGER.error("Failed to persist subscription group config after batch delete", t);
+                return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+            }
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

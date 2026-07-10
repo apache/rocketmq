@@ -141,6 +141,24 @@ public class TopicConfigManagerTest {
     }
 
     @Test
+    public void testDeleteTopicConfigWithDeferredPersist() {
+        TopicConfigManager manager = Mockito.spy(topicConfigManager);
+        Mockito.doNothing().when(manager).persist();
+
+        TopicConfig deferredTopic = new TopicConfig();
+        deferredTopic.setTopicName("deferred-topic");
+        manager.getTopicConfigTable().put(deferredTopic.getTopicName(), deferredTopic);
+        manager.deleteTopicConfig(deferredTopic.getTopicName(), false);
+        Mockito.verify(manager, Mockito.never()).persist();
+
+        TopicConfig persistedTopic = new TopicConfig();
+        persistedTopic.setTopicName("persisted-topic");
+        manager.getTopicConfigTable().put(persistedTopic.getTopicName(), persistedTopic);
+        manager.deleteTopicConfig(persistedTopic.getTopicName(), true);
+        Mockito.verify(manager).persist();
+    }
+
+    @Test
     public void testAddWrongValueOnCreating() {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("+" + TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), "wrong-value");

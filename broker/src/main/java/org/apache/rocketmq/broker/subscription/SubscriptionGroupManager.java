@@ -384,16 +384,22 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
-    public void deleteSubscriptionGroupConfig(final String groupName) {
+    public void deleteSubscriptionGroupConfig(final String groupName, boolean persist) {
         SubscriptionGroupConfig old = removeSubscriptionGroupConfig(groupName);
         this.forbiddenTable.remove(groupName);
         if (old != null) {
             log.info("delete subscription group OK, subscription group:{}", old);
             updateDataVersion();
-            this.persist();
+            if (persist) {
+                this.persist();
+            }
         } else {
             log.warn("delete subscription group failed, subscription groupName: {} not exist", groupName);
         }
+    }
+
+    public void deleteSubscriptionGroupConfig(final String groupName) {
+        deleteSubscriptionGroupConfig(groupName, true);
     }
 
     public void deleteSubscriptionGroupConfigList(final List<String> groupNames) {

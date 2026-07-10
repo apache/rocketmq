@@ -615,15 +615,21 @@ public class TopicConfigManager extends ConfigManager {
         }
     }
 
-    public void deleteTopicConfig(final String topic) {
+    public void deleteTopicConfig(final String topic, boolean persist) {
         TopicConfig old = removeTopicConfig(topic);
         if (old != null) {
             log.info("delete topic config OK, topic: {}", old);
             updateDataVersion();
-            this.persist();
+            if (persist) {
+                this.persist();
+            }
         } else {
             log.warn("delete topic config failed, topic: {} not exists", topic);
         }
+    }
+
+    public void deleteTopicConfig(final String topic) {
+        deleteTopicConfig(topic, true);
     }
 
     public void deleteTopicConfigList(final List<String> topics) {
