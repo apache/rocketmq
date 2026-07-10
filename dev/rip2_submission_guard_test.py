@@ -226,9 +226,22 @@ def create_submission_tree(root, apis_root, m2_repository):
     )
     write(
         root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java",
-        "class GrpcProxyAdminApplicationTest {}\n",
+        "class GrpcProxyAdminApplicationTest {\n"
+        + "\n".join(
+            f"  void {test_name}() {{}}"
+            for test_name in rip2_submission_guard.REQUIRED_GENERATED_PUBLIC_ENDPOINT_TESTS
+        )
+        + "\n}\n",
     )
-    write(root / "proxy/src/test/java/org/apache/rocketmq/proxy/ProxyStartupTest.java", "class ProxyStartupTest {}\n")
+    write(
+        root / "proxy/src/test/java/org/apache/rocketmq/proxy/ProxyStartupTest.java",
+        "class ProxyStartupTest {\n"
+        + "\n".join(
+            f"  void {test_name}() {{}}"
+            for test_name in rip2_submission_guard.REQUIRED_ADMIN_SERVER_ISOLATION_TESTS
+        )
+        + "\n}\n",
+    )
     write(root / "docs/en/rip2-proxy-admin-m1-public-api-draft.proto", PROTO)
     write(apis_root / "apache/rocketmq/v2/admin.proto", PROTO)
     write(apis_root / "java/VERSION", "2.2.0\n")
@@ -1150,6 +1163,53 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("public review artifact link" in error for error in errors))
+
+    def test_guard_reports_missing_generated_public_endpoint_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(
+                root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java",
+                "class GrpcProxyAdminApplicationTest {}\n",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any("GrpcProxyAdminApplicationTest" in error and "generated public endpoint" in error
+                    for error in errors)
+            )
+
+    def test_guard_reports_missing_admin_server_isolation_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(root / "proxy/src/test/java/org/apache/rocketmq/proxy/ProxyStartupTest.java",
+                "class ProxyStartupTest {}\n")
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any("ProxyStartupTest" in error and "admin server isolation" in error for error in errors)
+            )
 
 
 if __name__ == "__main__":

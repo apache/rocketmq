@@ -168,6 +168,30 @@ REQUIRED_JAR_ENTRIES = (
     "apache/rocketmq/v2/ProxyClient.class",
 )
 
+REQUIRED_GENERATED_PUBLIC_ENDPOINT_TESTS = (
+    "bindServiceExposesGeneratedProxyAdminUnaryMethods",
+    "listAndDescribeClientsThroughGeneratedGrpcService",
+    "publicServiceAcceptsExplicitLocalProxyScopeForEveryRpc",
+    "publicServiceRejectsNonLocalM1ScopeForEveryRpc",
+    "publicServiceRejectsProxyIdM1ScopeForEveryRpc",
+    "publicServiceMapsInvalidContestParametersToBadRequest",
+    "publicServiceMapsMissingAuthSubjectToUnauthorizedThroughGeneratedGrpcService",
+    "listClientsHonorsContestFiltersAndPaginationThroughGeneratedGrpcService",
+    "listClientsByGroupAndTopicHonorContestFiltersAndPaginationThroughGeneratedGrpcService",
+    "describeClientRejectsMissingClientIdThroughGeneratedGrpcService",
+    "describeMissingClientReturnsNotFoundStatus",
+    "listClientsReturnsDashboardTableFieldsThroughGeneratedGrpcService",
+    "describeClientReturnsDashboardClientViewFieldsThroughGeneratedGrpcService",
+)
+
+REQUIRED_ADMIN_SERVER_ISOLATION_TESTS = (
+    "testProxyAdminGrpcConfigDefaultsToDisabledIndependentPort",
+    "testCreateGrpcBindableServicesDoesNotRegisterAdminPeerService",
+    "testCreateProxyAdminGrpcBindableServicesRegistersPublicProxyAdminServiceByDefault",
+    "testCreateProxyAdminGrpcBindableServicesRegistersAdminBeforePeerService",
+    "testCreateProxyAdminServerExecutorUsesIndependentThreadNameAndConfig",
+)
+
 GITHUB_ARTIFACTS = (
     (
         "RocketMQ PR #10603",
@@ -557,6 +581,27 @@ def check_source_wiring(root, errors):
             errors.append(f"ProxyConfig missing {token}")
 
 
+def check_required_test_coverage(root, errors):
+    app_test_text = read_text(
+        root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java",
+        errors,
+    )
+    for test_name in REQUIRED_GENERATED_PUBLIC_ENDPOINT_TESTS:
+        if test_name not in app_test_text:
+            errors.append(
+                "GrpcProxyAdminApplicationTest missing generated public endpoint coverage: "
+                f"{test_name}"
+            )
+
+    startup_test_text = read_text(root / "proxy/src/test/java/org/apache/rocketmq/proxy/ProxyStartupTest.java", errors)
+    for test_name in REQUIRED_ADMIN_SERVER_ISOLATION_TESTS:
+        if test_name not in startup_test_text:
+            errors.append(
+                "ProxyStartupTest missing admin server isolation coverage: "
+                f"{test_name}"
+            )
+
+
 def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
     code, head, stderr = command_runner(["git", "rev-parse", "HEAD"], cwd=root)
     if code != 0:
@@ -717,6 +762,7 @@ def run_checks(
     check_required_markdown_fences(root, errors)
     check_plan_checkboxes(root, errors)
     check_source_wiring(root, errors)
+    check_required_test_coverage(root, errors)
     if check_github:
         check_github_artifacts(root, apis_root, errors, command_runner=command_runner)
     return errors
