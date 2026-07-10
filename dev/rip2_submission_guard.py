@@ -72,6 +72,18 @@ PUBLIC_REVIEW_ARTIFACT_LINKS = (
     RIP2_ISSUE_COMMENT_URL,
 )
 
+REQUIRED_EXTERNAL_GATE_TOKENS = (
+    "official artifact",
+    "Dashboard CLIENT-01",
+    "external",
+)
+
+GITHUB_EXTERNAL_GATE_TOKENS = (
+    "official artifact",
+    "Dashboard CLIENT-01",
+    "org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT",
+)
+
 STALE_IMPLEMENTATION_CHECKPOINTS = (
     "573c716e136845dbd42669d78fd725a18d845435",
 )
@@ -525,6 +537,7 @@ def check_submission_evidence(root, errors):
         "Dashboard CLIENT-01",
         "external",
         INTERNAL_ERROR_PUBLIC_ENDPOINT_TEST,
+        *REQUIRED_EXTERNAL_GATE_TOKENS,
     )
     for token in required_tokens:
         if token not in combined_docs:
@@ -679,6 +692,9 @@ def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
         for checkpoint in STALE_IMPLEMENTATION_CHECKPOINTS:
             if checkpoint in body:
                 errors.append(f"{label} contains stale implementation checkpoint {checkpoint}")
+        for token in GITHUB_EXTERNAL_GATE_TOKENS:
+            if token not in body:
+                errors.append(f"{label} missing external gate evidence {token}")
         if head not in body:
             errors.append(f"{label} does not reference current HEAD {head}")
         if apis_head not in body:
