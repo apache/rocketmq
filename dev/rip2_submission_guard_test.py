@@ -142,6 +142,39 @@ def create_snapshot_jar(m2_repository):
             jar_file.writestr(entry, b"")
 
 
+def create_snapshot_metadata(m2_repository):
+    artifact_dir = (
+        m2_repository
+        / "org/apache/rocketmq/rocketmq-proto/2.2.0-rip2-SNAPSHOT"
+    )
+    write(
+        artifact_dir / "rocketmq-proto-2.2.0-rip2-SNAPSHOT.pom",
+        """<project>
+  <groupId>org.apache.rocketmq</groupId>
+  <artifactId>rocketmq-proto</artifactId>
+  <version>2.2.0-rip2-SNAPSHOT</version>
+</project>
+""",
+    )
+    write(
+        artifact_dir / "maven-metadata-local.xml",
+        """<metadata>
+  <groupId>org.apache.rocketmq</groupId>
+  <artifactId>rocketmq-proto</artifactId>
+  <version>2.2.0-rip2-SNAPSHOT</version>
+  <localCopy>true</localCopy>
+  <extension>jar</extension>
+  <extension>pom</extension>
+</metadata>
+""",
+    )
+    write(
+        artifact_dir / "_remote.repositories",
+        "rocketmq-proto-2.2.0-rip2-SNAPSHOT.jar>=\n"
+        "rocketmq-proto-2.2.0-rip2-SNAPSHOT.pom>=\n",
+    )
+
+
 def create_snapshot_jar_without(m2_repository, missing_entry):
     jar_path = (
         m2_repository
@@ -220,6 +253,7 @@ https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687
         "- [x] completed step\n",
     )
     create_snapshot_jar(m2_repository)
+    create_snapshot_metadata(m2_repository)
 
 
 def fake_github_runner(
@@ -522,6 +556,29 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
                 any("DescribeClientResponse.class" in error for error in errors),
                 "guard should require generated public RPC response classes",
             )
+
+    def test_guard_reports_generated_artifact_missing_local_maven_pom(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            (
+                m2_repository
+                / "org/apache/rocketmq/rocketmq-proto/2.2.0-rip2-SNAPSHOT"
+                / "rocketmq-proto-2.2.0-rip2-SNAPSHOT.pom"
+            ).unlink()
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("generated rocketmq-proto artifact missing pom" in error for error in errors))
 
     def test_guard_reports_stale_package_smoke_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:

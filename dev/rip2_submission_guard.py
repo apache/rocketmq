@@ -384,15 +384,50 @@ def check_proto(root, apis_root, errors):
 
 
 def check_generated_artifact(m2_repository, errors):
-    jar_path = (
+    artifact_dir = (
         m2_repository
         / "org/apache/rocketmq/rocketmq-proto"
         / PROTO_VERSION
-        / f"rocketmq-proto-{PROTO_VERSION}.jar"
     )
+    jar_path = artifact_dir / f"rocketmq-proto-{PROTO_VERSION}.jar"
     if not jar_path.is_file():
         errors.append(f"missing local generated rocketmq-proto artifact: {jar_path}")
         return
+    pom_path = artifact_dir / f"rocketmq-proto-{PROTO_VERSION}.pom"
+    metadata_path = artifact_dir / "maven-metadata-local.xml"
+    repositories_path = artifact_dir / "_remote.repositories"
+    check_generated_artifact_text_file(
+        pom_path,
+        "pom",
+        (
+            "<groupId>org.apache.rocketmq</groupId>",
+            "<artifactId>rocketmq-proto</artifactId>",
+            f"<version>{PROTO_VERSION}</version>",
+        ),
+        errors,
+    )
+    check_generated_artifact_text_file(
+        metadata_path,
+        "maven metadata",
+        (
+            "<groupId>org.apache.rocketmq</groupId>",
+            "<artifactId>rocketmq-proto</artifactId>",
+            f"<version>{PROTO_VERSION}</version>",
+            "<localCopy>true</localCopy>",
+            "<extension>jar</extension>",
+            "<extension>pom</extension>",
+        ),
+        errors,
+    )
+    check_generated_artifact_text_file(
+        repositories_path,
+        "repository marker",
+        (
+            f"rocketmq-proto-{PROTO_VERSION}.jar>=",
+            f"rocketmq-proto-{PROTO_VERSION}.pom>=",
+        ),
+        errors,
+    )
     try:
         with zipfile.ZipFile(jar_path) as jar_file:
             entries = set(jar_file.namelist())
@@ -402,6 +437,16 @@ def check_generated_artifact(m2_repository, errors):
     for entry in REQUIRED_JAR_ENTRIES:
         if entry not in entries:
             errors.append(f"generated rocketmq-proto artifact missing {entry}")
+
+
+def check_generated_artifact_text_file(path, label, required_tokens, errors):
+    if not path.is_file():
+        errors.append(f"generated rocketmq-proto artifact missing {label}: {path}")
+        return
+    text = read_text(path, errors)
+    for token in required_tokens:
+        if token not in text:
+            errors.append(f"generated rocketmq-proto artifact {label} missing {token}")
 
 
 def check_submission_evidence(root, errors):

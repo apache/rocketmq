@@ -1753,6 +1753,11 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   and package smoke were rerun with Temurin JDK 17.0.18 after the reviewer
   guard hardening checkpoints, and the submission evidence timestamps were
   refreshed accordingly.
+- [x] Local `rocketmq-proto` snapshot metadata guard added:
+  `dev/rip2_submission_guard.py` now verifies the installed
+  `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` artifact includes
+  the expected jar, pom, local Maven metadata, and repository marker files, in
+  addition to generated public RPC classes.
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
   `BUILD SUCCESS`, finished at `2026-07-10T07:54:35+08:00`.
