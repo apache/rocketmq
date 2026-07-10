@@ -157,9 +157,8 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     }
 
     /**
-     * Check whether a new Pop request on this queue must be blocked due to an
-     * in-flight ordered-consumption lock.
-     * called before message pop
+     * Check whether a new Pop request on this queue must be blocked
+     * due to an in-flight ordered-consumption lock.
      *
      * <p>Looks up the {@link OrderInfo} for the given topic-group-queue triple.
      * Delegates to {@link OrderInfo#needBlock} which returns {@code true} if
@@ -215,8 +214,7 @@ public class QueueLevelConsumerManager extends ConfigManager implements Consumer
     }
 
     /**
-     * mark message is consumed finished. return the consumer offset
-     * called after message ack
+     * mark message is consumed finished. return next consumer offset
      *
      * @param topic topic
      * @param group group
