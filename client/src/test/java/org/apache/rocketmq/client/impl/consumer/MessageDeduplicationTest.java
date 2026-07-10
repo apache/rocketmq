@@ -22,12 +22,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -70,24 +72,137 @@ public class MessageDeduplicationTest {
 
     @Test
     public void testMessageKeyExtraction() {
+        String topic = "TestTopic";
+
         // Create a message with keys property
         MessageExt msgWithKeys = new MessageExt();
+        msgWithKeys.setTopic(topic);
         msgWithKeys.setMsgId("msg-id-1");
         msgWithKeys.setKeys("business-key-1");
 
         String dedupKey = MessageDeduplicator.getDeduplicationKey(msgWithKeys);
-        assertEquals("Should prefer user-defined keys", "business-key-1", dedupKey);
+        assertEquals("Should prefer user-defined keys, scoped by topic",
+            topic + "#" + "business-key-1", dedupKey);
 
         // Create a message without keys property
         MessageExt msgWithoutKeys = new MessageExt();
+        msgWithoutKeys.setTopic(topic);
         msgWithoutKeys.setMsgId("msg-id-2");
 
         String dedupKey2 = MessageDeduplicator.getDeduplicationKey(msgWithoutKeys);
-        assertEquals("Should fallback to msgId", "msg-id-2", dedupKey2);
+        assertEquals("Should fallback to msgId, scoped by topic",
+            topic + "#" + "msg-id-2", dedupKey2);
 
         // Null message
         String nullKey = MessageDeduplicator.getDeduplicationKey(null);
         assertNull("Should return null for null message", nullKey);
+    }
+
+    /**
+     * The deduplication key must be scoped by topic so the same business key on different topics
+     * is not mistaken for a duplicate.
+     */
+    @Test
+    public void testDeduplicationKeyScopedByTopic() {
+        String topic1 = "TopicA";
+        String topic2 = "TopicB";
+        String businessKey = "order-123";
+
+        MessageExt msg1 = new MessageExt();
+        msg1.setTopic(topic1);
+        msg1.setKeys(businessKey);
+
+        MessageExt msg2 = new MessageExt();
+        msg2.setTopic(topic2);
+        msg2.setKeys(businessKey);
+
+        String key1 = MessageDeduplicator.getDeduplicationKey(msg1);
+        String key2 = MessageDeduplicator.getDeduplicationKey(msg2);
+
+        assertEquals("Key on topicA should be scoped with topicA",
+            topic1 + "#" + businessKey, key1);
+        assertEquals("Key on topicB should be scoped with topicB",
+            topic2 + "#" + businessKey, key2);
+        assertFalse("Same business key on different topics must not collide", key1.equals(key2));
+
+        // No topic: raw key returned unchanged (defensive fallback)
+        MessageExt msgNoTopic = new MessageExt();
+        msgNoTopic.setKeys("raw-key");
+        assertEquals("Without a topic the raw key should be returned", "raw-key",
+            MessageDeduplicator.getDeduplicationKey(msgNoTopic));
+    }
+
+    /**
+     * Two identical messages in the same batch must not both reach the listener. The global cache
+     * is only populated after successful consumption, so intra-batch dedup relies on the
+     * batch-local "seen" set.
+     */
+    @Test
+    public void testBatchInternalDuplicateFiltered() {
+        String topic = "TestTopic";
+        MessageExt a1 = createMessage(topic, "msg-A", "key-A");
+        MessageExt a2 = createMessage(topic, "msg-A", "key-A");
+
+        List<MessageExt> msgs = new ArrayList<>(Arrays.asList(a1, a2));
+
+        // Cache is empty; dedup must still collapse the intra-batch duplicate.
+        List<MessageExt> filtered = ConsumeMessageConcurrentlyService.filterDuplicateMessages(
+            msgs, deduplicator, "test-group");
+
+        assertEquals("Intra-batch duplicate should be collapsed to one message",
+            1, filtered.size());
+        assertSame("The first occurrence should be kept", a1, filtered.get(0));
+    }
+
+    /**
+     * Combines global-cache dedup with intra-batch dedup: a key already in the cache and a pair of
+     * identical new messages should all be collapsed correctly.
+     */
+    @Test
+    public void testBatchDuplicateMixedWithGlobal() {
+        String topic = "TestTopic";
+        String cachedKey = topic + "#cached"; // matches getDeduplicationKey scope
+        deduplicator.markProcessed(cachedKey);
+
+        MessageExt cached = createMessage(topic, "msg-cached", "cached");
+        MessageExt a1 = createMessage(topic, "msg-A", "key-A");
+        MessageExt a2 = createMessage(topic, "msg-A", "key-A");
+        MessageExt b = createMessage(topic, "msg-B", "key-B");
+
+        List<MessageExt> msgs = new ArrayList<>(Arrays.asList(cached, a1, a2, b));
+
+        List<MessageExt> filtered = ConsumeMessageConcurrentlyService.filterDuplicateMessages(
+            msgs, deduplicator, "test-group");
+
+        // cached -> dropped (global), a1 kept, a2 -> dropped (intra-batch), b kept
+        assertEquals("Only A and B should remain", 2, filtered.size());
+        assertSame(a1, filtered.get(0));
+        assertSame(b, filtered.get(1));
+    }
+
+    /**
+     * When deduplication is disabled (no deduplicator), the original list must be returned
+     * unchanged so the listener still receives every message.
+     */
+    @Test
+    public void testNoDeduplicatorReturnsOriginal() {
+        String topic = "TestTopic";
+        MessageExt a = createMessage(topic, "msg-A", "key-A");
+        MessageExt b = createMessage(topic, "msg-B", "key-B");
+        List<MessageExt> msgs = new ArrayList<>(Arrays.asList(a, b));
+
+        List<MessageExt> filtered = ConsumeMessageConcurrentlyService.filterDuplicateMessages(
+            msgs, null, "test-group");
+
+        assertSame("Should return the original list when dedup is disabled", msgs, filtered);
+    }
+
+    private MessageExt createMessage(String topic, String msgId, String keys) {
+        MessageExt msg = new MessageExt();
+        msg.setTopic(topic);
+        msg.setMsgId(msgId);
+        msg.setKeys(keys);
+        return msg;
     }
 
     @Test

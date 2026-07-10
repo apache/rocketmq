@@ -19,9 +19,11 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -171,22 +173,50 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
      * Filter duplicate messages from the list.
      * Creates a new list with non-duplicate messages for consumption.
      *
+     * <p>A message is treated as a duplicate when its deduplication key is either:
+     * <ul>
+     *     <li>already present in the global processed cache (cross-batch dedup), or</li>
+     *     <li>already seen earlier in this same batch (intra-batch dedup).</li>
+     * </ul>
+     * The global cache is only populated after successful consumption, so without the batch-local
+     * check two identical messages in one batch would both reach the listener.
+     *
      * @param msgs Original message list (will not be modified)
      * @return New list containing only non-duplicate messages
      */
     private List<MessageExt> filterDuplicateMessages(List<MessageExt> msgs) {
-        MessageDeduplicator deduplicator = this.defaultMQPushConsumerImpl.getMessageDeduplicator();
+        return filterDuplicateMessages(msgs,
+            this.defaultMQPushConsumerImpl.getMessageDeduplicator(), this.consumerGroup);
+    }
+
+    /**
+     * Filter duplicate messages from the list, deduplicating both against the global cache and
+     * within the batch itself. Exposed as package-private for unit testing.
+     *
+     * @param msgs          Original message list (will not be modified)
+     * @param deduplicator  The deduplicator holding already-processed keys, or null to disable
+     * @param consumerGroup Consumer group, for logging only
+     * @return New list containing only non-duplicate messages, or the original list when
+     *         deduplication is disabled
+     */
+    static List<MessageExt> filterDuplicateMessages(List<MessageExt> msgs,
+        MessageDeduplicator deduplicator, String consumerGroup) {
         if (deduplicator == null || msgs == null || msgs.isEmpty()) {
             return msgs;
         }
 
         List<MessageExt> filteredMsgs = new ArrayList<>(msgs.size());
+        Set<String> seenInBatch = new HashSet<>(msgs.size() * 2);
         int duplicateCount = 0;
 
         for (MessageExt msg : msgs) {
             String deduplicationKey = MessageDeduplicator.getDeduplicationKey(msg);
 
-            if (deduplicationKey != null && deduplicator.isDuplicate(deduplicationKey)) {
+            // A null/empty key means we cannot deduplicate this message; keep it.
+            boolean duplicate = deduplicationKey != null && !deduplicationKey.isEmpty()
+                && (deduplicator.isDuplicate(deduplicationKey) || !seenInBatch.add(deduplicationKey));
+
+            if (duplicate) {
                 // Duplicate message detected
                 duplicateCount++;
                 log.warn("Duplicate message detected. msgId={}, keys={}, topic={}, queueId={}, queueOffset={}",
@@ -199,7 +229,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         if (duplicateCount > 0) {
             log.info("Found {} duplicate messages in batch of {} messages for consumer group {}. Filtered list size: {}",
-                duplicateCount, msgs.size(), this.consumerGroup, filteredMsgs.size());
+                duplicateCount, msgs.size(), consumerGroup, filteredMsgs.size());
         }
 
         return filteredMsgs;

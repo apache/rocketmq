@@ -34,6 +34,13 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 public class MessageDeduplicator {
     private static final Logger log = LoggerFactory.getLogger(MessageDeduplicator.class);
 
+    /**
+     * Separator between the topic and the message key when building a scoped deduplication key.
+     * Topic/group names only allow {@code ^[%|a-zA-Z0-9_-]+$} (see TopicValidator), so '#' can
+     * never appear in a topic name and the topic prefix is unambiguous.
+     */
+    private static final String TOPIC_KEY_SEPARATOR = "#";
+
     private final ConcurrentHashMap<String, Long> processedMessages;
     private final int maxCacheSize;
     private final long expireTimeMs;
@@ -168,8 +175,12 @@ public class MessageDeduplicator {
      * Get deduplication key from message.
      * Priority: Message.getKeys() > MessageExt.getMsgId()
      *
+     * <p>The key is scoped by topic (e.g. {@code "topic#key"}) so that the same business key on
+     * different topics is not mistaken for a duplicate. Group-level isolation is provided
+     * structurally by the per-consumer-instance deduplicator, so the group is not encoded here.
+     *
      * @param message The message
-     * @return Deduplication key (user-defined keys or msgId)
+     * @return Deduplication key (topic-scoped user-defined keys or msgId), or null if none
      */
     public static String getDeduplicationKey(MessageExt message) {
         if (message == null) {
@@ -179,16 +190,31 @@ public class MessageDeduplicator {
         // Prefer user-defined keys for business-level deduplication
         String keys = message.getKeys();
         if (keys != null && !keys.isEmpty()) {
-            return keys;
+            return scopeByTopic(message.getTopic(), keys);
         }
 
         // Fall back to msgId if no user keys defined
         String msgId = message.getMsgId();
         if (msgId != null && !msgId.isEmpty()) {
-            return msgId;
+            return scopeByTopic(message.getTopic(), msgId);
         }
 
         return null;
+    }
+
+    /**
+     * Prepend the topic to the raw key so equal keys on different topics do not collide.
+     * Returns the raw key unchanged when the topic is absent (defensive fallback).
+     *
+     * @param topic  The message topic, may be null/empty
+     * @param rawKey The unscoped deduplication key
+     * @return The topic-scoped deduplication key
+     */
+    private static String scopeByTopic(String topic, String rawKey) {
+        if (topic != null && !topic.isEmpty()) {
+            return topic + TOPIC_KEY_SEPARATOR + rawKey;
+        }
+        return rawKey;
     }
 
     /**
