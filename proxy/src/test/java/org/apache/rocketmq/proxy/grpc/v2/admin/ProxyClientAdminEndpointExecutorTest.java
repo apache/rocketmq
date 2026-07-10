@@ -23,6 +23,8 @@ import apache.rocketmq.v2.Status;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
@@ -35,6 +37,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsContext;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsRecorder;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 import org.junit.Before;
 import org.junit.Test;
@@ -177,6 +183,37 @@ public class ProxyClientAdminEndpointExecutorTest {
         assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.TOO_MANY_REQUESTS);
         assertThat(responseCaptor.getValue().getBody()).isNull();
         verify(contextFactory, never()).create(any(), any());
+    }
+
+    @Test
+    public void recordsRejectedQueryExecutorMetricsBeforeServiceInvocation() {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(
+                contextFactory,
+                new ProxyClientAdminEndpointHandler(),
+                queryExecutor,
+                metricsRecorder
+            );
+        queryExecutor.shutdown();
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+            responseObserver,
+            TestAdminResponse::new
+        );
+
+        assertThat(metricsRecorder.contexts).hasSize(1);
+        ClientAdminMetricsContext context = metricsRecorder.contexts.get(0);
+        assertThat(context.getOperation()).isEqualTo(ClientAdminOperation.LIST_CLIENTS);
+        assertThat(context.getResult()).isEqualTo(ClientAdminMetricsResult.TOO_MANY_REQUESTS);
+        assertThat(context.getStatus()).isEqualTo("too_many_requests");
+        assertThat(context.getResultSize()).isZero();
     }
 
     @Test
@@ -416,6 +453,56 @@ public class ProxyClientAdminEndpointExecutorTest {
         assertThat(responseCaptor.getValue().getBody()).isNull();
         verify(contextFactory, never()).create(any(), any());
         verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
+    public void recordsRequestAdapterFailureMetricsBeforeServiceInvocation() {
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(
+                contextFactory,
+                new ProxyClientAdminEndpointHandler(),
+                metricsRecorder
+            );
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> {
+                throw new IllegalArgumentException("page token is invalid");
+            },
+            responseObserver,
+            TestAdminResponse::new
+        );
+
+        assertThat(metricsRecorder.contexts).hasSize(1);
+        ClientAdminMetricsContext context = metricsRecorder.contexts.get(0);
+        assertThat(context.getOperation()).isEqualTo(ClientAdminOperation.LIST_CLIENTS);
+        assertThat(context.getResult()).isEqualTo(ClientAdminMetricsResult.BAD_REQUEST);
+        assertThat(context.getStatus()).isEqualTo("bad_request");
+        assertThat(context.getFilters()).isEqualTo(ClientAdminMetricsContext.FILTER_NONE);
+        assertThat(context.getResultSize()).isZero();
+    }
+
+    @Test
+    public void successfulEndpointDelegationDoesNotRecordDuplicateFailureMetrics() {
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, metricsRecorder);
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            TestAdminResponse::new
+        );
+
+        verify(endpointHandler).listClients(same(ctx), same(internalRequest), same(responseObserver), any());
+        assertThat(metricsRecorder.contexts).isEmpty();
     }
 
     @Test
@@ -1063,6 +1150,26 @@ public class ProxyClientAdminEndpointExecutorTest {
 
         private Object getBody() {
             return body;
+        }
+    }
+
+    private static class RecordingMetricsRecorder implements ClientAdminMetricsRecorder {
+        private final List<ClientAdminMetricsContext> contexts = new ArrayList<>();
+
+        @Override
+        public void record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis,
+            ProxyClientScope scope) {
+            this.contexts.add(ClientAdminMetricsContext.newBuilder()
+                .setOperation(operation)
+                .setResult(result)
+                .setLatencyMillis(latencyMillis)
+                .setScope(scope)
+                .build());
+        }
+
+        @Override
+        public void record(ClientAdminMetricsContext context) {
+            this.contexts.add(context);
         }
     }
 

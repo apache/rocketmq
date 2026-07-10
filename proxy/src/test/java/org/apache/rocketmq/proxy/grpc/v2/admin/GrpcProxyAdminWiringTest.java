@@ -27,6 +27,7 @@ import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsRecorder;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.junit.Before;
 import org.junit.Test;
@@ -115,6 +116,22 @@ public class GrpcProxyAdminWiringTest extends InitConfigTest {
         endpointHandlerField.setAccessible(true);
         assertThat(endpointExecutor).isNotNull();
         assertThat(endpointHandlerField.get(endpointExecutor)).isSameAs(activity.getProxyClientAdminEndpointHandler());
+    }
+
+    @Test
+    public void createDefaultActivityWiresEndpointFailureMetricsRecorder() throws Exception {
+        DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
+
+        try {
+            ProxyClientAdminEndpointExecutor endpointExecutor = activity.getProxyClientAdminEndpointExecutor();
+
+            Field metricsRecorderField = ProxyClientAdminEndpointExecutor.class
+                .getDeclaredField("endpointFailureMetricsRecorder");
+            metricsRecorderField.setAccessible(true);
+            assertThat(metricsRecorderField.get(endpointExecutor)).isInstanceOf(ClientAdminMetricsRecorder.class);
+        } finally {
+            activity.shutdown();
+        }
     }
 
     @Test

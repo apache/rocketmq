@@ -33,24 +33,46 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.Validators;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.GrpcConstants;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
+import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsContext;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsRecorder;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
 
 public class ProxyClientAdminEndpointExecutor {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+
     private final ProxyClientAdminContextFactory contextFactory;
     private final ProxyClientAdminEndpointHandler endpointHandler;
     private final ExecutorService queryExecutor;
+    private final ClientAdminMetricsRecorder endpointFailureMetricsRecorder;
 
     public ProxyClientAdminEndpointExecutor(ProxyClientAdminContextFactory contextFactory,
         ProxyClientAdminEndpointHandler endpointHandler) {
-        this(contextFactory, endpointHandler, new DirectExecutorService());
+        this(contextFactory, endpointHandler, new DirectExecutorService(), null);
+    }
+
+    public ProxyClientAdminEndpointExecutor(ProxyClientAdminContextFactory contextFactory,
+        ProxyClientAdminEndpointHandler endpointHandler, ClientAdminMetricsRecorder endpointFailureMetricsRecorder) {
+        this(contextFactory, endpointHandler, new DirectExecutorService(), endpointFailureMetricsRecorder);
     }
 
     public ProxyClientAdminEndpointExecutor(ProxyClientAdminContextFactory contextFactory,
         ProxyClientAdminEndpointHandler endpointHandler, ExecutorService queryExecutor) {
+        this(contextFactory, endpointHandler, queryExecutor, null);
+    }
+
+    public ProxyClientAdminEndpointExecutor(ProxyClientAdminContextFactory contextFactory,
+        ProxyClientAdminEndpointHandler endpointHandler, ExecutorService queryExecutor,
+        ClientAdminMetricsRecorder endpointFailureMetricsRecorder) {
         if (contextFactory == null) {
             throw new IllegalArgumentException("contextFactory is required");
         }
@@ -63,6 +85,7 @@ public class ProxyClientAdminEndpointExecutor {
         this.contextFactory = contextFactory;
         this.endpointHandler = endpointHandler;
         this.queryExecutor = queryExecutor;
+        this.endpointFailureMetricsRecorder = endpointFailureMetricsRecorder;
     }
 
     public void shutdown() {
@@ -92,6 +115,7 @@ public class ProxyClientAdminEndpointExecutor {
             requestAdapter,
             responseObserver,
             responseFactory,
+            ClientAdminOperation.LIST_CLIENTS,
             this.endpointHandler::listClients
         );
     }
@@ -119,6 +143,7 @@ public class ProxyClientAdminEndpointExecutor {
             requestAdapter,
             responseObserver,
             responseFactory,
+            ClientAdminOperation.DESCRIBE_CLIENT,
             this.endpointHandler::describeClient
         );
     }
@@ -146,6 +171,7 @@ public class ProxyClientAdminEndpointExecutor {
             requestAdapter,
             responseObserver,
             responseFactory,
+            ClientAdminOperation.LIST_CLIENTS_BY_GROUP,
             this.endpointHandler::listClientsByGroup
         );
     }
@@ -173,6 +199,7 @@ public class ProxyClientAdminEndpointExecutor {
             requestAdapter,
             responseObserver,
             responseFactory,
+            ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
             this.endpointHandler::listClientsByTopic
         );
     }
@@ -189,8 +216,10 @@ public class ProxyClientAdminEndpointExecutor {
         Function<P, D> requestAdapter,
         StreamObserver<R> responseObserver,
         BiFunction<Status, T, R> responseFactory,
+        ClientAdminOperation operation,
         EndpointCall<D, T, R> endpointCall) {
         StreamObserver<R> requiredResponseObserver = this.requireResponseObserver(responseObserver);
+        long startNanos = System.nanoTime();
         try {
             this.queryExecutor.execute(() -> this.executeOnQueryExecutor(
                 headers,
@@ -198,10 +227,14 @@ public class ProxyClientAdminEndpointExecutor {
                 requestAdapter,
                 requiredResponseObserver,
                 responseFactory,
+                operation,
+                startNanos,
                 endpointCall
             ));
         } catch (Throwable t) {
-            this.writeFailure(requiredResponseObserver, responseFactory, this.toQueryExecutorFailure(t));
+            Throwable failure = this.toQueryExecutorFailure(t);
+            this.recordEndpointFailure(operation, startNanos, failure);
+            this.writeFailure(requiredResponseObserver, responseFactory, failure);
         }
     }
 
@@ -220,22 +253,57 @@ public class ProxyClientAdminEndpointExecutor {
         Function<P, D> requestAdapter,
         StreamObserver<R> responseObserver,
         BiFunction<Status, T, R> responseFactory,
+        ClientAdminOperation operation,
+        long startNanos,
         EndpointCall<D, T, R> endpointCall) {
         BiFunction<Status, T, R> requiredResponseFactory = null;
+        D request;
+        ProxyContext ctx;
         try {
             requiredResponseFactory = this.requireResponseFactory(responseFactory);
             Function<P, D> requiredRequestAdapter = this.requireRequestAdapter(requestAdapter);
             P requiredProtoRequest = this.requireProtoRequest(protoRequest);
-            D request = this.requirePublicEndpointRequest(
+            request = this.requirePublicEndpointRequest(
                 this.requireAdaptedRequest(requiredRequestAdapter.apply(requiredProtoRequest))
             );
-            ProxyContext ctx = this.requireProxyContext(
+            ctx = this.requireProxyContext(
                 this.contextFactory.create(this.normalizeMetadata(headers), requiredProtoRequest)
             );
+        } catch (Throwable t) {
+            this.recordEndpointFailure(operation, startNanos, t);
+            this.writeFailure(responseObserver, requiredResponseFactory, t);
+            return;
+        }
+        try {
             endpointCall.execute(ctx, request, responseObserver, requiredResponseFactory);
         } catch (Throwable t) {
             this.writeFailure(responseObserver, requiredResponseFactory, t);
         }
+    }
+
+    private void recordEndpointFailure(ClientAdminOperation operation, long startNanos, Throwable failure) {
+        if (this.endpointFailureMetricsRecorder == null) {
+            return;
+        }
+        ClientAdminMetricsResult result = null;
+        try {
+            Status status = ResponseBuilder.getInstance().buildStatus(failure);
+            result = ProxyClientAdminObservability.toMetricsResult(status.getCode());
+            this.endpointFailureMetricsRecorder.record(ClientAdminMetricsContext.newBuilder()
+                .setOperation(operation)
+                .setResult(result)
+                .setLatencyMillis(this.elapsedMillis(startNanos))
+                .setResultSize(0)
+                .build());
+        } catch (Throwable t) {
+            log.warn("record proxy client admin endpoint failure metrics failed. operation:{}, result:{}",
+                operation, result, t);
+        }
+    }
+
+    private long elapsedMillis(long startNanos) {
+        long elapsedNanos = System.nanoTime() - startNanos;
+        return Math.max(0L, TimeUnit.NANOSECONDS.toMillis(elapsedNanos));
     }
 
     private <T, R> void writeFailure(StreamObserver<R> responseObserver,

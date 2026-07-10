@@ -142,7 +142,7 @@ final class ProxyClientAdminObservability {
         return status.getCode().name().toLowerCase(Locale.ROOT);
     }
 
-    private static ClientAdminMetricsResult toMetricsResult(Code code) {
+    static ClientAdminMetricsResult toMetricsResult(Code code) {
         if (code == Code.OK) {
             return ClientAdminMetricsResult.OK;
         }

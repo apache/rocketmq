@@ -207,7 +207,8 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.proxyClientAdminEndpointExecutor = new ProxyClientAdminEndpointExecutor(
             this.proxyClientAdminContextFactory,
             this.proxyClientAdminEndpointHandler,
-            this.proxyClientAdminQueryExecutor
+            this.proxyClientAdminQueryExecutor,
+            ProxyMetricsManager.proxyClientAdminMetricsRecorder()
         );
         this.appendShutdown(this.proxyClientAdminEndpointExecutor::shutdown);
         ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(this.proxyClientReadService::snapshotStats);
