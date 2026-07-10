@@ -1771,6 +1771,11 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   endpoint tests still cover the service descriptor, success paths, contest
   filters, pagination, non-local M1 scope gate, authorization failure, not
   found semantics, Dashboard-facing fields, and startup/admin-server isolation.
+- [x] Generated public endpoint internal-error coverage added:
+  `GrpcProxyAdminApplicationTest#publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService`
+  verifies that an unexpected endpoint-layer failure is returned as a public
+  response `INTERNAL_SERVER_ERROR` status instead of escaping as a transport
+  error; the submission guard now requires this coverage.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

@@ -1342,6 +1342,49 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
+    public void publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService()
+        throws Exception {
+        ProxyClientAdminEndpointExecutor endpointExecutor = new ProxyClientAdminEndpointExecutor(
+            new ProxyClientAdminContextFactory((context, headers, request) -> {
+            }),
+            new ProxyClientAdminEndpointHandler()
+        );
+        Server server = null;
+        ManagedChannel channel = null;
+        try {
+            server = ServerBuilder.forPort(0)
+                .directExecutor()
+                .addService(new GrpcProxyAdminApplication(endpointExecutor))
+                .build()
+                .start();
+            channel = ManagedChannelBuilder.forAddress("127.0.0.1", server.getPort())
+                .usePlaintext()
+                .directExecutor()
+                .build();
+            ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub =
+                ProxyAdminServiceGrpc.newBlockingStub(channel);
+
+            ListClientsResponse response = stub.listClients(ListClientsRequest.newBuilder()
+                .setPageNum(1)
+                .setPageSize(1)
+                .build());
+
+            assertThat(response.getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(response.getStatus().getMessage()).contains("proxyClientAdminActivity is required");
+            assertThat(response.getClientsList()).isEmpty();
+            assertThat(response.getHasMore()).isFalse();
+        } finally {
+            if (channel != null) {
+                channel.shutdownNow();
+            }
+            if (server != null) {
+                server.shutdownNow();
+            }
+            endpointExecutor.shutdown();
+        }
+    }
+
+    @Test
     public void describeClientRejectsMissingClientIdThroughGeneratedGrpcService() throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;

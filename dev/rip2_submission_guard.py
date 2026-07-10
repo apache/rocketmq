@@ -180,6 +180,7 @@ REQUIRED_GENERATED_PUBLIC_ENDPOINT_TESTS = (
     "listClientsByGroupAndTopicHonorContestFiltersAndPaginationThroughGeneratedGrpcService",
     "describeClientRejectsMissingClientIdThroughGeneratedGrpcService",
     "describeMissingClientReturnsNotFoundStatus",
+    "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService",
     "listClientsReturnsDashboardTableFieldsThroughGeneratedGrpcService",
     "describeClientReturnsDashboardClientViewFieldsThroughGeneratedGrpcService",
 )
@@ -588,8 +589,11 @@ def check_required_test_coverage(root, errors):
     )
     for test_name in REQUIRED_GENERATED_PUBLIC_ENDPOINT_TESTS:
         if test_name not in app_test_text:
+            coverage_label = "generated public endpoint coverage"
+            if "InternalServerError" in test_name:
+                coverage_label = "generated public endpoint INTERNAL_SERVER_ERROR coverage"
             errors.append(
-                "GrpcProxyAdminApplicationTest missing generated public endpoint coverage: "
+                f"GrpcProxyAdminApplicationTest missing {coverage_label}: "
                 f"{test_name}"
             )
 

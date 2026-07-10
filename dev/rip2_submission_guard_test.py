@@ -1189,6 +1189,35 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
                     for error in errors)
             )
 
+    def test_guard_reports_missing_generated_public_internal_error_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            test_path = root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java"
+            test_path.write_text(
+                test_path.read_text(encoding="utf-8").replace(
+                    "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService",
+                    "missingInternalErrorCoverage",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any("GrpcProxyAdminApplicationTest" in error and "INTERNAL_SERVER_ERROR" in error
+                    for error in errors)
+            )
+
     def test_guard_reports_missing_admin_server_isolation_coverage(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
