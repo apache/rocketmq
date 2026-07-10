@@ -582,6 +582,11 @@ public class LiteSubscriptionRegistryImplTest {
         LiteSubscription subscription = registry.getLiteSubscription(clientId);
         assertNotNull(subscription);
         assertTrue(subscription.getLiteTopicSet().isEmpty());
+        // The quota check runs before any state mutation, so a rejected complete-add must NOT leave
+        // behind wildcard patterns or a wildcard-group mark that later re-expansion would mistake
+        // for a live (deferred-effect) subscription.
+        assertTrue(subscription.getWildcardPatterns().isEmpty());
+        assertFalse(registry.wildcardGroupMap.containsKey(topic));
     }
 
     /**
@@ -1428,5 +1433,80 @@ public class LiteSubscriptionRegistryImplTest {
             ArgumentCaptor.forClass(NotifyUnsubscribeLiteRequestHeader.class);
         verify(mockBroker2Client, org.mockito.Mockito.atLeast(2))
             .notifyUnsubscribeLite(eq(clientAChannel), captor.capture());
+    }
+
+    // ==================== Quota projection: net delta & no state leak on failure ====================
+
+    /**
+     * wouldAdd must credit pending removals: a complete-add that removes one lmqName and adds a
+     * different one has a NET delta of zero, so it must NOT be rejected at the quota limit even
+     * though the gross "add" count is 1. Before crediting removals this net-zero replace was
+     * falsely rejected when the broker was full.
+     */
+    @Test
+    public void testAddCompleteSubscription_NetZeroReplaceAtQuotaNotRejected() {
+        when(mockBrokerConfig.getMaxLiteSubscriptionCount()).thenReturn(1L);
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "testTopic";
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        // client holds lmq1 -> activeNum=1 (at the limit)
+        String lmq1 = "lmq1";
+        String lmq2 = "lmq2";
+        registry.addCompleteSubscription(clientId, group, topic, new HashSet<>(Collections.singletonList(lmq1)), 1L);
+        assertEquals(1, registry.getActiveSubscriptionNum());
+
+        // Full re-sync swaps lmq1 -> lmq2. Gross add = 1, but net delta = 0 (lmq1 removed). Must pass.
+        registry.addCompleteSubscription(clientId, group, topic, new HashSet<>(Collections.singletonList(lmq2)), 2L);
+
+        // Still at the limit, now holding lmq2 (lmq1 dropped).
+        assertEquals(1, registry.getActiveSubscriptionNum());
+        LiteSubscription subscription = registry.getLiteSubscription(clientId);
+        assertFalse(subscription.getLiteTopicSet().contains(lmq1));
+        assertTrue(subscription.getLiteTopicSet().contains(lmq2));
+    }
+
+    /**
+     * A rejected pattern-mode complete-add must leave NO live subscription state behind — not just
+     * an empty liteTopicSet, but empty wildcardPatterns and no wildcard-group mark — so the periodic
+     * reexpandWildcardPatterns / message-arriving registerArrivingLmqForPatternClients paths do not
+     * pick up the failed client and turn it into a deferred-effect subscription. This is the core of
+     * the review's "reexpand may turn a failed subscription into a delayed-effect subscription".
+     */
+    @Test
+    public void testAddCompleteSubscription_PatternQuotaFailure_NoDeferredState() {
+        when(mockBrokerConfig.getMaxLiteSubscriptionCount()).thenReturn(1L);
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "order_events";
+        String payRefund = LiteUtil.toLmqName(topic, "pay__refund");
+        String paySuccess = LiteUtil.toLmqName(topic, "pay__success");
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Arrays.asList(payRefund, paySuccess));
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        Set<String> patterns = new HashSet<>(Collections.singletonList("pay__*"));
+        // wouldAdd=2 > maxCount=1 -> rejected. Critically, this runs before setWildcardPatterns /
+        // markWildcardGroup, so no patterns or group mark are persisted.
+        assertThrows(LiteQuotaException.class, () ->
+            registry.addCompleteSubscription(clientId, group, topic, Collections.emptySet(), patterns, 1L));
+
+        // No active references, and no pattern/group state a later re-expand could act on.
+        assertEquals(0, registry.getActiveSubscriptionNum());
+        LiteSubscription subscription = registry.getLiteSubscription(clientId);
+        assertNotNull(subscription);
+        assertTrue(subscription.getWildcardPatterns().isEmpty());
+        assertFalse(registry.wildcardGroupMap.containsKey(topic));
+
+        // Consequence: a later re-expand of this client registers nothing (it short-circuits on
+        // empty wildcardPatterns), and an arriving matching lmqName does not pick the client up.
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Arrays.asList(payRefund, paySuccess));
+        assertEquals(0, registry.reexpandWildcardPatterns(clientId));
+        assertEquals(0, registry.registerArrivingLmqForPatternClients(paySuccess));
+        assertEquals(0, registry.getActiveSubscriptionNum());
     }
 }

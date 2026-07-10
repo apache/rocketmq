@@ -136,13 +136,45 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         boolean isWildcardGroup = LiteMetadataUtil.isWildcardGroup(group, brokerController);
         boolean isPatternMode = isWildcardGroup && wildcardPatterns != null && !wildcardPatterns.isEmpty();
 
-        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
+        // Compute the target lmqName set BEFORE any mutation. expandWildcardPatterns is read-only
+        // (it scans existing lite-topics via the lifecycle manager and matches patterns), so it is
+        // safe to call pre-flight. This lets us project the net reference delta and enforce the
+        // broker-wide quota BEFORE touching subscription state — a quota failure then leaves no
+        // patterns / wildcard-group marks behind that later re-expansion would mistake for a live
+        // (deferred-effect) subscription.
         if (isPatternMode) {
-            // Persist the patterns (authoritative intent) and eagerly expand against existing
-            // lite-topics under the parent topic. The expanded lmqNames are registered as a normal
-            // subscription; the topic@group synthetic key is NOT used for pattern-mode groups.
-            thisSub.setWildcardPatterns(wildcardPatterns);
             lmqNameNew = expandWildcardPatterns(topic, wildcardPatterns);
+        } else if (isWildcardGroup) {
+            lmqNameNew = Collections.singleton(mockLmqNameForWildcardGroup(topic, group));
+        } else {
+            lmqNameNew = lmqNameAll.stream()
+                .filter(lmqName -> liteLifecycleManager.isSubscriptionActive(topic, lmqName))
+                .collect(Collectors.toSet());
+        }
+
+        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
+        Set<String> lmqNamePrev = thisSub.getLiteTopicSet();
+
+        // Pre-flight quota check: project the NET change in (client, lmqName) references this
+        // operation would register — lmqNames added that are not already held, MINUS lmqNames held
+        // that this operation will remove. Crediting removals means a set-replacing client at the
+        // limit whose net delta is zero (or negative) is not falsely rejected. A re-sync of an
+        // identical set has wouldAdd == 0 and passes trivially. The check runs before any mutation
+        // (setWildcardPatterns / markWildcardGroup / add-remove below), so a throw leaves only the
+        // harmless empty placeholder LiteSubscription created by getOrCreateLiteSubscription — no
+        // patterns, no wildcard-group mark, no active references. The throw maps to
+        // LITE_SUBSCRIPTION_QUOTA_EXCEEDED via the processor's existing catch.
+        int wouldAdd = Math.max(0,
+            (int) lmqNameNew.stream().filter(lmqName -> !lmqNamePrev.contains(lmqName)).count()
+            - (int) lmqNamePrev.stream().filter(lmqName -> !lmqNameNew.contains(lmqName)).count());
+        checkQuotaOrThrow(wouldAdd);
+
+        // Quota passed — now apply the authoritative intent and group marks.
+        if (isPatternMode) {
+            // Persist the patterns (authoritative intent) and register the eagerly-expanded
+            // lmqNames as a normal subscription; the topic@group synthetic key is NOT used for
+            // pattern-mode groups.
+            thisSub.setWildcardPatterns(wildcardPatterns);
             markWildcardGroup(topic, group);
         } else if (isWildcardGroup) {
             // Legacy wildcard group: receive all lite-topics under the parent topic via the
@@ -151,28 +183,12 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             // pattern-mode (doFullDispatchForWildcardGroup / reexpandWildcardPatterns key off a
             // non-empty wildcardPatterns set).
             thisSub.setWildcardPatterns(Collections.emptySet());
-            lmqNameNew = Collections.singleton(mockLmqNameForWildcardGroup(topic, group));
             markWildcardGroup(topic, group);
         } else {
             // Non-wildcard group: a normal subscription. Clear stale patterns from any prior
             // wildcard incarnation so the group is not misclassified downstream.
             thisSub.setWildcardPatterns(Collections.emptySet());
-            lmqNameNew = lmqNameAll.stream()
-                .filter(lmqName -> liteLifecycleManager.isSubscriptionActive(topic, lmqName))
-                .collect(Collectors.toSet());
         }
-
-        Set<String> lmqNamePrev = thisSub.getLiteTopicSet();
-        // Pre-flight quota check: project the net-new (client, lmqName) references this operation
-        // would register (lmqNames in the new set not already held) against the broker-wide limit.
-        // Like addPartialSubscription, the budget is checked before any mutation; pending removals
-        // are NOT credited, so a set-replacing client at the limit may be denied (conservative). A
-        // re-sync of an identical set has wouldAdd == 0 and passes trivially. Throwing here maps to
-        // LITE_SUBSCRIPTION_QUOTA_EXCEEDED via the processor's existing catch.
-        int wouldAdd = (int) lmqNameNew.stream()
-            .filter(lmqName -> !lmqNamePrev.contains(lmqName))
-            .count();
-        checkQuotaOrThrow(wouldAdd);
 
         // Find topics to remove (in current set but not in new set)
         Set<String> lmqNameRemove = lmqNamePrev.stream()
@@ -210,8 +226,9 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
      * {@link LiteQuotaException} (mapped to {@code LITE_SUBSCRIPTION_QUOTA_EXCEEDED} by the
      * processor) if the projected active count would exceed the configured broker-wide limit.
      *
-     * @param wouldAdd the number of net-new (client, lmqName) pairs this operation would register;
-     *                0 for a pure "is the broker already at the limit" check
+     * @param wouldAdd the NET number of (client, lmqName) references this operation would add
+     *                (new additions minus pending removals, floored at 0); 0 for a pure
+     *                "is the broker already at the limit" check
      */
     private void checkQuotaOrThrow(int wouldAdd) {
         long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
