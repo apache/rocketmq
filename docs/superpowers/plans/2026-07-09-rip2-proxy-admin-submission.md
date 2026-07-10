@@ -1811,6 +1811,12 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   every GitHub review artifact to retain `PROXY_SCOPE_LOCAL_PROXY`,
   `PROXY_SCOPE_ALL_PROXIES`, and `PROXY_SCOPE_PROXY_ID`, so the accepted local
   scope and the two gated multi-proxy scopes remain visible to reviewers.
+- [x] Final verification and core coverage evidence refreshed after scope-guard
+  hardening: focused verification passed with `Tests run: 55` at
+  `2026-07-10T09:49:05+08:00`, broad verification passed with
+  `Tests run: 731` at `2026-07-10T09:50:12+08:00`, and package smoke passed at
+  `2026-07-10T09:51:17+08:00`. Fresh JaCoCo aggregation keeps instruction,
+  branch, and line coverage above 85% for both RIP-2 core packages.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

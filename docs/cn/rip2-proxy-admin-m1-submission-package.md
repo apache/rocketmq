@@ -218,7 +218,7 @@ mvn -pl proxy -am \
 ```text
 Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T09:00:08+08:00
+Finished at: 2026-07-10T09:49:05+08:00
 ```
 
 Dashboard 表格/详情字段 focused verification：
@@ -269,7 +269,7 @@ mvn -pl proxy -am \
 ```text
 Tests run: 731, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T09:01:07+08:00
+Finished at: 2026-07-10T09:50:12+08:00
 ```
 
 Package smoke：
@@ -283,7 +283,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T09:02:11+08:00
+Finished at: 2026-07-10T09:51:17+08:00
 ```
 
 轻量提交门禁：
@@ -326,8 +326,8 @@ Broad verification 的最新包级 JaCoCo 覆盖率：
 
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
-| `org/apache/rocketmq/proxy/service/admin/client` | 93.82% | 86.83% | 95.48% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.66% | 85.05% | 94.52% |
+| `org/apache/rocketmq/proxy/service/admin/client` | 93.95% | 88.01% | 95.66% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.92% | 85.37% | 94.77% |
 
 JDK 17 下 JaCoCo 0.8.5 会对部分 JDK 和 Mockito 生成类打印 instrumentation
 stack traces。只有在 Surefire 零 failure/error 且 Maven 成功退出时，才把这些

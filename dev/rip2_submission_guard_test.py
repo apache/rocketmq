@@ -560,6 +560,30 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(any("broad verification" in error for error in errors))
 
+    def test_guard_reports_pre_coverage_refresh_broad_verification_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            package_path = root / "docs/en/rip2-proxy-admin-m1-submission-package.md"
+            package_path.write_text(
+                package_path.read_text(encoding="utf-8")
+                + "\nFinished at: 2026-07-10T09:01:07+08:00\n",
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("stale broad verification evidence" in error for error in errors))
+
     def test_guard_reports_pom_proto_version_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -637,6 +661,30 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             write(
                 root / "docs/en/rip2-proxy-admin-m1-final-smoke.md",
                 "Finished at: 2026-07-10T04:07:14+08:00\n",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("stale package smoke evidence" in error for error in errors))
+
+    def test_guard_reports_pre_coverage_refresh_package_smoke_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            smoke_path = root / "docs/en/rip2-proxy-admin-m1-final-smoke.md"
+            smoke_path.write_text(
+                smoke_path.read_text(encoding="utf-8")
+                + "\nFinished at: 2026-07-10T09:02:11+08:00\n",
+                encoding="utf-8",
             )
 
             errors = rip2_submission_guard.run_checks(

@@ -40,10 +40,10 @@ FULL_GUARD_COMMAND = "python3 dev/rip2_submission_guard.py --check-remote --chec
 PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
 FOCUSED_RESULT = "Tests run: 55, Failures: 0, Errors: 0, Skipped: 0"
-FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T09:00:08+08:00"
+FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T09:49:05+08:00"
 BROAD_RESULT = "Tests run: 731, Failures: 0, Errors: 0, Skipped: 0"
-BROAD_FINISHED_AT = "Finished at: 2026-07-10T09:01:07+08:00"
-PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T09:02:11+08:00"
+BROAD_FINISHED_AT = "Finished at: 2026-07-10T09:50:12+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T09:51:17+08:00"
 INTERNAL_ERROR_PUBLIC_ENDPOINT_TEST = (
     "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService"
 )
@@ -66,6 +66,9 @@ REFRESHED_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T08:31:23+08:00"
 PRE_ERROR_BODY_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T08:45:58+08:00"
 PRE_ERROR_BODY_BROAD_FINISHED_AT = "Finished at: 2026-07-10T08:46:56+08:00"
 PRE_ERROR_BODY_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T08:47:54+08:00"
+PRE_COVERAGE_REFRESH_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T09:00:08+08:00"
+PRE_COVERAGE_REFRESH_BROAD_FINISHED_AT = "Finished at: 2026-07-10T09:01:07+08:00"
+PRE_COVERAGE_REFRESH_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T09:02:11+08:00"
 PUBLIC_REVIEW_ARTIFACT_LINKS = (
     "https://github.com/apache/rocketmq/pull/10603",
     "https://github.com/apache/rocketmq-apis/pull/112",
@@ -579,6 +582,9 @@ def check_submission_evidence(root, errors):
         PRE_ERROR_BODY_FOCUSED_FINISHED_AT,
         PRE_ERROR_BODY_BROAD_FINISHED_AT,
         PRE_ERROR_BODY_PACKAGE_SMOKE_FINISHED_AT,
+        PRE_COVERAGE_REFRESH_FOCUSED_FINISHED_AT,
+        PRE_COVERAGE_REFRESH_BROAD_FINISHED_AT,
+        PRE_COVERAGE_REFRESH_PACKAGE_SMOKE_FINISHED_AT,
     )
     for token in stale_tokens:
         if token in combined_docs:
@@ -588,6 +594,7 @@ def check_submission_evidence(root, errors):
                 or "07:54:35" in token
                 or "08:31:23" in token
                 or "08:47:54" in token
+                or "09:02:11" in token
             ):
                 errors.append(f"stale package smoke evidence remains: {token}")
             elif (
@@ -598,6 +605,7 @@ def check_submission_evidence(root, errors):
                 or "07:53:37" in token
                 or "08:28:12" in token
                 or "08:46:56" in token
+                or "09:01:07" in token
             ):
                 errors.append(f"stale broad verification evidence remains: {token}")
             else:

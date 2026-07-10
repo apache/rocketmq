@@ -1332,8 +1332,8 @@ ended with `BUILD SUCCESS`. Package-level JaCoCo coverage from the same run was:
 
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
-| `org/apache/rocketmq/proxy/service/admin/client` | 93.82% | 86.83% | 95.48% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.66% | 85.05% | 94.52% |
+| `org/apache/rocketmq/proxy/service/admin/client` | 93.95% | 88.01% | 95.66% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.92% | 85.37% | 94.77% |
 
 The final submission package, including PR and issue-comment drafts, is in
 `docs/en/rip2-proxy-admin-m1-submission-package.md`.
