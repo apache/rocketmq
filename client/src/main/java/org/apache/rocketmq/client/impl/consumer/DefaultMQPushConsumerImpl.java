@@ -976,10 +976,17 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                 // Initialize message deduplicator if enabled
                 if (this.defaultMQPushConsumer.isEnableMessageDeduplication()) {
+                    boolean isConcurrentMode = this.getMessageListenerInner() instanceof MessageListenerConcurrently;
+                    if (!isConcurrentMode) {
+                        log.warn("Message deduplication is only supported for concurrent consumption mode. " +
+                            "Current listener type: {}. Deduplication will be disabled for orderly and POP consumption.",
+                            this.getMessageListenerInner().getClass().getSimpleName());
+                    }
                     this.messageDeduplicator = new MessageDeduplicator(
                         this.defaultMQPushConsumer.getDeduplicationCacheSize(),
                         this.defaultMQPushConsumer.getDeduplicationCacheExpireTime());
-                    log.info("Message deduplication enabled for consumer group {} with cacheSize={}, expireTimeMs={}",
+                    log.info("Message deduplication enabled for consumer group {} with cacheSize={}, expireTimeMs={}. " +
+                        "Supported mode: concurrent. Not supported: orderly, POP.",
                         this.defaultMQPushConsumer.getConsumerGroup(),
                         this.defaultMQPushConsumer.getDeduplicationCacheSize(),
                         this.defaultMQPushConsumer.getDeduplicationCacheExpireTime());

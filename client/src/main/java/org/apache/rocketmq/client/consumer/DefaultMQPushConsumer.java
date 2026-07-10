@@ -277,6 +277,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Enable message deduplication based on message keys.
      * When enabled, duplicate messages will be detected and skipped before consumption.
      * Default: false (disabled)
+     *
+     * <p><strong>Note:</strong> Deduplication is currently only supported for concurrent consumption mode.
+     * Orderly consumption and POP mode do not support deduplication and will log a warning if enabled.</p>
      */
     private boolean enableMessageDeduplication = false;
 

@@ -518,6 +518,25 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 markMessagesAsProcessed(filteredMsgs);
             }
 
+            // Handle ackIndex semantics when duplicates were filtered
+            // ackIndex is based on filteredMsgs, but processConsumeResult uses original msgs
+            // When duplicates exist, we need to adjust ackIndex to match original list semantics
+            if (hasDuplicates) {
+                if (status == ConsumeConcurrentlyStatus.CONSUME_SUCCESS) {
+                    // All messages consumed successfully (duplicates from previous consumption, non-duplicates from this consumption)
+                    // Set ackIndex to cover all original messages
+                    context.setAckIndex(msgs.size() - 1);
+                    log.debug("Duplicate messages filtered, adjusted ackIndex to {} (all {} original messages considered successful)",
+                        msgs.size() - 1, msgs.size());
+                } else if (status == ConsumeConcurrentlyStatus.RECONSUME_LATER) {
+                    // All non-duplicate messages failed, need to retry
+                    // Duplicate messages will be retried too (they're still in ProcessQueue)
+                    // This is safe because duplicates will be detected again on retry
+                    // ackIndex = -1 means all messages failed (handled by processConsumeResult)
+                    log.debug("Consumption failed with duplicates present, all messages will be retried");
+                }
+            }
+
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                 consumeMessageContext.setStatus(status.toString());
                 consumeMessageContext.setSuccess(ConsumeConcurrentlyStatus.CONSUME_SUCCESS == status);
