@@ -1766,6 +1766,11 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
   `BUILD SUCCESS`, finished at `2026-07-10T07:54:35+08:00`.
+- [x] Generated public endpoint coverage guard added:
+  `dev/rip2_submission_guard.py` now verifies that the generated public gRPC
+  endpoint tests still cover the service descriptor, success paths, contest
+  filters, pagination, non-local M1 scope gate, authorization failure, not
+  found semantics, Dashboard-facing fields, and startup/admin-server isolation.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact
