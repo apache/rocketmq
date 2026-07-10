@@ -850,6 +850,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
 
+        boolean isSuccess = false;
         try {
             double maxRate = this.brokerController.getBrokerConfig().getBatchDeleteTopicMaxRate();
             com.google.common.util.concurrent.RateLimiter rateLimiter = maxRate > 0
@@ -864,18 +865,21 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 }
                 deleteTopicInBroker(topic, false);
             }
+            isSuccess  = true;
         } catch (Throwable t) {
-            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+            LOGGER.error("Failed to delete topic ", t);
         } finally {
             try {
                 this.brokerController.getTopicConfigManager().persist();
             } catch (Throwable t) {
+                isSuccess = false;
                 LOGGER.error("Failed to persist topic config after batch delete", t);
-                return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
             }
         }
-        response.setCode(ResponseCode.SUCCESS);
+
+        response.setCode(isSuccess ? ResponseCode.SUCCESS : ResponseCode.SYSTEM_ERROR);
         response.setRemark(null);
+
         return response;
     }
 
@@ -1831,6 +1835,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         LOGGER.info("AdminBrokerProcessor#deleteSubscriptionGroupList: groupNames={}, caller={}",
             groupNames, RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
+        boolean isSuccess = false;
         try {
             boolean cleanOffset = requestBody.isCleanOffset();
             double maxRate = this.brokerController.getBrokerConfig().getBatchDeleteSubscriptionGroupMaxRate();
@@ -1848,17 +1853,18 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     || LiteMetadataUtil.isLiteGroupType(groupName, this.brokerController);
                 deleteSubscriptionGroupInBroker(groupName, shouldCleanOffset, false);
             }
+            isSuccess = true;
         } catch (Throwable t) {
-            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+            LOGGER.error("Failed to delete subscription group config ", t);
         } finally {
             try {
                 this.brokerController.getSubscriptionGroupManager().persist();
             } catch (Throwable t) {
+                isSuccess = false;
                 LOGGER.error("Failed to persist subscription group config after batch delete", t);
-                return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
             }
         }
-        response.setCode(ResponseCode.SUCCESS);
+        response.setCode(isSuccess ? ResponseCode.SUCCESS : ResponseCode.SYSTEM_ERROR);
         response.setRemark(null);
         return response;
     }
