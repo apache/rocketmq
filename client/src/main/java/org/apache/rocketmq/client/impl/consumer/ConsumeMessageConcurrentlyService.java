@@ -512,30 +512,55 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 status = ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
 
-            // Mark successfully consumed messages as processed in deduplication cache
-            // Only mark non-duplicate messages that were successfully consumed
-            if (status == ConsumeConcurrentlyStatus.CONSUME_SUCCESS && !filteredMsgs.isEmpty()) {
-                markMessagesAsProcessed(filteredMsgs);
-            }
-
             // Handle ackIndex semantics when duplicates were filtered
             // ackIndex is based on filteredMsgs, but processConsumeResult uses original msgs
-            // When duplicates exist, we need to adjust ackIndex to match original list semantics
-            if (hasDuplicates) {
-                if (status == ConsumeConcurrentlyStatus.CONSUME_SUCCESS) {
-                    // All messages consumed successfully (duplicates from previous consumption, non-duplicates from this consumption)
-                    // Set ackIndex to cover all original messages
-                    context.setAckIndex(msgs.size() - 1);
-                    log.debug("Duplicate messages filtered, adjusted ackIndex to {} (all {} original messages considered successful)",
-                        msgs.size() - 1, msgs.size());
-                } else if (status == ConsumeConcurrentlyStatus.RECONSUME_LATER) {
-                    // All non-duplicate messages failed, need to retry
-                    // Duplicate messages will be retried too (they're still in ProcessQueue)
-                    // This is safe because duplicates will be detected again on retry
-                    // ackIndex = -1 means all messages failed (handled by processConsumeResult)
-                    log.debug("Consumption failed with duplicates present, all messages will be retried");
+            // We need to:
+            // 1. Only mark messages up to ackIndex in filteredMsgs as processed
+            // 2. Map the filtered-list ackIndex to the original msgs position
+            if (status == ConsumeConcurrentlyStatus.CONSUME_SUCCESS) {
+                int filteredAckIndex = context.getAckIndex();
+
+                if (!filteredMsgs.isEmpty() && filteredAckIndex >= 0) {
+                    // Clamp ackIndex to valid range for filteredMsgs
+                    if (filteredAckIndex >= filteredMsgs.size()) {
+                        filteredAckIndex = filteredMsgs.size() - 1;
+                    }
+
+                    // Only mark successfully consumed messages (up to filteredAckIndex)
+                    for (int i = 0; i <= filteredAckIndex; i++) {
+                        MessageExt msg = filteredMsgs.get(i);
+                        String dedupKey = MessageDeduplicator.getDeduplicationKey(msg);
+                        if (dedupKey != null) {
+                            MessageDeduplicator deduplicator = ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.getMessageDeduplicator();
+                            if (deduplicator != null) {
+                                deduplicator.markProcessed(dedupKey);
+                            }
+                        }
+                    }
                 }
+
+                // Map filtered-list ackIndex to original msgs position
+                if (hasDuplicates && !filteredMsgs.isEmpty() && filteredAckIndex >= 0) {
+                    // Find the position in original msgs that corresponds to filteredMsgs[filteredAckIndex]
+                    MessageExt lastAckedMsg = filteredMsgs.get(filteredAckIndex);
+                    int originalAckIndex = -1;
+                    for (int i = 0; i < msgs.size(); i++) {
+                        if (msgs.get(i) == lastAckedMsg) {
+                            originalAckIndex = i;
+                            break;
+                        }
+                    }
+
+                    if (originalAckIndex >= 0) {
+                        context.setAckIndex(originalAckIndex);
+                        log.debug("Duplicate messages filtered, mapped filteredAckIndex {} to originalAckIndex {}",
+                            filteredAckIndex, originalAckIndex);
+                    }
+                }
+                // If no duplicates, ackIndex already refers to original msgs, no mapping needed
             }
+            // For RECONSUME_LATER, don't mark any messages as processed
+            // processConsumeResult will set ackIndex = -1, sending all messages back
 
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                 consumeMessageContext.setStatus(status.toString());
