@@ -84,6 +84,12 @@ GITHUB_EXTERNAL_GATE_TOKENS = (
     "org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT",
 )
 
+REQUIRED_PUBLIC_SCOPE_GATE_TOKENS = (
+    "PROXY_SCOPE_LOCAL_PROXY",
+    "PROXY_SCOPE_ALL_PROXIES",
+    "PROXY_SCOPE_PROXY_ID",
+)
+
 STALE_IMPLEMENTATION_CHECKPOINTS = (
     "573c716e136845dbd42669d78fd725a18d845435",
 )
@@ -547,6 +553,9 @@ def check_submission_evidence(root, errors):
                 errors.append(f"submission evidence missing INTERNAL_SERVER_ERROR public endpoint evidence {token}")
             else:
                 errors.append(f"submission evidence missing {token}")
+    for token in REQUIRED_PUBLIC_SCOPE_GATE_TOKENS:
+        if token not in combined_docs:
+            errors.append(f"submission evidence missing M1 public scope gate {token}")
     for link in PUBLIC_REVIEW_ARTIFACT_LINKS:
         if link not in combined_docs:
             errors.append(f"submission evidence missing public review artifact link {link}")
@@ -695,6 +704,9 @@ def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
         for token in GITHUB_EXTERNAL_GATE_TOKENS:
             if token not in body:
                 errors.append(f"{label} missing external gate evidence {token}")
+        for token in REQUIRED_PUBLIC_SCOPE_GATE_TOKENS:
+            if token not in body:
+                errors.append(f"{label} missing M1 public scope gate evidence {token}")
         if head not in body:
             errors.append(f"{label} does not reference current HEAD {head}")
         if apis_head not in body:

@@ -1806,6 +1806,11 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   verification, broad proxy admin verification, and package smoke were then
   refreshed at `2026-07-10T09:00:08+08:00`,
   `2026-07-10T09:01:07+08:00`, and `2026-07-10T09:02:11+08:00`.
+- [x] M1 public scope gate evidence guard added:
+  `dev/rip2_submission_guard.py` now requires the local submission evidence and
+  every GitHub review artifact to retain `PROXY_SCOPE_LOCAL_PROXY`,
+  `PROXY_SCOPE_ALL_PROXIES`, and `PROXY_SCOPE_PROXY_ID`, so the accepted local
+  scope and the two gated multi-proxy scopes remain visible to reviewers.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

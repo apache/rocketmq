@@ -277,6 +277,9 @@ Dashboard CLIENT-01
 external validation item
 official artifact
 rocketmq-apis public proto proposal
+PROXY_SCOPE_LOCAL_PROXY
+PROXY_SCOPE_ALL_PROXIES
+PROXY_SCOPE_PROXY_ID
 publicServiceMapsBadRequestResponsesWithoutResultBodiesThroughGeneratedGrpcService
 publicServiceMapsUnauthorizedResponsesWithoutResultBodiesThroughGeneratedGrpcService
 publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService
@@ -466,6 +469,9 @@ def github_body(rocketmq_head, apis_head=None, guard_command=None):
     body += "official artifact\n"
     body += "Dashboard CLIENT-01\n"
     body += "org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT\n"
+    body += "PROXY_SCOPE_LOCAL_PROXY\n"
+    body += "PROXY_SCOPE_ALL_PROXIES\n"
+    body += "PROXY_SCOPE_PROXY_ID\n"
     body += "RIP-2 submission guard passed.\n"
     return body
 
@@ -721,6 +727,32 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(any("official artifact" in error for error in errors))
 
+    def test_guard_reports_missing_public_scope_gate_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            for rel in rip2_submission_guard.REQUIRED_DOCS:
+                path = root / rel
+                path.write_text(
+                    path.read_text(encoding="utf-8").replace("PROXY_SCOPE_ALL_PROXIES\n", ""),
+                    encoding="utf-8",
+                )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any("public scope gate" in error and "PROXY_SCOPE_ALL_PROXIES" in error for error in errors)
+            )
+
     def test_guard_reports_proto_mirror_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -959,6 +991,33 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(
                 any("RocketMQ PR #10603" in error and "official artifact" in error for error in errors)
+            )
+
+    def test_guard_reports_github_artifact_missing_public_scope_gate_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            body = github_body(expected_head, apis_head)
+            missing_scope_body = body.replace("PROXY_SCOPE_LOCAL_PROXY\n", "")
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                command_runner=fake_github_runner(expected_head, body, body, missing_scope_body,
+                    apis_head=apis_head),
+            )
+
+            self.assertTrue(
+                any("RIP-2 issue comment" in error and "PROXY_SCOPE_LOCAL_PROXY" in error for error in errors)
             )
 
     def test_guard_reports_stale_implementation_checkpoint_in_github_artifact(self):
