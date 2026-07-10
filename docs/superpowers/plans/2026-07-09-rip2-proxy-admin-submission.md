@@ -1758,6 +1758,11 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` artifact includes
   the expected jar, pom, local Maven metadata, and repository marker files, in
   addition to generated public RPC classes.
+- [x] rocketmq-apis Java build metadata guard added:
+  `dev/rip2_submission_guard.py` now verifies the companion API proposal keeps
+  `java/VERSION` at `2.2.0` and retains the Bazel `rocketmq-proto`,
+  `assemble-maven`, and `deploy-maven` targets needed to regenerate and publish
+  the proposed public proto artifact.
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
   `BUILD SUCCESS`, finished at `2026-07-10T07:54:35+08:00`.

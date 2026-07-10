@@ -34,6 +34,7 @@ EXPECTED_BRANCH = "rip2-proxy-admin-m1"
 EXPECTED_APIS_BRANCH = "rip2-proxy-admin-public-api"
 DEFAULT_APIS_REMOTE = "auto"
 PROTO_VERSION = "2.2.0-rip2-SNAPSHOT"
+APIS_JAVA_VERSION = "2.2.0"
 PROTO_VERSION_XML = f"<rocketmq-proto.version>{PROTO_VERSION}</rocketmq-proto.version>"
 FULL_GUARD_COMMAND = "python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github"
 PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
@@ -383,6 +384,24 @@ def check_proto(root, apis_root, errors):
             errors.append(f"public API draft proto missing field {field}")
 
 
+def check_apis_java_build_metadata(apis_root, errors):
+    version_text = read_text(apis_root / "java/VERSION", errors).strip()
+    if version_text != APIS_JAVA_VERSION:
+        errors.append(f"rocketmq-apis java/VERSION expected {APIS_JAVA_VERSION}, got {version_text}")
+    build_text = read_text(apis_root / "java/BUILD.bazel", errors)
+    for token in (
+        'name = "rocketmq-proto"',
+        "maven_coordinates=org.apache.rocketmq:rocketmq-proto:{pom_version}",
+        "assemble_maven(",
+        'target = ":rocketmq-proto"',
+        'version_file = ":VERSION"',
+        "deploy_maven(",
+        'target = ":assemble-maven"',
+    ):
+        if token not in build_text:
+            errors.append(f"rocketmq-apis java/BUILD.bazel missing {token}")
+
+
 def check_generated_artifact(m2_repository, errors):
     artifact_dir = (
         m2_repository
@@ -692,6 +711,7 @@ def run_checks(
             command_runner=command_runner,
         )
     check_proto(root, apis_root, errors)
+    check_apis_java_build_metadata(apis_root, errors)
     check_generated_artifact(m2_repository, errors)
     check_submission_evidence(root, errors)
     check_required_markdown_fences(root, errors)

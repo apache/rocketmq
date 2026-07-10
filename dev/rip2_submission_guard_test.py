@@ -231,6 +231,26 @@ def create_submission_tree(root, apis_root, m2_repository):
     write(root / "proxy/src/test/java/org/apache/rocketmq/proxy/ProxyStartupTest.java", "class ProxyStartupTest {}\n")
     write(root / "docs/en/rip2-proxy-admin-m1-public-api-draft.proto", PROTO)
     write(apis_root / "apache/rocketmq/v2/admin.proto", PROTO)
+    write(apis_root / "java/VERSION", "2.2.0\n")
+    write(
+        apis_root / "java/BUILD.bazel",
+        """java_library(
+    name = "rocketmq-proto",
+    tags = ["maven_coordinates=org.apache.rocketmq:rocketmq-proto:{pom_version}"],
+)
+
+assemble_maven(
+    name = "assemble-maven",
+    target = ":rocketmq-proto",
+    version_file = ":VERSION",
+)
+
+deploy_maven(
+    name = "deploy-maven",
+    target = ":assemble-maven",
+)
+""",
+    )
 
     submission = """
 Tests run: 54, Failures: 0, Errors: 0, Skipped: 0
@@ -647,6 +667,25 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("public API draft proto mirror" in error for error in errors))
+
+    def test_guard_reports_apis_java_version_drift(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(apis_root / "java/VERSION", "2.1.2\n")
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("rocketmq-apis java/VERSION" in error for error in errors))
 
     def test_guard_reports_proto_missing_public_rpc_response_messages(self):
         with tempfile.TemporaryDirectory() as tmp:
