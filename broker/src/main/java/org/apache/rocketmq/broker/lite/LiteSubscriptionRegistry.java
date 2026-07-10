@@ -38,6 +38,37 @@ public interface LiteSubscriptionRegistry {
 
     void addCompleteSubscription(String clientId, String group, String topic, Set<String> newLmqNameSet, long version);
 
+    /**
+     * Complete-add overload carrying wildcard patterns for a wildcard group in pattern mode.
+     *
+     * <p>When {@code wildcardPatterns} is non-empty, the group is in <em>pattern mode</em>: the
+     * patterns are eagerly expanded against the existing lite-topics under {@code topic} and the
+     * matched lmqNames are registered (as a normal subscription) into {@code liteTopic2Group}.
+     * When empty, the call delegates to {@link #addCompleteSubscription(String, String, String,
+     * Set, long)} (legacy wildcard group receives all lite-topics under the parent topic).
+     *
+     * @param clientId          the client id
+     * @param group             the consumer group
+     * @param topic             the parent (lite-bind) topic
+     * @param newLmqNameSet     literal lmqNames (used only by the non-wildcard delegate path)
+     * @param wildcardPatterns  wildcard patterns for pattern mode (empty for legacy mode)
+     * @param version           the subscription version
+     */
+    void addCompleteSubscription(String clientId, String group, String topic, Set<String> newLmqNameSet,
+        Set<String> wildcardPatterns, long version);
+
+    /**
+     * Lazily re-expand a pattern-mode wildcard client's stored patterns against the current
+     * lite-topics under its parent topic, registering any newly-matched lmqNames into
+     * {@code liteTopic2Group}. This is the mechanism by which a pattern-mode client picks up
+     * lite-topics created after its initial {@code COMPLETE_ADD}.
+     *
+     * @param clientId the client id
+     * @return the number of newly-registered lmqNames (0 if the client is not in pattern mode or
+     *         nothing new matched)
+     */
+    int reexpandWildcardPatterns(String clientId);
+
     void removeCompleteSubscription(String clientId);
 
     void addListener(LiteCtlListener listener);

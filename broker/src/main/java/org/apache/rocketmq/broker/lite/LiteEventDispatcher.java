@@ -21,7 +21,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -47,7 +46,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 public class LiteEventDispatcher extends ServiceThread {
 
@@ -253,41 +251,75 @@ public class LiteEventDispatcher extends ServiceThread {
 
     /**
      * Perform a full dispatch for wildcard group which was previously marked for a delayed full dispatch.
-     * It iterates through all LMQ topics in CQ table, so it may be a heavy work.
+     *
+     * <p>For legacy wildcard groups (receiving all lite-topics under the parent topic) it iterates
+     * the lite-topics under the parent topic via {@code collectByParentTopic} (O(M)) instead of
+     * scanning the entire LMQ table. For pattern-mode wildcard groups it first re-expands the
+     * client patterns (picking up lite-topics created since the initial subscription) and then
+     * delegates to {@link #doFullDispatchForClient(String, String)} to clear backlog.
      */
     public void doFullDispatchForWildcardGroup(String group) {
         String parentTopic = LiteMetadataUtil.getLiteBindTopic(group, brokerController);
         if (null == parentTopic || !LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
             return;
         }
-        List<ClientGroup> clients =  liteSubscriptionRegistry.getWildcardSubscriber(group, parentTopic).getClients();
-        if (CollectionUtils.isEmpty(clients)) {
-            return;
-        }
-        AtomicInteger count = new AtomicInteger();
-        Function<Triple<String, Long, Long>, Boolean> function = triple -> {
-            String lmqName = triple.getLeft();
-            long maxOffset = triple.getMiddle();
-            if (!LiteUtil.belongsTo(lmqName, parentTopic)) {
-                return true;
+
+        // Partition clients into pattern-mode (re-expand + per-client dispatch) and legacy
+        // (single shared dispatch over all parent-topic lite-topics).
+        List<String> clientIds = liteSubscriptionRegistry.getAllClientIdByGroup(group);
+        List<String> patternClientIds = new ArrayList<>();
+        boolean hasLegacyClient = false;
+        for (String clientId : clientIds) {
+            LiteSubscription subscription = liteSubscriptionRegistry.getLiteSubscription(clientId);
+            if (subscription != null && !subscription.getWildcardPatterns().isEmpty()) {
+                patternClientIds.add(clientId);
+            } else {
+                hasLegacyClient = true;
             }
+        }
+
+        int count = 0;
+        // Pattern-mode: re-expand patterns against current lite-topics, then dispatch backlog per client.
+        for (String clientId : patternClientIds) {
+            liteSubscriptionRegistry.reexpandWildcardPatterns(clientId);
+            doFullDispatchForClient(clientId, group);
+        }
+
+        // Legacy-mode: dispatch over all lite-topics under the parent topic to the shared client set.
+        if (hasLegacyClient) {
+            List<ClientGroup> clients = liteSubscriptionRegistry.getWildcardSubscriber(group, parentTopic).getClients();
+            if (CollectionUtils.isNotEmpty(clients)) {
+                count += dispatchLegacyWildcardGroup(group, parentTopic, clients);
+            }
+        }
+        LOGGER.info("doFullDispatchForWildcardGroup finish. {}, patternClients:{}, legacyDispatch:{}",
+            group, patternClientIds.size(), count);
+    }
+
+    /**
+     * Iterate lite-topics under {@code parentTopic} (O(M), not the full LMQ scan) and dispatch the
+     * ones with consumer lag to the shared legacy wildcard client set.
+     */
+    private int dispatchLegacyWildcardGroup(String group, String parentTopic, List<ClientGroup> clients) {
+        List<String> lmqNames = liteLifecycleManager.collectByParentTopic(parentTopic);
+        AtomicInteger count = new AtomicInteger();
+        for (String lmqName : lmqNames) {
+            long maxOffset = liteLifecycleManager.getMaxOffsetInQueue(lmqName);
             if (maxOffset <= 0) {
-                return true;
+                continue;
             }
             long consumerOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
             if (consumerOffset >= maxOffset) {
-                return true;
+                continue;
             }
             if (selectAndDispatch(lmqName, clients, null)) {
                 count.incrementAndGet();
             } else {
                 LOGGER.warn("doFullDispatchForWildcardGroup, wait another period. {}", group);
-                return false;
+                break;
             }
-            return true;
-        };
-        liteLifecycleManager.forEachLiteTopic(function);
-        LOGGER.info("doFullDispatchForWildcardGroup finish. {}, dispatch:{}", group, count);
+        }
+        return count.get();
     }
 
     /**

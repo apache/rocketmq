@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.lite;
 
 import io.netty.channel.Channel;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -333,6 +334,228 @@ public class LiteSubscriptionRegistryImplTest {
         assertFalse(registry.wildcardGroupMap.containsKey(topic));
         assertNull(registry.getLiteSubscription(clientId));
         assertEquals(0, registry.getActiveSubscriptionNum());
+    }
+
+    // ==================== Pattern-mode Wildcard Group Tests ====================
+
+    private SubscriptionGroupConfig wildcardGroupConfig(String group) {
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(group);
+        groupConfig.setWildcardLiteGroup(true);
+        return groupConfig;
+    }
+
+    /**
+     * Pattern-mode wildcard group: patterns are eagerly expanded against existing lite-topics
+     * under the parent topic, and matched lmqNames are registered as a normal subscription.
+     */
+    @Test
+    public void testAddCompleteSubscription_PatternWildcardGroup_ExpandsAgainstExistingLmq() {
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "order_events";
+        // candidates returned by collectByParentTopic (full lmqNames)
+        String payRefund = LiteUtil.toLmqName(topic, "pay__refund");
+        String paySuccess = LiteUtil.toLmqName(topic, "pay__success");
+        String payRefundNotify = LiteUtil.toLmqName(topic, "pay__refund__notify");
+        String orderCreated = LiteUtil.toLmqName(topic, "order__created");
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(
+            Arrays.asList(payRefund, paySuccess, payRefundNotify, orderCreated));
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        Set<String> patterns = new HashSet<>(Collections.singletonList("pay__*"));
+        registry.addCompleteSubscription(clientId, group, topic, Collections.emptySet(), patterns, 1L);
+
+        LiteSubscription subscription = registry.getLiteSubscription(clientId);
+        assertNotNull(subscription);
+        assertEquals(patterns, subscription.getWildcardPatterns());
+        // pay__* matches pay__refund and pay__success only (single-level)
+        assertTrue(subscription.getLiteTopicSet().contains(payRefund));
+        assertTrue(subscription.getLiteTopicSet().contains(paySuccess));
+        assertFalse(subscription.getLiteTopicSet().contains(payRefundNotify));
+        assertFalse(subscription.getLiteTopicSet().contains(orderCreated));
+        // No synthetic topic@group key for pattern-mode groups
+        assertFalse(subscription.getLiteTopicSet().contains(topic + "@" + group));
+        // marked in wildcardGroupMap for fan-out enumeration
+        assertTrue(registry.wildcardGroupMap.containsKey(topic));
+        assertTrue(registry.wildcardGroupMap.get(topic).contains(group));
+        assertEquals(2, registry.getActiveSubscriptionNum());
+    }
+
+    /**
+     * Re-subscribing with changed patterns removes old matched lmqNames and adds new ones.
+     */
+    @Test
+    public void testAddCompleteSubscription_PatternWildcardGroup_DiffOnResubscribe() {
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "order_events";
+        String payRefund = LiteUtil.toLmqName(topic, "pay__refund");
+        String notifyRefundSms = LiteUtil.toLmqName(topic, "notify__refund__sms");
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Arrays.asList(payRefund, notifyRefundSms));
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        // first subscribe: pay__*
+        registry.addCompleteSubscription(clientId, group, topic, Collections.emptySet(),
+            new HashSet<>(Collections.singletonList("pay__*")), 1L);
+        LiteSubscription subscription = registry.getLiteSubscription(clientId);
+        assertTrue(subscription.getLiteTopicSet().contains(payRefund));
+        assertFalse(subscription.getLiteTopicSet().contains(notifyRefundSms));
+
+        // re-subscribe: notify__**
+        registry.addCompleteSubscription(clientId, group, topic, Collections.emptySet(),
+            new HashSet<>(Collections.singletonList("notify__**")), 2L);
+        subscription = registry.getLiteSubscription(clientId);
+        assertFalse(subscription.getLiteTopicSet().contains(payRefund));
+        assertTrue(subscription.getLiteTopicSet().contains(notifyRefundSms));
+        assertEquals(1, registry.getActiveSubscriptionNum());
+    }
+
+    /**
+     * getAllSubscriber for a pattern-mode wildcard group uses the normal liteTopic2Group path.
+     */
+    @Test
+    public void testGetAllSubscriber_PatternWildcardGroup_UsesNormalPath() {
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "order_events";
+        String payRefund = LiteUtil.toLmqName(topic, "pay__refund");
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Collections.singletonList(payRefund));
+        when(mockLifecycleManager.isSubscriptionActive(topic, payRefund)).thenReturn(true);
+
+        registry.addCompleteSubscription(clientId, group, topic, Collections.emptySet(),
+            new HashSet<>(Collections.singletonList("pay__*")), 1L);
+
+        SubscriberWrapper result = registry.getAllSubscriber(group, payRefund);
+        assertNotNull(result);
+        assertInstanceOf(SubscriberWrapper.ListWrapper.class, result);
+        SubscriberWrapper.ListWrapper listWrapper = (SubscriberWrapper.ListWrapper) result;
+        assertEquals(1, listWrapper.getClients().size());
+        assertEquals(clientId, listWrapper.getClients().get(0).clientId);
+        assertEquals(group, listWrapper.getClients().get(0).group);
+    }
+
+    /**
+     * removeCompleteSubscription cleans up wildcardGroupMap for pattern-mode groups when the last
+     * client leaves (the synthetic-key path does not fire for them).
+     */
+    @Test
+    public void testRemoveCompleteSubscription_PatternWildcardGroupMetadataCleanup() {
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "order_events";
+        String payRefund = LiteUtil.toLmqName(topic, "pay__refund");
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Collections.singletonList(payRefund));
+        when(mockLifecycleManager.isSubscriptionActive(topic, payRefund)).thenReturn(true);
+
+        registry.addCompleteSubscription(clientId, group, topic, Collections.emptySet(),
+            new HashSet<>(Collections.singletonList("pay__*")), 1L);
+        assertTrue(registry.wildcardGroupMap.containsKey(topic));
+
+        registry.removeCompleteSubscription(clientId);
+
+        assertFalse(registry.wildcardGroupMap.containsKey(topic));
+        assertNull(registry.getLiteSubscription(clientId));
+        assertEquals(0, registry.getActiveSubscriptionNum());
+    }
+
+    /**
+     * Backward compat: a legacy wildcard group (empty patterns) still uses the synthetic topic@group
+     * key and receives all lite-topics under the parent topic.
+     */
+    @Test
+    public void testAddCompleteSubscription_LegacyWildcardGroup_StillUsesSyntheticKey() {
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "testTopic";
+        Set<String> lmqNameAll = new HashSet<>(Arrays.asList("lmq1", "lmq2"));
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+
+        // 5-arg overload delegates with empty patterns -> legacy mode
+        registry.addCompleteSubscription(clientId, group, topic, lmqNameAll, 1L);
+
+        assertTrue(registry.wildcardGroupMap.containsKey(topic));
+        LiteSubscription subscription = registry.getLiteSubscription(clientId);
+        assertNotNull(subscription);
+        assertTrue(subscription.getWildcardPatterns().isEmpty());
+        assertTrue(subscription.getLiteTopicSet().contains(topic + "@" + group));
+        assertEquals(1, registry.getActiveSubscriptionNum());
+    }
+
+    /**
+     * reexpandWildcardPatterns picks up lite-topics created after the initial subscription.
+     */
+    @Test
+    public void testReexpandWildcardPatterns_PicksUpNewlyCreatedLmq() {
+        String clientId = "testClient";
+        String group = "testGroup";
+        String topic = "order_events";
+        String payRefund = LiteUtil.toLmqName(topic, "pay__refund");
+        String paySuccess = LiteUtil.toLmqName(topic, "pay__success");
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        // initial subscription: only pay__refund exists
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Collections.singletonList(payRefund));
+        registry.addCompleteSubscription(clientId, group, topic, Collections.emptySet(),
+            new HashSet<>(Collections.singletonList("pay__*")), 1L);
+        assertEquals(1, registry.getActiveSubscriptionNum());
+
+        // a new matching lite-topic pay__success is created
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Arrays.asList(payRefund, paySuccess));
+        int added = registry.reexpandWildcardPatterns(clientId);
+
+        assertEquals(1, added);
+        LiteSubscription subscription = registry.getLiteSubscription(clientId);
+        assertTrue(subscription.getLiteTopicSet().contains(payRefund));
+        assertTrue(subscription.getLiteTopicSet().contains(paySuccess));
+        assertEquals(2, registry.getActiveSubscriptionNum());
+    }
+
+    /**
+     * A mixed wildcard group (one pattern-mode client + one legacy client) must deliver to BOTH:
+     * the pattern-mode client (via its real lmqName in liteTopic2Group) and the legacy client (via
+     * the synthetic topic@group key). getAllSubscriber must merge the two sets.
+     */
+    @Test
+    public void testGetAllSubscriber_MixedWildcardGroup_DeliversToBothPatternAndLegacy() {
+        String group = "testGroup";
+        String topic = "order_events";
+        String payRefund = LiteUtil.toLmqName(topic, "pay__refund");
+        String unmatched = LiteUtil.toLmqName(topic, "order__created");
+        when(mockSubscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(wildcardGroupConfig(group));
+        when(mockLifecycleManager.collectByParentTopic(topic)).thenReturn(Arrays.asList(payRefund, unmatched));
+        when(mockLifecycleManager.isSubscriptionActive(eq(topic), anyString())).thenReturn(true);
+
+        // pattern-mode client subscribes pay__*
+        registry.addCompleteSubscription("patternClient", group, topic, Collections.emptySet(),
+            new HashSet<>(Collections.singletonList("pay__*")), 1L);
+        // legacy client subscribes (empty patterns -> synthetic key, receives all)
+        registry.addCompleteSubscription("legacyClient", group, topic, Collections.emptySet(), 1L);
+
+        // For a topic the pattern client matched: both clients should be returned.
+        SubscriberWrapper result = registry.getAllSubscriber(group, payRefund);
+        assertNotNull(result);
+        assertInstanceOf(SubscriberWrapper.ListWrapper.class, result);
+        Set<String> deliveredClientIds = new HashSet<>();
+        for (ClientGroup cg : ((SubscriberWrapper.ListWrapper) result).getClients()) {
+            deliveredClientIds.add(cg.clientId);
+        }
+        assertTrue("pattern-mode client must be delivered", deliveredClientIds.contains("patternClient"));
+        assertTrue("legacy client must be delivered", deliveredClientIds.contains("legacyClient"));
+
+        // For a topic the pattern client did NOT match: only the legacy client (receive-all).
+        SubscriberWrapper unmatchedResult = registry.getAllSubscriber(group, unmatched);
+        Set<String> unmatchedIds = new HashSet<>();
+        for (ClientGroup cg : ((SubscriberWrapper.ListWrapper) unmatchedResult).getClients()) {
+            unmatchedIds.add(cg.clientId);
+        }
+        assertFalse("pattern client must not receive unmatched topic", unmatchedIds.contains("patternClient"));
+        assertTrue("legacy client must still receive unmatched topic", unmatchedIds.contains("legacyClient"));
     }
 
     /**

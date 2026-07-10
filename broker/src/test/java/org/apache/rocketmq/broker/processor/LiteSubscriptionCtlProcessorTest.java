@@ -160,6 +160,79 @@ public class LiteSubscriptionCtlProcessorTest {
     }
 
     @Test
+    public void testProcessRequest_WildcardCompleteAdd_RoutesToPatternOverload() throws Exception {
+        String clientId = "clientId";
+        String group = "group";
+        String topic = "topic";
+        Set<String> patterns = new HashSet<>();
+        patterns.add("pay__*");
+        patterns.add("notify__**");
+
+        LiteSubscriptionDTO dto = new LiteSubscriptionDTO();
+        dto.setClientId(clientId);
+        dto.setGroup(group);
+        dto.setTopic(topic);
+        dto.setLiteTopicSet(patterns);
+        dto.setAction(LiteSubscriptionAction.COMPLETE_ADD);
+        dto.setVersion(1L);
+
+        LiteSubscriptionCtlRequestBody requestBody = new LiteSubscriptionCtlRequestBody();
+        requestBody.setSubscriptionSet(Collections.singleton(dto));
+        RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
+        request.setBody(requestBody.encode());
+
+        when(ctx.channel()).thenReturn(channel);
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setConsumeEnable(true);
+        groupConfig.setWildcardLiteGroup(true);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
+        RemotingCommand response = processor.processRequest(ctx, request);
+
+        assertEquals(ResponseCode.SUCCESS, response.getCode());
+        // wildcard group -> 6-arg overload carrying the validated patterns
+        verify(liteSubscriptionRegistry).addCompleteSubscription(eq(clientId), eq(group), eq(topic),
+            anySet(), anySet(), eq(1L));
+    }
+
+    @Test
+    public void testProcessRequest_WildcardCompleteAdd_AllInvalidPatternsRejected() throws Exception {
+        String clientId = "clientId";
+        String group = "group";
+        String topic = "topic";
+        // every pattern is invalid (mixed * in a segment / ** not at end)
+        Set<String> patterns = new HashSet<>();
+        patterns.add("pay*");
+        patterns.add("**__pay");
+
+        LiteSubscriptionDTO dto = new LiteSubscriptionDTO();
+        dto.setClientId(clientId);
+        dto.setGroup(group);
+        dto.setTopic(topic);
+        dto.setLiteTopicSet(patterns);
+        dto.setAction(LiteSubscriptionAction.COMPLETE_ADD);
+        dto.setVersion(1L);
+
+        LiteSubscriptionCtlRequestBody requestBody = new LiteSubscriptionCtlRequestBody();
+        requestBody.setSubscriptionSet(Collections.singleton(dto));
+        RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
+        request.setBody(requestBody.encode());
+
+        when(ctx.channel()).thenReturn(channel);
+        when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setConsumeEnable(true);
+        groupConfig.setWildcardLiteGroup(true);
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group)).thenReturn(groupConfig);
+
+        RemotingCommand response = processor.processRequest(ctx, request);
+
+        // Must be rejected, NOT silently widened to receive-all legacy wildcard mode.
+        assertEquals(ResponseCode.ILLEGAL_OPERATION, response.getCode());
+    }
+
+    @Test
     public void testProcessRequest_ActionIsIncrementalRemove() throws Exception {
         String clientId = "clientId";
         String group = "group";

@@ -28,6 +28,7 @@ import org.apache.rocketmq.broker.lite.LiteSubscriptionRegistry;
 import org.apache.rocketmq.broker.lite.LiteQuotaException;
 import org.apache.rocketmq.broker.lite.LiteMetadataUtil;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.lite.LitePatternMatcher;
 import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -94,8 +95,16 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
                     case COMPLETE_ADD:
                         checkConsumeEnable(group);
                         this.liteSubscriptionRegistry.updateClientChannel(clientId, ctx.channel());
-                        this.liteSubscriptionRegistry.addCompleteSubscription(clientId, group, topic, lmqNameSet,
-                            entry.getVersion());
+                        if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
+                            // For a wildcard group, liteTopicSet carries pattern strings (not literal
+                            // lmqNames); pass them through verbatim and let the registry expand them.
+                            Set<String> wildcardPatterns = toWildcardPatterns(entry);
+                            this.liteSubscriptionRegistry.addCompleteSubscription(clientId, group, topic, lmqNameSet,
+                                wildcardPatterns, entry.getVersion());
+                        } else {
+                            this.liteSubscriptionRegistry.addCompleteSubscription(clientId, group, topic, lmqNameSet,
+                                entry.getVersion());
+                        }
                         break;
                     case COMPLETE_REMOVE:
                         this.liteSubscriptionRegistry.removeCompleteSubscription(clientId);
@@ -126,6 +135,44 @@ public class LiteSubscriptionCtlProcessor implements NettyRequestProcessor {
         return liteSubscriptionDTO.getLiteTopicSet().stream()
             .map(liteTopic -> LiteUtil.toLmqName(liteSubscriptionDTO.getTopic(), liteTopic))
             .collect(Collectors.toSet());
+    }
+
+    /**
+     * Extract wildcard patterns from a wildcard group's {@code liteTopicSet}. Pattern strings are
+     * passed through verbatim (they contain {@code *} / {@code **} and must not be converted to
+     * lmqNames); entries that fail {@link LitePatternMatcher#validate(String)} are dropped with a
+     * warning rather than aborting the whole request.
+     *
+     * <p>A genuinely empty {@code liteTopicSet} means the group runs in legacy wildcard mode
+     * (receive all lite-topics under the parent topic). But a <em>non-empty</em> set in which every
+     * pattern is invalid must NOT silently widen into legacy/full-wildcard consumption — that would
+     * turn a malformed restrictive subscription into receiving everything. Such input is rejected
+     * with an {@link IllegalStateException} (mapped to {@code ILLEGAL_OPERATION}).
+     *
+     * @return the validated patterns; empty only when the input {@code liteTopicSet} was empty
+     * @throws IllegalStateException if the input was non-empty but contained no valid patterns
+     */
+    private Set<String> toWildcardPatterns(LiteSubscriptionDTO liteSubscriptionDTO) {
+        Set<String> raw = liteSubscriptionDTO.getLiteTopicSet();
+        if (CollectionUtils.isEmpty(raw)) {
+            return Collections.emptySet();
+        }
+        Set<String> patterns = raw.stream()
+            .filter(pattern -> {
+                if (LitePatternMatcher.validate(pattern)) {
+                    return true;
+                }
+                log.warn("drop invalid wildcard pattern, group:{}, topic:{}, pattern:{}",
+                    liteSubscriptionDTO.getGroup(), liteSubscriptionDTO.getTopic(), pattern);
+                return false;
+            })
+            .collect(Collectors.toSet());
+        if (patterns.isEmpty()) {
+            // Non-empty input but no valid pattern: reject rather than widen to receive-all.
+            throw new IllegalStateException("all wildcard patterns are invalid, group:"
+                + liteSubscriptionDTO.getGroup() + ", topic:" + liteSubscriptionDTO.getTopic());
+        }
+        return patterns;
     }
 
 }

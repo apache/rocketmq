@@ -25,6 +25,13 @@ public class LiteSubscription {
     private String group;
     private String topic;
     private final Set<String> liteTopicSet = ConcurrentHashMap.newKeySet();
+    /**
+     * Wildcard patterns for a wildcard group in pattern mode. Empty means the group is either a
+     * non-wildcard subscription or a legacy wildcard group (receives all lite-topics under the
+     * parent topic). When non-empty, {@link #liteTopicSet} holds the expanded (matched) lmqNames.
+     * Not serialized over the wire; rebuilt on client reconnect, same as {@link #liteTopicSet}.
+     */
+    private final Set<String> wildcardPatterns = ConcurrentHashMap.newKeySet();
     private volatile long updateTime = System.currentTimeMillis();
 
     public boolean addLiteTopic(String liteTopic) {
@@ -74,6 +81,23 @@ public class LiteSubscription {
         return this;
     }
 
+    public Set<String> getWildcardPatterns() {
+        return wildcardPatterns;
+    }
+
+    /**
+     * Full replace of the wildcard patterns. Existing patterns not in the given collection are
+     * removed and the new ones are added.
+     */
+    public LiteSubscription setWildcardPatterns(Collection<String> patterns) {
+        updateTime();
+        this.wildcardPatterns.clear();
+        if (patterns != null) {
+            this.wildcardPatterns.addAll(patterns);
+        }
+        return this;
+    }
+
     public long getUpdateTime() {
         return updateTime;
     }
@@ -92,6 +116,7 @@ public class LiteSubscription {
             "group='" + group + '\'' +
             ", topic='" + topic + '\'' +
             ", liteTopicSet=" + liteTopicSet +
+            ", wildcardPatterns=" + wildcardPatterns +
             ", updateTime=" + updateTime +
             '}';
     }

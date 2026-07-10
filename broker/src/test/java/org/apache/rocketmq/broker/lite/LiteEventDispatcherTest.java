@@ -57,6 +57,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -540,5 +541,78 @@ public class LiteEventDispatcherTest {
         liteEventDispatcher.fullDispatchSet.add(request);
         liteEventDispatcher.scan();
         assertTrue(liteEventDispatcher.fullDispatchSet.isEmpty());
+    }
+
+    // ==================== doFullDispatchForWildcardGroup ====================
+
+    private SubscriptionGroupConfig wildcardGroupConfig(String group, String bindTopic) {
+        SubscriptionGroupConfig config = new SubscriptionGroupConfig();
+        config.setGroupName(group);
+        config.setWildcardLiteGroup(true);
+        config.setLiteBindTopic(bindTopic);
+        return config;
+    }
+
+    /**
+     * Legacy wildcard group: dispatch iterates collectByParentTopic (O(M)) instead of the full
+     * forEachLiteTopic scan, dispatching lagged lite-topics to the shared client set.
+     */
+    @Test
+    public void testDoFullDispatchForWildcardGroup_LegacyMode_UsesCollectByParentTopic() {
+        String group = "wildcardGroup";
+        String parentTopic = "order_events";
+        String lmqName = LiteUtil.toLmqName(parentTopic, "pay__refund");
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group))
+            .thenReturn(wildcardGroupConfig(group, parentTopic));
+        when(liteLifecycleManager.collectByParentTopic(parentTopic)).thenReturn(Collections.singletonList(lmqName));
+        when(liteLifecycleManager.getMaxOffsetInQueue(lmqName)).thenReturn(100L);
+        when(consumerOffsetManager.queryOffset(group, lmqName, 0)).thenReturn(50L);
+        // no pattern-mode clients: getAllClientIdByGroup returns a legacy client id whose
+        // subscription has empty wildcardPatterns
+        when(liteSubscriptionRegistry.getAllClientIdByGroup(group)).thenReturn(Collections.singletonList("legacyClient"));
+        LiteSubscription legacySub = new LiteSubscription().setGroup(group).setTopic(parentTopic);
+        when(liteSubscriptionRegistry.getLiteSubscription("legacyClient")).thenReturn(legacySub);
+        List<ClientGroup> clients = Collections.singletonList(new ClientGroup("legacyClient", group));
+        SubscriberWrapper.ListWrapper wrapper = mock(SubscriberWrapper.ListWrapper.class);
+        when(wrapper.getClients()).thenReturn(clients);
+        when(liteSubscriptionRegistry.getWildcardSubscriber(group, parentTopic)).thenReturn(wrapper);
+
+        LiteEventDispatcher spyDispatcher = spy(liteEventDispatcher);
+        doReturn(true).when(spyDispatcher).selectAndDispatch(eq(lmqName), eq(clients), eq(null));
+
+        spyDispatcher.doFullDispatchForWildcardGroup(group);
+
+        // collectByParentTopic is used, not forEachLiteTopic
+        verify(liteLifecycleManager).collectByParentTopic(parentTopic);
+        verify(liteLifecycleManager, never()).forEachLiteTopic(any());
+        verify(spyDispatcher).selectAndDispatch(lmqName, clients, null);
+    }
+
+    /**
+     * Pattern-mode wildcard group: patterns are re-expanded and backlog is dispatched per client
+     * via doFullDispatchForClient.
+     */
+    @Test
+    public void testDoFullDispatchForWildcardGroup_PatternMode_ReexpandsAndDispatches() {
+        String group = "wildcardGroup";
+        String parentTopic = "order_events";
+        String clientId = "patternClient";
+        when(subscriptionGroupManager.findSubscriptionGroupConfig(group))
+            .thenReturn(wildcardGroupConfig(group, parentTopic));
+        when(liteSubscriptionRegistry.getAllClientIdByGroup(group)).thenReturn(Collections.singletonList(clientId));
+        LiteSubscription patternSub = new LiteSubscription().setGroup(group).setTopic(parentTopic);
+        patternSub.setWildcardPatterns(Collections.singleton("pay__*"));
+        when(liteSubscriptionRegistry.getLiteSubscription(clientId)).thenReturn(patternSub);
+
+        LiteEventDispatcher spyDispatcher = spy(liteEventDispatcher);
+        // re-expansion delegates to the registry; per-client backlog dispatch delegates to doFullDispatchForClient
+        doNothing().when(spyDispatcher).doFullDispatchForClient(clientId, group);
+
+        spyDispatcher.doFullDispatchForWildcardGroup(group);
+
+        verify(liteSubscriptionRegistry).reexpandWildcardPatterns(clientId);
+        verify(spyDispatcher).doFullDispatchForClient(clientId, group);
+        // legacy path (getWildcardSubscriber) must NOT be taken for a pure pattern-mode group
+        verify(liteSubscriptionRegistry, never()).getWildcardSubscriber(anyString(), anyString());
     }
 }

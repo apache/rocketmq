@@ -23,6 +23,7 @@ import com.google.common.cache.CacheBuilder;
 import io.netty.channel.Channel;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,6 +40,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.entity.ClientGroup;
+import org.apache.rocketmq.common.lite.LitePatternMatcher;
 import org.apache.rocketmq.common.lite.LiteSubscription;
 import org.apache.rocketmq.common.lite.LiteUtil;
 import org.apache.rocketmq.common.lite.OffsetOption;
@@ -124,8 +126,27 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
 
     @Override
     public void addCompleteSubscription(String clientId, String group, String topic, Set<String> lmqNameAll, long version) {
+        addCompleteSubscription(clientId, group, topic, lmqNameAll, Collections.emptySet(), version);
+    }
+
+    @Override
+    public void addCompleteSubscription(String clientId, String group, String topic, Set<String> lmqNameAll,
+        Set<String> wildcardPatterns, long version) {
         Set<String> lmqNameNew;
-        if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
+        boolean isWildcardGroup = LiteMetadataUtil.isWildcardGroup(group, brokerController);
+        boolean isPatternMode = isWildcardGroup && wildcardPatterns != null && !wildcardPatterns.isEmpty();
+
+        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
+        if (isPatternMode) {
+            // Persist the patterns (authoritative intent) and eagerly expand against existing
+            // lite-topics under the parent topic. The expanded lmqNames are registered as a normal
+            // subscription; the topic@group synthetic key is NOT used for pattern-mode groups.
+            thisSub.setWildcardPatterns(wildcardPatterns);
+            lmqNameNew = expandWildcardPatterns(topic, wildcardPatterns);
+            markWildcardGroup(topic, group);
+        } else if (isWildcardGroup) {
+            // Legacy wildcard group: receive all lite-topics under the parent topic via the
+            // synthetic topic@group key.
             lmqNameNew = Collections.singleton(mockLmqNameForWildcardGroup(topic, group));
             markWildcardGroup(topic, group);
         } else {
@@ -134,7 +155,6 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                 .collect(Collectors.toSet());
         }
 
-        LiteSubscription thisSub = getOrCreateLiteSubscription(clientId, group, topic);
         Set<String> lmqNamePrev = thisSub.getLiteTopicSet();
         // Find topics to remove (in current set but not in new set)
         Set<String> lmqNameRemove = lmqNamePrev.stream()
@@ -167,6 +187,60 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
     }
 
+    /**
+     * Eagerly expand wildcard patterns against the existing lite-topics under {@code parentTopic}.
+     * Returns the set of matched <em>full lmqNames</em> that this broker is responsible for
+     * (sharding-aware via {@link AbstractLiteLifecycleManager#isSubscriptionActive}).
+     */
+    private Set<String> expandWildcardPatterns(String parentTopic, Set<String> wildcardPatterns) {
+        List<String> candidates = liteLifecycleManager.collectByParentTopic(parentTopic);
+        if (candidates.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> matchedLmqNames = new HashSet<>();
+        for (String lmqName : candidates) {
+            String child = LiteUtil.getLiteTopic(lmqName);
+            if (child == null) {
+                continue;
+            }
+            if (LitePatternMatcher.matchesAny(wildcardPatterns, child)
+                && liteLifecycleManager.isSubscriptionActive(parentTopic, lmqName)) {
+                matchedLmqNames.add(lmqName);
+            }
+        }
+        return matchedLmqNames;
+    }
+
+    @Override
+    public int reexpandWildcardPatterns(String clientId) {
+        LiteSubscription thisSub = client2Subscription.get(clientId);
+        if (thisSub == null || CollectionUtils.isEmpty(thisSub.getWildcardPatterns())) {
+            return 0;
+        }
+        String topic = thisSub.getTopic();
+        String group = thisSub.getGroup();
+        Set<String> matched = expandWildcardPatterns(topic, thisSub.getWildcardPatterns());
+        Set<String> current = thisSub.getLiteTopicSet();
+        // Register only the newly-matched lmqNames; existing ones are already subscribed.
+        Set<String> toAdd = matched.stream().filter(lmqName -> !current.contains(lmqName)).collect(Collectors.toSet());
+        if (toAdd.isEmpty()) {
+            return 0;
+        }
+        ClientGroup clientGroup = new ClientGroup(clientId, group);
+        int added = 0;
+        for (String lmqName : toAdd) {
+            thisSub.addLiteTopic(lmqName);
+            if (addTopicGroup(clientGroup, lmqName)) {
+                added++;
+            }
+        }
+        if (added > 0) {
+            LOGGER.info("reexpandWildcardPatterns, clientId:{}, group:{}, topic:{}, newly matched:{}",
+                clientId, group, topic, added);
+        }
+        return added;
+    }
+
     @Override
     public void removeCompleteSubscription(String clientId) {
         clientChannels.remove(clientId);
@@ -183,6 +257,13 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         thisSub.getLiteTopicSet().forEach(lmqName -> {
             removeTopicGroup(clientGroup, lmqName, false);
         });
+        // Pattern-mode wildcard groups are marked in wildcardGroupMap for fan-out enumeration but
+        // register real lmqNames (so unmarkWildcardGroupIfNecessary, which parses the synthetic
+        // topic@group key, never fires for them). Clean up explicitly when the last client leaves.
+        if (CollectionUtils.isNotEmpty(thisSub.getWildcardPatterns())
+            && getAllClientIdByGroup(thisSub.getGroup()).isEmpty()) {
+            unmarkWildcardGroup(thisSub.getTopic(), thisSub.getGroup());
+        }
         for (LiteCtlListener listener : listeners) {
             listener.onRemoveAll(clientId, thisSub.getGroup());
         }
@@ -204,17 +285,27 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     @Override
     public SubscriberWrapper getAllSubscriber(String group, String lmqName) {
         String topic = LiteUtil.getParentTopic(lmqName);
+        boolean isWildcardGroup = group != null && LiteMetadataUtil.isWildcardGroup(group, brokerController);
 
         if (group != null) {
-            if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
-                return getWildcardSubscriber(group, topic);
-            }
             SubscriberWrapper.ListWrapper wrapper = new SubscriberWrapper.ListWrapper();
+            // Pattern-mode wildcard groups register real lmqNames into liteTopic2Group (same as a
+            // normal subscription), so the normal lookup finds their clients here.
             Set<ClientGroup> subscribers = liteTopic2Group.get(lmqName);
             if (subscribers != null) {
                 wrapper.getClients().addAll(subscribers.stream()
                     .filter(clientGroup -> group.equals(clientGroup.group))
                     .collect(Collectors.toSet()));
+            }
+            // For a wildcard group, always merge clients from the synthetic topic@group key. Legacy
+            // wildcard clients (receive-all) live there; pattern-mode clients never do (they register
+            // real lmqNames, already merged above). This keeps delivery correct in mixed groups where
+            // some clients use patterns and others are legacy — both sets are returned.
+            if (isWildcardGroup) {
+                List<ClientGroup> wildcardClients = getWildcardGroupClients(topic, group);
+                if (CollectionUtils.isNotEmpty(wildcardClients)) {
+                    wrapper.getClients().addAll(wildcardClients);
+                }
             }
             return wrapper;
         } else {
@@ -225,6 +316,10 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                     wrapper.getGroupMap().computeIfAbsent(clientGroup.group, k -> new ArrayList<>()).add(clientGroup);
                 }
             }
+            // Fan out wildcard groups via the synthetic topic@group key. Legacy wildcard clients are
+            // only reachable there; pattern-mode wildcard clients are already in liteTopic2Group
+            // (merged above) and absent from the synthetic key, so they are not double-counted. A
+            // group may contain both kinds, so enumerate every wildcard group without skipping.
             Set<String> wildcardGroups = wildcardGroupMap.get(topic);
             if (wildcardGroups != null) {
                 for (String wildcardGroup : wildcardGroups) {
@@ -269,7 +364,7 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
     }
 
-    protected void addTopicGroup(ClientGroup clientGroup, String lmqName) {
+    protected boolean addTopicGroup(ClientGroup clientGroup, String lmqName) {
         Set<ClientGroup> topicGroupSet = liteTopic2Group
             .computeIfAbsent(lmqName, k -> ConcurrentHashMap.newKeySet());
         if (topicGroupSet.add(clientGroup)) {
@@ -278,7 +373,9 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
             for (LiteCtlListener listener : listeners) {
                 listener.onRegister(clientGroup.clientId, clientGroup.group, lmqName);
             }
+            return true;
         }
+        return false;
     }
 
     protected void removeTopicGroup(ClientGroup clientGroup, String lmqName, boolean resetOffset) {
@@ -422,6 +519,13 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
 
     private void markWildcardGroup(String topic, String group) {
         wildcardGroupMap.computeIfAbsent(topic, k -> ConcurrentHashMap.newKeySet()).add(group);
+    }
+
+    private void unmarkWildcardGroup(String topic, String group) {
+        wildcardGroupMap.computeIfPresent(topic, (k, v) -> {
+            v.remove(group);
+            return v.isEmpty() ? null : v;
+        });
     }
 
     private void unmarkWildcardGroupIfNecessary(String lmqName) {
