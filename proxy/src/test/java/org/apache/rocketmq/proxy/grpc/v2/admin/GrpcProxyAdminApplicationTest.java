@@ -1419,7 +1419,8 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
     }
 
     @Test
-    public void describeMissingClientReturnsNotFoundStatus() throws Exception {
+    public void describeMissingClientReturnsNotFoundStatusWithoutClientBodyThroughGeneratedGrpcService()
+        throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
         ManagedChannel channel = null;
@@ -1441,6 +1442,7 @@ public class GrpcProxyAdminApplicationTest extends InitConfigTest {
                 .build());
 
             assertThat(response.getStatus().getCode()).isEqualTo(Code.NOT_FOUND);
+            assertThat(response.getStatus().getMessage()).contains("Client not found: missing-client");
             assertThat(response.hasClient()).isFalse();
         } finally {
             if (channel != null) {

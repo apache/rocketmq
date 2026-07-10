@@ -267,10 +267,10 @@ deploy_maven(
 
     submission = """
 Tests run: 55, Failures: 0, Errors: 0, Skipped: 0
-Finished at: 2026-07-10T08:27:13+08:00
+Finished at: 2026-07-10T08:45:58+08:00
 Tests run: 731, Failures: 0, Errors: 0, Skipped: 0
-Finished at: 2026-07-10T08:28:12+08:00
-Finished at: 2026-07-10T08:31:23+08:00
+Finished at: 2026-07-10T08:46:56+08:00
+Finished at: 2026-07-10T08:47:54+08:00
 3.576 ms
 0.681 ms
 Dashboard CLIENT-01
@@ -647,7 +647,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
                 path = root / rel
                 path.write_text(
                     path.read_text(encoding="utf-8").replace(
-                        "Finished at: 2026-07-10T08:31:23+08:00\n",
+                        "Finished at: 2026-07-10T08:47:54+08:00\n",
                         "",
                     ),
                     encoding="utf-8",

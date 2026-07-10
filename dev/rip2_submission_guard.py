@@ -40,10 +40,10 @@ FULL_GUARD_COMMAND = "python3 dev/rip2_submission_guard.py --check-remote --chec
 PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
 FOCUSED_RESULT = "Tests run: 55, Failures: 0, Errors: 0, Skipped: 0"
-FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T08:27:13+08:00"
+FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T08:45:58+08:00"
 BROAD_RESULT = "Tests run: 731, Failures: 0, Errors: 0, Skipped: 0"
-BROAD_FINISHED_AT = "Finished at: 2026-07-10T08:28:12+08:00"
-PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T08:31:23+08:00"
+BROAD_FINISHED_AT = "Finished at: 2026-07-10T08:46:56+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T08:47:54+08:00"
 INTERNAL_ERROR_PUBLIC_ENDPOINT_TEST = (
     "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService"
 )
@@ -60,6 +60,9 @@ PREVIOUS_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T06:27:48+08:00"
 RECENT_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T07:52:28+08:00"
 RECENT_BROAD_FINISHED_AT = "Finished at: 2026-07-10T07:53:37+08:00"
 RECENT_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T07:54:35+08:00"
+REFRESHED_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T08:27:13+08:00"
+REFRESHED_BROAD_FINISHED_AT = "Finished at: 2026-07-10T08:28:12+08:00"
+REFRESHED_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T08:31:23+08:00"
 PUBLIC_REVIEW_ARTIFACT_LINKS = (
     "https://github.com/apache/rocketmq/pull/10603",
     "https://github.com/apache/rocketmq-apis/pull/112",
@@ -187,7 +190,7 @@ REQUIRED_GENERATED_PUBLIC_ENDPOINT_TESTS = (
     "listClientsHonorsContestFiltersAndPaginationThroughGeneratedGrpcService",
     "listClientsByGroupAndTopicHonorContestFiltersAndPaginationThroughGeneratedGrpcService",
     "describeClientRejectsMissingClientIdThroughGeneratedGrpcService",
-    "describeMissingClientReturnsNotFoundStatus",
+    "describeMissingClientReturnsNotFoundStatusWithoutClientBodyThroughGeneratedGrpcService",
     "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService",
     "listClientsReturnsDashboardTableFieldsThroughGeneratedGrpcService",
     "describeClientReturnsDashboardClientViewFieldsThroughGeneratedGrpcService",
@@ -540,12 +543,15 @@ def check_submission_evidence(root, errors):
         RECENT_FOCUSED_FINISHED_AT,
         RECENT_BROAD_FINISHED_AT,
         RECENT_PACKAGE_SMOKE_FINISHED_AT,
+        REFRESHED_FOCUSED_FINISHED_AT,
+        REFRESHED_BROAD_FINISHED_AT,
+        REFRESHED_PACKAGE_SMOKE_FINISHED_AT,
     )
     for token in stale_tokens:
         if token in combined_docs:
-            if "04:07:14" in token or "06:27:48" in token or "07:54:35" in token:
+            if "04:07:14" in token or "06:27:48" in token or "07:54:35" in token or "08:31:23" in token:
                 errors.append(f"stale package smoke evidence remains: {token}")
-            elif "728" in token or "730" in token or "05:14:32" in token or "06:06:44" in token or "07:53:37" in token:
+            elif "728" in token or "730" in token or "05:14:32" in token or "06:06:44" in token or "07:53:37" in token or "08:28:12" in token:
                 errors.append(f"stale broad verification evidence remains: {token}")
             else:
                 errors.append(f"stale focused verification evidence remains: {token}")

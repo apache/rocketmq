@@ -39,7 +39,7 @@
 | 验收项 | 当前状态 | 证据 | 剩余门禁 |
 | --- | --- | --- | --- |
 | 核心模块单测覆盖率 >=85%。 | RIP-2 core packages 本地已验证。 | submission package 记录 `service.admin.client` line coverage 95.48%，`grpc.v2.admin` line coverage 94.52%；两个 package 的 branch coverage 也均超过 85%。 | 代码变更后需要重跑 coverage。 |
-| 集成测试覆盖接口、鉴权和异常处理。 | 已实现。 | 生成版 gRPC Server/Channel tests、proto-free endpoint integration tests、peer tests、ACL tests、bad-request/not-found/unauthorized/status mapping tests，以及 `GrpcProxyAdminApplicationTest#publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService` 对 public `INTERNAL_SERVER_ERROR` response mapping 的覆盖。 | Dashboard CLIENT-01 仍是外部 E2E 项。 |
+| 集成测试覆盖接口、鉴权和异常处理。 | 已实现。 | 生成版 gRPC Server/Channel tests、proto-free endpoint integration tests、peer tests、ACL tests、bad-request/not-found/unauthorized/status mapping tests、`GrpcProxyAdminApplicationTest#describeMissingClientReturnsNotFoundStatusWithoutClientBodyThroughGeneratedGrpcService` 对 public `NOT_FOUND` response-body contract 的覆盖，以及 `GrpcProxyAdminApplicationTest#publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService` 对 public `INTERNAL_SERVER_ERROR` response mapping 的覆盖。 | Dashboard CLIENT-01 仍是外部 E2E 项。 |
 | 提供性能 benchmark report。 | 已实现。 | 中英文 benchmark report 包含命令、环境、1M-client read-model、生成版 public gRPC endpoint、coordinator 场景、P50/P95/P99 和 heap 设置。 | 硬件或实现明显变化后需要重跑。 |
 | 中英文文档与代码同步。 | contest 分支已同步。 | 中英文 user guide、final smoke、benchmark report、submission package 均已存在。 | review 过程中保持 PR 和 issue 链接更新。 |
 

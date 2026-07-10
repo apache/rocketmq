@@ -1152,7 +1152,8 @@ Append these test methods to `GrpcProxyAdminApplicationTest`:
     }
 
     @Test
-    public void describeMissingClientReturnsNotFoundStatus() throws Exception {
+    public void describeMissingClientReturnsNotFoundStatusWithoutClientBodyThroughGeneratedGrpcService()
+        throws Exception {
         DefaultGrpcMessagingActivity activity = GrpcMessagingApplication.createDefaultActivity(this.messagingProcessor);
         Server server = null;
         ManagedChannel channel = null;
@@ -1174,6 +1175,7 @@ Append these test methods to `GrpcProxyAdminApplicationTest`:
                 .build());
 
             assertThat(response.getStatus().getCode()).isEqualTo(Code.NOT_FOUND);
+            assertThat(response.getStatus().getMessage()).contains("Client not found: missing-client");
             assertThat(response.hasClient()).isFalse();
         } finally {
             if (channel != null) {
@@ -1707,11 +1709,11 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
 - [x] Focused public endpoint/startup verification evidence refreshed after the
   generated public service descriptor test:
   `Tests run: 55, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`,
-  finished at `2026-07-10T08:27:13+08:00`.
+  finished at `2026-07-10T08:45:58+08:00`.
 - [x] Broad proxy admin verification evidence refreshed on the latest branch
   head after descriptor and Dashboard-facing tests were included in the broad
   suite: `Tests run: 731, Failures: 0, Errors: 0, Skipped: 0`,
-  `BUILD SUCCESS`, finished at `2026-07-10T08:28:12+08:00`.
+  `BUILD SUCCESS`, finished at `2026-07-10T08:46:56+08:00`.
 - [x] Lightweight submission guard added:
   `dev/rip2_submission_guard.py` checks required RIP-2 files, the local
   `rocketmq-proto:2.2.0-rip2-SNAPSHOT` generated artifact, proto mirror
@@ -1765,7 +1767,7 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   the proposed public proto artifact.
 - [x] Package smoke refreshed after the submission guard:
   `mvn -pl proxy -am -DskipTests package -DskipITs` completed with
-  `BUILD SUCCESS`, finished at `2026-07-10T08:31:23+08:00`.
+  `BUILD SUCCESS`, finished at `2026-07-10T08:47:54+08:00`.
 - [x] Generated public endpoint coverage guard added:
   `dev/rip2_submission_guard.py` now verifies that the generated public gRPC
   endpoint tests still cover the service descriptor, success paths, contest
@@ -1782,7 +1784,15 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `Tests run: 55, Failures: 0, Errors: 0, Skipped: 0`, the broad proxy admin
   suite was rerun with
   `Tests run: 731, Failures: 0, Errors: 0, Skipped: 0`, and package smoke was
-  rerun with `BUILD SUCCESS`, finished at `2026-07-10T08:31:23+08:00`.
+  rerun with `BUILD SUCCESS`, finished at `2026-07-10T08:47:54+08:00`.
+- [x] Generated public endpoint NOT_FOUND body-contract coverage tightened:
+  the submission guard was first made to fail when
+  `GrpcProxyAdminApplicationTest#describeMissingClientReturnsNotFoundStatusWithoutClientBodyThroughGeneratedGrpcService`
+  was absent; the generated gRPC test now verifies `DescribeClient` returns a
+  public `NOT_FOUND` status/message for an offline client without a
+  `ProxyClient` result body. The focused method verification passed with
+  `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`,
+  finished at `2026-07-10T08:43:47+08:00`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact
