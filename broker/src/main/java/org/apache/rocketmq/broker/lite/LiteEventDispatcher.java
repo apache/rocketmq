@@ -24,6 +24,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.processor.PopLiteMessageProcessor;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -49,6 +50,36 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+/**
+ * Routes LMQ arrival events to Lite Pop clients.
+ * maintaining a per-client bounded event queue,
+ * and waking long-polling consumers when new messages become available.
+ * useless for grpc client.
+ *
+ * <p>Key responsibilities:
+ * <ul>
+ *   <li>{@link #dispatch} selects one client from a (group, lmq) subscriber
+ *   list (with random rotation plus exclusion of the recently-removed
+ *   client) and appends the LMQ name to that client's
+ *   {@link ClientEventSet}.</li>
+ *   <li>{@link #scan} runs periodically to (a) evict event sets whose
+ *   client appears inactive or whose queue is full and (b) execute
+ *   delayed full-dispatch tasks to recover from event-queue
+ *   overflow.</li>
+ *   <li>{@link #tryDispatchToClient} / {@link ClientEventSet} implement
+ *   the per-client event queue with a dual data structure for
+ *   deduplication and a soft-cap that can be refreshed at runtime
+ *   via the {@code liteEventCapacityCacheTtlMs} TTL.</li>
+ *   <li>{@link LiteCtlListenerImpl} bridges subscription-state changes
+ *   to dispatch: registration schedules a full dispatch, removal of
+ *   all subscriptions re-dispatches the orphaned events to other
+ *   clients in the same group.</li>
+ * </ul>
+ *
+ * <p>The class is also the producer of the long-polling wake-up signal:
+ * after a successful client selection it calls
+ * {@link PopLiteMessageProcessor#getPopLiteLongPollingService PopLiteMessageProcessor.getPopLiteLongPollingService}{@code .notifyMessageArriving(...)}.
+ */
 public class LiteEventDispatcher extends ServiceThread {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
