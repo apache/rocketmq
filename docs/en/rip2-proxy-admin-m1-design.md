@@ -1271,7 +1271,7 @@ RIP-2 suite:
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  '-Dtest=ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ProxyClientInfoTest,ProxyClientQueryTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,ProxyMetricsManagerTest,ProxyClientAdmin*Test,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,GrpcRequestPipelineFactoryTest,ProxyStartupTest,ClientActivityTest#testProducerTelemetryUpdatesProxyClientReadService+testConsumerTelemetryUpdatesProxyClientReadService+testHeartbeatPreservesConnectTimeAndUpdatesLastActiveTime+testNotifyClientTerminationRemovesProxyClientReadServiceIndexes' \
+  '-Dtest=ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ProxyClientInfoTest,ProxyClientQueryTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,ProxyMetricsManagerTest,ProxyClientAdmin*Test,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,GrpcRequestPipelineFactoryTest,ProxyStartupTest,ClientActivityTest#testProducerTelemetryUpdatesProxyClientReadService+testConsumerTelemetryUpdatesProxyClientReadService+testHeartbeatPreservesConnectTimeAndUpdatesLastActiveTime+testNotifyClientTerminationRemovesProxyClientReadServiceIndexes' \
   -DfailIfNoTests=false test -DskipITs
 ```
 
@@ -1329,16 +1329,16 @@ checkpoint, the broader RIP-2 proxy admin suite was rerun with:
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
+  "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 750, Failures: 0, Errors: 0, Skipped: 0` and
+The run reported `Tests run: 760, Failures: 0, Errors: 0, Skipped: 0` and
 ended with `BUILD SUCCESS`. Package-level JaCoCo coverage from the same run was:
 
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
-| `org/apache/rocketmq/proxy/service/admin/client` | 93.95% | 88.01% | 95.66% |
+| `org/apache/rocketmq/proxy/service/admin/client` | 93.12% | 85.90% | 94.64% |
 | `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.79% | 85.61% | 94.73% |
 
 The final submission package, including PR and issue-comment drafts, is in

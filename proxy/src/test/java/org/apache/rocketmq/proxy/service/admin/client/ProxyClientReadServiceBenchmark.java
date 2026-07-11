@@ -58,6 +58,9 @@ public class ProxyClientReadServiceBenchmark {
     private String[] proxyIds;
     private ProxyClientQuery firstPageQuery;
     private ProxyClientQuery nextPageQuery;
+    private ProxyClientQuery broadPrefixQuery;
+    private ProxyClientQuery combinedFiltersQuery;
+    private ProxyClientQuery deepPageQuery;
     private final AtomicInteger sequence = new AtomicInteger();
 
     @Setup
@@ -78,6 +81,25 @@ public class ProxyClientReadServiceBenchmark {
         this.nextPageQuery = ProxyClientQuery.newBuilder()
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .setPageToken(clientId(Math.min(ProxyClientQuery.MAX_PAGE_SIZE - 1, this.clientCount - 1)))
+            .build();
+        this.broadPrefixQuery = ProxyClientQuery.newBuilder()
+            .setClientIdPrefix("client-")
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build();
+        this.combinedFiltersQuery = ProxyClientQuery.newBuilder()
+            .setClientIdPrefix("client-")
+            .setClientLanguage("JAVA")
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(100L)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build();
+        int lastFullPage = Math.max(
+            ProxyClientQuery.DEFAULT_PAGE_NUM,
+            this.clientCount / ProxyClientQuery.MAX_PAGE_SIZE
+        );
+        this.deepPageQuery = ProxyClientQuery.newBuilder()
+            .setPageNum(Math.min(10000, lastFullPage))
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .build();
 
         for (int i = 0; i < this.clientCount; i++) {
@@ -153,6 +175,33 @@ public class ProxyClientReadServiceBenchmark {
             .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .build());
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ProxyClientPage listBroadPrefixPage() {
+        return this.readService.listClients(this.broadPrefixQuery);
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ProxyClientPage listCombinedFiltersPage() {
+        return this.readService.listClients(this.combinedFiltersQuery);
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ProxyClientPage listDeepPage() {
+        return this.readService.listClients(this.deepPageQuery);
     }
 
     @Benchmark

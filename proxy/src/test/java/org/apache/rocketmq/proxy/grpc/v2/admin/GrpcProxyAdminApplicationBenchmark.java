@@ -35,8 +35,11 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.proxy.service.admin.client.AuthorizingClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.DefaultClientAdminService;
 import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
@@ -60,6 +63,9 @@ import org.openjdk.jmh.annotations.Warmup;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class GrpcProxyAdminApplicationBenchmark {
+    private static final int PRODUCTION_THREAD_POOL_SIZE = 4;
+    private static final int PRODUCTION_QUEUE_CAPACITY = 10000;
+
     @Param({"1000000"})
     public int clientCount;
 
@@ -74,6 +80,8 @@ public class GrpcProxyAdminApplicationBenchmark {
 
     private ProxyClientReadService readService;
     private ProxyClientAdminEndpointExecutor endpointExecutor;
+    private ThreadPoolExecutor queryExecutor;
+    private ThreadPoolExecutor serverExecutor;
     private Server server;
     private ManagedChannel channel;
     private ProxyAdminServiceGrpc.ProxyAdminServiceBlockingStub stub;
@@ -83,6 +91,7 @@ public class GrpcProxyAdminApplicationBenchmark {
     private String[] proxyIds;
     private ListClientsRequest firstPageRequest;
     private ListClientsRequest clientIdPrefixRequest;
+    private ListClientsRequest combinedFiltersRequest;
     private ListClientsRequest languageRequest;
     private ListClientsRequest connectTimeRangeRequest;
     private final AtomicInteger sequence = new AtomicInteger();
@@ -105,6 +114,14 @@ public class GrpcProxyAdminApplicationBenchmark {
             .build();
         this.clientIdPrefixRequest = ListClientsRequest.newBuilder()
             .setClientIdPrefix("client-000")
+            .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build();
+        this.combinedFiltersRequest = ListClientsRequest.newBuilder()
+            .setClientIdPrefix("client-")
+            .setClientLanguage("JAVA")
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(100L)
             .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .build();
@@ -139,9 +156,19 @@ public class GrpcProxyAdminApplicationBenchmark {
                 .setRemoteAddress("127.0.0.1:8080")
                 .setLocalAddress("127.0.0.2:8081")
         );
-        this.endpointExecutor = new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        this.queryExecutor = newBoundedExecutor("ProxyClientAdminQueryThread_", 0L, TimeUnit.MILLISECONDS);
+        this.serverExecutor = newBoundedExecutor(
+            "ProxyAdminGrpcRequestExecutorThread_",
+            1L,
+            TimeUnit.MINUTES
+        );
+        this.endpointExecutor = new ProxyClientAdminEndpointExecutor(
+            contextFactory,
+            endpointHandler,
+            this.queryExecutor
+        );
         this.server = ServerBuilder.forPort(0)
-            .directExecutor()
+            .executor(this.serverExecutor)
             .addService(new GrpcProxyAdminApplication(this.endpointExecutor))
             .build()
             .start();
@@ -165,6 +192,13 @@ public class GrpcProxyAdminApplicationBenchmark {
         if (this.endpointExecutor != null) {
             this.endpointExecutor.shutdown();
         }
+        if (this.queryExecutor != null) {
+            awaitTerminationOrForceShutdown(this.queryExecutor);
+        }
+        if (this.serverExecutor != null) {
+            this.serverExecutor.shutdownNow();
+            this.serverExecutor.awaitTermination(5, TimeUnit.SECONDS);
+        }
     }
 
     @Benchmark
@@ -183,6 +217,15 @@ public class GrpcProxyAdminApplicationBenchmark {
     @Threads(4)
     public ListClientsResponse listClientsByClientIdPrefix() {
         return requireClients(this.stub.listClients(this.clientIdPrefixRequest));
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
+    public ListClientsResponse listClientsByCombinedFilters() {
+        return requireClients(this.stub.listClients(this.combinedFiltersRequest));
     }
 
     @Benchmark
@@ -265,6 +308,46 @@ public class GrpcProxyAdminApplicationBenchmark {
 
     private int nextIndex(int bound) {
         return Math.floorMod(this.sequence.getAndIncrement(), bound);
+    }
+
+    int getQueryExecutorThreadPoolSize() {
+        return this.queryExecutor.getCorePoolSize();
+    }
+
+    int getQueryExecutorQueueCapacity() {
+        return queueCapacity(this.queryExecutor);
+    }
+
+    int getServerExecutorThreadPoolSize() {
+        return this.serverExecutor.getCorePoolSize();
+    }
+
+    int getServerExecutorQueueCapacity() {
+        return queueCapacity(this.serverExecutor);
+    }
+
+    static void awaitTerminationOrForceShutdown(ThreadPoolExecutor executor) throws InterruptedException {
+        if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+            executor.shutdownNow();
+            executor.awaitTermination(5, TimeUnit.SECONDS);
+        }
+    }
+
+    private static ThreadPoolExecutor newBoundedExecutor(String threadNamePrefix, long keepAliveTime,
+        TimeUnit timeUnit) {
+        return new ThreadPoolExecutor(
+            PRODUCTION_THREAD_POOL_SIZE,
+            PRODUCTION_THREAD_POOL_SIZE,
+            keepAliveTime,
+            timeUnit,
+            new LinkedBlockingQueue<>(PRODUCTION_QUEUE_CAPACITY),
+            new ThreadFactoryImpl(threadNamePrefix),
+            new ThreadPoolExecutor.AbortPolicy()
+        );
+    }
+
+    private static int queueCapacity(ThreadPoolExecutor executor) {
+        return executor.getQueue().size() + executor.getQueue().remainingCapacity();
     }
 
     private static ListClientsResponse requireClients(ListClientsResponse response) {

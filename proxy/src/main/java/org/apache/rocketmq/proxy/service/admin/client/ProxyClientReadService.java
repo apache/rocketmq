@@ -46,6 +46,8 @@ public class ProxyClientReadService {
     private final Map<String, NavigableSet<String>> clientLanguageIndex = new HashMap<>();
     private final NavigableMap<Long, NavigableSet<String>> connectTimeIndex = new TreeMap<>();
     private final Consumer<ProxyClientReadServiceOperation> operationRecorder;
+    private List<String> clientIdPageAnchors = new ArrayList<>();
+    private boolean clientIdPageAnchorsDirty = true;
 
     public ProxyClientReadService() {
         this(NOOP_OPERATION_RECORDER);
@@ -64,7 +66,9 @@ public class ProxyClientReadService {
         if (oldClientInfo != null) {
             this.removeIndexes(oldClientInfo);
         }
-        this.clientIdIndex.add(clientId);
+        if (this.clientIdIndex.add(clientId)) {
+            this.clientIdPageAnchorsDirty = true;
+        }
         this.addIndexes(clientInfo);
         this.recordOperation(ProxyClientReadServiceOperation.UPSERT);
     }
@@ -77,7 +81,9 @@ public class ProxyClientReadService {
         ProxyClientInfo oldClientInfo = this.clientIdTable.remove(normalizedClientId);
         if (oldClientInfo != null) {
             this.removeIndexes(oldClientInfo);
-            this.clientIdIndex.remove(normalizedClientId);
+            if (this.clientIdIndex.remove(normalizedClientId)) {
+                this.clientIdPageAnchorsDirty = true;
+            }
             this.recordOperation(ProxyClientReadServiceOperation.REMOVE);
         }
     }
@@ -115,37 +121,63 @@ public class ProxyClientReadService {
 
     public synchronized ProxyClientPage listClients(ProxyClientQuery query) {
         ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
-        NavigableSet<String> clientIds = this.getCandidateClientIds(effectiveQuery);
+        List<NavigableSet<String>> candidateIndexes = this.getCandidateIndexes(effectiveQuery);
+        NavigableSet<String> drivingIndex = this.smallestCandidateIndex(candidateIndexes);
         String pageToken = effectiveQuery.getPageToken();
         if (StringUtils.isNotBlank(pageToken)) {
-            if (!clientIds.contains(pageToken)) {
+            if (!this.matchesAllCandidateIndexes(pageToken, candidateIndexes)) {
                 throw new IllegalArgumentException("Invalid page token: " + pageToken);
             }
-            clientIds = clientIds.tailSet(pageToken, false);
+            drivingIndex = drivingIndex.tailSet(pageToken, false);
         }
 
         int pageSize = effectiveQuery.getBoundedPageSize();
         long skipCount = StringUtils.isBlank(pageToken)
             ? ((long) effectiveQuery.getPageNum() - 1L) * pageSize
             : 0L;
+        if (StringUtils.isBlank(pageToken) && candidateIndexes.size() == 1
+            && drivingIndex == this.clientIdIndex && skipCount > 0) {
+            ClientIdPageAnchor anchor = this.getClientIdPageAnchor(skipCount);
+            if (anchor != null) {
+                drivingIndex = this.clientIdIndex.tailSet(anchor.clientId, true);
+                skipCount -= anchor.offset;
+            }
+        }
         List<ProxyClientInfo> clients = new ArrayList<>(pageSize);
-        Iterator<String> iterator = clientIds.iterator();
-        while (iterator.hasNext() && skipCount > 0) {
-            iterator.next();
+        Iterator<String> iterator = drivingIndex.iterator();
+        while (skipCount > 0 && this.nextMatchingClientId(iterator, candidateIndexes, drivingIndex) != null) {
             skipCount--;
         }
-        while (iterator.hasNext() && clients.size() < pageSize) {
-            clients.add(this.clientIdTable.get(iterator.next()));
+        String clientId;
+        while (clients.size() < pageSize
+            && (clientId = this.nextMatchingClientId(iterator, candidateIndexes, drivingIndex)) != null) {
+            clients.add(this.clientIdTable.get(clientId));
         }
 
         String nextPageToken = "";
-        if (iterator.hasNext() && !clients.isEmpty()) {
+        if (!clients.isEmpty() && this.nextMatchingClientId(iterator, candidateIndexes, drivingIndex) != null) {
             nextPageToken = clients.get(clients.size() - 1).getClientId();
         }
         return new ProxyClientPage(clients, nextPageToken);
     }
 
     private NavigableSet<String> getCandidateClientIds(ProxyClientQuery query) {
+        List<NavigableSet<String>> candidateIndexes = this.getCandidateIndexes(query);
+        if (candidateIndexes.size() == 1) {
+            return candidateIndexes.get(0);
+        }
+
+        NavigableSet<String> smallestCandidateIndex = this.smallestCandidateIndex(candidateIndexes);
+        NavigableSet<String> clientIds = new TreeSet<>(smallestCandidateIndex);
+        for (NavigableSet<String> candidateIndex : candidateIndexes) {
+            if (candidateIndex != smallestCandidateIndex) {
+                clientIds.retainAll(candidateIndex);
+            }
+        }
+        return clientIds;
+    }
+
+    private List<NavigableSet<String>> getCandidateIndexes(ProxyClientQuery query) {
         List<NavigableSet<String>> candidateIndexes = new ArrayList<>(8);
         if (StringUtils.isNotBlank(query.getClientId())) {
             candidateIndexes.add(this.getClientIdCandidate(query.getClientId()));
@@ -173,20 +205,34 @@ public class ProxyClientReadService {
                 query.getConnectTimeEndMillis()));
         }
         if (candidateIndexes.isEmpty()) {
-            return this.clientIdIndex;
+            candidateIndexes.add(this.clientIdIndex);
         }
-        if (candidateIndexes.size() == 1) {
-            return candidateIndexes.get(0);
-        }
+        return candidateIndexes;
+    }
 
-        NavigableSet<String> smallestCandidateIndex = this.smallestCandidateIndex(candidateIndexes);
-        NavigableSet<String> clientIds = new TreeSet<>(smallestCandidateIndex);
-        for (NavigableSet<String> candidateIndex : candidateIndexes) {
-            if (candidateIndex != smallestCandidateIndex) {
-                clientIds.retainAll(candidateIndex);
+    private String nextMatchingClientId(Iterator<String> iterator,
+        List<NavigableSet<String>> candidateIndexes, NavigableSet<String> drivingIndex) {
+        while (iterator.hasNext()) {
+            String clientId = iterator.next();
+            if (this.matchesAllCandidateIndexes(clientId, candidateIndexes, drivingIndex)) {
+                return clientId;
             }
         }
-        return clientIds;
+        return null;
+    }
+
+    private boolean matchesAllCandidateIndexes(String clientId, List<NavigableSet<String>> candidateIndexes) {
+        return this.matchesAllCandidateIndexes(clientId, candidateIndexes, null);
+    }
+
+    private boolean matchesAllCandidateIndexes(String clientId, List<NavigableSet<String>> candidateIndexes,
+        NavigableSet<String> drivingIndex) {
+        for (NavigableSet<String> candidateIndex : candidateIndexes) {
+            if (candidateIndex != drivingIndex && !candidateIndex.contains(clientId)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private NavigableSet<String> getClientIdCandidate(String clientId) {
@@ -198,14 +244,54 @@ public class ProxyClientReadService {
     }
 
     private NavigableSet<String> getClientIdPrefixCandidates(String clientIdPrefix) {
-        NavigableSet<String> clientIds = new TreeSet<>();
-        for (String clientId : this.clientIdIndex.tailSet(clientIdPrefix, true)) {
-            if (!clientId.startsWith(clientIdPrefix)) {
-                break;
-            }
-            clientIds.add(clientId);
+        String upperBound = nextPrefix(clientIdPrefix);
+        if (upperBound == null) {
+            return this.clientIdIndex.tailSet(clientIdPrefix, true);
         }
-        return clientIds;
+        return this.clientIdIndex.subSet(clientIdPrefix, true, upperBound, false);
+    }
+
+    private static String nextPrefix(String prefix) {
+        char[] chars = prefix.toCharArray();
+        for (int i = chars.length - 1; i >= 0; i--) {
+            if (chars[i] != Character.MAX_VALUE) {
+                chars[i]++;
+                return new String(chars, 0, i + 1);
+            }
+        }
+        return null;
+    }
+
+    private ClientIdPageAnchor getClientIdPageAnchor(long skipCount) {
+        this.refreshClientIdPageAnchors();
+        if (this.clientIdPageAnchors.isEmpty()) {
+            return null;
+        }
+        long requestedAnchorIndex = skipCount / ProxyClientQuery.MAX_PAGE_SIZE;
+        int anchorIndex = (int) Math.min(requestedAnchorIndex, this.clientIdPageAnchors.size() - 1L);
+        return new ClientIdPageAnchor(
+            this.clientIdPageAnchors.get(anchorIndex),
+            (long) anchorIndex * ProxyClientQuery.MAX_PAGE_SIZE
+        );
+    }
+
+    private void refreshClientIdPageAnchors() {
+        if (!this.clientIdPageAnchorsDirty) {
+            return;
+        }
+        List<String> anchors = new ArrayList<>(
+            (this.clientIdIndex.size() + ProxyClientQuery.MAX_PAGE_SIZE - 1)
+                / ProxyClientQuery.MAX_PAGE_SIZE
+        );
+        int index = 0;
+        for (String clientId : this.clientIdIndex) {
+            if (index % ProxyClientQuery.MAX_PAGE_SIZE == 0) {
+                anchors.add(clientId);
+            }
+            index++;
+        }
+        this.clientIdPageAnchors = anchors;
+        this.clientIdPageAnchorsDirty = false;
     }
 
     private NavigableSet<String> getConnectTimeClientIds(Long connectTimeStartMillis, Long connectTimeEndMillis) {
@@ -326,5 +412,15 @@ public class ProxyClientReadService {
 
     private static String normalizeIndexValue(String value) {
         return StringUtils.trimToNull(value);
+    }
+
+    private static class ClientIdPageAnchor {
+        private final String clientId;
+        private final long offset;
+
+        private ClientIdPageAnchor(String clientId, long offset) {
+            this.clientId = clientId;
+            this.offset = offset;
+        }
     }
 }

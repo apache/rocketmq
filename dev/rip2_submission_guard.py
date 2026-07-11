@@ -41,9 +41,9 @@ PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
 FOCUSED_RESULT = "Tests run: 56, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-11T18:41:53+08:00"
-BROAD_RESULT = "Tests run: 750, Failures: 0, Errors: 0, Skipped: 0"
-BROAD_FINISHED_AT = "Finished at: 2026-07-11T19:32:17+08:00"
-PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T19:35:13+08:00"
+BROAD_RESULT = "Tests run: 760, Failures: 0, Errors: 0, Skipped: 0"
+BROAD_FINISHED_AT = "Finished at: 2026-07-11T23:07:13+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T23:09:28+08:00"
 INTERNAL_ERROR_PUBLIC_ENDPOINT_TEST = (
     "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService"
 )
@@ -88,6 +88,12 @@ PRE_BINARY_HEADER_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T18:48:25+
 PRE_PRODUCTION_INTERCEPTOR_BROAD_RESULT = "Tests run: 749, Failures: 0, Errors: 0, Skipped: 0"
 PRE_PRODUCTION_INTERCEPTOR_BROAD_FINISHED_AT = "Finished at: 2026-07-11T18:56:24+08:00"
 PRE_PRODUCTION_INTERCEPTOR_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T18:58:58+08:00"
+PRE_CONSTRAINED_HEAP_BROAD_RESULT = "Tests run: 750, Failures: 0, Errors: 0, Skipped: 0"
+PRE_CONSTRAINED_HEAP_BROAD_FINISHED_AT = "Finished at: 2026-07-11T19:32:17+08:00"
+PRE_CONSTRAINED_HEAP_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T19:35:13+08:00"
+PRE_TEARDOWN_HARDENING_BROAD_RESULT = "Tests run: 759, Failures: 0, Errors: 0, Skipped: 0"
+PRE_TEARDOWN_HARDENING_BROAD_FINISHED_AT = "Finished at: 2026-07-11T22:39:54+08:00"
+PRE_TEARDOWN_HARDENING_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T22:41:31+08:00"
 PUBLIC_REVIEW_ARTIFACT_LINKS = (
     "https://github.com/apache/rocketmq/pull/10603",
     "https://github.com/apache/rocketmq-apis/pull/112",
@@ -98,6 +104,23 @@ REQUIRED_EXTERNAL_GATE_TOKENS = (
     "official artifact",
     "Dashboard CLIENT-01",
     "external",
+)
+
+REQUIRED_CONSTRAINED_HEAP_EVIDENCE = (
+    "4 GiB fixed heap",
+    "137.526 ms",
+    "243.610 ms",
+    "0.016 ms",
+    "29.042 ms",
+    "1126.4 MiB",
+    "1283.0 MiB",
+    "188604.8 B/op",
+    "zero swaps",
+)
+
+CONSTRAINED_HEAP_EVIDENCE_DOCS = (
+    "docs/en/rip2-proxy-admin-m1-benchmark-report.md",
+    "docs/cn/rip2-proxy-admin-m1-benchmark-report.md",
 )
 
 GITHUB_EXTERNAL_GATE_TOKENS = (
@@ -642,6 +665,11 @@ def check_submission_evidence(root, errors):
                 errors.append(f"submission evidence missing INTERNAL_SERVER_ERROR public endpoint evidence {token}")
             else:
                 errors.append(f"submission evidence missing {token}")
+    for rel in CONSTRAINED_HEAP_EVIDENCE_DOCS:
+        document = read_text(root / rel, errors)
+        for token in REQUIRED_CONSTRAINED_HEAP_EVIDENCE:
+            if token not in document:
+                errors.append(f"constrained heap benchmark evidence missing {token} in {rel}")
     for token in REQUIRED_PUBLIC_SCOPE_GATE_TOKENS:
         if token not in combined_docs:
             errors.append(f"submission evidence missing M1 public scope gate {token}")
@@ -690,6 +718,12 @@ def check_submission_evidence(root, errors):
         PRE_PRODUCTION_INTERCEPTOR_BROAD_RESULT,
         PRE_PRODUCTION_INTERCEPTOR_BROAD_FINISHED_AT,
         PRE_PRODUCTION_INTERCEPTOR_PACKAGE_SMOKE_FINISHED_AT,
+        PRE_CONSTRAINED_HEAP_BROAD_RESULT,
+        PRE_CONSTRAINED_HEAP_BROAD_FINISHED_AT,
+        PRE_CONSTRAINED_HEAP_PACKAGE_SMOKE_FINISHED_AT,
+        PRE_TEARDOWN_HARDENING_BROAD_RESULT,
+        PRE_TEARDOWN_HARDENING_BROAD_FINISHED_AT,
+        PRE_TEARDOWN_HARDENING_PACKAGE_SMOKE_FINISHED_AT,
     )
     for token in stale_tokens:
         if token in combined_docs:

@@ -19,10 +19,16 @@ package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.ProxyClient;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class GrpcProxyAdminApplicationBenchmarkTest {
 
@@ -42,9 +48,14 @@ public class GrpcProxyAdminApplicationBenchmarkTest {
             assertThat(benchmark.listClientsByGroup().getClientsList()).isNotEmpty();
             assertThat(benchmark.listClientsByTopic().getClientsList()).isNotEmpty();
             assertThat(benchmark.listClientsByClientIdPrefix().getClientsList()).isNotEmpty();
+            assertThat(benchmark.listClientsByCombinedFilters().getClientsList()).hasSize(100);
             assertThat(benchmark.listClientsByLanguage().getClientsList()).isNotEmpty();
             assertThat(benchmark.listClientsByConnectTimeRange().getClientsList()).isNotEmpty();
             assertThat(benchmark.describeClient().getClient().getClientId()).isNotEmpty();
+            assertThat(benchmark.getQueryExecutorThreadPoolSize()).isEqualTo(4);
+            assertThat(benchmark.getQueryExecutorQueueCapacity()).isEqualTo(10000);
+            assertThat(benchmark.getServerExecutorThreadPoolSize()).isEqualTo(4);
+            assertThat(benchmark.getServerExecutorQueueCapacity()).isEqualTo(10000);
         } finally {
             benchmark.tearDown();
         }
@@ -61,5 +72,16 @@ public class GrpcProxyAdminApplicationBenchmarkTest {
         assertThatThrownBy(benchmark::setup)
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("clientCount must be positive");
+    }
+
+    @Test
+    public void benchmarkForcesQueryExecutorShutdownAfterTimeout() throws Exception {
+        ThreadPoolExecutor executor = mock(ThreadPoolExecutor.class);
+        when(executor.awaitTermination(5, TimeUnit.SECONDS)).thenReturn(false, true);
+
+        GrpcProxyAdminApplicationBenchmark.awaitTerminationOrForceShutdown(executor);
+
+        verify(executor).shutdownNow();
+        verify(executor, times(2)).awaitTermination(5, TimeUnit.SECONDS);
     }
 }

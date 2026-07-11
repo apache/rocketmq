@@ -105,7 +105,7 @@ Run:
 
 ```bash
 cd .
-mvn -pl proxy -am "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
+mvn -pl proxy -am "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
 ```
 
 Expected:
@@ -1502,7 +1502,7 @@ Run:
 
 ```bash
 cd .
-mvn -pl proxy -am "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
+mvn -pl proxy -am "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
 ```
 
 Expected:
@@ -1838,8 +1838,8 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   of silently discarding an RPC. The submission guard pins these trust-boundary
   and context tests. Focused verification passed with `Tests run: 56` at
   `2026-07-11T18:41:53+08:00`, expanded broad verification passed with
-  `Tests run: 750` at `2026-07-11T19:32:17+08:00`, and package smoke passed at
-  `2026-07-11T19:35:13+08:00`.
+  `Tests run: 760` at `2026-07-11T23:07:13+08:00`, and package smoke passed at
+  `2026-07-11T23:09:28+08:00`.
 - [x] Production-interceptor dual-server authentication and isolation E2E
   completed. `GrpcProxyAdminProductionInterceptorE2ETest` starts independent
   messaging and admin loopback servers through production
@@ -1849,8 +1849,25 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   maps authenticated ACL denial to `UNAUTHORIZED`. The combined regression
   suite passed with `Tests run: 63` and `BUILD SUCCESS` at
   `2026-07-11T19:24:15+08:00`; the expanded broad suite then passed with
-  `Tests run: 750` at `2026-07-11T19:32:17+08:00`, followed by package smoke at
-  `2026-07-11T19:35:13+08:00`.
+  `Tests run: 760` at `2026-07-11T23:07:13+08:00`, followed by package smoke at
+  `2026-07-11T23:09:28+08:00`.
+- [x] Constrained-heap 1M proof completed. Performance TDD first reproduced
+  broad-prefix P99 `8388.608 ms`, combined-filter P99 `13505.659 ms`, and deep
+  page P99 `1157.313 ms`; the read model now uses a live prefix range view,
+  page-bounded index intersection, and mutation-invalidated page anchors. The
+  benchmark harness also uses production-shaped 4-thread/10,000-queue server
+  and query executors. Clean benchmark verification passed with `Tests run: 38`
+  and `BUILD SUCCESS` at `2026-07-11T22:26:00+08:00`. Under a 4 GiB fixed heap,
+  final P99 values were broad prefix `137.526 ms`, combined filters
+  `243.610 ms`, deep page 10000 `0.016 ms`, and generated public gRPC combined
+  filters `29.042 ms`; maximum JFR heapUsed was `1126.4 MiB`, maximum RSS was
+  `1283.0 MiB`, and all runs completed with zero swaps and no OOM. Final broad
+  verification includes the benchmark harness tests and passed with
+  `Tests run: 760` at
+  `2026-07-11T23:07:13+08:00`, followed by package smoke at
+  `2026-07-11T23:09:28+08:00`. Final review also hardened query-executor
+  teardown with a forced-shutdown fallback and made the submission guard check
+  the constrained-heap evidence independently in both benchmark reports.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

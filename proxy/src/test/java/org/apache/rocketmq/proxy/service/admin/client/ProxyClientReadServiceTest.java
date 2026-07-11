@@ -220,6 +220,29 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void deepPageAnchorsRefreshAfterClientIdMutations() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        for (int i = 1; i <= 250; i++) {
+            String clientId = String.format("client-%03d", i);
+            service.upsertClient(client(clientId, ClientType.PRODUCER, set("group-a"), set("topic-a")));
+        }
+        ProxyClientQuery deepPageQuery = ProxyClientQuery.newBuilder()
+            .setPageNum(3)
+            .setPageSize(100)
+            .build();
+
+        assertThat(clientIds(service.listClients(deepPageQuery).getClients()).get(0)).isEqualTo("client-201");
+
+        service.upsertClient(client("client-000", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+
+        assertThat(clientIds(service.listClients(deepPageQuery).getClients()).get(0)).isEqualTo("client-200");
+
+        service.removeClient("client-000");
+
+        assertThat(clientIds(service.listClients(deepPageQuery).getClients()).get(0)).isEqualTo("client-201");
+    }
+
+    @Test
     public void upsertClientRefreshesLanguageAndConnectTimeIndexes() {
         ProxyClientReadService service = new ProxyClientReadService();
         service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
@@ -278,6 +301,21 @@ public class ProxyClientReadServiceTest {
             .setConnectTimeStartMillis(100L)
             .setConnectTimeEndMillis(100L)
             .build())).isSameAs(connectTimeIndex.get(100L));
+    }
+
+    @Test
+    public void broadPrefixCandidatesReuseLiveOrderedClientIdIndexView() throws Exception {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+        service.upsertClient(client("other-a", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+
+        NavigableSet<String> prefixCandidates = candidateClientIds(service, ProxyClientQuery.newBuilder()
+            .setClientIdPrefix("client-")
+            .build());
+
+        service.upsertClient(client("client-b", ClientType.PRODUCER, set("group-a"), set("topic-a")));
+
+        assertThat(prefixCandidates).containsExactly("client-a", "client-b");
     }
 
     @Test

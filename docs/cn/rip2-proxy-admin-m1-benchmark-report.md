@@ -25,6 +25,63 @@ M1 公共语义仍然只承诺 `LOCAL_PROXY`。
 | JMH | 1.36 |
 | JVM 参数 | `-Xms2g -Xmx6g` |
 
+## 限制堆最坏场景证明
+
+2026-07-11 的最终内存门禁使用 4 GiB fixed heap
+(`-Xms4g -Xmx4g -XX:+UseG1GC`)，配置为单 fork、4 个调用线程、1 次
+2 秒 warmup 和 3 次 3 秒 measurement。每个进程同时采集 JMH
+sample-time percentile、JMH GC profiler、JFR、unified GC log 和
+`/usr/bin/time -l` 资源数据。
+
+Public endpoint 场景通过真实生成版 `ProxyAdminServiceGrpc`
+Server/Channel，server executor 和 query executor 都使用与生产默认一致的
+4 线程、10,000 有界队列。请求同时使用宽 `client-` prefix、
+`JAVA` language、`100..100` connect time 和 `pageSize=100`。
+
+| 场景 | P50 ms | P95 ms | P99 ms | Max ms | Allocation B/op | Measurement GC 次数/时间 | JFR max heapUsed | Max RSS |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1M client 宽 prefix | 4.067 | 5.210 | 137.526 | 3745.513 | 6511.3 | 0 / 0 ms | 775.9 MiB | 1119.2 MiB |
+| 宽 prefix + language + connect time | 4.112 | 5.087 | 243.610 | 9495.904 | 5509.6 | 0 / 0 ms | 772.9 MiB | 1114.0 MiB |
+| 深分页 `pageNum=10000`、`pageSize=100` | 0.009 | 0.010 | 0.016 | 593.494 | 1140.6 | 5 / 8 ms | 1126.4 MiB | 1208.7 MiB |
+| 生成版 public gRPC 组合过滤 | 16.564 | 26.241 | 29.042 | 35.193 | 188604.8 B/op | 3 / 26 ms | 1000.3 MiB | 1283.0 MiB |
+
+验收 P99 摘要：宽 prefix `137.526 ms`、组合过滤 `243.610 ms`、深分页
+`0.016 ms`、生成版 public gRPC `29.042 ms`。
+
+4 个场景的 P99 都低于 1 秒；所有进程正常退出，无 OOM、zero swaps，
+max RSS 低于 1.3 GiB。Max 列保留 JFR 和工作站调度带来的罕见尾部值；
+比赛验收指标为 P99。
+
+两个 measurement GC 为 0 的 read-model 场景不会在 JMH 仅 measurement
+录制中产生 `jdk.GCHeapSummary`。表中这两项 max heap 来自从 fork 启动就开始的
+`-XX:StartFlightRecording` 补充探针，它覆盖了 1M setup GC；延迟和 allocation
+仍使用上表正式运行数据。
+
+Performance TDD 暴露并修复了三个问题：
+
+- 宽 prefix 修复前 P99 为 `8388.608 ms`、约 40.1 MB/op，原因是每次查询
+  都复制完整 prefix range；现在复用有序索引范围视图。
+- 三过滤器交集修复前 P99 为 `13505.659 ms`、约 40.1 MB/op，原因是
+  物化百万 client `TreeSet`；现在由最小有序索引驱动，找到
+  `pageSize + 1` 个匹配项即停止。
+- 深分页修复前 P99 为 `1157.313 ms`，原因是每次都跳过 999,900 个树节点。
+  现在使用惰性重建的 client-id page anchor cache，从最近的 100-client 边界开始，
+  insert/remove 会使 cache 失效。
+
+命令模板（所有仓库路径都相对于 RocketMQ 根目录）：
+
+```bash
+export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+"$JAVA_HOME/bin/java" \
+  -cp "proxy/target/test-classes:proxy/target/classes:$(cat proxy/target/rip2-benchmark/classpath.txt)" \
+  org.openjdk.jmh.Main \
+  org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listDeepPage \
+  -p clientCount=1000000 -p groupCount=1000 -p topicCount=10000 -p proxyCount=100 \
+  -wi 1 -i 3 -w 2s -r 3s -f 1 -t 4 \
+  -jvmArgsAppend "-Xms4g -Xmx4g -XX:+UseG1GC" \
+  -prof gc
+```
+
 ## 构建和启动方式
 
 Read-model benchmark 前，已重新编译修改后的 proxy 源码，并跑过聚焦

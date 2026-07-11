@@ -38,6 +38,8 @@ public class ProxyClientReadServiceBenchmarkTest {
         assertThat(benchmark.listByTopicPage().getClients()).isNotEmpty();
         assertThat(benchmark.listByProxyIdPage().getClients()).isNotEmpty();
         assertThat(benchmark.listByClientIdPrefixPage().getClients()).isNotEmpty();
+        assertThat(benchmark.listBroadPrefixPage().getClients()).hasSize(100);
+        assertThat(benchmark.listCombinedFiltersPage().getClients()).hasSize(100);
         assertThat(benchmark.listByLanguagePage().getClients()).isNotEmpty();
         assertThat(benchmark.listByConnectTimeRangePage().getClients()).isNotEmpty();
         assertThat(benchmark.describeClient()).isNotNull();
@@ -57,6 +59,22 @@ public class ProxyClientReadServiceBenchmarkTest {
         assertThat(nextPage.getClients()).hasSize(ProxyClientQuery.MAX_PAGE_SIZE);
         assertThat(nextPage.getClients().get(0).getClientId()).isEqualTo("client-0000100");
         assertThat(nextPage.getNextPageToken()).isEqualTo("client-0000199");
+    }
+
+    @Test
+    public void benchmarkSetupBuildsDeepPageSyntheticClients() {
+        ProxyClientReadServiceBenchmark benchmark = new ProxyClientReadServiceBenchmark();
+        benchmark.clientCount = 1500;
+        benchmark.groupCount = 10;
+        benchmark.topicCount = 20;
+        benchmark.proxyCount = 5;
+        benchmark.setup();
+
+        ProxyClientPage deepPage = benchmark.listDeepPage();
+
+        assertThat(deepPage.getClients()).hasSize(ProxyClientQuery.MAX_PAGE_SIZE);
+        assertThat(deepPage.getClients().get(0).getClientId()).isEqualTo("client-0001400");
+        assertThat(deepPage.getNextPageToken()).isEmpty();
     }
 
     @Test

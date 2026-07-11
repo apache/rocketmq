@@ -323,6 +323,15 @@ deploy_maven(
 {rip2_submission_guard.PACKAGE_SMOKE_FINISHED_AT}
 3.576 ms
 0.681 ms
+4 GiB fixed heap
+137.526 ms
+243.610 ms
+0.016 ms
+29.042 ms
+1126.4 MiB
+1283.0 MiB
+188604.8 B/op
+zero swaps
 Dashboard CLIENT-01
 external validation item
 official artifact
@@ -637,6 +646,55 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("stale broad verification evidence" in error for error in errors))
+
+    def test_guard_reports_missing_constrained_heap_benchmark_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            for rel in rip2_submission_guard.REQUIRED_DOCS:
+                path = root / rel
+                write(path, path.read_text().replace("137.526 ms", ""))
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any("constrained heap benchmark evidence" in error for error in errors)
+            )
+
+    def test_guard_requires_constrained_heap_evidence_in_each_bilingual_report(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            chinese_report = root / "docs/cn/rip2-proxy-admin-m1-benchmark-report.md"
+            write(chinese_report, chinese_report.read_text().replace("137.526 ms", ""))
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any(
+                    "docs/cn/rip2-proxy-admin-m1-benchmark-report.md" in error
+                    and "137.526 ms" in error
+                    for error in errors
+                )
+            )
 
     def test_guard_reports_pom_proto_version_drift(self):
         with tempfile.TemporaryDirectory() as tmp:

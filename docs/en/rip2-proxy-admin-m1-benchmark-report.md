@@ -28,6 +28,69 @@ accepted.
 | JMH | 1.36 |
 | JVM args | `-Xms2g -Xmx6g` |
 
+## Constrained Heap Worst-Case Proof
+
+The final memory gate was rerun on 2026-07-11 with a 4 GiB fixed heap
+(`-Xms4g -Xmx4g -XX:+UseG1GC`), one fork, four caller threads, one 2-second
+warmup iteration, and three 3-second measurement iterations. Each process
+recorded JMH sample-time percentiles, the JMH GC profiler, a JFR recording, a
+unified GC log, and `/usr/bin/time -l` process statistics.
+
+The public endpoint case used a real generated `ProxyAdminServiceGrpc`
+Server/Channel with separate production-shaped server and query executors:
+four threads and a bounded 10,000-task queue for each executor. The request
+combined the broad `client-` prefix, `JAVA` language, connect time `100..100`,
+and `pageSize=100`.
+
+| Scenario | P50 ms | P95 ms | P99 ms | Max ms | Allocation B/op | Measurement GC count/time | Max JFR heapUsed | Max RSS |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Broad prefix over 1M clients | 4.067 | 5.210 | 137.526 | 3745.513 | 6511.3 | 0 / 0 ms | 775.9 MiB | 1119.2 MiB |
+| Broad prefix + language + connect time | 4.112 | 5.087 | 243.610 | 9495.904 | 5509.6 | 0 / 0 ms | 772.9 MiB | 1114.0 MiB |
+| Deep page `pageNum=10000`, `pageSize=100` | 0.009 | 0.010 | 0.016 | 593.494 | 1140.6 | 5 / 8 ms | 1126.4 MiB | 1208.7 MiB |
+| Generated public gRPC combined filters | 16.564 | 26.241 | 29.042 | 35.193 | 188604.8 B/op | 3 / 26 ms | 1000.3 MiB | 1283.0 MiB |
+
+Acceptance P99 summary: broad prefix `137.526 ms`, combined filters
+`243.610 ms`, deep page `0.016 ms`, and generated public gRPC `29.042 ms`.
+
+All four P99 values are below 1 second. All processes exited normally with no
+OOM, zero swaps, and maximum RSS below 1.3 GiB. Max values are retained because
+JFR and workstation scheduling can create rare outliers; the contest
+acceptance metric is P99.
+
+The two read-model scenarios with zero measurement GC had no
+`jdk.GCHeapSummary` event in the measurement-only JMH recording. Their listed
+max heap values come from a second fork-start JFR probe using
+`-XX:StartFlightRecording`, which captured the 1M setup GCs. The latency and
+allocation values remain those from the full formal runs above.
+
+Performance TDD exposed and fixed three concrete problems:
+
+- Broad prefix initially measured P99 `8388.608 ms` and about 40.1 MB/op
+  because every query copied the complete prefix range. It now uses the live
+  ordered index range view.
+- The three-filter intersection initially measured P99 `13505.659 ms` and
+  about 40.1 MB/op because it materialized a million-client `TreeSet`. It now
+  drives the smallest ordered index and stops after finding `pageSize + 1`
+  matching clients.
+- Deep page initially measured P99 `1157.313 ms` because every query skipped
+  999,900 tree nodes. A lazily rebuilt client-id page-anchor cache now starts
+  from the nearest 100-client boundary and is invalidated by insert/remove.
+
+Representative command template, with all repository paths relative to the
+RocketMQ root:
+
+```bash
+export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+"$JAVA_HOME/bin/java" \
+  -cp "proxy/target/test-classes:proxy/target/classes:$(cat proxy/target/rip2-benchmark/classpath.txt)" \
+  org.openjdk.jmh.Main \
+  org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listDeepPage \
+  -p clientCount=1000000 -p groupCount=1000 -p topicCount=10000 -p proxyCount=100 \
+  -wi 1 -i 3 -w 2s -r 3s -f 1 -t 4 \
+  -jvmArgsAppend "-Xms4g -Xmx4g -XX:+UseG1GC" \
+  -prof gc
+```
+
 ## Build And Launcher
 
 Before the read-model benchmark, the modified proxy sources were recompiled and
