@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.grpc.v2.admin;
 
 import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.ListClientsResponse;
 import apache.rocketmq.v2.ProxyClient;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +53,9 @@ public class GrpcProxyAdminApplicationBenchmarkTest {
             assertThat(benchmark.listClientsByLanguage().getClientsList()).isNotEmpty();
             assertThat(benchmark.listClientsByConnectTimeRange().getClientsList()).isNotEmpty();
             assertThat(benchmark.listClientsByWideConnectTimeRange().getClientsList()).hasSize(100);
+            ListClientsResponse deepPage = benchmark.listClientsDeepPageByWideConnectTimeRange();
+            assertThat(deepPage.getStatus().getCode()).isEqualTo(Code.OK);
+            assertThat(deepPage.getClientsList()).isEmpty();
             assertThat(benchmark.getDeepWideConnectTimeRangeRequest().getPageNum()).isEqualTo(10000);
             assertThat(benchmark.getDeepWideConnectTimeRangeRequest().getPageSize()).isEqualTo(100);
             assertThat(benchmark.describeClient().getClient().getClientId()).isNotEmpty();

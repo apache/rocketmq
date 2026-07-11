@@ -275,7 +275,7 @@ public class GrpcProxyAdminApplicationBenchmark {
     @Warmup(iterations = 3, time = 1)
     @Threads(4)
     public ListClientsResponse listClientsDeepPageByWideConnectTimeRange() {
-        return requireClients(this.stub.listClients(this.deepWideConnectTimeRangeRequest));
+        return requireSuccessfulList(this.stub.listClients(this.deepWideConnectTimeRangeRequest));
     }
 
     @Benchmark
@@ -387,10 +387,15 @@ public class GrpcProxyAdminApplicationBenchmark {
     }
 
     private static ListClientsResponse requireClients(ListClientsResponse response) {
-        requireOk(response.getStatus());
+        requireSuccessfulList(response);
         if (response.getClientsCount() == 0) {
             throw new IllegalStateException("listClients response must contain clients");
         }
+        return response;
+    }
+
+    private static ListClientsResponse requireSuccessfulList(ListClientsResponse response) {
+        requireOk(response.getStatus());
         return response;
     }
 
