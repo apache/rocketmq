@@ -65,6 +65,38 @@ public class ClientConfigTest {
         assertEquals("lmq%defaultTopic", messageQueues.iterator().next().getTopic());
     }
 
+    @Test
+    public void testGetNamespaceFallbackToNamespaceV2() {
+        ClientConfig config = new ClientConfig();
+        config.setNamespaceV2("InstanceTest");
+        assertEquals("InstanceTest", config.getNamespace());
+    }
+
+    @Test
+    public void testWithNamespaceUsesNamespaceV2() {
+        ClientConfig config = new ClientConfig();
+        config.setNamespaceV2("InstanceTest");
+        assertEquals("InstanceTest%resource", config.withNamespace(resource));
+        assertEquals("InstanceTest%resource",
+            config.withNamespace("InstanceTest%resource"));
+    }
+
+    @Test
+    public void testWithoutNamespaceUsesNamespaceV2() {
+        ClientConfig config = new ClientConfig();
+        config.setNamespaceV2("InstanceTest");
+        assertEquals(resource, config.withoutNamespace("InstanceTest%resource"));
+    }
+
+    @Test
+    public void testNamespaceV1PrecedesNamespaceV2() {
+        ClientConfig config = new ClientConfig();
+        config.setNamespace("lmq");
+        config.setNamespaceV2("InstanceTest");
+        assertEquals("lmq", config.getNamespace());
+        assertEquals("lmq%resource", config.withNamespace(resource));
+    }
+
     private ClientConfig createClientConfig() {
         ClientConfig result = new ClientConfig();
         result.setUnitName("unitName");

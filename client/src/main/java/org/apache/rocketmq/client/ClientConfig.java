@@ -414,6 +414,10 @@ public class ClientConfig {
             return namespace;
         }
 
+        if (StringUtils.isNotEmpty(namespaceV2)) {
+            return namespaceV2;
+        }
+
         if (StringUtils.isNotEmpty(this.namesrvAddr)) {
             if (NameServerAddressUtils.validateInstanceEndpoint(namesrvAddr)) {
                 namespace = NameServerAddressUtils.parseInstanceIdFromEndpoint(namesrvAddr);
