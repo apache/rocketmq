@@ -16,18 +16,29 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.store.OffsetStore;
+import org.apache.rocketmq.client.stat.ConsumerStatsManager;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -401,304 +412,159 @@ public class MessageDeduplicationTest {
     }
 
     /**
-     * Test ackIndex semantics with partial success and duplicates.
-     * This simulates the critical scenario:
-     * - Original msgs = [dup, new1, new2]
-     * - filteredMsgs = [new1, new2]
-     * - Listener returns CONSUME_SUCCESS + ackIndex=0 (only new1 successful)
+     * Review point 1: a duplicate skipped by the filter must never be sent back / retried.
      *
-     * Expected behavior:
-     * - Only new1 should be marked as processed
-     * - new2 should NOT be marked (will be retried)
-     * - mappedAckIndex should be 1 (position of new1 in original msgs)
+     * Scenario: original msgs = [A, dup(A), B]; the filter collapses dup(A), so the listener
+     * sees [A, B] and acks only A (ackIndex = 0 on the consumed list). The send-back loop must
+     * send back only B — the skipped dup(A) is neither consumed nor failed.
+     *
+     * Drives the real processConsumeResult on a spied service with a mocked
+     * DefaultMQPushConsumerImpl, capturing which messages sendMessageBack is asked to retry.
      */
     @Test
-    public void testPartialSuccessAckIndexMapping() {
-        // Setup: original msgs = [dup, new1, new2]
-        String dupKey = "dup-msg";
-        String newKey1 = "new-msg-1";
-        String newKey2 = "new-msg-2";
+    public void testDupSkippedNotSentBack() throws Exception {
+        DefaultMQPushConsumerImpl impl = newPushConsumerImpl();
 
-        // Mark duplicate as processed (from previous consumption)
-        deduplicator.markProcessed(dupKey);
+        // listener sees [A, B] (dup(A) filtered) and acks only A
+        final AtomicReference<List<MessageExt>> seenByListener = new AtomicReference<>();
+        final List<MessageExt> sentBack = Collections.synchronizedList(new ArrayList<>());
+        CapturingService service = new CapturingService(impl, new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeConcurrentlyContext context) {
+                seenByListener.set(new ArrayList<>(msgs));
+                context.setAckIndex(0); // only A succeeded
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        }, sentBack);
 
-        // Simulate filtering
-        assertTrue("dupKey should be duplicate", deduplicator.isDuplicate(dupKey));
-        assertFalse("newKey1 should not be duplicate", deduplicator.isDuplicate(newKey1));
-        assertFalse("newKey2 should not be duplicate", deduplicator.isDuplicate(newKey2));
+        // Build [A, dup(A), B] with distinct queueOffsets so ProcessQueue can hold them.
+        MessageExt a = createMessage("T", "msg-A", "key-A");
+        a.setQueueOffset(0L);
+        MessageExt dupA = createMessage("T", "msg-A", "key-A");
+        dupA.setQueueOffset(1L);
+        MessageExt b = createMessage("T", "msg-B", "key-B");
+        b.setQueueOffset(2L);
+        List<MessageExt> msgs = new ArrayList<>(Arrays.asList(a, dupA, b));
 
-        // Simulate the scenario: listener returns ackIndex=0 (only first new message successful)
-        int listenerAckIndex = 0; // Based on filteredMsgs = [new1, new2]
+        ProcessQueue pq = new ProcessQueue();
+        pq.putMessage(msgs);
 
-        // Expected behavior: only newKey1 should be marked as processed
-        // newKey2 should NOT be marked (failed, needs retry)
+        ConsumeMessageConcurrentlyService.ConsumeRequest request =
+            service.new ConsumeRequest(msgs, pq, new MessageQueue("T", "broker-a", 0));
 
-        // Mark only up to ackIndex (simulating the fix behavior)
-        if (listenerAckIndex >= 0) {
-            // Only mark the successfully consumed message
-            deduplicator.markProcessed(newKey1);
+        // Drive the full run(): filter -> listener -> processConsumeResult, end to end.
+        request.run();
+
+        // Listener saw [A, B] only — dup(A) was filtered before consumption.
+        assertNotNull("Listener should have been invoked", seenByListener.get());
+        assertEquals("Listener should see only A and B", 2, seenByListener.get().size());
+
+        // Only B must be sent back; dup(A) is a skipped duplicate, not a failure.
+        assertEquals("Only B should be sent back", 1, sentBack.size());
+        assertSame("The sent-back message should be B", b, sentBack.get(0));
+
+        // Only A is marked as processed; B (failed) and dup(A) (skipped) must not poison the cache.
+        assertTrue("A should be marked as processed", deduplicator.isDuplicate("T#key-A"));
+        assertFalse("B should NOT be marked (failed, needs retry)", deduplicator.isDuplicate("T#key-B"));
+    }
+
+    /**
+     * Review point 2: when the processQueue is dropped between consumption and result
+     * processing, the consumed messages must NOT be added to the dedup cache — otherwise their
+     * own redelivery would be silently suppressed, breaking at-least-once.
+     */
+    @Test
+    public void testDroppedProcessQueueDoesNotPoisonCache() throws Exception {
+        DefaultMQPushConsumerImpl impl = newPushConsumerImpl();
+
+        List<MessageExt> sentBack = Collections.synchronizedList(new ArrayList<>());
+        CapturingService service = new CapturingService(impl, new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeConcurrentlyContext context) {
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS; // ack all
+            }
+        }, sentBack);
+
+        MessageExt a = createMessage("T", "msg-A", "key-A");
+        a.setQueueOffset(0L);
+        List<MessageExt> msgs = new ArrayList<>(Arrays.asList(a));
+
+        ProcessQueue pq = new ProcessQueue();
+        pq.putMessage(msgs);
+        pq.setDropped(true); // dropped before result processing — consume result never commits
+
+        ConsumeMessageConcurrentlyService.ConsumeRequest request =
+            service.new ConsumeRequest(msgs, pq, new MessageQueue("T", "broker-a", 0));
+        setProcessedMsgs(request, msgs);
+
+        ConsumeConcurrentlyContext context = new ConsumeConcurrentlyContext(request.getMessageQueue());
+
+        service.processConsumeResult(ConsumeConcurrentlyStatus.CONSUME_SUCCESS, context, request);
+
+        // Despite "successful" consumption, the dropped processQueue means nothing is committed,
+        // so the message must NOT enter the dedup cache — it will be redelivered and must run.
+        assertFalse("Dropped-batch messages must not poison the dedup cache",
+            deduplicator.isDuplicate("T#key-A"));
+        // And nothing should have been sent back for an all-ack success.
+        assertTrue("Nothing should be sent back on full success", sentBack.isEmpty());
+    }
+
+    /**
+     * Build a real {@link DefaultMQPushConsumerImpl} with just enough wiring for
+     * {@code processConsumeResult}: a consumer group, a dedup cache, a no-op offset store and a
+     * stats manager. Avoids Mockito-mocking the heavy impl class.
+     */
+    private DefaultMQPushConsumerImpl newPushConsumerImpl() throws Exception {
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("testDedupGroup");
+        consumer.setConsumeThreadMin(1);
+        consumer.setConsumeThreadMax(1);
+
+        DefaultMQPushConsumerImpl impl = new DefaultMQPushConsumerImpl(consumer, null);
+        impl.setOffsetStore(Mockito.mock(OffsetStore.class));
+
+        // getConsumerStatsManager() delegates to mQClientFactory; inject a stubbed factory.
+        org.apache.rocketmq.client.impl.factory.MQClientInstance factory =
+            Mockito.mock(org.apache.rocketmq.client.impl.factory.MQClientInstance.class);
+        Mockito.when(factory.getConsumerStatsManager()).thenReturn(Mockito.mock(ConsumerStatsManager.class));
+        impl.setmQClientFactory(factory);
+
+        // Wire the test's dedup cache into the impl via reflection (private field).
+        java.lang.reflect.Field dedupField = DefaultMQPushConsumerImpl.class
+            .getDeclaredField("messageDeduplicator");
+        dedupField.setAccessible(true);
+        dedupField.set(impl, deduplicator);
+        return impl;
+    }
+
+    private static void setProcessedMsgs(
+        ConsumeMessageConcurrentlyService.ConsumeRequest request, List<MessageExt> processed)
+        throws Exception {
+        java.lang.reflect.Field f = ConsumeMessageConcurrentlyService.ConsumeRequest.class
+            .getDeclaredField("processedMsgs");
+        f.setAccessible(true);
+        f.set(request, processed);
+    }
+
+    /**
+     * A {@link ConsumeMessageConcurrentlyService} subclass that records every message
+     * {@code processConsumeResult} asks to send back, without performing the real broker round-trip.
+     */
+    private static final class CapturingService extends ConsumeMessageConcurrentlyService {
+        private final List<MessageExt> sentBack;
+
+        CapturingService(DefaultMQPushConsumerImpl impl, MessageListenerConcurrently listener,
+            List<MessageExt> sentBack) {
+            super(impl, listener);
+            this.sentBack = sentBack;
         }
 
-        // Verify:
-        // 1. newKey1 is marked (will be deduplicated next time)
-        assertTrue("newKey1 should be marked as processed", deduplicator.isDuplicate(newKey1));
-
-        // 2. newKey2 is NOT marked (will NOT be deduplicated, can retry)
-        assertFalse("newKey2 should NOT be marked as processed", deduplicator.isDuplicate(newKey2));
-
-        // 3. Verify ackIndex mapping using the actual helper method
-        // Create messages first, then build lists using same objects
-        MessageExt dupMsg = new MessageExt();
-        dupMsg.setMsgId("msg-" + dupKey);
-        dupMsg.setKeys(dupKey);
-
-        MessageExt newMsg1 = new MessageExt();
-        newMsg1.setMsgId("msg-" + newKey1);
-        newMsg1.setKeys(newKey1);
-
-        MessageExt newMsg2 = new MessageExt();
-        newMsg2.setMsgId("msg-" + newKey2);
-        newMsg2.setKeys(newKey2);
-
-        // originalMsgs = [dup, new1, new2]
-        List<MessageExt> originalMsgs = new ArrayList<>();
-        originalMsgs.add(dupMsg);
-        originalMsgs.add(newMsg1);
-        originalMsgs.add(newMsg2);
-
-        // filteredMsgs = [new1, new2] - use same object references!
-        List<MessageExt> filteredMsgs = new ArrayList<>();
-        filteredMsgs.add(newMsg1);
-        filteredMsgs.add(newMsg2);
-
-        // Use the actual mapping method
-        int mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, listenerAckIndex);
-        assertEquals("Mapped ackIndex should be position of newKey1 in original list (index 1)",
-            1, mappedAckIndex);
-
-        // After retry, newKey2 would be processed and then marked
-        deduplicator.markProcessed(newKey2);
-        assertTrue("After retry success, newKey2 should be marked", deduplicator.isDuplicate(newKey2));
-    }
-
-    private List<MessageExt> createMessagesWithKeys(String... keys) {
-        List<MessageExt> msgs = new ArrayList<>();
-        for (String key : keys) {
-            MessageExt msg = new MessageExt();
-            msg.setMsgId("msg-" + key);
-            msg.setKeys(key);
-            msgs.add(msg);
+        @Override
+        public boolean sendMessageBack(MessageExt msg, ConsumeConcurrentlyContext context) {
+            sentBack.add(msg);
+            return true;
         }
-        return msgs;
-    }
-
-    /**
-     * Test that when listener acks all filtered messages, all are marked as processed.
-     * Scenario:
-     * - Original msgs = [dup, new1, new2]
-     * - filteredMsgs = [new1, new2]
-     * - Listener returns CONSUME_SUCCESS + ackIndex=Integer.MAX_VALUE (default, all success)
-     */
-    @Test
-    public void testFullSuccessAckIndexMapping() {
-        String dupKey = "dup-msg";
-        String newKey1 = "new-msg-1";
-        String newKey2 = "new-msg-2";
-
-        // Mark duplicate as processed
-        deduplicator.markProcessed(dupKey);
-
-        // Simulate listener returns default ackIndex (Integer.MAX_VALUE, means all successful)
-        int listenerAckIndex = Integer.MAX_VALUE;
-        // After clamping: filteredMsgs.size() - 1 = 1 (indexes 0 and 1 in filteredMsgs)
-
-        // Clamp ackIndex (simulating the fix behavior)
-        int filteredMsgSize = 2; // [new1, new2]
-        if (listenerAckIndex >= filteredMsgSize) {
-            listenerAckIndex = filteredMsgSize - 1;
-        }
-
-        // Mark all messages up to clamped ackIndex
-        deduplicator.markProcessed(newKey1);
-        deduplicator.markProcessed(newKey2);
-
-        // Verify both are marked
-        assertTrue("newKey1 should be marked", deduplicator.isDuplicate(newKey1));
-        assertTrue("newKey2 should be marked", deduplicator.isDuplicate(newKey2));
-
-        // Verify ackIndex mapping using the actual helper method
-        // Use same object references for correct mapping
-        MessageExt dupMsg = new MessageExt();
-        dupMsg.setMsgId("msg-" + dupKey);
-        dupMsg.setKeys(dupKey);
-
-        MessageExt newMsg1 = new MessageExt();
-        newMsg1.setMsgId("msg-" + newKey1);
-        newMsg1.setKeys(newKey1);
-
-        MessageExt newMsg2 = new MessageExt();
-        newMsg2.setMsgId("msg-" + newKey2);
-        newMsg2.setKeys(newKey2);
-
-        List<MessageExt> originalMsgs = new ArrayList<>();
-        originalMsgs.add(dupMsg);
-        originalMsgs.add(newMsg1);
-        originalMsgs.add(newMsg2);
-
-        List<MessageExt> filteredMsgs = new ArrayList<>();
-        filteredMsgs.add(newMsg1);
-        filteredMsgs.add(newMsg2);
-
-        // Use the actual mapping method with full success (filteredAckIndex = filteredMsgSize - 1)
-        int mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, filteredMsgSize - 1);
-        assertEquals("For full success, mapped ackIndex should cover all original messages (originalMsgs.size - 1)",
-            2, mappedAckIndex);
-    }
-
-    /**
-     * Test ackIndex mapping for trailing duplicates scenario.
-     * Scenario:
-     * - Original msgs = [new1, new2, dup]
-     * - filteredMsgs = [new1, new2]
-     * - Listener returns full success
-     *
-     * Expected: mappedAckIndex = 2 (covers all original messages including trailing duplicate)
-     */
-    @Test
-    public void testTrailingDuplicateFullSuccess() {
-        String newKey1 = "new-msg-1";
-        String newKey2 = "new-msg-2";
-        String dupKey = "dup-msg";
-
-        // Mark trailing duplicate as processed
-        deduplicator.markProcessed(dupKey);
-
-        // Use same object references for correct mapping
-        MessageExt newMsg1 = new MessageExt();
-        newMsg1.setMsgId("msg-" + newKey1);
-        newMsg1.setKeys(newKey1);
-
-        MessageExt newMsg2 = new MessageExt();
-        newMsg2.setMsgId("msg-" + newKey2);
-        newMsg2.setKeys(newKey2);
-
-        MessageExt dupMsg = new MessageExt();
-        dupMsg.setMsgId("msg-" + dupKey);
-        dupMsg.setKeys(dupKey);
-
-        List<MessageExt> originalMsgs = new ArrayList<>();
-        originalMsgs.add(newMsg1);
-        originalMsgs.add(newMsg2);
-        originalMsgs.add(dupMsg);
-
-        List<MessageExt> filteredMsgs = new ArrayList<>();
-        filteredMsgs.add(newMsg1);
-        filteredMsgs.add(newMsg2);
-
-        // Full success: filteredAckIndex = filteredMsgs.size() - 1 = 1
-        int mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, 1);
-        assertEquals("For full success with trailing duplicate, mapped ackIndex should be originalMsgs.size() - 1",
-            2, mappedAckIndex);
-    }
-
-    /**
-     * Test ackIndex mapping with duplicates in the middle.
-     * Scenario:
-     * - Original msgs = [new1, dup, new2]
-     * - filteredMsgs = [new1, new2]
-     * - Listener returns partial success (only new1 succeeds, ackIndex=0)
-     *
-     * Expected: mappedAckIndex = 0 (position of new1 in original msgs)
-     */
-    @Test
-    public void testMiddleDuplicatePartialSuccess() {
-        String newKey1 = "new-msg-1";
-        String dupKey = "dup-msg";
-        String newKey2 = "new-msg-2";
-
-        // Mark middle duplicate as processed
-        deduplicator.markProcessed(dupKey);
-
-        // Use same object references for correct mapping
-        MessageExt newMsg1 = new MessageExt();
-        newMsg1.setMsgId("msg-" + newKey1);
-        newMsg1.setKeys(newKey1);
-
-        MessageExt dupMsg = new MessageExt();
-        dupMsg.setMsgId("msg-" + dupKey);
-        dupMsg.setKeys(dupKey);
-
-        MessageExt newMsg2 = new MessageExt();
-        newMsg2.setMsgId("msg-" + newKey2);
-        newMsg2.setKeys(newKey2);
-
-        List<MessageExt> originalMsgs = new ArrayList<>();
-        originalMsgs.add(newMsg1);
-        originalMsgs.add(dupMsg);
-        originalMsgs.add(newMsg2);
-
-        List<MessageExt> filteredMsgs = new ArrayList<>();
-        filteredMsgs.add(newMsg1);
-        filteredMsgs.add(newMsg2);
-
-        // Partial success: only first filtered message succeeds (ackIndex=0)
-        int mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, 0);
-        assertEquals("For partial success with middle duplicate, mapped ackIndex should be position of new1 in original (0)",
-            0, mappedAckIndex);
-
-        // Full success: ackIndex = filteredMsgs.size() - 1 = 1
-        mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, 1);
-        assertEquals("For full success, mapped ackIndex should cover all original messages",
-            2, mappedAckIndex);
-    }
-
-    /**
-     * Test ackIndex mapping with no duplicates (no mapping needed).
-     * Scenario:
-     * - Original msgs = [new1, new2, new3]
-     * - filteredMsgs = [new1, new2, new3] (same size, no duplicates)
-     * - Listener returns partial success (ackIndex=1)
-     *
-     * Expected: mappedAckIndex = 1 (same as filteredAckIndex, no duplicates)
-     */
-    @Test
-    public void testNoDuplicatesAckIndexMapping() {
-        String newKey1 = "new-msg-1";
-        String newKey2 = "new-msg-2";
-        String newKey3 = "new-msg-3";
-
-        // Use same object references for correct mapping
-        MessageExt newMsg1 = new MessageExt();
-        newMsg1.setMsgId("msg-" + newKey1);
-        newMsg1.setKeys(newKey1);
-
-        MessageExt newMsg2 = new MessageExt();
-        newMsg2.setMsgId("msg-" + newKey2);
-        newMsg2.setKeys(newKey2);
-
-        MessageExt newMsg3 = new MessageExt();
-        newMsg3.setMsgId("msg-" + newKey3);
-        newMsg3.setKeys(newKey3);
-
-        List<MessageExt> originalMsgs = new ArrayList<>();
-        originalMsgs.add(newMsg1);
-        originalMsgs.add(newMsg2);
-        originalMsgs.add(newMsg3);
-
-        List<MessageExt> filteredMsgs = new ArrayList<>();
-        filteredMsgs.add(newMsg1);
-        filteredMsgs.add(newMsg2);
-        filteredMsgs.add(newMsg3);
-
-        // No duplicates, ackIndex should be the same
-        int mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, 1);
-        assertEquals("When no duplicates, ackIndex should remain the same",
-            1, mappedAckIndex);
-
-        // Test with large ackIndex
-        mappedAckIndex = ConsumeMessageConcurrentlyService.mapAckIndex(originalMsgs, filteredMsgs, Integer.MAX_VALUE);
-        assertEquals("Large ackIndex should be clamped to originalMsgs.size - 1",
-            2, mappedAckIndex);
     }
 
     /**

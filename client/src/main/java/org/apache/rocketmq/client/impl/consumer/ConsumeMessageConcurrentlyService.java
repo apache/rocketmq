@@ -129,47 +129,6 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     }
 
     /**
-     * Map the filtered-list ackIndex to the original msgs position.
-     * This is a helper method that can be tested independently.
-     *
-     * @param originalMsgs     The original message list (contains duplicates)
-     * @param filteredMsgs     The filtered message list (duplicates removed)
-     * @param filteredAckIndex The ackIndex from the listener (based on filteredMsgs)
-     * @return The mapped ackIndex for the original list, or -1 if mapping fails
-     */
-    static int mapAckIndex(List<MessageExt> originalMsgs, List<MessageExt> filteredMsgs, int filteredAckIndex) {
-        if (originalMsgs == null || filteredMsgs == null || filteredAckIndex < 0) {
-            return -1;
-        }
-
-        // No duplicates, no mapping needed
-        if (filteredMsgs.size() == originalMsgs.size()) {
-            return Math.min(filteredAckIndex, originalMsgs.size() - 1);
-        }
-
-        // Clamp filteredAckIndex to valid range
-        if (filteredAckIndex >= filteredMsgs.size()) {
-            filteredAckIndex = filteredMsgs.size() - 1;
-        }
-
-        // When all filtered messages succeed, set ackIndex to cover all original messages
-        // This ensures trailing duplicates are not treated as failed
-        if (filteredAckIndex == filteredMsgs.size() - 1) {
-            return originalMsgs.size() - 1;
-        }
-
-        // Partial success: find the position in original msgs that corresponds to filteredMsgs[filteredAckIndex]
-        MessageExt lastAckedMsg = filteredMsgs.get(filteredAckIndex);
-        for (int i = 0; i < originalMsgs.size(); i++) {
-            if (originalMsgs.get(i) == lastAckedMsg) {
-                return i;
-            }
-        }
-
-        return -1; // Should not happen if lists are consistent
-    }
-
-    /**
      * Filter duplicate messages from the list.
      * Creates a new list with non-duplicate messages for consumption.
      *
@@ -373,23 +332,30 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     ) {
         int ackIndex = context.getAckIndex();
 
-        if (consumeRequest.getMsgs().isEmpty())
+        // The messages the listener actually consumed (duplicates filtered out), or the
+        // original batch when deduplication is disabled. ackIndex is relative to this list,
+        // so the send-back loop and consume stats must operate on it too. Skipped duplicates
+        // are neither consumed nor failed and must never be sent back.
+        final List<MessageExt> processedMsgs = consumeRequest.getProcessedMsgs();
+        final List<MessageExt> originalMsgs = consumeRequest.getMsgs();
+
+        if (originalMsgs.isEmpty())
             return;
 
         switch (status) {
             case CONSUME_SUCCESS:
-                if (ackIndex >= consumeRequest.getMsgs().size()) {
-                    ackIndex = consumeRequest.getMsgs().size() - 1;
+                if (ackIndex >= processedMsgs.size()) {
+                    ackIndex = processedMsgs.size() - 1;
                 }
                 int ok = ackIndex + 1;
-                int failed = consumeRequest.getMsgs().size() - ok;
+                int failed = processedMsgs.size() - ok;
                 this.getConsumerStatsManager().incConsumeOKTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), ok);
                 this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(), failed);
                 break;
             case RECONSUME_LATER:
                 ackIndex = -1;
                 this.getConsumerStatsManager().incConsumeFailedTPS(consumerGroup, consumeRequest.getMessageQueue().getTopic(),
-                    consumeRequest.getMsgs().size());
+                    processedMsgs.size());
                 break;
             default:
                 break;
@@ -397,15 +363,15 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         switch (this.defaultMQPushConsumer.getMessageModel()) {
             case BROADCASTING:
-                for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
-                    MessageExt msg = consumeRequest.getMsgs().get(i);
+                for (int i = ackIndex + 1; i < processedMsgs.size(); i++) {
+                    MessageExt msg = processedMsgs.get(i);
                     log.warn("BROADCASTING, the message consume failed, drop it, {}", msg.toString());
                 }
                 break;
             case CLUSTERING:
-                List<MessageExt> msgBackFailed = new ArrayList<>(consumeRequest.getMsgs().size());
-                for (int i = ackIndex + 1; i < consumeRequest.getMsgs().size(); i++) {
-                    MessageExt msg = consumeRequest.getMsgs().get(i);
+                List<MessageExt> msgBackFailed = new ArrayList<>(processedMsgs.size());
+                for (int i = ackIndex + 1; i < processedMsgs.size(); i++) {
+                    MessageExt msg = processedMsgs.get(i);
                     // Maybe message is expired and cleaned, just ignore it.
                     if (!consumeRequest.getProcessQueue().containsMessage(msg)) {
                         log.info("Message is not found in its process queue; skip send-back-procedure, topic={}, "
@@ -421,7 +387,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 }
 
                 if (!msgBackFailed.isEmpty()) {
-                    consumeRequest.getMsgs().removeAll(msgBackFailed);
+                    originalMsgs.removeAll(msgBackFailed);
 
                     this.submitConsumeRequestLater(msgBackFailed, consumeRequest.getProcessQueue(), consumeRequest.getMessageQueue());
                 }
@@ -430,7 +396,21 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 break;
         }
 
-        long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
+        // Only populate the dedup cache once the consume result is actually committed, i.e. the
+        // processQueue has not been dropped. Marking earlier (before the drop check) would let
+        // uncommitted messages suppress their own redelivery, breaking at-least-once.
+        if (status == ConsumeConcurrentlyStatus.CONSUME_SUCCESS
+            && ackIndex >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
+            List<MessageExt> successfullyConsumed = new ArrayList<>(ackIndex + 1);
+            for (int i = 0; i <= ackIndex; i++) {
+                successfullyConsumed.add(processedMsgs.get(i));
+            }
+            markMessagesAsProcessed(successfullyConsumed);
+        }
+
+        // removeMessage drains by queueOffset, so it must receive the full original batch
+        // (including skipped duplicates) to keep msgTreeMap and the committed offset consistent.
+        long offset = consumeRequest.getProcessQueue().removeMessage(originalMsgs);
         if (offset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {
             this.defaultMQPushConsumerImpl.getOffsetStore().updateOffset(consumeRequest.getMessageQueue(), offset, true);
         }
@@ -486,15 +466,29 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         private final List<MessageExt> msgs;
         private final ProcessQueue processQueue;
         private final MessageQueue messageQueue;
+        /**
+         * The messages the listener actually consumed: the deduped list when deduplication is
+         * enabled, otherwise the original {@link #msgs}. Set in {@link #run()} after filtering.
+         * Defaults to {@code msgs} so the value is always non-null for processConsumeResult.
+         */
+        private List<MessageExt> processedMsgs;
 
         public ConsumeRequest(List<MessageExt> msgs, ProcessQueue processQueue, MessageQueue messageQueue) {
             this.msgs = msgs;
             this.processQueue = processQueue;
             this.messageQueue = messageQueue;
+            this.processedMsgs = msgs;
         }
 
         public List<MessageExt> getMsgs() {
             return msgs;
+        }
+
+        /**
+         * @return the messages the listener consumed (duplicates filtered); never null.
+         */
+        public List<MessageExt> getProcessedMsgs() {
+            return processedMsgs;
         }
 
         public ProcessQueue getProcessQueue() {
@@ -517,7 +511,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             // Filter duplicate messages if deduplication is enabled
             // Create a new list with non-duplicate messages for consumption
             List<MessageExt> filteredMsgs = filterDuplicateMessages(msgs);
-            final boolean hasDuplicates = filteredMsgs.size() < msgs.size();
+            // processedMsgs is the list the listener actually consumes (duplicates removed).
+            // It defaults to the original batch when dedup is off or every message is a duplicate,
+            // and is later read by processConsumeResult for send-back/stats. ackIndex is relative
+            // to this list.
+            this.processedMsgs = filteredMsgs.isEmpty() ? msgs : filteredMsgs;
 
             ConsumeMessageContext consumeMessageContext = null;
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
@@ -583,60 +581,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 status = ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
 
-            // Handle ackIndex semantics when duplicates were filtered
-            // ackIndex is based on filteredMsgs, but processConsumeResult uses original msgs
-            // We need to:
-            // 1. Only mark messages up to ackIndex in filteredMsgs as processed
-            // 2. Map the filtered-list ackIndex to the original msgs position
-            if (status == ConsumeConcurrentlyStatus.CONSUME_SUCCESS) {
-                int filteredAckIndex = context.getAckIndex();
-
-                if (!filteredMsgs.isEmpty() && filteredAckIndex >= 0) {
-                    // Clamp ackIndex to valid range for filteredMsgs
-                    if (filteredAckIndex >= filteredMsgs.size()) {
-                        filteredAckIndex = filteredMsgs.size() - 1;
-                    }
-
-                    // Only mark successfully consumed messages (up to filteredAckIndex)
-                    List<MessageExt> successfullyConsumed = new ArrayList<>(filteredAckIndex + 1);
-                    for (int i = 0; i <= filteredAckIndex; i++) {
-                        successfullyConsumed.add(filteredMsgs.get(i));
-                    }
-                    markMessagesAsProcessed(successfullyConsumed);
-                }
-
-                // Map filtered-list ackIndex to original msgs position
-                if (hasDuplicates && !filteredMsgs.isEmpty() && filteredAckIndex >= 0) {
-                    // When all filtered messages succeed, set ackIndex to cover all original messages
-                    // This ensures trailing duplicates are not treated as failed (which would cause unnecessary retry)
-                    if (filteredAckIndex == filteredMsgs.size() - 1) {
-                        // Full success: all filtered messages consumed successfully
-                        // Set ackIndex to cover the entire original batch (including duplicates that were skipped)
-                        context.setAckIndex(msgs.size() - 1);
-                        log.debug("Duplicate messages filtered, full success. Set ackIndex to {} (covers all original messages)",
-                            msgs.size() - 1);
-                    } else {
-                        // Partial success: find the position in original msgs that corresponds to filteredMsgs[filteredAckIndex]
-                        MessageExt lastAckedMsg = filteredMsgs.get(filteredAckIndex);
-                        int originalAckIndex = -1;
-                        for (int i = 0; i < msgs.size(); i++) {
-                            if (msgs.get(i) == lastAckedMsg) {
-                                originalAckIndex = i;
-                                break;
-                            }
-                        }
-
-                        if (originalAckIndex >= 0) {
-                            context.setAckIndex(originalAckIndex);
-                            log.debug("Duplicate messages filtered, mapped filteredAckIndex {} to originalAckIndex {}",
-                                filteredAckIndex, originalAckIndex);
-                        }
-                    }
-                }
-                // If no duplicates, ackIndex already refers to original msgs, no mapping needed
-            }
-            // For RECONSUME_LATER, don't mark any messages as processed
-            // processConsumeResult will set ackIndex = -1, sending all messages back
+            // No ackIndex remapping here: the listener's ackIndex is already relative to
+            // the filtered list (processedMsgs) it consumed. processConsumeResult uses
+            // processedMsgs for send-back and stats, so the index needs no translation.
+            // Dedup-cache marking is deferred to processConsumeResult, gated on the
+            // processQueue not being dropped (at-least-once safety).
 
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
                 consumeMessageContext.setStatus(status.toString());
