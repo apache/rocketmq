@@ -120,12 +120,18 @@ public class ClientMetadata {
             Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap =  mapEntry.getValue();
             ConcurrentMap<MessageQueue, TopicQueueMappingInfo> mqEndPoints = new ConcurrentHashMap<>();
             List<Map.Entry<String, TopicQueueMappingInfo>> mappingInfos = new ArrayList<>(topicQueueMappingInfoMap.entrySet());
+            // Sort mappings by epoch descending, so the newest epoch is visited first.
+            // Subtracting long epochs and casting to int overflows when the epoch gap exceeds
+            // Integer.MAX_VALUE and reverses the ordering, so use an overflow-safe comparison.
             mappingInfos.sort(Comparator.comparingLong(
                 (Map.Entry<String, TopicQueueMappingInfo> entry) -> entry.getValue().getEpoch()).reversed());
             int maxTotalNums = 0;
             long maxTotalNumOfEpoch = -1;
             for (Map.Entry<String, TopicQueueMappingInfo> entry : mappingInfos) {
                 TopicQueueMappingInfo info = entry.getValue();
+                // Scope total queue count to the latest epoch only: a stale mapping must not
+                // inflate maxTotalNums beyond what the newest epoch advertises. Among mappings
+                // sharing that latest epoch, keep the largest total queue count.
                 if (info.getEpoch() > maxTotalNumOfEpoch) {
                     maxTotalNumOfEpoch = info.getEpoch();
                     maxTotalNums = info.getTotalQueues();
