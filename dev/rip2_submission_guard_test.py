@@ -405,6 +405,18 @@ server does not support the reflection API
 port-9876-closed
 port-8081-closed
 port-8082-closed
+port-10911-closed
+dev/run_rip2_authenticated_smoke.sh
+authenticated-super-list=OK
+unsigned-list=UNAUTHORIZED: username cannot be null.
+bad-signature-list=UNAUTHORIZED: check signature failed.
+rip2-list-list=OK
+rip2-list-describe=UNAUTHORIZED
+rip2-get-describe=NOT_FOUND
+rip2-get-list=UNAUTHORIZED
+resource=Admin:proxy.admin.client
+User:rip2-list has no permission to access Admin:proxy.admin.client from 127.0.0.1, no matched policies.
+User:rip2-get has no permission to access Admin:proxy.admin.client from 127.0.0.1, no matched policies.
 action_required
 maintainer approval
 Build and Run Tests by Maven
@@ -431,6 +443,35 @@ rocketmq-proto jar SHA-256: {artifact_sha256}
     write(
         root / "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md",
         "- [x] completed step\n",
+    )
+    write(
+        root / "dev/run_rip2_authenticated_smoke.sh",
+        """#!/usr/bin/env bash
+set -euo pipefail
+authenticationEnabled=true
+authorizationEnabled=true
+LocalAuthenticationMetadataProvider
+LocalAuthorizationMetadataProvider
+ProxyAuthenticationMetadataProvider
+ProxyAuthorizationMetadataProvider
+createUser
+createAcl
+Admin:proxy.admin.client
+rip2-list
+rip2-get
+MQv2-HMAC-SHA1
+username cannot be null.
+check signature failed.
+UNAUTHORIZED
+NOT_FOUND
+port-9876-closed
+port-8081-closed
+port-8082-closed
+port-10911-closed
+NS_JAVA_PID
+PROXY_JAVA_PID
+result directory already exists
+""",
     )
     create_snapshot_metadata(m2_repository)
 
@@ -2243,6 +2284,107 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("GitHub Actions approval evidence" in error for error in errors))
+
+    def test_guard_reports_incomplete_authenticated_smoke_script(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            script_path = root / "dev/run_rip2_authenticated_smoke.sh"
+            script_path.write_text(
+                script_path.read_text(encoding="utf-8").replace(
+                    "Admin:proxy.admin.client",
+                    "Admin:*",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("authenticated smoke contract" in error for error in errors))
+
+    def test_guard_requires_authenticated_smoke_to_track_java_processes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            script_path = root / "dev/run_rip2_authenticated_smoke.sh"
+            script_path.write_text(
+                script_path.read_text(encoding="utf-8").replace("PROXY_JAVA_PID", ""),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("authenticated smoke contract" in error for error in errors))
+
+    def test_guard_reports_missing_authenticated_runtime_smoke_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            smoke_path = root / "docs/en/rip2-proxy-admin-m1-final-smoke.md"
+            smoke_path.write_text(
+                smoke_path.read_text(encoding="utf-8").replace(
+                    "authenticated-super-list=OK",
+                    "",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("authenticated runtime smoke evidence" in error for error in errors))
+
+    def test_guard_requires_authenticated_smoke_to_reject_stale_result_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            script_path = root / "dev/run_rip2_authenticated_smoke.sh"
+            script_path.write_text(
+                script_path.read_text(encoding="utf-8").replace(
+                    "result directory already exists",
+                    "",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("authenticated smoke contract" in error for error in errors))
 
     def test_guard_reports_missing_smoke_tool_prerequisites(self):
         with tempfile.TemporaryDirectory() as tmp:

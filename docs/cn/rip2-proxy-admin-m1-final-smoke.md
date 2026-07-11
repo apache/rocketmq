@@ -232,3 +232,53 @@ port-9876-closed
 port-8081-closed
 port-8082-closed
 ```
+
+## 已记录的鉴权运行中冒烟
+
+仓库自带的鉴权 smoke runner 会启动一套独立 local-mode distribution，同时设置
+`authenticationEnabled=true` 和 `authorizationEnabled=true`。内嵌 Broker 使用
+`LocalAuthenticationMetadataProvider` 与 `LocalAuthorizationMetadataProvider`；
+Proxy 通过 `ProxyAuthenticationMetadataProvider` 和
+`ProxyAuthorizationMetadataProvider` 读取同一份 metadata。
+
+完成 distribution 构建后，从仓库根目录运行：
+
+```bash
+RIP2_AUTH_SMOKE_RUN_ID=final-20260712-v2 dev/run_rip2_authenticated_smoke.sh
+```
+
+Runner 初始化隔离 super user，验证正确签名、无签名和错误签名，然后创建
+`rip2-list`、`rip2-get`，并为 `Admin:proxy.admin.client` 配置分离 ACL。实测
+exit code：`0`。
+
+```text
+authenticated-super-list=OK
+unsigned-list=UNAUTHORIZED: username cannot be null.
+bad-signature-list=UNAUTHORIZED: check signature failed.
+rip2-list-list=OK
+rip2-list-describe=UNAUTHORIZED
+rip2-get-describe=NOT_FOUND
+rip2-get-list=UNAUTHORIZED
+resource=Admin:proxy.admin.client
+```
+
+两次 authorization deny 都以 application status 返回，并包含以下已脱敏消息：
+
+```text
+User:rip2-list has no permission to access Admin:proxy.admin.client from 127.0.0.1, no matched policies.
+User:rip2-get has no permission to access Admin:proxy.admin.client from 127.0.0.1, no matched policies.
+```
+
+Runner 跟踪真正持有 listener socket 的 Java 进程，并执行有界清理。最终审计：
+
+```text
+port-9876-closed
+port-8081-closed
+port-8082-closed
+port-10911-closed
+```
+
+全部 auth metadata、config、JSON response 和日志保存在
+`target/rip2-auth-smoke-final-20260712-v2`，并被 Git 忽略。重新运行时省略
+`RIP2_AUTH_SMOKE_RUN_ID` 即可生成新的时间戳目录；runner 会拒绝已有结果目录，
+避免旧 RocksDB 状态污染证据。

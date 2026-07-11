@@ -204,10 +204,19 @@ GITHUB_ACTIONS_APPROVAL_DOCS = (
     "docs/cn/rip2-proxy-admin-m1-acceptance-audit.md",
 )
 
+AUTHENTICATED_RUNTIME_SMOKE_DOCS = (
+    "docs/en/rip2-proxy-admin-m1-final-smoke.md",
+    "docs/cn/rip2-proxy-admin-m1-final-smoke.md",
+    "docs/en/rip2-proxy-admin-m1-submission-package.md",
+    "docs/cn/rip2-proxy-admin-m1-submission-package.md",
+)
+
 REVIEW_RUNBOOK_DOCS = (
     "docs/en/rip2-proxy-admin-m1-review-runbook.md",
     "docs/cn/rip2-proxy-admin-m1-review-runbook.md",
 )
+
+AUTHENTICATED_SMOKE_SCRIPT = "dev/run_rip2_authenticated_smoke.sh"
 
 REQUIRED_MANUAL_SMOKE_TOKENS = (
     "command -v grpcurl",
@@ -250,6 +259,48 @@ REQUIRED_GITHUB_ACTIONS_APPROVAL_TOKENS = (
     "Misspell Check",
     "Run Integration Tests",
     "CI",
+)
+
+REQUIRED_AUTHENTICATED_SMOKE_TOKENS = (
+    "set -euo pipefail",
+    "authenticationEnabled=true",
+    "authorizationEnabled=true",
+    "LocalAuthenticationMetadataProvider",
+    "LocalAuthorizationMetadataProvider",
+    "ProxyAuthenticationMetadataProvider",
+    "ProxyAuthorizationMetadataProvider",
+    "createUser",
+    "createAcl",
+    "Admin:proxy.admin.client",
+    "rip2-list",
+    "rip2-get",
+    "MQv2-HMAC-SHA1",
+    "username cannot be null.",
+    "check signature failed.",
+    "UNAUTHORIZED",
+    "NOT_FOUND",
+    "port-9876-closed",
+    "port-8081-closed",
+    "port-8082-closed",
+    "port-10911-closed",
+    "NS_JAVA_PID",
+    "PROXY_JAVA_PID",
+    "result directory already exists",
+)
+
+REQUIRED_AUTHENTICATED_RUNTIME_SMOKE_TOKENS = (
+    "dev/run_rip2_authenticated_smoke.sh",
+    "authenticated-super-list=OK",
+    "unsigned-list=UNAUTHORIZED: username cannot be null.",
+    "bad-signature-list=UNAUTHORIZED: check signature failed.",
+    "rip2-list-list=OK",
+    "rip2-list-describe=UNAUTHORIZED",
+    "rip2-get-describe=NOT_FOUND",
+    "rip2-get-list=UNAUTHORIZED",
+    "resource=Admin:proxy.admin.client",
+    "User:rip2-list has no permission to access Admin:proxy.admin.client from 127.0.0.1, no matched policies.",
+    "User:rip2-get has no permission to access Admin:proxy.admin.client from 127.0.0.1, no matched policies.",
+    "port-10911-closed",
 )
 
 REQUIRED_REVIEW_RUNBOOK_TOKENS = (
@@ -1009,6 +1060,21 @@ def check_github_actions_approval_evidence(root, errors):
                 errors.append(f"GitHub Actions approval evidence missing {token} in {rel}")
 
 
+def check_authenticated_smoke_contract(root, errors):
+    text = read_text(root / AUTHENTICATED_SMOKE_SCRIPT, errors)
+    for token in REQUIRED_AUTHENTICATED_SMOKE_TOKENS:
+        if token not in text:
+            errors.append(f"authenticated smoke contract missing {token}")
+
+
+def check_authenticated_runtime_smoke_evidence(root, errors):
+    for rel in AUTHENTICATED_RUNTIME_SMOKE_DOCS:
+        text = read_text(root / rel, errors)
+        for token in REQUIRED_AUTHENTICATED_RUNTIME_SMOKE_TOKENS:
+            if token not in text:
+                errors.append(f"authenticated runtime smoke evidence missing {token} in {rel}")
+
+
 def check_review_runbook_contract(root, errors):
     for rel in REVIEW_RUNBOOK_DOCS:
         text = read_text(root / rel, errors)
@@ -1411,6 +1477,8 @@ def run_checks(
     check_manual_smoke_contract(root, errors)
     check_live_runtime_smoke_evidence(root, errors)
     check_github_actions_approval_evidence(root, errors)
+    check_authenticated_smoke_contract(root, errors)
+    check_authenticated_runtime_smoke_evidence(root, errors)
     check_review_runbook_contract(root, errors)
     check_plan_checkboxes(root, errors)
     check_stale_checkpoint_references(root, errors)

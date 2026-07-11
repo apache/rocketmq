@@ -126,6 +126,15 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 BUILD SUCCESS
 ```
 
+针对组装后的 distribution 运行鉴权 public endpoint smoke：
+
+```bash
+dev/run_rip2_authenticated_smoke.sh
+```
+
+预期：exit code `0`，输出 LIST/GET ACL 矩阵，并给出 9876、8081、8082、10911
+四个端口的关闭证据。
+
 ## 7. 查看提交证据
 
 先运行轻量提交门禁：

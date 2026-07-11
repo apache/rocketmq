@@ -240,3 +240,57 @@ port-9876-closed
 port-8081-closed
 port-8082-closed
 ```
+
+## Recorded Authenticated Runtime Smoke
+
+The repository-owned authenticated smoke runner starts a separate local-mode
+distribution with both `authenticationEnabled=true` and
+`authorizationEnabled=true`. The embedded Broker uses
+`LocalAuthenticationMetadataProvider` and `LocalAuthorizationMetadataProvider`;
+the Proxy resolves the same metadata through `ProxyAuthenticationMetadataProvider`
+and `ProxyAuthorizationMetadataProvider`.
+
+Run from the repository root after building the distribution:
+
+```bash
+RIP2_AUTH_SMOKE_RUN_ID=final-20260712-v2 dev/run_rip2_authenticated_smoke.sh
+```
+
+The runner initializes an isolated super user, verifies valid, unsigned, and
+bad-signature calls, then creates `rip2-list` and `rip2-get` with separate ACLs
+on `Admin:proxy.admin.client`. Recorded exit code: `0`.
+
+```text
+authenticated-super-list=OK
+unsigned-list=UNAUTHORIZED: username cannot be null.
+bad-signature-list=UNAUTHORIZED: check signature failed.
+rip2-list-list=OK
+rip2-list-describe=UNAUTHORIZED
+rip2-get-describe=NOT_FOUND
+rip2-get-list=UNAUTHORIZED
+resource=Admin:proxy.admin.client
+```
+
+The two authorization denials were returned as application statuses with these
+sanitized messages:
+
+```text
+User:rip2-list has no permission to access Admin:proxy.admin.client from 127.0.0.1, no matched policies.
+User:rip2-get has no permission to access Admin:proxy.admin.client from 127.0.0.1, no matched policies.
+```
+
+The runner tracks the Java processes that own the listener sockets and performs
+a bounded cleanup. Final audit:
+
+```text
+port-9876-closed
+port-8081-closed
+port-8082-closed
+port-10911-closed
+```
+
+All generated auth metadata, configs, JSON responses, and logs remain under
+`target/rip2-auth-smoke-final-20260712-v2` and are ignored by Git. Omit
+`RIP2_AUTH_SMOKE_RUN_ID` for a fresh timestamped rerun; the runner rejects an
+existing result directory to prevent stale RocksDB state from contaminating
+evidence.

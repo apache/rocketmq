@@ -1952,3 +1952,10 @@ API ownership and artifact publication decision.
   to query exact-head Actions runs and distinguish this state from absent or
   failed checks. Bilingual submission, acceptance, and reviewer evidence now
   records the affected workflows and the approval requirement.
+- [x] Full-distribution authentication and ACL smoke automated and verified.
+  `dev/run_rip2_authenticated_smoke.sh` starts isolated local-mode services,
+  signs public admin requests, rejects unsigned and invalid signatures, creates
+  LIST-only and GET-only users for `Admin:proxy.admin.client`, verifies the
+  allow/deny matrix, and tracks the actual Java listener owners for bounded
+  cleanup. The recorded `final-20260712-v2` run exited `0` and closed ports 9876,
+  8081, 8082, and 10911; guard tests pin the script and bilingual evidence.

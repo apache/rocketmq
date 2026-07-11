@@ -128,6 +128,15 @@ Expected:
 BUILD SUCCESS
 ```
 
+Run the authenticated public endpoint smoke against the assembled distribution:
+
+```bash
+dev/run_rip2_authenticated_smoke.sh
+```
+
+Expected: exit code `0`, the LIST/GET ACL matrix in the printed summary, and
+closed-port evidence for 9876, 8081, 8082, and 10911.
+
 ## 7. Inspect Submission Evidence
 
 Run the lightweight submission guard first:
