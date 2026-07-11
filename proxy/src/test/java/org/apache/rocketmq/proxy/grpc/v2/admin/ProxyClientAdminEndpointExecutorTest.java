@@ -251,6 +251,19 @@ public class ProxyClientAdminEndpointExecutorTest {
     }
 
     @Test
+    public void shutdownForcesSuppliedQueryExecutorAfterTimeout() throws Exception {
+        ExecutorService queryExecutor = mock(ExecutorService.class);
+        when(queryExecutor.awaitTermination(5, TimeUnit.SECONDS)).thenReturn(false);
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, queryExecutor);
+
+        executor.shutdown();
+
+        verify(queryExecutor).shutdown();
+        verify(queryExecutor).shutdownNow();
+    }
+
+    @Test
     public void mapsRejectedQueryExecutorToResponseStatus() {
         ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
             new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")

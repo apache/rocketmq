@@ -110,14 +110,10 @@ public class ProxyStartup {
                     ConfigurationManager.getProxyConfig().getProxyAdminGrpcServerPort(),
                     tlsCertificateManager
                 );
-                for (BindableService service : createProxyAdminGrpcBindableServices(grpcMessagingActivity)) {
-                    proxyAdminGrpcServerBuilder.addService(service);
-                }
-                GrpcServer proxyAdminGrpcServer = proxyAdminGrpcServerBuilder
-                    .addService(ChannelzService.newInstance(100))
-                    .addService(ProtoReflectionService.newInstance())
-                    .configInterceptor()
-                    .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
+                GrpcServer proxyAdminGrpcServer = configureProxyAdminGrpcServer(
+                    proxyAdminGrpcServerBuilder,
+                    grpcMessagingActivity
+                )
                     .build();
                 PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(proxyAdminGrpcServer);
             }
@@ -284,11 +280,20 @@ public class ProxyStartup {
             requireProxyAdminServiceFactory(proxyAdminServiceFactory).create(requiredGrpcMessagingActivity),
             "proxy admin service is required"
         );
-        BindableService peerGrpcService = requiredGrpcMessagingActivity.getProxyClientAdminPeerGrpcService();
-        if (peerGrpcService != null) {
-            services.add(peerGrpcService);
-        }
         return services;
+    }
+
+    static GrpcServerBuilder configureProxyAdminGrpcServer(GrpcServerBuilder serverBuilder,
+        DefaultGrpcMessagingActivity grpcMessagingActivity) {
+        if (serverBuilder == null) {
+            throw new IllegalArgumentException("proxy admin grpc server builder is required");
+        }
+        for (BindableService service : createProxyAdminGrpcBindableServices(grpcMessagingActivity)) {
+            serverBuilder.addService(service);
+        }
+        return serverBuilder
+            .configInterceptor()
+            .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS);
     }
 
     private static List<BindableService> createProxyAdminBindableServices(

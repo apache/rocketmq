@@ -37,6 +37,8 @@ M1 public scope 是本进程 local view：
 
 ```bash
 grpcurl -plaintext \
+  -import-path ../rocketmq-apis \
+  -proto apache/rocketmq/v2/admin.proto \
   -d '{"page_num":1,"page_size":100}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClients
@@ -55,6 +57,8 @@ Dashboard 搜索可以使用以下过滤字段：
 
 ```bash
 grpcurl -plaintext \
+  -import-path ../rocketmq-apis \
+  -proto apache/rocketmq/v2/admin.proto \
   -d '{"client_id":"client-dashboard"}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/DescribeClient

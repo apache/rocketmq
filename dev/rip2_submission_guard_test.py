@@ -210,12 +210,21 @@ def create_submission_tree(root, apis_root, m2_repository):
     getProxyAdminGrpcServerPort();
     ProtoReflectionService.newInstance();
   }
-  void createProxyAdminGrpcBindableServices() {
+  static GrpcServerBuilder configureProxyAdminGrpcServer() {
     new GrpcProxyAdminApplication(null);
     new ThreadPoolExecutor.AbortPolicy();
   }
+  void createProxyAdminGrpcBindableServices() {}
 }
 """,
+    )
+    write(
+        root / "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/GrpcServer.java",
+        "class GrpcServer {}\n",
+    )
+    write(
+        root / "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/GrpcServerBuilder.java",
+        "class GrpcServerBuilder {}\n",
     )
     write(
         root / "proxy/src/main/java/org/apache/rocketmq/proxy/config/ProxyConfig.java",
@@ -268,9 +277,16 @@ def create_submission_tree(root, apis_root, m2_repository):
             for test_name in (
                 rip2_submission_guard.REQUIRED_ENDPOINT_FAILURE_METRICS_TESTS
                 + rip2_submission_guard.REQUIRED_ENDPOINT_CONTEXT_PROPAGATION_TESTS
+                + ("shutdownForcesSuppliedQueryExecutorAfterTimeout",)
             )
         )
         + "\n}\n",
+    )
+    write(
+        root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/GrpcServerTest.java",
+        "class GrpcServerTest {\n"
+        "  void shutdownForcesServerAndClosesOwnedEventLoopsAfterTimeout() {}\n"
+        "}\n",
     )
     write(
         root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
@@ -345,6 +361,13 @@ publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedG
 https://github.com/apache/rocketmq/pull/10603
 https://github.com/apache/rocketmq-apis/pull/112
 https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687
+-import-path ../rocketmq-apis
+-proto apache/rocketmq/v2/admin.proto
+x-mq-date-time
+MQv2-HMAC-SHA1
+server reflection
+Channelz
+internal peer
 """
     for rel in rip2_submission_guard.REQUIRED_DOCS:
         write(root / rel, submission)
@@ -1786,6 +1809,77 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             self.assertTrue(
                 any("ProxyStartupTest" in error and "admin server isolation" in error for error in errors)
             )
+
+    def test_guard_reports_internal_service_exposure_on_public_admin_listener(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            startup_path = root / "proxy/src/main/java/org/apache/rocketmq/proxy/ProxyStartup.java"
+            startup_path.write_text(
+                startup_path.read_text(encoding="utf-8").replace(
+                    "new GrpcProxyAdminApplication(null);",
+                    "new GrpcProxyAdminApplication(null);\n    ProtoReflectionService.newInstance();",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("public admin listener exposes internal service" in error for error in errors))
+
+    def test_guard_reports_missing_bounded_shutdown_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            (root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/GrpcServerTest.java").unlink()
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("bounded shutdown coverage" in error for error in errors))
+
+    def test_guard_reports_reflection_dependent_smoke_contract(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            smoke_path = root / "docs/en/rip2-proxy-admin-m1-final-smoke.md"
+            smoke_path.write_text(
+                smoke_path.read_text(encoding="utf-8").replace(
+                    "-proto apache/rocketmq/v2/admin.proto",
+                    "",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("manual smoke contract" in error for error in errors))
 
     def test_guard_reports_missing_production_interceptor_dual_server_e2e(self):
         with tempfile.TemporaryDirectory() as tmp:

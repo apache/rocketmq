@@ -44,6 +44,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.proxy.config.Configuration;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplication;
@@ -368,7 +369,7 @@ public class ProxyStartupTest {
     }
 
     @Test
-    public void testCreateProxyAdminGrpcBindableServicesRegistersAdminBeforePeerService() throws Exception {
+    public void testCreateProxyAdminGrpcBindableServicesDoesNotExposeInternalPeerService() throws Exception {
         CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
             "-pm", "cluster"
         });
@@ -386,9 +387,9 @@ public class ProxyStartupTest {
             }
         );
 
-        assertEquals(2, services.size());
+        assertEquals(1, services.size());
         assertSame(adminService, services.get(0));
-        assertSame(peerGrpcService, services.get(1));
+        Mockito.verify(sharedActivity, Mockito.never()).getProxyClientAdminPeerGrpcService();
     }
 
     @Test
@@ -405,6 +406,33 @@ public class ProxyStartupTest {
 
         assertEquals(1, services.size());
         Assert.assertTrue(services.get(0) instanceof GrpcProxyAdminApplication);
+    }
+
+    @Test
+    public void testConfigureProxyAdminGrpcServerRegistersOnlyPublicAdminService() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        ProxyClientAdminEndpointExecutor endpointExecutor = mock(ProxyClientAdminEndpointExecutor.class);
+        Mockito.when(sharedActivity.getProxyClientAdminEndpointExecutor()).thenReturn(endpointExecutor);
+        GrpcServerBuilder serverBuilder = mock(GrpcServerBuilder.class);
+        Mockito.when(serverBuilder.addService(any(BindableService.class))).thenReturn(serverBuilder);
+        Mockito.when(serverBuilder.configInterceptor()).thenReturn(serverBuilder);
+        Mockito.when(serverBuilder.shutdownTime(Mockito.anyLong(), Mockito.any(TimeUnit.class)))
+            .thenReturn(serverBuilder);
+
+        GrpcServerBuilder configuredBuilder = ProxyStartup.configureProxyAdminGrpcServer(
+            serverBuilder,
+            sharedActivity
+        );
+
+        assertSame(serverBuilder, configuredBuilder);
+        ArgumentCaptor<BindableService> serviceCaptor = ArgumentCaptor.forClass(BindableService.class);
+        Mockito.verify(serverBuilder).addService(serviceCaptor.capture());
+        Assert.assertTrue(serviceCaptor.getValue() instanceof GrpcProxyAdminApplication);
+        Mockito.verify(sharedActivity, Mockito.never()).getProxyClientAdminPeerGrpcService();
     }
 
     @Test
@@ -590,7 +618,7 @@ public class ProxyStartupTest {
     }
 
     @Test
-    public void testCreateProxyAdminGrpcBindableServicesRejectsPeerGrpcServiceFailure()
+    public void testCreateProxyAdminGrpcBindableServicesIgnoresInternalPeerServiceFailure()
         throws Exception {
         CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
             "-pm", "cluster"
@@ -601,20 +629,18 @@ public class ProxyStartupTest {
             .thenThrow(new IllegalStateException("peer grpc service is unavailable"));
         int lifecycleCountBefore = proxyLifecycleComponentCount();
 
-        IllegalStateException exception = Assert.assertThrows(
-            IllegalStateException.class,
-            () -> ProxyStartup.createProxyAdminGrpcBindableServices(
-                sharedActivity,
-                activity -> Collections.emptyList()
-            )
+        List<BindableService> services = ProxyStartup.createProxyAdminGrpcBindableServices(
+            sharedActivity,
+            activity -> Collections.emptyList()
         );
 
-        Assert.assertTrue(exception.getMessage().contains("peer grpc service is unavailable"));
+        Assert.assertTrue(services.isEmpty());
+        Mockito.verify(sharedActivity, Mockito.never()).getProxyClientAdminPeerGrpcService();
         assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
     }
 
     @Test
-    public void testCreateProxyAdminGrpcBindableServicesAppendsAdminServiceBeforePeerGrpcService() throws Exception {
+    public void testCreateProxyAdminGrpcBindableServicesKeepsPeerServiceInternal() throws Exception {
         CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
             "-pm", "cluster"
         });
@@ -629,9 +655,9 @@ public class ProxyStartupTest {
             activity -> Collections.singletonList(adminService)
         );
 
-        assertEquals(2, services.size());
+        assertEquals(1, services.size());
         assertSame(adminService, services.get(0));
-        assertSame(peerGrpcService, services.get(1));
+        Mockito.verify(sharedActivity, Mockito.never()).getProxyClientAdminPeerGrpcService();
     }
 
     @Test
@@ -658,7 +684,7 @@ public class ProxyStartupTest {
     }
 
     @Test
-    public void testCreateProxyAdminGrpcBindableServicesRejectsPeerGrpcServiceFailureAfterAdminServices()
+    public void testCreateProxyAdminGrpcBindableServicesKeepsAdminServicesWhenInternalPeerFails()
         throws Exception {
         CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
             "-pm", "cluster"
@@ -670,15 +696,14 @@ public class ProxyStartupTest {
             .thenThrow(new IllegalStateException("peer grpc service is unavailable"));
         int lifecycleCountBefore = proxyLifecycleComponentCount();
 
-        IllegalStateException exception = Assert.assertThrows(
-            IllegalStateException.class,
-            () -> ProxyStartup.createProxyAdminGrpcBindableServices(
-                sharedActivity,
-                activity -> Collections.singletonList(additionalService)
-            )
+        List<BindableService> services = ProxyStartup.createProxyAdminGrpcBindableServices(
+            sharedActivity,
+            activity -> Collections.singletonList(additionalService)
         );
 
-        Assert.assertTrue(exception.getMessage().contains("peer grpc service is unavailable"));
+        assertEquals(1, services.size());
+        assertSame(additionalService, services.get(0));
+        Mockito.verify(sharedActivity, Mockito.never()).getProxyClientAdminPeerGrpcService();
         assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
     }
 

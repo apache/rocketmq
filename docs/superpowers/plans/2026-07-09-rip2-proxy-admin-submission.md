@@ -105,7 +105,7 @@ Run:
 
 ```bash
 cd .
-mvn -pl proxy -am "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
+mvn -pl proxy -am "-Dtest=GrpcServerTest,ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
 ```
 
 Expected:
@@ -1502,7 +1502,7 @@ Run:
 
 ```bash
 cd .
-mvn -pl proxy -am "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
+mvn -pl proxy -am "-Dtest=GrpcServerTest,ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
 ```
 
 Expected:
@@ -1838,8 +1838,8 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   of silently discarding an RPC. The submission guard pins these trust-boundary
   and context tests. Focused verification passed with `Tests run: 56` at
   `2026-07-11T18:41:53+08:00`, expanded broad verification passed with
-  `Tests run: 760` at `2026-07-11T23:07:13+08:00`, and package smoke passed at
-  `2026-07-11T23:09:28+08:00`.
+  `Tests run: 763` at `2026-07-11T23:49:46+08:00`, and package smoke passed at
+  `2026-07-11T23:51:22+08:00`.
 - [x] Production-interceptor dual-server authentication and isolation E2E
   completed. `GrpcProxyAdminProductionInterceptorE2ETest` starts independent
   messaging and admin loopback servers through production
@@ -1849,8 +1849,8 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   maps authenticated ACL denial to `UNAUTHORIZED`. The combined regression
   suite passed with `Tests run: 63` and `BUILD SUCCESS` at
   `2026-07-11T19:24:15+08:00`; the expanded broad suite then passed with
-  `Tests run: 760` at `2026-07-11T23:07:13+08:00`, followed by package smoke at
-  `2026-07-11T23:09:28+08:00`.
+  `Tests run: 763` at `2026-07-11T23:49:46+08:00`, followed by package smoke at
+  `2026-07-11T23:51:22+08:00`.
 - [x] Constrained-heap 1M proof completed. Performance TDD first reproduced
   broad-prefix P99 `8388.608 ms`, combined-filter P99 `13505.659 ms`, and deep
   page P99 `1157.313 ms`; the read model now uses a live prefix range view,
@@ -1863,11 +1863,24 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   filters `29.042 ms`; maximum JFR heapUsed was `1126.4 MiB`, maximum RSS was
   `1283.0 MiB`, and all runs completed with zero swaps and no OOM. Final broad
   verification includes the benchmark harness tests and passed with
-  `Tests run: 760` at
-  `2026-07-11T23:07:13+08:00`, followed by package smoke at
-  `2026-07-11T23:09:28+08:00`. Final review also hardened query-executor
+  `Tests run: 763` at
+  `2026-07-11T23:49:46+08:00`, followed by package smoke at
+  `2026-07-11T23:51:22+08:00`. Final review also hardened query-executor
   teardown with a forced-shutdown fallback and made the submission guard check
   the constrained-heap evidence independently in both benchmark reports.
+- [x] Public admin production exposure and server lifecycle hardening completed.
+  The independent admin listener now registers only
+  `GrpcProxyAdminApplication`; server reflection, Channelz, and the unauthenticated
+  internal peer service remain off that listener pending trusted proxy identity
+  semantics. `GrpcServer` now owns and closes its Netty boss/worker event loops,
+  forces the gRPC server down after a bounded wait, and the admin query executor
+  also forces shutdown after timeout. Smoke commands explicitly load
+  `../rocketmq-apis/apache/rocketmq/v2/admin.proto` and include reproducible
+  authenticated metadata. The resource/isolation suite passed with
+  `Tests run: 71`, guard unit tests passed `51/51`, broad verification passed
+  with `Tests run: 763, Failures: 0, Errors: 0, Skipped: 0` at
+  `2026-07-11T23:49:46+08:00`, and package smoke passed at
+  `2026-07-11T23:51:22+08:00`.
 - [x] Post-submission GitHub evidence audit completed. The public PR bodies and
   RIP-2 issue summary must carry the final package-level JaCoCo values for both
   core packages; the submission guard rejects missing current coverage and the

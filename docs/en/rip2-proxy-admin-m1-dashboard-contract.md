@@ -39,6 +39,8 @@ Use `ListClients` for the table view:
 
 ```bash
 grpcurl -plaintext \
+  -import-path ../rocketmq-apis \
+  -proto apache/rocketmq/v2/admin.proto \
   -d '{"page_num":1,"page_size":100}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClients
@@ -58,6 +60,8 @@ Use `DescribeClient` when opening a row detail panel:
 
 ```bash
 grpcurl -plaintext \
+  -import-path ../rocketmq-apis \
+  -proto apache/rocketmq/v2/admin.proto \
   -d '{"client_id":"client-dashboard"}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/DescribeClient

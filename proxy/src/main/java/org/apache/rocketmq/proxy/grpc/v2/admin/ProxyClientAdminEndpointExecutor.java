@@ -91,6 +91,14 @@ public class ProxyClientAdminEndpointExecutor {
 
     public void shutdown() {
         this.queryExecutor.shutdown();
+        try {
+            if (!this.queryExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                this.queryExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            this.queryExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     public <P extends GeneratedMessageV3, R> void listClients(P protoRequest,

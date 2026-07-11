@@ -20,7 +20,7 @@ BUILD SUCCESS
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-11T23:09:28+08:00
+Finished at: 2026-07-11T23:51:22+08:00
 ```
 
 ## 启动公开 admin gRPC server
@@ -33,14 +33,35 @@ proxyAdminGrpcServerPort=8082
 ```
 
 然后按现有 RocketMQ 部署方式启动 Proxy。公开 admin service 只注册在
-admin gRPC server 上，不注册到数据面 `MessagingService` server。
+admin gRPC server 上，不注册到数据面 `MessagingService` server。admin listener
+也不开放 server reflection、Channelz 或实验性 internal peer RPC；`grpcurl`
+必须显式加载已 checkout 的 proto。
 
 ## grpcurl 手工调用
+
+开启 authentication 时，使用已配置的 access key 和 secret key 准备请求
+metadata。不要把两个值提交到仓库：
+
+```bash
+export ACCESS_KEY='<configured-access-key>'
+export SECRET_KEY='<configured-secret-key>'
+export MQ_DATE_TIME="$(date -u +%Y%m%dT%H%M%SZ)"
+export MQ_SIGNATURE="$(printf '%s' "$MQ_DATE_TIME" \
+  | openssl dgst -sha1 -hmac "$SECRET_KEY" -binary \
+  | xxd -p -c 256)"
+```
+
+下面命令包含认证 header。仅在隔离的本地冒烟中同时关闭 authentication 和
+authorization 时，才可以省略两个 `-H` 参数。
 
 查询客户端列表：
 
 ```bash
 grpcurl -plaintext \
+  -import-path ../rocketmq-apis \
+  -proto apache/rocketmq/v2/admin.proto \
+  -H "x-mq-date-time: $MQ_DATE_TIME" \
+  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
   -d '{"page_num":1,"page_size":10}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClients
@@ -50,6 +71,10 @@ grpcurl -plaintext \
 
 ```bash
 grpcurl -plaintext \
+  -import-path ../rocketmq-apis \
+  -proto apache/rocketmq/v2/admin.proto \
+  -H "x-mq-date-time: $MQ_DATE_TIME" \
+  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
   -d '{"client_id":"client-a"}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/DescribeClient
@@ -59,6 +84,10 @@ grpcurl -plaintext \
 
 ```bash
 grpcurl -plaintext \
+  -import-path ../rocketmq-apis \
+  -proto apache/rocketmq/v2/admin.proto \
+  -H "x-mq-date-time: $MQ_DATE_TIME" \
+  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
   -d '{"group":"group-a","page_num":1,"page_size":10}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClientsByGroup
@@ -68,6 +97,10 @@ grpcurl -plaintext \
 
 ```bash
 grpcurl -plaintext \
+  -import-path ../rocketmq-apis \
+  -proto apache/rocketmq/v2/admin.proto \
+  -H "x-mq-date-time: $MQ_DATE_TIME" \
+  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
   -d '{"topic":"topic-a","page_num":1,"page_size":10}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClientsByTopic

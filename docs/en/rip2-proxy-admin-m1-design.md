@@ -380,11 +380,11 @@ internal adapter remains the tested boundary that the public endpoint calls:
   overload for appending additional `BindableService` instances after the
   messaging service while reusing the same `DefaultGrpcMessagingActivity`.
   Admin services use `ProxyStartup.createProxyAdminGrpcBindableServices(...)`
-  instead. That admin service list appends future public admin services first
-  and then the internal peer gRPC service when cross-proxy query support creates
-  one. The admin list is registered only on the separate admin gRPC server when
-  `enableProxyAdminGrpcServer` is enabled, keeping admin and peer RPCs off the
-  data-plane messaging server.
+  instead. The production admin listener registers only the public
+  `GrpcProxyAdminApplication`. It intentionally omits reflection, Channelz, and
+  the internal peer gRPC service until a trusted proxy identity and transport
+  policy is accepted. The listener is created only when
+  `enableProxyAdminGrpcServer` is enabled and stays off the data-plane server.
 
 The request DTOs convert pagination, client type, scope, and optional proxy id
 into `ProxyClientQuery`. Required identifiers such as client id, group, and
@@ -855,10 +855,10 @@ Recommended implementation order after public API ownership is confirmed:
    raw boundary, `ProxyClientAdminInProcessPeerMessageTransport` keeps local
    simulation on the serialized path, and `ProxyClientAdminPeerGrpcService` plus
    `ProxyClientAdminPeerGrpcTransport` provide the internal unary gRPC
-   server/client boundary using `StringValue` payloads. The gRPC peer service is
-   registered through `ProxyStartup` only when cross-proxy query support is
-   enabled. It remains an internal peer endpoint, not the public
-   `ProxyAdminService` API. The raw peer request codec preserves and rejects
+   server/client boundary using `StringValue` payloads. The peer service remains
+   an internal experiment and is not registered on the production admin
+   listener until trusted proxy authentication or mTLS semantics are defined.
+   It is not part of the public `ProxyAdminService` API. The raw peer request codec preserves and rejects
    any inbound `proxyId` field instead of silently dropping it at the JSON
    boundary, and the message client rejects overlong target proxy ids before
    raw request encoding or transport invocation.
@@ -937,10 +937,11 @@ Recommended implementation order after public API ownership is confirmed:
    use the current single-node in-process message peer transport when no static
    targets are configured, or the internal gRPC peer transport when
    `proxyClientAdminPeerGrpcTargets` is set. Static target mode requires the
-   target list to include the local `proxyName`. It also registers the internal
-   peer gRPC service and requires an explicit `proxyName` so future multi-proxy
-   discovery and page tokens do not inherit an ambiguous default proxy id. Real
-   multi-node discovery is still separate follow-up work.
+   target list to include the local `proxyName`. The internal coordinator and
+   transport remain available for tests, but production peer-service exposure
+   is gated pending trusted proxy authentication. An explicit `proxyName` keeps
+   future discovery and page tokens from inheriting an ambiguous default proxy
+   id. Real multi-node discovery is still separate follow-up work.
 5. Wire the public `ProxyAdminService` adapter to the coordinator service while
    keeping M1 `LOCAL_PROXY` as the default.
 
@@ -1293,7 +1294,7 @@ with:
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  '-Dtest=ProxyClientAdmin*Test,TimedProxyClientAdminPeerClientTest,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest' \
+  '-Dtest=GrpcServerTest,ProxyClientAdmin*Test,TimedProxyClientAdminPeerClientTest,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest' \
   -DfailIfNoTests=false test -DskipITs
 ```
 
@@ -1314,7 +1315,7 @@ The final broad verification for this checkpoint used:
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  '-Dtest=ProxyClientAdmin*Test,TimedProxyClientAdminPeerClientTest,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ClientActivityTest#testConsumerTelemetryUpdatesProxyClientReadService+testProducerTelemetryUpdatesProxyClientReadService' \
+  '-Dtest=GrpcServerTest,ProxyClientAdmin*Test,TimedProxyClientAdminPeerClientTest,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ClientActivityTest#testConsumerTelemetryUpdatesProxyClientReadService+testProducerTelemetryUpdatesProxyClientReadService' \
   -DfailIfNoTests=false test -DskipITs
 ```
 
@@ -1329,11 +1330,11 @@ checkpoint, the broader RIP-2 proxy admin suite was rerun with:
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
+  "-Dtest=GrpcServerTest,ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 760, Failures: 0, Errors: 0, Skipped: 0` and
+The run reported `Tests run: 763, Failures: 0, Errors: 0, Skipped: 0` and
 ended with `BUILD SUCCESS`. Package-level JaCoCo coverage from the same run was:
 
 | Package | Instruction | Branch | Line |
@@ -1506,22 +1507,20 @@ The contest branch has landed the generated endpoint route by consuming a local
 ProxyAdminServiceGrpc.ProxyAdminServiceImplBase`; it does not add admin RPCs to
 the existing messaging application.
 
-`ProxyStartup` can register the new application beside the existing messaging
-service because `GrpcServerBuilder` already supports repeated `addService(...)`
-calls for both `BindableService` and `ServerServiceDefinition`. The intended
-startup shape is:
+`ProxyStartup` registers the new application on the independent admin server.
+`GrpcServerBuilder` supports repeated `addService(...)` calls, but the public M1
+admin listener intentionally exposes only the generated admin application:
 
 ```text
 GrpcServerBuilder.newBuilder(...)
-  .addService(GrpcMessagingApplication...)
   .addService(GrpcProxyAdminApplication...)
-  .addService(ChannelzService...)
-  .addService(ProtoReflectionService...)
+  .configInterceptor()
 ```
 
-This branch now registers `GrpcProxyAdminApplication` through
-`ProxyStartup.createProxyAdminBindableServices(...)` when the independent admin
-gRPC server is enabled. The service is built from the same
+Server reflection, Channelz, and the internal peer RPC are deliberately absent
+from that listener. This branch registers `GrpcProxyAdminApplication` through
+`ProxyStartup.createProxyAdminGrpcBindableServices(...)` when the independent
+admin gRPC server is enabled. The service is built from the same
 `DefaultGrpcMessagingActivity` used by `GrpcMessagingApplication`, so the public
 endpoint and messaging lifecycle observe the same read model.
 

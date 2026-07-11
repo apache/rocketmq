@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.grpc.Server;
+import io.grpc.netty.shaded.io.netty.channel.EventLoopGroup;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -39,14 +40,27 @@ public class GrpcServer implements StartAndShutdown {
     private final TimeUnit unit;
 
     private final TlsCertificateManager tlsCertificateManager;
+
+    private final EventLoopGroup bossEventLoopGroup;
+
+    private final EventLoopGroup workerEventLoopGroup;
+
     @VisibleForTesting final GrpcTlsReloadHandler tlsReloadHandler;
 
     protected GrpcServer(Server server, long timeout, TimeUnit unit,
         TlsCertificateManager tlsCertificateManager) throws Exception {
+        this(server, timeout, unit, tlsCertificateManager, null, null);
+    }
+
+    protected GrpcServer(Server server, long timeout, TimeUnit unit,
+        TlsCertificateManager tlsCertificateManager, EventLoopGroup bossEventLoopGroup,
+        EventLoopGroup workerEventLoopGroup) throws Exception {
         this.server = server;
         this.timeout = timeout;
         this.unit = unit;
         this.tlsCertificateManager = tlsCertificateManager;
+        this.bossEventLoopGroup = bossEventLoopGroup;
+        this.workerEventLoopGroup = workerEventLoopGroup;
         this.tlsReloadHandler = new GrpcTlsReloadHandler();
     }
 
@@ -64,17 +78,40 @@ public class GrpcServer implements StartAndShutdown {
     }
 
     public void shutdown() {
+        boolean interrupted = false;
         try {
-            // Unregister the TLS context reload handler
             tlsCertificateManager.unregisterReloadListener(this.tlsReloadHandler);
-
-            this.server.shutdown().awaitTermination(timeout, unit);
-
-            log.info("grpc server shutdown successfully.");
         } catch (Exception e) {
-            e.printStackTrace();
-            log.error("Failed to shutdown grpc server", e);
+            log.error("Failed to unregister grpc TLS reload listener", e);
         }
+
+        try {
+            this.server.shutdown();
+            if (!this.server.awaitTermination(timeout, unit)) {
+                this.server.shutdownNow();
+                this.server.awaitTermination(timeout, unit);
+            }
+        } catch (InterruptedException e) {
+            interrupted = true;
+            this.server.shutdownNow();
+            log.warn("Interrupted while shutting down grpc server");
+        } catch (Exception e) {
+            log.error("Failed to shutdown grpc server", e);
+        } finally {
+            shutdownEventLoopGroup(this.bossEventLoopGroup);
+            shutdownEventLoopGroup(this.workerEventLoopGroup);
+            if (interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        log.info("grpc server shutdown successfully.");
+    }
+
+    private void shutdownEventLoopGroup(EventLoopGroup eventLoopGroup) {
+        if (eventLoopGroup == null) {
+            return;
+        }
+        eventLoopGroup.shutdownGracefully(0, timeout, unit).awaitUninterruptibly(timeout, unit);
     }
 
     @VisibleForTesting

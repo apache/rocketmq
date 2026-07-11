@@ -41,9 +41,9 @@ PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
 FOCUSED_RESULT = "Tests run: 56, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-11T18:41:53+08:00"
-BROAD_RESULT = "Tests run: 760, Failures: 0, Errors: 0, Skipped: 0"
-BROAD_FINISHED_AT = "Finished at: 2026-07-11T23:07:13+08:00"
-PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T23:09:28+08:00"
+BROAD_RESULT = "Tests run: 763, Failures: 0, Errors: 0, Skipped: 0"
+BROAD_FINISHED_AT = "Finished at: 2026-07-11T23:49:46+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T23:51:22+08:00"
 INTERNAL_ERROR_PUBLIC_ENDPOINT_TEST = (
     "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService"
 )
@@ -94,6 +94,9 @@ PRE_CONSTRAINED_HEAP_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T19:35:
 PRE_TEARDOWN_HARDENING_BROAD_RESULT = "Tests run: 759, Failures: 0, Errors: 0, Skipped: 0"
 PRE_TEARDOWN_HARDENING_BROAD_FINISHED_AT = "Finished at: 2026-07-11T22:39:54+08:00"
 PRE_TEARDOWN_HARDENING_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T22:41:31+08:00"
+PRE_ADMIN_EXPOSURE_BROAD_RESULT = "Tests run: 760, Failures: 0, Errors: 0, Skipped: 0"
+PRE_ADMIN_EXPOSURE_BROAD_FINISHED_AT = "Finished at: 2026-07-11T23:07:13+08:00"
+PRE_ADMIN_EXPOSURE_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T23:09:28+08:00"
 PUBLIC_REVIEW_ARTIFACT_LINKS = (
     "https://github.com/apache/rocketmq/pull/10603",
     "https://github.com/apache/rocketmq-apis/pull/112",
@@ -165,13 +168,31 @@ REQUIRED_DOCS = (
     "docs/cn/rip2-proxy-admin-public-api-discussion.md",
 )
 
+FINAL_SMOKE_DOCS = (
+    "docs/en/rip2-proxy-admin-m1-final-smoke.md",
+    "docs/cn/rip2-proxy-admin-m1-final-smoke.md",
+)
+
+REQUIRED_MANUAL_SMOKE_TOKENS = (
+    "-import-path ../rocketmq-apis",
+    "-proto apache/rocketmq/v2/admin.proto",
+    "x-mq-date-time",
+    "MQv2-HMAC-SHA1",
+    "server reflection",
+    "Channelz",
+    "internal peer",
+)
+
 REQUIRED_FILES = (
     "pom.xml",
     "proxy/src/main/java/org/apache/rocketmq/proxy/ProxyStartup.java",
     "proxy/src/main/java/org/apache/rocketmq/proxy/config/ProxyConfig.java",
+    "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/GrpcServer.java",
+    "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/GrpcServerBuilder.java",
     "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplication.java",
     "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java",
     "proxy/src/test/java/org/apache/rocketmq/proxy/ProxyStartupTest.java",
+    "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/GrpcServerTest.java",
     PLAN_FILE,
     "docs/en/rip2-proxy-admin-m1-public-api-draft.proto",
 ) + REQUIRED_DOCS
@@ -280,7 +301,8 @@ REQUIRED_ADMIN_SERVER_ISOLATION_TESTS = (
     "testProxyAdminGrpcConfigDefaultsToDisabledIndependentPort",
     "testCreateGrpcBindableServicesDoesNotRegisterAdminPeerService",
     "testCreateProxyAdminGrpcBindableServicesRegistersPublicProxyAdminServiceByDefault",
-    "testCreateProxyAdminGrpcBindableServicesRegistersAdminBeforePeerService",
+    "testCreateProxyAdminGrpcBindableServicesDoesNotExposeInternalPeerService",
+    "testConfigureProxyAdminGrpcServerRegistersOnlyPublicAdminService",
     "testCreateProxyAdminServerExecutorUsesIndependentThreadNameAndConfig",
 )
 
@@ -298,6 +320,18 @@ REQUIRED_ENDPOINT_FAILURE_METRICS_TESTS = (
 REQUIRED_ENDPOINT_CONTEXT_PROPAGATION_TESTS = (
     "listClientsPropagatesGrpcContextToQueryExecutor",
     "listClientsPropagatesOpenTelemetryContextToQueryExecutor",
+)
+
+REQUIRED_BOUNDED_SHUTDOWN_TESTS = (
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/GrpcServerTest.java",
+        "shutdownForcesServerAndClosesOwnedEventLoopsAfterTimeout",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
+        "ProxyClientAdminEndpointExecutorTest.java",
+        "shutdownForcesSuppliedQueryExecutorAfterTimeout",
+    ),
 )
 
 REQUIRED_ADMIN_REQUEST_TRUST_BOUNDARY_TESTS = (
@@ -733,6 +767,9 @@ def check_submission_evidence(root, errors):
         PRE_TEARDOWN_HARDENING_BROAD_RESULT,
         PRE_TEARDOWN_HARDENING_BROAD_FINISHED_AT,
         PRE_TEARDOWN_HARDENING_PACKAGE_SMOKE_FINISHED_AT,
+        PRE_ADMIN_EXPOSURE_BROAD_RESULT,
+        PRE_ADMIN_EXPOSURE_BROAD_FINISHED_AT,
+        PRE_ADMIN_EXPOSURE_PACKAGE_SMOKE_FINISHED_AT,
     )
     for token in stale_tokens:
         if token in combined_docs:
@@ -747,6 +784,7 @@ def check_submission_evidence(root, errors):
                 or "10:14:37" in token
                 or "11:57:46" in token
                 or "18:48:25" in token
+                or "23:09:28" in token
             ):
                 errors.append(f"stale package smoke evidence remains: {token}")
             elif (
@@ -766,6 +804,8 @@ def check_submission_evidence(root, errors):
                 or "11:56:38" in token
                 or "748" in token
                 or "18:46:34" in token
+                or "760" in token
+                or "23:07:13" in token
             ):
                 errors.append(f"stale broad verification evidence remains: {token}")
             else:
@@ -777,6 +817,14 @@ def check_required_markdown_fences(root, errors):
         text = read_text(root / rel, errors)
         if text.count("```") % 2 != 0:
             errors.append(f"unbalanced markdown code fences in {rel}")
+
+
+def check_manual_smoke_contract(root, errors):
+    for rel in FINAL_SMOKE_DOCS:
+        text = read_text(root / rel, errors)
+        for token in REQUIRED_MANUAL_SMOKE_TOKENS:
+            if token not in text:
+                errors.append(f"manual smoke contract missing {token} in {rel}")
 
 
 def check_plan_checkboxes(root, errors):
@@ -813,13 +861,23 @@ def check_source_wiring(root, errors):
     for token in (
         "GrpcProxyAdminApplication",
         "createProxyAdminGrpcBindableServices",
+        "configureProxyAdminGrpcServer",
         "isEnableProxyAdminGrpcServer()",
         "getProxyAdminGrpcServerPort()",
-        "ProtoReflectionService.newInstance()",
         "new ThreadPoolExecutor.AbortPolicy()",
     ):
         if token not in startup_text:
             errors.append(f"ProxyStartup missing {token}")
+    admin_listener_marker = "static GrpcServerBuilder configureProxyAdminGrpcServer"
+    if admin_listener_marker in startup_text:
+        admin_listener_text = startup_text.split(admin_listener_marker, 1)[1]
+        for token in (
+            "ChannelzService.newInstance",
+            "ProtoReflectionService.newInstance",
+            "getProxyClientAdminPeerGrpcService",
+        ):
+            if token in admin_listener_text:
+                errors.append(f"public admin listener exposes internal service: {token}")
     config_text = read_text(root / "proxy/src/main/java/org/apache/rocketmq/proxy/config/ProxyConfig.java", errors)
     for token in (
         "private boolean enableProxyAdminGrpcServer = false",
@@ -885,6 +943,14 @@ def check_required_test_coverage(root, errors):
         if test_name not in endpoint_executor_test_text:
             errors.append(
                 "ProxyClientAdminEndpointExecutorTest missing endpoint context propagation coverage: "
+                f"{test_name}"
+            )
+
+    for path, test_name in REQUIRED_BOUNDED_SHUTDOWN_TESTS:
+        test_text = read_text(root / path, errors)
+        if test_name not in test_text:
+            errors.append(
+                "Proxy admin test suite missing bounded shutdown coverage: "
                 f"{test_name}"
             )
 
@@ -1082,6 +1148,7 @@ def run_checks(
     check_generated_artifact(m2_repository, errors)
     check_submission_evidence(root, errors)
     check_required_markdown_fences(root, errors)
+    check_manual_smoke_contract(root, errors)
     check_plan_checkboxes(root, errors)
     check_stale_checkpoint_references(root, errors)
     check_source_wiring(root, errors)
