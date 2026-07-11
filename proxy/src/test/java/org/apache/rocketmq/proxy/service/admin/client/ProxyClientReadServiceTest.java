@@ -361,6 +361,35 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
+    public void fullConnectTimeRangeDeepPageReusesClientIdPageAnchors() throws Exception {
+        ProxyClientReadService service = new ProxyClientReadService();
+        for (int i = 0; i < 301; i++) {
+            service.upsertClient(client(indexedClientId(i), ClientType.PRODUCER,
+                set("group-a"), set("topic-a"), "JAVA", "proxy-a", 100L, 200L));
+        }
+
+        ProxyClientPage page = service.listClients(ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(100L)
+            .setPageNum(3)
+            .setPageSize(100)
+            .build());
+
+        assertThat(clientIds(page.getClients())).hasSize(100);
+        assertThat(page.getClients().get(0).getClientId()).isEqualTo("client-200");
+        assertThat(page.getNextPageToken()).isEqualTo("client-299");
+        ProxyClientPage tokenPage = service.listClients(ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(100L)
+            .setPageToken(page.getNextPageToken())
+            .setPageSize(100)
+            .build());
+        assertThat(clientIds(tokenPage.getClients())).containsExactly("client-300");
+        assertThat(tokenPage.getNextPageToken()).isEmpty();
+        assertThat((Boolean) fieldValue(service, "clientIdPageAnchorsDirty")).isFalse();
+    }
+
+    @Test
     public void wideConnectTimeRangeRejectsPageTokenOutsideRange() {
         ProxyClientReadService service = new ProxyClientReadService();
         service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
@@ -788,5 +817,10 @@ public class ProxyClientReadServiceTest {
 
     private static List<String> clientIds(List<ProxyClientInfo> clients) {
         return clients.stream().map(ProxyClientInfo::getClientId).collect(Collectors.toList());
+    }
+
+    private static String indexedClientId(int index) {
+        String padding = index < 10 ? "00" : index < 100 ? "0" : "";
+        return "client-" + padding + index;
     }
 }

@@ -125,12 +125,13 @@ public class ProxyClientReadService {
         ProxyClientQuery effectiveQuery = query == null ? ProxyClientQuery.newBuilder().build() : query;
         NavigableMap<Long, NavigableSet<String>> connectTimeRangeIndex =
             this.getConnectTimeRangeIndex(effectiveQuery);
+        boolean fullConnectTimeRange = this.includesAllClients(effectiveQuery);
         List<NavigableSet<String>> candidateIndexes = this.getCandidateIndexes(
-            effectiveQuery, connectTimeRangeIndex);
+            effectiveQuery, fullConnectTimeRange ? null : connectTimeRangeIndex);
         NavigableSet<String> drivingIndex = candidateIndexes.isEmpty()
             ? null : this.smallestCandidateIndex(candidateIndexes);
-        boolean driveConnectTimeBuckets = this.shouldDriveConnectTimeBuckets(
-            connectTimeRangeIndex, drivingIndex);
+        boolean driveConnectTimeBuckets = !fullConnectTimeRange
+            && this.shouldDriveConnectTimeBuckets(connectTimeRangeIndex, drivingIndex);
         if (!driveConnectTimeBuckets && drivingIndex == null) {
             candidateIndexes.add(this.clientIdIndex);
             drivingIndex = this.clientIdIndex;
@@ -150,7 +151,8 @@ public class ProxyClientReadService {
             ? ((long) effectiveQuery.getPageNum() - 1L) * pageSize
             : 0L;
         if (!driveConnectTimeBuckets && StringUtils.isBlank(pageToken) && candidateIndexes.size() == 1
-            && drivingIndex == this.clientIdIndex && !hasConnectTimeFilter(effectiveQuery) && skipCount > 0) {
+            && drivingIndex == this.clientIdIndex
+            && (!hasConnectTimeFilter(effectiveQuery) || fullConnectTimeRange) && skipCount > 0) {
             ClientIdPageAnchor anchor = this.getClientIdPageAnchor(skipCount);
             if (anchor != null) {
                 drivingIndex = this.clientIdIndex.tailSet(anchor.clientId, true);
@@ -353,6 +355,16 @@ public class ProxyClientReadService {
             connectTimeCandidateCount += clientIds.size();
         }
         return drivingIndex.size() >= connectTimeCandidateCount;
+    }
+
+    private boolean includesAllClients(ProxyClientQuery query) {
+        if (!hasConnectTimeFilter(query) || this.connectTimeIndex.isEmpty()) {
+            return false;
+        }
+        Long startMillis = query.getConnectTimeStartMillis();
+        Long endMillis = query.getConnectTimeEndMillis();
+        return (startMillis == null || startMillis <= this.connectTimeIndex.firstKey())
+            && (endMillis == null || endMillis >= this.connectTimeIndex.lastKey());
     }
 
     private boolean matchesConnectTimeRange(String clientId, ProxyClientQuery query) {
