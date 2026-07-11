@@ -140,12 +140,16 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     @Override
     public void addPartialSubscription(String clientId, String group, String topic, Set<String> lmqNameSet,
         OffsetOption offsetOption) {
-        // default value is 100000
+        // default maxLiteSubscriptionCount is 100000
         long maxCount = brokerController.getBrokerConfig().getMaxLiteSubscriptionCount();
         if (getActiveSubscriptionNum() >= maxCount) {
             // No need to check existence, if reach here, it must be new.
             throw new LiteQuotaException("lite subscription quota exceeded " + maxCount);
         }
+
+        // Wildcard group is not supported
+        // Wildcard group receives all LMQ message from a parent topic
+        // Wildcard group is same as normal group
         if (LiteMetadataUtil.isWildcardGroup(group, brokerController)) {
             throw new IllegalStateException("subscribe lite operation is not supported for this group");
         }
@@ -154,11 +158,13 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         // Utilize existing string object
         final ClientGroup clientGroup = new ClientGroup(clientId, thisSub.getGroup());
         for (String lmqName : lmqNameSet) {
+            // subscription exists or sharding to this broker
             if (!liteLifecycleManager.isSubscriptionActive(topic, lmqName)) {
                 continue;
             }
             thisSub.addLiteTopic(lmqName);
-            // First remove the old subscription
+
+            // if exclusive mode: evict previous holder
             if (LiteMetadataUtil.isSubLiteExclusive(group, brokerController)) {
                 excludeClientByLmqName(clientId, group, lmqName);
                 // Boundary case: this client may have a stale tombstone from a previous eviction.
@@ -166,6 +172,8 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                 // subsequent popLiteTopic is not blocked by the stale mark.
                 exclusiveEvictionTombstones.remove(clientId, lmqName);
             }
+
+            // set subscription start offset
             resetOffset(lmqName, group, clientId, offsetOption);
             addTopicGroup(clientGroup, lmqName);
         }
