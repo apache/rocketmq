@@ -218,6 +218,19 @@ inline task admission 之后的失败重复计量。认证与 transport 信任�
 已认证 principal、socket address 和完整 `proxy_protocol_*` 命名空间会
 覆盖或清除客户端提供的 metadata。更严格的 subject 策略仅用于 public
 admin pipeline，messaging pipeline 保留现有的 whitelist 行为。
+`GrpcProxyAdminProductionInterceptorE2ETest` 在真实 loopback 端口上闭合了
+production interceptor 双 server 门禁：生成版 admin service 不存在于
+messaging server，messaging service 不存在于 admin server；认证 subject 和
+transport 源 IP 能到达 ACL，认证失败不会调用 ACL，认证成功后的 ACL
+拒绝返回不带 result body 的 `UNAUTHORIZED`。
+
+Production interceptor 双 server 验证：
+
+```text
+Tests run: 63, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+Finished at: 2026-07-11T19:24:15+08:00
+```
 `GrpcProxyAdminWiringTest#createDefaultActivityWiresEndpointFailureMetricsRecorder`
 验证 production activity 注入共享 OTel recorder。
 
@@ -284,9 +297,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 749, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 750, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-11T18:56:24+08:00
+Finished at: 2026-07-11T19:32:17+08:00
 ```
 
 Package smoke：
@@ -300,7 +313,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-11T18:58:58+08:00
+Finished at: 2026-07-11T19:35:13+08:00
 ```
 
 轻量提交门禁：
@@ -408,7 +421,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 749, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 750, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 轻量提交门禁：
 

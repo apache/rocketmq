@@ -1333,7 +1333,7 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 749, Failures: 0, Errors: 0, Skipped: 0` and
+The run reported `Tests run: 750, Failures: 0, Errors: 0, Skipped: 0` and
 ended with `BUILD SUCCESS`. Package-level JaCoCo coverage from the same run was:
 
 | Package | Instruction | Branch | Line |

@@ -1838,8 +1838,19 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   of silently discarding an RPC. The submission guard pins these trust-boundary
   and context tests. Focused verification passed with `Tests run: 56` at
   `2026-07-11T18:41:53+08:00`, expanded broad verification passed with
-  `Tests run: 749` at `2026-07-11T18:56:24+08:00`, and package smoke passed at
-  `2026-07-11T18:58:58+08:00`.
+  `Tests run: 750` at `2026-07-11T19:32:17+08:00`, and package smoke passed at
+  `2026-07-11T19:35:13+08:00`.
+- [x] Production-interceptor dual-server authentication and isolation E2E
+  completed. `GrpcProxyAdminProductionInterceptorE2ETest` starts independent
+  messaging and admin loopback servers through production
+  `GrpcServerBuilder.configInterceptor()`, verifies service isolation in both
+  directions, replaces forged subject/address metadata with authenticated and
+  transport-derived values, proves authentication failure bypasses ACL, and
+  maps authenticated ACL denial to `UNAUTHORIZED`. The combined regression
+  suite passed with `Tests run: 63` and `BUILD SUCCESS` at
+  `2026-07-11T19:24:15+08:00`; the expanded broad suite then passed with
+  `Tests run: 750` at `2026-07-11T19:32:17+08:00`, followed by package smoke at
+  `2026-07-11T19:35:13+08:00`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

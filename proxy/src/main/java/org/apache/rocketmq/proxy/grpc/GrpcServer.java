@@ -58,6 +58,11 @@ public class GrpcServer implements StartAndShutdown {
         log.info("grpc server start successfully.");
     }
 
+    @VisibleForTesting
+    public int getPort() {
+        return this.server.getPort();
+    }
+
     public void shutdown() {
         try {
             // Unregister the TLS context reload handler

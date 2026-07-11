@@ -251,6 +251,16 @@ def create_submission_tree(root, apis_root, m2_repository):
     )
     write(
         root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
+        "GrpcProxyAdminProductionInterceptorE2ETest.java",
+        "class GrpcProxyAdminProductionInterceptorE2ETest {\n"
+        + "\n".join(
+            f"  void {test_name}() {{}}"
+            for test_name in rip2_submission_guard.REQUIRED_PRODUCTION_INTERCEPTOR_E2E_TESTS
+        )
+        + "\n}\n",
+    )
+    write(
+        root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
         "ProxyClientAdminEndpointExecutorTest.java",
         "class ProxyClientAdminEndpointExecutorTest {\n"
         + "\n".join(
@@ -1680,6 +1690,31 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(
                 any("ProxyStartupTest" in error and "admin server isolation" in error for error in errors)
+            )
+
+    def test_guard_reports_missing_production_interceptor_dual_server_e2e(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(
+                root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
+                "GrpcProxyAdminProductionInterceptorE2ETest.java",
+                "class GrpcProxyAdminProductionInterceptorE2ETest {}\n",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any("production interceptor dual server E2E" in error for error in errors)
             )
 
 

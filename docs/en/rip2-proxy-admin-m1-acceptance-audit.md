@@ -33,7 +33,7 @@ environment.
 | Criterion | Current status | Evidence | Remaining gate |
 | --- | --- | --- | --- |
 | Independent admin service framework supports later modules. | Implemented for M1. | `ProxyClientAdminEndpointExecutor`, `ProxyClientAdminEndpointHandler`, `GrpcProxyAdminApplication`, and `ProxyStartup` admin service registration. | Future modules should reuse the same service/activity boundary. |
-| Admin interfaces are isolated by port, thread pool, and authentication. | Structurally implemented and component-tested. | `enableProxyAdminGrpcServer`, `proxyAdminGrpcServerPort`, admin gRPC executor settings, `ProxyClientAdminQueryThread_`, trusted subject/address/HAProxy-metadata boundary tests, and `proxy.admin.client` ACL policy. | Add a production-interceptor dual-server black-box test; operational deployment must enable the admin server explicitly. |
+| Admin interfaces are isolated by port, thread pool, and authentication. | Implemented and black-box tested. | `GrpcProxyAdminProductionInterceptorE2ETest` starts separate loopback messaging/admin servers through production `GrpcServerBuilder` interceptors and verifies service isolation, authenticated-subject flow, trusted source IP, authentication failure bypassing ACL, and authorization denial. Existing config/executor tests cover `enableProxyAdminGrpcServer`, `proxyAdminGrpcServerPort`, and independent thread pools. | Operational deployment must enable the admin server explicitly. |
 | Interface contracts follow compatibility rules. | Draft contract follows additive protobuf style. | `../rocketmq-apis/apache/rocketmq/v2/admin.proto` and `docs/en/rip2-proxy-admin-m1-public-api-draft.proto` use a standalone service and stable field numbers in the proposal. | Apache must approve the final contract before merge. |
 
 ## Quality And Documentation
@@ -41,7 +41,7 @@ environment.
 | Criterion | Current status | Evidence | Remaining gate |
 | --- | --- | --- | --- |
 | Unit test coverage of core modules is >=85%. | Locally verified for RIP-2 core packages. | Submission package records `service.admin.client` line coverage 95.66% and `grpc.v2.admin` line coverage 94.73%; branch coverage is also above 85% for both packages. | Re-run coverage after any code changes. |
-| Integration tests cover interfaces, authentication, and exception handling. | Public transport and component auth paths are covered. | Generated gRPC Server/Channel tests, proto-free endpoint integration tests, trusted subject/address boundary tests, peer tests, ACL tests, and public bad-request/not-found/unauthorized/internal-error response mapping tests. | Add production-interceptor authentication E2E; Dashboard CLIENT-01 remains an external E2E item. |
+| Integration tests cover interfaces, authentication, and exception handling. | Covered locally. | Generated gRPC Server/Channel tests, production-interceptor dual-server E2E, proto-free endpoint integration tests, trusted subject/address boundary tests, peer tests, ACL tests, and public bad-request/not-found/unauthorized/internal-error response mapping tests. | Dashboard CLIENT-01 remains an external E2E item. |
 | Performance benchmark report is available. | Implemented. | English and Chinese benchmark reports include commands, environment, 1M-client read-model, generated public gRPC endpoint, coordinator scenarios, P50/P95/P99, and heap settings. | Re-run if hardware or implementation changes materially. |
 | Bilingual docs are synchronized with the code release. | Implemented for contest branch. | English and Chinese user guides, final smoke guides, benchmark reports, and submission packages are present. | Keep PR and issue links current. |
 
@@ -50,10 +50,9 @@ environment.
 The contest branch is locally implemented and verified for M1 public endpoint
 behavior, local read-model and generated public endpoint performance, ACL,
 observability, docs, and generated gRPC Server/Channel coverage. The remaining
-gates include two local proof items and the external community/integration items:
+gates include one local proof item and the external community/integration items:
 
 - worst-case 1M peak-memory/allocation/GC evidence under constrained heap.
-- production-interceptor dual-server authentication and isolation E2E.
 
 - community acceptance of the `rocketmq-apis` public proto proposal.
 - official `rocketmq-proto` artifact publication with `ProxyAdminServiceGrpc`.

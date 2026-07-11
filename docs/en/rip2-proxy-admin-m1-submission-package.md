@@ -236,6 +236,20 @@ principals, socket addresses, and the complete `proxy_protocol_*` namespace
 replace or clear client-supplied metadata. The normal messaging pipeline keeps
 its pre-existing whitelisted-subject behavior; the stricter subject policy is
 scoped to the public admin pipeline.
+`GrpcProxyAdminProductionInterceptorE2ETest` closes the production-interceptor
+dual-server gate on real loopback ports. It verifies that the generated admin
+service is absent from the messaging server, the messaging service is absent
+from the admin server, authenticated subjects and transport source IP reach
+ACL, authentication failure bypasses ACL, and authenticated ACL denial returns
+`UNAUTHORIZED` without a result body.
+
+Production-interceptor dual-server verification:
+
+```text
+Tests run: 63, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+Finished at: 2026-07-11T19:24:15+08:00
+```
 `GrpcProxyAdminWiringTest#createDefaultActivityWiresEndpointFailureMetricsRecorder`
 verifies the production activity supplies the shared OTel recorder.
 
@@ -302,9 +316,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 749, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 750, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-11T18:56:24+08:00
+Finished at: 2026-07-11T19:32:17+08:00
 ```
 
 Package smoke:
@@ -318,7 +332,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-11T18:58:58+08:00
+Finished at: 2026-07-11T19:35:13+08:00
 ```
 
 Lightweight submission guard:
@@ -428,7 +442,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 749, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 750, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 Lightweight submission guard:
 

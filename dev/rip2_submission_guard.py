@@ -41,9 +41,9 @@ PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
 FOCUSED_RESULT = "Tests run: 56, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-11T18:41:53+08:00"
-BROAD_RESULT = "Tests run: 749, Failures: 0, Errors: 0, Skipped: 0"
-BROAD_FINISHED_AT = "Finished at: 2026-07-11T18:56:24+08:00"
-PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T18:58:58+08:00"
+BROAD_RESULT = "Tests run: 750, Failures: 0, Errors: 0, Skipped: 0"
+BROAD_FINISHED_AT = "Finished at: 2026-07-11T19:32:17+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T19:35:13+08:00"
 INTERNAL_ERROR_PUBLIC_ENDPOINT_TEST = (
     "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService"
 )
@@ -85,6 +85,9 @@ PRE_TRUST_BOUNDARY_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T11:57:46
 PRE_BINARY_HEADER_BROAD_RESULT = "Tests run: 748, Failures: 0, Errors: 0, Skipped: 0"
 PRE_BINARY_HEADER_BROAD_FINISHED_AT = "Finished at: 2026-07-11T18:46:34+08:00"
 PRE_BINARY_HEADER_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T18:48:25+08:00"
+PRE_PRODUCTION_INTERCEPTOR_BROAD_RESULT = "Tests run: 749, Failures: 0, Errors: 0, Skipped: 0"
+PRE_PRODUCTION_INTERCEPTOR_BROAD_FINISHED_AT = "Finished at: 2026-07-11T18:56:24+08:00"
+PRE_PRODUCTION_INTERCEPTOR_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T18:58:58+08:00"
 PUBLIC_REVIEW_ARTIFACT_LINKS = (
     "https://github.com/apache/rocketmq/pull/10603",
     "https://github.com/apache/rocketmq-apis/pull/112",
@@ -247,6 +250,10 @@ REQUIRED_ADMIN_SERVER_ISOLATION_TESTS = (
     "testCreateProxyAdminGrpcBindableServicesRegistersPublicProxyAdminServiceByDefault",
     "testCreateProxyAdminGrpcBindableServicesRegistersAdminBeforePeerService",
     "testCreateProxyAdminServerExecutorUsesIndependentThreadNameAndConfig",
+)
+
+REQUIRED_PRODUCTION_INTERCEPTOR_E2E_TESTS = (
+    "productionInterceptorsAuthenticateAdminAndKeepServicesOnSeparatePorts",
 )
 
 REQUIRED_ENDPOINT_FAILURE_METRICS_TESTS = (
@@ -680,6 +687,9 @@ def check_submission_evidence(root, errors):
         PRE_BINARY_HEADER_BROAD_RESULT,
         PRE_BINARY_HEADER_BROAD_FINISHED_AT,
         PRE_BINARY_HEADER_PACKAGE_SMOKE_FINISHED_AT,
+        PRE_PRODUCTION_INTERCEPTOR_BROAD_RESULT,
+        PRE_PRODUCTION_INTERCEPTOR_BROAD_FINISHED_AT,
+        PRE_PRODUCTION_INTERCEPTOR_PACKAGE_SMOKE_FINISHED_AT,
     )
     for token in stale_tokens:
         if token in combined_docs:
@@ -802,6 +812,18 @@ def check_required_test_coverage(root, errors):
         if test_name not in startup_test_text:
             errors.append(
                 "ProxyStartupTest missing admin server isolation coverage: "
+                f"{test_name}"
+            )
+
+    production_e2e_text = read_text(
+        root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
+        "GrpcProxyAdminProductionInterceptorE2ETest.java",
+        errors,
+    )
+    for test_name in REQUIRED_PRODUCTION_INTERCEPTOR_E2E_TESTS:
+        if test_name not in production_e2e_text:
+            errors.append(
+                "proxy admin production interceptor dual server E2E missing: "
                 f"{test_name}"
             )
 
