@@ -23,6 +23,7 @@ use the runbook for those full reproductions.
 """
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -41,9 +42,9 @@ PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
 FOCUSED_RESULT = "Tests run: 56, Failures: 0, Errors: 0, Skipped: 0"
 FOCUSED_FINISHED_AT = "Finished at: 2026-07-11T18:41:53+08:00"
-BROAD_RESULT = "Tests run: 763, Failures: 0, Errors: 0, Skipped: 0"
-BROAD_FINISHED_AT = "Finished at: 2026-07-11T23:49:46+08:00"
-PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T23:51:22+08:00"
+BROAD_RESULT = "Tests run: 767, Failures: 0, Errors: 0, Skipped: 0"
+BROAD_FINISHED_AT = "Finished at: 2026-07-12T00:28:33+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-12T00:30:07+08:00"
 INTERNAL_ERROR_PUBLIC_ENDPOINT_TEST = (
     "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService"
 )
@@ -126,6 +127,13 @@ CONSTRAINED_HEAP_EVIDENCE_DOCS = (
     "docs/cn/rip2-proxy-admin-m1-benchmark-report.md",
 )
 
+ARTIFACT_SHA_EVIDENCE_DOCS = (
+    "docs/en/rip2-proxy-admin-m1-submission-package.md",
+    "docs/cn/rip2-proxy-admin-m1-submission-package.md",
+    "docs/en/rip2-proxy-admin-m1-final-smoke.md",
+    "docs/cn/rip2-proxy-admin-m1-final-smoke.md",
+)
+
 GITHUB_EXTERNAL_GATE_TOKENS = (
     "official artifact",
     "Dashboard CLIENT-01",
@@ -133,8 +141,8 @@ GITHUB_EXTERNAL_GATE_TOKENS = (
 )
 
 GITHUB_COVERAGE_EVIDENCE = (
-    "service.admin.client instruction 93.12%, branch 85.90%, line 94.64%",
-    "grpc.v2.admin instruction 92.79%, branch 85.61%, line 94.73%",
+    "service.admin.client instruction 93.14%, branch 86.29%, line 94.59%",
+    "grpc.v2.admin instruction 92.76%, branch 85.64%, line 94.67%",
 )
 
 STALE_GITHUB_COVERAGE_EVIDENCE = (
@@ -331,6 +339,39 @@ REQUIRED_BOUNDED_SHUTDOWN_TESTS = (
         "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
         "ProxyClientAdminEndpointExecutorTest.java",
         "shutdownForcesSuppliedQueryExecutorAfterTimeout",
+    ),
+)
+
+REQUIRED_WIDE_CONNECT_TIME_TESTS = (
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/service/admin/client/"
+        "ProxyClientReadServiceTest.java",
+        "wideConnectTimeRangeReusesClientIdIndexWithoutMaterializingUnion",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/service/admin/client/"
+        "ProxyClientReadServiceTest.java",
+        "wideConnectTimeRangeAppliesPageNumToMatchingClients",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/service/admin/client/"
+        "ProxyClientReadServiceTest.java",
+        "wideConnectTimeRangeRejectsPageTokenOutsideRange",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/service/admin/client/"
+        "ProxyClientReadServiceTest.java",
+        "wideConnectTimeRangeUsesMoreSelectiveGroupIndex",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/service/admin/client/"
+        "ProxyClientReadServiceBenchmarkTest.java",
+        "listByWideConnectTimeRangePage",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
+        "GrpcProxyAdminApplicationBenchmarkTest.java",
+        "listClientsByWideConnectTimeRange",
     ),
 )
 
@@ -628,7 +669,7 @@ def check_generated_artifact(m2_repository, errors):
     jar_path = artifact_dir / f"rocketmq-proto-{PROTO_VERSION}.jar"
     if not jar_path.is_file():
         errors.append(f"missing local generated rocketmq-proto artifact: {jar_path}")
-        return
+        return None
     pom_path = artifact_dir / f"rocketmq-proto-{PROTO_VERSION}.pom"
     metadata_path = artifact_dir / "maven-metadata-local.xml"
     repositories_path = artifact_dir / "_remote.repositories"
@@ -669,10 +710,19 @@ def check_generated_artifact(m2_repository, errors):
             entries = set(jar_file.namelist())
     except zipfile.BadZipFile as exc:
         errors.append(f"generated rocketmq-proto artifact is not a valid jar: {exc}")
-        return
+        return None
     for entry in REQUIRED_JAR_ENTRIES:
         if entry not in entries:
             errors.append(f"generated rocketmq-proto artifact missing {entry}")
+    return file_sha256(jar_path)
+
+
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as artifact:
+        for chunk in iter(lambda: artifact.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def check_generated_artifact_text_file(path, label, required_tokens, errors):
@@ -685,7 +735,7 @@ def check_generated_artifact_text_file(path, label, required_tokens, errors):
             errors.append(f"generated rocketmq-proto artifact {label} missing {token}")
 
 
-def check_submission_evidence(root, errors):
+def check_submission_evidence(root, errors, artifact_sha256=None):
     combined_docs = "\n".join(read_text(root / rel, errors) for rel in REQUIRED_DOCS)
     required_tokens = (
         FOCUSED_RESULT,
@@ -713,6 +763,11 @@ def check_submission_evidence(root, errors):
         for token in REQUIRED_CONSTRAINED_HEAP_EVIDENCE:
             if token not in document:
                 errors.append(f"constrained heap benchmark evidence missing {token} in {rel}")
+    if artifact_sha256:
+        artifact_sha_token = f"rocketmq-proto jar SHA-256: {artifact_sha256}"
+        for rel in ARTIFACT_SHA_EVIDENCE_DOCS:
+            if artifact_sha_token not in read_text(root / rel, errors):
+                errors.append(f"generated artifact SHA-256 evidence missing in {rel}")
     for token in REQUIRED_PUBLIC_SCOPE_GATE_TOKENS:
         if token not in combined_docs:
             errors.append(f"submission evidence missing M1 public scope gate {token}")
@@ -954,6 +1009,14 @@ def check_required_test_coverage(root, errors):
                 f"{test_name}"
             )
 
+    for path, test_name in REQUIRED_WIDE_CONNECT_TIME_TESTS:
+        test_text = read_text(root / path, errors)
+        if test_name not in test_text:
+            errors.append(
+                "Proxy admin test suite missing wide connect-time coverage: "
+                f"{test_name}"
+            )
+
     for path, test_name in REQUIRED_ADMIN_REQUEST_TRUST_BOUNDARY_TESTS:
         test_text = read_text(root / path, errors)
         if test_name not in test_text:
@@ -1145,8 +1208,8 @@ def run_checks(
         )
     check_proto(root, apis_root, errors)
     check_apis_java_build_metadata(apis_root, errors)
-    check_generated_artifact(m2_repository, errors)
-    check_submission_evidence(root, errors)
+    artifact_sha256 = check_generated_artifact(m2_repository, errors)
+    check_submission_evidence(root, errors, artifact_sha256)
     check_required_markdown_fences(root, errors)
     check_manual_smoke_contract(root, errors)
     check_plan_checkboxes(root, errors)

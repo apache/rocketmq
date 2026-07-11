@@ -94,6 +94,7 @@ public class GrpcProxyAdminApplicationBenchmark {
     private ListClientsRequest combinedFiltersRequest;
     private ListClientsRequest languageRequest;
     private ListClientsRequest connectTimeRangeRequest;
+    private ListClientsRequest wideConnectTimeRangeRequest;
     private final AtomicInteger sequence = new AtomicInteger();
 
     @Setup
@@ -121,7 +122,7 @@ public class GrpcProxyAdminApplicationBenchmark {
             .setClientIdPrefix("client-")
             .setClientLanguage("JAVA")
             .setConnectTimeStartMillis(100L)
-            .setConnectTimeEndMillis(100L)
+            .setConnectTimeEndMillis(199L)
             .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .build();
@@ -133,6 +134,12 @@ public class GrpcProxyAdminApplicationBenchmark {
         this.connectTimeRangeRequest = ListClientsRequest.newBuilder()
             .setConnectTimeStartMillis(100L)
             .setConnectTimeEndMillis(100L)
+            .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build();
+        this.wideConnectTimeRangeRequest = ListClientsRequest.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(199L)
             .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .build();
@@ -251,6 +258,15 @@ public class GrpcProxyAdminApplicationBenchmark {
     @Measurement(iterations = 5, time = 5)
     @Warmup(iterations = 3, time = 1)
     @Threads(4)
+    public ListClientsResponse listClientsByWideConnectTimeRange() {
+        return requireClients(this.stub.listClients(this.wideConnectTimeRangeRequest));
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
     public ListClientsByGroupResponse listClientsByGroup() {
         ListClientsByGroupRequest request = ListClientsByGroupRequest.newBuilder()
             .setGroup(this.groups[nextIndex(this.groupCount)])
@@ -301,7 +317,7 @@ public class GrpcProxyAdminApplicationBenchmark {
             "127.0.0.2:8080",
             "V5_0_0",
             this.proxyIds[index % this.proxyCount],
-            100L,
+            100L + index % 100,
             200L
         );
     }

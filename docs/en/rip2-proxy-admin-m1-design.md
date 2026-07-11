@@ -1334,13 +1334,13 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 763, Failures: 0, Errors: 0, Skipped: 0` and
+The run reported `Tests run: 767, Failures: 0, Errors: 0, Skipped: 0` and
 ended with `BUILD SUCCESS`. Package-level JaCoCo coverage from the same run was:
 
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
-| `org/apache/rocketmq/proxy/service/admin/client` | 93.12% | 85.90% | 94.64% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.79% | 85.61% | 94.73% |
+| `org/apache/rocketmq/proxy/service/admin/client` | 93.14% | 86.29% | 94.59% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.76% | 85.64% | 94.67% |
 
 The final submission package, including PR and issue-comment drafts, is in
 `docs/en/rip2-proxy-admin-m1-submission-package.md`.

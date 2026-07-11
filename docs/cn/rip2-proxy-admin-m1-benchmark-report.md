@@ -231,8 +231,32 @@ JMH 写入 `/tmp/rip2-coordinator-jmh-1m.json`。
   方法和过滤字段的 P99 小于 1 秒目标。该 benchmark 经过真实生成版
   server/channel 和 public endpoint adapter；最慢 public 路径是
   `listClientsByClientIdPrefix`，P99 为 3.576 ms。
-- 单 language 和单 connect-time synthetic 桶现在不会再为 page-bounded read
-  物化 1,000,000 个 client 的候选集副本；本地 read model 会复用现有单过滤索引，
-  只在组合多个过滤条件时才物化交集。
+- 单时间桶查询复用现有时间索引。多桶时间范围不会 union client-id set：
+  生产查询由最小的可用有序索引驱动，逐个候选验证 connect time，
+  找满有界 page 后即停止。
 - Coordinator 实验在 100 个 synthetic proxy shard 和 `pageSize=100` 下仍有
   较低 P99，但它不属于 M1 公共承诺。
+
+## 宽 Connect-Time Range 1M 证明
+
+2026-07-12 补充运行将 1,000,000 个 synthetic client 均匀分布在
+100 个 connect-time 桶（`100..199`），并以 `pageSize=100` 查询完整范围。
+这覆盖了之前精确 `100..100` benchmark 未走到的多桶路径。两次运行均使用
+Temurin 17.0.18、4 个 caller thread、1 次 2 秒 warmup、3 次 3 秒
+measurement、固定 4 GiB G1 heap 和 JMH GC profiler。
+
+| 路径 | P50 ms | P95 ms | P99 ms | Max ms | Allocation B/op | Measurement GC 次数/时间 | Max RSS | Swap |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Read model `listByWideConnectTimeRangePage` | 0.004 | 0.008 | 0.010 | 60.228 | 1113.352 | 4 / 2 ms | 2448.4 MiB | 0 |
+| Generated gRPC `listClientsByWideConnectTimeRange` | 0.196 | 0.275 | 0.394 | 10.781 | 174970.776 | 15 / 22 ms | 2916.2 MiB | 0 |
+
+两个 P99 都低于 1 秒，两个 fork 都正常退出，无 OOM。原始 JMH JSON 为
+`/tmp/rip2-wide-connect-time-jmh-1m.json` 和
+`/tmp/rip2-public-wide-connect-time-jmh-1m.json`。
+
+代表性 include name：
+
+```bash
+org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listByWideConnectTimeRangePage
+org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplicationBenchmark.listClientsByWideConnectTimeRange
+```

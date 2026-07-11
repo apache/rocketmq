@@ -60,6 +60,7 @@ public class ProxyClientReadServiceBenchmark {
     private ProxyClientQuery nextPageQuery;
     private ProxyClientQuery broadPrefixQuery;
     private ProxyClientQuery combinedFiltersQuery;
+    private ProxyClientQuery wideConnectTimeRangeQuery;
     private ProxyClientQuery deepPageQuery;
     private final AtomicInteger sequence = new AtomicInteger();
 
@@ -90,7 +91,12 @@ public class ProxyClientReadServiceBenchmark {
             .setClientIdPrefix("client-")
             .setClientLanguage("JAVA")
             .setConnectTimeStartMillis(100L)
-            .setConnectTimeEndMillis(100L)
+            .setConnectTimeEndMillis(199L)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build();
+        this.wideConnectTimeRangeQuery = ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(199L)
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .build();
         int lastFullPage = Math.max(
@@ -236,6 +242,15 @@ public class ProxyClientReadServiceBenchmark {
     @Measurement(iterations = 5, time = 5)
     @Warmup(iterations = 3, time = 1)
     @Threads(4)
+    public ProxyClientPage listByWideConnectTimeRangePage() {
+        return this.readService.listClients(this.wideConnectTimeRangeQuery);
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
     public ProxyClientInfo describeClient() {
         return this.readService.getClient(this.clientIds[nextIndex(this.clientCount)]);
     }
@@ -255,7 +270,7 @@ public class ProxyClientReadServiceBenchmark {
             "127.0.0.2:8080",
             "V5_0_0",
             this.proxyIds[index % this.proxyCount],
-            100L,
+            100L + index % 100,
             200L
         );
     }

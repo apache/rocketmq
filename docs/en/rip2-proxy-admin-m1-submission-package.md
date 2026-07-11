@@ -39,6 +39,8 @@ wiring. The authoritative protobuf source is published in
 at commit `c372905ce927cf8957333e7ac07877f295fd7ec9`. For contest
 verification, the generated Java artifact is installed locally as
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT`.
+The installed jar used by the recorded verification has
+`rocketmq-proto jar SHA-256: 7ae515ec32832f31634c47c36291ec4e2451f9cde589e59d956802596b6bad4d`.
 
 The public API proposal is also opened as draft PR
 [apache/rocketmq-apis#112](https://github.com/apache/rocketmq-apis/pull/112).
@@ -316,9 +318,9 @@ mvn -pl proxy -am \
 Result:
 
 ```text
-Tests run: 763, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 767, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-11T23:49:46+08:00
+Finished at: 2026-07-12T00:28:33+08:00
 ```
 
 Package smoke:
@@ -332,7 +334,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-11T23:51:22+08:00
+Finished at: 2026-07-12T00:30:07+08:00
 ```
 
 Lightweight submission guard:
@@ -376,8 +378,8 @@ Latest package-level JaCoCo coverage from the broad verification:
 
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
-| `org/apache/rocketmq/proxy/service/admin/client` | 93.12% | 85.90% | 94.64% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.79% | 85.61% | 94.73% |
+| `org/apache/rocketmq/proxy/service/admin/client` | 93.14% | 86.29% | 94.59% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.76% | 85.64% | 94.67% |
 
 JDK 17 prints JaCoCo 0.8.5 instrumentation stack traces for some JDK and
 Mockito-generated classes in this repository. They are treated as environment
@@ -389,6 +391,9 @@ Benchmark evidence:
 - Local read-model worst P99: `listByTopicPage` at 0.681 ms.
 - Generated public gRPC endpoint worst P99:
   `listClientsByClientIdPrefix` at 3.576 ms.
+- Wide connect-time range over 100 synthetic time buckets: read model P99
+  `0.010 ms` at `1113.352 B/op`; generated public gRPC P99 `0.394 ms` at
+  `174970.776 B/op`, with zero swaps and no OOM under a 4 GiB fixed heap.
 - Coordinator experiment worst P99: `listAllProxiesNextPage` at 9.011 ms.
 - 4 GiB constrained-heap worst cases: broad prefix 137.526 ms P99,
   combined filters 243.610 ms, deep page 10000 at 0.016 ms, and generated
@@ -448,7 +453,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 763, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 767, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 Lightweight submission guard:
 

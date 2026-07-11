@@ -243,9 +243,35 @@ discussion.
   target for the public M1 methods and filters. The benchmark traverses a real
   generated server/channel and the public endpoint adapter; the slowest public
   path was `listClientsByClientIdPrefix` at 3.576 ms P99.
-- The single-language and single-connect-time synthetic buckets no longer
-  materialize 1,000,000-client candidate copies for page-bounded reads; the
-  local read model reuses the existing single filter index and only materializes
-  intersections when multiple filters are combined.
+- Single-bucket time queries reuse the existing time index. Multi-bucket time
+  ranges do not union client-id sets: production queries drive the smallest
+  available ordered index and validate connect time per candidate until the
+  bounded page is full.
 - The coordinator experiment shows low P99 latency with 100 synthetic proxy
   shards and `pageSize=100`, but it is not part of the public M1 promise.
+
+## Wide Connect-Time Range 1M Proof
+
+The 2026-07-12 follow-up distributes 1,000,000 synthetic clients evenly over
+100 connect-time buckets (`100..199`) and queries the complete range with
+`pageSize=100`. This covers the multi-bucket path that the earlier exact
+`100..100` benchmark did not exercise. Both runs used Temurin 17.0.18, four
+caller threads, one 2-second warmup, three 3-second measurements, a fixed 4 GiB
+G1 heap, and the JMH GC profiler.
+
+| Path | P50 ms | P95 ms | P99 ms | Max ms | Allocation B/op | Measurement GC count/time | Max RSS | Swap |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Read model `listByWideConnectTimeRangePage` | 0.004 | 0.008 | 0.010 | 60.228 | 1113.352 | 4 / 2 ms | 2448.4 MiB | 0 |
+| Generated gRPC `listClientsByWideConnectTimeRange` | 0.196 | 0.275 | 0.394 | 10.781 | 174970.776 | 15 / 22 ms | 2916.2 MiB | 0 |
+
+Both P99 values are below 1 second and both forks exited normally without OOM.
+The raw JMH JSON files are
+`/tmp/rip2-wide-connect-time-jmh-1m.json` and
+`/tmp/rip2-public-wide-connect-time-jmh-1m.json`.
+
+Representative include names:
+
+```bash
+org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listByWideConnectTimeRangePage
+org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplicationBenchmark.listClientsByWideConnectTimeRange
+```

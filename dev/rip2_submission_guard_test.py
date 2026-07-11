@@ -288,6 +288,16 @@ def create_submission_tree(root, apis_root, m2_repository):
         "  void shutdownForcesServerAndClosesOwnedEventLoopsAfterTimeout() {}\n"
         "}\n",
     )
+    wide_connect_time_tests = {}
+    for path, test_name in rip2_submission_guard.REQUIRED_WIDE_CONNECT_TIME_TESTS:
+        wide_connect_time_tests.setdefault(path, []).append(test_name)
+    for path, test_names in wide_connect_time_tests.items():
+        write(
+            root / path,
+            "class WideConnectTimeTest {\n"
+            + "\n".join(f"  void {test_name}() {{}}" for test_name in test_names)
+            + "\n}\n",
+        )
     write(
         root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
         "GrpcProxyAdminWiringTest.java",
@@ -331,6 +341,12 @@ deploy_maven(
 """,
     )
 
+    create_snapshot_jar(m2_repository)
+    artifact_sha256 = rip2_submission_guard.file_sha256(
+        m2_repository
+        / "org/apache/rocketmq/rocketmq-proto/2.2.0-rip2-SNAPSHOT"
+        / "rocketmq-proto-2.2.0-rip2-SNAPSHOT.jar"
+    )
     submission = f"""
 {rip2_submission_guard.FOCUSED_RESULT}
 {rip2_submission_guard.FOCUSED_FINISHED_AT}
@@ -368,6 +384,7 @@ MQv2-HMAC-SHA1
 server reflection
 Channelz
 internal peer
+rocketmq-proto jar SHA-256: {artifact_sha256}
 """
     for rel in rip2_submission_guard.REQUIRED_DOCS:
         write(root / rel, submission)
@@ -375,7 +392,6 @@ internal peer
         root / "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md",
         "- [x] completed step\n",
     )
-    create_snapshot_jar(m2_repository)
     create_snapshot_metadata(m2_repository)
 
 
@@ -554,8 +570,8 @@ def github_body(rocketmq_head, apis_head=None, guard_command=None):
     body += "PROXY_SCOPE_LOCAL_PROXY\n"
     body += "PROXY_SCOPE_ALL_PROXIES\n"
     body += "PROXY_SCOPE_PROXY_ID\n"
-    body += "service.admin.client instruction 93.12%, branch 85.90%, line 94.64%\n"
-    body += "grpc.v2.admin instruction 92.79%, branch 85.61%, line 94.73%\n"
+    body += "service.admin.client instruction 93.14%, branch 86.29%, line 94.59%\n"
+    body += "grpc.v2.admin instruction 92.76%, branch 85.64%, line 94.67%\n"
     body += "RIP-2 submission guard passed.\n"
     return body
 
@@ -787,6 +803,34 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("generated rocketmq-proto artifact missing pom" in error for error in errors))
+
+    def test_guard_reports_missing_generated_artifact_sha256_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            artifact_sha256 = rip2_submission_guard.file_sha256(
+                m2_repository
+                / "org/apache/rocketmq/rocketmq-proto/2.2.0-rip2-SNAPSHOT"
+                / "rocketmq-proto-2.2.0-rip2-SNAPSHOT.jar"
+            )
+            package_path = root / rip2_submission_guard.ARTIFACT_SHA_EVIDENCE_DOCS[0]
+            package_path.write_text(
+                package_path.read_text(encoding="utf-8").replace(artifact_sha256, "missing"),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("generated artifact SHA-256 evidence" in error for error in errors))
 
     def test_guard_reports_stale_package_smoke_evidence(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1216,8 +1260,8 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             apis_head = "apis456"
             body = github_body(expected_head, apis_head)
             stale_body = body.replace(
-                "service.admin.client instruction 93.12%, branch 85.90%, line 94.64%",
-                "service.admin.client instruction 93.12%, branch 88.01%, line 95.66%",
+                "service.admin.client instruction 93.14%, branch 86.29%, line 94.59%",
+                "service.admin.client instruction 93.14%, branch 88.01%, line 95.66%",
             )
 
             errors = rip2_submission_guard.run_checks(
@@ -1854,6 +1898,52 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("bounded shutdown coverage" in error for error in errors))
+
+    def test_guard_reports_missing_wide_connect_time_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            read_service_test = (
+                root / "proxy/src/test/java/org/apache/rocketmq/proxy/service/admin/client/"
+                "ProxyClientReadServiceTest.java"
+            )
+            write(
+                read_service_test,
+                "wideConnectTimeRangeReusesClientIdIndexWithoutMaterializingUnion\n"
+                "wideConnectTimeRangeAppliesPageNumToMatchingClients\n"
+                "wideConnectTimeRangeRejectsPageTokenOutsideRange\n"
+                "wideConnectTimeRangeUsesMoreSelectiveGroupIndex\n",
+            )
+            write(
+                root / "proxy/src/test/java/org/apache/rocketmq/proxy/service/admin/client/"
+                "ProxyClientReadServiceBenchmarkTest.java",
+                "listByWideConnectTimeRangePage\n",
+            )
+            write(
+                root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
+                "GrpcProxyAdminApplicationBenchmarkTest.java",
+                "listClientsByWideConnectTimeRange\n",
+            )
+            read_service_test.write_text(
+                read_service_test.read_text(encoding="utf-8").replace(
+                    "wideConnectTimeRangeReusesClientIdIndexWithoutMaterializingUnion",
+                    "missingWideRangeAllocationCoverage",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("wide connect-time coverage" in error for error in errors))
 
     def test_guard_reports_reflection_dependent_smoke_contract(self):
         with tempfile.TemporaryDirectory() as tmp:

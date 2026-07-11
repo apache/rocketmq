@@ -5,6 +5,13 @@ endpoint after the `rocketmq-apis` branch has been built and
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` has been installed
 locally.
 
+Artifact identity for the recorded verification:
+
+```text
+rocketmq-apis commit: c372905ce927cf8957333e7ac07877f295fd7ec9
+rocketmq-proto jar SHA-256: 7ae515ec32832f31634c47c36291ec4e2451f9cde589e59d956802596b6bad4d
+```
+
 ## Build
 
 ```bash
@@ -21,7 +28,7 @@ Latest recorded package smoke on the submission branch:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-11T23:51:22+08:00
+Finished at: 2026-07-12T00:30:07+08:00
 ```
 
 ## Start Proxy With Public Admin Server

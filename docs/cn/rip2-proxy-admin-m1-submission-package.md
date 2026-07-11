@@ -34,6 +34,8 @@ commit 可能继续推进分支 HEAD，但不会改变上述实现 checkpoint。
 commit 为 `c372905ce927cf8957333e7ac07877f295fd7ec9`。为了完成参赛验证，
 生成版 Java artifact 以
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT` 安装到本机 Maven。
+本次记录验证使用的已安装 jar 为
+`rocketmq-proto jar SHA-256: 7ae515ec32832f31634c47c36291ec4e2451f9cde589e59d956802596b6bad4d`。
 
 Public API proposal 也已创建为 draft PR
 [apache/rocketmq-apis#112](https://github.com/apache/rocketmq-apis/pull/112)。
@@ -297,9 +299,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 763, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 767, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-11T23:49:46+08:00
+Finished at: 2026-07-12T00:28:33+08:00
 ```
 
 Package smoke：
@@ -313,7 +315,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-11T23:51:22+08:00
+Finished at: 2026-07-12T00:30:07+08:00
 ```
 
 轻量提交门禁：
@@ -356,8 +358,8 @@ Broad verification 的最新包级 JaCoCo 覆盖率：
 
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
-| `org/apache/rocketmq/proxy/service/admin/client` | 93.12% | 85.90% | 94.64% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.79% | 85.61% | 94.73% |
+| `org/apache/rocketmq/proxy/service/admin/client` | 93.14% | 86.29% | 94.59% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.76% | 85.64% | 94.67% |
 
 JDK 17 下 JaCoCo 0.8.5 会对部分 JDK 和 Mockito 生成类打印 instrumentation
 stack traces。只有在 Surefire 零 failure/error 且 Maven 成功退出时，才把这些
@@ -425,7 +427,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 763, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 767, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 轻量提交门禁：
 

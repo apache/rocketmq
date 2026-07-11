@@ -4,6 +4,13 @@
 执行前需要先完成 `rocketmq-apis` 分支构建，并在本机安装
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT`。
 
+本次记录验证的 artifact 身份：
+
+```text
+rocketmq-apis commit: c372905ce927cf8957333e7ac07877f295fd7ec9
+rocketmq-proto jar SHA-256: 7ae515ec32832f31634c47c36291ec4e2451f9cde589e59d956802596b6bad4d
+```
+
 ## 构建
 
 ```bash
@@ -20,7 +27,7 @@ BUILD SUCCESS
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-11T23:51:22+08:00
+Finished at: 2026-07-12T00:30:07+08:00
 ```
 
 ## 启动公开 admin gRPC server

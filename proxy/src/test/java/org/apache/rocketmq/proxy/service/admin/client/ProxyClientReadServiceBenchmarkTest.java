@@ -42,6 +42,7 @@ public class ProxyClientReadServiceBenchmarkTest {
         assertThat(benchmark.listCombinedFiltersPage().getClients()).hasSize(100);
         assertThat(benchmark.listByLanguagePage().getClients()).isNotEmpty();
         assertThat(benchmark.listByConnectTimeRangePage().getClients()).isNotEmpty();
+        assertThat(benchmark.listByWideConnectTimeRangePage().getClients()).hasSize(100);
         assertThat(benchmark.describeClient()).isNotNull();
     }
 

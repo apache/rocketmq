@@ -1891,3 +1891,19 @@ depends on the local contest artifact
 `org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT`, generated from the
 companion `rocketmq-apis` proposal branch. It should remain downstream of the
 API ownership and artifact publication decision.
+
+- [x] Wide connect-time range materialization removed and verified. Multi-bucket
+  time queries now drive the smallest existing ordered index and validate time
+  per candidate instead of constructing a temporary union. Regression coverage
+  pins pagination, token validation, selective-index reuse, read-model JMH, and
+  generated public gRPC JMH. The 1M-client, 100-bucket, fixed-4-GiB runs measured
+  read-model P99 `0.010 ms` at `1113.352 B/op` and generated gRPC P99 `0.394 ms`
+  at `174970.776 B/op`; both completed with zero swaps and no OOM. Final broad
+  verification passed with `Tests run: 767, Failures: 0, Errors: 0, Skipped: 0`
+  at `2026-07-12T00:28:33+08:00`, followed by package smoke `BUILD SUCCESS` at
+  `2026-07-12T00:30:07+08:00`.
+- [x] Generated artifact reproducibility evidence hardened. Reviewer-facing EN/CN
+  submission and smoke docs now pin companion API commit
+  `c372905ce927cf8957333e7ac07877f295fd7ec9` and the installed
+  `rocketmq-proto` jar SHA-256; the submission guard computes the local digest
+  and rejects stale or missing documentation evidence.
