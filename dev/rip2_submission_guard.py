@@ -40,10 +40,10 @@ FULL_GUARD_COMMAND = "python3 dev/rip2_submission_guard.py --check-remote --chec
 PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
 FOCUSED_RESULT = "Tests run: 56, Failures: 0, Errors: 0, Skipped: 0"
-FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T10:11:44+08:00"
-BROAD_RESULT = "Tests run: 735, Failures: 0, Errors: 0, Skipped: 0"
-BROAD_FINISHED_AT = "Finished at: 2026-07-10T10:13:01+08:00"
-PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T10:14:37+08:00"
+FOCUSED_FINISHED_AT = "Finished at: 2026-07-11T18:41:53+08:00"
+BROAD_RESULT = "Tests run: 749, Failures: 0, Errors: 0, Skipped: 0"
+BROAD_FINISHED_AT = "Finished at: 2026-07-11T18:56:24+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T18:58:58+08:00"
 INTERNAL_ERROR_PUBLIC_ENDPOINT_TEST = (
     "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService"
 )
@@ -74,6 +74,17 @@ PRE_ENDPOINT_METRICS_BROAD_RESULT = "Tests run: 731, Failures: 0, Errors: 0, Ski
 PRE_ENDPOINT_METRICS_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T09:49:05+08:00"
 PRE_ENDPOINT_METRICS_BROAD_FINISHED_AT = "Finished at: 2026-07-10T09:50:12+08:00"
 PRE_ENDPOINT_METRICS_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T09:51:17+08:00"
+PRE_REQUEST_HARDENING_BROAD_RESULT = "Tests run: 735, Failures: 0, Errors: 0, Skipped: 0"
+PRE_REQUEST_HARDENING_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T10:11:44+08:00"
+PRE_REQUEST_HARDENING_BROAD_FINISHED_AT = "Finished at: 2026-07-10T10:13:01+08:00"
+PRE_REQUEST_HARDENING_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T10:14:37+08:00"
+PRE_TRUST_BOUNDARY_BROAD_RESULT = "Tests run: 741, Failures: 0, Errors: 0, Skipped: 0"
+PRE_TRUST_BOUNDARY_FOCUSED_FINISHED_AT = "Finished at: 2026-07-10T11:55:21+08:00"
+PRE_TRUST_BOUNDARY_BROAD_FINISHED_AT = "Finished at: 2026-07-10T11:56:38+08:00"
+PRE_TRUST_BOUNDARY_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-10T11:57:46+08:00"
+PRE_BINARY_HEADER_BROAD_RESULT = "Tests run: 748, Failures: 0, Errors: 0, Skipped: 0"
+PRE_BINARY_HEADER_BROAD_FINISHED_AT = "Finished at: 2026-07-11T18:46:34+08:00"
+PRE_BINARY_HEADER_PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-11T18:48:25+08:00"
 PUBLIC_REVIEW_ARTIFACT_LINKS = (
     "https://github.com/apache/rocketmq/pull/10603",
     "https://github.com/apache/rocketmq-apis/pull/112",
@@ -242,6 +253,59 @@ REQUIRED_ENDPOINT_FAILURE_METRICS_TESTS = (
     "recordsRejectedQueryExecutorMetricsBeforeServiceInvocation",
     "recordsRequestAdapterFailureMetricsBeforeServiceInvocation",
     "successfulEndpointDelegationDoesNotRecordDuplicateFailureMetrics",
+    "delegatedInlineFailureDoesNotRecordEndpointFailureMetrics",
+)
+
+REQUIRED_ENDPOINT_CONTEXT_PROPAGATION_TESTS = (
+    "listClientsPropagatesGrpcContextToQueryExecutor",
+    "listClientsPropagatesOpenTelemetryContextToQueryExecutor",
+)
+
+REQUIRED_ADMIN_REQUEST_TRUST_BOUNDARY_TESTS = (
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/pipeline/AuthenticationPipelineTest.java",
+        "executeReplacesForgedSubjectHeaderAfterAuthenticationSucceeds",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/pipeline/AuthenticationPipelineTest.java",
+        "executeClearsForgedSubjectHeaderWhenAuthenticationIsWhitelisted",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/pipeline/AuthenticationPipelineTest.java",
+        "executeClearsForgedSubjectHeaderWhenAuthenticationFails",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/pipeline/AuthenticationPipelineTest.java",
+        "executeClearsForgedSubjectHeaderForCustomAuthenticationContext",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/pipeline/AuthenticationPipelineTest.java",
+        "messagingPipelinePreservesWhitelistedAuthenticatedSubject",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/GrpcRequestPipelineFactoryTest.java",
+        "createProxyClientAdminContextFactoryDoesNotTrustRawSubjectWhenAuthenticationDisabled",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/interceptor/HeaderInterceptorTest.java",
+        "transportMetadataReplacesClientSuppliedAddressesAndChannelId",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/interceptor/HeaderInterceptorTest.java",
+        "missingTransportMetadataClearsClientSuppliedAddressesAndChannelId",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/interceptor/HeaderInterceptorTest.java",
+        "missingTransportMetadataClearsClientSuppliedProxyProtocolHeaders",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/interceptor/HeaderInterceptorTest.java",
+        "transportProxyProtocolMetadataReplacesOnlyTrustedHeaders",
+    ),
+    (
+        "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/interceptor/HeaderInterceptorTest.java",
+        "missingTransportMetadataClearsClientSuppliedBinaryProxyProtocolHeader",
+    ),
 )
 
 REQUIRED_ENDPOINT_FAILURE_METRICS_WIRING_TESTS = (
@@ -605,6 +669,17 @@ def check_submission_evidence(root, errors):
         PRE_ENDPOINT_METRICS_FOCUSED_FINISHED_AT,
         PRE_ENDPOINT_METRICS_BROAD_FINISHED_AT,
         PRE_ENDPOINT_METRICS_PACKAGE_SMOKE_FINISHED_AT,
+        PRE_REQUEST_HARDENING_BROAD_RESULT,
+        PRE_REQUEST_HARDENING_FOCUSED_FINISHED_AT,
+        PRE_REQUEST_HARDENING_BROAD_FINISHED_AT,
+        PRE_REQUEST_HARDENING_PACKAGE_SMOKE_FINISHED_AT,
+        PRE_TRUST_BOUNDARY_BROAD_RESULT,
+        PRE_TRUST_BOUNDARY_FOCUSED_FINISHED_AT,
+        PRE_TRUST_BOUNDARY_BROAD_FINISHED_AT,
+        PRE_TRUST_BOUNDARY_PACKAGE_SMOKE_FINISHED_AT,
+        PRE_BINARY_HEADER_BROAD_RESULT,
+        PRE_BINARY_HEADER_BROAD_FINISHED_AT,
+        PRE_BINARY_HEADER_PACKAGE_SMOKE_FINISHED_AT,
     )
     for token in stale_tokens:
         if token in combined_docs:
@@ -616,12 +691,16 @@ def check_submission_evidence(root, errors):
                 or "08:47:54" in token
                 or "09:02:11" in token
                 or "09:51:17" in token
+                or "10:14:37" in token
+                or "11:57:46" in token
+                or "18:48:25" in token
             ):
                 errors.append(f"stale package smoke evidence remains: {token}")
             elif (
                 "728" in token
                 or "730" in token
                 or "731" in token
+                or "735" in token
                 or "05:14:32" in token
                 or "06:06:44" in token
                 or "07:53:37" in token
@@ -629,6 +708,11 @@ def check_submission_evidence(root, errors):
                 or "08:46:56" in token
                 or "09:01:07" in token
                 or "09:50:12" in token
+                or "10:13:01" in token
+                or "741" in token
+                or "11:56:38" in token
+                or "748" in token
+                or "18:46:34" in token
             ):
                 errors.append(f"stale broad verification evidence remains: {token}")
             else:
@@ -679,6 +763,7 @@ def check_source_wiring(root, errors):
         "isEnableProxyAdminGrpcServer()",
         "getProxyAdminGrpcServerPort()",
         "ProtoReflectionService.newInstance()",
+        "new ThreadPoolExecutor.AbortPolicy()",
     ):
         if token not in startup_text:
             errors.append(f"ProxyStartup missing {token}")
@@ -689,6 +774,12 @@ def check_source_wiring(root, errors):
     ):
         if token not in config_text:
             errors.append(f"ProxyConfig missing {token}")
+    pipeline_factory_text = read_text(
+        root / "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/GrpcRequestPipelineFactory.java",
+        errors,
+    )
+    if "AuthenticationPipeline.forProxyAdmin" not in pipeline_factory_text:
+        errors.append("GrpcRequestPipelineFactory missing strict proxy admin authentication pipeline")
 
 
 def check_required_test_coverage(root, errors):
@@ -723,6 +814,20 @@ def check_required_test_coverage(root, errors):
         if test_name not in endpoint_executor_test_text:
             errors.append(
                 "ProxyClientAdminEndpointExecutorTest missing endpoint failure metrics coverage: "
+                f"{test_name}"
+            )
+    for test_name in REQUIRED_ENDPOINT_CONTEXT_PROPAGATION_TESTS:
+        if test_name not in endpoint_executor_test_text:
+            errors.append(
+                "ProxyClientAdminEndpointExecutorTest missing endpoint context propagation coverage: "
+                f"{test_name}"
+            )
+
+    for path, test_name in REQUIRED_ADMIN_REQUEST_TRUST_BOUNDARY_TESTS:
+        test_text = read_text(root / path, errors)
+        if test_name not in test_text:
+            errors.append(
+                "Proxy admin test suite missing admin request trust boundary coverage: "
                 f"{test_name}"
             )
 

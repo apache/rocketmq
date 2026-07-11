@@ -105,7 +105,7 @@ Run:
 
 ```bash
 cd .
-mvn -pl proxy -am "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
+mvn -pl proxy -am "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
 ```
 
 Expected:
@@ -1502,7 +1502,7 @@ Run:
 
 ```bash
 cd .
-mvn -pl proxy -am "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
+mvn -pl proxy -am "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" -DfailIfNoTests=false test -DskipITs
 ```
 
 Expected:
@@ -1825,6 +1825,21 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `2026-07-10T10:11:44+08:00`, broad verification passed with
   `Tests run: 735` at `2026-07-10T10:13:01+08:00`, and package smoke passed at
   `2026-07-10T10:14:37+08:00`.
+- [x] Public admin request-boundary hardening completed: the endpoint executor
+  now propagates gRPC and OpenTelemetry contexts across the dedicated query
+  executor and distinguishes task admission from inline task failure to avoid
+  duplicate endpoint metrics. Authenticated usernames, transport-derived
+  addresses, and the complete `proxy_protocol_*` namespace replace or clear
+  client-supplied metadata. The stricter subject policy is scoped to public
+  admin so messaging keeps its existing whitelist behavior; the public admin
+  pipeline no longer trusts a raw subject header when authentication is
+  disabled, and the admin front executor uses `AbortPolicy` so saturation is
+  observable instead
+  of silently discarding an RPC. The submission guard pins these trust-boundary
+  and context tests. Focused verification passed with `Tests run: 56` at
+  `2026-07-11T18:41:53+08:00`, expanded broad verification passed with
+  `Tests run: 749` at `2026-07-11T18:56:24+08:00`, and package smoke passed at
+  `2026-07-11T18:58:58+08:00`.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact

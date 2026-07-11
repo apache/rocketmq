@@ -86,7 +86,7 @@ local address、remote address 和 connection time 信息。最终字段编号�
 | 场景 | Code |
 | --- | --- |
 | 非法参数、非法 page token、非法 scope、M1 不支持的 public scope、缺少必填 id | `BAD_REQUEST` |
-| `DescribeClient` 缺少目标客户端或查询为空 | `NOT_FOUND` |
+| 已提供的 `client_id` 不在线，或 `DescribeClient` 查询为空 | `NOT_FOUND` |
 | 授权失败或缺少认证 subject | `UNAUTHORIZED` |
 | peer discovery 或 peer request 超时 | `PROXY_TIMEOUT` |
 | admin 查询线程池队列满 | `TOO_MANY_REQUESTS` |
@@ -100,8 +100,11 @@ local address、remote address 和 connection time 信息。最终字段编号�
 - `ListClients`、`ListClientsByGroup`、`ListClientsByTopic` 需要 `LIST`。
 - `DescribeClient` 需要 `GET`。
 
-gRPC request pipeline 会把认证后的 subject 传入 `ProxyContext`。Admin endpoint
-必须使用该 subject 做授权，并且不能在日志中明文记录 subject。
+gRPC request pipeline 会把认证后的 subject 传入 `ProxyContext`。认证未成功时，
+public admin pipeline 不信任客户端自行提供的 subject header；用于源 IP 授权的
+地址也必须由 transport 层覆盖客户端 metadata；所有客户端提供的
+`proxy_protocol_*` header 都会先清除，再回填可信 transport 属性。Admin endpoint 不能在日志中
+明文记录 subject。
 
 ## 执行线程池和可观测性
 
@@ -152,7 +155,7 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
+  "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
   -DfailIfNoTests=false test -DskipITs
 ```
 

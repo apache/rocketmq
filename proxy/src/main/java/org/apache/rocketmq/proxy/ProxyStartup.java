@@ -294,7 +294,7 @@ public class ProxyStartup {
     private static List<BindableService> createProxyAdminBindableServices(
         DefaultGrpcMessagingActivity grpcMessagingActivity) {
         DefaultGrpcMessagingActivity requiredGrpcMessagingActivity = requireGrpcMessagingActivity(grpcMessagingActivity);
-        return Lists.newArrayList(new GrpcProxyAdminApplication(
+        return Lists.<BindableService>newArrayList(new GrpcProxyAdminApplication(
             requiredGrpcMessagingActivity.getProxyClientAdminEndpointExecutor()
         ));
     }
@@ -377,7 +377,8 @@ public class ProxyStartup {
             threadPoolNums,
             1, TimeUnit.MINUTES,
             "ProxyAdminGrpcRequestExecutorThread",
-            threadPoolQueueCapacity
+            threadPoolQueueCapacity,
+            new ThreadPoolExecutor.AbortPolicy()
         );
         PROXY_START_AND_SHUTDOWN.appendShutdown(executor::shutdown);
         return executor;

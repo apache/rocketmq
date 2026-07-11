@@ -424,6 +424,7 @@ public class ProxyStartupTest {
             Assert.assertTrue(threadName.startsWith("ProxyAdminGrpcRequestExecutorThread"));
             assertEquals(1, executor.getCorePoolSize());
             assertEquals(2, executor.getQueue().remainingCapacity());
+            Assert.assertTrue(executor.getRejectedExecutionHandler() instanceof ThreadPoolExecutor.AbortPolicy);
         } finally {
             executor.shutdownNow();
         }

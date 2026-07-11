@@ -17,7 +17,7 @@
 ```
 
 live draft PR 和 RIP-2 issue summary 已同步到上述实现代码 checkpoint，包含
-generated public gRPC endpoint 1M benchmark、`735` tests broad verification、
+generated public gRPC endpoint 1M benchmark、`741` tests broad verification、
 Dashboard 表格/详情字段证据、generated service descriptor verification 证据，
 以及 public `BAD_REQUEST` / `UNAUTHORIZED` / `NOT_FOUND` /
 `INTERNAL_SERVER_ERROR` status mapping 和 response-body contract 证据。后续纯文档证据刷新
@@ -213,6 +213,11 @@ Endpoint failure metrics 由
 和
 `ProxyClientAdminEndpointExecutorTest#successfulEndpointDelegationDoesNotRecordDuplicateFailureMetrics`
 固定；
+endpoint executor 还会在独立查询线程传播 gRPC 和 OpenTelemetry context，并且不会对
+inline task admission 之后的失败重复计量。认证与 transport 信任边界测试确认：
+已认证 principal、socket address 和完整 `proxy_protocol_*` 命名空间会
+覆盖或清除客户端提供的 metadata。更严格的 subject 策略仅用于 public
+admin pipeline，messaging pipeline 保留现有的 whitelist 行为。
 `GrpcProxyAdminWiringTest#createDefaultActivityWiresEndpointFailureMetricsRecorder`
 验证 production activity 注入共享 OTel recorder。
 
@@ -230,7 +235,7 @@ mvn -pl proxy -am \
 ```text
 Tests run: 56, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T10:11:44+08:00
+Finished at: 2026-07-11T18:41:53+08:00
 ```
 
 Dashboard 表格/详情字段 focused verification：
@@ -272,16 +277,16 @@ Broad proxy admin verification：
 ```bash
 JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
 mvn -pl proxy -am \
-"-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
+"-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
 -DfailIfNoTests=false test -DskipITs
 ```
 
 结果：
 
 ```text
-Tests run: 735, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 749, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T10:13:01+08:00
+Finished at: 2026-07-11T18:56:24+08:00
 ```
 
 Package smoke：
@@ -295,7 +300,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T10:14:37+08:00
+Finished at: 2026-07-11T18:58:58+08:00
 ```
 
 轻量提交门禁：
@@ -339,7 +344,7 @@ Broad verification 的最新包级 JaCoCo 覆盖率：
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
 | `org/apache/rocketmq/proxy/service/admin/client` | 93.95% | 88.01% | 95.66% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.82% | 85.58% | 94.75% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.79% | 85.61% | 94.73% |
 
 JDK 17 下 JaCoCo 0.8.5 会对部分 JDK 和 Mockito 生成类打印 instrumentation
 stack traces。只有在 Surefire 零 failure/error 且 Maven 成功退出时，才把这些
@@ -399,11 +404,11 @@ tracks the downstream RocketMQ implementation review.
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
 mvn -pl proxy -am \
-"-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
+"-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 735, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 749, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 轻量提交门禁：
 

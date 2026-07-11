@@ -90,7 +90,7 @@ v2 `Status` codes:
 | Case | Code |
 | --- | --- |
 | Invalid argument, invalid page token, invalid scope, unsupported M1 public scope, missing required id | `BAD_REQUEST` |
-| Missing client id or empty result for `DescribeClient` | `NOT_FOUND` |
+| Supplied client id is not online or `DescribeClient` has no result | `NOT_FOUND` |
 | Authorization failure or missing subject | `UNAUTHORIZED` |
 | Peer discovery or peer request timeout | `PROXY_TIMEOUT` |
 | Queue saturation in the admin executor | `TOO_MANY_REQUESTS` |
@@ -105,7 +105,11 @@ The logical ACL resource is `proxy.admin.client`.
 - `DescribeClient` requires `GET`.
 
 The gRPC request pipeline propagates the authenticated subject into
-`ProxyContext`. The admin endpoint must use that subject for authorization and
+`ProxyContext`. A client-supplied subject header is ignored by the public admin
+pipeline unless authentication succeeds. Transport-derived addresses replace
+client metadata, and all client-supplied `proxy_protocol_*` headers are cleared
+before trusted transport attributes are copied, ahead of source-IP
+authorization. The admin endpoint
 must not log the subject value in plain text.
 
 ## Execution And Observability
@@ -159,7 +163,7 @@ Run the current broader pre-submit proxy suite:
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
   mvn -pl proxy -am \
-  "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
+  "-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
   -DfailIfNoTests=false test -DskipITs
 ```
 

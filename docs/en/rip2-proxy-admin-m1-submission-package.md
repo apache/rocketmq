@@ -20,7 +20,7 @@ The latest generated public gRPC endpoint 1M benchmark code checkpoint is:
 
 The live draft PRs and RIP-2 issue summary have been refreshed through that
 implementation-code checkpoint to include the generated public gRPC endpoint
-1M benchmark, the `735`-test broad verification result, Dashboard table/detail
+1M benchmark, the `741`-test broad verification result, Dashboard table/detail
 field evidence, generated service descriptor verification evidence, and public
 `BAD_REQUEST` / `UNAUTHORIZED` / `NOT_FOUND` / `INTERNAL_SERVER_ERROR`
 status-mapping and response-body contract evidence.
@@ -229,6 +229,13 @@ Endpoint failure metrics are pinned by
 `ProxyClientAdminEndpointExecutorTest#recordsRequestAdapterFailureMetricsBeforeServiceInvocation`,
 and
 `ProxyClientAdminEndpointExecutorTest#successfulEndpointDelegationDoesNotRecordDuplicateFailureMetrics`.
+The endpoint executor also preserves gRPC and OpenTelemetry contexts across the
+query executor and does not double-count failures after inline task admission.
+Authentication and transport trust-boundary tests verify that authenticated
+principals, socket addresses, and the complete `proxy_protocol_*` namespace
+replace or clear client-supplied metadata. The normal messaging pipeline keeps
+its pre-existing whitelisted-subject behavior; the stricter subject policy is
+scoped to the public admin pipeline.
 `GrpcProxyAdminWiringTest#createDefaultActivityWiresEndpointFailureMetricsRecorder`
 verifies the production activity supplies the shared OTel recorder.
 
@@ -246,7 +253,7 @@ Result:
 ```text
 Tests run: 56, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T10:11:44+08:00
+Finished at: 2026-07-11T18:41:53+08:00
 ```
 
 Focused Dashboard table/detail field verification:
@@ -288,16 +295,16 @@ Broad proxy admin verification:
 ```bash
 JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
 mvn -pl proxy -am \
-"-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
+"-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
 -DfailIfNoTests=false test -DskipITs
 ```
 
 Result:
 
 ```text
-Tests run: 735, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 749, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-10T10:13:01+08:00
+Finished at: 2026-07-11T18:56:24+08:00
 ```
 
 Package smoke:
@@ -311,7 +318,7 @@ Result:
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-10T10:14:37+08:00
+Finished at: 2026-07-11T18:58:58+08:00
 ```
 
 Lightweight submission guard:
@@ -356,7 +363,7 @@ Latest package-level JaCoCo coverage from the broad verification:
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
 | `org/apache/rocketmq/proxy/service/admin/client` | 93.95% | 88.01% | 95.66% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.82% | 85.58% | 94.75% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.79% | 85.61% | 94.73% |
 
 JDK 17 prints JaCoCo 0.8.5 instrumentation stack traces for some JDK and
 Mockito-generated classes in this repository. They are treated as environment
@@ -417,11 +424,11 @@ tracks the downstream RocketMQ implementation review.
 ```bash
 JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
 mvn -pl proxy -am \
-"-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
+"-Dtest=ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 735, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 749, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 Lightweight submission guard:
 

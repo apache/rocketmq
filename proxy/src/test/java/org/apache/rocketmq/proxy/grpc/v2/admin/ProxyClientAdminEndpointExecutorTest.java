@@ -23,6 +23,11 @@ import apache.rocketmq.v2.Status;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.TraceFlags;
+import io.opentelemetry.api.trace.TraceState;
+import io.opentelemetry.context.Scope;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -138,6 +143,95 @@ public class ProxyClientAdminEndpointExecutorTest {
 
             assertThat(invoked.await(5, TimeUnit.SECONDS)).isTrue();
             assertThat(threadName.get()).startsWith("ProxyClientAdminQueryThread-test-");
+        } finally {
+            queryExecutor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void listClientsPropagatesGrpcContextToQueryExecutor() throws Exception {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, queryExecutor);
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        Context.Key<String> requestContextKey = Context.key("proxy-client-admin-request-context");
+        CountDownLatch invoked = new CountDownLatch(1);
+        AtomicReference<String> contextValue = new AtomicReference<>();
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+        doAnswer(invocation -> {
+            contextValue.set(requestContextKey.get());
+            invoked.countDown();
+            return null;
+        }).when(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+
+        try {
+            Context.current().withValue(requestContextKey, "request-context-value").run(() ->
+                executor.listClients(
+                    headers,
+                    protoRequest,
+                    ignored -> internalRequest,
+                    responseObserver,
+                    responseFactory
+                )
+            );
+
+            assertThat(invoked.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(contextValue.get()).isEqualTo("request-context-value");
+        } finally {
+            queryExecutor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void listClientsPropagatesOpenTelemetryContextToQueryExecutor() throws Exception {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, queryExecutor);
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        SpanContext expectedSpanContext = SpanContext.create(
+            "00000000000000000000000000000001",
+            "0000000000000001",
+            TraceFlags.getSampled(),
+            TraceState.getDefault()
+        );
+        CountDownLatch invoked = new CountDownLatch(1);
+        AtomicReference<SpanContext> propagatedSpanContext = new AtomicReference<>();
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+        doAnswer(invocation -> {
+            propagatedSpanContext.set(Span.current().getSpanContext());
+            invoked.countDown();
+            return null;
+        }).when(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+
+        try (Scope ignored = Span.wrap(expectedSpanContext).makeCurrent()) {
+            executor.listClients(
+                headers,
+                protoRequest,
+                request -> internalRequest,
+                responseObserver,
+                responseFactory
+            );
+
+            assertThat(invoked.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(propagatedSpanContext.get()).isEqualTo(expectedSpanContext);
         } finally {
             queryExecutor.shutdownNow();
         }
@@ -502,6 +596,38 @@ public class ProxyClientAdminEndpointExecutorTest {
         );
 
         verify(endpointHandler).listClients(same(ctx), same(internalRequest), same(responseObserver), any());
+        assertThat(metricsRecorder.contexts).isEmpty();
+    }
+
+    @Test
+    public void delegatedInlineFailureDoesNotRecordEndpointFailureMetrics() {
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, metricsRecorder);
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        IllegalStateException failure = new IllegalStateException("observer onError failed");
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+        doAnswer(invocation -> {
+            throw failure;
+        }).when(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            any()
+        );
+        doAnswer(invocation -> {
+            throw failure;
+        }).when(endpointHandler).handle(same(responseObserver), any(), any());
+
+        assertThatThrownBy(() -> executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            TestAdminResponse::new
+        )).isSameAs(failure);
+
         assertThat(metricsRecorder.contexts).isEmpty();
     }
 

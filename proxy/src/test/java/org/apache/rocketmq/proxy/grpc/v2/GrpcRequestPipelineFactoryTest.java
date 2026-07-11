@@ -98,12 +98,11 @@ public class GrpcRequestPipelineFactoryTest extends InitConfigTest {
         assertThat(context.getLanguage()).isEqualTo(LANGUAGE);
         assertThat(context.getClientVersion()).isEqualTo(CLIENT_VERSION);
         assertThat(context.getNamespace()).isEqualTo(NAMESPACE);
-        assertThat(context.getSubject()).isNotNull();
-        assertThat(context.getSubject().getSubjectKey()).isEqualTo("User:admin");
+        assertThat(context.getSubject()).isNull();
     }
 
     @Test
-    public void createProxyClientAdminContextFactorySkipsMessagingAuthorizationPipeline() {
+    public void createProxyClientAdminContextFactoryDoesNotTrustRawSubjectWhenAuthenticationDisabled() {
         AuthConfig authConfig = ConfigurationManager.getAuthConfig();
         authConfig.setConfigName("admin-context-" + System.nanoTime());
         authConfig.setAuthenticationEnabled(false);
@@ -118,8 +117,7 @@ public class GrpcRequestPipelineFactoryTest extends InitConfigTest {
 
         ProxyContext context = contextFactory.create(headers, QueryRouteRequest.getDefaultInstance());
 
-        assertThat(context.getSubject()).isNotNull();
-        assertThat(context.getSubject().getSubjectKey()).isEqualTo("User:admin");
+        assertThat(context.getSubject()).isNull();
         assertThat(context.getRemoteAddress()).isEqualTo(REMOTE_ADDRESS);
     }
 }

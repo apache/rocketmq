@@ -20,7 +20,7 @@
 | --- | --- | --- | --- |
 | Proxy Admin 架构和 proto 定义通过社区 review。 | review 中。 | Draft PR #10603 和 #112 已作为 review artifact 打开。设计采用独立 `ProxyAdminService` 和独立 admin gRPC server。 | 社区需要确认 proto 归属、字段编号、生成 artifact 版本和发布路径，然后才能把 PR 视为 merge-ready。 |
 | 4 个核心 client query RPC 完整实现，支持过滤和分页。 | 本地已实现并测试。 | `GrpcProxyAdminApplication` 暴露 `ListClients`、`DescribeClient`、`ListClientsByGroup`、`ListClientsByTopic`；`GrpcProxyAdminApplicationTest` 使用生成版 Server/Channel 调用。 | 上游合并等待正式 `rocketmq-proto` artifact。 |
-| 1M client 下分页查询 P99 < 1s，且无 OOM 风险。 | 本地已验证。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md` 记录 1M synthetic clients 下 local read-model 最慢 P99 为 0.681 ms，生成版 public gRPC endpoint 最慢 P99 为 3.576 ms。 | 查询路径或 public adapter 实现变化后需要重跑。 |
+| 1M client 下分页查询 P99 < 1s，且无 OOM 风险。 | 延迟已在本地验证，最坏内存证据待补。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md` 记录 1M synthetic clients 下 local read-model 最慢 P99 为 0.681 ms，生成版 public gRPC endpoint 最慢 P99 为 3.576 ms。 | 在限制 heap 下补齐宽 prefix、组合 filter、深分页和 production executor 场景的 peak heap、allocation 和 GC 证据。 |
 | ACL 2.0 使用独立 `proxy.admin.client` 资源。 | 已实现并测试。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`；list 类 RPC 需要 `LIST`，describe 需要 `GET`。 | 资源命名仍待社区 review。 |
 | Admin 接口启用 OpenTelemetry metrics。 | 已覆盖 service 和进入 service 前的 endpoint 失败并完成测试。 | `MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ClientAdminMetricsContextTest`、`ProxyClientAdminObservabilityTest`、`ProxyClientAdminEndpointExecutorTest`、`GrpcProxyAdminWiringTest`；维度包括 operation、scope、status/result、duration、filters、page size 和 result size。Request adapter/context 失败和 query executor 拒绝会在 service 调用前计量，同时不会重复统计已委托请求。 | 生产 dashboard 接入不在当前分支内。 |
 | 与 RIP-1 Dashboard CLIENT-01 完成 E2E 联调。 | 尚未在本地 Dashboard 环境证明。 | `GrpcProxyAdminApplicationTest` 已通过生成版 gRPC Server/Channel 验证 `ListClients` 和 `DescribeClient` 返回 Dashboard-facing client view 字段：client id、type、groups、topics、language、remote/local address、version、connect time、last active time、proxy id。`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md` 已记录 Dashboard 交接契约。 | 需要包含 RIP-1 Dashboard client 的外部集成环境。 |
@@ -31,15 +31,15 @@
 | 验收项 | 当前状态 | 证据 | 剩余门禁 |
 | --- | --- | --- | --- |
 | 独立 admin service framework 支持后续模块扩展。 | M1 已实现。 | `ProxyClientAdminEndpointExecutor`、`ProxyClientAdminEndpointHandler`、`GrpcProxyAdminApplication`、`ProxyStartup` admin service 注册。 | 后续模块应复用同一 service/activity 边界。 |
-| Admin 接口按端口、线程池、认证隔离。 | 已实现。 | `enableProxyAdminGrpcServer`、`proxyAdminGrpcServerPort`、admin gRPC executor 配置、`ProxyClientAdminQueryThread_`、`proxy.admin.client` ACL policy。 | 生产部署需显式开启 admin server。 |
+| Admin 接口按端口、线程池、认证隔离。 | 结构已实现并完成组件测试。 | `enableProxyAdminGrpcServer`、`proxyAdminGrpcServerPort`、admin gRPC executor 配置、`ProxyClientAdminQueryThread_`、subject/address/HAProxy metadata 信任边界测试、`proxy.admin.client` ACL policy。 | 补齐 production interceptor 双 server 黑盒测试；生产部署需显式开启 admin server。 |
 | 接口契约遵守兼容性规则。 | draft contract 采用 additive protobuf 风格。 | `../rocketmq-apis/apache/rocketmq/v2/admin.proto` 和 `docs/en/rip2-proxy-admin-m1-public-api-draft.proto` 使用独立 service 和稳定字段编号 proposal。 | Apache 需要在 merge 前确认最终 contract。 |
 
 ## 质量和文档
 
 | 验收项 | 当前状态 | 证据 | 剩余门禁 |
 | --- | --- | --- | --- |
-| 核心模块单测覆盖率 >=85%。 | RIP-2 core packages 本地已验证。 | submission package 记录 `service.admin.client` line coverage 95.66%，`grpc.v2.admin` line coverage 94.77%；两个 package 的 branch coverage 也均超过 85%。 | 代码变更后需要重跑 coverage。 |
-| 集成测试覆盖接口、鉴权和异常处理。 | 已实现。 | 生成版 gRPC Server/Channel tests、proto-free endpoint integration tests、peer tests、ACL tests、bad-request/not-found/unauthorized/status mapping tests、`GrpcProxyAdminApplicationTest#publicServiceMapsBadRequestResponsesWithoutResultBodiesThroughGeneratedGrpcService` 和 `GrpcProxyAdminApplicationTest#publicServiceMapsUnauthorizedResponsesWithoutResultBodiesThroughGeneratedGrpcService` 对 public error response-body contract 的覆盖，`GrpcProxyAdminApplicationTest#describeMissingClientReturnsNotFoundStatusWithoutClientBodyThroughGeneratedGrpcService` 对 public `NOT_FOUND` response-body contract 的覆盖，以及 `GrpcProxyAdminApplicationTest#publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService` 对 public `INTERNAL_SERVER_ERROR` response mapping 的覆盖。 | Dashboard CLIENT-01 仍是外部 E2E 项。 |
+| 核心模块单测覆盖率 >=85%。 | RIP-2 core packages 本地已验证。 | submission package 记录 `service.admin.client` line coverage 95.66%，`grpc.v2.admin` line coverage 94.73%；两个 package 的 branch coverage 也均超过 85%。 | 代码变更后需要重跑 coverage。 |
+| 集成测试覆盖接口、鉴权和异常处理。 | Public transport 和组件鉴权路径已覆盖。 | 生成版 gRPC Server/Channel tests、proto-free endpoint integration tests、subject/address 信任边界测试、peer tests、ACL tests，以及 public bad-request/not-found/unauthorized/internal-error response mapping tests。 | 补齐 production interceptor 认证 E2E；Dashboard CLIENT-01 仍是外部 E2E 项。 |
 | 提供性能 benchmark report。 | 已实现。 | 中英文 benchmark report 包含命令、环境、1M-client read-model、生成版 public gRPC endpoint、coordinator 场景、P50/P95/P99 和 heap 设置。 | 硬件或实现明显变化后需要重跑。 |
 | 中英文文档与代码同步。 | contest 分支已同步。 | 中英文 user guide、final smoke、benchmark report、submission package 均已存在。 | review 过程中保持 PR 和 issue 链接更新。 |
 
@@ -47,7 +47,10 @@
 
 当前 contest 分支已经本地实现并验证 M1 public endpoint 行为、local read-model
 和 generated public endpoint 性能、ACL、可观测性、文档和生成版
-gRPC Server/Channel 覆盖。剩余门禁均为外部项：
+gRPC Server/Channel 覆盖。剩余门禁包含两个本地证据项和外部社区/集成项：
+
+- 在限制 heap 下补齐最坏 1M 场景的 peak memory、allocation 和 GC 证据。
+- 补齐 production interceptor 双 server 认证与隔离 E2E。
 
 - 社区接受 `rocketmq-apis` public proto proposal。
 - 发布包含 `ProxyAdminServiceGrpc` 的正式 `rocketmq-proto` artifact。

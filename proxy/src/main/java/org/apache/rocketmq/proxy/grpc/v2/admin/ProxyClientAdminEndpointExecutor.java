@@ -29,6 +29,7 @@ import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
@@ -220,18 +221,28 @@ public class ProxyClientAdminEndpointExecutor {
         EndpointCall<D, T, R> endpointCall) {
         StreamObserver<R> requiredResponseObserver = this.requireResponseObserver(responseObserver);
         long startNanos = System.nanoTime();
+        Context grpcContext = Context.current();
+        io.opentelemetry.context.Context openTelemetryContext = io.opentelemetry.context.Context.current();
+        AtomicBoolean taskStarted = new AtomicBoolean();
         try {
-            this.queryExecutor.execute(() -> this.executeOnQueryExecutor(
-                headers,
-                protoRequest,
-                requestAdapter,
-                requiredResponseObserver,
-                responseFactory,
-                operation,
-                startNanos,
-                endpointCall
-            ));
+            this.queryExecutor.execute(grpcContext.wrap(openTelemetryContext.wrap(() -> {
+                taskStarted.set(true);
+                this.executeOnQueryExecutor(
+                    headers,
+                    protoRequest,
+                    requestAdapter,
+                    requiredResponseObserver,
+                    responseFactory,
+                    operation,
+                    startNanos,
+                    endpointCall
+                );
+            })));
         } catch (Throwable t) {
+            if (taskStarted.get()) {
+                this.throwUnchecked(t);
+                return;
+            }
             Throwable failure = this.toQueryExecutorFailure(t);
             this.recordEndpointFailure(operation, startNanos, failure);
             this.writeFailure(requiredResponseObserver, responseFactory, failure);

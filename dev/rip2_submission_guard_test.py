@@ -212,6 +212,7 @@ def create_submission_tree(root, apis_root, m2_repository):
   }
   void createProxyAdminGrpcBindableServices() {
     new GrpcProxyAdminApplication(null);
+    new ThreadPoolExecutor.AbortPolicy();
   }
 }
 """,
@@ -223,6 +224,12 @@ def create_submission_tree(root, apis_root, m2_repository):
   private Integer proxyAdminGrpcServerPort = 8082;
 }
 """,
+    )
+    write(
+        root / "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/GrpcRequestPipelineFactory.java",
+        "class GrpcRequestPipelineFactory {\n"
+        "  void createProxyClientAdmin() { AuthenticationPipeline.forProxyAdmin(null, null); }\n"
+        "}\n",
     )
     write(
         root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/GrpcProxyAdminApplicationTest.java",
@@ -248,7 +255,10 @@ def create_submission_tree(root, apis_root, m2_repository):
         "class ProxyClientAdminEndpointExecutorTest {\n"
         + "\n".join(
             f"  void {test_name}() {{}}"
-            for test_name in rip2_submission_guard.REQUIRED_ENDPOINT_FAILURE_METRICS_TESTS
+            for test_name in (
+                rip2_submission_guard.REQUIRED_ENDPOINT_FAILURE_METRICS_TESTS
+                + rip2_submission_guard.REQUIRED_ENDPOINT_CONTEXT_PROPAGATION_TESTS
+            )
         )
         + "\n}\n",
     )
@@ -262,6 +272,16 @@ def create_submission_tree(root, apis_root, m2_repository):
         )
         + "\n}\n",
     )
+    trust_boundary_tests = {}
+    for path, test_name in rip2_submission_guard.REQUIRED_ADMIN_REQUEST_TRUST_BOUNDARY_TESTS:
+        trust_boundary_tests.setdefault(path, []).append(test_name)
+    for path, test_names in trust_boundary_tests.items():
+        write(
+            root / path,
+            "class TrustBoundaryTest {\n"
+            + "\n".join(f"  void {test_name}() {{}}" for test_name in test_names)
+            + "\n}\n",
+        )
     write(root / "docs/en/rip2-proxy-admin-m1-public-api-draft.proto", PROTO)
     write(apis_root / "apache/rocketmq/v2/admin.proto", PROTO)
     write(apis_root / "java/VERSION", "2.2.0\n")
@@ -1513,6 +1533,131 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(
                 any("endpoint failure metrics coverage" in error for error in errors)
+            )
+
+    def test_guard_reports_missing_endpoint_context_propagation_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            test_path = (
+                root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/admin/"
+                "ProxyClientAdminEndpointExecutorTest.java"
+            )
+            test_path.write_text(
+                test_path.read_text(encoding="utf-8")
+                .replace("listClientsPropagatesGrpcContextToQueryExecutor", "missingGrpcContextCoverage")
+                .replace(
+                    "listClientsPropagatesOpenTelemetryContextToQueryExecutor",
+                    "missingOpenTelemetryContextCoverage",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any("endpoint context propagation coverage" in error for error in errors)
+            )
+
+    def test_guard_reports_missing_admin_request_trust_boundary_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(
+                root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/pipeline/"
+                "AuthenticationPipelineTest.java",
+                "class AuthenticationPipelineTest {}\n",
+            )
+            write(
+                root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/v2/"
+                "GrpcRequestPipelineFactoryTest.java",
+                "class GrpcRequestPipelineFactoryTest {}\n",
+            )
+            write(
+                root / "proxy/src/test/java/org/apache/rocketmq/proxy/grpc/interceptor/"
+                "HeaderInterceptorTest.java",
+                "class HeaderInterceptorTest {}\n",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any("admin request trust boundary coverage" in error for error in errors)
+            )
+
+    def test_guard_reports_missing_admin_executor_abort_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            startup_path = root / "proxy/src/main/java/org/apache/rocketmq/proxy/ProxyStartup.java"
+            startup_path.write_text(
+                startup_path.read_text(encoding="utf-8").replace(
+                    "new ThreadPoolExecutor.AbortPolicy()",
+                    "new ThreadPoolExecutor.DiscardOldestPolicy()",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("ThreadPoolExecutor.AbortPolicy" in error for error in errors))
+
+    def test_guard_reports_missing_strict_admin_authentication_pipeline(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            factory_path = (
+                root / "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/v2/"
+                "GrpcRequestPipelineFactory.java"
+            )
+            factory_path.write_text(
+                factory_path.read_text(encoding="utf-8").replace(
+                    "AuthenticationPipeline.forProxyAdmin",
+                    "new AuthenticationPipeline",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(
+                any("strict proxy admin authentication pipeline" in error for error in errors)
             )
 
     def test_guard_reports_missing_admin_server_isolation_coverage(self):

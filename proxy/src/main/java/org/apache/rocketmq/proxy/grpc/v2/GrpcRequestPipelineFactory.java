@@ -47,10 +47,10 @@ public final class GrpcRequestPipelineFactory {
     public static RequestPipeline createProxyClientAdmin(MessagingProcessor messagingProcessor) {
         RequestPipeline pipeline = emptyPipeline();
         AuthConfig authConfig = ConfigurationManager.getAuthConfig();
-        if (authConfig != null) {
+        if (authConfig != null && authConfig.isAuthenticationEnabled()) {
             pipeline = pipeline
                 .pipe(new AuthenticationSubjectPipeline())
-                .pipe(new AuthenticationPipeline(authConfig, messagingProcessor));
+                .pipe(AuthenticationPipeline.forProxyAdmin(authConfig, messagingProcessor));
         }
         return pipeline.pipe(new ContextInitPipeline());
     }
