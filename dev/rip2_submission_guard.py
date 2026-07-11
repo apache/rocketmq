@@ -129,6 +129,15 @@ GITHUB_EXTERNAL_GATE_TOKENS = (
     "org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT",
 )
 
+GITHUB_COVERAGE_EVIDENCE = (
+    "service.admin.client instruction 93.12%, branch 85.90%, line 94.64%",
+    "grpc.v2.admin instruction 92.79%, branch 85.61%, line 94.73%",
+)
+
+STALE_GITHUB_COVERAGE_EVIDENCE = (
+    "branch 88.01%, line 95.66%",
+)
+
 REQUIRED_PUBLIC_SCOPE_GATE_TOKENS = (
     "PROXY_SCOPE_LOCAL_PROXY",
     "PROXY_SCOPE_ALL_PROXIES",
@@ -920,6 +929,12 @@ def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
         for token in GITHUB_EXTERNAL_GATE_TOKENS:
             if token not in body:
                 errors.append(f"{label} missing external gate evidence {token}")
+        for token in GITHUB_COVERAGE_EVIDENCE:
+            if token not in body:
+                errors.append(f"{label} missing current coverage evidence {token}")
+        for token in STALE_GITHUB_COVERAGE_EVIDENCE:
+            if token in body:
+                errors.append(f"{label} contains stale coverage evidence {token}")
         for token in REQUIRED_PUBLIC_SCOPE_GATE_TOKENS:
             if token not in body:
                 errors.append(f"{label} missing M1 public scope gate evidence {token}")

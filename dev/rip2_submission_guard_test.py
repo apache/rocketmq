@@ -531,6 +531,8 @@ def github_body(rocketmq_head, apis_head=None, guard_command=None):
     body += "PROXY_SCOPE_LOCAL_PROXY\n"
     body += "PROXY_SCOPE_ALL_PROXIES\n"
     body += "PROXY_SCOPE_PROXY_ID\n"
+    body += "service.admin.client instruction 93.12%, branch 85.90%, line 94.64%\n"
+    body += "grpc.v2.admin instruction 92.79%, branch 85.61%, line 94.73%\n"
     body += "RIP-2 submission guard passed.\n"
     return body
 
@@ -1178,6 +1180,41 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(
                 any("RIP-2 issue comment" in error and "PROXY_SCOPE_LOCAL_PROXY" in error for error in errors)
+            )
+
+    def test_guard_reports_stale_github_coverage_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            body = github_body(expected_head, apis_head)
+            stale_body = body.replace(
+                "service.admin.client instruction 93.12%, branch 85.90%, line 94.64%",
+                "service.admin.client instruction 93.12%, branch 88.01%, line 95.66%",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                command_runner=fake_github_runner(
+                    expected_head,
+                    stale_body,
+                    body,
+                    body,
+                    apis_head=apis_head,
+                ),
+            )
+
+            self.assertTrue(
+                any("RocketMQ PR #10603" in error and "coverage evidence" in error for error in errors)
             )
 
     def test_guard_reports_stale_implementation_checkpoint_in_github_artifact(self):

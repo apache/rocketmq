@@ -1868,6 +1868,10 @@ No task should reimplement the read model, lifecycle hooks, ACL policy, or inter
   `2026-07-11T23:09:28+08:00`. Final review also hardened query-executor
   teardown with a forced-shutdown fallback and made the submission guard check
   the constrained-heap evidence independently in both benchmark reports.
+- [x] Post-submission GitHub evidence audit completed. The public PR bodies and
+  RIP-2 issue summary must carry the final package-level JaCoCo values for both
+  core packages; the submission guard rejects missing current coverage and the
+  stale pre-performance `88.01% / 95.66%` service-package values.
 
 The RocketMQ implementation draft PR is intentionally marked draft because it
 depends on the local contest artifact
