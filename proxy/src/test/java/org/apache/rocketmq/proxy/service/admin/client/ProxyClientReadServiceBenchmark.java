@@ -61,6 +61,7 @@ public class ProxyClientReadServiceBenchmark {
     private ProxyClientQuery broadPrefixQuery;
     private ProxyClientQuery combinedFiltersQuery;
     private ProxyClientQuery wideConnectTimeRangeQuery;
+    private ProxyClientQuery deepWideConnectTimeRangeQuery;
     private ProxyClientQuery deepPageQuery;
     private final AtomicInteger sequence = new AtomicInteger();
 
@@ -97,6 +98,12 @@ public class ProxyClientReadServiceBenchmark {
         this.wideConnectTimeRangeQuery = ProxyClientQuery.newBuilder()
             .setConnectTimeStartMillis(100L)
             .setConnectTimeEndMillis(199L)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build();
+        this.deepWideConnectTimeRangeQuery = ProxyClientQuery.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(199L)
+            .setPageNum(10000)
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .build();
         int lastFullPage = Math.max(
@@ -251,8 +258,21 @@ public class ProxyClientReadServiceBenchmark {
     @Measurement(iterations = 5, time = 5)
     @Warmup(iterations = 3, time = 1)
     @Threads(4)
+    public ProxyClientPage listDeepPageByWideConnectTimeRange() {
+        return this.readService.listClients(this.deepWideConnectTimeRangeQuery);
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
     public ProxyClientInfo describeClient() {
         return this.readService.getClient(this.clientIds[nextIndex(this.clientCount)]);
+    }
+
+    ProxyClientQuery getDeepWideConnectTimeRangeQuery() {
+        return this.deepWideConnectTimeRangeQuery;
     }
 
     private ProxyClientInfo newClientInfo(int index, String clientId) {

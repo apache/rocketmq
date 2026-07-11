@@ -95,6 +95,7 @@ public class GrpcProxyAdminApplicationBenchmark {
     private ListClientsRequest languageRequest;
     private ListClientsRequest connectTimeRangeRequest;
     private ListClientsRequest wideConnectTimeRangeRequest;
+    private ListClientsRequest deepWideConnectTimeRangeRequest;
     private final AtomicInteger sequence = new AtomicInteger();
 
     @Setup
@@ -141,6 +142,12 @@ public class GrpcProxyAdminApplicationBenchmark {
             .setConnectTimeStartMillis(100L)
             .setConnectTimeEndMillis(199L)
             .setPageNum(ProxyClientQuery.DEFAULT_PAGE_NUM)
+            .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
+            .build();
+        this.deepWideConnectTimeRangeRequest = ListClientsRequest.newBuilder()
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(199L)
+            .setPageNum(10000)
             .setPageSize(ProxyClientQuery.MAX_PAGE_SIZE)
             .build();
 
@@ -267,6 +274,15 @@ public class GrpcProxyAdminApplicationBenchmark {
     @Measurement(iterations = 5, time = 5)
     @Warmup(iterations = 3, time = 1)
     @Threads(4)
+    public ListClientsResponse listClientsDeepPageByWideConnectTimeRange() {
+        return requireClients(this.stub.listClients(this.deepWideConnectTimeRangeRequest));
+    }
+
+    @Benchmark
+    @Fork(value = 1)
+    @Measurement(iterations = 5, time = 5)
+    @Warmup(iterations = 3, time = 1)
+    @Threads(4)
     public ListClientsByGroupResponse listClientsByGroup() {
         ListClientsByGroupRequest request = ListClientsByGroupRequest.newBuilder()
             .setGroup(this.groups[nextIndex(this.groupCount)])
@@ -340,6 +356,10 @@ public class GrpcProxyAdminApplicationBenchmark {
 
     int getServerExecutorQueueCapacity() {
         return queueCapacity(this.serverExecutor);
+    }
+
+    ListClientsRequest getDeepWideConnectTimeRangeRequest() {
+        return this.deepWideConnectTimeRangeRequest;
     }
 
     static void awaitTerminationOrForceShutdown(ThreadPoolExecutor executor) throws InterruptedException {

@@ -304,33 +304,39 @@ public class ProxyClientReadServiceTest {
     }
 
     @Test
-    public void wideConnectTimeRangeReusesClientIdIndexWithoutMaterializingUnion() throws Exception {
+    public void wideConnectTimeRangeUsesSelectedBucketsWithoutScanningClientIdIndex() throws Exception {
         ProxyClientReadService service = new ProxyClientReadService();
         service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
             "JAVA", "proxy-a", 100L, 200L));
         service.upsertClient(client("client-b", ClientType.PRODUCER, set("group-a"), set("topic-a"),
-            "JAVA", "proxy-a", 200L, 300L));
+            "JAVA", "proxy-a", 50L, 300L));
         service.upsertClient(client("client-c", ClientType.PRODUCER, set("group-a"), set("topic-a"),
-            "JAVA", "proxy-a", 300L, 400L));
+            "JAVA", "proxy-a", 200L, 400L));
+        service.upsertClient(client("client-d", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 400L, 500L));
+        service.upsertClient(client("client-e", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 300L, 600L));
         NavigableSet<String> clientIdIndex = fieldValue(service, "clientIdIndex");
+        clientIdIndex.clear();
         ProxyClientQuery query = ProxyClientQuery.newBuilder()
             .setConnectTimeStartMillis(100L)
             .setConnectTimeEndMillis(300L)
+            .setPageNum(2)
             .setPageSize(1)
             .build();
 
-        assertThat(candidateClientIds(service, query)).isSameAs(clientIdIndex);
-        ProxyClientPage firstPage = service.listClients(query);
-        ProxyClientPage secondPage = service.listClients(ProxyClientQuery.newBuilder()
+        ProxyClientPage page = service.listClients(query);
+        ProxyClientPage tokenPage = service.listClients(ProxyClientQuery.newBuilder()
             .setConnectTimeStartMillis(100L)
             .setConnectTimeEndMillis(300L)
             .setPageSize(1)
-            .setPageToken(firstPage.getNextPageToken())
+            .setPageToken(page.getNextPageToken())
             .build());
 
-        assertThat(clientIds(firstPage.getClients())).containsExactly("client-a");
-        assertThat(clientIds(secondPage.getClients())).containsExactly("client-b");
-        assertThat(secondPage.getNextPageToken()).isEqualTo("client-b");
+        assertThat(clientIds(page.getClients())).containsExactly("client-c");
+        assertThat(page.getNextPageToken()).isEqualTo("client-c");
+        assertThat(clientIds(tokenPage.getClients())).containsExactly("client-e");
+        assertThat(tokenPage.getNextPageToken()).isEmpty();
     }
 
     @Test
@@ -390,6 +396,29 @@ public class ProxyClientReadServiceTest {
 
         assertThat(candidates).isSameAs(groupIndex.get("group-a"));
         assertThat(candidates).containsExactly("client-a");
+    }
+
+    @Test
+    public void wideConnectTimeRangeStillAppliesExplicitIndexWhenBucketCardinalityIsEqual() {
+        ProxyClientReadService service = new ProxyClientReadService();
+        service.upsertClient(client("client-a", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 100L, 200L));
+        service.upsertClient(client("client-b", ClientType.PRODUCER, set("group-b"), set("topic-a"),
+            "JAVA", "proxy-a", 200L, 300L));
+        service.upsertClient(client("client-c", ClientType.PRODUCER, set("group-b"), set("topic-a"),
+            "JAVA", "proxy-a", 300L, 400L));
+        service.upsertClient(client("client-d", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 400L, 500L));
+        service.upsertClient(client("client-e", ClientType.PRODUCER, set("group-a"), set("topic-a"),
+            "JAVA", "proxy-a", 500L, 600L));
+
+        ProxyClientPage page = service.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("group-a")
+            .setConnectTimeStartMillis(100L)
+            .setConnectTimeEndMillis(300L)
+            .build());
+
+        assertThat(clientIds(page.getClients())).containsExactly("client-a");
     }
 
     @Test

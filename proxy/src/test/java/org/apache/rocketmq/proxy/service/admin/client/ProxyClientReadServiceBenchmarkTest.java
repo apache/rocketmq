@@ -43,6 +43,10 @@ public class ProxyClientReadServiceBenchmarkTest {
         assertThat(benchmark.listByLanguagePage().getClients()).isNotEmpty();
         assertThat(benchmark.listByConnectTimeRangePage().getClients()).isNotEmpty();
         assertThat(benchmark.listByWideConnectTimeRangePage().getClients()).hasSize(100);
+        assertThat(benchmark.listDeepPageByWideConnectTimeRange().getClients()).isEmpty();
+        assertThat(benchmark.getDeepWideConnectTimeRangeQuery().getPageNum()).isEqualTo(10000);
+        assertThat(benchmark.getDeepWideConnectTimeRangeQuery().getPageSize())
+            .isEqualTo(ProxyClientQuery.MAX_PAGE_SIZE);
         assertThat(benchmark.describeClient()).isNotNull();
     }
 

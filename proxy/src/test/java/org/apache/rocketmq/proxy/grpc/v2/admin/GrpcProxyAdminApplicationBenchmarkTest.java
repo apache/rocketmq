@@ -52,6 +52,8 @@ public class GrpcProxyAdminApplicationBenchmarkTest {
             assertThat(benchmark.listClientsByLanguage().getClientsList()).isNotEmpty();
             assertThat(benchmark.listClientsByConnectTimeRange().getClientsList()).isNotEmpty();
             assertThat(benchmark.listClientsByWideConnectTimeRange().getClientsList()).hasSize(100);
+            assertThat(benchmark.getDeepWideConnectTimeRangeRequest().getPageNum()).isEqualTo(10000);
+            assertThat(benchmark.getDeepWideConnectTimeRangeRequest().getPageSize()).isEqualTo(100);
             assertThat(benchmark.describeClient().getClient().getClientId()).isNotEmpty();
             assertThat(benchmark.getQueryExecutorThreadPoolSize()).isEqualTo(4);
             assertThat(benchmark.getQueryExecutorQueueCapacity()).isEqualTo(10000);
