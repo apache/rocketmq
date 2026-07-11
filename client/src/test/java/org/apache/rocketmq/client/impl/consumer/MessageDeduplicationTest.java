@@ -470,6 +470,74 @@ public class MessageDeduplicationTest {
     }
 
     /**
+     * Review point 3 (Warning item): when *every* message in a batch is a duplicate, the listener
+     * must not be invoked, no message must be sent back for retry, the offset must still advance
+     * (the ProcessQueue is drained), and the dedup-cache entries must NOT be re-stamped (which
+     * would extend their TTL without any new processing).
+     *
+     * The pre-fix code set {@code processedMsgs = msgs} on this path, causing processConsumeResult
+     * to call markMessagesAsProcessed on the whole original batch and refresh every entry's
+     * timestamp. Now processedMsgs is the (empty) filtered list, so marking is skipped.
+     */
+    @Test
+    public void testAllDuplicatesSkipsListenerAndDoesNotRefreshTtl() throws Exception {
+        DefaultMQPushConsumerImpl impl = newPushConsumerImpl();
+
+        final AtomicReference<List<MessageExt>> seenByListener = new AtomicReference<>();
+        final List<MessageExt> sentBack = Collections.synchronizedList(new ArrayList<>());
+        CapturingService service = new CapturingService(impl, new MessageListenerConcurrently() {
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                ConsumeConcurrentlyContext context) {
+                seenByListener.set(new ArrayList<>(msgs));
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        }, sentBack);
+
+        // Two distinct keys, both already in the cache as processed duplicates.
+        MessageExt dup1 = createMessage("T", "msg-A", "key-A");
+        dup1.setQueueOffset(0L);
+        MessageExt dup2 = createMessage("T", "msg-B", "key-B");
+        dup2.setQueueOffset(1L);
+
+        // Pre-populate the cache and capture the timestamps so we can detect any refresh.
+        deduplicator.markProcessed("T#key-A");
+        deduplicator.markProcessed("T#key-B");
+        Long tsA = deduplicator.getProcessedTimestamp("T#key-A");
+        Long tsB = deduplicator.getProcessedTimestamp("T#key-B");
+        assertNotNull("key-A should be cached", tsA);
+        assertNotNull("key-B should be cached", tsB);
+
+        List<MessageExt> msgs = new ArrayList<>(Arrays.asList(dup1, dup2));
+
+        ProcessQueue pq = new ProcessQueue();
+        pq.putMessage(msgs);
+
+        ConsumeMessageConcurrentlyService.ConsumeRequest request =
+            service.new ConsumeRequest(msgs, pq, new MessageQueue("T", "broker-a", 0));
+
+        // Drive the full run(): filter (all duplicates) -> skip listener -> processConsumeResult.
+        request.run();
+
+        // The listener must never have been called — nothing was left to consume.
+        assertNull("Listener must not be invoked when all messages are duplicates",
+            seenByListener.get());
+
+        // No message may be sent back: skipped duplicates are neither consumed nor failed.
+        assertTrue("No message should be sent back on an all-duplicate batch", sentBack.isEmpty());
+
+        // The batch is fully committed (success), so the ProcessQueue should be drained.
+        assertEquals("ProcessQueue should be drained after an all-duplicate batch",
+            0L, pq.getMsgCount().get());
+
+        // The cache entries must not have been re-stamped: their timestamps are unchanged.
+        assertEquals("key-A TTL must not be refreshed",
+            tsA, deduplicator.getProcessedTimestamp("T#key-A"));
+        assertEquals("key-B TTL must not be refreshed",
+            tsB, deduplicator.getProcessedTimestamp("T#key-B"));
+    }
+
+    /**
      * Review point 2: when the processQueue is dropped between consumption and result
      * processing, the consumed messages must NOT be added to the dedup cache — otherwise their
      * own redelivery would be silently suppressed, breaking at-least-once.

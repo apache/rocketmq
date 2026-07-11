@@ -227,6 +227,20 @@ public class MessageDeduplicator {
     }
 
     /**
+     * Read the timestamp at which a key was marked processed (for testing TTL behavior). Returns
+     * {@code null} when the key is absent.
+     *
+     * @param messageKey The key to inspect
+     * @return The stored timestamp, or {@code null} if the key is not cached
+     */
+    Long getProcessedTimestamp(String messageKey) {
+        if (messageKey == null || messageKey.isEmpty()) {
+            return null;
+        }
+        return processedMessages.get(messageKey);
+    }
+
+    /**
      * Shutdown the deduplicator and cleanup executor.
      */
     public void shutdown() {

@@ -336,7 +336,15 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         // original batch when deduplication is disabled. ackIndex is relative to this list,
         // so the send-back loop and consume stats must operate on it too. Skipped duplicates
         // are neither consumed nor failed and must never be sent back.
-        final List<MessageExt> processedMsgs = consumeRequest.getProcessedMsgs();
+        // Defensive: processedMsgs is assigned in ConsumeRequest.run() before this is called. If a
+        // future code path reaches here without that assignment, fall back to the original batch
+        // (the historical behavior) instead of NPE'ing, and log so the regression is visible.
+        List<MessageExt> processedMsgs = consumeRequest.getProcessedMsgs();
+        if (processedMsgs == null) {
+            log.warn("processedMsgs was not set before processConsumeResult; falling back to original batch. "
+                + "group={} mq={}", consumerGroup, consumeRequest.getMessageQueue());
+            processedMsgs = consumeRequest.getMsgs();
+        }
         final List<MessageExt> originalMsgs = consumeRequest.getMsgs();
 
         if (originalMsgs.isEmpty())
@@ -468,8 +476,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         private final MessageQueue messageQueue;
         /**
          * The messages the listener actually consumed: the deduped list when deduplication is
-         * enabled, otherwise the original {@link #msgs}. Set in {@link #run()} after filtering.
-         * Defaults to {@code msgs} so the value is always non-null for processConsumeResult.
+         * enabled, otherwise the original {@link #msgs}. Assigned in {@link #run()} after filtering
+         * and read by {@link #processConsumeResult}. Intentionally {@code null} until {@code run()}
+         * sets it, so {@link #processConsumeResult} can detect (and recover from) any future code
+         * path that forgets the assignment.
          */
         private List<MessageExt> processedMsgs;
 
@@ -477,7 +487,6 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             this.msgs = msgs;
             this.processQueue = processQueue;
             this.messageQueue = messageQueue;
-            this.processedMsgs = msgs;
         }
 
         public List<MessageExt> getMsgs() {
@@ -485,7 +494,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
 
         /**
-         * @return the messages the listener consumed (duplicates filtered); never null.
+         * @return the messages the listener consumed (duplicates filtered); {@code null} before
+         *         {@link #run()} has assigned it.
          */
         public List<MessageExt> getProcessedMsgs() {
             return processedMsgs;
@@ -508,14 +518,15 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             defaultMQPushConsumerImpl.tryResetPopRetryTopic(msgs, consumerGroup);
             defaultMQPushConsumerImpl.resetRetryAndNamespace(msgs, defaultMQPushConsumer.getConsumerGroup());
 
-            // Filter duplicate messages if deduplication is enabled
-            // Create a new list with non-duplicate messages for consumption
-            List<MessageExt> filteredMsgs = filterDuplicateMessages(msgs);
-            // processedMsgs is the list the listener actually consumes (duplicates removed).
-            // It defaults to the original batch when dedup is off or every message is a duplicate,
-            // and is later read by processConsumeResult for send-back/stats. ackIndex is relative
-            // to this list.
-            this.processedMsgs = filteredMsgs.isEmpty() ? msgs : filteredMsgs;
+            // Filter duplicate messages if deduplication is enabled.
+            // processedMsgs is the list the listener actually consumes (duplicates removed). It is
+            // later read by processConsumeResult for send-back/stats; ackIndex is relative to it.
+            // When dedup is disabled, filterDuplicateMessages returns the original msgs unchanged,
+            // so this is also the no-dedup path. When *every* message is a duplicate, processedMsgs
+            // is empty: processConsumeResult then clamps ackIndex to -1, sends nothing back (so
+            // skipped duplicates are never retried) and skips dedup-cache marking (so their entries
+            // are not re-stamped, which would extend their TTL without benefit).
+            this.processedMsgs = filterDuplicateMessages(msgs);
 
             ConsumeMessageContext consumeMessageContext = null;
             if (ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.hasHook()) {
@@ -524,7 +535,10 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 consumeMessageContext.setConsumerGroup(defaultMQPushConsumer.getConsumerGroup());
                 consumeMessageContext.setProps(new HashMap<>());
                 consumeMessageContext.setMq(messageQueue);
-                consumeMessageContext.setMsgList(filteredMsgs.isEmpty() ? msgs : filteredMsgs);
+                // Hook sees exactly what the listener consumes (duplicates filtered). Passing the
+                // original batch when everything was a duplicate would mislead hook implementations
+                // that inspect msgList.
+                consumeMessageContext.setMsgList(processedMsgs);
                 consumeMessageContext.setSuccess(false);
                 ConsumeMessageConcurrentlyService.this.defaultMQPushConsumerImpl.executeHookBefore(consumeMessageContext);
             }
@@ -533,8 +547,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             boolean hasException = false;
             ConsumeReturnType returnType = ConsumeReturnType.SUCCESS;
             try {
-                // Prepare messages for consumption
-                List<MessageExt> msgsToConsume = filteredMsgs.isEmpty() ? Collections.emptyList() : filteredMsgs;
+                // Prepare messages for consumption. processedMsgs already holds the deduped list,
+                // which is empty iff every message in the batch was a duplicate.
+                List<MessageExt> msgsToConsume = processedMsgs.isEmpty() ? Collections.emptyList() : processedMsgs;
 
                 if (!msgsToConsume.isEmpty()) {
                     for (MessageExt msg : msgsToConsume) {
@@ -550,7 +565,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
                 log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
                     UtilAll.exceptionSimpleDesc(e),
                     ConsumeMessageConcurrentlyService.this.consumerGroup,
-                    filteredMsgs,
+                    processedMsgs,
                     messageQueue, e);
                 hasException = true;
             }
@@ -576,7 +591,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             if (null == status) {
                 log.warn("consumeMessage return null, Group: {} Msgs: {} MQ: {}",
                     ConsumeMessageConcurrentlyService.this.consumerGroup,
-                    filteredMsgs,
+                    processedMsgs,
                     messageQueue);
                 status = ConsumeConcurrentlyStatus.RECONSUME_LATER;
             }
