@@ -57,9 +57,10 @@ if [[ ! -x "$JAVA" ]]; then
   exit 2
 fi
 
-# Create evidence only from a clean compilation, then create the target-backed
-# output directory after Maven clean has removed prior build products.
-mvn -pl proxy -am clean -DskipTests -DskipITs
+# Clean the measured module without deleting previously captured evidence under
+# the reactor root's target directory. The following -am test-compile rebuilds
+# the complete dependency path required by the proxy benchmark.
+mvn -pl proxy clean -DskipTests -DskipITs
 
 OUTPUT_DIR="${3:-target/rip2-benchmark-results/$LABEL}"
 if [[ -d "$OUTPUT_DIR" ]] && [[ -n "$(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then

@@ -226,7 +226,7 @@ REQUIRED_BENCHMARK_RUNNER_TOKENS = (
     "git rev-parse HEAD",
     '"$JAVA" -version',
     "benchmark source paths are dirty",
-    "mvn -pl proxy -am clean",
+    "mvn -pl proxy clean",
     "git rev-parse HEAD^{tree}",
     "source-files.txt",
     "runner.sh",
