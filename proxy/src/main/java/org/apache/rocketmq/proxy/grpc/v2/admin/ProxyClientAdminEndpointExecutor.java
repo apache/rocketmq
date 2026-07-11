@@ -21,6 +21,7 @@ import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Context;
+import io.grpc.Contexts;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import java.util.Collections;
@@ -235,6 +236,14 @@ public class ProxyClientAdminEndpointExecutor {
         try {
             this.queryExecutor.execute(grpcContext.wrap(openTelemetryContext.wrap(() -> {
                 taskStarted.set(true);
+                if (this.writeCancellationIfCancelled(
+                    grpcContext,
+                    requiredResponseObserver,
+                    operation,
+                    startNanos
+                )) {
+                    return;
+                }
                 this.executeOnQueryExecutor(
                     headers,
                     protoRequest,
@@ -255,6 +264,25 @@ public class ProxyClientAdminEndpointExecutor {
             this.recordEndpointFailure(operation, startNanos, failure);
             this.writeFailure(requiredResponseObserver, responseFactory, failure);
         }
+    }
+
+    private <R> boolean writeCancellationIfCancelled(Context grpcContext,
+        StreamObserver<R> responseObserver, ClientAdminOperation operation, long startNanos) {
+        io.grpc.Status cancellationStatus = Contexts.statusFromCancelled(grpcContext);
+        if (cancellationStatus == null && grpcContext.getDeadline() != null
+            && grpcContext.getDeadline().isExpired()) {
+            cancellationStatus = io.grpc.Status.DEADLINE_EXCEEDED
+                .withDescription("proxy client admin request deadline exceeded in query queue");
+        }
+        if (cancellationStatus == null) {
+            return false;
+        }
+        Throwable failure = cancellationStatus.asRuntimeException();
+        if (cancellationStatus.getCode() != io.grpc.Status.Code.CANCELLED) {
+            this.recordEndpointFailure(operation, startNanos, failure);
+        }
+        ProxyClientAdminGrpcErrorWriter.write(responseObserver, failure);
+        return true;
     }
 
     private Throwable toQueryExecutorFailure(Throwable t) {

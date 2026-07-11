@@ -21,6 +21,7 @@ import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.Status;
 import io.grpc.Context;
+import io.grpc.Deadline;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import io.opentelemetry.api.trace.Span;
@@ -28,14 +29,21 @@ import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.TraceFlags;
 import io.opentelemetry.api.trace.TraceState;
 import io.opentelemetry.context.Scope;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import org.apache.commons.lang3.StringUtils;
@@ -57,12 +65,16 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -145,6 +157,92 @@ public class ProxyClientAdminEndpointExecutorTest {
             assertThat(threadName.get()).startsWith("ProxyClientAdminQueryThread-test-");
         } finally {
             queryExecutor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void canceledQueuedRequestSkipsContextFactoryAndEndpointHandler() {
+        QueuedExecutorService queryExecutor = new QueuedExecutorService();
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor = new ProxyClientAdminEndpointExecutor(
+            contextFactory,
+            endpointHandler,
+            queryExecutor,
+            metricsRecorder
+        );
+        Context.CancellableContext grpcContext = Context.current().withCancellation();
+
+        try {
+            grpcContext.run(() -> executor.listClients(
+                headers,
+                protoRequest,
+                ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+                responseObserver,
+                TestAdminResponse::new
+            ));
+            assertThat(queryExecutor.pendingTaskCount()).isOne();
+
+            grpcContext.cancel(new CancellationException("client cancelled queued request"));
+            queryExecutor.runNext();
+
+            ArgumentCaptor<Throwable> errorCaptor = ArgumentCaptor.forClass(Throwable.class);
+            verify(responseObserver).onError(errorCaptor.capture());
+            assertThat(io.grpc.Status.fromThrowable(errorCaptor.getValue()).getCode())
+                .isEqualTo(io.grpc.Status.Code.CANCELLED);
+            verify(responseObserver, never()).onNext(any());
+            verify(responseObserver, never()).onCompleted();
+            verify(contextFactory, never()).create(any(), any());
+            verifyNoInteractions(endpointHandler);
+            assertThat(metricsRecorder.contexts).isEmpty();
+        } finally {
+            grpcContext.cancel(null);
+        }
+    }
+
+    @Test
+    public void expiredDeadlineQueuedRequestSkipsContextFactoryAndEndpointHandler() {
+        QueuedExecutorService queryExecutor = new QueuedExecutorService();
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor = new ProxyClientAdminEndpointExecutor(
+            contextFactory,
+            endpointHandler,
+            queryExecutor,
+            metricsRecorder
+        );
+        MutableDeadlineTicker ticker = new MutableDeadlineTicker();
+        ScheduledExecutorService deadlineScheduler = mock(ScheduledExecutorService.class);
+        ScheduledFuture<?> scheduledFuture = mock(ScheduledFuture.class);
+        doReturn(scheduledFuture).when(deadlineScheduler)
+            .schedule(any(Runnable.class), anyLong(), eq(TimeUnit.NANOSECONDS));
+        Deadline deadline = Deadline.after(1, TimeUnit.SECONDS, ticker);
+        Context.CancellableContext grpcContext = Context.current().withDeadline(deadline, deadlineScheduler);
+
+        try {
+            grpcContext.run(() -> executor.listClients(
+                headers,
+                protoRequest,
+                ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+                responseObserver,
+                TestAdminResponse::new
+            ));
+            assertThat(queryExecutor.pendingTaskCount()).isOne();
+
+            ticker.advance(1, TimeUnit.SECONDS);
+            assertThat(deadline.isExpired()).isTrue();
+            queryExecutor.runNext();
+
+            ArgumentCaptor<Throwable> errorCaptor = ArgumentCaptor.forClass(Throwable.class);
+            verify(responseObserver).onError(errorCaptor.capture());
+            assertThat(io.grpc.Status.fromThrowable(errorCaptor.getValue()).getCode())
+                .isEqualTo(io.grpc.Status.Code.DEADLINE_EXCEEDED);
+            verify(responseObserver, never()).onNext(any());
+            verify(responseObserver, never()).onCompleted();
+            verify(contextFactory, never()).create(any(), any());
+            verifyNoInteractions(endpointHandler);
+            assertThat(metricsRecorder.contexts).hasSize(1);
+            assertThat(metricsRecorder.contexts.get(0).getResult()).isEqualTo(ClientAdminMetricsResult.TIMEOUT);
+        } finally {
+            grpcContext.cancel(null);
         }
     }
 
@@ -1309,6 +1407,66 @@ public class ProxyClientAdminEndpointExecutorTest {
         @Override
         public void record(ClientAdminMetricsContext context) {
             this.contexts.add(context);
+        }
+    }
+
+    private static class QueuedExecutorService extends AbstractExecutorService {
+        private final Queue<Runnable> tasks = new ArrayDeque<>();
+        private boolean shutdown;
+
+        @Override
+        public void shutdown() {
+            this.shutdown = true;
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            this.shutdown = true;
+            List<Runnable> pendingTasks = new ArrayList<>(this.tasks);
+            this.tasks.clear();
+            return pendingTasks;
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return this.shutdown;
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return this.shutdown && this.tasks.isEmpty();
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) {
+            return this.isTerminated();
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            this.tasks.add(command);
+        }
+
+        private int pendingTaskCount() {
+            return this.tasks.size();
+        }
+
+        private void runNext() {
+            Runnable task = this.tasks.remove();
+            task.run();
+        }
+    }
+
+    private static class MutableDeadlineTicker extends Deadline.Ticker {
+        private final AtomicLong nanos = new AtomicLong();
+
+        @Override
+        public long nanoTime() {
+            return this.nanos.get();
+        }
+
+        private void advance(long duration, TimeUnit unit) {
+            this.nanos.addAndGet(unit.toNanos(duration));
         }
     }
 
