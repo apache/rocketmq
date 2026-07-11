@@ -1924,7 +1924,16 @@ API ownership and artifact publication decision.
 - [x] Repository-owned benchmark evidence runner and strict CI gate added.
   `dev/run_rip2_benchmark.sh` captures build, environment, command, classpath,
   JMH JSON/log, JFR, GC, process-time, and SHA-256 evidence. The final 1M deep
-  full-range runs measured read-model P99 `0.016 ms` and generated public gRPC
-  P99 `1.697 ms`, with zero swaps and no OOM. The review runbook pins both
+  full-range runs at evidence checkpoint `8c3098d51` measured read-model P99
+  `0.011 ms` and generated public gRPC P99 `0.843 ms`, with zero swaps and no
+  OOM. The review runbook pins both
   repository commits, while `--require-github-checks` remains the explicit
   external release gate until Apache CI reports checks.
+- [x] Final verification refreshed after lifecycle, cancellation, pagination,
+  and evidence-runner hardening. Focused public endpoint/startup verification
+  passed with `Tests run: 57, Failures: 0, Errors: 0, Skipped: 0` at
+  `2026-07-12T02:37:36+08:00`; broad proxy admin verification passed with
+  `Tests run: 779, Failures: 0, Errors: 0, Skipped: 0` at
+  `2026-07-12T02:35:18+08:00`; package smoke completed with `BUILD SUCCESS` at
+  `2026-07-12T02:36:24+08:00`. Final package coverage remains above 85% for
+  instruction, branch, and line metrics in both RIP-2 core packages.

@@ -40,11 +40,11 @@ PROTO_VERSION_XML = f"<rocketmq-proto.version>{PROTO_VERSION}</rocketmq-proto.ve
 FULL_GUARD_COMMAND = "python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github"
 PLAN_FILE = "docs/superpowers/plans/2026-07-09-rip2-proxy-admin-submission.md"
 RIP2_ISSUE_COMMENT_URL = "https://github.com/apache/rocketmq/issues/10599#issuecomment-4926996687"
-FOCUSED_RESULT = "Tests run: 56, Failures: 0, Errors: 0, Skipped: 0"
-FOCUSED_FINISHED_AT = "Finished at: 2026-07-11T18:41:53+08:00"
-BROAD_RESULT = "Tests run: 767, Failures: 0, Errors: 0, Skipped: 0"
-BROAD_FINISHED_AT = "Finished at: 2026-07-12T00:28:33+08:00"
-PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-12T00:30:07+08:00"
+FOCUSED_RESULT = "Tests run: 57, Failures: 0, Errors: 0, Skipped: 0"
+FOCUSED_FINISHED_AT = "Finished at: 2026-07-12T02:37:36+08:00"
+BROAD_RESULT = "Tests run: 779, Failures: 0, Errors: 0, Skipped: 0"
+BROAD_FINISHED_AT = "Finished at: 2026-07-12T02:35:18+08:00"
+PACKAGE_SMOKE_FINISHED_AT = "Finished at: 2026-07-12T02:36:24+08:00"
 INTERNAL_ERROR_PUBLIC_ENDPOINT_TEST = (
     "publicServiceMapsUnexpectedEndpointFailureToInternalServerErrorThroughGeneratedGrpcService"
 )
@@ -120,6 +120,13 @@ REQUIRED_CONSTRAINED_HEAP_EVIDENCE = (
     "1283.0 MiB",
     "188604.8 B/op",
     "zero swaps",
+    "0.843 ms",
+    "2916.2 MiB",
+    "8c3098d51615189677118200955aeb6bdcbf90c0",
+    "81f309ab9559d60772b26f59ec3a1d4de618840f3a4b949a934d8367b1672308",
+    "d519f533b3d20e57a9fec0d15dca339ef769da3eae18817ad34b04a1ca91ee91",
+    "f58b88d5234c97ea6942968e970cca247b8821e018337418bd68bf2d26ae6975",
+    "841a5ec9c6a4059a88b8f4e42714182f9c8ac1e8a2a7ef5461f05c6c5dc09251",
 )
 
 CONSTRAINED_HEAP_EVIDENCE_DOCS = (
@@ -141,8 +148,8 @@ GITHUB_EXTERNAL_GATE_TOKENS = (
 )
 
 GITHUB_COVERAGE_EVIDENCE = (
-    "service.admin.client instruction 93.14%, branch 86.29%, line 94.59%",
-    "grpc.v2.admin instruction 92.76%, branch 85.64%, line 94.67%",
+    "service.admin.client instruction 92.93%, branch 86.62%, line 94.41%",
+    "grpc.v2.admin instruction 92.81%, branch 85.79%, line 94.73%",
 )
 
 STALE_GITHUB_COVERAGE_EVIDENCE = (
@@ -205,7 +212,7 @@ REQUIRED_MANUAL_SMOKE_TOKENS = (
 
 REQUIRED_REVIEW_RUNBOOK_TOKENS = (
     "git checkout -B rip2-proxy-admin-public-api c372905ce927cf8957333e7ac07877f295fd7ec9",
-    "git checkout -B rip2-proxy-admin-m1 1dd5c6fd1f7e8f5d684213d72c4b965d214f977d",
+    "git checkout -B rip2-proxy-admin-m1 8c3098d51615189677118200955aeb6bdcbf90c0",
 )
 
 FORBIDDEN_REVIEW_RUNBOOK_TOKENS = (

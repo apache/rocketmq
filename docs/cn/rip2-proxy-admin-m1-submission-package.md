@@ -16,6 +16,12 @@
 4a086b5431328e3ea0d1d6e29751e3d30226b316 Optimize full range client deep queries
 ```
 
+可复现 benchmark runner 和最终 evidence 源码 checkpoint：
+
+```text
+8c3098d51615189677118200955aeb6bdcbf90c0 Preserve RIP-2 benchmark evidence across runs
+```
+
 实现分支已同步到上述实现 checkpoint。live draft PR 和 RIP-2 issue summary
 会在每个最终文档 checkpoint 后刷新，包含 generated public gRPC endpoint 1M
 benchmark、当前 broad verification、
@@ -58,7 +64,7 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。排队请求在 converter、ACL 或 service 工作前会再次检查 gRPC cancellation 和 deadline。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。进入 service 前被拒绝的 public 请求由 endpoint executor 计量一次；已经委托的请求仍只由 service 计量，避免重复计数。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`、`ProxyClientAdminEndpointExecutorTest`、`GrpcProxyAdminWiringTest`。 |
 | E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖 public service descriptor、四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、`BAD_REQUEST` 和 `UNAUTHORIZED` status-only response body contract、`NOT_FOUND` status/message 且不携带 client result body、public `INTERNAL_SERVER_ERROR` response mapping，以及 Dashboard-facing `ListClients` 表格字段和 `DescribeClient` 详情字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。 |
-| 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成。4 GiB fixed-heap 套件覆盖宽 prefix、组合过滤、第 10000 页、宽/全 connect-time range 和生产形态执行器的生成版 public gRPC。可复现的深页全范围证据为 read-model P99 0.016 ms、generated gRPC P99 1.697 ms；所有 fixed-heap 运行中 max RSS 为 2916.2 MiB，全部 zero swaps 且无 OOM。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
+| 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成。4 GiB fixed-heap 套件覆盖宽 prefix、组合过滤、第 10000 页、宽/全 connect-time range 和生产形态执行器的生成版 public gRPC。可复现的深页全范围证据为 read-model P99 0.011 ms、generated gRPC P99 0.843 ms；所有 fixed-heap 运行中 max RSS 为 2916.2 MiB，全部 zero swaps 且无 OOM。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、Dashboard integration contract、public API discussion、benchmark report、smoke guide、review runbook、acceptance audit 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`、`docs/en/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`docs/cn/rip2-proxy-admin-public-api-discussion.md`。 |
 
 ## API 摘要
@@ -249,9 +255,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 56, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 57, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-11T18:41:53+08:00
+Finished at: 2026-07-12T02:37:36+08:00
 ```
 
 Dashboard 表格/详情字段 focused verification：
@@ -300,9 +306,9 @@ mvn -pl proxy -am \
 结果：
 
 ```text
-Tests run: 767, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 779, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-Finished at: 2026-07-12T00:28:33+08:00
+Finished at: 2026-07-12T02:35:18+08:00
 ```
 
 Package smoke：
@@ -316,7 +322,7 @@ mvn -pl proxy -am -DskipTests package -DskipITs
 
 ```text
 BUILD SUCCESS
-Finished at: 2026-07-12T00:30:07+08:00
+Finished at: 2026-07-12T02:36:24+08:00
 ```
 
 轻量提交门禁：
@@ -359,8 +365,8 @@ Broad verification 的最新包级 JaCoCo 覆盖率：
 
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
-| `org/apache/rocketmq/proxy/service/admin/client` | 93.14% | 86.29% | 94.59% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.76% | 85.64% | 94.67% |
+| `org/apache/rocketmq/proxy/service/admin/client` | 92.93% | 86.62% | 94.41% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.81% | 85.79% | 94.73% |
 
 JDK 17 下 JaCoCo 0.8.5 会对部分 JDK 和 Mockito 生成类打印 instrumentation
 stack traces。只有在 Surefire 零 failure/error 且 Maven 成功退出时，才把这些
@@ -374,10 +380,10 @@ Benchmark 证据：
 - coordinator 实验最慢 P99：`listAllProxiesNextPage`，9.011 ms。
 - 4 GiB 限制堆最坏场景：宽 prefix P99 137.526 ms、组合过滤 243.610 ms、
   第 10000 页 0.016 ms、生成版 public gRPC 组合过滤 29.042 ms。
-- 可复现的全范围第 10000 页：read model P99 0.016 ms、generated public
-  gRPC P99 1.697 ms，证据包含 JMH/JFR/GC/进程统计和 SHA-256 manifest。
+- 可复现的全范围第 10000 页：read model P99 0.011 ms、generated public
+  gRPC P99 0.843 ms，证据包含 JMH/JFR/GC/进程统计和 SHA-256 manifest。
 - 早期限制堆 filter 套件的 JFR heapUsed 最大 1126.4 MiB、RSS 1283.0 MiB；
-  新的深页全范围 generated gRPC 证据 max RSS 为 2787.9 MiB，宽范围
+  新的深页全范围 generated gRPC 证据 max RSS 为 2792.3 MiB，宽范围
   generated gRPC 运行的 2916.2 MiB 是所有 fixed-heap 运行的最大值。全部运行
   zero swaps 且无 OOM。
 - 完整报告：`docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。
@@ -432,7 +438,7 @@ mvn -pl proxy -am \
 -DfailIfNoTests=false test -DskipITs
 ```
 
-Result: `Tests run: 767, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
+Result: `Tests run: 779, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`.
 
 轻量提交门禁：
 
@@ -451,8 +457,8 @@ Result: `RIP-2 submission guard passed.`
 - internal coordinator experiment worst P99: 9.011 ms.
 - 4 GiB fixed heap worst-case P99: broad prefix 137.526 ms, combined filters
   243.610 ms, deep page 0.016 ms, and production-shaped public gRPC 29.042 ms.
-- Reproducible full-range deep page 10000 P99: read model 0.016 ms and generated
-  public gRPC 1.697 ms. Maximum RSS across all fixed-heap runs was 2916.2 MiB;
+- Reproducible full-range deep page 10000 P99: read model 0.011 ms and generated
+  public gRPC 0.843 ms. Maximum RSS across all fixed-heap runs was 2916.2 MiB;
   every run had zero swaps and no OOM.
 
 See `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.

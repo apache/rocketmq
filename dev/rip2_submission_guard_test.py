@@ -368,6 +368,13 @@ deploy_maven(
 1283.0 MiB
 188604.8 B/op
 zero swaps
+0.843 ms
+2916.2 MiB
+8c3098d51615189677118200955aeb6bdcbf90c0
+81f309ab9559d60772b26f59ec3a1d4de618840f3a4b949a934d8367b1672308
+d519f533b3d20e57a9fec0d15dca339ef769da3eae18817ad34b04a1ca91ee91
+f58b88d5234c97ea6942968e970cca247b8821e018337418bd68bf2d26ae6975
+841a5ec9c6a4059a88b8f4e42714182f9c8ac1e8a2a7ef5461f05c6c5dc09251
 Dashboard CLIENT-01
 external validation item
 official artifact
@@ -396,7 +403,7 @@ mvn -Prelease-all -DskipTests -DskipITs package
 DIST=distribution/target/rocketmq-5.5.0/rocketmq-5.5.0
 "$DIST/bin/mqproxy"
 git checkout -B rip2-proxy-admin-public-api c372905ce927cf8957333e7ac07877f295fd7ec9
-git checkout -B rip2-proxy-admin-m1 1dd5c6fd1f7e8f5d684213d72c4b965d214f977d
+git checkout -B rip2-proxy-admin-m1 8c3098d51615189677118200955aeb6bdcbf90c0
 rocketmq-proto jar SHA-256: {artifact_sha256}
 """
     for rel in rip2_submission_guard.REQUIRED_DOCS:
@@ -583,8 +590,8 @@ def github_body(rocketmq_head, apis_head=None, guard_command=None):
     body += "PROXY_SCOPE_LOCAL_PROXY\n"
     body += "PROXY_SCOPE_ALL_PROXIES\n"
     body += "PROXY_SCOPE_PROXY_ID\n"
-    body += "service.admin.client instruction 93.14%, branch 86.29%, line 94.59%\n"
-    body += "grpc.v2.admin instruction 92.76%, branch 85.64%, line 94.67%\n"
+    body += "service.admin.client instruction 92.93%, branch 86.62%, line 94.41%\n"
+    body += "grpc.v2.admin instruction 92.81%, branch 85.79%, line 94.73%\n"
     body += "RIP-2 submission guard passed.\n"
     return body
 
@@ -1292,7 +1299,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             apis_head = "apis456"
             body = github_body(expected_head, apis_head)
             stale_body = body.replace(
-                "service.admin.client instruction 93.14%, branch 86.29%, line 94.59%",
+                "service.admin.client instruction 92.93%, branch 86.62%, line 94.41%",
                 "service.admin.client instruction 93.14%, branch 88.01%, line 95.66%",
             )
 

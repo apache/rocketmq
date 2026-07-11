@@ -38,7 +38,7 @@
 
 | 验收项 | 当前状态 | 证据 | 剩余门禁 |
 | --- | --- | --- | --- |
-| 核心模块单测覆盖率 >=85%。 | RIP-2 core packages 本地已验证。 | submission package 记录 `service.admin.client` line coverage 94.59%、`grpc.v2.admin` line coverage 94.67%；branch coverage 分别为 86.29% 和 85.64%。 | 代码变更后需要重跑 coverage。 |
+| 核心模块单测覆盖率 >=85%。 | RIP-2 core packages 本地已验证。 | submission package 记录 `service.admin.client` line coverage 94.41%、`grpc.v2.admin` line coverage 94.73%；branch coverage 分别为 86.62% 和 85.79%。 | 代码变更后需要重跑 coverage。 |
 | 集成测试覆盖接口、鉴权和异常处理。 | 本地已覆盖。 | 生成版 gRPC Server/Channel tests、production interceptor 双 server E2E、proto-free endpoint integration tests、subject/address 信任边界测试、peer tests、ACL tests，以及 public bad-request/not-found/unauthorized/internal-error response mapping tests。 | Dashboard CLIENT-01 仍是外部 E2E 项。 |
 | 提供性能 benchmark report。 | 已实现。 | 中英文 benchmark report 包含命令、环境、1M-client read-model、生成版 public gRPC endpoint、coordinator 场景、P50/P95/P99 和 heap 设置。 | 硬件或实现明显变化后需要重跑。 |
 | 中英文文档与代码同步。 | contest 分支已同步。 | 中英文 user guide、final smoke、benchmark report、submission package 均已存在。 | review 过程中保持 PR 和 issue 链接更新。 |

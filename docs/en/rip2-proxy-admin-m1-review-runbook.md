@@ -70,8 +70,8 @@ apache/rocketmq/v2/ProxyClient.class
 ```bash
 cd ../rocketmq
 git fetch origin
-git checkout -B rip2-proxy-admin-m1 1dd5c6fd1f7e8f5d684213d72c4b965d214f977d
-test "$(git rev-parse HEAD)" = 1dd5c6fd1f7e8f5d684213d72c4b965d214f977d
+git checkout -B rip2-proxy-admin-m1 8c3098d51615189677118200955aeb6bdcbf90c0
+test "$(git rev-parse HEAD)" = 8c3098d51615189677118200955aeb6bdcbf90c0
 git status --short --branch --untracked-files=all
 rg -n '<rocketmq-proto.version>2.2.0-rip2-SNAPSHOT</rocketmq-proto.version>' pom.xml
 ```
@@ -93,7 +93,7 @@ mvn -pl proxy -am \
 Expected:
 
 ```text
-Tests run: 56, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 57, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
@@ -112,7 +112,7 @@ mvn -pl proxy -am \
 Expected from the recorded final run:
 
 ```text
-Tests run: 767, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 779, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 

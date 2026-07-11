@@ -1334,13 +1334,13 @@ JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
   -DfailIfNoTests=false test -DskipITs
 ```
 
-The run reported `Tests run: 767, Failures: 0, Errors: 0, Skipped: 0` and
+The run reported `Tests run: 779, Failures: 0, Errors: 0, Skipped: 0` and
 ended with `BUILD SUCCESS`. Package-level JaCoCo coverage from the same run was:
 
 | Package | Instruction | Branch | Line |
 | --- | ---: | ---: | ---: |
-| `org/apache/rocketmq/proxy/service/admin/client` | 93.14% | 86.29% | 94.59% |
-| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.76% | 85.64% | 94.67% |
+| `org/apache/rocketmq/proxy/service/admin/client` | 92.93% | 86.62% | 94.41% |
+| `org/apache/rocketmq/proxy/grpc/v2/admin` | 92.81% | 85.79% | 94.73% |
 
 The final submission package, including PR and issue-comment drafts, is in
 `docs/en/rip2-proxy-admin-m1-submission-package.md`.
