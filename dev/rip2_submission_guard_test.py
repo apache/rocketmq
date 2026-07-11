@@ -395,6 +395,16 @@ MQv2-HMAC-SHA1
 server reflection
 Channelz
 internal peer
+Finished at: 2026-07-12T02:49:18+08:00
+Client not found: offline-smoke-client
+public proxy admin endpoint only supports LOCAL_PROXY scope: PROXY_SCOPE_ALL_PROXIES
+pageSize must be greater than or equal to 0
+Method not found: apache.rocketmq.v2.ProxyAdminService/ListClients
+Method not found: apache.rocketmq.v2.MessagingService/QueryRoute
+server does not support the reflection API
+port-9876-closed
+port-8081-closed
+port-8082-closed
 command -v grpcurl
 command -v openssl
 command -v xxd
@@ -2079,6 +2089,32 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("manual smoke contract" in error for error in errors))
+
+    def test_guard_reports_missing_live_runtime_smoke_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            smoke_path = root / "docs/en/rip2-proxy-admin-m1-final-smoke.md"
+            smoke_path.write_text(
+                smoke_path.read_text(encoding="utf-8").replace(
+                    "Method not found: apache.rocketmq.v2.ProxyAdminService/ListClients",
+                    "",
+                ),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("live runtime smoke evidence" in error for error in errors))
 
     def test_guard_reports_missing_smoke_tool_prerequisites(self):
         with tempfile.TemporaryDirectory() as tmp:

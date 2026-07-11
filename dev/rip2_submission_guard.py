@@ -188,6 +188,13 @@ FINAL_SMOKE_DOCS = (
     "docs/cn/rip2-proxy-admin-m1-final-smoke.md",
 )
 
+LIVE_RUNTIME_SMOKE_DOCS = (
+    "docs/en/rip2-proxy-admin-m1-final-smoke.md",
+    "docs/cn/rip2-proxy-admin-m1-final-smoke.md",
+    "docs/en/rip2-proxy-admin-m1-submission-package.md",
+    "docs/cn/rip2-proxy-admin-m1-submission-package.md",
+)
+
 REVIEW_RUNBOOK_DOCS = (
     "docs/en/rip2-proxy-admin-m1-review-runbook.md",
     "docs/cn/rip2-proxy-admin-m1-review-runbook.md",
@@ -208,6 +215,19 @@ REQUIRED_MANUAL_SMOKE_TOKENS = (
     "server reflection",
     "Channelz",
     "internal peer",
+)
+
+REQUIRED_LIVE_RUNTIME_SMOKE_TOKENS = (
+    "Finished at: 2026-07-12T02:49:18+08:00",
+    "Client not found: offline-smoke-client",
+    "public proxy admin endpoint only supports LOCAL_PROXY scope: PROXY_SCOPE_ALL_PROXIES",
+    "pageSize must be greater than or equal to 0",
+    "Method not found: apache.rocketmq.v2.ProxyAdminService/ListClients",
+    "Method not found: apache.rocketmq.v2.MessagingService/QueryRoute",
+    "server does not support the reflection API",
+    "port-9876-closed",
+    "port-8081-closed",
+    "port-8082-closed",
 )
 
 REQUIRED_REVIEW_RUNBOOK_TOKENS = (
@@ -940,6 +960,14 @@ def check_manual_smoke_contract(root, errors):
                 errors.append(f"manual smoke contract missing {token} in {rel}")
 
 
+def check_live_runtime_smoke_evidence(root, errors):
+    for rel in LIVE_RUNTIME_SMOKE_DOCS:
+        text = read_text(root / rel, errors)
+        for token in REQUIRED_LIVE_RUNTIME_SMOKE_TOKENS:
+            if token not in text:
+                errors.append(f"live runtime smoke evidence missing {token} in {rel}")
+
+
 def check_review_runbook_contract(root, errors):
     for rel in REVIEW_RUNBOOK_DOCS:
         text = read_text(root / rel, errors)
@@ -1294,6 +1322,7 @@ def run_checks(
     check_submission_evidence(root, errors, artifact_sha256)
     check_required_markdown_fences(root, errors)
     check_manual_smoke_contract(root, errors)
+    check_live_runtime_smoke_evidence(root, errors)
     check_review_runbook_contract(root, errors)
     check_plan_checkboxes(root, errors)
     check_stale_checkpoint_references(root, errors)

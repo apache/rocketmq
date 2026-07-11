@@ -415,6 +415,51 @@ Benchmark evidence:
   2916.2 MiB RSS. Every recorded run had zero swaps and no OOM.
 - Full report: `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
 
+## Recorded Live Runtime Smoke
+
+A full release distribution built from submission code checkpoint
+`ad55872f1c38df6086a0e7b208f6635ce259dd3e` was started with a real local
+NameServer, data-plane gRPC on 8081, and the independent public admin listener
+on 8082.
+
+```text
+mvn -Prelease-all -DskipTests -DskipITs package
+BUILD SUCCESS
+Finished at: 2026-07-12T02:49:18+08:00
+```
+
+Direct `grpcurl` calls through the formal sibling proto verified all four public
+RPC routes. `ListClients`, `ListClientsByGroup`, and `ListClientsByTopic`
+returned `OK`; the offline describe probe returned `NOT_FOUND` with
+`Client not found: offline-smoke-client`. The public contract rejected the two
+representative invalid requests with:
+
+```text
+public proxy admin endpoint only supports LOCAL_PROXY scope: PROXY_SCOPE_ALL_PROXIES
+pageSize must be greater than or equal to 0
+```
+
+The running distribution also proved service isolation in both directions and
+kept reflection disabled on the admin listener:
+
+```text
+Method not found: apache.rocketmq.v2.ProxyAdminService/ListClients
+Method not found: apache.rocketmq.v2.MessagingService/QueryRoute
+server does not support the reflection API
+```
+
+The cleanup trap stopped the complete smoke environment; the final socket audit
+recorded:
+
+```text
+port-9876-closed
+port-8081-closed
+port-8082-closed
+```
+
+Exact startup, request, isolation, and cleanup commands are in
+`docs/en/rip2-proxy-admin-m1-final-smoke.md`.
+
 ## PR Description Draft
 
 Title:

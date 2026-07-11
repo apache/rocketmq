@@ -192,3 +192,51 @@ authorization, timeout, and page ownership semantics.
 `PROXY_SCOPE_PROXY_ID` is rejected as an M1 scope error even when `proxy_id` is
 omitted, so public callers see the same scope-gate contract before proxy-id
 validation.
+
+## Recorded Live Runtime Smoke
+
+The commands above were executed against a real local NameServer and
+local-mode Proxy built from submission head `ad55872f1c38df6086a0e7b208f6635ce259dd3e`.
+
+Full distribution build:
+
+```text
+mvn -Prelease-all -DskipTests -DskipITs package
+BUILD SUCCESS
+Finished at: 2026-07-12T02:49:18+08:00
+```
+
+The running process exposed NameServer on 9876, data-plane gRPC on 8081, and
+the independent public admin listener on 8082. Direct `grpcurl` calls using
+`../rocketmq-apis/apache/rocketmq/v2/admin.proto` returned:
+
+| Call | Recorded status |
+| --- | --- |
+| `ListClients` | `OK` with an empty client list because no application client was connected. |
+| `DescribeClient(offline-smoke-client)` | `NOT_FOUND`: `Client not found: offline-smoke-client`. |
+| `ListClientsByGroup(smoke-group)` | `OK` with an empty client list. |
+| `ListClientsByTopic(smoke-topic)` | `OK` with an empty client list. |
+| `ListClients(PROXY_SCOPE_ALL_PROXIES)` | `BAD_REQUEST`: `public proxy admin endpoint only supports LOCAL_PROXY scope: PROXY_SCOPE_ALL_PROXIES`. |
+| `ListClients(pageSize=-1)` | `BAD_REQUEST`: `pageSize must be greater than or equal to 0`. |
+
+Listener isolation was verified in both directions:
+
+```text
+8081 -> ProxyAdminService/ListClients:
+Method not found: apache.rocketmq.v2.ProxyAdminService/ListClients
+
+8082 -> MessagingService/QueryRoute:
+Method not found: apache.rocketmq.v2.MessagingService/QueryRoute
+
+8082 reflection probe:
+server does not support the reflection API
+```
+
+The persistent smoke session was terminated through its cleanup trap. Final
+socket audit:
+
+```text
+port-9876-closed
+port-8081-closed
+port-8082-closed
+```

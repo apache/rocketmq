@@ -1937,3 +1937,11 @@ API ownership and artifact publication decision.
   `2026-07-12T02:35:18+08:00`; package smoke completed with `BUILD SUCCESS` at
   `2026-07-12T02:36:24+08:00`. Final package coverage remains above 85% for
   instruction, branch, and line metrics in both RIP-2 core packages.
+- [x] Live release-distribution public endpoint smoke completed. A full
+  `-Prelease-all` build succeeded at `2026-07-12T02:49:18+08:00`; a real local
+  NameServer and local-mode Proxy exposed messaging on 8081 and the independent
+  public admin service on 8082. Direct `grpcurl` calls reached all four public
+  RPCs, verified `NOT_FOUND`, scope and pagination `BAD_REQUEST` semantics, and
+  proved service isolation in both directions with reflection disabled. The
+  cleanup trap closed ports 9876, 8081, and 8082. Submission guard coverage now
+  pins this evidence in both final-smoke guides and both submission packages.

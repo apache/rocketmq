@@ -185,3 +185,50 @@ synthetic clients 来验证非空响应。
 多 Proxy discovery、鉴权、超时和分页归属语义。
 即使省略 `proxy_id`，`PROXY_SCOPE_PROXY_ID` 也会先按 M1 scope gate 被拒绝，
 保证 public caller 在 proxy-id 校验前看到一致的 scope-gate contract。
+
+## 已记录的运行中冒烟
+
+上述命令已在提交 HEAD `ad55872f1c38df6086a0e7b208f6635ce259dd3e`
+构建的真实本地 NameServer 和 local-mode Proxy 上执行。
+
+完整 distribution 构建：
+
+```text
+mvn -Prelease-all -DskipTests -DskipITs package
+BUILD SUCCESS
+Finished at: 2026-07-12T02:49:18+08:00
+```
+
+运行进程在 9876 暴露 NameServer、在 8081 暴露 data-plane gRPC，并在 8082
+暴露独立 public admin listener。使用
+`../rocketmq-apis/apache/rocketmq/v2/admin.proto` 的直接 `grpcurl` 调用结果：
+
+| 调用 | 实测 status |
+| --- | --- |
+| `ListClients` | `OK`；因未连接应用 client，列表为空。 |
+| `DescribeClient(offline-smoke-client)` | `NOT_FOUND`：`Client not found: offline-smoke-client`。 |
+| `ListClientsByGroup(smoke-group)` | `OK`，空 client 列表。 |
+| `ListClientsByTopic(smoke-topic)` | `OK`，空 client 列表。 |
+| `ListClients(PROXY_SCOPE_ALL_PROXIES)` | `BAD_REQUEST`：`public proxy admin endpoint only supports LOCAL_PROXY scope: PROXY_SCOPE_ALL_PROXIES`。 |
+| `ListClients(pageSize=-1)` | `BAD_REQUEST`：`pageSize must be greater than or equal to 0`。 |
+
+已双向验证 listener 隔离：
+
+```text
+8081 -> ProxyAdminService/ListClients:
+Method not found: apache.rocketmq.v2.ProxyAdminService/ListClients
+
+8082 -> MessagingService/QueryRoute:
+Method not found: apache.rocketmq.v2.MessagingService/QueryRoute
+
+8082 reflection probe:
+server does not support the reflection API
+```
+
+持续 smoke session 通过 cleanup trap 终止。最终 socket 审计：
+
+```text
+port-9876-closed
+port-8081-closed
+port-8082-closed
+```

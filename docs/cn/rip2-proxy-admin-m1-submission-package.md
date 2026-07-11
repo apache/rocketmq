@@ -388,6 +388,49 @@ Benchmark 证据：
   zero swaps 且无 OOM。
 - 完整报告：`docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。
 
+## 已记录的运行中冒烟
+
+从提交代码 checkpoint `ad55872f1c38df6086a0e7b208f6635ce259dd3e`
+构建完整 release distribution，并启动真实本地 NameServer、8081 data-plane
+gRPC 和 8082 独立 public admin listener。
+
+```text
+mvn -Prelease-all -DskipTests -DskipITs package
+BUILD SUCCESS
+Finished at: 2026-07-12T02:49:18+08:00
+```
+
+通过正式 sibling proto 直接执行 `grpcurl`，验证四条 public RPC 路由。
+`ListClients`、`ListClientsByGroup` 和 `ListClientsByTopic` 返回 `OK`；离线
+describe 探针返回 `NOT_FOUND` 和
+`Client not found: offline-smoke-client`。Public contract 对两类代表性非法请求
+返回：
+
+```text
+public proxy admin endpoint only supports LOCAL_PROXY scope: PROXY_SCOPE_ALL_PROXIES
+pageSize must be greater than or equal to 0
+```
+
+运行中的 distribution 还双向证明服务隔离，并确认 admin listener 未开启
+reflection：
+
+```text
+Method not found: apache.rocketmq.v2.ProxyAdminService/ListClients
+Method not found: apache.rocketmq.v2.MessagingService/QueryRoute
+server does not support the reflection API
+```
+
+cleanup trap 终止完整 smoke 环境，最终 socket 审计记录：
+
+```text
+port-9876-closed
+port-8081-closed
+port-8082-closed
+```
+
+完整启动、请求、隔离与清理命令见
+`docs/cn/rip2-proxy-admin-m1-final-smoke.md`。
+
 ## PR 描述草稿
 
 标题：
