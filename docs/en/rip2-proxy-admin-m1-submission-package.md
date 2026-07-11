@@ -9,19 +9,20 @@ PR, issue comment, or contest submission.
 The latest synchronized RocketMQ implementation-code checkpoint is:
 
 ```text
-8ae372157ba149efa3803854aee7fa641a32b623 Optimize wide connect time queries
+1dd5c6fd1f7e8f5d684213d72c4b965d214f977d Guard grpc client lifecycle ownership
 ```
 
 The latest generated public gRPC endpoint 1M benchmark code checkpoint is:
 
 ```text
-8ae372157ba149efa3803854aee7fa641a32b623 Optimize wide connect time queries
+4a086b5431328e3ea0d1d6e29751e3d30226b316 Optimize full range client deep queries
 ```
 
-The live draft PRs and RIP-2 issue summary have been refreshed through that
-implementation-code checkpoint to include the generated public gRPC endpoint
-1M benchmark, the `767`-test broad verification result, Dashboard table/detail
-field evidence, generated service descriptor verification evidence, and public
+The implementation branch is synchronized to the implementation checkpoint.
+The live draft PRs and RIP-2 issue summary are refreshed after each final
+documentation checkpoint so they include the generated public gRPC endpoint
+1M benchmark, current broad verification result, Dashboard table/detail field
+evidence, generated service descriptor verification evidence, and public
 `BAD_REQUEST` / `UNAUTHORIZED` / `NOT_FOUND` / `INTERNAL_SERVER_ERROR`
 status-mapping and response-body contract evidence.
 Later documentation-only evidence refresh commits may move the branch head
@@ -57,12 +58,12 @@ branch currently compiles against the local
 | Public admin service with `ListClients`, `DescribeClient`, `ListClientsByGroup`, and `ListClientsByTopic` | Exposed through generated `ProxyAdminServiceGrpc` and registered on the independent admin gRPC server when `enableProxyAdminGrpcServer=true`. | `GrpcProxyAdminApplication`, `ProxyStartup`, `GrpcProxyAdminApplicationTest`, [rocketmq-apis/admin.proto](https://github.com/pilichoumao/rocketmq-apis/blob/rip2-proxy-admin-public-api/apache/rocketmq/v2/admin.proto). |
 | Online client read model | Implemented with `clientId`, group, topic, client type, language, connect time, and proxy id indexes. | `ProxyClientReadService`, `ProxyClientInfo`, `ProxyClientQuery`, `ProxyClientPage`. |
 | Official filters | Implemented: exact client id, client id prefix, group, topic, client language, connect time range, `pageNum >= 1`, omitted `pageSize` defaults, negative `pageSize` rejection, and `pageSize <= 100`. | `GrpcProxyAdminApplicationTest`, `ProxyClientQueryTest`, `ProxyClientReadServiceTest`, `ProxyClientAdminRequestConverterTest`. |
-| Lifecycle population | Implemented for telemetry settings, heartbeat, unregister, termination, stream completion, and error cleanup. | `ClientActivityTest`, `DefaultGrpcMessagingActivityTest`. |
+| Lifecycle population | Implemented for telemetry settings, heartbeat, unregister, termination, stream completion, and error cleanup. Per-stream generations, transport identity, and striped lifecycle locks prevent stale reconnect callbacks or unary events from deleting or mutating a newer session. | `ClientActivityTest`, `DefaultGrpcMessagingActivityTest`. |
 | ACL | Implemented with logical resource `proxy.admin.client`; list RPCs use `LIST`, describe uses `GET`. | `ClientAdminAuthPolicyTest`, `DefaultClientAdminAuthorizationServiceTest`, `AuthorizingClientAdminServiceTest`. |
-| Independent admin execution | Implemented admin query executor and dedicated admin gRPC server registration. | `ProxyClientAdminEndpointExecutor`, `ProxyStartup`, `GrpcProxyAdminWiringTest`, `ProxyStartupTest`. |
+| Independent admin execution | Implemented admin query executor and dedicated admin gRPC server registration. Queued calls re-check gRPC cancellation and deadlines before conversion, authorization, or service work. | `ProxyClientAdminEndpointExecutor`, `ProxyStartup`, `GrpcProxyAdminWiringTest`, `ProxyStartupTest`. |
 | Observability | Implemented metrics, trace attributes, and structured failure logs with low-cardinality labels. Public failures rejected before service invocation are metered once at the endpoint executor; delegated requests remain service-metered to avoid double counting. | `ProxyMetricsManagerTest`, `MeteredClientAdminServiceTest`, `MeteredAuthorizingClientAdminServiceTest`, `ProxyClientAdminObservabilityTest`, `ProxyClientAdminEndpointExecutorTest`, `GrpcProxyAdminWiringTest`. |
 | E2E / integration coverage | Generated public gRPC Server/Channel tests cover the public service descriptor, all four RPCs, official filters, public pagination/hasMore, omitted public pagination defaults, non-local scope rejection across every public RPC, `PROXY_SCOPE_PROXY_ID` rejection before proxy-id validation, `BAD_REQUEST` and `UNAUTHORIZED` status-only response body contracts, `NOT_FOUND` status/message without a client result body, public `INTERNAL_SERVER_ERROR` response mapping, and Dashboard-facing `ListClients` table plus `DescribeClient` detail fields. Proto-free endpoint and peer tests continue to cover internal paths. | `GrpcProxyAdminApplicationTest`, `ProxyClientAdminEndpointIntegrationTest`, `ProxyClientAdminInProcessPeerMessageTransportTest`, `ProxyClientAdminPeerGrpcServiceTest`, `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`. |
-| 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. The 4 GiB fixed heap worst-case suite covers broad prefix, combined filters, deep page 10000, and generated public gRPC with production-shaped executors; all P99 values are below 1 second, max RSS is 1283.0 MiB, and every process completed with zero swaps and no OOM. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
+| 1M benchmark | Completed on local Apple M4, 16 GB, JDK 17. The 4 GiB fixed-heap suite covers broad prefix, combined filters, deep page 10000, wide/full connect-time ranges, and generated public gRPC with production-shaped executors. The reproducible deep full-range proof measured 0.016 ms read-model P99 and 1.697 ms generated gRPC P99. Maximum RSS across all fixed-heap runs was 2916.2 MiB; every run completed with zero swaps and no OOM. | `docs/en/rip2-proxy-admin-m1-benchmark-report.md`. |
 | English and Chinese docs | Completed for user guide, Dashboard integration contract, public API discussion, benchmark report, smoke guide, review runbook, acceptance audit, and submission package. | `docs/en/rip2-proxy-admin-m1-user-guide.md`, `docs/cn/rip2-proxy-admin-m1-user-guide.md`, `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`, `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`, `docs/en/rip2-proxy-admin-public-api-discussion.md`, `docs/cn/rip2-proxy-admin-public-api-discussion.md`. |
 
 ## API Summary
@@ -258,7 +259,7 @@ verifies the production activity supplies the shared OTel recorder.
 Focused generated public API verification:
 
 ```bash
-JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am \
 -Dtest=GrpcProxyAdminApplicationTest,ProxyStartupTest,GrpcProxyAdminWiringTest \
 -DfailIfNoTests=false test -DskipITs
@@ -275,7 +276,7 @@ Finished at: 2026-07-11T18:41:53+08:00
 Focused Dashboard table/detail field verification:
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am \
 "-Dtest=GrpcProxyAdminApplicationTest#listClientsReturnsDashboardTableFieldsThroughGeneratedGrpcService+describeClientReturnsDashboardClientViewFieldsThroughGeneratedGrpcService" \
 -DfailIfNoTests=false test -DskipITs
@@ -292,7 +293,7 @@ Finished at: 2026-07-10T05:38:56+08:00
 Focused public service descriptor verification:
 
 ```bash
-JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am \
 -Dtest=GrpcProxyAdminApplicationTest#bindServiceExposesGeneratedProxyAdminUnaryMethods \
 -DfailIfNoTests=false test -DskipITs
@@ -309,7 +310,7 @@ Finished at: 2026-07-10T05:47:33+08:00
 Broad proxy admin verification:
 
 ```bash
-JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am \
 "-Dtest=GrpcServerTest,ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
 -DfailIfNoTests=false test -DskipITs
@@ -326,7 +327,7 @@ Finished at: 2026-07-12T00:28:33+08:00
 Package smoke:
 
 ```bash
-JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am -DskipTests package -DskipITs
 ```
 
@@ -394,13 +395,18 @@ Benchmark evidence:
 - Wide connect-time range over 100 synthetic time buckets: read model P99
   `0.010 ms` at `1113.352 B/op`; generated public gRPC P99 `0.394 ms` at
   `174970.776 B/op`, with zero swaps and no OOM under a 4 GiB fixed heap.
+- Reproducible deep full-range page 10000: read model P99 `0.016 ms` at
+  `1148.541 B/op`; generated public gRPC P99 `1.697 ms` at `179146.221 B/op`.
+  Repository-owned evidence bundles include JMH JSON/logs, JFR, GC and process
+  statistics, environment and command capture, and verified SHA-256 manifests.
 - Coordinator experiment worst P99: `listAllProxiesNextPage` at 9.011 ms.
 - 4 GiB constrained-heap worst cases: broad prefix 137.526 ms P99,
   combined filters 243.610 ms, deep page 10000 at 0.016 ms, and generated
   public gRPC combined filters at 29.042 ms.
-- Constrained-heap maximums: 1126.4 MiB JFR heapUsed, 1283.0 MiB RSS, and
-  188604.8 B/op on the generated public gRPC path; all runs had zero swaps and
-  no OOM.
+- The initial constrained-filter suite peaked at 1126.4 MiB JFR heapUsed and
+  1283.0 MiB RSS. The newer deep full-range generated gRPC evidence peaked at
+  2787.9 MiB RSS; the wide-range generated gRPC run is the overall maximum at
+  2916.2 MiB RSS. Every recorded run had zero swaps and no OOM.
 - Full report: `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
 
 ## PR Description Draft
@@ -447,7 +453,7 @@ tracks the downstream RocketMQ implementation review.
 ## Tests
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am \
 "-Dtest=GrpcServerTest,ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
 -DfailIfNoTests=false test -DskipITs
@@ -472,7 +478,9 @@ Result: `RIP-2 submission guard passed.`
 - internal coordinator experiment worst P99: 9.011 ms.
 - 4 GiB fixed heap worst-case P99: broad prefix 137.526 ms, combined filters
   243.610 ms, deep page 0.016 ms, and production-shaped public gRPC 29.042 ms.
-- Maximum JFR heapUsed 1126.4 MiB, maximum RSS 1283.0 MiB, zero swaps, no OOM.
+- Reproducible full-range deep page 10000 P99: read model 0.016 ms and generated
+  public gRPC 1.697 ms. Maximum RSS across all fixed-heap runs was 2916.2 MiB;
+  every run had zero swaps and no OOM.
 
 See `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
 ````

@@ -80,7 +80,7 @@ Representative command template, with all repository paths relative to the
 RocketMQ root:
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
 "$JAVA_HOME/bin/java" \
   -cp "proxy/target/test-classes:proxy/target/classes:$(cat proxy/target/rip2-benchmark/classpath.txt)" \
   org.openjdk.jmh.Main \
@@ -93,11 +93,29 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 
 ## Build And Launcher
 
+Use the repository-owned launcher for new evidence instead of reconstructing a
+classpath or writing the only copy of a result under `/tmp`:
+
+```bash
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
+dev/run_rip2_benchmark.sh \
+  million-read-model-first-page \
+  org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listFirstPage
+```
+
+The launcher accepts exactly one JMH method and defaults to 1,000,000 clients,
+a fixed 4 GiB G1 heap, one fork, and four caller threads. Override its `RIP2_*`
+environment variables for a short smoke run. It writes evidence under
+`target/rip2-benchmark-results/<label>/`: `jmh.json`, `jmh.log`,
+`recording.jfr`, `gc.log`, `time.txt`, `classpath.txt`, `command.txt`, and a
+`SHA256SUMS` manifest. Verify the manifest from inside that output directory so
+its relative paths resolve correctly.
+
 Before the read-model benchmark, the modified proxy sources were recompiled and
 the focused read-model tests passed:
 
 ```bash
-export JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
 mvn -pl proxy -am \
   "-Dtest=ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientQueryTest,ProxyClientInfoTest,ProxyClientReadServiceCleanerTest" \
   -DfailIfNoTests=false test -DskipITs
@@ -113,7 +131,7 @@ Before the generated public endpoint benchmark, the generated gRPC endpoint and
 benchmark setup tests passed:
 
 ```bash
-export JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
 mvn -pl proxy -am \
   "-Dtest=GrpcProxyAdminApplicationBenchmarkTest,GrpcProxyAdminApplicationTest,ProxyClientReadServiceBenchmarkTest" \
   -DfailIfNoTests=false test -DskipITs
@@ -275,3 +293,41 @@ Representative include names:
 org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listByWideConnectTimeRangePage
 org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplicationBenchmark.listClientsByWideConnectTimeRange
 ```
+
+## Reproducible Deep Full-Range Pagination Proof
+
+The final 2026-07-12 follow-up tests `pageNum=10000`, `pageSize=100` over the
+complete `100..199` connect-time range at implementation checkpoint
+`1dd5c6fd1f7e8f5d684213d72c4b965d214f977d`. The first k-way bucket merge run
+made the cost visible: read-model P99 was `2906.653 ms`. The final path detects
+that the requested time bounds cover the ordered time index, then reuses the
+mutation-invalidated client-id page anchors. Partial ranges still use the
+bounded k-way bucket merge.
+
+Both final runs used the repository launcher with its default one fork, four
+caller threads, one 2-second warmup, three 3-second measurements, 1,000,000
+clients, and fixed 4 GiB G1 heap:
+
+```bash
+dev/run_rip2_benchmark.sh \
+  evidence-v2-million-deep-readmodel-20260712 \
+  org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listDeepPageByWideConnectTimeRange
+dev/run_rip2_benchmark.sh \
+  evidence-v2-million-deep-public-grpc-20260712 \
+  org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplicationBenchmark.listClientsDeepPageByWideConnectTimeRange
+```
+
+| Path | P50 ms | P95 ms | P99 ms | Max ms | Allocation B/op | Measurement GC count/time | Max RSS | Swap |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Read model deep full-range page | 0.011 | 0.013 | 0.016 | 668.991 | 1148.541 | 5 / 12 ms | 1117.9 MiB | 0 |
+| Generated public gRPC deep full-range page | 0.393 | 0.992 | 1.697 | 50.921 | 179146.221 | 8 / 22 ms | 2787.9 MiB | 0 |
+
+Both P99 values are below one second; both forks exited normally without OOM.
+Each output directory contains `build.log`, `environment.txt`, `command.txt`,
+the resolved classpath, JMH JSON/log, GC log, JFR, process-time output, and a
+verified `SHA256SUMS` manifest. Key durable digests are:
+
+| Evidence | `jmh.json` SHA-256 | `recording.jfr` SHA-256 | `environment.txt` SHA-256 |
+| --- | --- | --- | --- |
+| Read model | `b485a9fd831f6b50f23a9b90a6b9a16b7dcc5b586d51683f4e2ec6774345d9be` | `2b66efc9a05321f1460d6e0ab72215dddb17e07284f98d2ef48c1672d441e0bf` | `1073412d17a2785b1fa518daf571b17def7f99211078a56bd78f0cdbfbf839f9` |
+| Generated public gRPC | `d5cc5d93200dacae0f907dd1b7f06a8cdeec61bb96e49f3b33f51f3af9964f4d` | `ffe9bc823bae6b383efb2a970e2e9c35abc0195f93fa588dc3c2796943cc2a67` | `64a1bd39e77b2a61aa293f9a0ea59effc65ba4f8243becd3af9e47f8a225e6af` |

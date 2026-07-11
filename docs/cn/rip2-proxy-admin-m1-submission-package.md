@@ -7,17 +7,18 @@
 已同步到远端的最新 RocketMQ 实现代码 checkpoint：
 
 ```text
-8ae372157ba149efa3803854aee7fa641a32b623 Optimize wide connect time queries
+1dd5c6fd1f7e8f5d684213d72c4b965d214f977d Guard grpc client lifecycle ownership
 ```
 
 最新 generated public gRPC endpoint 1M benchmark 代码 checkpoint：
 
 ```text
-8ae372157ba149efa3803854aee7fa641a32b623 Optimize wide connect time queries
+4a086b5431328e3ea0d1d6e29751e3d30226b316 Optimize full range client deep queries
 ```
 
-live draft PR 和 RIP-2 issue summary 已同步到上述实现代码 checkpoint，包含
-generated public gRPC endpoint 1M benchmark、`767` tests broad verification、
+实现分支已同步到上述实现 checkpoint。live draft PR 和 RIP-2 issue summary
+会在每个最终文档 checkpoint 后刷新，包含 generated public gRPC endpoint 1M
+benchmark、当前 broad verification、
 Dashboard 表格/详情字段证据、generated service descriptor verification 证据，
 以及 public `BAD_REQUEST` / `UNAUTHORIZED` / `NOT_FOUND` /
 `INTERNAL_SERVER_ERROR` status mapping 和 response-body contract 证据。后续纯文档证据刷新
@@ -52,12 +53,12 @@ proxy 侧实现审阅。当前实现分支仍依赖从 API proposal 本地生成
 | public admin service，包含 `ListClients`、`DescribeClient`、`ListClientsByGroup`、`ListClientsByTopic` | 已通过生成版 `ProxyAdminServiceGrpc` 暴露；当 `enableProxyAdminGrpcServer=true` 时注册到独立 admin gRPC server。 | `GrpcProxyAdminApplication`、`ProxyStartup`、`GrpcProxyAdminApplicationTest`、[rocketmq-apis/admin.proto](https://github.com/pilichoumao/rocketmq-apis/blob/rip2-proxy-admin-public-api/apache/rocketmq/v2/admin.proto)。 |
 | 在线 client read model | 已实现 `clientId`、group、topic、client type、language、connect time 和 proxy id 索引。 | `ProxyClientReadService`、`ProxyClientInfo`、`ProxyClientQuery`、`ProxyClientPage`。 |
 | 官方过滤字段 | 已支持 exact client id、client id prefix、group、topic、client language、connect time range、`pageNum >= 1`、省略 `pageSize` 默认值、负数 `pageSize` 拒绝和 `pageSize <= 100`。 | `GrpcProxyAdminApplicationTest`、`ProxyClientQueryTest`、`ProxyClientReadServiceTest`、`ProxyClientAdminRequestConverterTest`。 |
-| 生命周期写入 | 已覆盖 telemetry settings、heartbeat、unregister、termination、stream completion 和 error cleanup。 | `ClientActivityTest`、`DefaultGrpcMessagingActivityTest`。 |
+| 生命周期写入 | 已覆盖 telemetry settings、heartbeat、unregister、termination、stream completion 和 error cleanup。每流 generation、transport identity 和分片 lifecycle lock 防止旧连接回调或 unary 事件删除、覆盖新 session。 | `ClientActivityTest`、`DefaultGrpcMessagingActivityTest`。 |
 | ACL | 逻辑资源为 `proxy.admin.client`；list 类操作使用 `LIST`，describe 使用 `GET`。 | `ClientAdminAuthPolicyTest`、`DefaultClientAdminAuthorizationServiceTest`、`AuthorizingClientAdminServiceTest`。 |
-| 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
+| 独立 admin 执行路径 | 已实现 admin query executor，并完成独立 admin gRPC server 注册路径。排队请求在 converter、ACL 或 service 工作前会再次检查 gRPC cancellation 和 deadline。 | `ProxyClientAdminEndpointExecutor`、`ProxyStartup`、`GrpcProxyAdminWiringTest`、`ProxyStartupTest`。 |
 | 可观测性 | 已实现 metrics、trace attributes 和低基数结构化失败日志。进入 service 前被拒绝的 public 请求由 endpoint executor 计量一次；已经委托的请求仍只由 service 计量，避免重复计数。 | `ProxyMetricsManagerTest`、`MeteredClientAdminServiceTest`、`MeteredAuthorizingClientAdminServiceTest`、`ProxyClientAdminObservabilityTest`、`ProxyClientAdminEndpointExecutorTest`、`GrpcProxyAdminWiringTest`。 |
 | E2E / integration 覆盖 | 生成版 public gRPC Server/Channel 测试已覆盖 public service descriptor、四个 RPC、官方过滤字段、public pagination/hasMore、省略 public pagination 字段的默认值、所有 public RPC 的非 local scope 拒绝、`PROXY_SCOPE_PROXY_ID` 在 proxy-id 校验前被拒绝、`BAD_REQUEST` 和 `UNAUTHORIZED` status-only response body contract、`NOT_FOUND` status/message 且不携带 client result body、public `INTERNAL_SERVER_ERROR` response mapping，以及 Dashboard-facing `ListClients` 表格字段和 `DescribeClient` 详情字段；proto-free endpoint 和 peer tests 继续覆盖内部路径。 | `GrpcProxyAdminApplicationTest`、`ProxyClientAdminEndpointIntegrationTest`、`ProxyClientAdminInProcessPeerMessageTransportTest`、`ProxyClientAdminPeerGrpcServiceTest`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。 |
-| 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成。4 GiB fixed heap 最坏场景套件覆盖宽 prefix、组合过滤、第 10000 页和生产形态执行器的生成版 public gRPC；所有 P99 低于 1 秒，max RSS 为 1283.0 MiB，全部进程 zero swaps 且无 OOM。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
+| 1M benchmark | 已在本机 Apple M4、16 GB、JDK 17 下完成。4 GiB fixed-heap 套件覆盖宽 prefix、组合过滤、第 10000 页、宽/全 connect-time range 和生产形态执行器的生成版 public gRPC。可复现的深页全范围证据为 read-model P99 0.016 ms、generated gRPC P99 1.697 ms；所有 fixed-heap 运行中 max RSS 为 2916.2 MiB，全部 zero swaps 且无 OOM。 | `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。 |
 | 中英文文档 | 已完成 user guide、Dashboard integration contract、public API discussion、benchmark report、smoke guide、review runbook、acceptance audit 和提交包。 | `docs/en/rip2-proxy-admin-m1-user-guide.md`、`docs/cn/rip2-proxy-admin-m1-user-guide.md`、`docs/en/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`、`docs/en/rip2-proxy-admin-public-api-discussion.md`、`docs/cn/rip2-proxy-admin-public-api-discussion.md`。 |
 
 ## API 摘要
@@ -239,7 +240,7 @@ Finished at: 2026-07-11T19:24:15+08:00
 Focused generated public API verification：
 
 ```bash
-JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am \
 -Dtest=GrpcProxyAdminApplicationTest,ProxyStartupTest,GrpcProxyAdminWiringTest \
 -DfailIfNoTests=false test -DskipITs
@@ -256,7 +257,7 @@ Finished at: 2026-07-11T18:41:53+08:00
 Dashboard 表格/详情字段 focused verification：
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am \
 "-Dtest=GrpcProxyAdminApplicationTest#listClientsReturnsDashboardTableFieldsThroughGeneratedGrpcService+describeClientReturnsDashboardClientViewFieldsThroughGeneratedGrpcService" \
 -DfailIfNoTests=false test -DskipITs
@@ -273,7 +274,7 @@ Finished at: 2026-07-10T05:38:56+08:00
 Public service descriptor focused verification：
 
 ```bash
-JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am \
 -Dtest=GrpcProxyAdminApplicationTest#bindServiceExposesGeneratedProxyAdminUnaryMethods \
 -DfailIfNoTests=false test -DskipITs
@@ -290,7 +291,7 @@ Finished at: 2026-07-10T05:47:33+08:00
 Broad proxy admin verification：
 
 ```bash
-JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am \
 "-Dtest=GrpcServerTest,ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
 -DfailIfNoTests=false test -DskipITs
@@ -307,7 +308,7 @@ Finished at: 2026-07-12T00:28:33+08:00
 Package smoke：
 
 ```bash
-JAVA_HOME="$(/usr/libexec/java_home -v 17)" \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am -DskipTests package -DskipITs
 ```
 
@@ -373,8 +374,12 @@ Benchmark 证据：
 - coordinator 实验最慢 P99：`listAllProxiesNextPage`，9.011 ms。
 - 4 GiB 限制堆最坏场景：宽 prefix P99 137.526 ms、组合过滤 243.610 ms、
   第 10000 页 0.016 ms、生成版 public gRPC 组合过滤 29.042 ms。
-- 限制堆最大值：JFR heapUsed 1126.4 MiB、RSS 1283.0 MiB，生成版 public
-  gRPC 路径 188604.8 B/op；全部运行 zero swaps 且无 OOM。
+- 可复现的全范围第 10000 页：read model P99 0.016 ms、generated public
+  gRPC P99 1.697 ms，证据包含 JMH/JFR/GC/进程统计和 SHA-256 manifest。
+- 早期限制堆 filter 套件的 JFR heapUsed 最大 1126.4 MiB、RSS 1283.0 MiB；
+  新的深页全范围 generated gRPC 证据 max RSS 为 2787.9 MiB，宽范围
+  generated gRPC 运行的 2916.2 MiB 是所有 fixed-heap 运行的最大值。全部运行
+  zero swaps 且无 OOM。
 - 完整报告：`docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。
 
 ## PR 描述草稿
@@ -421,7 +426,7 @@ tracks the downstream RocketMQ implementation review.
 ## Tests
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
 mvn -pl proxy -am \
 "-Dtest=GrpcServerTest,ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
 -DfailIfNoTests=false test -DskipITs
@@ -446,7 +451,9 @@ Result: `RIP-2 submission guard passed.`
 - internal coordinator experiment worst P99: 9.011 ms.
 - 4 GiB fixed heap worst-case P99: broad prefix 137.526 ms, combined filters
   243.610 ms, deep page 0.016 ms, and production-shaped public gRPC 29.042 ms.
-- Maximum JFR heapUsed 1126.4 MiB, maximum RSS 1283.0 MiB, zero swaps, no OOM.
+- Reproducible full-range deep page 10000 P99: read model 0.016 ms and generated
+  public gRPC 1.697 ms. Maximum RSS across all fixed-heap runs was 2916.2 MiB;
+  every run had zero swaps and no OOM.
 
 See `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
 ````

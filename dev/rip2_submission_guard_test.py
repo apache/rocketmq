@@ -189,6 +189,10 @@ def create_snapshot_jar_without(m2_repository, missing_entry):
 
 def create_submission_tree(root, apis_root, m2_repository):
     write(
+        root / "dev/run_rip2_benchmark.sh",
+        "\n".join(rip2_submission_guard.REQUIRED_BENCHMARK_RUNNER_TOKENS) + "\n",
+    )
+    write(
         root / "pom.xml",
         "<rocketmq-proto.version>2.2.0-rip2-SNAPSHOT</rocketmq-proto.version>\n",
     )
@@ -384,6 +388,15 @@ MQv2-HMAC-SHA1
 server reflection
 Channelz
 internal peer
+command -v grpcurl
+command -v openssl
+command -v xxd
+target/rip2-smoke-rmq-proxy.json
+mvn -Prelease-all -DskipTests -DskipITs package
+DIST=distribution/target/rocketmq-5.5.0/rocketmq-5.5.0
+"$DIST/bin/mqproxy"
+git checkout -B rip2-proxy-admin-public-api c372905ce927cf8957333e7ac07877f295fd7ec9
+git checkout -B rip2-proxy-admin-m1 1dd5c6fd1f7e8f5d684213d72c4b965d214f977d
 rocketmq-proto jar SHA-256: {artifact_sha256}
 """
     for rel in rip2_submission_guard.REQUIRED_DOCS:
@@ -710,6 +723,25 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             self.assertTrue(
                 any("constrained heap benchmark evidence" in error for error in errors)
             )
+
+    def test_guard_reports_incomplete_reproducible_benchmark_runner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            write(root / "dev/run_rip2_benchmark.sh", "#!/usr/bin/env bash\n")
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("reproducible benchmark runner" in error for error in errors))
 
     def test_guard_requires_constrained_heap_evidence_in_each_bilingual_report(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1551,6 +1583,76 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
 
             self.assertTrue(any("RocketMQ PR #10603 has non-passing check" in error for error in errors))
 
+    def test_guard_strict_ci_gate_reports_missing_github_pr_checks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            body = github_body(expected_head, apis_head)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                require_github_checks=True,
+                command_runner=fake_github_runner(
+                    expected_head,
+                    body,
+                    body,
+                    body,
+                    apis_head=apis_head,
+                ),
+            )
+
+            self.assertTrue(any("RocketMQ PR #10603 has no reported checks" in error for error in errors))
+            self.assertTrue(any("rocketmq-apis PR #112 has no reported checks" in error for error in errors))
+
+    def test_guard_strict_ci_gate_rejects_empty_check_json(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            body = github_body(expected_head, apis_head)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                require_github_checks=True,
+                command_runner=fake_github_runner(
+                    expected_head,
+                    body,
+                    body,
+                    body,
+                    apis_head=apis_head,
+                    rocketmq_checks=(0, "[]", ""),
+                    api_checks=(0, "[]", ""),
+                ),
+            )
+
+            self.assertTrue(any("RocketMQ PR #10603 has no reported checks" in error for error in errors))
+            self.assertTrue(any("rocketmq-apis PR #112 has no reported checks" in error for error in errors))
+
+    def test_guard_parses_strict_ci_gate_option(self):
+        args = rip2_submission_guard.parse_args(["--check-github", "--require-github-checks"])
+
+        self.assertTrue(args.check_github)
+        self.assertTrue(args.require_github_checks)
+
     def test_guard_reports_unfinished_plan_checkbox(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -1912,7 +2014,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
             write(
                 read_service_test,
-                "wideConnectTimeRangeReusesClientIdIndexWithoutMaterializingUnion\n"
+                "wideConnectTimeRangeUsesSelectedBucketsWithoutScanningClientIdIndex\n"
                 "wideConnectTimeRangeAppliesPageNumToMatchingClients\n"
                 "wideConnectTimeRangeRejectsPageTokenOutsideRange\n"
                 "wideConnectTimeRangeUsesMoreSelectiveGroupIndex\n",
@@ -1929,7 +2031,7 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
             read_service_test.write_text(
                 read_service_test.read_text(encoding="utf-8").replace(
-                    "wideConnectTimeRangeReusesClientIdIndexWithoutMaterializingUnion",
+                    "wideConnectTimeRangeUsesSelectedBucketsWithoutScanningClientIdIndex",
                     "missingWideRangeAllocationCoverage",
                 ),
                 encoding="utf-8",
@@ -1970,6 +2072,53 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("manual smoke contract" in error for error in errors))
+
+    def test_guard_reports_missing_smoke_tool_prerequisites(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            smoke_path = root / "docs/en/rip2-proxy-admin-m1-final-smoke.md"
+            smoke_path.write_text(
+                smoke_path.read_text(encoding="utf-8").replace("command -v grpcurl", ""),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("command -v grpcurl" in error for error in errors))
+
+    def test_guard_reports_unpinned_review_runbook(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            runbook_path = root / "docs/en/rip2-proxy-admin-m1-review-runbook.md"
+            runbook_path.write_text(
+                runbook_path.read_text(encoding="utf-8")
+                + "\ngit pull --ff-only origin rip2-proxy-admin-m1\n",
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("review runbook must pin commits" in error for error in errors))
 
     def test_guard_reports_missing_production_interceptor_dual_server_e2e(self):
         with tempfile.TemporaryDirectory() as tmp:

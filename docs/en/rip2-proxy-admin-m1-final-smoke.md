@@ -12,10 +12,24 @@ rocketmq-apis commit: c372905ce927cf8957333e7ac07877f295fd7ec9
 rocketmq-proto jar SHA-256: 7ae515ec32832f31634c47c36291ec4e2451f9cde589e59d956802596b6bad4d
 ```
 
+## Prerequisites
+
+Run from the RocketMQ repository root with JDK 17 active:
+
+```bash
+test -f pom.xml
+test -f ../rocketmq-apis/apache/rocketmq/v2/admin.proto
+command -v grpcurl
+command -v openssl
+command -v xxd
+java -version
+```
+
 ## Build
 
 ```bash
 mvn -pl proxy -am -DskipTests package -DskipITs
+mvn -Prelease-all -DskipTests -DskipITs package
 ```
 
 Expected:
@@ -33,36 +47,72 @@ Finished at: 2026-07-12T00:30:07+08:00
 
 ## Start Proxy With Public Admin Server
 
-Use a normal local or cluster Proxy config and set:
+Create an isolated local smoke config:
 
-```properties
-enableProxyAdminGrpcServer=true
-proxyAdminGrpcServerPort=8082
+```bash
+mkdir -p target
+cat > target/rip2-smoke-rmq-proxy.json <<'EOF'
+{
+  "rocketMQClusterName": "DefaultCluster",
+  "namesrvAddr": "127.0.0.1:9876",
+  "proxyMode": "local",
+  "enableProxyAdminGrpcServer": true,
+  "proxyAdminGrpcServerPort": 8082,
+  "authenticationEnabled": false,
+  "authorizationEnabled": false
+}
+EOF
 ```
 
-Then start Proxy with the same command used by the existing RocketMQ
-deployment. The public admin service is registered only on the admin gRPC
+Start NameServer and the local-mode Proxy from the assembled distribution:
+
+```bash
+DIST=distribution/target/rocketmq-5.5.0/rocketmq-5.5.0
+test -x "$DIST/bin/mqnamesrv"
+test -x "$DIST/bin/mqproxy"
+nohup sh "$DIST/bin/mqnamesrv" > target/rip2-smoke-namesrv.log 2>&1 &
+nohup sh "$DIST/bin/mqproxy" \
+  -pc "$(pwd)/target/rip2-smoke-rmq-proxy.json" \
+  -pm local -n 127.0.0.1:9876 \
+  > target/rip2-smoke-proxy.log 2>&1 &
+```
+
+Wait until `target/rip2-smoke-proxy.log` reports startup success and port 8082
+is accepting connections. The public admin service is registered only on the admin gRPC
 server, not on the data-plane `MessagingService` server. The admin listener
 intentionally exposes neither server reflection, Channelz, nor the experimental
 internal peer RPC. Load the checked-out proto explicitly with `grpcurl`.
 
-## Manual grpcurl Calls
-
-When authentication is enabled, prepare request metadata from a configured
-access key and secret key. Do not commit either value:
+Stop the isolated smoke processes after verification:
 
 ```bash
+sh "$DIST/bin/mqshutdown" proxy
+sh "$DIST/bin/mqshutdown" namesrv
+```
+
+## Manual grpcurl Calls
+
+The local smoke config above disables authentication and uses an empty header
+array, so every command below is directly executable. For an authenticated
+deployment, set the array from a configured access key and secret key. Do not
+commit either value:
+
+```bash
+AUTH_ARGS=()
 export ACCESS_KEY='<configured-access-key>'
 export SECRET_KEY='<configured-secret-key>'
 export MQ_DATE_TIME="$(date -u +%Y%m%dT%H%M%SZ)"
 export MQ_SIGNATURE="$(printf '%s' "$MQ_DATE_TIME" \
   | openssl dgst -sha1 -hmac "$SECRET_KEY" -binary \
   | xxd -p -c 256)"
+AUTH_ARGS=(
+  -H "x-mq-date-time: $MQ_DATE_TIME"
+  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE"
+)
 ```
 
-The commands below include authenticated headers. When both authentication and
-authorization are disabled for an isolated local smoke, omit the two `-H`
-arguments.
+Keep `AUTH_ARGS=()` for the local smoke configuration. Run the credential block
+only when authentication is enabled.
 
 List clients:
 
@@ -70,8 +120,7 @@ List clients:
 grpcurl -plaintext \
   -import-path ../rocketmq-apis \
   -proto apache/rocketmq/v2/admin.proto \
-  -H "x-mq-date-time: $MQ_DATE_TIME" \
-  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
+  "${AUTH_ARGS[@]}" \
   -d '{"page_num":1,"page_size":10}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClients
@@ -83,8 +132,7 @@ Describe one client:
 grpcurl -plaintext \
   -import-path ../rocketmq-apis \
   -proto apache/rocketmq/v2/admin.proto \
-  -H "x-mq-date-time: $MQ_DATE_TIME" \
-  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
+  "${AUTH_ARGS[@]}" \
   -d '{"client_id":"client-a"}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/DescribeClient
@@ -96,8 +144,7 @@ List clients by group:
 grpcurl -plaintext \
   -import-path ../rocketmq-apis \
   -proto apache/rocketmq/v2/admin.proto \
-  -H "x-mq-date-time: $MQ_DATE_TIME" \
-  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
+  "${AUTH_ARGS[@]}" \
   -d '{"group":"group-a","page_num":1,"page_size":10}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClientsByGroup
@@ -109,8 +156,7 @@ List clients by topic:
 grpcurl -plaintext \
   -import-path ../rocketmq-apis \
   -proto apache/rocketmq/v2/admin.proto \
-  -H "x-mq-date-time: $MQ_DATE_TIME" \
-  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
+  "${AUTH_ARGS[@]}" \
   -d '{"topic":"topic-a","page_num":1,"page_size":10}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClientsByTopic

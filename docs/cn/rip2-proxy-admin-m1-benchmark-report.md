@@ -71,7 +71,7 @@ Performance TDD 暴露并修复了三个问题：
 命令模板（所有仓库路径都相对于 RocketMQ 根目录）：
 
 ```bash
-export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
 "$JAVA_HOME/bin/java" \
   -cp "proxy/target/test-classes:proxy/target/classes:$(cat proxy/target/rip2-benchmark/classpath.txt)" \
   org.openjdk.jmh.Main \
@@ -84,11 +84,28 @@ export JAVA_HOME="$(/usr/libexec/java_home -v 17)"
 
 ## 构建和启动方式
 
+新增证据统一使用仓库内 launcher，不再手工拼 classpath，也不再把唯一原始结果
+写到 `/tmp`：
+
+```bash
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
+dev/run_rip2_benchmark.sh \
+  million-read-model-first-page \
+  org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listFirstPage
+```
+
+launcher 要求正好匹配一个 JMH 方法，默认使用 1,000,000 clients、固定 4 GiB
+G1 heap、一个 fork 和四个调用线程；短冒烟可通过 `RIP2_*` 环境变量覆盖。
+证据写入 `target/rip2-benchmark-results/<label>/`，包含 `jmh.json`、
+`jmh.log`、`recording.jfr`、`gc.log`、`time.txt`、`classpath.txt`、
+`command.txt` 和 `SHA256SUMS`。校验 manifest 时应先进入该输出目录，使其中的
+相对路径正确解析。
+
 Read-model benchmark 前，已重新编译修改后的 proxy 源码，并跑过聚焦
 read-model 单测：
 
 ```bash
-export JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
 mvn -pl proxy -am \
   "-Dtest=ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientQueryTest,ProxyClientInfoTest,ProxyClientReadServiceCleanerTest" \
   -DfailIfNoTests=false test -DskipITs
@@ -104,7 +121,7 @@ mvn -pl proxy -DskipTests -DskipITs dependency:build-classpath \
 benchmark setup：
 
 ```bash
-export JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
 mvn -pl proxy -am \
   "-Dtest=GrpcProxyAdminApplicationBenchmarkTest,GrpcProxyAdminApplicationTest,ProxyClientReadServiceBenchmarkTest" \
   -DfailIfNoTests=false test -DskipITs
@@ -260,3 +277,40 @@ measurement、固定 4 GiB G1 heap 和 JMH GC profiler。
 org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listByWideConnectTimeRangePage
 org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplicationBenchmark.listClientsByWideConnectTimeRange
 ```
+
+## 可复现的全集深分页证明
+
+2026-07-12 最终补充运行在实现 checkpoint
+`1dd5c6fd1f7e8f5d684213d72c4b965d214f977d` 上，以 `pageNum=10000`、
+`pageSize=100` 查询完整 `100..199` connect-time 范围。首次 k-way bucket merge
+运行暴露出 read-model P99 `2906.653 ms`；最终实现先用时间索引边界确认查询
+覆盖全集，再复用会在 mutation 后失效重建的 client-id page anchor。部分范围仍走
+有界 k-way bucket merge。
+
+两次正式运行都使用仓库 launcher 默认参数：一个 fork、四个 caller thread、
+一次 2 秒 warmup、三次 3 秒 measurement、1,000,000 clients 和固定 4 GiB
+G1 heap：
+
+```bash
+dev/run_rip2_benchmark.sh \
+  evidence-v2-million-deep-readmodel-20260712 \
+  org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listDeepPageByWideConnectTimeRange
+dev/run_rip2_benchmark.sh \
+  evidence-v2-million-deep-public-grpc-20260712 \
+  org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplicationBenchmark.listClientsDeepPageByWideConnectTimeRange
+```
+
+| 路径 | P50 ms | P95 ms | P99 ms | Max ms | Allocation B/op | Measurement GC 次数/时间 | Max RSS | Swap |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Read model 全集深分页 | 0.011 | 0.013 | 0.016 | 668.991 | 1148.541 | 5 / 12 ms | 1117.9 MiB | 0 |
+| Generated public gRPC 全集深分页 | 0.393 | 0.992 | 1.697 | 50.921 | 179146.221 | 8 / 22 ms | 2787.9 MiB | 0 |
+
+两个 P99 均低于 1 秒，两个 fork 都正常退出且无 OOM。每个输出目录都包含
+`build.log`、`environment.txt`、`command.txt`、解析后的 classpath、JMH
+JSON/log、GC log、JFR、进程时间输出以及已校验的 `SHA256SUMS` manifest。
+关键 digest 如下：
+
+| 证据 | `jmh.json` SHA-256 | `recording.jfr` SHA-256 | `environment.txt` SHA-256 |
+| --- | --- | --- | --- |
+| Read model | `b485a9fd831f6b50f23a9b90a6b9a16b7dcc5b586d51683f4e2ec6774345d9be` | `2b66efc9a05321f1460d6e0ab72215dddb17e07284f98d2ef48c1672d441e0bf` | `1073412d17a2785b1fa518daf571b17def7f99211078a56bd78f0cdbfbf839f9` |
+| Generated public gRPC | `d5cc5d93200dacae0f907dd1b7f06a8cdeec61bb96e49f3b33f51f3af9964f4d` | `ffe9bc823bae6b383efb2a970e2e9c35abc0195f93fa588dc3c2796943cc2a67` | `64a1bd39e77b2a61aa293f9a0ea59effc65ba4f8243becd3af9e47f8a225e6af` |

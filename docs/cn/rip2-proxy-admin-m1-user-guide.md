@@ -144,7 +144,7 @@ size，但不会记录 client id、group、topic、proxy id 或认证 subject �
 验证 benchmark setup 和官方字段场景：
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
   mvn -pl proxy -am \
   -Dtest=ProxyClientReadServiceBenchmarkTest,ProxyClientAdminCoordinatorServiceBenchmarkTest \
   -DfailIfNoTests=false test -DskipITs
@@ -153,14 +153,24 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
 当前较完整的 proxy 提交前验证：
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
   mvn -pl proxy -am \
   "-Dtest=GrpcServerTest,ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
   -DfailIfNoTests=false test -DskipITs
 ```
 
-1M client JMH benchmark 的启动方式见
-`docs/en/rip2-proxy-admin-m1-design.md`。本机已完成的 1M 运行结果见
+可复现的单方法 1M 运行使用仓库 launcher：
+
+```bash
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
+dev/run_rip2_benchmark.sh \
+  million-read-model-first-page \
+  org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listFirstPage
+```
+
+`target/rip2-benchmark-results/<label>/` 中包含构建和环境元数据、JMH
+JSON/log、JFR、GC 和进程时间日志、解析后的 classpath 与命令，以及 SHA-256
+manifest。已完成的 1M 结果见
 `docs/cn/rip2-proxy-admin-m1-benchmark-report.md`。
 
 ## M1 限制

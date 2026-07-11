@@ -152,7 +152,7 @@ ids, and auth subjects.
 Run the focused benchmark and documentation checkpoint tests:
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
   mvn -pl proxy -am \
   -Dtest=ProxyClientReadServiceBenchmarkTest,ProxyClientAdminCoordinatorServiceBenchmarkTest \
   -DfailIfNoTests=false test -DskipITs
@@ -161,15 +161,25 @@ JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Con
 Run the current broader pre-submit proxy suite:
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
   mvn -pl proxy -am \
   "-Dtest=GrpcServerTest,ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
   -DfailIfNoTests=false test -DskipITs
 ```
 
-Use the JMH commands in `docs/en/rip2-proxy-admin-m1-design.md` for local
-1M-client benchmark runs. A completed 1M local run is recorded in
-`docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
+Use the repository launcher for a reproducible single-method 1M run:
+
+```bash
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
+dev/run_rip2_benchmark.sh \
+  million-read-model-first-page \
+  org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceBenchmark.listFirstPage
+```
+
+The output under `target/rip2-benchmark-results/<label>/` includes build and
+environment metadata, JMH JSON/log, JFR, GC and process-time logs, the resolved
+classpath and command, plus a SHA-256 manifest. Completed 1M runs are recorded
+in `docs/en/rip2-proxy-admin-m1-benchmark-report.md`.
 
 ## Known M1 Limits
 

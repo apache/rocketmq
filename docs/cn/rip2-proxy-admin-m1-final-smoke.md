@@ -11,10 +11,24 @@ rocketmq-apis commit: c372905ce927cf8957333e7ac07877f295fd7ec9
 rocketmq-proto jar SHA-256: 7ae515ec32832f31634c47c36291ec4e2451f9cde589e59d956802596b6bad4d
 ```
 
+## 前置依赖
+
+在 RocketMQ 仓库根目录执行，并确保当前 Java 为 JDK 17：
+
+```bash
+test -f pom.xml
+test -f ../rocketmq-apis/apache/rocketmq/v2/admin.proto
+command -v grpcurl
+command -v openssl
+command -v xxd
+java -version
+```
+
 ## 构建
 
 ```bash
 mvn -pl proxy -am -DskipTests package -DskipITs
+mvn -Prelease-all -DskipTests -DskipITs package
 ```
 
 预期：
@@ -32,34 +46,70 @@ Finished at: 2026-07-12T00:30:07+08:00
 
 ## 启动公开 admin gRPC server
 
-使用常规 local 或 cluster Proxy 配置，并设置：
+先创建隔离的 local smoke 配置：
 
-```properties
-enableProxyAdminGrpcServer=true
-proxyAdminGrpcServerPort=8082
+```bash
+mkdir -p target
+cat > target/rip2-smoke-rmq-proxy.json <<'EOF'
+{
+  "rocketMQClusterName": "DefaultCluster",
+  "namesrvAddr": "127.0.0.1:9876",
+  "proxyMode": "local",
+  "enableProxyAdminGrpcServer": true,
+  "proxyAdminGrpcServerPort": 8082,
+  "authenticationEnabled": false,
+  "authorizationEnabled": false
+}
+EOF
 ```
 
-然后按现有 RocketMQ 部署方式启动 Proxy。公开 admin service 只注册在
+使用组装后的 distribution 启动 NameServer 和 local-mode Proxy：
+
+```bash
+DIST=distribution/target/rocketmq-5.5.0/rocketmq-5.5.0
+test -x "$DIST/bin/mqnamesrv"
+test -x "$DIST/bin/mqproxy"
+nohup sh "$DIST/bin/mqnamesrv" > target/rip2-smoke-namesrv.log 2>&1 &
+nohup sh "$DIST/bin/mqproxy" \
+  -pc "$(pwd)/target/rip2-smoke-rmq-proxy.json" \
+  -pm local -n 127.0.0.1:9876 \
+  > target/rip2-smoke-proxy.log 2>&1 &
+```
+
+等待 `target/rip2-smoke-proxy.log` 出现启动成功信息，并确认 8082 端口已监听。
+公开 admin service 只注册在
 admin gRPC server 上，不注册到数据面 `MessagingService` server。admin listener
 也不开放 server reflection、Channelz 或实验性 internal peer RPC；`grpcurl`
 必须显式加载已 checkout 的 proto。
 
-## grpcurl 手工调用
-
-开启 authentication 时，使用已配置的 access key 和 secret key 准备请求
-metadata。不要把两个值提交到仓库：
+验证结束后关闭隔离 smoke 进程：
 
 ```bash
+sh "$DIST/bin/mqshutdown" proxy
+sh "$DIST/bin/mqshutdown" namesrv
+```
+
+## grpcurl 手工调用
+
+上面的 local smoke 配置关闭 authentication，因此使用空 header 数组，
+下面每个命令都可直接执行。在开启 authentication 的部署中，使用已配置的
+access key 和 secret key 设置数组。不要把两个值提交到仓库：
+
+```bash
+AUTH_ARGS=()
 export ACCESS_KEY='<configured-access-key>'
 export SECRET_KEY='<configured-secret-key>'
 export MQ_DATE_TIME="$(date -u +%Y%m%dT%H%M%SZ)"
 export MQ_SIGNATURE="$(printf '%s' "$MQ_DATE_TIME" \
   | openssl dgst -sha1 -hmac "$SECRET_KEY" -binary \
   | xxd -p -c 256)"
+AUTH_ARGS=(
+  -H "x-mq-date-time: $MQ_DATE_TIME"
+  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE"
+)
 ```
 
-下面命令包含认证 header。仅在隔离的本地冒烟中同时关闭 authentication 和
-authorization 时，才可以省略两个 `-H` 参数。
+本地 smoke 配置保持 `AUTH_ARGS=()`。只有开启 authentication 时才执行凭据块。
 
 查询客户端列表：
 
@@ -67,8 +117,7 @@ authorization 时，才可以省略两个 `-H` 参数。
 grpcurl -plaintext \
   -import-path ../rocketmq-apis \
   -proto apache/rocketmq/v2/admin.proto \
-  -H "x-mq-date-time: $MQ_DATE_TIME" \
-  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
+  "${AUTH_ARGS[@]}" \
   -d '{"page_num":1,"page_size":10}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClients
@@ -80,8 +129,7 @@ grpcurl -plaintext \
 grpcurl -plaintext \
   -import-path ../rocketmq-apis \
   -proto apache/rocketmq/v2/admin.proto \
-  -H "x-mq-date-time: $MQ_DATE_TIME" \
-  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
+  "${AUTH_ARGS[@]}" \
   -d '{"client_id":"client-a"}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/DescribeClient
@@ -93,8 +141,7 @@ grpcurl -plaintext \
 grpcurl -plaintext \
   -import-path ../rocketmq-apis \
   -proto apache/rocketmq/v2/admin.proto \
-  -H "x-mq-date-time: $MQ_DATE_TIME" \
-  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
+  "${AUTH_ARGS[@]}" \
   -d '{"group":"group-a","page_num":1,"page_size":10}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClientsByGroup
@@ -106,8 +153,7 @@ grpcurl -plaintext \
 grpcurl -plaintext \
   -import-path ../rocketmq-apis \
   -proto apache/rocketmq/v2/admin.proto \
-  -H "x-mq-date-time: $MQ_DATE_TIME" \
-  -H "authorization: MQv2-HMAC-SHA1 Credential=$ACCESS_KEY, SignedHeaders=x-mq-date-time, Signature=$MQ_SIGNATURE" \
+  "${AUTH_ARGS[@]}" \
   -d '{"topic":"topic-a","page_num":1,"page_size":10}' \
   127.0.0.1:8082 \
   apache.rocketmq.v2.ProxyAdminService/ListClientsByTopic

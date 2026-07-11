@@ -38,8 +38,8 @@ cd rocketmq
 ```bash
 cd ../rocketmq-apis
 git fetch origin
-git checkout rip2-proxy-admin-public-api
-git pull --ff-only origin rip2-proxy-admin-public-api
+git checkout -B rip2-proxy-admin-public-api c372905ce927cf8957333e7ac07877f295fd7ec9
+test "$(git rev-parse HEAD)" = c372905ce927cf8957333e7ac07877f295fd7ec9
 
 bazel build //java:rocketmq-proto
 PROTO_JAR="$(find bazel-bin -type f -name '*rocketmq-proto*.jar' | sort | head -n 1)"
@@ -68,8 +68,8 @@ apache/rocketmq/v2/ProxyClient.class
 ```bash
 cd ../rocketmq
 git fetch origin
-git checkout rip2-proxy-admin-m1
-git pull --ff-only origin rip2-proxy-admin-m1
+git checkout -B rip2-proxy-admin-m1 1dd5c6fd1f7e8f5d684213d72c4b965d214f977d
+test "$(git rev-parse HEAD)" = 1dd5c6fd1f7e8f5d684213d72c4b965d214f977d
 git status --short --branch --untracked-files=all
 rg -n '<rocketmq-proto.version>2.2.0-rip2-SNAPSHOT</rocketmq-proto.version>' pom.xml
 ```
@@ -151,6 +151,16 @@ RocketMQ HEAD 和 rocketmq-apis HEAD，并包含提交门禁证据：
 ```bash
 python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --check-github
 ```
+
+最终 release gate 还需要强制两个 public PR 都上报 checks，并拒绝任何非
+passing 或非 explicitly skipped 的 check：
+
+```bash
+python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --require-github-checks
+```
+
+当前 draft PR 没有 reported checks，因此在 Apache GitHub Actions 实际运行前，
+严格命令预期保持红色。上面的非严格命令是当前可复现的 draft-review gate。
 
 ```bash
 sed -n '1,120p' docs/cn/rip2-proxy-admin-m1-acceptance-audit.md

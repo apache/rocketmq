@@ -1270,7 +1270,7 @@ On 2026-07-07 Asia/Shanghai time, the branch was revalidated with this focused
 RIP-2 suite:
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
   mvn -pl proxy -am \
   '-Dtest=ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ProxyClientInfoTest,ProxyClientQueryTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,ProxyMetricsManagerTest,ProxyClientAdmin*Test,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,GrpcRequestPipelineFactoryTest,ProxyStartupTest,ClientActivityTest#testProducerTelemetryUpdatesProxyClientReadService+testConsumerTelemetryUpdatesProxyClientReadService+testHeartbeatPreservesConnectTimeAndUpdatesLastActiveTime+testNotifyClientTerminationRemovesProxyClientReadServiceIndexes' \
   -DfailIfNoTests=false test -DskipITs
@@ -1292,7 +1292,7 @@ coordinator, startup wiring, metrics, and authorization suite was revalidated
 with:
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
   mvn -pl proxy -am \
   '-Dtest=GrpcServerTest,ProxyClientAdmin*Test,TimedProxyClientAdminPeerClientTest,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest' \
   -DfailIfNoTests=false test -DskipITs
@@ -1313,7 +1313,7 @@ after the executor reused the shared identifier validators.
 The final broad verification for this checkpoint used:
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
   mvn -pl proxy -am \
   '-Dtest=GrpcServerTest,ProxyClientAdmin*Test,TimedProxyClientAdminPeerClientTest,GrpcProxyAdminWiringTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ClientActivityTest#testConsumerTelemetryUpdatesProxyClientReadService+testProducerTelemetryUpdatesProxyClientReadService' \
   -DfailIfNoTests=false test -DskipITs
@@ -1328,7 +1328,7 @@ On 2026-07-10 Asia/Shanghai time, after the request-boundary hardening
 checkpoint, the broader RIP-2 proxy admin suite was rerun with:
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
   mvn -pl proxy -am \
   "-Dtest=GrpcServerTest,ProxyClientAdmin*Test,GrpcProxyAdmin*Test,TimedProxyClientAdminPeerClientTest,DefaultGrpcMessagingActivityTest,ProxyStartupTest,GrpcRequestPipelineFactoryTest,AuthenticationPipelineTest,HeaderInterceptorTest,ProxyMetricsManagerTest,DefaultClientAdminServiceTest,AuthorizingClientAdminServiceTest,DefaultClientAdminAuthorizationServiceTest,ClientAdminAuthPolicyTest,MeteredClientAdminServiceTest,MeteredAuthorizingClientAdminServiceTest,ClientAdminMetricsContextTest,ProxyClientInfoTest,ProxyClientQueryTest,ProxyClientReadServiceTest,ProxyClientReadServiceBenchmarkTest,ProxyClientReadServiceCleanerTest,ClientActivityTest" \
   -DfailIfNoTests=false test -DskipITs
@@ -1398,7 +1398,7 @@ Use the focused unit test to verify the benchmark setup and guard the synthetic
 data assumptions:
 
 ```bash
-JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home \
+JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}" \
   mvn -pl proxy -am \
   -Dtest=ProxyClientReadServiceBenchmarkTest,ProxyClientAdminCoordinatorServiceBenchmarkTest,GrpcProxyAdminApplicationBenchmarkTest \
   -DfailIfNoTests=false test -DskipITs
@@ -1408,7 +1408,7 @@ Use a short JMH smoke run to verify the launcher and classpath without spending
 time on the full 1M-client scenario:
 
 ```bash
-export JAVA_HOME=/Users/shuaimaoer/Library/Java/JavaVirtualMachines/temurin-17.0.18/Contents/Home
+export JAVA_HOME="${JAVA_HOME:?Set JAVA_HOME to a JDK 17 installation}"
 mvn -pl proxy -am -DskipTests -DskipITs clean test-compile
 mvn -pl proxy -DskipTests -DskipITs dependency:build-classpath \
   -Dmdep.includeScope=test \

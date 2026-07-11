@@ -1907,3 +1907,24 @@ API ownership and artifact publication decision.
   `c372905ce927cf8957333e7ac07877f295fd7ec9` and the installed
   `rocketmq-proto` jar SHA-256; the submission guard computes the local digest
   and rejects stale or missing documentation evidence.
+- [x] Filtered and full-range deep pagination hardened. Ordered connect-time
+  buckets use a bounded merge for partial ranges, while a range covering the
+  complete time index reuses mutation-invalidated client-id page anchors.
+  Checkpoints `f07395462`, `226d2bf07`, and `4a086b543` preserve stable pages
+  without materializing million-client unions.
+- [x] Queued public admin cancellation hardened at checkpoint `a7c4ecfac`.
+  `ProxyClientAdminEndpointExecutor` re-checks gRPC cancellation and expired
+  deadlines before request conversion or service work, maps deadlines to
+  `DEADLINE_EXCEEDED`, and avoids recording client cancellation as a service
+  failure.
+- [x] gRPC client lifecycle ownership hardened at checkpoint `1dd5c6fd1`.
+  Stream generations, transport identity, and striped lifecycle locks prevent
+  stale reconnect callbacks, heartbeats, terminations, and unregister events
+  from mutating a newer active session; producer settings validate atomically.
+- [x] Repository-owned benchmark evidence runner and strict CI gate added.
+  `dev/run_rip2_benchmark.sh` captures build, environment, command, classpath,
+  JMH JSON/log, JFR, GC, process-time, and SHA-256 evidence. The final 1M deep
+  full-range runs measured read-model P99 `0.016 ms` and generated public gRPC
+  P99 `1.697 ms`, with zero swaps and no OOM. The review runbook pins both
+  repository commits, while `--require-github-checks` remains the explicit
+  external release gate until Apache CI reports checks.

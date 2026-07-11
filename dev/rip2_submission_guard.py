@@ -181,7 +181,19 @@ FINAL_SMOKE_DOCS = (
     "docs/cn/rip2-proxy-admin-m1-final-smoke.md",
 )
 
+REVIEW_RUNBOOK_DOCS = (
+    "docs/en/rip2-proxy-admin-m1-review-runbook.md",
+    "docs/cn/rip2-proxy-admin-m1-review-runbook.md",
+)
+
 REQUIRED_MANUAL_SMOKE_TOKENS = (
+    "command -v grpcurl",
+    "command -v openssl",
+    "command -v xxd",
+    "target/rip2-smoke-rmq-proxy.json",
+    "mvn -Prelease-all -DskipTests -DskipITs package",
+    "DIST=distribution/target/rocketmq-5.5.0/rocketmq-5.5.0",
+    '"$DIST/bin/mqproxy"',
     "-import-path ../rocketmq-apis",
     "-proto apache/rocketmq/v2/admin.proto",
     "x-mq-date-time",
@@ -191,8 +203,40 @@ REQUIRED_MANUAL_SMOKE_TOKENS = (
     "internal peer",
 )
 
+REQUIRED_REVIEW_RUNBOOK_TOKENS = (
+    "git checkout -B rip2-proxy-admin-public-api c372905ce927cf8957333e7ac07877f295fd7ec9",
+    "git checkout -B rip2-proxy-admin-m1 1dd5c6fd1f7e8f5d684213d72c4b965d214f977d",
+)
+
+FORBIDDEN_REVIEW_RUNBOOK_TOKENS = (
+    "git pull --ff-only origin rip2-proxy-admin-public-api",
+    "git pull --ff-only origin rip2-proxy-admin-m1",
+)
+
+REQUIRED_BENCHMARK_RUNNER_TOKENS = (
+    "target/rip2-benchmark-results/$LABEL",
+    "dependency:build-classpath",
+    "-XX:StartFlightRecording=filename=",
+    "-Xlog:gc*:file=",
+    "/usr/bin/time",
+    "-prof gc",
+    "-rf json",
+    "build.log",
+    "environment.txt",
+    "git rev-parse HEAD",
+    '"$JAVA" -version',
+    "benchmark source paths are dirty",
+    "mvn -pl proxy -am clean",
+    "git rev-parse HEAD^{tree}",
+    "source-files.txt",
+    "runner.sh",
+    "SHA256SUMS",
+    "JMH include must match exactly one benchmark",
+)
+
 REQUIRED_FILES = (
     "pom.xml",
+    "dev/run_rip2_benchmark.sh",
     "proxy/src/main/java/org/apache/rocketmq/proxy/ProxyStartup.java",
     "proxy/src/main/java/org/apache/rocketmq/proxy/config/ProxyConfig.java",
     "proxy/src/main/java/org/apache/rocketmq/proxy/grpc/GrpcServer.java",
@@ -346,7 +390,7 @@ REQUIRED_WIDE_CONNECT_TIME_TESTS = (
     (
         "proxy/src/test/java/org/apache/rocketmq/proxy/service/admin/client/"
         "ProxyClientReadServiceTest.java",
-        "wideConnectTimeRangeReusesClientIdIndexWithoutMaterializingUnion",
+        "wideConnectTimeRangeUsesSelectedBucketsWithoutScanningClientIdIndex",
     ),
     (
         "proxy/src/test/java/org/apache/rocketmq/proxy/service/admin/client/"
@@ -514,6 +558,13 @@ def check_required_files(root, errors):
         path = root / rel
         if not path.is_file():
             errors.append(f"missing required file: {rel}")
+
+
+def check_reproducible_benchmark_runner(root, errors):
+    runner = read_text(root / "dev/run_rip2_benchmark.sh", errors)
+    for token in REQUIRED_BENCHMARK_RUNNER_TOKENS:
+        if token not in runner:
+            errors.append(f"reproducible benchmark runner missing {token}")
 
 
 def check_maven_proto_version(root, errors):
@@ -882,6 +933,17 @@ def check_manual_smoke_contract(root, errors):
                 errors.append(f"manual smoke contract missing {token} in {rel}")
 
 
+def check_review_runbook_contract(root, errors):
+    for rel in REVIEW_RUNBOOK_DOCS:
+        text = read_text(root / rel, errors)
+        for token in REQUIRED_REVIEW_RUNBOOK_TOKENS:
+            if token not in text:
+                errors.append(f"review runbook must pin commits; missing {token} in {rel}")
+        for token in FORBIDDEN_REVIEW_RUNBOOK_TOKENS:
+            if token in text:
+                errors.append(f"review runbook must pin commits; moving branch command remains in {rel}")
+
+
 def check_plan_checkboxes(root, errors):
     plan_text = read_text(root / PLAN_FILE, errors)
     for line_number, line in enumerate(plan_text.splitlines(), start=1):
@@ -1038,7 +1100,8 @@ def check_required_test_coverage(root, errors):
             )
 
 
-def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
+def check_github_artifacts(root, apis_root, errors, require_github_checks=False,
+    command_runner=run_command):
     code, head, stderr = command_runner(["git", "rev-parse", "HEAD"], cwd=root)
     if code != 0:
         errors.append(f"cannot determine HEAD for GitHub artifact checks: {stderr}")
@@ -1114,16 +1177,23 @@ def check_github_artifacts(root, apis_root, errors, command_runner=run_command):
             errors.append(
                 f"{label} has unreviewed feedback: {comment_count} comments, {review_count} reviews"
             )
-    check_github_pr_checks(root, errors, command_runner=command_runner)
+    check_github_pr_checks(
+        root,
+        errors,
+        require_github_checks=require_github_checks,
+        command_runner=command_runner,
+    )
     check_github_issue_metadata(root, errors, command_runner=command_runner)
 
 
-def check_github_pr_checks(root, errors, command_runner=run_command):
+def check_github_pr_checks(root, errors, require_github_checks=False, command_runner=run_command):
     for label, base_args in GITHUB_PR_CHECKS:
         args = base_args + ["--json", "name,state,bucket,link"]
         code, stdout, stderr = command_runner(args, cwd=root)
         output = stdout or stderr
         if code != 0 and "no checks reported" in output:
+            if require_github_checks:
+                errors.append(f"{label} has no reported checks")
             continue
         if code != 0 and not stdout:
             errors.append(f"cannot read {label} checks: {stderr}")
@@ -1132,6 +1202,9 @@ def check_github_pr_checks(root, errors, command_runner=run_command):
             checks = json.loads(stdout)
         except json.JSONDecodeError as exc:
             errors.append(f"cannot parse {label} checks: {exc}")
+            continue
+        if require_github_checks and not checks:
+            errors.append(f"{label} has no reported checks")
             continue
         for check in checks:
             bucket = check.get("bucket")
@@ -1188,6 +1261,7 @@ def run_checks(
     check_apis_remote=False,
     apis_remote=DEFAULT_APIS_REMOTE,
     check_github=False,
+    require_github_checks=False,
     command_runner=run_command,
 ):
     root = Path(root).resolve()
@@ -1195,6 +1269,7 @@ def run_checks(
     m2_repository = Path(m2_repository).expanduser().resolve()
     errors = []
     check_required_files(root, errors)
+    check_reproducible_benchmark_runner(root, errors)
     check_maven_proto_version(root, errors)
     if check_git:
         check_git_state(root, errors, check_remote, command_runner=command_runner)
@@ -1212,12 +1287,19 @@ def run_checks(
     check_submission_evidence(root, errors, artifact_sha256)
     check_required_markdown_fences(root, errors)
     check_manual_smoke_contract(root, errors)
+    check_review_runbook_contract(root, errors)
     check_plan_checkboxes(root, errors)
     check_stale_checkpoint_references(root, errors)
     check_source_wiring(root, errors)
     check_required_test_coverage(root, errors)
     if check_github:
-        check_github_artifacts(root, apis_root, errors, command_runner=command_runner)
+        check_github_artifacts(
+            root,
+            apis_root,
+            errors,
+            require_github_checks=require_github_checks,
+            command_runner=command_runner,
+        )
     return errors
 
 
@@ -1250,6 +1332,11 @@ def parse_args(argv):
         ),
     )
     parser.add_argument("--check-github", action="store_true", help="Check public PR and issue text references HEAD.")
+    parser.add_argument(
+        "--require-github-checks",
+        action="store_true",
+        help="Require both public PRs to report CI checks; implies --check-github.",
+    )
     return parser.parse_args(argv)
 
 
@@ -1263,7 +1350,8 @@ def main(argv=None):
         check_remote=args.check_remote,
         check_apis_remote=args.check_apis_remote,
         apis_remote=args.apis_remote,
-        check_github=args.check_github,
+        check_github=args.check_github or args.require_github_checks,
+        require_github_checks=args.require_github_checks,
     )
     if errors:
         print("RIP-2 submission guard failed:")
