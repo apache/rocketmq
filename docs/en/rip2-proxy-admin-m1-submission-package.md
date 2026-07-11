@@ -9,18 +9,18 @@ PR, issue comment, or contest submission.
 The latest synchronized RocketMQ implementation-code checkpoint is:
 
 ```text
-1fb8381302ac6feaa25084bbcd5ffbd73014ea4b Meter proxy admin pre-service failures
+8ae372157ba149efa3803854aee7fa641a32b623 Optimize wide connect time queries
 ```
 
 The latest generated public gRPC endpoint 1M benchmark code checkpoint is:
 
 ```text
-7b89ba60fca2a18859519f7b2b822f73c2f4ed2c Add proxy admin public grpc benchmark
+8ae372157ba149efa3803854aee7fa641a32b623 Optimize wide connect time queries
 ```
 
 The live draft PRs and RIP-2 issue summary have been refreshed through that
 implementation-code checkpoint to include the generated public gRPC endpoint
-1M benchmark, the `741`-test broad verification result, Dashboard table/detail
+1M benchmark, the `767`-test broad verification result, Dashboard table/detail
 field evidence, generated service descriptor verification evidence, and public
 `BAD_REQUEST` / `UNAUTHORIZED` / `NOT_FOUND` / `INTERNAL_SERVER_ERROR`
 status-mapping and response-body contract evidence.

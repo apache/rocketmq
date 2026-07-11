@@ -7,17 +7,17 @@
 已同步到远端的最新 RocketMQ 实现代码 checkpoint：
 
 ```text
-1fb8381302ac6feaa25084bbcd5ffbd73014ea4b Meter proxy admin pre-service failures
+8ae372157ba149efa3803854aee7fa641a32b623 Optimize wide connect time queries
 ```
 
 最新 generated public gRPC endpoint 1M benchmark 代码 checkpoint：
 
 ```text
-7b89ba60fca2a18859519f7b2b822f73c2f4ed2c Add proxy admin public grpc benchmark
+8ae372157ba149efa3803854aee7fa641a32b623 Optimize wide connect time queries
 ```
 
 live draft PR 和 RIP-2 issue summary 已同步到上述实现代码 checkpoint，包含
-generated public gRPC endpoint 1M benchmark、`741` tests broad verification、
+generated public gRPC endpoint 1M benchmark、`767` tests broad verification、
 Dashboard 表格/详情字段证据、generated service descriptor verification 证据，
 以及 public `BAD_REQUEST` / `UNAUTHORIZED` / `NOT_FOUND` /
 `INTERNAL_SERVER_ERROR` status mapping 和 response-body contract 证据。后续纯文档证据刷新
