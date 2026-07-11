@@ -648,7 +648,7 @@ public class TopicConfigManager extends ConfigManager {
         topicConfigWrapper.setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
         topicConfigWrapper.setDataVersion(this.getDataVersion());
         if (this.brokerController.getBrokerConfig().isEnableSplitRegistration()) {
-            this.getDataVersion().nextVersion();
+            updateDataVersion();
         }
         return topicConfigWrapper;
     }
