@@ -444,11 +444,14 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
                     client2Subscription.remove(clientGroup.clientId);
                 }
             }
+
             exclusiveEvictionTombstones.add(clientGroup.clientId, lmqName);
             notifyUnsubscribeLite(clientGroup.clientId, clientGroup.group, lmqName);
+
             boolean resetOffset = LiteMetadataUtil.isResetOffsetInExclusiveMode(group, brokerController);
             LOGGER.info("excludeClientByLmqName group:{}, lmqName:{}, resetOffset:{}, clientId:{} -> {}",
                 group, lmqName, resetOffset, clientGroup.clientId, newClientId);
+
             removeTopicGroup(clientGroup, lmqName, resetOffset);
         });
     }
