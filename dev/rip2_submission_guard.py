@@ -145,6 +145,8 @@ GITHUB_EXTERNAL_GATE_TOKENS = (
     "official artifact",
     "Dashboard CLIENT-01",
     "org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT",
+    "action_required",
+    "maintainer approval",
 )
 
 GITHUB_COVERAGE_EVIDENCE = (
@@ -195,6 +197,13 @@ LIVE_RUNTIME_SMOKE_DOCS = (
     "docs/cn/rip2-proxy-admin-m1-submission-package.md",
 )
 
+GITHUB_ACTIONS_APPROVAL_DOCS = (
+    "docs/en/rip2-proxy-admin-m1-submission-package.md",
+    "docs/cn/rip2-proxy-admin-m1-submission-package.md",
+    "docs/en/rip2-proxy-admin-m1-acceptance-audit.md",
+    "docs/cn/rip2-proxy-admin-m1-acceptance-audit.md",
+)
+
 REVIEW_RUNBOOK_DOCS = (
     "docs/en/rip2-proxy-admin-m1-review-runbook.md",
     "docs/cn/rip2-proxy-admin-m1-review-runbook.md",
@@ -228,6 +237,19 @@ REQUIRED_LIVE_RUNTIME_SMOKE_TOKENS = (
     "port-9876-closed",
     "port-8081-closed",
     "port-8082-closed",
+)
+
+REQUIRED_GITHUB_ACTIONS_APPROVAL_TOKENS = (
+    "action_required",
+    "maintainer approval",
+    "Build and Run Tests by Maven",
+    "Build and Run Tests by Bazel",
+    "CodeQL Analysis",
+    "Coverage",
+    "License checker",
+    "Misspell Check",
+    "Run Integration Tests",
+    "CI",
 )
 
 REQUIRED_REVIEW_RUNBOOK_TOKENS = (
@@ -556,6 +578,17 @@ GITHUB_PR_CHECKS = (
     (
         "rocketmq-apis PR #112",
         ["gh", "pr", "checks", "112", "--repo", "apache/rocketmq-apis"],
+    ),
+)
+
+GITHUB_PR_WORKFLOW_RUNS = (
+    (
+        "RocketMQ PR #10603",
+        ["gh", "api", "--method", "GET", "repos/apache/rocketmq/actions/runs"],
+    ),
+    (
+        "rocketmq-apis PR #112",
+        ["gh", "api", "--method", "GET", "repos/apache/rocketmq-apis/actions/runs"],
     ),
 )
 
@@ -968,6 +1001,14 @@ def check_live_runtime_smoke_evidence(root, errors):
                 errors.append(f"live runtime smoke evidence missing {token} in {rel}")
 
 
+def check_github_actions_approval_evidence(root, errors):
+    for rel in GITHUB_ACTIONS_APPROVAL_DOCS:
+        text = read_text(root / rel, errors)
+        for token in REQUIRED_GITHUB_ACTIONS_APPROVAL_TOKENS:
+            if token not in text:
+                errors.append(f"GitHub Actions approval evidence missing {token} in {rel}")
+
+
 def check_review_runbook_contract(root, errors):
     for rel in REVIEW_RUNBOOK_DOCS:
         text = read_text(root / rel, errors)
@@ -1216,19 +1257,30 @@ def check_github_artifacts(root, apis_root, errors, require_github_checks=False,
         root,
         errors,
         require_github_checks=require_github_checks,
+        heads=(head, apis_head),
         command_runner=command_runner,
     )
     check_github_issue_metadata(root, errors, command_runner=command_runner)
 
 
-def check_github_pr_checks(root, errors, require_github_checks=False, command_runner=run_command):
-    for label, base_args in GITHUB_PR_CHECKS:
+def check_github_pr_checks(root, errors, require_github_checks=False, heads=None,
+    command_runner=run_command):
+    heads = heads or (None,) * len(GITHUB_PR_CHECKS)
+    for index, (label, base_args) in enumerate(GITHUB_PR_CHECKS):
         args = base_args + ["--json", "name,state,bucket,link"]
         code, stdout, stderr = command_runner(args, cwd=root)
         output = stdout or stderr
         if code != 0 and "no checks reported" in output:
             if require_github_checks:
-                errors.append(f"{label} has no reported checks")
+                if not check_github_workflow_runs(
+                    root,
+                    label,
+                    GITHUB_PR_WORKFLOW_RUNS[index][1],
+                    heads[index],
+                    errors,
+                    command_runner=command_runner,
+                ):
+                    errors.append(f"{label} has no reported checks")
             continue
         if code != 0 and not stdout:
             errors.append(f"cannot read {label} checks: {stderr}")
@@ -1239,7 +1291,15 @@ def check_github_pr_checks(root, errors, require_github_checks=False, command_ru
             errors.append(f"cannot parse {label} checks: {exc}")
             continue
         if require_github_checks and not checks:
-            errors.append(f"{label} has no reported checks")
+            if not check_github_workflow_runs(
+                root,
+                label,
+                GITHUB_PR_WORKFLOW_RUNS[index][1],
+                heads[index],
+                errors,
+                command_runner=command_runner,
+            ):
+                errors.append(f"{label} has no reported checks")
             continue
         for check in checks:
             bucket = check.get("bucket")
@@ -1248,6 +1308,33 @@ def check_github_pr_checks(root, errors, require_github_checks=False, command_ru
                     f"{label} has non-passing check {check.get('name')!r}: "
                     f"bucket={bucket!r}, state={check.get('state')!r}, link={check.get('link')!r}"
                 )
+
+
+def check_github_workflow_runs(root, label, base_args, head, errors, command_runner=run_command):
+    if not head:
+        return False
+    args = base_args + ["-f", "event=pull_request", "-f", f"head_sha={head}"]
+    code, stdout, stderr = command_runner(args, cwd=root)
+    if code != 0:
+        errors.append(f"cannot read {label} workflow runs: {stderr}")
+        return True
+    try:
+        payload = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        errors.append(f"cannot parse {label} workflow runs: {exc}")
+        return True
+    action_required = sorted(
+        run.get("name", "unnamed workflow")
+        for run in payload.get("workflow_runs", [])
+        if run.get("conclusion") == "action_required"
+    )
+    if not action_required:
+        return False
+    errors.append(
+        f"{label} workflows require maintainer approval (action_required): "
+        + ", ".join(action_required)
+    )
+    return True
 
 
 def check_github_issue_metadata(root, errors, command_runner=run_command):
@@ -1323,6 +1410,7 @@ def run_checks(
     check_required_markdown_fences(root, errors)
     check_manual_smoke_contract(root, errors)
     check_live_runtime_smoke_evidence(root, errors)
+    check_github_actions_approval_evidence(root, errors)
     check_review_runbook_contract(root, errors)
     check_plan_checkboxes(root, errors)
     check_stale_checkpoint_references(root, errors)

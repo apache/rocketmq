@@ -43,6 +43,15 @@
 | 提供性能 benchmark report。 | 已实现。 | 中英文 benchmark report 包含命令、环境、1M-client read-model、生成版 public gRPC endpoint、coordinator 场景、P50/P95/P99 和 heap 设置。 | 硬件或实现明显变化后需要重跑。 |
 | 中英文文档与代码同步。 | contest 分支已同步。 | 中英文 user guide、final smoke、benchmark report、submission package 均已存在。 | review 过程中保持 PR 和 issue 链接更新。 |
 
+## GitHub Actions 批准证据
+
+当前 RocketMQ PR HEAD 生成了七个 workflow run，conclusion 全部为
+`action_required`：`Build and Run Tests by Maven`、
+`Build and Run Tests by Bazel`、`CodeQL Analysis`、`Coverage`、
+`License checker`、`Misspell Check` 和 `Run Integration Tests`。当前
+rocketmq-apis HEAD 生成了一个同样结论的 `CI` run。所有 job/check run 都尚未
+启动；这些 fork PR workflow 需要 Apache maintainer approval。
+
 ## 最终门禁汇总
 
 当前 contest 分支已经本地实现并验证 M1 public endpoint 行为、local read-model
@@ -51,5 +60,7 @@ gRPC Server/Channel 覆盖和限制堆性能证明。剩余门禁都是外部社
 
 - 社区接受 `rocketmq-apis` public proto proposal。
 - 发布包含 `ProxyAdminServiceGrpc` 的正式 `rocketmq-proto` artifact。
+- 两个 draft PR 上当前处于 `action_required` 的 GitHub Actions workflow 获得
+  maintainer approval 并成功完成。
 - 在包含 RIP-1 dashboard client 的环境中完成 Dashboard CLIENT-01 联调。字段级
   契约已记录在 `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。

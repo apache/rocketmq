@@ -1945,3 +1945,10 @@ API ownership and artifact publication decision.
   proved service isolation in both directions with reflection disabled. The
   cleanup trap closed ports 9876, 8081, and 8082. Submission guard coverage now
   pins this evidence in both final-smoke guides and both submission packages.
+- [x] GitHub Actions external gate diagnosed precisely. The RocketMQ PR head
+  created seven workflow runs and the rocketmq-apis PR head created one; all
+  completed with `action_required` before any check run because fork workflows
+  require Apache maintainer approval. TDD extended the strict submission guard
+  to query exact-head Actions runs and distinguish this state from absent or
+  failed checks. Bilingual submission, acceptance, and reviewer evidence now
+  records the affected workflows and the approval requirement.

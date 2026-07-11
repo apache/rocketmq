@@ -405,6 +405,16 @@ server does not support the reflection API
 port-9876-closed
 port-8081-closed
 port-8082-closed
+action_required
+maintainer approval
+Build and Run Tests by Maven
+Build and Run Tests by Bazel
+CodeQL Analysis
+Coverage
+License checker
+Misspell Check
+Run Integration Tests
+CI
 command -v grpcurl
 command -v openssl
 command -v xxd
@@ -438,6 +448,8 @@ def fake_github_runner(
     issue_metadata=None,
     rocketmq_checks=None,
     api_checks=None,
+    rocketmq_workflow_runs=None,
+    api_workflow_runs=None,
 ):
     rocketmq_metadata = rocketmq_metadata or (
         '{"state":"OPEN","isDraft":true,"headRefName":"rip2-proxy-admin-m1",'
@@ -456,6 +468,16 @@ def fake_github_runner(
     )
     rocketmq_checks = rocketmq_checks or (1, "", "no checks reported on the 'rip2-proxy-admin-m1' branch")
     api_checks = api_checks or (1, "", "no checks reported on the 'rip2-proxy-admin-public-api' branch")
+    rocketmq_workflow_runs = rocketmq_workflow_runs or (
+        0,
+        '{"total_count":0,"workflow_runs":[]}',
+        "",
+    )
+    api_workflow_runs = api_workflow_runs or (
+        0,
+        '{"total_count":0,"workflow_runs":[]}',
+        "",
+    )
 
     def run(args, cwd):
         if args == ["git", "rev-parse", "HEAD"]:
@@ -551,6 +573,30 @@ def fake_github_runner(
             return api_checks
         if args == [
             "gh",
+            "api",
+            "--method",
+            "GET",
+            "repos/apache/rocketmq/actions/runs",
+            "-f",
+            "event=pull_request",
+            "-f",
+            f"head_sha={expected_head}",
+        ]:
+            return rocketmq_workflow_runs
+        if args == [
+            "gh",
+            "api",
+            "--method",
+            "GET",
+            "repos/apache/rocketmq-apis/actions/runs",
+            "-f",
+            "event=pull_request",
+            "-f",
+            f"head_sha={apis_head or expected_head}",
+        ]:
+            return api_workflow_runs
+        if args == [
+            "gh",
             "pr",
             "view",
             "10603",
@@ -597,6 +643,8 @@ def github_body(rocketmq_head, apis_head=None, guard_command=None):
     body += "official artifact\n"
     body += "Dashboard CLIENT-01\n"
     body += "org.apache.rocketmq:rocketmq-proto:2.2.0-rip2-SNAPSHOT\n"
+    body += "action_required\n"
+    body += "maintainer approval\n"
     body += "PROXY_SCOPE_LOCAL_PROXY\n"
     body += "PROXY_SCOPE_ALL_PROXIES\n"
     body += "PROXY_SCOPE_PROXY_ID\n"
@@ -1631,6 +1679,63 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             self.assertTrue(any("RocketMQ PR #10603 has no reported checks" in error for error in errors))
             self.assertTrue(any("rocketmq-apis PR #112 has no reported checks" in error for error in errors))
 
+    def test_guard_strict_ci_gate_reports_workflows_awaiting_maintainer_approval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            expected_head = "abc123"
+            apis_head = "apis456"
+            body = github_body(expected_head, apis_head)
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+                check_github=True,
+                require_github_checks=True,
+                command_runner=fake_github_runner(
+                    expected_head,
+                    body,
+                    body,
+                    body,
+                    apis_head=apis_head,
+                    rocketmq_workflow_runs=(
+                        0,
+                        '{"total_count":2,"workflow_runs":['
+                        '{"name":"Build and Run Tests by Maven","conclusion":"action_required"},'
+                        '{"name":"License checker","conclusion":"action_required"}]}',
+                        "",
+                    ),
+                    api_workflow_runs=(
+                        0,
+                        '{"total_count":1,"workflow_runs":['
+                        '{"name":"CI","conclusion":"action_required"}]}',
+                        "",
+                    ),
+                ),
+            )
+
+            self.assertTrue(
+                any(
+                    "RocketMQ PR #10603 workflows require maintainer approval" in error
+                    and "Build and Run Tests by Maven" in error
+                    and "License checker" in error
+                    for error in errors
+                )
+            )
+            self.assertTrue(
+                any(
+                    "rocketmq-apis PR #112 workflows require maintainer approval" in error
+                    and "CI" in error
+                    for error in errors
+                )
+            )
+
     def test_guard_strict_ci_gate_rejects_empty_check_json(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -2115,6 +2220,29 @@ class Rip2SubmissionGuardTest(unittest.TestCase):
             )
 
             self.assertTrue(any("live runtime smoke evidence" in error for error in errors))
+
+    def test_guard_reports_missing_github_actions_approval_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "rocketmq"
+            apis_root = base / "rocketmq-apis"
+            m2_repository = base / "m2"
+            create_submission_tree(root, apis_root, m2_repository)
+            submission_path = root / "docs/en/rip2-proxy-admin-m1-submission-package.md"
+            submission_path.write_text(
+                submission_path.read_text(encoding="utf-8").replace("action_required", ""),
+                encoding="utf-8",
+            )
+
+            errors = rip2_submission_guard.run_checks(
+                root=root,
+                apis_root=apis_root,
+                m2_repository=m2_repository,
+                check_git=False,
+                check_remote=False,
+            )
+
+            self.assertTrue(any("GitHub Actions approval evidence" in error for error in errors))
 
     def test_guard_reports_missing_smoke_tool_prerequisites(self):
         with tempfile.TemporaryDirectory() as tmp:

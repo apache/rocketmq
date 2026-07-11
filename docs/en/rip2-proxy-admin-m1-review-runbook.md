@@ -162,9 +162,19 @@ any check that is not passing or explicitly skipped:
 python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --require-github-checks
 ```
 
-Draft PRs currently have no reported checks, so this strict command is expected
-to remain red until Apache GitHub Actions run. The non-strict command above is
-the reproducible draft-review guard.
+The current fork PR workflows have been created but are blocked before job
+execution with conclusion `action_required`. Inspect the exact-head runs with:
+
+```bash
+gh api --method GET repos/apache/rocketmq/actions/runs \
+  -f event=pull_request -f "head_sha=$(git rev-parse HEAD)"
+gh api --method GET repos/apache/rocketmq-apis/actions/runs \
+  -f event=pull_request -f "head_sha=$(git -C ../rocketmq-apis rev-parse HEAD)"
+```
+
+Apache maintainer approval is required before these fork PR jobs can start.
+The strict command is expected to remain red until the approved workflows run
+and pass. The non-strict command above is the reproducible draft-review guard.
 
 ```bash
 sed -n '1,120p' docs/en/rip2-proxy-admin-m1-acceptance-audit.md
@@ -178,6 +188,8 @@ The remaining gates are:
 
 - `rocketmq-apis` public proto proposal acceptance.
 - official `rocketmq-proto` artifact publication with `ProxyAdminServiceGrpc`.
+- maintainer approval and successful completion of the `action_required`
+  GitHub Actions workflows on both draft PRs.
 - Dashboard CLIENT-01 joint E2E in an environment that contains the RIP-1
   dashboard client. The field-level contract is recorded in
   `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`.

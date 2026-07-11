@@ -45,6 +45,16 @@ environment.
 | Performance benchmark report is available. | Implemented. | English and Chinese benchmark reports include commands, environment, 1M-client read-model, generated public gRPC endpoint, coordinator scenarios, P50/P95/P99, and heap settings. | Re-run if hardware or implementation changes materially. |
 | Bilingual docs are synchronized with the code release. | Implemented for contest branch. | English and Chinese user guides, final smoke guides, benchmark reports, and submission packages are present. | Keep PR and issue links current. |
 
+## GitHub Actions Approval Evidence
+
+The current RocketMQ pull-request head created seven workflow runs, all with
+conclusion `action_required`: `Build and Run Tests by Maven`,
+`Build and Run Tests by Bazel`, `CodeQL Analysis`, `Coverage`,
+`License checker`, `Misspell Check`, and `Run Integration Tests`. The current
+rocketmq-apis head created one `CI` run with the same conclusion. No job or
+check run has started; Apache maintainer approval is required for these fork PR
+workflows.
+
 ## Final Gate Summary
 
 The contest branch is locally implemented and verified for M1 public endpoint
@@ -54,6 +64,8 @@ heap performance. The remaining gates are external community/integration items:
 
 - community acceptance of the `rocketmq-apis` public proto proposal.
 - official `rocketmq-proto` artifact publication with `ProxyAdminServiceGrpc`.
+- maintainer approval and successful completion of the currently
+  `action_required` GitHub Actions workflows on both draft PRs.
 - Dashboard CLIENT-01 joint E2E in an environment that contains the RIP-1
   dashboard client. The field-level contract is documented in
   `docs/en/rip2-proxy-admin-m1-dashboard-contract.md`.

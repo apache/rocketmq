@@ -460,6 +460,35 @@ port-8082-closed
 Exact startup, request, isolation, and cleanup commands are in
 `docs/en/rip2-proxy-admin-m1-final-smoke.md`.
 
+## GitHub Actions Approval Gate
+
+The strict release gate is currently blocked before job execution, not by a
+test failure. For RocketMQ checkpoint
+`8b123422033f8dc0a7641c21363d1aad625b74d8`, GitHub created seven workflow runs
+with conclusion `action_required` and zero check runs:
+
+- `Build and Run Tests by Maven`
+- `Build and Run Tests by Bazel`
+- `CodeQL Analysis`
+- `Coverage`
+- `License checker`
+- `Misspell Check`
+- `Run Integration Tests`
+
+For rocketmq-apis checkpoint
+`c372905ce927cf8957333e7ac07877f295fd7ec9`, the `CI` workflow has the same
+`action_required` conclusion. These fork PR workflows require Apache
+maintainer approval before any hosted job can start. The strict guard now
+queries Actions runs for both exact heads and reports this state separately
+from missing or failed checks.
+
+```bash
+python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --require-github-checks
+```
+
+The non-strict review guard remains green while this external approval gate is
+pending; the strict command must remain red until the workflows run and pass.
+
 ## PR Description Draft
 
 Title:

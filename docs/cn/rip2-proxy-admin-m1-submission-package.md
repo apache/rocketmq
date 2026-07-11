@@ -431,6 +431,33 @@ port-8082-closed
 完整启动、请求、隔离与清理命令见
 `docs/cn/rip2-proxy-admin-m1-final-smoke.md`。
 
+## GitHub Actions 批准门禁
+
+当前 strict release gate 在 job 执行前被阻塞，并不是测试失败。RocketMQ
+checkpoint `8b123422033f8dc0a7641c21363d1aad625b74d8` 已生成七个 workflow
+run，它们的 conclusion 都是 `action_required`，且没有 check run：
+
+- `Build and Run Tests by Maven`
+- `Build and Run Tests by Bazel`
+- `CodeQL Analysis`
+- `Coverage`
+- `License checker`
+- `Misspell Check`
+- `Run Integration Tests`
+
+rocketmq-apis checkpoint
+`c372905ce927cf8957333e7ac07877f295fd7ec9` 的 `CI` workflow 也返回相同的
+`action_required`。这些 fork PR workflow 必须获得 Apache maintainer approval
+后，hosted job 才能启动。Strict guard 现在会按两个准确 HEAD 查询 Actions runs，
+并把这一状态与 checks 缺失或失败分开报告。
+
+```bash
+python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --require-github-checks
+```
+
+等待外部批准期间，非 strict review guard 保持绿色；只有 workflow 实际运行并
+通过后，strict command 才应转绿。
+
 ## PR 描述草稿
 
 标题：

@@ -159,8 +159,19 @@ passing 或非 explicitly skipped 的 check：
 python3 dev/rip2_submission_guard.py --check-remote --check-apis-remote --require-github-checks
 ```
 
-当前 draft PR 没有 reported checks，因此在 Apache GitHub Actions 实际运行前，
-严格命令预期保持红色。上面的非严格命令是当前可复现的 draft-review gate。
+当前 fork PR workflow 已经创建，但在 job 执行前以 `action_required` 结论被
+阻塞。使用以下命令检查准确 HEAD 对应的 runs：
+
+```bash
+gh api --method GET repos/apache/rocketmq/actions/runs \
+  -f event=pull_request -f "head_sha=$(git rev-parse HEAD)"
+gh api --method GET repos/apache/rocketmq-apis/actions/runs \
+  -f event=pull_request -f "head_sha=$(git -C ../rocketmq-apis rev-parse HEAD)"
+```
+
+这些 fork PR job 启动前需要 Apache maintainer approval。只有获批 workflow
+实际运行并通过后，严格命令才应转绿；上面的非严格命令仍是当前可复现的
+draft-review gate。
 
 ```bash
 sed -n '1,120p' docs/cn/rip2-proxy-admin-m1-acceptance-audit.md
@@ -173,5 +184,7 @@ sed -n '1,160p' docs/cn/rip2-proxy-admin-m1-dashboard-contract.md
 
 - `rocketmq-apis` public proto proposal 被社区接受。
 - 发布包含 `ProxyAdminServiceGrpc` 的正式 `rocketmq-proto` artifact。
+- 两个 draft PR 上 `action_required` 的 GitHub Actions workflow 获得 maintainer
+  approval 并成功完成。
 - 在包含 RIP-1 dashboard client 的环境中完成 Dashboard CLIENT-01 联调。字段级
   契约已记录在 `docs/cn/rip2-proxy-admin-m1-dashboard-contract.md`。
