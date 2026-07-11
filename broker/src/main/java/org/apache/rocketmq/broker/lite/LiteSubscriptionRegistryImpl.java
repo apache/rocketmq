@@ -420,7 +420,11 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
     }
 
     /**
-     * Remove clients that subscribe to the same liteTopic under the same group
+     * Remove clients that subscribe to the same liteTopic under the same group.
+     * - remove liteTopic from client2Subscription by clientId
+     * - add exclusive tombstones
+     * - call client to notify unsubscribe event
+     * - call removeTopicGroup
      */
     protected void excludeClientByLmqName(String newClientId, String group, String lmqName) {
         Set<ClientGroup> clientSet = liteTopic2Group.get(lmqName);
