@@ -351,6 +351,22 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
     }
 
+    /**
+     * Register the given (clientId, group) pair in the reverse index for the LMQ.
+     *
+     * <p>The reverse index {@link #liteTopic2Group} maps lmqName → set of
+     * subscribed ClientGroups, used during Pop dispatch to find which client(s)
+     * should receive messages.
+     *
+     * <p>If this (clientGroup, lmqName) pair is new (not a duplicate):
+     * <ol>
+     *   <li>Increments the global active reference counter;</li>
+     *   <li>Invalidates the wildcard group cache if the group is a wildcard group,
+     *       so the next wildcard expansion sees up-to-date membership;</li>
+     *   <li>Notifies all registered {@link LiteCtlListener listeners} of the new
+     *       subscription binding.</li>
+     * </ol>
+     */
     protected void addTopicGroup(ClientGroup clientGroup, String lmqName) {
         Set<ClientGroup> topicGroupSet = liteTopic2Group
             .computeIfAbsent(lmqName, k -> ConcurrentHashMap.newKeySet());
@@ -363,6 +379,24 @@ public class LiteSubscriptionRegistryImpl extends ServiceThread implements LiteS
         }
     }
 
+    /**
+     * Unregister the given (clientId, group) pair from the reverse index for the LMQ.
+     *
+     * <p>This is the counterpart of {@link #addTopicGroup}. If the pair was
+     * actually present (not a no-op):
+     * <ol>
+     *   <li>Decrements the global active reference counter;</li>
+     *   <li>Invalidates the wildcard group cache if applicable;</li>
+     *   <li>Notifies all registered {@link LiteCtlListener listeners} of the
+     *       subscription removal;</li>
+     *   <li>If {@code resetOffset} is {@code true}, resets the consumer offset
+     *       to the minimum value (0) via {@link #resetOffset}.</li>
+     * </ol>
+     *
+     * <p>If the set of subscribers for this lmqName becomes empty after removal,
+     * the lmqName entry is cleaned up from {@link #liteTopic2Group} and the
+     * wildcard group marker is removed if this was a synthetic wildcard LMQ.
+     */
     protected void removeTopicGroup(ClientGroup clientGroup, String lmqName, boolean resetOffset) {
         Set<ClientGroup> topicGroupSet = liteTopic2Group.get(lmqName);
         if (topicGroupSet == null) {
