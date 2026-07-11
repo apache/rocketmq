@@ -43,6 +43,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
@@ -86,7 +89,12 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 public class ClientActivity extends AbstractMessagingActivity {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final int CLIENT_LIFECYCLE_LOCK_COUNT = 256;
     protected final ProxyClientReadService proxyClientReadService;
+    private final AtomicLong telemetrySessionGeneration = new AtomicLong();
+    private final ConcurrentMap<String, Long> activeTelemetrySessions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, String> activeTelemetryTransports = new ConcurrentHashMap<>();
+    private final Object[] clientLifecycleLocks = createClientLifecycleLocks();
 
     public ClientActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager,
@@ -112,6 +120,20 @@ public class ClientActivity extends AbstractMessagingActivity {
     }
 
     public CompletableFuture<HeartbeatResponse> heartbeat(ProxyContext ctx, HeartbeatRequest request) {
+        String clientId = ctx.getClientID();
+        synchronized (clientLifecycleLock(clientId)) {
+            if (!isRequestFromCurrentTelemetryTransport(clientId, ctx)) {
+                return CompletableFuture.completedFuture(HeartbeatResponse.newBuilder()
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE,
+                        "heartbeat belongs to a superseded telemetry transport"))
+                    .build());
+            }
+            return heartbeatUnderLifecycleLock(ctx, request);
+        }
+    }
+
+    private CompletableFuture<HeartbeatResponse> heartbeatUnderLifecycleLock(ProxyContext ctx,
+        HeartbeatRequest request) {
         CompletableFuture<HeartbeatResponse> future = new CompletableFuture<>();
 
         try {
@@ -163,57 +185,69 @@ public class ClientActivity extends AbstractMessagingActivity {
     public CompletableFuture<NotifyClientTerminationResponse> notifyClientTermination(ProxyContext ctx,
         NotifyClientTerminationRequest request) {
         CompletableFuture<NotifyClientTerminationResponse> future = new CompletableFuture<>();
-        String clientId = null;
+        String clientId = ctx.getClientID();
 
-        try {
-            clientId = ctx.getClientID();
-            LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
-            Settings clientSettings = grpcClientSettingsManager.removeAndGetClientSettings(ctx);
-            if (clientSettings == null) {
-                this.proxyClientReadService.removeClient(clientId);
+        synchronized (clientLifecycleLock(clientId)) {
+            if (!isRequestFromCurrentTelemetryTransport(clientId, ctx)) {
                 future.complete(NotifyClientTerminationResponse.newBuilder()
-                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, "cannot find client settings for this client"))
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE,
+                        "termination belongs to a superseded telemetry transport"))
                     .build());
                 return future;
             }
+            if (StringUtils.isNotBlank(clientId)) {
+                activeTelemetrySessions.remove(clientId);
+                activeTelemetryTransports.remove(clientId);
+            }
+            try {
+                LanguageCode languageCode = LanguageCode.valueOf(ctx.getLanguage());
+                Settings clientSettings = grpcClientSettingsManager.removeAndGetClientSettings(ctx);
+                if (clientSettings == null) {
+                    this.proxyClientReadService.removeClient(clientId);
+                    future.complete(NotifyClientTerminationResponse.newBuilder()
+                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, "cannot find client settings for this client"))
+                        .build());
+                    return future;
+                }
 
-            switch (clientSettings.getClientType()) {
-                case PRODUCER:
-                    for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
-                        String topicName = topic.getName();
+                switch (clientSettings.getClientType()) {
+                    case PRODUCER:
+                        for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
+                            String topicName = topic.getName();
+                            GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
+                            if (channel != null) {
+                                ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                                this.messagingProcessor.unRegisterProducer(ctx, topicName, clientChannelInfo);
+                            }
+                        }
+                        break;
+                    case PUSH_CONSUMER:
+                    case LITE_PUSH_CONSUMER:
+                    case SIMPLE_CONSUMER:
+                        validateConsumerGroup(request.getGroup());
+                        String consumerGroup = request.getGroup().getName();
                         GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
                         if (channel != null) {
                             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
-                            this.messagingProcessor.unRegisterProducer(ctx, topicName, clientChannelInfo);
+                            this.messagingProcessor.unRegisterConsumer(ctx, consumerGroup, clientChannelInfo);
+                            this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, clientSettings);
                         }
-                    }
-                    break;
-                case PUSH_CONSUMER:
-                case LITE_PUSH_CONSUMER:
-                case SIMPLE_CONSUMER:
-                    validateConsumerGroup(request.getGroup());
-                    String consumerGroup = request.getGroup().getName();
-                    GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
-                    if (channel != null) {
-                        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
-                        this.messagingProcessor.unRegisterConsumer(ctx, consumerGroup, clientChannelInfo);
-                        this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, clientSettings);
-                    }
-                    break;
-                default:
-                    future.complete(NotifyClientTerminationResponse.newBuilder()
-                        .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
-                        .build());
-                    this.proxyClientReadService.removeClient(clientId);
-                    return future;
+                        break;
+                    default:
+                        future.complete(NotifyClientTerminationResponse.newBuilder()
+                            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.UNRECOGNIZED_CLIENT_TYPE, clientSettings.getClientType().name()))
+                            .build());
+                        this.proxyClientReadService.removeClient(clientId);
+                        return future;
+                }
+                future.complete(NotifyClientTerminationResponse.newBuilder()
+                    .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
+                    .build());
+                this.proxyClientReadService.removeClient(clientId);
+            } catch (Throwable t) {
+                this.proxyClientReadService.removeClient(clientId);
+                future.completeExceptionally(t);
             }
-            future.complete(NotifyClientTerminationResponse.newBuilder()
-                .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
-                .build());
-            this.proxyClientReadService.removeClient(clientId);
-        } catch (Throwable t) {
-            this.proxyClientReadService.removeClient(clientId);
-            future.completeExceptionally(t);
         }
         return future;
     }
@@ -301,14 +335,30 @@ public class ClientActivity extends AbstractMessagingActivity {
 
     public ContextStreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
         return new ContextStreamObserver<TelemetryCommand>() {
+            private final long sessionGeneration = telemetrySessionGeneration.incrementAndGet();
             private ProxyContext proxyCtx = null;
+            private boolean sessionActivated = false;
+
             @Override
             public void onNext(ProxyContext ctx, TelemetryCommand request) {
                 this.proxyCtx = ctx;
                 try {
                     switch (request.getCommandCase()) {
                         case SETTINGS: {
-                            processAndWriteClientSettings(ctx, request, responseObserver);
+                            String clientId = ctx.getClientID();
+                            synchronized (clientLifecycleLock(clientId)) {
+                                if (!this.sessionActivated) {
+                                    this.sessionActivated = true;
+                                    if (!activateTelemetrySession(ctx, this.sessionGeneration)) {
+                                        throw new GrpcProxyException(Code.BAD_REQUEST,
+                                            "telemetry session has been superseded for this client");
+                                    }
+                                } else if (!isCurrentTelemetrySession(clientId, this.sessionGeneration)) {
+                                    throw new GrpcProxyException(Code.BAD_REQUEST,
+                                        "telemetry session is no longer active for this client");
+                                }
+                                processAndWriteClientSettings(ctx, request, responseObserver);
+                            }
                             break;
                         }
                         case THREAD_STACK_TRACE: {
@@ -322,7 +372,7 @@ public class ClientActivity extends AbstractMessagingActivity {
                     }
                 } catch (Throwable t) {
                     if (request.getCommandCase() == TelemetryCommand.CommandCase.SETTINGS) {
-                        cleanupClientOnTelemetryClose(ctx);
+                        cleanupClientOnTelemetryClose(ctx, this.sessionGeneration);
                     }
                     processTelemetryException(request, t, responseObserver);
                 }
@@ -331,12 +381,12 @@ public class ClientActivity extends AbstractMessagingActivity {
             @Override
             public void onError(Throwable t) {
                 log.error("telemetry on error", t);
-                handleGrpcStreamError(proxyCtx, t);
+                handleGrpcStreamError(proxyCtx, t, this.sessionGeneration);
             }
 
             @Override
             public void onCompleted() {
-                cleanupClientOnTelemetryClose(proxyCtx);
+                cleanupClientOnTelemetryClose(proxyCtx, this.sessionGeneration);
                 responseObserver.onCompleted();
             }
         };
@@ -356,7 +406,7 @@ public class ClientActivity extends AbstractMessagingActivity {
         throw new IllegalArgumentException("unknown LiteSubscriptionAction: " + gRpcAction);
     }
 
-    private void handleGrpcStreamError(ProxyContext ctx, Throwable t) {
+    private void handleGrpcStreamError(ProxyContext ctx, Throwable t, long sessionGeneration) {
         if (ctx == null) {
             return;
         }
@@ -371,10 +421,10 @@ public class ClientActivity extends AbstractMessagingActivity {
         } else {
             log.warn("handle grpc stream error. clientId:{}, error:{}", clientId, t == null ? null : t.getClass());
         }
-        this.cleanupClientOnTelemetryClose(ctx);
+        this.cleanupClientOnTelemetryClose(ctx, sessionGeneration);
     }
 
-    private void cleanupClientOnTelemetryClose(ProxyContext ctx) {
+    private void cleanupClientOnTelemetryClose(ProxyContext ctx, long sessionGeneration) {
         if (ctx == null) {
             return;
         }
@@ -382,14 +432,78 @@ public class ClientActivity extends AbstractMessagingActivity {
         if (StringUtils.isBlank(clientId)) {
             return;
         }
-        try {
-            Settings settings = this.grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
-            this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
-        } catch (Throwable t) {
-            log.warn("cleanup grpc client settings failed on telemetry close. clientId:{}", clientId, t);
-        } finally {
-            this.proxyClientReadService.removeClient(clientId);
+        synchronized (clientLifecycleLock(clientId)) {
+            if (!activeTelemetrySessions.remove(clientId, sessionGeneration)) {
+                return;
+            }
+            activeTelemetryTransports.remove(clientId);
+            try {
+                Settings settings = this.grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
+                this.grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
+            } catch (Throwable t) {
+                log.warn("cleanup grpc client settings failed on telemetry close. clientId:{}", clientId, t);
+            } finally {
+                this.grpcChannelManager.removeChannel(clientId);
+                this.proxyClientReadService.removeClient(clientId);
+            }
         }
+    }
+
+    private boolean activateTelemetrySession(ProxyContext ctx, long sessionGeneration) {
+        String clientId = ctx.getClientID();
+        Long activeGeneration = activeTelemetrySessions.get(clientId);
+        if (activeGeneration != null && activeGeneration > sessionGeneration) {
+            return false;
+        }
+        if (activeGeneration != null && activeGeneration != sessionGeneration) {
+            grpcChannelManager.removeChannel(clientId);
+        }
+        activeTelemetrySessions.put(clientId, sessionGeneration);
+        String transportIdentity = transportIdentity(ctx);
+        if (transportIdentity == null) {
+            activeTelemetryTransports.remove(clientId);
+        } else {
+            activeTelemetryTransports.put(clientId, transportIdentity);
+        }
+        return true;
+    }
+
+    private boolean isCurrentTelemetrySession(String clientId, long sessionGeneration) {
+        return Long.valueOf(sessionGeneration).equals(activeTelemetrySessions.get(clientId));
+    }
+
+    private boolean isRequestFromCurrentTelemetryTransport(String clientId, ProxyContext ctx) {
+        if (!activeTelemetrySessions.containsKey(clientId)) {
+            return true;
+        }
+        String activeTransport = activeTelemetryTransports.get(clientId);
+        String requestTransport = transportIdentity(ctx);
+        return activeTransport == null || requestTransport == null || activeTransport.equals(requestTransport);
+    }
+
+    private String transportIdentity(ProxyContext ctx) {
+        if (ctx == null) {
+            return null;
+        }
+        String remoteAddress = StringUtils.trimToNull(ctx.getRemoteAddress());
+        String localAddress = StringUtils.trimToNull(ctx.getLocalAddress());
+        if (remoteAddress == null && localAddress == null) {
+            return null;
+        }
+        return StringUtils.defaultString(remoteAddress) + '|' + StringUtils.defaultString(localAddress);
+    }
+
+    private Object clientLifecycleLock(String clientId) {
+        int index = Math.floorMod(StringUtils.defaultString(clientId).hashCode(), clientLifecycleLocks.length);
+        return clientLifecycleLocks[index];
+    }
+
+    private static Object[] createClientLifecycleLocks() {
+        Object[] locks = new Object[CLIENT_LIFECYCLE_LOCK_COUNT];
+        for (int i = 0; i < locks.length; i++) {
+            locks[i] = new Object();
+        }
+        return locks;
     }
 
     protected void processTelemetryException(TelemetryCommand request, Throwable t,
@@ -423,6 +537,8 @@ public class ClientActivity extends AbstractMessagingActivity {
             case PUBLISHING:
                 for (Resource topic : settings.getPublishing().getTopicsList()) {
                     validateTopic(topic);
+                }
+                for (Resource topic : settings.getPublishing().getTopicsList()) {
                     String topicName = topic.getName();
                     grpcClientChannel = registerProducer(ctx, topicName);
                     grpcClientChannel.setClientObserver(responseObserver);
@@ -706,21 +822,31 @@ public class ClientActivity extends AbstractMessagingActivity {
                     return;
                 }
                 String clientId = clientChannelInfo.getClientId();
-                GrpcClientChannel removedChannel = grpcChannelManager.removeChannel(clientId);
-                try {
-                    Settings settings = grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
-                    grpcClientSettingsManager.offlineClientLiteSubscription(
-                        ProxyContext.createForInner(ClientActivity.this.getClass()),
-                        clientId,
-                        settings
-                    );
-                } catch (Throwable t) {
-                    log.warn("cleanup grpc client settings failed on consumer unregister. group:{}, clientId:{}",
-                        group, clientId, t);
-                } finally {
-                    log.info("remove grpc channel when client unregister. group:{}, clientChannelInfo:{}, removed:{}",
-                        group, clientChannelInfo, removedChannel != null);
-                    proxyClientReadService.removeClient(clientId);
+                synchronized (clientLifecycleLock(clientId)) {
+                    GrpcClientChannel currentChannel = grpcChannelManager.getChannel(clientId);
+                    if (currentChannel != clientChannelInfo.getChannel()
+                        && (currentChannel != null || activeTelemetrySessions.containsKey(clientId))) {
+                        log.debug("ignore stale consumer unregister. group:{}, clientId:{}", group, clientId);
+                        return;
+                    }
+                    activeTelemetrySessions.remove(clientId);
+                    activeTelemetryTransports.remove(clientId);
+                    GrpcClientChannel removedChannel = grpcChannelManager.removeChannel(clientId);
+                    try {
+                        Settings settings = grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
+                        grpcClientSettingsManager.offlineClientLiteSubscription(
+                            ProxyContext.createForInner(ClientActivity.this.getClass()),
+                            clientId,
+                            settings
+                        );
+                    } catch (Throwable t) {
+                        log.warn("cleanup grpc client settings failed on consumer unregister. group:{}, clientId:{}",
+                            group, clientId, t);
+                    } finally {
+                        log.info("remove grpc channel when client unregister. group:{}, clientChannelInfo:{}, removed:{}",
+                            group, clientChannelInfo, removedChannel != null);
+                        proxyClientReadService.removeClient(clientId);
+                    }
                 }
             }
         }
@@ -739,11 +865,19 @@ public class ClientActivity extends AbstractMessagingActivity {
                     if (settings == null) {
                         return;
                     }
-                    grpcClientSettingsManager.updateClientSettings(
-                        ProxyContext.createForInner(this.getClass()),
-                        clientChannelInfo.getClientId(),
-                        settings
-                    );
+                    String clientId = clientChannelInfo.getClientId();
+                    synchronized (clientLifecycleLock(clientId)) {
+                        if (activeTelemetrySessions.containsKey(clientId)) {
+                            log.debug("ignore remote settings for active local telemetry session. group:{}, clientId:{}",
+                                group, clientId);
+                            return;
+                        }
+                        grpcClientSettingsManager.updateClientSettings(
+                            ProxyContext.createForInner(this.getClass()),
+                            clientId,
+                            settings
+                        );
+                    }
                 }
             }
         }
@@ -763,14 +897,24 @@ public class ClientActivity extends AbstractMessagingActivity {
                     return;
                 }
                 String clientId = clientChannelInfo.getClientId();
-                grpcChannelManager.removeChannel(clientId);
-                try {
-                    grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
-                } catch (Throwable t) {
-                    log.warn("cleanup grpc client settings failed on producer unregister. group:{}, clientId:{}",
-                        group, clientId, t);
-                } finally {
-                    proxyClientReadService.removeClient(clientId);
+                synchronized (clientLifecycleLock(clientId)) {
+                    GrpcClientChannel currentChannel = grpcChannelManager.getChannel(clientId);
+                    if (currentChannel != clientChannelInfo.getChannel()
+                        && (currentChannel != null || activeTelemetrySessions.containsKey(clientId))) {
+                        log.debug("ignore stale producer unregister. group:{}, clientId:{}", group, clientId);
+                        return;
+                    }
+                    activeTelemetrySessions.remove(clientId);
+                    activeTelemetryTransports.remove(clientId);
+                    grpcChannelManager.removeChannel(clientId);
+                    try {
+                        grpcClientSettingsManager.removeAndGetRawClientSettings(clientId);
+                    } catch (Throwable t) {
+                        log.warn("cleanup grpc client settings failed on producer unregister. group:{}, clientId:{}",
+                            group, clientId, t);
+                    } finally {
+                        proxyClientReadService.removeClient(clientId);
+                    }
                 }
             }
         }
