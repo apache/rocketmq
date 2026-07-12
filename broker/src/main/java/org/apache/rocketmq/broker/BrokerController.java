@@ -378,15 +378,19 @@ public class BrokerController {
         this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
         this.broadcastOffsetManager = new BroadcastOffsetManager(this);
 
+        // V2: ConfigStorage — RocksDB with version header for forward-compatible migration
+        // V2 is recommended, especially for LMQ, which has a lot of data
         if (ConfigManagerVersion.V2.getVersion().equals(brokerConfig.getConfigManagerVersion())) {
             this.configStorage = new ConfigStorage(messageStoreConfig);
             this.topicConfigManager = new TopicConfigManagerV2(this, configStorage);
             this.subscriptionGroupManager = new SubscriptionGroupManagerV2(this, configStorage);
             this.consumerOffsetManager = new ConsumerOffsetManagerV2(this, configStorage);
+        // V1 + RocksDB: use RocksDB as KV store but still V1 data format
         } else if (this.messageStoreConfig.isEnableRocksDBStore()) {
             this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqTopicConfigManager(this) : new RocksDBTopicConfigManager(this);
             this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqSubscriptionGroupManager(this) : new RocksDBSubscriptionGroupManager(this);
             this.consumerOffsetManager = new RocksDBConsumerOffsetManager(this);
+        // V1 traditional: JSON file persistence
         } else {
             this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
             this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
