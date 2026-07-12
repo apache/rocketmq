@@ -92,6 +92,24 @@ public class NettyRemotingClientTest {
             assertThat(publicExecutor.getCorePoolSize()).isEqualTo(1);
             assertThat(publicExecutor.getMaximumPoolSize()).isEqualTo(1);
             assertThat(publicExecutor.getQueue().remainingCapacity()).isEqualTo(3);
+            assertThat(publicExecutor.getRejectedExecutionHandler())
+                .isInstanceOf(ThreadPoolExecutor.CallerRunsPolicy.class);
+        } finally {
+            client.shutdown();
+        }
+    }
+
+    @Test
+    public void publicExecutorShouldFallBackToDefaultQueueCapacityWhenMisconfigured() {
+        NettyClientConfig nettyClientConfig = new NettyClientConfig();
+        nettyClientConfig.setClientCallbackExecutorThreads(1);
+        nettyClientConfig.setClientCallbackExecutorQueueCapacity(0);
+        NettyRemotingClient client = new NettyRemotingClient(nettyClientConfig);
+
+        try {
+            ThreadPoolExecutor publicExecutor = (ThreadPoolExecutor) client.getCallbackExecutor();
+
+            assertThat(publicExecutor.getQueue().remainingCapacity()).isEqualTo(10000);
         } finally {
             client.shutdown();
         }

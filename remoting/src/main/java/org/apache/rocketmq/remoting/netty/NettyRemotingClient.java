@@ -86,6 +86,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -159,7 +160,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         this.publicExecutor = ThreadUtils.newThreadPoolExecutor(publicThreadNums, publicThreadNums, 0L, TimeUnit.MILLISECONDS,
-            new LinkedBlockingQueue<>(queueCapacity), new ThreadFactoryImpl("NettyClientPublicExecutor_"));
+            new LinkedBlockingQueue<>(queueCapacity), new ThreadFactoryImpl("NettyClientPublicExecutor_"),
+            new ThreadPoolExecutor.CallerRunsPolicy());
 
         this.scanExecutor = ThreadUtils.newThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("NettyClientScan_thread_"));
