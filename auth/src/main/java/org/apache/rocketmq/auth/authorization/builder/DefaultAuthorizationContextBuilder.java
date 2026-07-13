@@ -68,6 +68,8 @@ import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.RequestHeaderRegistry;
+import org.apache.rocketmq.remoting.protocol.body.DeleteSubscriptionGroupListRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.DeleteTopicListRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupRequestHeader;
@@ -319,6 +321,39 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                             }
                             topic = Resource.ofTopic(messageQueue.getTopic());
                             result.add(DefaultAuthorizationContext.of(subject, topic, Action.SUB, sourceIp));
+                        }
+                    }
+                    break;
+                case RequestCode.DELETE_TOPIC_IN_BROKER_LIST:
+                    // Batch APIs carry their target list in the request body, not in an annotated
+                    // CommandCustomHeader, so the annotation-based path in
+                    // RequestHeaderRegistry would otherwise produce an empty context list and let
+                    // the request through without a DELETE permission check. Decode the body and
+                    // emit one DELETE context per topic instead.
+                    DeleteTopicListRequestBody deleteTopicListRequestBody =
+                        DeleteTopicListRequestBody.decode(command.getBody(), DeleteTopicListRequestBody.class);
+                    if (CollectionUtils.isNotEmpty(deleteTopicListRequestBody.getTopicList())) {
+                        for (String topicName : deleteTopicListRequestBody.getTopicList()) {
+                            if (StringUtils.isBlank(topicName)) {
+                                continue;
+                            }
+                            topic = Resource.ofTopic(topicName);
+                            result.add(DefaultAuthorizationContext.of(subject, topic, Action.DELETE, sourceIp));
+                        }
+                    }
+                    break;
+                case RequestCode.DELETE_SUBSCRIPTION_GROUP_LIST:
+                    // See DELETE_TOPIC_IN_BROKER_LIST: emit one DELETE context per group from the
+                    // request body so authorization can enforce per-group DELETE permission.
+                    DeleteSubscriptionGroupListRequestBody deleteGroupListRequestBody =
+                        DeleteSubscriptionGroupListRequestBody.decode(command.getBody(), DeleteSubscriptionGroupListRequestBody.class);
+                    if (CollectionUtils.isNotEmpty(deleteGroupListRequestBody.getGroupNameList())) {
+                        for (String groupName : deleteGroupListRequestBody.getGroupNameList()) {
+                            if (StringUtils.isBlank(groupName)) {
+                                continue;
+                            }
+                            group = Resource.ofGroup(groupName);
+                            result.add(DefaultAuthorizationContext.of(subject, group, Action.DELETE, sourceIp));
                         }
                     }
                     break;
