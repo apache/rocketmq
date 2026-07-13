@@ -37,4 +37,15 @@ public class RocksDBMessageStore extends DefaultMessageStore {
     public ConsumeQueueStoreInterface createConsumeQueueStore() {
         return new RocksDBConsumeQueueStore(this);
     }
+
+    /**
+     * RocksDB consume queue is built asynchronously by {@code RocksGroupCommitService}, which is
+     * responsible for notifying long-polling consumers once the CQ is committed. Therefore, we must
+     * not notify during reput, otherwise consumers could be woken up before the message is visible
+     * in the consume queue.
+     */
+    @Override
+    public boolean isNotifyMessageArriveWhenReput() {
+        return false;
+    }
 }
