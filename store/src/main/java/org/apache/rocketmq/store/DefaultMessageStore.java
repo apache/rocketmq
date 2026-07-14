@@ -164,8 +164,6 @@ public class DefaultMessageStore implements MessageStore {
 
     private volatile boolean shutdown = true;
 
-    private boolean notifyMessageArriveInBatch = false;
-
     protected StoreCheckpoint storeCheckpoint;
     private MessageRocksDBStorage messageRocksDBStorage;
     private TimerMessageStore timerMessageStore;
@@ -2746,7 +2744,7 @@ public class DefaultMessageStore implements MessageStore {
                                 currentReputTimestamp = dispatchRequest.getStoreTimestamp();
                                 DefaultMessageStore.this.doDispatch(dispatchRequest);
 
-                                if (!notifyMessageArriveInBatch) {
+                                if (isNotifyMessageArriveWhenReput()) {
                                     notifyMessageArriveIfNecessary(dispatchRequest);
                                 }
 
@@ -3209,6 +3207,30 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     /**
+     * Decide whether long-polling consumers should be notified during reput.
+     * <p>
+     * Notification is only safe when the consume queue is updated synchronously in the reput dispatch:
+     * <ul>
+     *     <li>a plain file-based {@link ConsumeQueueStore}, which is always written synchronously;</li>
+     *     <li>a {@link CombineConsumeQueueStore} with selective double-write enabled, where the
+     *     file-based store acts as both the assign-offset and read store and is written
+     *     synchronously, while RocksDB CQ is built asynchronously for only part of the topics.</li>
+     * </ul>
+     * In other cases (e.g. reading from RocksDB CQ) the notification is handled by
+     * {@code RocksGroupCommitService} after the CQ is committed, so we can skip it here.
+     */
+    public boolean isNotifyMessageArriveWhenReput() {
+        if (consumeQueueStore instanceof ConsumeQueueStore) {
+            return true;
+        }
+        if (consumeQueueStore instanceof CombineConsumeQueueStore
+            && messageStoreConfig.isRocksdbCQSelectiveDoubleWriteEnable()) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Enable transient commitLog store pool only if transientStorePoolEnable is true and broker role is not SLAVE or
      * enableControllerMode is true
      *
@@ -3247,14 +3269,6 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public MessageRocksDBStorage getMessageRocksDBStorage() {
         return this.messageRocksDBStorage;
-    }
-
-    public boolean isNotifyMessageArriveInBatch() {
-        return notifyMessageArriveInBatch;
-    }
-
-    public void setNotifyMessageArriveInBatch(boolean notifyMessageArriveInBatch) {
-        this.notifyMessageArriveInBatch = notifyMessageArriveInBatch;
     }
 
     public DefaultStoreMetricsManager getDefaultStoreMetricsManager() {
