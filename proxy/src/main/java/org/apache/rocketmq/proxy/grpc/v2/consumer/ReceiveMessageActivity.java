@@ -27,6 +27,7 @@ import com.google.protobuf.util.Durations;
 import io.grpc.stub.StreamObserver;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PopStatus;
@@ -50,9 +51,15 @@ import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class ReceiveMessageActivity extends AbstractMessagingActivity {
     private static final String ILLEGAL_POLLING_TIME_INTRODUCED_CLIENT_VERSION = "5.0.3";
+    /**
+     * Default fallback invisibleTime when renewal is disabled and SubscriptionGroupConfig is unavailable.
+     * Uses the same default as SubscriptionGroupConfig.consumeTimeoutMinute (15 minutes).
+     */
+    private static final long DEFAULT_CONSUME_TIMEOUT_INVISIBLE_TIME_MILLIS = TimeUnit.MINUTES.toMillis(15);
 
     public ReceiveMessageActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
@@ -106,8 +113,16 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
 
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-            if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
-                actualInvisibleTime = proxyConfig.getDefaultInvisibleTimeMills();
+            final boolean autoRenew = proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew();
+            // The handle renewal mode must match the invisible time used for this pop request.
+            // Do not re-read dynamic config after pop completes.
+            final boolean needRenew = autoRenew && proxyConfig.isEnableGrpcChannelReceiptHandleRenew();
+            if (autoRenew) {
+                if (needRenew) {
+                    actualInvisibleTime = proxyConfig.getDefaultInvisibleTimeMills();
+                } else {
+                    actualInvisibleTime = getConsumeTimeoutInvisibleTime(ctx, group, proxyConfig);
+                }
             } else {
                 validateInvisibleTime(actualInvisibleTime,
                     ConfigurationManager.getProxyConfig().getMinInvisibleTimeMillsForRecv());
@@ -176,11 +191,10 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                 );
             }
 
-            final boolean autoRenew = proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew();
             popFuture.thenAccept(popResult -> {
                 Runnable doAfterWrite = null;
                 if (autoRenew) {
-                    doAfterWrite = handleAutoRenew(ctx, request, group, topic, popResult, writer);
+                    doAfterWrite = handleAutoRenew(ctx, request, group, topic, popResult, writer, needRenew);
                 }
                 writer.writeAndComplete(ctx, request, popResult, doAfterWrite);
             }).exceptionally(t -> {
@@ -193,7 +207,7 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
     }
 
     private Runnable handleAutoRenew(ProxyContext ctx, ReceiveMessageRequest request,
-        String group, String topic, PopResult popResult, ReceiveMessageResponseStreamWriter writer
+        String group, String topic, PopResult popResult, ReceiveMessageResponseStreamWriter writer, boolean needRenew
     ) {
         if (!PopStatus.FOUND.equals(popResult.getPopStatus())) {
             return null;
@@ -215,7 +229,7 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
                     MessageReceiptHandle messageReceiptHandle =
                         new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
                             messageExt.getQueueOffset(), messageExt.getReconsumeTimes(),
-                            messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC));
+                            messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC), needRenew);
                     messagingProcessor.addReceiptHandle(ctx, clientChannel, group, messageExt.getMsgId(), messageReceiptHandle);
                 }
             }
@@ -228,6 +242,32 @@ public class ReceiveMessageActivity extends AbstractMessagingActivity {
             this.messagingProcessor,
             responseObserver
         );
+    }
+
+    private long getConsumeTimeoutInvisibleTime(ProxyContext ctx, String group, ProxyConfig proxyConfig) {
+        // Use default consumeTimeoutMinute as fallback when config is null or invalid.
+        // This is intentionally NOT defaultInvisibleTimeMills (60s) because without renewal,
+        // 60s is too short and would cause duplicate consumption.
+        long invisibleTime = DEFAULT_CONSUME_TIMEOUT_INVISIBLE_TIME_MILLIS;
+        try {
+            SubscriptionGroupConfig groupConfig = this.messagingProcessor.getSubscriptionGroupConfig(ctx, group);
+            if (groupConfig != null && groupConfig.getConsumeTimeoutMinute() > 0) {
+                invisibleTime = TimeUnit.MINUTES.toMillis(groupConfig.getConsumeTimeoutMinute());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to get SubscriptionGroupConfig for group: {}, using default consumeTimeoutMinute (15min) "
+                + "as invisibleTime.", group, e);
+            // Safe fallback: use default consumeTimeoutMinute instead of defaultInvisibleTimeMills (60s).
+            // Since renewal is disabled, the handle must live long enough for the client to process it.
+        }
+        // Clamp to maxInvisibleTimeMills to avoid exceeding broker's allowed range
+        long maxInvisibleTime = proxyConfig.getMaxInvisibleTimeMills();
+        if (maxInvisibleTime > 0 && invisibleTime > maxInvisibleTime) {
+            log.warn("Calculated invisibleTime {}ms for group {} exceeds maxInvisibleTimeMills {}ms, clamping.",
+                invisibleTime, group, maxInvisibleTime);
+            invisibleTime = maxInvisibleTime;
+        }
+        return invisibleTime;
     }
 
     protected static class ReceiveMessageQueueSelector implements QueueSelector {

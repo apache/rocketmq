@@ -166,7 +166,20 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 }
 
                 ReceiptHandleGroup group = entry.getValue();
+
                 group.scan((msgID, handleStr, v) -> {
+                    // Per-handle renewal decision: handles that were created with needRenew=false
+                    // (popped when enableGrpcChannelReceiptHandleRenew was disabled) only need
+                    // expiry cleanup, NOT periodic renewal. This ensures safe transitions when
+                    // the config is dynamically switched.
+                    if (!v.isNeedRenew()) {
+                        ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandleStr());
+                        if (handle.isExpired()) {
+                            group.computeIfPresent(msgID, handleStr,
+                                messageReceiptHandle -> CompletableFuture.completedFuture(null), 0);
+                        }
+                        return;
+                    }
                     long current = System.currentTimeMillis();
                     ReceiptHandle handle = ReceiptHandle.decode(v.getReceiptHandleStr());
                     if (handle.getNextVisibleTime() - current > proxyConfig.getRenewAheadTimeMillis()) {

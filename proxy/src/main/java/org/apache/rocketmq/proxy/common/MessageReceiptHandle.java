@@ -37,6 +37,14 @@ public class MessageReceiptHandle {
     private final long consumeTimestamp;
     private String liteTopic;
     private volatile String receiptHandleStr;
+    /**
+     * Indicates whether this handle needs periodic renewal by the proxy.
+     * When true, the proxy will periodically call changeInvisibleTime to extend the handle's lifetime.
+     * When false, the handle was popped with a long invisibleTime (e.g., consumeTimeoutMinute) and
+     * only needs expiry cleanup. This flag is set at handle creation time based on the
+     * enableGrpcChannelReceiptHandleRenew config, ensuring safe transitions when the config changes.
+     */
+    private final boolean needRenew;
 
     public MessageReceiptHandle(String group, String topic, int queueId, String receiptHandleStr, String messageId,
         long queueOffset, int reconsumeTimes) {
@@ -45,6 +53,11 @@ public class MessageReceiptHandle {
 
     public MessageReceiptHandle(String group, String topic, int queueId, String receiptHandleStr, String messageId,
         long queueOffset, int reconsumeTimes, String liteTopic) {
+        this(group, topic, queueId, receiptHandleStr, messageId, queueOffset, reconsumeTimes, liteTopic, true);
+    }
+
+    public MessageReceiptHandle(String group, String topic, int queueId, String receiptHandleStr, String messageId,
+        long queueOffset, int reconsumeTimes, String liteTopic, boolean needRenew) {
         this.originalReceiptHandle = ReceiptHandle.decode(receiptHandleStr);
         this.group = group;
         this.topic = topic;
@@ -56,6 +69,7 @@ public class MessageReceiptHandle {
         this.reconsumeTimes = reconsumeTimes;
         this.consumeTimestamp = originalReceiptHandle.getRetrieveTime();
         this.liteTopic = liteTopic;
+        this.needRenew = needRenew;
     }
 
     @Override
@@ -168,5 +182,9 @@ public class MessageReceiptHandle {
 
     public void setLiteTopic(String liteTopic) {
         this.liteTopic = liteTopic;
+    }
+
+    public boolean isNeedRenew() {
+        return needRenew;
     }
 }

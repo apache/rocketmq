@@ -216,6 +216,18 @@ public class ProxyConfig implements ConfigFile {
 
     private long invisibleTimeMillisWhenClear = 1000L;
     private boolean enableProxyAutoRenew = true;
+    /**
+     * When enableProxyAutoRenew is true, this controls whether the proxy periodically renews
+     * (extends) the invisible time of receipt handles for gRPC (GrpcClientChannel) consumers
+     * via changeInvisibleTime calls to the broker.
+     * <p>
+     * When set to false, the proxy will NOT periodically renew handles for gRPC clients. Instead,
+     * it will use the consumer group's consumeTimeoutMinute as the initial invisible time during
+     * pop, and only save handles for client-disconnect cleanup (nack). This avoids the
+     * handle-mapping complexity and makes the client's original receipt handle remain valid
+     * even if the proxy crashes.
+     */
+    private boolean enableGrpcChannelReceiptHandleRenew = true;
     private int maxRenewRetryTimes = 3;
     private int renewThreadPoolNums = 2;
     private int renewMaxThreadPoolNums = 4;
@@ -1113,6 +1125,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableProxyAutoRenew(boolean enableProxyAutoRenew) {
         this.enableProxyAutoRenew = enableProxyAutoRenew;
+    }
+
+    public boolean isEnableGrpcChannelReceiptHandleRenew() {
+        return enableGrpcChannelReceiptHandleRenew;
+    }
+
+    public void setEnableGrpcChannelReceiptHandleRenew(boolean enableGrpcChannelReceiptHandleRenew) {
+        this.enableGrpcChannelReceiptHandleRenew = enableGrpcChannelReceiptHandleRenew;
     }
 
     public int getMaxRenewRetryTimes() {
