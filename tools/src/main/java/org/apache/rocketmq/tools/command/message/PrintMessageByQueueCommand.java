@@ -262,12 +262,12 @@ public class PrintMessageByQueueCommand implements SubCommand {
                 return false;
             }
             TagCountBean that = (TagCountBean) o;
-            return this.tag == null ? that.tag == null : this.tag.equals(that.tag);
+            return this.count.get() == that.count.get();
         }
 
         @Override
         public int hashCode() {
-            return tag == null ? 0 : tag.hashCode();
+            return Long.hashCode(count.get());
         }
     }
 }
