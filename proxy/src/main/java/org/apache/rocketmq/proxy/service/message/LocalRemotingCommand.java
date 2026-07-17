@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.proxy.service.message;
 
+import com.google.common.base.Stopwatch;
 import java.util.HashMap;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
@@ -31,6 +32,7 @@ public class LocalRemotingCommand extends RemotingCommand {
         cmd.setExtFields(new HashMap<>());
         setCmdVersion(cmd);
         cmd.makeCustomHeaderToNet();
+        cmd.setProcessTimer(Stopwatch.createStarted());
         return cmd;
     }
 }
