@@ -32,6 +32,7 @@ public class LocalRemotingCommand extends RemotingCommand {
         cmd.setExtFields(new HashMap<>());
         setCmdVersion(cmd);
         cmd.makeCustomHeaderToNet();
+        // Local requests bypass NettyDecoder, so initialize the processing timer explicitly.
         cmd.setProcessTimer(Stopwatch.createStarted());
         return cmd;
     }
