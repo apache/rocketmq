@@ -23,7 +23,6 @@ import com.google.common.cache.CacheBuilder;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -63,7 +62,6 @@ public class LiteEventDispatcher extends ServiceThread {
     private final BrokerController brokerController;
     private final LiteSubscriptionRegistry liteSubscriptionRegistry;
     private final AbstractLiteLifecycleManager liteLifecycleManager;
-    private final ConsumerOffsetManager consumerOffsetManager;
 
     protected final ConcurrentMap<String, ClientEventSet> clientEventMap = new ConcurrentHashMap<>();
     protected final ConcurrentSkipListSet<FullDispatchRequest> fullDispatchSet = new ConcurrentSkipListSet<>(COMPARATOR);
@@ -78,7 +76,6 @@ public class LiteEventDispatcher extends ServiceThread {
         this.brokerController = brokerController;
         this.liteSubscriptionRegistry = liteSubscriptionRegistry;
         this.liteLifecycleManager = liteLifecycleManager;
-        this.consumerOffsetManager = brokerController.getConsumerOffsetManager();
     }
 
     public void init() {
@@ -230,7 +227,7 @@ public class LiteEventDispatcher extends ServiceThread {
             if (maxOffset <= 0) {
                 continue;
             }
-            long consumerOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
+            long consumerOffset = brokerController.getConsumerOffsetManager().queryOffset(group, lmqName, 0);
             if (consumerOffset >= maxOffset) {
                 continue;
             }
@@ -274,7 +271,7 @@ public class LiteEventDispatcher extends ServiceThread {
             if (maxOffset <= 0) {
                 return true;
             }
-            long consumerOffset = consumerOffsetManager.queryOffset(group, lmqName, 0);
+            long consumerOffset = brokerController.getConsumerOffsetManager().queryOffset(group, lmqName, 0);
             if (consumerOffset >= maxOffset) {
                 return true;
             }
