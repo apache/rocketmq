@@ -1662,8 +1662,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
+                // Only mark the request as sent here. The user callback must fire when the reply
+                // arrives (processReplyMessage), on timeout (scanExpiredRequest), or on send
+                // failure (requestFail). Invoking it here delivers a premature onSuccess(null)
+                // and, combined with the later reply/timeout callback, causes a double callback.
                 requestResponseFuture.setSendRequestOk(true);
-                requestResponseFuture.executeRequestCallback();
             }
 
             @Override

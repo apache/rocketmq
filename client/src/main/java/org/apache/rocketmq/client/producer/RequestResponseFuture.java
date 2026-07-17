@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.producer;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.common.message.Message;
 
 public class RequestResponseFuture {
@@ -31,6 +32,7 @@ public class RequestResponseFuture {
     private volatile Message responseMsg = null;
     private volatile boolean sendRequestOk = true;
     private volatile Throwable cause = null;
+    private final AtomicBoolean executeCallbackOnlyOnce = new AtomicBoolean(false);
 
     public RequestResponseFuture(String correlationId, long timeoutMillis, RequestCallback requestCallback) {
         this.correlationId = correlationId;
@@ -39,12 +41,18 @@ public class RequestResponseFuture {
     }
 
     public void executeRequestCallback() {
-        if (requestCallback != null) {
-            if (sendRequestOk && cause == null) {
-                requestCallback.onSuccess(responseMsg);
-            } else {
-                requestCallback.onException(cause);
-            }
+        if (requestCallback == null) {
+            return;
+        }
+        // Ensure the callback fires exactly once even if the reply-arrival path and the
+        // timeout-scan path race on the same request. Whoever wins the CAS runs the callback.
+        if (!this.executeCallbackOnlyOnce.compareAndSet(false, true)) {
+            return;
+        }
+        if (sendRequestOk && cause == null) {
+            requestCallback.onSuccess(responseMsg);
+        } else {
+            requestCallback.onException(cause);
         }
     }
 
