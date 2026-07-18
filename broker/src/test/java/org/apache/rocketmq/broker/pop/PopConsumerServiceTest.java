@@ -743,4 +743,101 @@ public class PopConsumerServiceTest {
             messageExt.setReconsumeTimes(capturedMessage.getReconsumeTimes());
         }
     }
+
+    @Test
+    public void reviveShouldNotAbortBatchWhenGetMessageFailsExceptionally() {
+        // A single getMessageAsync that completes exceptionally (e.g. a transient remote read
+        // failure via the escape bridge) must not abort the whole revive batch. Before the fix,
+        // revive(record) had no exceptionally handler, so the exception propagated through
+        // allOf(...).join(), skipping writeRecords/deleteRecords and throwing out of revive().
+        Mockito.when(brokerController.getEscapeBridge()).thenReturn(Mockito.mock(EscapeBridge.class));
+        Mockito.when(brokerController.getSubscriptionGroupManager()
+            .containsSubscriptionGroup(anyString())).thenReturn(true);
+        PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
+
+        consumerService.getPopConsumerStore().start();
+
+        long popTime = 1000000000L;
+        long invisibleTime = 60 * 1000L;
+        PopConsumerRecord record = new PopConsumerRecord();
+        record.setPopTime(popTime);
+        record.setInvisibleTime(invisibleTime);
+        record.setTopicId("topic");
+        record.setGroupId("group");
+        record.setQueueId(0);
+        record.setOffset(0);
+        consumerService.getPopConsumerStore().writeRecords(Collections.singletonList(record));
+
+        // getMessageAsync completes exceptionally to simulate a remote read failure.
+        CompletableFuture<Triple<MessageExt, String, Boolean>> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new RuntimeException("simulated remote read failure"));
+        Mockito.doReturn(failed).when(consumerServiceSpy).getMessageAsync(any(PopConsumerRecord.class));
+
+        long visibleTimestamp = popTime + invisibleTime;
+
+        // revive must not throw, and the batch bookkeeping must still run: the record is consumed
+        // from the scan window (deleteRecords ran) instead of the whole batch being aborted.
+        Assert.assertEquals(1, consumerServiceSpy.revive(new AtomicLong(visibleTimestamp), 1));
+        Assert.assertEquals(0, consumerService.getPopConsumerStore()
+            .scanExpiredRecords(0, visibleTimestamp, 1).size());
+
+        consumerService.shutdown();
+    }
+
+    @Test
+    public void reviveShouldIsolateSynchronousReadFailureAndNotBlockHealthyRecords() {
+        // A record whose read fails *synchronously* (getMessageAsync throwing before it returns a
+        // future, e.g. DefaultMessageStore.getMessage throwing inside completedFuture(getMessage(...)))
+        // must not abort the whole revive batch. The per-record .exceptionally handler does NOT cover
+        // this path, because the throw happens before the thenCompose/exceptionally chain is attached;
+        // the batch loop caught it and rethrew as RuntimeException, skipping writeRecords/deleteRecords
+        // and blocking the healthy records in the same batch (head-of-line blocking).
+        Mockito.when(brokerController.getEscapeBridge()).thenReturn(Mockito.mock(EscapeBridge.class));
+        Mockito.when(brokerController.getSubscriptionGroupManager()
+            .containsSubscriptionGroup(anyString())).thenReturn(true);
+        PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
+
+        consumerService.getPopConsumerStore().start();
+
+        long popTime = 1000000000L;
+        long invisibleTime = 60 * 1000L;
+
+        // record at offset 0 -> read fails synchronously; record at offset 1 -> healthy.
+        PopConsumerRecord bad = new PopConsumerRecord();
+        bad.setPopTime(popTime);
+        bad.setInvisibleTime(invisibleTime);
+        bad.setTopicId("topic");
+        bad.setGroupId("group");
+        bad.setQueueId(0);
+        bad.setOffset(0);
+        PopConsumerRecord healthy = new PopConsumerRecord();
+        healthy.setPopTime(popTime);
+        healthy.setInvisibleTime(invisibleTime);
+        healthy.setTopicId("topic");
+        healthy.setGroupId("group");
+        healthy.setQueueId(0);
+        healthy.setOffset(1);
+        consumerService.getPopConsumerStore().writeRecords(Collections.singletonList(bad));
+        consumerService.getPopConsumerStore().writeRecords(Collections.singletonList(healthy));
+
+        // bad record: getMessageAsync throws synchronously (not an exceptionally-completed future).
+        Mockito.doThrow(new RuntimeException("simulated synchronous read failure"))
+            .when(consumerServiceSpy).getMessageAsync(Mockito.argThat(
+                (PopConsumerRecord r) -> r != null && r.getOffset() == 0L));
+        // healthy record: read returns no message needing retry -> revive succeeds.
+        Mockito.doReturn(CompletableFuture.completedFuture(Triple.of((MessageExt) null, "", false)))
+            .when(consumerServiceSpy).getMessageAsync(Mockito.argThat(
+                (PopConsumerRecord r) -> r != null && r.getOffset() == 1L));
+
+        long visibleTimestamp = popTime + invisibleTime;
+
+        // revive must process the whole batch (returns 2) without throwing, and both original records
+        // must be consumed from the scan window (deleteRecords ran) - proving the failed record was
+        // isolated and the healthy record was not blocked.
+        Assert.assertEquals(2, consumerServiceSpy.revive(new AtomicLong(visibleTimestamp), 10));
+        Assert.assertEquals(0, consumerService.getPopConsumerStore()
+            .scanExpiredRecords(0, visibleTimestamp, 10).size());
+
+        consumerService.shutdown();
+    }
 }

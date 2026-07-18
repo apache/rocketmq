@@ -587,6 +587,13 @@ public class PopConsumerService extends ServiceThread {
                     return CompletableFuture.completedFuture(!result.getRight());
                 }
                 return CompletableFuture.completedFuture(this.reviveRetry(record, result.getLeft()));
+            })
+            .exceptionally(throwable -> {
+                // Do not let a single failed async read (e.g. a remote read via the escape bridge)
+                // abort the whole revive batch in revive(AtomicLong, int). Treat it as a failed
+                // revive so the record is scheduled for retry instead of throwing out of allOf().join().
+                log.error("PopConsumerService revive failed, will retry, record={}", record, throwable);
+                return false;
             });
     }
 
@@ -613,13 +620,22 @@ public class PopConsumerService extends ServiceThread {
 
         // could merge read operation here
         for (PopConsumerRecord record : consumerRecords) {
-            CompletableFuture<Boolean> future;
             try {
                 semaphore.acquire();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            }
+            CompletableFuture<Boolean> future;
+            try {
                 future = this.revive(record);
             } catch (Exception e) {
-                semaphore.release();
-                throw new RuntimeException(e);
+                // A synchronous failure from revive(record) (e.g. getMessageAsync throwing before it
+                // returns a future) must not abort the whole batch; treat it as a failed revive so the
+                // record goes through the failureList backoff-retry path below. The semaphore permit is
+                // released by the whenComplete stage attached to this future.
+                log.error("PopConsumerService revive threw synchronously, will retry, record={}", record, e);
+                future = CompletableFuture.completedFuture(false);
             }
             futureList.add(future.thenAccept(result -> {
                 if (!result) {
