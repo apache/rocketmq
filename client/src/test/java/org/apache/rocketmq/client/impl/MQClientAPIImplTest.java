@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -71,10 +72,14 @@ import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.TopicOffset;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
 import org.apache.rocketmq.remoting.protocol.body.AclInfo;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsItem;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeRequestEntry;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeResponseEntry;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.Connection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
@@ -104,6 +109,7 @@ import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.BatchChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
@@ -719,6 +725,141 @@ public class MQClientAPIImplTest {
             }
         });
         done.await();
+    }
+
+    @Test
+    public void testProcessBatchChangeInvisibleTimeResponse() throws Exception {
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        ChangeInvisibleTimeRequestEntry requestEntry = new ChangeInvisibleTimeRequestEntry();
+        requestEntry.setConsumerGroup(group);
+        requestEntry.setTopic(topic);
+        requestEntry.setQueueId(1);
+        requestEntry.setExtraInfo("10 100 1000 0 0 broker-a 1 11");
+        requestEntry.setOffset(11);
+        requestEntry.setInvisibleTime(3000);
+        requestBody.setEntries(Collections.singletonList(requestEntry));
+
+        BatchChangeInvisibleTimeResponseBody responseBody = new BatchChangeInvisibleTimeResponseBody();
+        ChangeInvisibleTimeResponseEntry responseEntry = new ChangeInvisibleTimeResponseEntry();
+        responseEntry.setCode(ResponseCode.SUCCESS);
+        responseEntry.setPopTime(200);
+        responseEntry.setInvisibleTime(3000);
+        responseEntry.setReviveQid(2);
+        responseBody.setEntries(Collections.singletonList(responseEntry));
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setBody(responseBody.encode());
+
+        List<AckResult> resultList =
+            mqClientAPI.processBatchChangeInvisibleTimeResponse(brokerAddr, requestBody, response);
+
+        assertThat(resultList).hasSize(1);
+        assertThat(resultList.get(0).getStatus()).isEqualTo(AckStatus.OK);
+        ReceiptHandle receiptHandle = ReceiptHandle.decode(resultList.get(0).getExtraInfo());
+        assertThat(receiptHandle.getStartOffset()).isEqualTo(11);
+        assertThat(receiptHandle.getRetrieveTime()).isEqualTo(200);
+        assertThat(receiptHandle.getInvisibleTime()).isEqualTo(3000);
+        assertThat(receiptHandle.getReviveQueueId()).isEqualTo(2);
+        assertThat(receiptHandle.getBrokerName()).isEqualTo("broker-a");
+        assertThat(receiptHandle.getQueueId()).isEqualTo(1);
+        assertThat(receiptHandle.getOffset()).isEqualTo(11);
+    }
+
+    @Test
+    public void testProcessBatchChangeInvisibleTimeResponseWithNullEntry() throws Exception {
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        ChangeInvisibleTimeRequestEntry requestEntry = new ChangeInvisibleTimeRequestEntry();
+        requestEntry.setConsumerGroup(group);
+        requestEntry.setTopic(topic);
+        requestEntry.setQueueId(1);
+        requestEntry.setExtraInfo("10 100 1000 0 0 broker-a 1 11");
+        requestEntry.setOffset(11);
+        requestEntry.setInvisibleTime(3000);
+        requestBody.setEntries(Collections.singletonList(requestEntry));
+
+        BatchChangeInvisibleTimeResponseBody responseBody = new BatchChangeInvisibleTimeResponseBody();
+        responseBody.setEntries(Collections.singletonList(null));
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setBody(responseBody.encode());
+
+        List<AckResult> resultList =
+            mqClientAPI.processBatchChangeInvisibleTimeResponse(brokerAddr, requestBody, response);
+
+        assertThat(resultList).hasSize(1);
+        assertThat(resultList.get(0).getStatus()).isEqualTo(AckStatus.NO_EXIST);
+    }
+
+    @Test
+    public void testProcessBatchChangeInvisibleTimeResponseWithNullRequestEntry() throws Exception {
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        List<ChangeInvisibleTimeRequestEntry> requestEntries = new ArrayList<>();
+        requestEntries.add(null);
+        requestBody.setEntries(requestEntries);
+
+        BatchChangeInvisibleTimeResponseBody responseBody = new BatchChangeInvisibleTimeResponseBody();
+        ChangeInvisibleTimeResponseEntry responseEntry = new ChangeInvisibleTimeResponseEntry();
+        responseEntry.setCode(ResponseCode.SUCCESS);
+        responseEntry.setPopTime(200);
+        responseEntry.setInvisibleTime(3000);
+        responseEntry.setReviveQid(2);
+        responseBody.setEntries(Collections.singletonList(responseEntry));
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setBody(responseBody.encode());
+
+        List<AckResult> resultList =
+            mqClientAPI.processBatchChangeInvisibleTimeResponse(brokerAddr, requestBody, response);
+
+        assertThat(resultList).hasSize(1);
+        assertThat(resultList.get(0).getStatus()).isEqualTo(AckStatus.NO_EXIST);
+    }
+
+    @Test
+    public void testBatchChangeInvisibleTimeAsyncSendsRequestHeader() throws Exception {
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        ChangeInvisibleTimeRequestEntry requestEntry = new ChangeInvisibleTimeRequestEntry();
+        requestEntry.setConsumerGroup(group);
+        requestEntry.setTopic(topic);
+        requestEntry.setQueueId(1);
+        requestEntry.setExtraInfo("10 100 1000 0 0 broker-a 1 11");
+        requestEntry.setOffset(11);
+        requestEntry.setInvisibleTime(3000);
+        requestBody.setEntries(Collections.singletonList(requestEntry));
+
+        BatchChangeInvisibleTimeResponseBody responseBody = new BatchChangeInvisibleTimeResponseBody();
+        ChangeInvisibleTimeResponseEntry responseEntry = new ChangeInvisibleTimeResponseEntry();
+        responseEntry.setCode(ResponseCode.SUCCESS);
+        responseEntry.setPopTime(200);
+        responseEntry.setInvisibleTime(3000);
+        responseEntry.setReviveQid(2);
+        responseBody.setEntries(Collections.singletonList(responseEntry));
+
+        RemotingCommand[] capturedRequest = new RemotingCommand[1];
+        doAnswer((Answer<Void>) invocation -> {
+            capturedRequest[0] = invocation.getArgument(1);
+            InvokeCallback callback = invocation.getArgument(3);
+            RemotingCommand response = RemotingCommand.createResponseCommand(null);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(responseBody.encode());
+            callback.operationSucceed(response);
+            return null;
+        }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+
+        List<AckResult> resultList = mqClientAPI.batchChangeInvisibleTimeAsync(
+            brokerAddr, topic, group, requestBody, 3000).get();
+
+        assertThat(resultList).hasSize(1);
+        assertThat(resultList.get(0).getStatus()).isEqualTo(AckStatus.OK);
+        assertThat(capturedRequest[0].getCode()).isEqualTo(RequestCode.BATCH_CHANGE_MESSAGE_INVISIBLETIME);
+        capturedRequest[0].makeCustomHeaderToNet();
+        BatchChangeInvisibleTimeRequestHeader requestHeader = (BatchChangeInvisibleTimeRequestHeader)
+            capturedRequest[0].decodeCommandCustomHeader(BatchChangeInvisibleTimeRequestHeader.class);
+        assertThat(requestHeader.getTopic()).isEqualTo(topic);
+        assertThat(requestHeader.getConsumerGroup()).isEqualTo(group);
     }
 
     @Test

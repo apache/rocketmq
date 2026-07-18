@@ -57,9 +57,14 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BatchAck;
 import org.apache.rocketmq.remoting.protocol.body.BatchAckMessageRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeRequestEntry;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeResponseEntry;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.BatchChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
@@ -428,6 +433,82 @@ public class LocalMessageService implements MessageService {
                 ackResult.setStatus(AckStatus.NO_EXIST);
             }
             return ackResult;
+        });
+    }
+
+    @Override
+    public CompletableFuture<List<AckResult>> batchChangeInvisibleTime(ProxyContext ctx,
+        List<ReceiptHandleMessage> handleList, String consumerGroup, String topic, long invisibleTime,
+        long timeoutMillis, boolean suspend) {
+        SimpleChannel channel = channelManager.createChannel(ctx);
+        ChannelHandlerContext channelHandlerContext = channel.getChannelHandlerContext();
+        BatchChangeInvisibleTimeRequestHeader requestHeader = new BatchChangeInvisibleTimeRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setTopic(handleList.get(0).getReceiptHandle().getRealTopic(topic, consumerGroup));
+        RemotingCommand command = LocalRemotingCommand.createRequestCommand(
+            RequestCode.BATCH_CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        List<ChangeInvisibleTimeRequestEntry> entries = new ArrayList<>(handleList.size());
+        for (ReceiptHandleMessage receiptHandleMessage : handleList) {
+            ReceiptHandle handle = receiptHandleMessage.getReceiptHandle();
+            ChangeInvisibleTimeRequestEntry entry = new ChangeInvisibleTimeRequestEntry();
+            entry.setConsumerGroup(consumerGroup);
+            entry.setTopic(handle.getRealTopic(topic, consumerGroup));
+            entry.setQueueId(handle.getQueueId());
+            entry.setExtraInfo(handle.getReceiptHandle());
+            entry.setOffset(handle.getOffset());
+            entry.setInvisibleTime(receiptHandleMessage.getInvisibleTime() > 0 ? receiptHandleMessage.getInvisibleTime() : invisibleTime);
+            entry.setLiteTopic(receiptHandleMessage.getLiteTopic());
+            entry.setSuspend(suspend);
+            entries.add(entry);
+        }
+        requestBody.setEntries(entries);
+        command.setBody(requestBody.encode());
+
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        try {
+            future = brokerController.getChangeInvisibleTimeProcessor()
+                .processRequestAsync(channelHandlerContext.channel(), command, true);
+        } catch (Exception e) {
+            log.error("Fail to process batchChangeInvisibleTime command", e);
+            future.completeExceptionally(e);
+        }
+        return future.thenApply(r -> {
+            BatchChangeInvisibleTimeResponseBody responseBody =
+                BatchChangeInvisibleTimeResponseBody.decode(r.getBody(), BatchChangeInvisibleTimeResponseBody.class);
+            List<ChangeInvisibleTimeResponseEntry> responseEntries = responseBody == null || responseBody.getEntries() == null ?
+                Collections.emptyList() : responseBody.getEntries();
+            if (responseEntries.size() != handleList.size()) {
+                throw new IllegalStateException(String.format(
+                    "batchChangeInvisibleTime response size mismatch, request=%d, response=%d",
+                    handleList.size(), responseEntries.size()));
+            }
+
+            List<AckResult> resultList = new ArrayList<>(responseEntries.size());
+            for (int i = 0; i < responseEntries.size(); i++) {
+                ChangeInvisibleTimeResponseEntry responseEntry = responseEntries.get(i);
+                ReceiptHandle handle = handleList.get(i).getReceiptHandle();
+                AckResult ackResult = new AckResult();
+                if (responseEntry != null && ResponseCode.SUCCESS == responseEntry.getCode()) {
+                    ackResult.setStatus(AckStatus.OK);
+                    ackResult.setPopTime(responseEntry.getPopTime());
+                    ackResult.setExtraInfo(ReceiptHandle.builder()
+                        .startOffset(handle.getStartOffset())
+                        .retrieveTime(responseEntry.getPopTime())
+                        .invisibleTime(responseEntry.getInvisibleTime())
+                        .reviveQueueId(responseEntry.getReviveQid())
+                        .topicType(handle.getTopicType())
+                        .brokerName(handle.getBrokerName())
+                        .queueId(handle.getQueueId())
+                        .offset(handle.getOffset())
+                        .build()
+                        .encode());
+                } else {
+                    ackResult.setStatus(AckStatus.NO_EXIST);
+                }
+                resultList.add(ackResult);
+            }
+            return resultList;
         });
     }
 

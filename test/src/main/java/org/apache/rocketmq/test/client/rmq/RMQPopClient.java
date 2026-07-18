@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.ClientConfig;
@@ -28,6 +29,8 @@ import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeRequestEntry;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
@@ -156,6 +159,33 @@ public class RMQPopClient implements MQConsumer {
                     future.completeExceptionally(e);
                 }
             }, topic, consumerGroup, extraInfoList);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    public CompletableFuture<List<AckResult>> batchChangeInvisibleTimeAsync(String brokerAddr, String topic,
+        String consumerGroup, List<String> extraInfoList, long invisibleTime) {
+        CompletableFuture<List<AckResult>> future = new CompletableFuture<>();
+        try {
+            BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+            List<ChangeInvisibleTimeRequestEntry> entries = new ArrayList<>(extraInfoList.size());
+            for (String extraInfo : extraInfoList) {
+                String[] extraInfoStrs = ExtraInfoUtil.split(extraInfo);
+                ChangeInvisibleTimeRequestEntry entry = new ChangeInvisibleTimeRequestEntry();
+                entry.setConsumerGroup(consumerGroup);
+                entry.setTopic(ExtraInfoUtil.getRealTopic(extraInfoStrs, topic, consumerGroup));
+                entry.setQueueId(ExtraInfoUtil.getQueueId(extraInfoStrs));
+                entry.setOffset(ExtraInfoUtil.getQueueOffset(extraInfoStrs));
+                entry.setExtraInfo(extraInfo);
+                entry.setInvisibleTime(invisibleTime);
+                entries.add(entry);
+            }
+            requestBody.setEntries(entries);
+            String requestTopic = entries.isEmpty() ? topic : entries.get(0).getTopic();
+            return this.mqClientAPI.batchChangeInvisibleTimeAsync(
+                brokerAddr, requestTopic, consumerGroup, requestBody, DEFAULT_TIMEOUT);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

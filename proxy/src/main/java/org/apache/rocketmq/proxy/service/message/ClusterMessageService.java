@@ -36,6 +36,8 @@ import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeRequestEntry;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
@@ -165,6 +167,34 @@ public class ClusterMessageService implements MessageService {
             topic,
             consumerGroup,
             extraInfoList,
+            timeoutMillis
+        );
+    }
+
+    @Override
+    public CompletableFuture<List<AckResult>> batchChangeInvisibleTime(ProxyContext ctx,
+        List<ReceiptHandleMessage> handleList, String consumerGroup, String topic, long invisibleTime,
+        long timeoutMillis, boolean suspend) {
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        String realTopic = handleList.get(0).getReceiptHandle().getRealTopic(topic, consumerGroup);
+        requestBody.setEntries(handleList.stream().map(message -> {
+            ReceiptHandle handle = message.getReceiptHandle();
+            ChangeInvisibleTimeRequestEntry entry = new ChangeInvisibleTimeRequestEntry();
+            entry.setConsumerGroup(consumerGroup);
+            entry.setTopic(handle.getRealTopic(topic, consumerGroup));
+            entry.setQueueId(handle.getQueueId());
+            entry.setExtraInfo(handle.getReceiptHandle());
+            entry.setOffset(handle.getOffset());
+            entry.setInvisibleTime(message.getInvisibleTime() > 0 ? message.getInvisibleTime() : invisibleTime);
+            entry.setLiteTopic(message.getLiteTopic());
+            entry.setSuspend(suspend);
+            return entry;
+        }).collect(Collectors.toList()));
+        return this.mqClientAPIFactory.getClient().batchChangeInvisibleTimeAsync(
+            this.resolveBrokerAddrInReceiptHandle(ctx, handleList.get(0).getReceiptHandle()),
+            realTopic,
+            consumerGroup,
+            requestBody,
             timeoutMillis
         );
     }

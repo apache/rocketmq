@@ -47,6 +47,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeRequestEntry;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -534,6 +535,86 @@ public class PopConsumerServiceTest {
         Assert.assertEquals("TopicId should match", topicId, ckRecord.getTopicId());
         Assert.assertEquals("QueueId should match", queueId, ckRecord.getQueueId());
         Assert.assertEquals("Offset should match", offset, ckRecord.getOffset());
+
+        consumerService.shutdown();
+    }
+
+    @Test
+    public void testChangeInvisibilityDurationUseSingleWriteAndDelete() throws IllegalAccessException {
+        long current = System.currentTimeMillis();
+        long popTime = current - 1000;
+        long invisibleTime = 10000;
+        long changedPopTime = current;
+        long changedInvisibleTime = 20000;
+        long offset = 300L;
+
+        brokerController.getBrokerConfig().setEnablePopBufferMerge(false);
+        PopConsumerKVStore consumerKVStore = Mockito.mock(PopConsumerKVStore.class);
+        FieldUtils.writeField(consumerService, "popConsumerStore", consumerKVStore, true);
+        Mockito.when(brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)).thenReturn(true);
+
+        consumerService.changeInvisibilityDuration(popTime, invisibleTime, changedPopTime,
+            changedInvisibleTime, groupId, topicId, queueId, offset, true);
+
+        ArgumentCaptor<List> writeCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List> deleteCaptor = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(consumerKVStore).writeAndDeleteRecords(writeCaptor.capture(), deleteCaptor.capture());
+        Mockito.verify(consumerKVStore, Mockito.never()).writeRecords(any());
+        Mockito.verify(consumerKVStore, Mockito.never()).deleteRecords(any());
+
+        Assert.assertEquals(1, writeCaptor.getValue().size());
+        Assert.assertEquals(1, deleteCaptor.getValue().size());
+        PopConsumerRecord ckRecord = (PopConsumerRecord) writeCaptor.getValue().get(0);
+        PopConsumerRecord ackRecord = (PopConsumerRecord) deleteCaptor.getValue().get(0);
+        Assert.assertEquals(changedPopTime, ckRecord.getPopTime());
+        Assert.assertEquals(changedInvisibleTime, ckRecord.getInvisibleTime());
+        Assert.assertEquals(popTime, ackRecord.getPopTime());
+        Assert.assertEquals(invisibleTime, ackRecord.getInvisibleTime());
+        Assert.assertTrue(ckRecord.isSuspend());
+        Assert.assertTrue(ackRecord.isSuspend());
+    }
+
+    @Test
+    public void testBatchChangeInvisibilityDurationDeletesSameVisibilityOldRecordFromCache()
+        throws IllegalAccessException {
+        long current = System.currentTimeMillis();
+        long popTime = current - 1000;
+        long invisibleTime = 10000;
+        long changedPopTime = current;
+        long changedInvisibleTime = 9000;
+        long offset = 300L;
+
+        consumerService.getPopConsumerStore().start();
+        Mockito.when(brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(groupId)).thenReturn(true);
+
+        PopConsumerCache consumerCache = (PopConsumerCache) FieldUtils.readField(
+            consumerService, "popConsumerCache", true);
+        PopConsumerRecord oldRecord = new PopConsumerRecord(popTime, groupId, topicId, queueId,
+            0, invisibleTime, offset, null, false);
+        consumerCache.writeRecords(Collections.singletonList(oldRecord));
+        Assert.assertEquals(1, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
+
+        ChangeInvisibleTimeRequestEntry changeRecord = new ChangeInvisibleTimeRequestEntry();
+        changeRecord.setConsumerGroup(groupId);
+        changeRecord.setTopic(topicId);
+        changeRecord.setQueueId(queueId);
+        changeRecord.setOffset(offset);
+        changeRecord.setPopTime(popTime);
+        changeRecord.setOldInvisibleTime(invisibleTime);
+        changeRecord.setChangedPopTime(changedPopTime);
+        changeRecord.setChangedInvisibleTime(changedInvisibleTime);
+        changeRecord.setSuspend(false);
+        consumerService.batchChangeInvisibilityDuration(Collections.singletonList(changeRecord));
+
+        Assert.assertEquals(0, consumerCache.getPopInFlightMessageCount(groupId, topicId, queueId));
+        List<PopConsumerRecord> records = consumerService.getPopConsumerStore()
+            .scanExpiredRecords(0, changedPopTime + changedInvisibleTime + 1000, 10);
+        PopConsumerRecord ckRecord = records.stream()
+            .filter(r -> r.getOffset() == offset && r.getPopTime() == changedPopTime)
+            .findFirst()
+            .orElse(null);
+        Assert.assertNotNull("Should find the changed checkpoint record", ckRecord);
+        Assert.assertEquals(changedInvisibleTime, ckRecord.getInvisibleTime());
 
         consumerService.shutdown();
     }

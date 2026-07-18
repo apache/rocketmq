@@ -140,6 +140,24 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
     }
 
     @Override
+    public void writeAndDeleteRecords(List<PopConsumerRecord> writeRecordList,
+        List<PopConsumerRecord> deleteRecordList) {
+        if (!writeRecordList.isEmpty() || !deleteRecordList.isEmpty()) {
+            try (WriteBatch writeBatch = new WriteBatch()) {
+                for (PopConsumerRecord record : deleteRecordList) {
+                    writeBatch.delete(columnFamilyHandle, record.getKeyBytes());
+                }
+                for (PopConsumerRecord record : writeRecordList) {
+                    writeBatch.put(columnFamilyHandle, record.getKeyBytes(), record.getValueBytes());
+                }
+                this.db.write(writeOptions, writeBatch);
+            } catch (RocksDBException e) {
+                throw new RuntimeException("Write and delete record error", e);
+            }
+        }
+    }
+
+    @Override
     // https://github.com/facebook/rocksdb/issues/10300
     public List<PopConsumerRecord> scanExpiredRecords(long lower, long upper, int maxCount) {
         // In RocksDB, we can use SstPartitionerFixedPrefixFactory in cfOptions

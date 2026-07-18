@@ -24,6 +24,7 @@ import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.metrics.PopMetricsManager;
+import org.apache.rocketmq.broker.pop.PopConsumerService;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import com.alibaba.fastjson2.JSON;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -38,7 +39,11 @@ import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.BatchChangeInvisibleTimeResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.ChangeInvisibleTimeRequestEntry;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.BatchChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.store.AppendMessageResult;
@@ -56,10 +61,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -200,6 +207,143 @@ public class ChangeInvisibleTimeProcessorTest {
         RemotingCommand responseToReturn = changeInvisibleTimeProcessor.processRequest(handlerContext, request);
         assertThat(responseToReturn.getCode()).isEqualTo(ResponseCode.NO_MESSAGE);
         assertThat(responseToReturn.getOpaque()).isEqualTo(request.getOpaque());
+    }
+
+    @Test
+    public void testProcessBatchRequestRejectsOversizedBody() throws Exception {
+        assertThat(brokerController.getBrokerConfig().getBatchChangeInvisibleTimeMaxNum()).isEqualTo(2048);
+        int batchMaxNum = brokerController.getBrokerConfig().getBatchChangeInvisibleTimeMaxNum();
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        List<ChangeInvisibleTimeRequestEntry> entries = new ArrayList<>();
+        for (int i = 0; i <= batchMaxNum; i++) {
+            ChangeInvisibleTimeRequestEntry entry = new ChangeInvisibleTimeRequestEntry();
+            entry.setConsumerGroup(group);
+            entry.setTopic(topic);
+            entry.setQueueId(0);
+            entry.setExtraInfo("0 10000 10000 0 test_broker 0");
+            entry.setOffset(i);
+            entry.setInvisibleTime(30000);
+            entries.add(entry);
+        }
+        requestBody.setEntries(entries);
+
+        RemotingCommand request = buildBatchRequest(requestBody);
+        request.setBody(requestBody.encode());
+        RemotingCommand response = changeInvisibleTimeProcessor.processRequestAsync(channel, request, true).get();
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.MESSAGE_ILLEGAL);
+        assertThat(response.getRemark()).contains(String.valueOf(batchMaxNum));
+    }
+
+    @Test
+    public void testProcessBatchRequestConvertsBadEntryToPerEntryFailure() throws Exception {
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        List<ChangeInvisibleTimeRequestEntry> entries = new ArrayList<>();
+        entries.add(null);
+        requestBody.setEntries(entries);
+
+        RemotingCommand request = buildBatchRequest(requestBody);
+        request.setBody(requestBody.encode());
+        RemotingCommand response = changeInvisibleTimeProcessor.processRequestAsync(channel, request, true).get();
+
+        BatchChangeInvisibleTimeResponseBody responseBody =
+            BatchChangeInvisibleTimeResponseBody.decode(response.getBody(), BatchChangeInvisibleTimeResponseBody.class);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(responseBody.getEntries()).hasSize(1);
+        assertThat(responseBody.getEntries().get(0).getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testProcessBatchKvRequestDoesNotBuildSingleHeader() throws Exception {
+        brokerController.getBrokerConfig().setPopConsumerKVServiceEnable(true);
+        when(messageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(0L);
+        when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(10L);
+        PopConsumerService popConsumerService = mock(PopConsumerService.class);
+        Mockito.doReturn(popConsumerService).when(brokerController).getPopConsumerService();
+
+        ChangeInvisibleTimeProcessor processor = new ChangeInvisibleTimeProcessor(brokerController) {
+            @Override
+            protected ChangeInvisibleTimeRequestHeader buildRequestHeader(ChangeInvisibleTimeRequestEntry entry) {
+                throw new AssertionError("KV batch entry should not build single request header");
+            }
+        };
+
+        long popTime = System.currentTimeMillis() - 1_000;
+        long oldInvisibleTime = 30_000;
+        long newInvisibleTime = 60_000;
+        long queueOffset = 1L;
+        int reviveQid = 0;
+        ChangeInvisibleTimeRequestEntry entry = new ChangeInvisibleTimeRequestEntry();
+        entry.setConsumerGroup(group);
+        entry.setTopic(topic);
+        entry.setQueueId(0);
+        entry.setExtraInfo(ExtraInfoUtil.buildExtraInfo(queueOffset, popTime, oldInvisibleTime, reviveQid,
+            topic, "test_broker", 0));
+        entry.setOffset(queueOffset);
+        entry.setInvisibleTime(newInvisibleTime);
+
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        List<ChangeInvisibleTimeRequestEntry> entries = new ArrayList<>();
+        entries.add(entry);
+        requestBody.setEntries(entries);
+
+        RemotingCommand request = buildBatchRequest(requestBody);
+        request.setBody(requestBody.encode());
+        RemotingCommand response = processor.processRequestAsync(channel, request, true).get();
+
+        BatchChangeInvisibleTimeResponseBody responseBody =
+            BatchChangeInvisibleTimeResponseBody.decode(response.getBody(), BatchChangeInvisibleTimeResponseBody.class);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(responseBody.getEntries()).hasSize(1);
+        assertThat(responseBody.getEntries().get(0).getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(responseBody.getEntries().get(0).getInvisibleTime()).isEqualTo(newInvisibleTime);
+        assertThat(responseBody.getEntries().get(0).getReviveQid()).isEqualTo(reviveQid);
+
+        ArgumentCaptor<List> changeRecordsCaptor = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(popConsumerService).batchChangeInvisibilityDuration(changeRecordsCaptor.capture());
+        List<ChangeInvisibleTimeRequestEntry> changeRecords = changeRecordsCaptor.getValue();
+        assertThat(changeRecords).hasSize(1);
+        assertThat(changeRecords.get(0).getPopTime()).isEqualTo(popTime);
+        assertThat(changeRecords.get(0).getOldInvisibleTime()).isEqualTo(oldInvisibleTime);
+        assertThat(changeRecords.get(0).getChangedInvisibleTime()).isEqualTo(newInvisibleTime);
+        assertThat(changeRecords.get(0).getConsumerGroup()).isEqualTo(group);
+        assertThat(changeRecords.get(0).getTopic()).isEqualTo(topic);
+        assertThat(changeRecords.get(0).getQueueId()).isEqualTo(0);
+        assertThat(changeRecords.get(0).getOffset()).isEqualTo(queueOffset);
+    }
+
+    @Test
+    public void testProcessBatchRequestRejectsMismatchedTopicOrGroup() throws Exception {
+        BatchChangeInvisibleTimeRequestBody requestBody = new BatchChangeInvisibleTimeRequestBody();
+        ChangeInvisibleTimeRequestEntry entry = new ChangeInvisibleTimeRequestEntry();
+        entry.setConsumerGroup(group + "_other");
+        entry.setTopic(topic);
+        entry.setQueueId(0);
+        entry.setExtraInfo("0 10000 10000 0 test_broker 0");
+        entry.setOffset(0L);
+        entry.setInvisibleTime(30000);
+        List<ChangeInvisibleTimeRequestEntry> entries = new ArrayList<>();
+        entries.add(entry);
+        requestBody.setEntries(entries);
+
+        RemotingCommand request = buildBatchRequest(requestBody);
+        request.setBody(requestBody.encode());
+        RemotingCommand response = changeInvisibleTimeProcessor.processRequestAsync(channel, request, true).get();
+
+        assertThat(response.getCode()).isEqualTo(ResponseCode.MESSAGE_ILLEGAL);
+        assertThat(response.getRemark()).contains("same topic and consumerGroup");
+    }
+
+    private RemotingCommand buildBatchRequest(BatchChangeInvisibleTimeRequestBody requestBody) {
+        BatchChangeInvisibleTimeRequestHeader requestHeader = new BatchChangeInvisibleTimeRequestHeader();
+        requestHeader.setTopic(topic);
+        requestHeader.setConsumerGroup(group);
+        RemotingCommand request = RemotingCommand.createRequestCommand(
+            RequestCode.BATCH_CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
+        request.setBody(requestBody.encode());
+        request.makeCustomHeaderToNet();
+        return request;
     }
 
     @Test

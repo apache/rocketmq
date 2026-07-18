@@ -230,6 +230,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int popCkMaxBufferSize = 200000;
     private int popCkOffsetMaxQueueSize = 20000;
     private boolean enablePopBatchAck = false;
+    private int batchChangeInvisibleTimeMaxNum = PopAckConstants.DEFAULT_BATCH_CHANGE_INVISIBLE_TIME_MAX_NUM;
     // set the interval to the maxFilterMessageSize in MessageStoreConfig divided by the cq unit size
     private long popLongPollingForceNotifyInterval = 800;
     private boolean enableNotifyBeforePopCalculateLag = true;
@@ -707,6 +708,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnablePopBatchAck(boolean enablePopBatchAck) {
         this.enablePopBatchAck = enablePopBatchAck;
+    }
+
+    public int getBatchChangeInvisibleTimeMaxNum() {
+        return batchChangeInvisibleTimeMaxNum;
+    }
+
+    public void setBatchChangeInvisibleTimeMaxNum(int batchChangeInvisibleTimeMaxNum) {
+        this.batchChangeInvisibleTimeMaxNum = batchChangeInvisibleTimeMaxNum;
     }
 
     public boolean isEnableSkipLongAwaitingAck() {
