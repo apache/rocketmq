@@ -61,6 +61,7 @@ import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -469,5 +470,9 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
                 new ReceiveMessageActivity.ReceiveMessageQueueSelector(BROKER_NAME + i);
             assertEquals(BROKER_NAME + i, selectorBrokerName.select(ProxyContext.create(), messageQueueView).getBrokerName());
         }
+
+        ReceiveMessageActivity.ReceiveMessageQueueSelector unavailableBrokerSelector =
+            new ReceiveMessageActivity.ReceiveMessageQueueSelector(BROKER_NAME + 2);
+        assertNull(unavailableBrokerSelector.select(ProxyContext.create(), messageQueueView));
     }
 }
