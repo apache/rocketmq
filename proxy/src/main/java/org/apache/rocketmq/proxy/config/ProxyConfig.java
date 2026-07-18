@@ -164,6 +164,13 @@ public class ProxyConfig implements ConfigFile {
 
     private int rocketmqMQClientNum = 6;
 
+    /**
+     * Keep already established Proxy-to-Broker remoting channels alive during low-traffic periods.
+     */
+    private boolean enableProxyBrokerHeartbeat = true;
+    private long proxyBrokerHeartbeatIntervalMillis = Duration.ofSeconds(30).toMillis();
+    private long proxyBrokerHeartbeatTimeoutMillis = Duration.ofSeconds(3).toMillis();
+
     private long grpcProxyRelayRequestTimeoutInSeconds = 5;
     private int grpcProducerThreadPoolNums = PROCESSOR_NUMBER;
     private int grpcProducerThreadQueueCapacity = 10000;
@@ -296,6 +303,14 @@ public class ProxyConfig implements ConfigFile {
     @Override
     public void initData() {
         parseDelayLevel();
+        if (enableProxyBrokerHeartbeat && proxyBrokerHeartbeatIntervalMillis <= 0) {
+            throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR,
+                "proxyBrokerHeartbeatIntervalMillis must be greater than zero");
+        }
+        if (enableProxyBrokerHeartbeat && proxyBrokerHeartbeatTimeoutMillis <= 0) {
+            throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR,
+                "proxyBrokerHeartbeatTimeoutMillis must be greater than zero");
+        }
         if (StringUtils.isBlank(localServeAddr)) {
             this.localServeAddr = NetworkUtil.getLocalAddress();
         }
@@ -737,6 +752,30 @@ public class ProxyConfig implements ConfigFile {
 
     public void setRocketmqMQClientNum(int rocketmqMQClientNum) {
         this.rocketmqMQClientNum = rocketmqMQClientNum;
+    }
+
+    public boolean isEnableProxyBrokerHeartbeat() {
+        return enableProxyBrokerHeartbeat;
+    }
+
+    public void setEnableProxyBrokerHeartbeat(boolean enableProxyBrokerHeartbeat) {
+        this.enableProxyBrokerHeartbeat = enableProxyBrokerHeartbeat;
+    }
+
+    public long getProxyBrokerHeartbeatIntervalMillis() {
+        return proxyBrokerHeartbeatIntervalMillis;
+    }
+
+    public void setProxyBrokerHeartbeatIntervalMillis(long proxyBrokerHeartbeatIntervalMillis) {
+        this.proxyBrokerHeartbeatIntervalMillis = proxyBrokerHeartbeatIntervalMillis;
+    }
+
+    public long getProxyBrokerHeartbeatTimeoutMillis() {
+        return proxyBrokerHeartbeatTimeoutMillis;
+    }
+
+    public void setProxyBrokerHeartbeatTimeoutMillis(long proxyBrokerHeartbeatTimeoutMillis) {
+        this.proxyBrokerHeartbeatTimeoutMillis = proxyBrokerHeartbeatTimeoutMillis;
     }
 
     public long getGrpcProxyRelayRequestTimeoutInSeconds() {

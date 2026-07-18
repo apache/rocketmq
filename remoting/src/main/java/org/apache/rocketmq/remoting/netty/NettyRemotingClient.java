@@ -917,6 +917,18 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     @Override
+    public List<String> getActiveChannelAddresses() {
+        List<String> activeAddresses = new ArrayList<>();
+        for (Map.Entry<String, ChannelWrapper> entry : this.channelTables.entrySet()) {
+            ChannelWrapper channelWrapper = entry.getValue();
+            if (channelWrapper != null && channelWrapper.isOK()) {
+                activeAddresses.add(entry.getKey());
+            }
+        }
+        return activeAddresses;
+    }
+
+    @Override
     public ChannelEventListener getChannelEventListener() {
         return channelEventListener;
     }
