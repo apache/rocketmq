@@ -19,7 +19,10 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 
 import apache.rocketmq.v2.Code;
 import apache.rocketmq.v2.Status;
+import io.grpc.StatusException;
+import io.grpc.StatusRuntimeException;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
@@ -88,8 +91,18 @@ public class ResponseBuilder {
         if (t instanceof RemotingTimeoutException) {
             return buildStatus(Code.PROXY_TIMEOUT, t.getMessage());
         }
+        if (t instanceof IllegalArgumentException) {
+            return buildStatus(Code.BAD_REQUEST, t.getMessage());
+        }
+        if (t instanceof NoSuchElementException) {
+            return buildStatus(Code.NOT_FOUND, t.getMessage());
+        }
         if (t instanceof AuthenticationException || t instanceof AuthorizationException) {
             return buildStatus(Code.UNAUTHORIZED, t.getMessage());
+        }
+        if (t instanceof StatusRuntimeException || t instanceof StatusException) {
+            io.grpc.Status grpcStatus = grpcStatus(t);
+            return buildStatus(buildCode(grpcStatus.getCode()), statusMessage(t, grpcStatus));
         }
 
         log.error("internal server error", t);
@@ -116,5 +129,43 @@ public class ResponseBuilder {
 
     public Code buildCode(int remotingResponseCode) {
         return RESPONSE_CODE_MAPPING.getOrDefault(remotingResponseCode, Code.INTERNAL_SERVER_ERROR);
+    }
+
+    private Code buildCode(io.grpc.Status.Code grpcStatusCode) {
+        switch (grpcStatusCode) {
+            case INVALID_ARGUMENT:
+            case FAILED_PRECONDITION:
+            case OUT_OF_RANGE:
+                return Code.BAD_REQUEST;
+            case NOT_FOUND:
+                return Code.NOT_FOUND;
+            case UNAUTHENTICATED:
+            case PERMISSION_DENIED:
+                return Code.UNAUTHORIZED;
+            case RESOURCE_EXHAUSTED:
+                return Code.TOO_MANY_REQUESTS;
+            case UNIMPLEMENTED:
+                return Code.NOT_IMPLEMENTED;
+            case UNAVAILABLE:
+            case DEADLINE_EXCEEDED:
+                return Code.PROXY_TIMEOUT;
+            default:
+                return Code.INTERNAL_SERVER_ERROR;
+        }
+    }
+
+    private io.grpc.Status grpcStatus(Throwable t) {
+        if (t instanceof StatusRuntimeException) {
+            return ((StatusRuntimeException) t).getStatus();
+        }
+        return ((StatusException) t).getStatus();
+    }
+
+    private String statusMessage(Throwable t, io.grpc.Status grpcStatus) {
+        String description = grpcStatus.getDescription();
+        if (description != null && !description.trim().isEmpty()) {
+            return description;
+        }
+        return t.getMessage();
     }
 }

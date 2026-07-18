@@ -1,0 +1,148 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "apache/rocketmq/v2/definition.proto";
+
+package apache.rocketmq.v2;
+
+option cc_enable_arenas = true;
+option csharp_namespace = "Apache.Rocketmq.V2";
+option java_multiple_files = true;
+option java_package = "apache.rocketmq.v2";
+option java_generate_equals_and_hash = true;
+option java_string_check_utf8 = true;
+option java_outer_classname = "MQAdmin";
+
+message ChangeLogLevelRequest {
+  enum Level {
+    TRACE = 0;
+    DEBUG = 1;
+    INFO = 2;
+    WARN = 3;
+    ERROR = 4;
+  }
+  Level level = 1;
+}
+
+message ChangeLogLevelResponse { string remark = 1; }
+
+service Admin {
+  rpc ChangeLogLevel(ChangeLogLevelRequest) returns (ChangeLogLevelResponse) {}
+}
+
+// ProxyAdminService is the public Proxy admin interface. M1 exposes online
+// client query APIs. Future modules can add proxy config, quota, route,
+// connection, and diagnosis APIs without mixing with the data-plane
+// MessagingService.
+service ProxyAdminService {
+  rpc ListClients(ListClientsRequest) returns (ListClientsResponse) {}
+  rpc DescribeClient(DescribeClientRequest) returns (DescribeClientResponse) {}
+  rpc ListClientsByGroup(ListClientsByGroupRequest)
+      returns (ListClientsByGroupResponse) {}
+  rpc ListClientsByTopic(ListClientsByTopicRequest)
+      returns (ListClientsByTopicResponse) {}
+}
+
+enum ProxyScope {
+  PROXY_SCOPE_UNSPECIFIED = 0;
+  PROXY_SCOPE_LOCAL_PROXY = 1;
+  PROXY_SCOPE_ALL_PROXIES = 2;
+  PROXY_SCOPE_PROXY_ID = 3;
+}
+
+message ListClientsRequest {
+  string client_id = 1;
+  string client_id_prefix = 2;
+  string group = 3;
+  string topic = 4;
+  string client_language = 5;
+  optional int64 connect_time_start_millis = 6;
+  optional int64 connect_time_end_millis = 7;
+  int32 page_num = 8;
+  int32 page_size = 9;
+  ProxyScope scope = 10;
+  string proxy_id = 11;
+}
+
+message ListClientsResponse {
+  Status status = 1;
+  repeated ProxyClient clients = 2;
+  bool has_more = 3;
+}
+
+message DescribeClientRequest {
+  string client_id = 1;
+  ProxyScope scope = 2;
+  string proxy_id = 3;
+}
+
+message DescribeClientResponse {
+  Status status = 1;
+  ProxyClient client = 2;
+}
+
+message ListClientsByGroupRequest {
+  string group = 1;
+  string client_id = 2;
+  string client_id_prefix = 3;
+  string client_language = 4;
+  optional int64 connect_time_start_millis = 5;
+  optional int64 connect_time_end_millis = 6;
+  int32 page_num = 7;
+  int32 page_size = 8;
+  ProxyScope scope = 9;
+  string proxy_id = 10;
+}
+
+message ListClientsByGroupResponse {
+  Status status = 1;
+  repeated ProxyClient clients = 2;
+  bool has_more = 3;
+}
+
+message ListClientsByTopicRequest {
+  string topic = 1;
+  string client_id = 2;
+  string client_id_prefix = 3;
+  string client_language = 4;
+  optional int64 connect_time_start_millis = 5;
+  optional int64 connect_time_end_millis = 6;
+  int32 page_num = 7;
+  int32 page_size = 8;
+  ProxyScope scope = 9;
+  string proxy_id = 10;
+}
+
+message ListClientsByTopicResponse {
+  Status status = 1;
+  repeated ProxyClient clients = 2;
+  bool has_more = 3;
+}
+
+message ProxyClient {
+  string client_id = 1;
+  ClientType client_type = 2;
+  repeated string groups = 3;
+  repeated string topics = 4;
+  string language = 5;
+  string remote_address = 6;
+  string local_address = 7;
+  string version = 8;
+  int64 connect_time_millis = 9;
+  int64 last_active_time_millis = 10;
+  string proxy_id = 11;
+}

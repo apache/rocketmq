@@ -36,6 +36,7 @@ import apache.rocketmq.v2.SyncLiteSubscriptionResponse;
 import apache.rocketmq.v2.TelemetryCommand;
 import apache.rocketmq.v2.ThreadStackTrace;
 import apache.rocketmq.v2.VerifyMessageResult;
+import com.google.protobuf.util.JsonFormat;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -43,15 +44,25 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
+import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
+import org.apache.rocketmq.broker.client.ProducerChangeListener;
+import org.apache.rocketmq.broker.client.ProducerGroupEvent;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.proxy.grpc.v2.ContextStreamObserver;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcValidator;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
+import org.apache.rocketmq.proxy.processor.channel.RemoteChannel;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientQuery;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -70,6 +81,8 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -77,10 +90,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -107,6 +124,18 @@ public class ClientActivityTest extends BaseActivityTest {
     public void before() throws Throwable {
         super.before();
         this.clientActivity = new ClientActivity(this.messagingProcessor, this.grpcClientSettingsManager, grpcChannelManager);
+    }
+
+    @Test
+    public void testConstructorRejectsNullProxyClientReadService() {
+        assertThatThrownBy(() -> new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            null
+        ))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("proxyClientReadService is required");
     }
 
     protected TelemetryCommand sendProducerTelemetry(ProxyContext context) throws Throwable {
@@ -157,6 +186,24 @@ public class ClientActivityTest extends BaseActivityTest {
 
         assertEquals(Lists.newArrayList(TOPIC), txProducerGroupArgumentCaptor.getAllValues());
         assertEquals(Lists.newArrayList(TOPIC), txProducerTopicArgumentCaptor.getAllValues());
+    }
+
+    @Test
+    public void testHeartbeatWithCachedSettingsWithoutLocalTelemetrySession() throws Throwable {
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        when(this.metadataService.getTopicMessageType(any(), anyString())).thenReturn(TopicMessageType.NORMAL);
+
+        HeartbeatResponse response = this.sendProducerHeartbeat(context);
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        verify(this.messagingProcessor).registerProducer(any(), eq(TOPIC), any());
     }
 
     protected TelemetryCommand sendConsumerTelemetry(ProxyContext context) throws Throwable {
@@ -210,6 +257,1163 @@ public class ClientActivityTest extends BaseActivityTest {
         SubscriptionData data = subscriptionDatasArgumentCaptor.getValue().stream().findAny().get();
         assertEquals("TAG", data.getExpressionType());
         assertEquals("tag", data.getSubString());
+    }
+
+    @Test
+    public void testConsumerTelemetryUpdatesProxyClientReadService() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+
+        this.sendConsumerTelemetry(context);
+
+        ProxyClientInfo clientInfo = proxyClientReadService.getClient(CLIENT_ID);
+        assertThat(clientInfo).isNotNull();
+        assertThat(clientInfo.getClientId()).isEqualTo(CLIENT_ID);
+        assertThat(clientInfo.getClientType()).isEqualTo(ClientType.PUSH_CONSUMER);
+        assertThat(clientInfo.getGroups()).containsExactly("Group");
+        assertThat(clientInfo.getTopics()).containsExactly(TOPIC);
+        assertThat(clientInfo.getLanguage()).isEqualTo(JAVA);
+        assertThat(clientInfo.getRemoteAddress()).isEqualTo(REMOTE_ADDR);
+        assertThat(clientInfo.getLocalAddress()).isEqualTo(LOCAL_ADDR);
+        assertThat(clientInfo.getConnectTimeMillis()).isGreaterThan(0L);
+        assertThat(clientInfo.getLastActiveTimeMillis()).isGreaterThanOrEqualTo(clientInfo.getConnectTimeMillis());
+    }
+
+    @Test
+    public void testProducerTelemetryUpdatesProxyClientReadService() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+
+        this.sendProducerTelemetry(context);
+
+        ProxyClientInfo clientInfo = proxyClientReadService.getClient(CLIENT_ID);
+        assertThat(clientInfo).isNotNull();
+        assertThat(clientInfo.getClientId()).isEqualTo(CLIENT_ID);
+        assertThat(clientInfo.getClientType()).isEqualTo(ClientType.PRODUCER);
+        assertThat(clientInfo.getGroups()).isEmpty();
+        assertThat(clientInfo.getTopics()).containsExactly(TOPIC);
+        assertThat(clientInfo.getLanguage()).isEqualTo(JAVA);
+        assertThat(clientInfo.getRemoteAddress()).isEqualTo(REMOTE_ADDR);
+        assertThat(clientInfo.getLocalAddress()).isEqualTo(LOCAL_ADDR);
+        assertThat(clientInfo.getConnectTimeMillis()).isGreaterThan(0L);
+        assertThat(clientInfo.getLastActiveTimeMillis()).isGreaterThanOrEqualTo(clientInfo.getConnectTimeMillis());
+    }
+
+    @Test
+    public void testTelemetryRecordsLocalProxyIdInProxyClientReadService() throws Throwable {
+        String originalProxyName = ConfigurationManager.getProxyConfig().getProxyName();
+        try {
+            ConfigurationManager.getProxyConfig().setProxyName("proxy-a");
+            ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+            this.clientActivity = new ClientActivity(
+                this.messagingProcessor,
+                this.grpcClientSettingsManager,
+                this.grpcChannelManager,
+                proxyClientReadService
+            );
+            ProxyContext context = createContext();
+
+            this.sendProducerTelemetry(context);
+
+            ProxyClientInfo clientInfo = proxyClientReadService.getClient(CLIENT_ID);
+            assertThat(clientInfo).isNotNull();
+            assertThat(clientInfo.getProxyId()).isEqualTo("proxy-a");
+        } finally {
+            ConfigurationManager.getProxyConfig().setProxyName(originalProxyName);
+        }
+    }
+
+    @Test
+    public void testTelemetryUsesDefaultProxyIdWhenProxyNameIsBlank() throws Throwable {
+        String originalProxyName = ConfigurationManager.getProxyConfig().getProxyName();
+        try {
+            ConfigurationManager.getProxyConfig().setProxyName(" ");
+            ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+            this.clientActivity = new ClientActivity(
+                this.messagingProcessor,
+                this.grpcClientSettingsManager,
+                this.grpcChannelManager,
+                proxyClientReadService
+            );
+            ProxyContext context = createContext();
+
+            this.sendProducerTelemetry(context);
+
+            ProxyClientInfo clientInfo = proxyClientReadService.getClient(CLIENT_ID);
+            assertThat(clientInfo).isNotNull();
+            assertThat(clientInfo.getProxyId()).isEqualTo("DEFAULT_PROXY");
+        } finally {
+            ConfigurationManager.getProxyConfig().setProxyName(originalProxyName);
+        }
+    }
+
+    @Test
+    public void testProducerTelemetryRejectsNonProducerClientTypeBeforeReadModelUpdate() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+
+        assertThatThrownBy(() -> this.sendClientTelemetry(context, settings).get())
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(StatusRuntimeException.class)
+            .satisfies(throwable -> assertThat(((StatusRuntimeException) throwable.getCause()).getStatus().getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT));
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        verify(this.messagingProcessor, never()).registerProducer(any(), anyString(), any());
+    }
+
+    @Test
+    public void testConsumerTelemetryRejectsNonConsumerClientTypeBeforeReadModelUpdate() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("Group").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setExpression(FilterExpression.newBuilder()
+                        .setExpression("tag")
+                        .setType(FilterType.TAG)
+                        .build())
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .build())
+                .build())
+            .build();
+
+        assertThatThrownBy(() -> this.sendClientTelemetry(context, settings).get())
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(StatusRuntimeException.class)
+            .satisfies(throwable -> assertThat(((StatusRuntimeException) throwable.getCause()).getStatus().getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT));
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        verify(this.messagingProcessor, never()).registerConsumer(
+            any(),
+            anyString(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyBoolean()
+        );
+    }
+
+    @Test
+    public void testEmptySettingsRemovesStaleProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        assertThatThrownBy(() -> this.sendClientTelemetry(context, Settings.getDefaultInstance()).get())
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(StatusRuntimeException.class)
+            .satisfies(throwable -> assertThat(((StatusRuntimeException) throwable.getCause()).getStatus().getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT));
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testInvalidTelemetrySettingsRemovesStaleProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        Settings invalidSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        assertThatThrownBy(() -> this.sendClientTelemetry(context, invalidSettings).get())
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(StatusRuntimeException.class)
+            .satisfies(throwable -> assertThat(((StatusRuntimeException) throwable.getCause()).getStatus().getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT));
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testHeartbeatPreservesConnectTimeAndUpdatesLastActiveTime() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        ProxyClientInfo firstClientInfo = proxyClientReadService.getClient(CLIENT_ID);
+
+        Thread.sleep(5L);
+        HeartbeatResponse response = this.sendProducerHeartbeat(context);
+
+        ProxyClientInfo secondClientInfo = proxyClientReadService.getClient(CLIENT_ID);
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertThat(secondClientInfo.getConnectTimeMillis()).isEqualTo(firstClientInfo.getConnectTimeMillis());
+        assertThat(secondClientInfo.getLastActiveTimeMillis()).isGreaterThan(firstClientInfo.getLastActiveTimeMillis());
+        assertThat(secondClientInfo.getTopics()).containsExactly(TOPIC);
+    }
+
+    @Test
+    public void testHeartbeatAfterTerminationDoesNotResurrectClient() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any())).thenReturn(producerSettings);
+        when(this.metadataService.getTopicMessageType(any(), anyString())).thenReturn(TopicMessageType.NORMAL);
+
+        this.sendProducerTelemetry(context);
+        NotifyClientTerminationResponse terminationResponse = this.clientActivity.notifyClientTermination(
+            context,
+            NotifyClientTerminationRequest.newBuilder().build()
+        ).get();
+        clearInvocations(this.messagingProcessor);
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(null);
+
+        HeartbeatResponse heartbeatResponse = this.sendProducerHeartbeat(context);
+
+        assertEquals(Code.OK, terminationResponse.getStatus().getCode());
+        assertEquals(Code.UNRECOGNIZED_CLIENT_TYPE, heartbeatResponse.getStatus().getCode());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(this.grpcChannelManager.getChannel(CLIENT_ID)).isNull();
+        verify(this.messagingProcessor, never()).registerProducer(any(), anyString(), any());
+    }
+
+    @Test
+    public void testHeartbeatWithoutClientSettingsRemovesProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(null);
+        HeartbeatResponse response = this.sendProducerHeartbeat(context);
+
+        assertEquals(Code.UNRECOGNIZED_CLIENT_TYPE, response.getStatus().getCode());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testHeartbeatWithUnrecognizedClientTypeRemovesProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder()
+            .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+            .build());
+        HeartbeatResponse response = this.sendProducerHeartbeat(context);
+
+        assertEquals(Code.UNRECOGNIZED_CLIENT_TYPE, response.getStatus().getCode());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testNotifyClientTerminationRemovesProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any())).thenReturn(producerSettings);
+        when(this.metadataService.getTopicMessageType(any(), anyString())).thenReturn(TopicMessageType.NORMAL);
+
+        this.sendProducerTelemetry(context);
+        this.sendProducerHeartbeat(context);
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        NotifyClientTerminationResponse response = this.clientActivity.notifyClientTermination(
+            context,
+            NotifyClientTerminationRequest.newBuilder().build()
+        ).get();
+
+        assertEquals(Code.OK, response.getStatus().getCode());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testNotifyClientTerminationRemovesReadModelForUnrecognizedClientType() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any()))
+            .thenReturn(Settings.newBuilder()
+                .setClientType(ClientType.CLIENT_TYPE_UNSPECIFIED)
+                .build());
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+
+        NotifyClientTerminationResponse response = this.clientActivity.notifyClientTermination(
+            context,
+            NotifyClientTerminationRequest.newBuilder().build()
+        ).get();
+
+        assertEquals(Code.UNRECOGNIZED_CLIENT_TYPE, response.getStatus().getCode());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testNotifyClientTerminationRemovesReadModelWhenUnregisterFails() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendConsumerTelemetry(context);
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any()))
+            .thenReturn(Settings.newBuilder()
+                .setClientType(ClientType.PUSH_CONSUMER)
+                .build());
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+
+        assertThatThrownBy(() -> this.clientActivity.notifyClientTermination(
+            context,
+            NotifyClientTerminationRequest.newBuilder().build()
+        ).get())
+            .isInstanceOf(ExecutionException.class);
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("Group")
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testProducerUnregisterListenerRemovesProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        ProducerChangeListener listener = latestProducerChangeListener();
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+
+        listener.handle(
+            ProducerGroupEvent.CLIENT_UNREGISTER,
+            TOPIC,
+            new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testProducerUnregisterListenerRemovesProxyClientReadServiceIndexesWhenSettingsCleanupFails() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        doThrow(new RuntimeException("settings cleanup failed"))
+            .when(this.grpcClientSettingsManager)
+            .removeAndGetRawClientSettings(CLIENT_ID);
+        ProducerChangeListener listener = latestProducerChangeListener();
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+
+        assertThatCode(() -> listener.handle(
+            ProducerGroupEvent.CLIENT_UNREGISTER,
+            TOPIC,
+            new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, 0)
+        )).doesNotThrowAnyException();
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+    }
+
+    @Test
+    public void testConsumerUnregisterListenerRemovesProxyClientReadServiceIndexes() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendConsumerTelemetry(context);
+        ConsumerIdsChangeListener listener = latestConsumerIdsChangeListener();
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+
+        listener.handle(
+            ConsumerGroupEvent.CLIENT_UNREGISTER,
+            "Group",
+            new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("Group")
+            .build()).getClients()).isEmpty();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testConsumerUnregisterListenerRemovesCachedClientSettingsBeforeOfflineHooks() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings consumerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("Group").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setExpression(FilterExpression.newBuilder()
+                        .setExpression("tag")
+                        .setType(FilterType.TAG)
+                        .build())
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .build())
+                .build())
+            .build();
+        this.sendClientTelemetry(context, consumerSettings).get();
+        when(this.grpcClientSettingsManager.removeAndGetRawClientSettings(CLIENT_ID))
+            .thenReturn(consumerSettings);
+        ConsumerIdsChangeListener listener = latestConsumerIdsChangeListener();
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+
+        listener.handle(
+            ConsumerGroupEvent.CLIENT_UNREGISTER,
+            "Group",
+            new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+        verify(this.grpcClientSettingsManager).offlineClientLiteSubscription(
+            any(ProxyContext.class),
+            eq(CLIENT_ID),
+            same(consumerSettings)
+        );
+    }
+
+    @Test
+    public void testConsumerUnregisterListenerRemovesProxyClientReadServiceIndexesWhenOfflineHookFails() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings consumerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("Group").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setExpression(FilterExpression.newBuilder()
+                        .setExpression("tag")
+                        .setType(FilterType.TAG)
+                        .build())
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .build())
+                .build())
+            .build();
+        this.sendClientTelemetry(context, consumerSettings).get();
+        when(this.grpcClientSettingsManager.removeAndGetRawClientSettings(CLIENT_ID))
+            .thenReturn(consumerSettings);
+        doThrow(new RuntimeException("offline hook failed"))
+            .when(this.grpcClientSettingsManager)
+            .offlineClientLiteSubscription(any(ProxyContext.class), eq(CLIENT_ID), same(consumerSettings));
+        ConsumerIdsChangeListener listener = latestConsumerIdsChangeListener();
+        GrpcClientChannel channel = this.grpcChannelManager.getChannel(CLIENT_ID);
+
+        assertThatCode(() -> listener.handle(
+            ConsumerGroupEvent.CLIENT_UNREGISTER,
+            "Group",
+            new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, 0)
+        )).doesNotThrowAnyException();
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setGroup("Group")
+            .build()).getClients()).isEmpty();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+        verify(this.grpcClientSettingsManager).offlineClientLiteSubscription(
+            any(ProxyContext.class),
+            eq(CLIENT_ID),
+            same(consumerSettings)
+        );
+    }
+
+    @Test
+    public void testProducerUnregisterListenerIgnoresRemoteChannel() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendProducerTelemetry(context);
+        ProducerChangeListener listener = latestProducerChangeListener();
+
+        listener.handle(
+            ProducerGroupEvent.CLIENT_UNREGISTER,
+            TOPIC,
+            new ClientChannelInfo(remoteGrpcChannel(), CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+    }
+
+    @Test
+    public void testRemoteConsumerRegisterSyncsSettingsWithoutUpdatingProxyClientReadService() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        Settings remoteSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setTopic(Resource.newBuilder().setName(TOPIC).build())
+                    .build())
+                .build())
+            .build();
+        ConsumerIdsChangeListener listener = latestConsumerIdsChangeListener();
+
+        listener.handle(
+            ConsumerGroupEvent.REGISTER,
+            CONSUMER_GROUP,
+            Lists.newArrayList(),
+            new ClientChannelInfo(remoteGrpcChannel(remoteSettings), CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        verify(this.grpcClientSettingsManager).updateClientSettings(
+            any(ProxyContext.class),
+            eq(CLIENT_ID),
+            eq(remoteSettings)
+        );
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setGroup(CONSUMER_GROUP)
+            .build()).getClients()).isEmpty();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testRemoteConsumerRegisterDoesNotOverwriteActiveLocalTelemetrySession() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        this.sendConsumerTelemetry(context);
+        clearInvocations(this.grpcClientSettingsManager);
+        Settings remoteSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("RemoteGroup").build())
+                .build())
+            .build();
+
+        latestConsumerIdsChangeListener().handle(
+            ConsumerGroupEvent.REGISTER,
+            "RemoteGroup",
+            Lists.newArrayList(),
+            new ClientChannelInfo(remoteGrpcChannel(remoteSettings), CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        verify(this.grpcClientSettingsManager, never()).updateClientSettings(
+            any(ProxyContext.class), eq(CLIENT_ID), any(Settings.class));
+        assertThat(proxyClientReadService.getClient(CLIENT_ID).getGroups()).containsExactly("Group");
+    }
+
+    @Test
+    public void testTelemetryCancelRemovesProxyClientReadServiceIndexes() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(
+            new StreamObserver<TelemetryCommand>() {
+                @Override
+                public void onNext(TelemetryCommand value) {
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                }
+
+                @Override
+                public void onCompleted() {
+                }
+            }
+        );
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(producerSettings)
+            .build());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        requestObserver.onError(Status.CANCELLED.asRuntimeException());
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testTelemetryStreamErrorRemovesProxyClientReadServiceIndexes() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(
+            new StreamObserver<TelemetryCommand>() {
+                @Override
+                public void onNext(TelemetryCommand value) {
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                }
+
+                @Override
+                public void onCompleted() {
+                }
+            }
+        );
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(producerSettings)
+            .build());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        requestObserver.onError(Status.INTERNAL.asRuntimeException());
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testTelemetryNonStatusStreamErrorRemovesProxyClientReadServiceIndexes() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(
+            new StreamObserver<TelemetryCommand>() {
+                @Override
+                public void onNext(TelemetryCommand value) {
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                }
+
+                @Override
+                public void onCompleted() {
+                }
+            }
+        );
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(producerSettings)
+            .build());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        requestObserver.onError(new RuntimeException("stream closed"));
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+    }
+
+    @Test
+    public void testTelemetryCancelRemovesCachedClientSettingsBeforeOfflineHooks() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        when(grpcClientSettingsManager.removeAndGetRawClientSettings(CLIENT_ID)).thenReturn(producerSettings);
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(
+            new StreamObserver<TelemetryCommand>() {
+                @Override
+                public void onNext(TelemetryCommand value) {
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                }
+
+                @Override
+                public void onCompleted() {
+                }
+            }
+        );
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(producerSettings)
+            .build());
+
+        requestObserver.onError(Status.CANCELLED.asRuntimeException());
+
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+        verify(this.grpcClientSettingsManager).offlineClientLiteSubscription(context, CLIENT_ID, producerSettings);
+    }
+
+    @Test
+    public void testTelemetryCompletedRemovesProxyClientReadServiceIndexesAndSettingsBeforeOfflineHooks() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        when(grpcClientSettingsManager.removeAndGetRawClientSettings(CLIENT_ID)).thenReturn(producerSettings);
+        StreamObserver<TelemetryCommand> responseObserver = mock(StreamObserver.class);
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(responseObserver);
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(producerSettings)
+            .build());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        requestObserver.onCompleted();
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+        verify(this.grpcClientSettingsManager).offlineClientLiteSubscription(context, CLIENT_ID, producerSettings);
+        verify(responseObserver).onCompleted();
+    }
+
+    @Test
+    public void testTelemetryCompletedRemovesProxyClientReadServiceIndexesWhenOfflineHookFails() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        when(grpcClientSettingsManager.getClientSettings(any())).thenReturn(producerSettings);
+        when(grpcClientSettingsManager.removeAndGetRawClientSettings(CLIENT_ID)).thenReturn(producerSettings);
+        doThrow(new RuntimeException("offline hook failed"))
+            .when(grpcClientSettingsManager)
+            .offlineClientLiteSubscription(context, CLIENT_ID, producerSettings);
+        StreamObserver<TelemetryCommand> responseObserver = mock(StreamObserver.class);
+        ContextStreamObserver<TelemetryCommand> requestObserver = this.clientActivity.telemetry(responseObserver);
+        requestObserver.onNext(context, TelemetryCommand.newBuilder()
+            .setSettings(producerSettings)
+            .build());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).hasSize(1);
+
+        assertThatCode(requestObserver::onCompleted).doesNotThrowAnyException();
+
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNull();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+        verify(this.grpcClientSettingsManager).removeAndGetRawClientSettings(CLIENT_ID);
+        verify(this.grpcClientSettingsManager).offlineClientLiteSubscription(context, CLIENT_ID, producerSettings);
+        verify(responseObserver).onCompleted();
+    }
+
+    @Test
+    public void testOldTelemetryStreamErrorDoesNotRemoveReconnectedClientState() {
+        assertOldTelemetryCloseDoesNotRemoveReconnectedClientState(false);
+    }
+
+    @Test
+    public void testOldTelemetryStreamCompletionDoesNotRemoveReconnectedClientState() {
+        assertOldTelemetryCloseDoesNotRemoveReconnectedClientState(true);
+    }
+
+    @Test
+    public void testOldProducerUnregisterDoesNotRemoveReconnectedEmptyProducerState() {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        Settings originalSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        Settings reconnectedSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.getDefaultInstance())
+            .build();
+        when(this.grpcClientSettingsManager.getClientSettings(any()))
+            .thenReturn(originalSettings, reconnectedSettings);
+        ContextStreamObserver<TelemetryCommand> oldRequestObserver = this.clientActivity.telemetry(
+            mock(StreamObserver.class));
+        ContextStreamObserver<TelemetryCommand> reconnectedRequestObserver = this.clientActivity.telemetry(
+            mock(StreamObserver.class));
+
+        oldRequestObserver.onNext(context, TelemetryCommand.newBuilder().setSettings(originalSettings).build());
+        GrpcClientChannel originalChannel = this.grpcChannelManager.getChannel(CLIENT_ID);
+        reconnectedRequestObserver.onNext(context,
+            TelemetryCommand.newBuilder().setSettings(reconnectedSettings).build());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID)).isNotNull();
+        clearInvocations(this.grpcClientSettingsManager);
+
+        latestProducerChangeListener().handle(
+            ProducerGroupEvent.CLIENT_UNREGISTER,
+            TOPIC,
+            new ClientChannelInfo(originalChannel, CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        ProxyClientInfo clientInfo = proxyClientReadService.getClient(CLIENT_ID);
+        assertThat(clientInfo).isNotNull();
+        assertThat(clientInfo.getTopics()).isEmpty();
+        assertThat(this.grpcChannelManager.getChannel(CLIENT_ID)).isNull();
+        verify(this.grpcClientSettingsManager, never()).removeAndGetRawClientSettings(CLIENT_ID);
+    }
+
+    @Test
+    public void testOldTransportHeartbeatAndTerminationDoNotMutateReconnectedClient() throws Throwable {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext oldContext = createContext();
+        ProxyContext reconnectedContext = createContext().setRemoteAddress("127.0.0.1:19001");
+        String reconnectedTopic = TOPIC + "-reconnected";
+        Settings oldSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        Settings reconnectedSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(reconnectedTopic).build())
+                .build())
+            .build();
+        when(this.grpcClientSettingsManager.getClientSettings(any()))
+            .thenReturn(oldSettings, reconnectedSettings, reconnectedSettings);
+        ContextStreamObserver<TelemetryCommand> oldRequestObserver = this.clientActivity.telemetry(
+            mock(StreamObserver.class));
+        ContextStreamObserver<TelemetryCommand> reconnectedRequestObserver = this.clientActivity.telemetry(
+            mock(StreamObserver.class));
+        oldRequestObserver.onNext(oldContext,
+            TelemetryCommand.newBuilder().setSettings(oldSettings).build());
+        reconnectedRequestObserver.onNext(reconnectedContext,
+            TelemetryCommand.newBuilder().setSettings(reconnectedSettings).build());
+        clearInvocations(this.messagingProcessor, this.grpcClientSettingsManager);
+
+        HeartbeatResponse heartbeatResponse = this.sendProducerHeartbeat(oldContext);
+        NotifyClientTerminationResponse terminationResponse = this.clientActivity.notifyClientTermination(
+            oldContext,
+            NotifyClientTerminationRequest.newBuilder().build()
+        ).get();
+
+        assertEquals(Code.UNRECOGNIZED_CLIENT_TYPE, heartbeatResponse.getStatus().getCode());
+        assertEquals(Code.UNRECOGNIZED_CLIENT_TYPE, terminationResponse.getStatus().getCode());
+        assertThat(proxyClientReadService.getClient(CLIENT_ID).getTopics()).containsExactly(reconnectedTopic);
+        verify(this.messagingProcessor, never()).registerProducer(any(), anyString(), any());
+        verify(this.grpcClientSettingsManager, never()).removeAndGetClientSettings(any());
+    }
+
+    private void assertOldTelemetryCloseDoesNotRemoveReconnectedClientState(boolean completeOldStream) {
+        ProxyClientReadService proxyClientReadService = new ProxyClientReadService();
+        this.clientActivity = new ClientActivity(
+            this.messagingProcessor,
+            this.grpcClientSettingsManager,
+            this.grpcChannelManager,
+            proxyClientReadService
+        );
+        ProxyContext context = createContext();
+        String reconnectedTopic = TOPIC + "-reconnected";
+        Settings originalSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .build())
+            .build();
+        Settings reconnectedSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(reconnectedTopic).build())
+                .build())
+            .build();
+        when(this.grpcClientSettingsManager.getClientSettings(any()))
+            .thenReturn(originalSettings, reconnectedSettings);
+        ContextStreamObserver<TelemetryCommand> oldRequestObserver = this.clientActivity.telemetry(
+            mock(StreamObserver.class));
+        ContextStreamObserver<TelemetryCommand> reconnectedRequestObserver = this.clientActivity.telemetry(
+            mock(StreamObserver.class));
+
+        oldRequestObserver.onNext(context, TelemetryCommand.newBuilder().setSettings(originalSettings).build());
+        GrpcClientChannel originalChannel = this.grpcChannelManager.getChannel(CLIENT_ID);
+        reconnectedRequestObserver.onNext(context,
+            TelemetryCommand.newBuilder().setSettings(reconnectedSettings).build());
+        GrpcClientChannel reconnectedChannel = this.grpcChannelManager.getChannel(CLIENT_ID);
+        assertThat(reconnectedChannel).isNotSameAs(originalChannel);
+        clearInvocations(this.grpcClientSettingsManager);
+
+        if (completeOldStream) {
+            oldRequestObserver.onCompleted();
+        } else {
+            oldRequestObserver.onError(Status.CANCELLED.asRuntimeException());
+        }
+        latestProducerChangeListener().handle(
+            ProducerGroupEvent.CLIENT_UNREGISTER,
+            TOPIC,
+            new ClientChannelInfo(originalChannel, CLIENT_ID, LanguageCode.JAVA, 0)
+        );
+
+        ProxyClientInfo clientInfo = proxyClientReadService.getClient(CLIENT_ID);
+        assertThat(clientInfo).isNotNull();
+        assertThat(clientInfo.getTopics()).containsExactly(reconnectedTopic);
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(TOPIC)
+            .build()).getClients()).isEmpty();
+        assertThat(proxyClientReadService.listClients(ProxyClientQuery.newBuilder()
+            .setTopic(reconnectedTopic)
+            .build()).getClients()).hasSize(1);
+        assertThat(this.grpcChannelManager.getChannel(CLIENT_ID)).isSameAs(reconnectedChannel);
+        verify(this.grpcClientSettingsManager, never()).removeAndGetRawClientSettings(CLIENT_ID);
+        verify(this.grpcClientSettingsManager, never()).offlineClientLiteSubscription(
+            any(ProxyContext.class), eq(CLIENT_ID), any());
     }
 
     protected void assertClientChannelInfo(ClientChannelInfo clientChannelInfo, String group) {
@@ -316,6 +1520,23 @@ public class ClientActivityTest extends BaseActivityTest {
             StatusRuntimeException exception = (StatusRuntimeException) e.getCause();
             assertEquals(Status.Code.INVALID_ARGUMENT, exception.getStatus().getCode());
         }
+    }
+
+    @Test
+    public void testProducerSettingsValidateAllTopicsBeforeRegistration() {
+        ProxyContext context = createContext();
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .addTopics(Resource.newBuilder().setName("()").build())
+                .build())
+            .build();
+
+        assertThatThrownBy(() -> this.sendClientTelemetry(context, settings).get())
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(StatusRuntimeException.class);
+        verify(this.messagingProcessor, never()).registerProducer(any(), anyString(), any());
     }
 
     @Test
@@ -434,6 +1655,39 @@ public class ClientActivityTest extends BaseActivityTest {
             .setSettings(settings)
             .build());
         return future;
+    }
+
+    private ProducerChangeListener latestProducerChangeListener() {
+        ArgumentCaptor<ProducerChangeListener> listenerCaptor = ArgumentCaptor.forClass(ProducerChangeListener.class);
+        verify(this.messagingProcessor, times(2)).registerProducerListener(listenerCaptor.capture());
+        return listenerCaptor.getAllValues().get(1);
+    }
+
+    private ConsumerIdsChangeListener latestConsumerIdsChangeListener() {
+        ArgumentCaptor<ConsumerIdsChangeListener> listenerCaptor =
+            ArgumentCaptor.forClass(ConsumerIdsChangeListener.class);
+        verify(this.messagingProcessor, times(2)).registerConsumerListener(listenerCaptor.capture());
+        return listenerCaptor.getAllValues().get(1);
+    }
+
+    private RemoteChannel remoteGrpcChannel() {
+        return new RemoteChannel(
+            "remote-proxy",
+            REMOTE_ADDR,
+            LOCAL_ADDR,
+            ChannelProtocolType.GRPC_V2,
+            null
+        );
+    }
+
+    private RemoteChannel remoteGrpcChannel(Settings settings) throws Exception {
+        return new RemoteChannel(
+            "remote-proxy",
+            REMOTE_ADDR,
+            LOCAL_ADDR,
+            ChannelProtocolType.GRPC_V2,
+            JsonFormat.printer().print(settings)
+        );
     }
 
     @Test

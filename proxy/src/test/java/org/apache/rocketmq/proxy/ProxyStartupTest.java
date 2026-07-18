@@ -19,17 +19,24 @@ package org.apache.rocketmq.proxy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import io.grpc.BindableService;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
@@ -37,7 +44,14 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.proxy.config.Configuration;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
+import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplication;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminEndpointExecutor;
+import org.apache.rocketmq.proxy.grpc.v2.admin.ProxyClientAdminPeerGrpcService;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -291,5 +305,416 @@ public class ProxyStartupTest {
 
             assertSame(processor, ProxyStartup.createMessagingProcessor());
         }
+    }
+
+    @Test
+    public void testCreateServiceProcessorUsesSuppliedSharedActivity() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+
+        GrpcMessagingApplication application = ProxyStartup.createServiceProcessor(messagingProcessor, sharedActivity);
+
+        Field activityField = GrpcMessagingApplication.class.getDeclaredField("grpcMessagingActivity");
+        activityField.setAccessible(true);
+        assertSame(sharedActivity, activityField.get(application));
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesUsesSuppliedSharedActivity() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+
+        List<BindableService> services = ProxyStartup.createGrpcBindableServices(messagingProcessor, sharedActivity);
+
+        assertEquals(1, services.size());
+        Assert.assertTrue(services.get(0) instanceof GrpcMessagingApplication);
+        Field activityField = GrpcMessagingApplication.class.getDeclaredField("grpcMessagingActivity");
+        activityField.setAccessible(true);
+        assertSame(sharedActivity, activityField.get(services.get(0)));
+    }
+
+    @Test
+    public void testProxyAdminGrpcConfigDefaultsToDisabledIndependentPort() {
+        ProxyConfig config = new ProxyConfig();
+
+        Assert.assertFalse(config.isEnableProxyAdminGrpcServer());
+        assertEquals(Integer.valueOf(8082), config.getProxyAdminGrpcServerPort());
+        assertEquals(4, config.getProxyAdminGrpcThreadPoolNums());
+        assertEquals(10000, config.getProxyAdminGrpcThreadPoolQueueCapacity());
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesDoesNotRegisterAdminPeerService() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        ProxyClientAdminPeerGrpcService peerGrpcService = mock(ProxyClientAdminPeerGrpcService.class);
+        Mockito.when(sharedActivity.getProxyClientAdminPeerGrpcService()).thenReturn(peerGrpcService);
+
+        List<BindableService> services = ProxyStartup.createGrpcBindableServices(messagingProcessor, sharedActivity);
+
+        assertEquals(1, services.size());
+        Assert.assertTrue(services.get(0) instanceof GrpcMessagingApplication);
+    }
+
+    @Test
+    public void testCreateProxyAdminGrpcBindableServicesDoesNotExposeInternalPeerService() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        BindableService adminService = mock(BindableService.class);
+        ProxyClientAdminPeerGrpcService peerGrpcService = mock(ProxyClientAdminPeerGrpcService.class);
+        Mockito.when(sharedActivity.getProxyClientAdminPeerGrpcService()).thenReturn(peerGrpcService);
+
+        List<BindableService> services = ProxyStartup.createProxyAdminGrpcBindableServices(
+            sharedActivity,
+            activity -> {
+                assertSame(sharedActivity, activity);
+                return Collections.singletonList(adminService);
+            }
+        );
+
+        assertEquals(1, services.size());
+        assertSame(adminService, services.get(0));
+        Mockito.verify(sharedActivity, Mockito.never()).getProxyClientAdminPeerGrpcService();
+    }
+
+    @Test
+    public void testCreateProxyAdminGrpcBindableServicesRegistersPublicProxyAdminServiceByDefault() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        ProxyClientAdminEndpointExecutor endpointExecutor = mock(ProxyClientAdminEndpointExecutor.class);
+        Mockito.when(sharedActivity.getProxyClientAdminEndpointExecutor()).thenReturn(endpointExecutor);
+
+        List<BindableService> services = ProxyStartup.createProxyAdminGrpcBindableServices(sharedActivity);
+
+        assertEquals(1, services.size());
+        Assert.assertTrue(services.get(0) instanceof GrpcProxyAdminApplication);
+    }
+
+    @Test
+    public void testConfigureProxyAdminGrpcServerRegistersOnlyPublicAdminService() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        ProxyClientAdminEndpointExecutor endpointExecutor = mock(ProxyClientAdminEndpointExecutor.class);
+        Mockito.when(sharedActivity.getProxyClientAdminEndpointExecutor()).thenReturn(endpointExecutor);
+        GrpcServerBuilder serverBuilder = mock(GrpcServerBuilder.class);
+        Mockito.when(serverBuilder.addService(any(BindableService.class))).thenReturn(serverBuilder);
+        Mockito.when(serverBuilder.configInterceptor()).thenReturn(serverBuilder);
+        Mockito.when(serverBuilder.shutdownTime(Mockito.anyLong(), Mockito.any(TimeUnit.class)))
+            .thenReturn(serverBuilder);
+
+        GrpcServerBuilder configuredBuilder = ProxyStartup.configureProxyAdminGrpcServer(
+            serverBuilder,
+            sharedActivity
+        );
+
+        assertSame(serverBuilder, configuredBuilder);
+        ArgumentCaptor<BindableService> serviceCaptor = ArgumentCaptor.forClass(BindableService.class);
+        Mockito.verify(serverBuilder).addService(serviceCaptor.capture());
+        Assert.assertTrue(serviceCaptor.getValue() instanceof GrpcProxyAdminApplication);
+        Mockito.verify(sharedActivity, Mockito.never()).getProxyClientAdminPeerGrpcService();
+    }
+
+    @Test
+    public void testCreateProxyAdminServerExecutorUsesIndependentThreadNameAndConfig() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        config.setProxyAdminGrpcThreadPoolNums(1);
+        config.setProxyAdminGrpcThreadPoolQueueCapacity(2);
+
+        ThreadPoolExecutor executor = ProxyStartup.createProxyAdminServerExecutor();
+        try {
+            String threadName = executor.submit(() -> Thread.currentThread().getName()).get(5, TimeUnit.SECONDS);
+
+            Assert.assertTrue(threadName.startsWith("ProxyAdminGrpcRequestExecutorThread"));
+            assertEquals(1, executor.getCorePoolSize());
+            assertEquals(2, executor.getQueue().remainingCapacity());
+            Assert.assertTrue(executor.getRejectedExecutionHandler() instanceof ThreadPoolExecutor.AbortPolicy);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesAppendsAdditionalServicesAfterMessagingService() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        BindableService adminService = mock(BindableService.class);
+
+        List<BindableService> services = ProxyStartup.createGrpcBindableServices(
+            messagingProcessor,
+            sharedActivity,
+            Collections.singletonList(adminService)
+        );
+
+        assertEquals(2, services.size());
+        Assert.assertTrue(services.get(0) instanceof GrpcMessagingApplication);
+        assertSame(adminService, services.get(1));
+        Field activityField = GrpcMessagingApplication.class.getDeclaredField("grpcMessagingActivity");
+        activityField.setAccessible(true);
+        assertSame(sharedActivity, activityField.get(services.get(0)));
+    }
+
+    @Test
+    public void testCreateProxyAdminGrpcBindableServicesUsesAdminServiceFactoryWithSharedActivity() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        BindableService adminService = mock(BindableService.class);
+
+        List<BindableService> services = ProxyStartup.createProxyAdminGrpcBindableServices(
+            sharedActivity,
+            activity -> {
+                assertSame(sharedActivity, activity);
+                return Collections.singletonList(adminService);
+            }
+        );
+
+        assertEquals(1, services.size());
+        assertSame(adminService, services.get(0));
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesRejectsNullAdditionalService() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> ProxyStartup.createGrpcBindableServices(
+                messagingProcessor,
+                sharedActivity,
+                Collections.singletonList(null)
+            )
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("additional service is required"));
+    }
+
+    @Test
+    public void testCreateProxyAdminGrpcBindableServicesRejectsNullAdminServiceFactory()
+        throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        int lifecycleCountBefore = proxyLifecycleComponentCount();
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> ProxyStartup.createProxyAdminGrpcBindableServices(
+                sharedActivity,
+                (ProxyStartup.ProxyAdminServiceFactory) null
+            )
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("proxy admin service factory is required"));
+        assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
+    }
+
+    @Test
+    public void testCreateProxyAdminGrpcBindableServicesRejectsNullSharedActivityBeforeAdminFactory() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        AtomicBoolean factoryInvoked = new AtomicBoolean(false);
+        int lifecycleCountBefore = proxyLifecycleComponentCount();
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> ProxyStartup.createProxyAdminGrpcBindableServices(
+                null,
+                activity -> {
+                    factoryInvoked.set(true);
+                    return Collections.emptyList();
+                }
+            )
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("grpcMessagingActivity is required"));
+        Assert.assertFalse(factoryInvoked.get());
+        assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesRejectsNullSharedActivityBeforeAdditionalServices()
+        throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        BindableService additionalService = mock(BindableService.class);
+        int lifecycleCountBefore = proxyLifecycleComponentCount();
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> ProxyStartup.createGrpcBindableServices(
+                messagingProcessor,
+                null,
+                Collections.singletonList(additionalService)
+            )
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("grpcMessagingActivity is required"));
+        assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
+    }
+
+    @Test
+    public void testCreateProxyAdminGrpcBindableServicesRejectsNullAdminService()
+        throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        int lifecycleCountBefore = proxyLifecycleComponentCount();
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> ProxyStartup.createProxyAdminGrpcBindableServices(
+                sharedActivity,
+                activity -> Collections.singletonList(null)
+            )
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("proxy admin service is required"));
+        assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
+    }
+
+    @Test
+    public void testCreateProxyAdminGrpcBindableServicesIgnoresInternalPeerServiceFailure()
+        throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        Mockito.when(sharedActivity.getProxyClientAdminPeerGrpcService())
+            .thenThrow(new IllegalStateException("peer grpc service is unavailable"));
+        int lifecycleCountBefore = proxyLifecycleComponentCount();
+
+        List<BindableService> services = ProxyStartup.createProxyAdminGrpcBindableServices(
+            sharedActivity,
+            activity -> Collections.emptyList()
+        );
+
+        Assert.assertTrue(services.isEmpty());
+        Mockito.verify(sharedActivity, Mockito.never()).getProxyClientAdminPeerGrpcService();
+        assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
+    }
+
+    @Test
+    public void testCreateProxyAdminGrpcBindableServicesKeepsPeerServiceInternal() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        BindableService adminService = mock(BindableService.class);
+        ProxyClientAdminPeerGrpcService peerGrpcService = mock(ProxyClientAdminPeerGrpcService.class);
+        Mockito.when(sharedActivity.getProxyClientAdminPeerGrpcService()).thenReturn(peerGrpcService);
+
+        List<BindableService> services = ProxyStartup.createProxyAdminGrpcBindableServices(
+            sharedActivity,
+            activity -> Collections.singletonList(adminService)
+        );
+
+        assertEquals(1, services.size());
+        assertSame(adminService, services.get(0));
+        Mockito.verify(sharedActivity, Mockito.never()).getProxyClientAdminPeerGrpcService();
+    }
+
+    @Test
+    public void testCreateGrpcBindableServicesDoesNotAppendPeerGrpcServiceBeforeAdditionalServices() throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        ProxyClientAdminPeerGrpcService peerGrpcService = mock(ProxyClientAdminPeerGrpcService.class);
+        BindableService additionalService = mock(BindableService.class);
+        Mockito.when(sharedActivity.getProxyClientAdminPeerGrpcService()).thenReturn(peerGrpcService);
+
+        List<BindableService> services = ProxyStartup.createGrpcBindableServices(
+            messagingProcessor,
+            sharedActivity,
+            Collections.singletonList(additionalService)
+        );
+
+        assertEquals(2, services.size());
+        Assert.assertTrue(services.get(0) instanceof GrpcMessagingApplication);
+        assertSame(additionalService, services.get(1));
+    }
+
+    @Test
+    public void testCreateProxyAdminGrpcBindableServicesKeepsAdminServicesWhenInternalPeerFails()
+        throws Exception {
+        CommandLineArgument commandLineArgument = ProxyStartup.parseCommandLineArgument(new String[] {
+            "-pm", "cluster"
+        });
+        ProxyStartup.initConfiguration(commandLineArgument);
+        DefaultGrpcMessagingActivity sharedActivity = mock(DefaultGrpcMessagingActivity.class);
+        BindableService additionalService = mock(BindableService.class);
+        Mockito.when(sharedActivity.getProxyClientAdminPeerGrpcService())
+            .thenThrow(new IllegalStateException("peer grpc service is unavailable"));
+        int lifecycleCountBefore = proxyLifecycleComponentCount();
+
+        List<BindableService> services = ProxyStartup.createProxyAdminGrpcBindableServices(
+            sharedActivity,
+            activity -> Collections.singletonList(additionalService)
+        );
+
+        assertEquals(1, services.size());
+        assertSame(additionalService, services.get(0));
+        Mockito.verify(sharedActivity, Mockito.never()).getProxyClientAdminPeerGrpcService();
+        assertEquals(lifecycleCountBefore, proxyLifecycleComponentCount());
+    }
+
+    private static int proxyLifecycleComponentCount() throws Exception {
+        Field proxyStartAndShutdownField = ProxyStartup.class.getDeclaredField("PROXY_START_AND_SHUTDOWN");
+        proxyStartAndShutdownField.setAccessible(true);
+        Object proxyStartAndShutdown = proxyStartAndShutdownField.get(null);
+        Field startAndShutdownListField =
+            proxyStartAndShutdown.getClass().getSuperclass().getDeclaredField("startAndShutdownList");
+        startAndShutdownListField.setAccessible(true);
+        List<?> startAndShutdownList = (List<?>) startAndShutdownListField.get(proxyStartAndShutdown);
+        return startAndShutdownList.size();
     }
 }

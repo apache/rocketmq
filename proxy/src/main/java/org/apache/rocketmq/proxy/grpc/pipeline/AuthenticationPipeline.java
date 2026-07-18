@@ -38,10 +38,22 @@ public class AuthenticationPipeline implements RequestPipeline {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final AuthConfig authConfig;
     private final AuthenticationEvaluator authenticationEvaluator;
+    private final boolean subjectRequiresAuthentication;
 
     public AuthenticationPipeline(AuthConfig authConfig, MessagingProcessor messagingProcessor) {
+        this(authConfig, messagingProcessor, false);
+    }
+
+    protected AuthenticationPipeline(AuthConfig authConfig, MessagingProcessor messagingProcessor,
+        boolean subjectRequiresAuthentication) {
         this.authConfig = authConfig;
         this.authenticationEvaluator = AuthenticationFactory.getEvaluator(authConfig, messagingProcessor::getMetadataService);
+        this.subjectRequiresAuthentication = subjectRequiresAuthentication;
+    }
+
+    public static AuthenticationPipeline forProxyAdmin(AuthConfig authConfig,
+        MessagingProcessor messagingProcessor) {
+        return new AuthenticationPipeline(authConfig, messagingProcessor, true);
     }
 
     @Override
@@ -50,9 +62,21 @@ public class AuthenticationPipeline implements RequestPipeline {
             return;
         }
         try {
-            Metadata metadata = GrpcConstants.METADATA.get(Context.current());
+            Metadata metadata = headers == null ? GrpcConstants.METADATA.get(Context.current()) : headers;
+            if (metadata == null) {
+                metadata = new Metadata();
+            }
+            if (this.subjectRequiresAuthentication) {
+                metadata.removeAll(GrpcConstants.AUTHORIZATION_AK);
+            }
             AuthenticationContext authenticationContext = newContext(context, metadata, request);
+            if (!this.subjectRequiresAuthentication) {
+                publishParsedSubjectIfAbsent(metadata, authenticationContext);
+            }
             authenticationEvaluator.evaluate(authenticationContext);
+            if (this.subjectRequiresAuthentication) {
+                publishAuthenticatedSubject(metadata, authenticationContext);
+            }
         } catch (AuthenticationException ex) {
             throw ex;
         } catch (Throwable ex) {
@@ -70,13 +94,42 @@ public class AuthenticationPipeline implements RequestPipeline {
      * @return
      */
     protected AuthenticationContext newContext(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {
-        AuthenticationContext result = AuthenticationFactory.newContext(authConfig, headers, request);
-        if (result instanceof DefaultAuthenticationContext) {
-            DefaultAuthenticationContext defaultAuthenticationContext = (DefaultAuthenticationContext) result;
-            if (StringUtils.isNotBlank(defaultAuthenticationContext.getUsername())) {
-                GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.AUTHORIZATION_AK, defaultAuthenticationContext.getUsername());
+        return AuthenticationFactory.newContext(authConfig, headers, request);
+    }
+
+    private void publishParsedSubjectIfAbsent(Metadata headers, AuthenticationContext authenticationContext) {
+        if (!(authenticationContext instanceof DefaultAuthenticationContext)) {
+            return;
+        }
+        String username = StringUtils.trimToNull(
+            ((DefaultAuthenticationContext) authenticationContext).getUsername());
+        if (username != null) {
+            GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.AUTHORIZATION_AK, username);
+        }
+    }
+
+    private void publishAuthenticatedSubject(Metadata headers, AuthenticationContext authenticationContext) {
+        if (!(authenticationContext instanceof DefaultAuthenticationContext)
+            || isAuthenticationWhitelisted(authenticationContext)) {
+            return;
+        }
+        String username = StringUtils.trimToNull(
+            ((DefaultAuthenticationContext) authenticationContext).getUsername());
+        if (username != null) {
+            headers.put(GrpcConstants.AUTHORIZATION_AK, username);
+        }
+    }
+
+    private boolean isAuthenticationWhitelisted(AuthenticationContext authenticationContext) {
+        String[] whitelist = StringUtils.split(this.authConfig.getAuthenticationWhitelist(), ',');
+        if (whitelist == null) {
+            return false;
+        }
+        for (String rpcCode : whitelist) {
+            if (StringUtils.trimToEmpty(rpcCode).equals(authenticationContext.getRpcCode())) {
+                return true;
             }
         }
-        return result;
+        return false;
     }
 }

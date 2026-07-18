@@ -44,6 +44,11 @@ public class ResourceTest {
         Assert.assertEquals(resource.getResourceType(), ResourceType.TOPIC);
         Assert.assertEquals(resource.getResourceName(), "test-1");
         Assert.assertEquals(resource.getResourcePattern(), ResourcePattern.LITERAL);
+
+        resource = Resource.of("Admin:proxy.admin.client");
+        Assert.assertEquals(resource.getResourceType(), ResourceType.ADMIN);
+        Assert.assertEquals(resource.getResourceName(), "proxy.admin.client");
+        Assert.assertEquals(resource.getResourcePattern(), ResourcePattern.LITERAL);
     }
 
     @Test

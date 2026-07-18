@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy;
 
 import com.google.common.collect.Lists;
+import io.grpc.BindableService;
 import io.grpc.protobuf.services.ChannelzService;
 import io.grpc.protobuf.services.ProtoReflectionService;
 import org.apache.commons.cli.CommandLine;
@@ -39,7 +40,9 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.GrpcServer;
 import org.apache.rocketmq.proxy.grpc.GrpcServerBuilder;
+import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.grpc.v2.admin.GrpcProxyAdminApplication;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -64,6 +67,10 @@ public class ProxyStartup {
         }
     }
 
+    interface ProxyAdminServiceFactory {
+        List<BindableService> create(DefaultGrpcMessagingActivity grpcMessagingActivity);
+    }
+
     public static void main(String[] args) {
         try {
             // parse argument from command line
@@ -73,24 +80,43 @@ public class ProxyStartup {
             // init thread pool monitor for proxy.
             initThreadPoolMonitor();
 
-            ThreadPoolExecutor executor = createServerExecutor();
-
             MessagingProcessor messagingProcessor = createMessagingProcessor();
+            DefaultGrpcMessagingActivity grpcMessagingActivity =
+                GrpcMessagingApplication.createDefaultActivity(messagingProcessor);
 
             // tls cert update
             TlsCertificateManager tlsCertificateManager = new TlsCertificateManager();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(tlsCertificateManager);
 
             // create grpcServer
-            GrpcServer grpcServer = GrpcServerBuilder.newBuilder(executor,
-                    ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager)
-                .addService(createServiceProcessor(messagingProcessor))
+            ThreadPoolExecutor executor = createServerExecutor();
+            GrpcServerBuilder grpcServerBuilder = GrpcServerBuilder.newBuilder(executor,
+                ConfigurationManager.getProxyConfig().getGrpcServerPort(), tlsCertificateManager);
+            for (BindableService service : createGrpcBindableServices(messagingProcessor, grpcMessagingActivity)) {
+                grpcServerBuilder.addService(service);
+            }
+            GrpcServer grpcServer = grpcServerBuilder
                 .addService(ChannelzService.newInstance(100))
                 .addService(ProtoReflectionService.newInstance())
                 .configInterceptor()
                 .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS)
                 .build();
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(grpcServer);
+
+            if (ConfigurationManager.getProxyConfig().isEnableProxyAdminGrpcServer()) {
+                ThreadPoolExecutor proxyAdminExecutor = createProxyAdminServerExecutor();
+                GrpcServerBuilder proxyAdminGrpcServerBuilder = GrpcServerBuilder.newBuilder(
+                    proxyAdminExecutor,
+                    ConfigurationManager.getProxyConfig().getProxyAdminGrpcServerPort(),
+                    tlsCertificateManager
+                );
+                GrpcServer proxyAdminGrpcServer = configureProxyAdminGrpcServer(
+                    proxyAdminGrpcServerBuilder,
+                    grpcMessagingActivity
+                )
+                    .build();
+                PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(proxyAdminGrpcServer);
+            }
 
             RemotingProtocolServer remotingServer = new RemotingProtocolServer(messagingProcessor, tlsCertificateManager);
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(remotingServer);
@@ -208,7 +234,113 @@ public class ProxyStartup {
     }
 
     private static GrpcMessagingApplication createServiceProcessor(MessagingProcessor messagingProcessor) {
-        GrpcMessagingApplication application = GrpcMessagingApplication.create(messagingProcessor);
+        DefaultGrpcMessagingActivity grpcMessagingActivity =
+            GrpcMessagingApplication.createDefaultActivity(messagingProcessor);
+        return createServiceProcessor(messagingProcessor, grpcMessagingActivity);
+    }
+
+    private static List<BindableService> createGrpcBindableServices(MessagingProcessor messagingProcessor) {
+        DefaultGrpcMessagingActivity grpcMessagingActivity =
+            GrpcMessagingApplication.createDefaultActivity(messagingProcessor);
+        return createGrpcBindableServices(messagingProcessor, grpcMessagingActivity);
+    }
+
+    static List<BindableService> createGrpcBindableServices(MessagingProcessor messagingProcessor,
+        DefaultGrpcMessagingActivity grpcMessagingActivity) {
+        DefaultGrpcMessagingActivity requiredGrpcMessagingActivity = requireGrpcMessagingActivity(grpcMessagingActivity);
+        return Lists.newArrayList(createServiceProcessor(messagingProcessor, requiredGrpcMessagingActivity));
+    }
+
+    static List<BindableService> createGrpcBindableServices(MessagingProcessor messagingProcessor,
+        DefaultGrpcMessagingActivity grpcMessagingActivity, List<BindableService> additionalServices) {
+        DefaultGrpcMessagingActivity requiredGrpcMessagingActivity = requireGrpcMessagingActivity(grpcMessagingActivity);
+        List<BindableService> services = Lists.newArrayList(
+            createServiceProcessor(messagingProcessor, requiredGrpcMessagingActivity)
+        );
+        if (additionalServices != null) {
+            appendBindableServices(services, additionalServices, "additional service is required");
+        }
+        return services;
+    }
+
+    static List<BindableService> createProxyAdminGrpcBindableServices(
+        DefaultGrpcMessagingActivity grpcMessagingActivity) {
+        return createProxyAdminGrpcBindableServices(
+            grpcMessagingActivity,
+            ProxyStartup::createProxyAdminBindableServices
+        );
+    }
+
+    static List<BindableService> createProxyAdminGrpcBindableServices(
+        DefaultGrpcMessagingActivity grpcMessagingActivity, ProxyAdminServiceFactory proxyAdminServiceFactory) {
+        DefaultGrpcMessagingActivity requiredGrpcMessagingActivity = requireGrpcMessagingActivity(grpcMessagingActivity);
+        List<BindableService> services = Lists.newArrayList();
+        appendBindableServices(
+            services,
+            requireProxyAdminServiceFactory(proxyAdminServiceFactory).create(requiredGrpcMessagingActivity),
+            "proxy admin service is required"
+        );
+        return services;
+    }
+
+    static GrpcServerBuilder configureProxyAdminGrpcServer(GrpcServerBuilder serverBuilder,
+        DefaultGrpcMessagingActivity grpcMessagingActivity) {
+        if (serverBuilder == null) {
+            throw new IllegalArgumentException("proxy admin grpc server builder is required");
+        }
+        for (BindableService service : createProxyAdminGrpcBindableServices(grpcMessagingActivity)) {
+            serverBuilder.addService(service);
+        }
+        return serverBuilder
+            .configInterceptor()
+            .shutdownTime(ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS);
+    }
+
+    private static List<BindableService> createProxyAdminBindableServices(
+        DefaultGrpcMessagingActivity grpcMessagingActivity) {
+        DefaultGrpcMessagingActivity requiredGrpcMessagingActivity = requireGrpcMessagingActivity(grpcMessagingActivity);
+        return Lists.<BindableService>newArrayList(new GrpcProxyAdminApplication(
+            requiredGrpcMessagingActivity.getProxyClientAdminEndpointExecutor()
+        ));
+    }
+
+    private static DefaultGrpcMessagingActivity requireGrpcMessagingActivity(
+        DefaultGrpcMessagingActivity grpcMessagingActivity) {
+        if (grpcMessagingActivity == null) {
+            throw new IllegalArgumentException("grpcMessagingActivity is required");
+        }
+        return grpcMessagingActivity;
+    }
+
+    private static ProxyAdminServiceFactory requireProxyAdminServiceFactory(
+        ProxyAdminServiceFactory proxyAdminServiceFactory) {
+        if (proxyAdminServiceFactory == null) {
+            throw new IllegalArgumentException("proxy admin service factory is required");
+        }
+        return proxyAdminServiceFactory;
+    }
+
+    private static void appendBindableServices(List<BindableService> services,
+        List<BindableService> appendServices, String nullServiceMessage) {
+        services.addAll(requireBindableServices(appendServices, nullServiceMessage));
+    }
+
+    private static List<BindableService> requireBindableServices(List<BindableService> appendServices,
+        String nullServiceMessage) {
+        if (appendServices == null) {
+            throw new IllegalArgumentException(nullServiceMessage);
+        }
+        for (BindableService appendService : appendServices) {
+            if (appendService == null) {
+                throw new IllegalArgumentException(nullServiceMessage);
+            }
+        }
+        return appendServices;
+    }
+
+    static GrpcMessagingApplication createServiceProcessor(MessagingProcessor messagingProcessor,
+        DefaultGrpcMessagingActivity grpcMessagingActivity) {
+        GrpcMessagingApplication application = GrpcMessagingApplication.create(messagingProcessor, grpcMessagingActivity);
         PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(application);
         return application;
     }
@@ -237,6 +369,30 @@ public class ProxyStartup {
         );
         PROXY_START_AND_SHUTDOWN.appendShutdown(executor::shutdown);
         return executor;
+    }
+
+    public static ThreadPoolExecutor createProxyAdminServerExecutor() {
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        int threadPoolNums = config.getProxyAdminGrpcThreadPoolNums();
+        int threadPoolQueueCapacity = config.getProxyAdminGrpcThreadPoolQueueCapacity();
+        requirePositive(threadPoolNums, "proxyAdminGrpcThreadPoolNums must be positive");
+        requirePositive(threadPoolQueueCapacity, "proxyAdminGrpcThreadPoolQueueCapacity must be positive");
+        ThreadPoolExecutor executor = ThreadPoolMonitor.createAndMonitor(
+            threadPoolNums,
+            threadPoolNums,
+            1, TimeUnit.MINUTES,
+            "ProxyAdminGrpcRequestExecutorThread",
+            threadPoolQueueCapacity,
+            new ThreadPoolExecutor.AbortPolicy()
+        );
+        PROXY_START_AND_SHUTDOWN.appendShutdown(executor::shutdown);
+        return executor;
+    }
+
+    private static void requirePositive(int value, String message) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(message);
+        }
     }
 
     public static void initThreadPoolMonitor() {

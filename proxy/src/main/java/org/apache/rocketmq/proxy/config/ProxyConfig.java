@@ -95,6 +95,10 @@ public class ProxyConfig implements ConfigFile {
     private boolean enableGrpcEpoll = false;
     private int grpcThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int grpcThreadPoolQueueCapacity = 100000;
+    private boolean enableProxyAdminGrpcServer = false;
+    private Integer proxyAdminGrpcServerPort = 8082;
+    private int proxyAdminGrpcThreadPoolNums = 4;
+    private int proxyAdminGrpcThreadPoolQueueCapacity = 10000;
 
     /**
      * Maximum number of concurrent gRPC calls allowed per client connection.
@@ -156,6 +160,13 @@ public class ProxyConfig implements ConfigFile {
     private long grpcClientConsumerMaxLongPollingTimeoutMillis = Duration.ofSeconds(20).toMillis();
     private int grpcClientConsumerLongPollingBatchSize = 32;
     private long grpcClientIdleTimeMills = Duration.ofSeconds(120).toMillis();
+    private boolean enableProxyClientReadServiceCleaner = false;
+    private boolean enableProxyClientAdminCrossProxyQuery = false;
+    private long proxyClientAdminPeerRequestTimeoutMillis = Duration.ofSeconds(2).toMillis();
+    private long proxyClientAdminCoordinatorPageTokenTtlMillis = Duration.ofMinutes(5).toMillis();
+    private String proxyClientAdminPeerGrpcTargets = "";
+    private long proxyClientReadServiceCleanerInactiveTimeoutMillis = Duration.ofMinutes(10).toMillis();
+    private long proxyClientReadServiceCleanerIntervalMillis = Duration.ofMinutes(1).toMillis();
     private long grpcServerPermitKeepAliveTimeMillis = 30000;
     private boolean grpcServerPermitKeepAliveWithoutCalls = true;
 
@@ -173,6 +184,8 @@ public class ProxyConfig implements ConfigFile {
     private int grpcRouteThreadQueueCapacity = 10000;
     private int grpcClientManagerThreadPoolNums = PROCESSOR_NUMBER;
     private int grpcClientManagerThreadQueueCapacity = 10000;
+    private int proxyClientAdminQueryThreadPoolNums = 4;
+    private int proxyClientAdminQueryThreadPoolQueueCapacity = 10000;
     private int grpcTransactionThreadPoolNums = PROCESSOR_NUMBER;
     private int grpcTransactionThreadQueueCapacity = 10000;
 
@@ -481,6 +494,22 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcServerPort(Integer grpcServerPort) {
         this.grpcServerPort = grpcServerPort;
+    }
+
+    public boolean isEnableProxyAdminGrpcServer() {
+        return enableProxyAdminGrpcServer;
+    }
+
+    public void setEnableProxyAdminGrpcServer(boolean enableProxyAdminGrpcServer) {
+        this.enableProxyAdminGrpcServer = enableProxyAdminGrpcServer;
+    }
+
+    public Integer getProxyAdminGrpcServerPort() {
+        return proxyAdminGrpcServerPort;
+    }
+
+    public void setProxyAdminGrpcServerPort(Integer proxyAdminGrpcServerPort) {
+        this.proxyAdminGrpcServerPort = proxyAdminGrpcServerPort;
     }
 
     public long getGrpcShutdownTimeSeconds() {
@@ -809,6 +838,38 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcClientManagerThreadQueueCapacity(int grpcClientManagerThreadQueueCapacity) {
         this.grpcClientManagerThreadQueueCapacity = grpcClientManagerThreadQueueCapacity;
+    }
+
+    public int getProxyAdminGrpcThreadPoolNums() {
+        return proxyAdminGrpcThreadPoolNums;
+    }
+
+    public void setProxyAdminGrpcThreadPoolNums(int proxyAdminGrpcThreadPoolNums) {
+        this.proxyAdminGrpcThreadPoolNums = proxyAdminGrpcThreadPoolNums;
+    }
+
+    public int getProxyAdminGrpcThreadPoolQueueCapacity() {
+        return proxyAdminGrpcThreadPoolQueueCapacity;
+    }
+
+    public void setProxyAdminGrpcThreadPoolQueueCapacity(int proxyAdminGrpcThreadPoolQueueCapacity) {
+        this.proxyAdminGrpcThreadPoolQueueCapacity = proxyAdminGrpcThreadPoolQueueCapacity;
+    }
+
+    public int getProxyClientAdminQueryThreadPoolNums() {
+        return proxyClientAdminQueryThreadPoolNums;
+    }
+
+    public void setProxyClientAdminQueryThreadPoolNums(int proxyClientAdminQueryThreadPoolNums) {
+        this.proxyClientAdminQueryThreadPoolNums = proxyClientAdminQueryThreadPoolNums;
+    }
+
+    public int getProxyClientAdminQueryThreadPoolQueueCapacity() {
+        return proxyClientAdminQueryThreadPoolQueueCapacity;
+    }
+
+    public void setProxyClientAdminQueryThreadPoolQueueCapacity(int proxyClientAdminQueryThreadPoolQueueCapacity) {
+        this.proxyClientAdminQueryThreadPoolQueueCapacity = proxyClientAdminQueryThreadPoolQueueCapacity;
     }
 
     public int getGrpcTransactionThreadPoolNums() {
@@ -1221,6 +1282,64 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcClientIdleTimeMills(final long grpcClientIdleTimeMills) {
         this.grpcClientIdleTimeMills = grpcClientIdleTimeMills;
+    }
+
+    public boolean isEnableProxyClientReadServiceCleaner() {
+        return enableProxyClientReadServiceCleaner;
+    }
+
+    public void setEnableProxyClientReadServiceCleaner(boolean enableProxyClientReadServiceCleaner) {
+        this.enableProxyClientReadServiceCleaner = enableProxyClientReadServiceCleaner;
+    }
+
+    public boolean isEnableProxyClientAdminCrossProxyQuery() {
+        return enableProxyClientAdminCrossProxyQuery;
+    }
+
+    public void setEnableProxyClientAdminCrossProxyQuery(boolean enableProxyClientAdminCrossProxyQuery) {
+        this.enableProxyClientAdminCrossProxyQuery = enableProxyClientAdminCrossProxyQuery;
+    }
+
+    public long getProxyClientAdminPeerRequestTimeoutMillis() {
+        return proxyClientAdminPeerRequestTimeoutMillis;
+    }
+
+    public void setProxyClientAdminPeerRequestTimeoutMillis(long proxyClientAdminPeerRequestTimeoutMillis) {
+        this.proxyClientAdminPeerRequestTimeoutMillis = proxyClientAdminPeerRequestTimeoutMillis;
+    }
+
+    public long getProxyClientAdminCoordinatorPageTokenTtlMillis() {
+        return proxyClientAdminCoordinatorPageTokenTtlMillis;
+    }
+
+    public void setProxyClientAdminCoordinatorPageTokenTtlMillis(
+        long proxyClientAdminCoordinatorPageTokenTtlMillis) {
+        this.proxyClientAdminCoordinatorPageTokenTtlMillis = proxyClientAdminCoordinatorPageTokenTtlMillis;
+    }
+
+    public String getProxyClientAdminPeerGrpcTargets() {
+        return proxyClientAdminPeerGrpcTargets;
+    }
+
+    public void setProxyClientAdminPeerGrpcTargets(String proxyClientAdminPeerGrpcTargets) {
+        this.proxyClientAdminPeerGrpcTargets = proxyClientAdminPeerGrpcTargets;
+    }
+
+    public long getProxyClientReadServiceCleanerInactiveTimeoutMillis() {
+        return proxyClientReadServiceCleanerInactiveTimeoutMillis;
+    }
+
+    public void setProxyClientReadServiceCleanerInactiveTimeoutMillis(
+        long proxyClientReadServiceCleanerInactiveTimeoutMillis) {
+        this.proxyClientReadServiceCleanerInactiveTimeoutMillis = proxyClientReadServiceCleanerInactiveTimeoutMillis;
+    }
+
+    public long getProxyClientReadServiceCleanerIntervalMillis() {
+        return proxyClientReadServiceCleanerIntervalMillis;
+    }
+
+    public void setProxyClientReadServiceCleanerIntervalMillis(long proxyClientReadServiceCleanerIntervalMillis) {
+        this.proxyClientReadServiceCleanerIntervalMillis = proxyClientReadServiceCleanerIntervalMillis;
     }
 
     public long getGrpcServerPermitKeepAliveTimeMillis() {

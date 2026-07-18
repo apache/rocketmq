@@ -16,11 +16,15 @@
  */
 package org.apache.rocketmq.proxy.metrics;
 
+import apache.rocketmq.v2.ClientType;
 import com.google.common.base.Splitter;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.LongHistogram;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
+import io.opentelemetry.api.metrics.ObservableLongMeasurement;
 import io.opentelemetry.exporter.logging.otlp.OtlpJsonLoggingMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
@@ -33,8 +37,10 @@ import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -42,10 +48,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
+import org.apache.rocketmq.common.metrics.NopLongCounter;
+import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsContext;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsRecorder;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceOperation;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceStats;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
@@ -54,16 +69,38 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLU
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_ID;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_TYPE;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.OPEN_TELEMETRY_METER_NAME;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_INDEX_TOTAL;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_TOTAL;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_TYPE_TOTAL;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_UP;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_GROUP;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_PROXY_ID;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_TOPIC;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_CLIENT_TYPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_FILTERS;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_INDEX_TYPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_OPERATION;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PAGE_SIZE;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PROXY_MODE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT_SIZE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_SCOPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_STATUS;
 import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.NODE_TYPE_PROXY;
 
 public class ProxyMetricsManager implements StartAndShutdown {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
+    private static final Supplier<ProxyClientReadServiceStats> EMPTY_PROXY_CLIENT_STATS_SUPPLIER =
+        () -> new ProxyClientReadServiceStats(0L, 0L, 0L, Collections.emptyMap());
     private static ProxyConfig proxyConfig;
     private final static Map<String, String> LABEL_MAP = new HashMap<>();
     public static Supplier<AttributesBuilder> attributesBuilderSupplier;
+    private static Supplier<ProxyClientReadServiceStats> proxyClientReadServiceStatsSupplier =
+        EMPTY_PROXY_CLIENT_STATS_SUPPLIER;
 
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
@@ -71,6 +108,12 @@ public class ProxyMetricsManager implements StartAndShutdown {
     private MetricExporter loggingMetricExporter;
 
     public static ObservableLongGauge proxyUp = null;
+    public static ObservableLongGauge proxyClientTotal = null;
+    public static ObservableLongGauge proxyClientTypeTotal = null;
+    public static ObservableLongGauge proxyClientIndexTotal = null;
+    public static LongCounter proxyClientAdminRequestsTotal = new NopLongCounter();
+    public static LongHistogram proxyClientAdminRequestLatency = new NopLongHistogram();
+    public static LongCounter proxyClientReadModelOperationsTotal = new NopLongCounter();
 
     public static void initLocalMode(BrokerMetricsManager brokerMetricsManager, ProxyConfig proxyConfig) {
         if (proxyConfig.getMetricsExporterType() == MetricsExporterType.DISABLE) {
@@ -80,7 +123,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_PROXY);
         LABEL_MAP.put(LABEL_CLUSTER_NAME, proxyConfig.getProxyClusterName());
         LABEL_MAP.put(LABEL_NODE_ID, proxyConfig.getProxyName());
-        LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase());
+        LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase(Locale.ROOT));
         initMetrics(brokerMetricsManager.getBrokerMeter(), brokerMetricsManager::newAttributesBuilder);
     }
 
@@ -101,13 +144,183 @@ public class ProxyMetricsManager implements StartAndShutdown {
         return attributesBuilder;
     }
 
-    private static void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
+    public static void setProxyClientReadServiceStatsSupplier(
+        Supplier<ProxyClientReadServiceStats> proxyClientReadServiceStatsSupplier) {
+        if (proxyClientReadServiceStatsSupplier == null) {
+            ProxyMetricsManager.proxyClientReadServiceStatsSupplier = EMPTY_PROXY_CLIENT_STATS_SUPPLIER;
+            return;
+        }
+        ProxyMetricsManager.proxyClientReadServiceStatsSupplier = proxyClientReadServiceStatsSupplier;
+    }
+
+    static void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
+        initMetrics(meter, attributesBuilderSupplier, proxyClientReadServiceStatsSupplier);
+    }
+
+    static void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier,
+        Supplier<ProxyClientReadServiceStats> proxyClientReadServiceStatsSupplier) {
         ProxyMetricsManager.attributesBuilderSupplier = attributesBuilderSupplier;
+        setProxyClientReadServiceStatsSupplier(proxyClientReadServiceStatsSupplier);
 
         proxyUp = meter.gaugeBuilder(GAUGE_PROXY_UP)
             .setDescription("proxy status")
             .ofLongs()
             .buildWithCallback(measurement -> measurement.record(1, newAttributesBuilder().build()));
+
+        proxyClientTotal = meter.gaugeBuilder(GAUGE_PROXY_CLIENT_TOTAL)
+            .setDescription("online proxy client count")
+            .ofLongs()
+            .buildWithCallback(measurement -> measurement.record(
+                snapshotProxyClientStats().getTotalClientCount(),
+                newAttributesBuilder().build()));
+
+        proxyClientTypeTotal = meter.gaugeBuilder(GAUGE_PROXY_CLIENT_TYPE_TOTAL)
+            .setDescription("online proxy client count by client type")
+            .ofLongs()
+            .buildWithCallback(ProxyMetricsManager::recordProxyClientTypeTotal);
+
+        proxyClientIndexTotal = meter.gaugeBuilder(GAUGE_PROXY_CLIENT_INDEX_TOTAL)
+            .setDescription("proxy client read model index count")
+            .ofLongs()
+            .buildWithCallback(ProxyMetricsManager::recordProxyClientIndexTotal);
+
+        proxyClientReadModelOperationsTotal = meter.counterBuilder(COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL)
+            .setDescription("proxy client read model operation count")
+            .build();
+
+        proxyClientAdminRequestsTotal = meter.counterBuilder(COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL)
+            .setDescription("proxy client admin request count")
+            .build();
+
+        proxyClientAdminRequestLatency = meter.histogramBuilder(HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY)
+            .setDescription("proxy client admin request latency")
+            .setUnit("milliseconds")
+            .ofLongs()
+            .build();
+    }
+
+    public static void recordProxyClientAdminRequest(ClientAdminOperation operation,
+        ClientAdminMetricsResult result, long latencyMillis) {
+        recordProxyClientAdminRequest(operation, result, latencyMillis, null);
+    }
+
+    public static void recordProxyClientAdminRequest(ClientAdminOperation operation,
+        ClientAdminMetricsResult result, long latencyMillis, ProxyClientScope scope) {
+        if (operation == null || result == null) {
+            return;
+        }
+        recordProxyClientAdminRequest(ClientAdminMetricsContext.newBuilder()
+            .setOperation(operation)
+            .setResult(result)
+            .setLatencyMillis(latencyMillis)
+            .setScope(scope)
+            .build());
+    }
+
+    public static void recordProxyClientAdminRequest(ClientAdminMetricsContext context) {
+        if (context == null) {
+            return;
+        }
+        ClientAdminOperation operation = context.getOperation();
+        ClientAdminMetricsResult result = context.getResult();
+        if (operation == null || result == null) {
+            return;
+        }
+        AttributesBuilder attributesBuilder = newAttributesBuilder()
+            .put(LABEL_OPERATION, operation.name().toLowerCase(Locale.ROOT))
+            .put(LABEL_RESULT, result.name().toLowerCase(Locale.ROOT));
+        if (context.getScope() != null) {
+            attributesBuilder.put(LABEL_SCOPE, context.getScope().name().toLowerCase(Locale.ROOT));
+        }
+        if (StringUtils.isNotBlank(context.getStatus())) {
+            attributesBuilder.put(LABEL_STATUS, context.getStatus());
+        }
+        if (StringUtils.isNotBlank(context.getFilters())) {
+            attributesBuilder.put(LABEL_FILTERS, context.getFilters());
+        }
+        if (context.getPageSize() >= 0) {
+            attributesBuilder.put(LABEL_PAGE_SIZE, context.getPageSize());
+        }
+        if (context.getResultSize() >= 0) {
+            attributesBuilder.put(LABEL_RESULT_SIZE, context.getResultSize());
+        }
+        Attributes attributes = attributesBuilder.build();
+        proxyClientAdminRequestsTotal.add(1L, attributes);
+        proxyClientAdminRequestLatency.record(context.getLatencyMillis(), attributes);
+    }
+
+    public static ClientAdminMetricsRecorder proxyClientAdminMetricsRecorder() {
+        return new ClientAdminMetricsRecorder() {
+            @Override
+            public void record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis,
+                ProxyClientScope scope) {
+                recordProxyClientAdminRequest(operation, result, latencyMillis, scope);
+            }
+
+            @Override
+            public void record(ClientAdminMetricsContext context) {
+                recordProxyClientAdminRequest(context);
+            }
+        };
+    }
+
+    public static void recordProxyClientReadModelOperation(ProxyClientReadServiceOperation operation) {
+        if (operation == null) {
+            return;
+        }
+        proxyClientReadModelOperationsTotal.add(
+            1L,
+            newAttributesBuilder()
+                .put(LABEL_OPERATION, operation.name().toLowerCase(Locale.ROOT))
+                .build()
+        );
+    }
+
+    private static ProxyClientReadServiceStats snapshotProxyClientStats() {
+        ProxyClientReadServiceStats stats;
+        try {
+            stats = proxyClientReadServiceStatsSupplier.get();
+        } catch (Throwable e) {
+            log.warn("snapshot proxy client read model stats failed", e);
+            return EMPTY_PROXY_CLIENT_STATS_SUPPLIER.get();
+        }
+        if (stats == null) {
+            return EMPTY_PROXY_CLIENT_STATS_SUPPLIER.get();
+        }
+        return stats;
+    }
+
+    private static void recordProxyClientTypeTotal(ObservableLongMeasurement measurement) {
+        ProxyClientReadServiceStats stats = snapshotProxyClientStats();
+        for (Map.Entry<ClientType, Long> entry : stats.getClientTypeCounts().entrySet()) {
+            ClientType clientType = entry.getKey();
+            Long count = entry.getValue();
+            if (clientType == null || count == null) {
+                continue;
+            }
+            measurement.record(
+                count,
+                newAttributesBuilder()
+                    .put(LABEL_CLIENT_TYPE, clientType.name().toLowerCase(Locale.ROOT))
+                    .build()
+            );
+        }
+    }
+
+    private static void recordProxyClientIndexTotal(ObservableLongMeasurement measurement) {
+        ProxyClientReadServiceStats stats = snapshotProxyClientStats();
+        measurement.record(
+            stats.getGroupIndexCount(),
+            newAttributesBuilder().put(LABEL_INDEX_TYPE, INDEX_TYPE_GROUP).build()
+        );
+        measurement.record(
+            stats.getTopicIndexCount(),
+            newAttributesBuilder().put(LABEL_INDEX_TYPE, INDEX_TYPE_TOPIC).build()
+        );
+        measurement.record(
+            stats.getProxyIdIndexCount(),
+            newAttributesBuilder().put(LABEL_INDEX_TYPE, INDEX_TYPE_PROXY_ID).build()
+        );
     }
 
     public ProxyMetricsManager() {
@@ -162,7 +375,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         LABEL_MAP.put(LABEL_NODE_TYPE, NODE_TYPE_PROXY);
         LABEL_MAP.put(LABEL_CLUSTER_NAME, proxyConfig.getProxyClusterName());
         LABEL_MAP.put(LABEL_NODE_ID, proxyConfig.getProxyName());
-        LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase());
+        LABEL_MAP.put(LABEL_PROXY_MODE, proxyConfig.getProxyMode().toLowerCase(Locale.ROOT));
 
         SdkMeterProviderBuilder providerBuilder = SdkMeterProvider.builder()
             .setResource(Resource.empty());

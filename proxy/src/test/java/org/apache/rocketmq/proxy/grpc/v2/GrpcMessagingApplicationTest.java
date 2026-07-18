@@ -36,6 +36,7 @@ import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.grpc.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -129,5 +130,17 @@ public class GrpcMessagingApplicationTest extends InitConfigTest {
         });
 
         assertEquals(Code.CLIENT_ID_REQUIRED, responseArgumentCaptor.getValue().getStatus().getCode());
+    }
+
+    @Test
+    public void testCreateRejectsMissingSharedActivity() {
+        MessagingProcessor messagingProcessor = Mockito.mock(MessagingProcessor.class);
+
+        IllegalArgumentException exception = Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> GrpcMessagingApplication.create(messagingProcessor, null)
+        );
+
+        Assert.assertTrue(exception.getMessage().contains("grpcMessagingActivity is required"));
     }
 }

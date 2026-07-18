@@ -1,0 +1,1481 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.rocketmq.proxy.grpc.v2.admin;
+
+import apache.rocketmq.v2.Code;
+import apache.rocketmq.v2.QueryRouteRequest;
+import apache.rocketmq.v2.Status;
+import io.grpc.Context;
+import io.grpc.Deadline;
+import io.grpc.Metadata;
+import io.grpc.stub.StreamObserver;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.TraceFlags;
+import io.opentelemetry.api.trace.TraceState;
+import io.opentelemetry.context.Scope;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.constant.GrpcConstants;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsContext;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsRecorder;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.class)
+public class ProxyClientAdminEndpointExecutorTest {
+    private final Metadata headers = new Metadata();
+    private final QueryRouteRequest protoRequest = QueryRouteRequest.getDefaultInstance();
+    private final ProxyContext ctx = ProxyContext.create();
+
+    @Mock
+    private ProxyClientAdminContextFactory contextFactory;
+    @Mock
+    private ProxyClientAdminEndpointHandler endpointHandler;
+    @Mock
+    private StreamObserver<TestAdminResponse> responseObserver;
+
+    private ProxyClientAdminEndpointExecutor executor;
+
+    @Before
+    public void setUp() {
+        this.executor = new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+    }
+
+    @Test
+    public void listClientsBuildsContextAndDelegatesToEndpointHandler() {
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        verify(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void listClientsRunsOnSuppliedQueryExecutorThread() throws Exception {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, queryExecutor);
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        CountDownLatch invoked = new CountDownLatch(1);
+        AtomicReference<String> threadName = new AtomicReference<>();
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+        doAnswer(invocation -> {
+            threadName.set(Thread.currentThread().getName());
+            invoked.countDown();
+            return null;
+        }).when(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+
+        try {
+            executor.listClients(
+                headers,
+                protoRequest,
+                ignored -> internalRequest,
+                responseObserver,
+                responseFactory
+            );
+
+            assertThat(invoked.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(threadName.get()).startsWith("ProxyClientAdminQueryThread-test-");
+        } finally {
+            queryExecutor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void canceledQueuedRequestSkipsContextFactoryAndEndpointHandler() {
+        QueuedExecutorService queryExecutor = new QueuedExecutorService();
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor = new ProxyClientAdminEndpointExecutor(
+            contextFactory,
+            endpointHandler,
+            queryExecutor,
+            metricsRecorder
+        );
+        Context.CancellableContext grpcContext = Context.current().withCancellation();
+
+        try {
+            grpcContext.run(() -> executor.listClients(
+                headers,
+                protoRequest,
+                ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+                responseObserver,
+                TestAdminResponse::new
+            ));
+            assertThat(queryExecutor.pendingTaskCount()).isOne();
+
+            grpcContext.cancel(new CancellationException("client cancelled queued request"));
+            queryExecutor.runNext();
+
+            ArgumentCaptor<Throwable> errorCaptor = ArgumentCaptor.forClass(Throwable.class);
+            verify(responseObserver).onError(errorCaptor.capture());
+            assertThat(io.grpc.Status.fromThrowable(errorCaptor.getValue()).getCode())
+                .isEqualTo(io.grpc.Status.Code.CANCELLED);
+            verify(responseObserver, never()).onNext(any());
+            verify(responseObserver, never()).onCompleted();
+            verify(contextFactory, never()).create(any(), any());
+            verifyNoInteractions(endpointHandler);
+            assertThat(metricsRecorder.contexts).isEmpty();
+        } finally {
+            grpcContext.cancel(null);
+        }
+    }
+
+    @Test
+    public void expiredDeadlineQueuedRequestSkipsContextFactoryAndEndpointHandler() {
+        QueuedExecutorService queryExecutor = new QueuedExecutorService();
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor = new ProxyClientAdminEndpointExecutor(
+            contextFactory,
+            endpointHandler,
+            queryExecutor,
+            metricsRecorder
+        );
+        MutableDeadlineTicker ticker = new MutableDeadlineTicker();
+        ScheduledExecutorService deadlineScheduler = mock(ScheduledExecutorService.class);
+        ScheduledFuture<?> scheduledFuture = mock(ScheduledFuture.class);
+        doReturn(scheduledFuture).when(deadlineScheduler)
+            .schedule(any(Runnable.class), anyLong(), eq(TimeUnit.NANOSECONDS));
+        Deadline deadline = Deadline.after(1, TimeUnit.SECONDS, ticker);
+        Context.CancellableContext grpcContext = Context.current().withDeadline(deadline, deadlineScheduler);
+
+        try {
+            grpcContext.run(() -> executor.listClients(
+                headers,
+                protoRequest,
+                ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+                responseObserver,
+                TestAdminResponse::new
+            ));
+            assertThat(queryExecutor.pendingTaskCount()).isOne();
+
+            ticker.advance(1, TimeUnit.SECONDS);
+            assertThat(deadline.isExpired()).isTrue();
+            queryExecutor.runNext();
+
+            ArgumentCaptor<Throwable> errorCaptor = ArgumentCaptor.forClass(Throwable.class);
+            verify(responseObserver).onError(errorCaptor.capture());
+            assertThat(io.grpc.Status.fromThrowable(errorCaptor.getValue()).getCode())
+                .isEqualTo(io.grpc.Status.Code.DEADLINE_EXCEEDED);
+            verify(responseObserver, never()).onNext(any());
+            verify(responseObserver, never()).onCompleted();
+            verify(contextFactory, never()).create(any(), any());
+            verifyNoInteractions(endpointHandler);
+            assertThat(metricsRecorder.contexts).hasSize(1);
+            assertThat(metricsRecorder.contexts.get(0).getResult()).isEqualTo(ClientAdminMetricsResult.TIMEOUT);
+        } finally {
+            grpcContext.cancel(null);
+        }
+    }
+
+    @Test
+    public void listClientsPropagatesGrpcContextToQueryExecutor() throws Exception {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, queryExecutor);
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        Context.Key<String> requestContextKey = Context.key("proxy-client-admin-request-context");
+        CountDownLatch invoked = new CountDownLatch(1);
+        AtomicReference<String> contextValue = new AtomicReference<>();
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+        doAnswer(invocation -> {
+            contextValue.set(requestContextKey.get());
+            invoked.countDown();
+            return null;
+        }).when(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+
+        try {
+            Context.current().withValue(requestContextKey, "request-context-value").run(() ->
+                executor.listClients(
+                    headers,
+                    protoRequest,
+                    ignored -> internalRequest,
+                    responseObserver,
+                    responseFactory
+                )
+            );
+
+            assertThat(invoked.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(contextValue.get()).isEqualTo("request-context-value");
+        } finally {
+            queryExecutor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void listClientsPropagatesOpenTelemetryContextToQueryExecutor() throws Exception {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, queryExecutor);
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        SpanContext expectedSpanContext = SpanContext.create(
+            "00000000000000000000000000000001",
+            "0000000000000001",
+            TraceFlags.getSampled(),
+            TraceState.getDefault()
+        );
+        CountDownLatch invoked = new CountDownLatch(1);
+        AtomicReference<SpanContext> propagatedSpanContext = new AtomicReference<>();
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+        doAnswer(invocation -> {
+            propagatedSpanContext.set(Span.current().getSpanContext());
+            invoked.countDown();
+            return null;
+        }).when(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+
+        try (Scope ignored = Span.wrap(expectedSpanContext).makeCurrent()) {
+            executor.listClients(
+                headers,
+                protoRequest,
+                request -> internalRequest,
+                responseObserver,
+                responseFactory
+            );
+
+            assertThat(invoked.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(propagatedSpanContext.get()).isEqualTo(expectedSpanContext);
+        } finally {
+            queryExecutor.shutdownNow();
+        }
+    }
+
+    @Test
+    public void shutdownStopsSuppliedQueryExecutor() {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, queryExecutor);
+
+        executor.shutdown();
+
+        assertThat(queryExecutor.isShutdown()).isTrue();
+    }
+
+    @Test
+    public void shutdownForcesSuppliedQueryExecutorAfterTimeout() throws Exception {
+        ExecutorService queryExecutor = mock(ExecutorService.class);
+        when(queryExecutor.awaitTermination(5, TimeUnit.SECONDS)).thenReturn(false);
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, queryExecutor);
+
+        executor.shutdown();
+
+        verify(queryExecutor).shutdown();
+        verify(queryExecutor).shutdownNow();
+    }
+
+    @Test
+    public void mapsRejectedQueryExecutorToResponseStatus() {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(
+                contextFactory,
+                new ProxyClientAdminEndpointHandler(),
+                queryExecutor
+            );
+        queryExecutor.shutdown();
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+            responseObserver,
+            TestAdminResponse::new
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.TOO_MANY_REQUESTS);
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+    }
+
+    @Test
+    public void recordsRejectedQueryExecutorMetricsBeforeServiceInvocation() {
+        ExecutorService queryExecutor = Executors.newSingleThreadExecutor(
+            new ThreadFactoryImpl("ProxyClientAdminQueryThread-test-")
+        );
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(
+                contextFactory,
+                new ProxyClientAdminEndpointHandler(),
+                queryExecutor,
+                metricsRecorder
+            );
+        queryExecutor.shutdown();
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+            responseObserver,
+            TestAdminResponse::new
+        );
+
+        assertThat(metricsRecorder.contexts).hasSize(1);
+        ClientAdminMetricsContext context = metricsRecorder.contexts.get(0);
+        assertThat(context.getOperation()).isEqualTo(ClientAdminOperation.LIST_CLIENTS);
+        assertThat(context.getResult()).isEqualTo(ClientAdminMetricsResult.TOO_MANY_REQUESTS);
+        assertThat(context.getStatus()).isEqualTo("too_many_requests");
+        assertThat(context.getResultSize()).isZero();
+    }
+
+    @Test
+    public void listClientsUsesMetadataFromCurrentGrpcContext() {
+        Metadata currentHeaders = new Metadata();
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(currentHeaders, protoRequest)).thenReturn(ctx);
+
+        Context.current().withValue(GrpcConstants.METADATA, currentHeaders).run(() ->
+            executor.listClients(
+                protoRequest,
+                ignored -> internalRequest,
+                responseObserver,
+                responseFactory
+            )
+        );
+
+        verify(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void listClientsUsesEmptyMetadataWhenCurrentGrpcContextHasNoMetadata() {
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<Metadata> headersCaptor = ArgumentCaptor.forClass(Metadata.class);
+        verify(contextFactory).create(headersCaptor.capture(), same(protoRequest));
+        assertThat(headersCaptor.getValue()).isNotNull();
+    }
+
+    @Test
+    public void listClientsUsesEmptyMetadataWhenExplicitHeadersAreMissing() {
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(any(Metadata.class), same(protoRequest))).thenReturn(ctx);
+
+        executor.listClients(
+            null,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<Metadata> headersCaptor = ArgumentCaptor.forClass(Metadata.class);
+        verify(contextFactory).create(headersCaptor.capture(), same(protoRequest));
+        assertThat(headersCaptor.getValue()).isNotNull();
+        verify(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void describeClientBuildsContextAndDelegatesToEndpointHandler() {
+        ProxyClientAdminDescribeClientRequest internalRequest =
+            ProxyClientAdminDescribeClientRequest.newBuilder().setClientId("client-a").build();
+        BiFunction<Status, ProxyClientAdminClientView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+
+        executor.describeClient(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        verify(endpointHandler).describeClient(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void describeClientUsesMetadataFromCurrentGrpcContext() {
+        Metadata currentHeaders = new Metadata();
+        ProxyClientAdminDescribeClientRequest internalRequest =
+            ProxyClientAdminDescribeClientRequest.newBuilder().setClientId("client-a").build();
+        BiFunction<Status, ProxyClientAdminClientView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(currentHeaders, protoRequest)).thenReturn(ctx);
+
+        Context.current().withValue(GrpcConstants.METADATA, currentHeaders).run(() ->
+            executor.describeClient(
+                protoRequest,
+                ignored -> internalRequest,
+                responseObserver,
+                responseFactory
+            )
+        );
+
+        verify(endpointHandler).describeClient(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void listClientsByGroupBuildsContextAndDelegatesToEndpointHandler() {
+        ProxyClientAdminListClientsByGroupRequest internalRequest =
+            ProxyClientAdminListClientsByGroupRequest.newBuilder().setGroup("group-a").build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+
+        executor.listClientsByGroup(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        verify(endpointHandler).listClientsByGroup(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void listClientsByGroupUsesMetadataFromCurrentGrpcContext() {
+        Metadata currentHeaders = new Metadata();
+        ProxyClientAdminListClientsByGroupRequest internalRequest =
+            ProxyClientAdminListClientsByGroupRequest.newBuilder().setGroup("group-a").build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(currentHeaders, protoRequest)).thenReturn(ctx);
+
+        Context.current().withValue(GrpcConstants.METADATA, currentHeaders).run(() ->
+            executor.listClientsByGroup(
+                protoRequest,
+                ignored -> internalRequest,
+                responseObserver,
+                responseFactory
+            )
+        );
+
+        verify(endpointHandler).listClientsByGroup(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void listClientsByTopicBuildsContextAndDelegatesToEndpointHandler() {
+        ProxyClientAdminListClientsByTopicRequest internalRequest =
+            ProxyClientAdminListClientsByTopicRequest.newBuilder().setTopic("topic-a").build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+
+        executor.listClientsByTopic(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        verify(endpointHandler).listClientsByTopic(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void listClientsByTopicUsesMetadataFromCurrentGrpcContext() {
+        Metadata currentHeaders = new Metadata();
+        ProxyClientAdminListClientsByTopicRequest internalRequest =
+            ProxyClientAdminListClientsByTopicRequest.newBuilder().setTopic("topic-a").build();
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(currentHeaders, protoRequest)).thenReturn(ctx);
+
+        Context.current().withValue(GrpcConstants.METADATA, currentHeaders).run(() ->
+            executor.listClientsByTopic(
+                protoRequest,
+                ignored -> internalRequest,
+                responseObserver,
+                responseFactory
+            )
+        );
+
+        verify(endpointHandler).listClientsByTopic(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            same(responseFactory)
+        );
+    }
+
+    @Test
+    public void mapsRequestAdapterFailureToStatusResponseBeforeCreatingContext() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> {
+                throw new IllegalArgumentException("page token is invalid");
+            },
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("page token is invalid");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
+    public void recordsRequestAdapterFailureMetricsBeforeServiceInvocation() {
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(
+                contextFactory,
+                new ProxyClientAdminEndpointHandler(),
+                metricsRecorder
+            );
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> {
+                throw new IllegalArgumentException("page token is invalid");
+            },
+            responseObserver,
+            TestAdminResponse::new
+        );
+
+        assertThat(metricsRecorder.contexts).hasSize(1);
+        ClientAdminMetricsContext context = metricsRecorder.contexts.get(0);
+        assertThat(context.getOperation()).isEqualTo(ClientAdminOperation.LIST_CLIENTS);
+        assertThat(context.getResult()).isEqualTo(ClientAdminMetricsResult.BAD_REQUEST);
+        assertThat(context.getStatus()).isEqualTo("bad_request");
+        assertThat(context.getFilters()).isEqualTo(ClientAdminMetricsContext.FILTER_NONE);
+        assertThat(context.getResultSize()).isZero();
+    }
+
+    @Test
+    public void successfulEndpointDelegationDoesNotRecordDuplicateFailureMetrics() {
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, metricsRecorder);
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            TestAdminResponse::new
+        );
+
+        verify(endpointHandler).listClients(same(ctx), same(internalRequest), same(responseObserver), any());
+        assertThat(metricsRecorder.contexts).isEmpty();
+    }
+
+    @Test
+    public void delegatedInlineFailureDoesNotRecordEndpointFailureMetrics() {
+        RecordingMetricsRecorder metricsRecorder = new RecordingMetricsRecorder();
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler, metricsRecorder);
+        ProxyClientAdminListClientsRequest internalRequest =
+            ProxyClientAdminListClientsRequest.newBuilder().build();
+        IllegalStateException failure = new IllegalStateException("observer onError failed");
+        when(contextFactory.create(headers, protoRequest)).thenReturn(ctx);
+        doAnswer(invocation -> {
+            throw failure;
+        }).when(endpointHandler).listClients(
+            same(ctx),
+            same(internalRequest),
+            same(responseObserver),
+            any()
+        );
+        doAnswer(invocation -> {
+            throw failure;
+        }).when(endpointHandler).handle(same(responseObserver), any(), any());
+
+        assertThatThrownBy(() -> executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            TestAdminResponse::new
+        )).isSameAs(failure);
+
+        assertThat(metricsRecorder.contexts).isEmpty();
+    }
+
+    @Test
+    public void mapsInterruptedRequestAdapterFailureToStatusResponseAndRestoresInterrupt() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        try {
+            executor.listClients(
+                headers,
+                protoRequest,
+                ignored -> {
+                    throwUnchecked(new InterruptedException("request adapter interrupted"));
+                    return null;
+                },
+                responseObserver,
+                responseFactory
+            );
+
+            ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+            verify(responseObserver).onNext(responseCaptor.capture());
+            verify(responseObserver).onCompleted();
+            assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("request adapter interrupted");
+            assertThat(responseCaptor.getValue().getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            verify(contextFactory, never()).create(any(), any());
+            verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void mapsWrappedInterruptedRequestAdapterFailureToStatusResponseAndRestoresInterrupt() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        try {
+            executor.listClients(
+                headers,
+                protoRequest,
+                ignored -> {
+                    throw new CompletionException(new InterruptedException("wrapped request adapter interrupted"));
+                },
+                responseObserver,
+                responseFactory
+            );
+
+            ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+            verify(responseObserver).onNext(responseCaptor.capture());
+            verify(responseObserver).onCompleted();
+            assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+            assertThat(responseCaptor.getValue().getStatus().getMessage())
+                .contains("wrapped request adapter interrupted");
+            assertThat(responseCaptor.getValue().getBody()).isNull();
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            verify(contextFactory, never()).create(any(), any());
+            verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    public void mapsContextFactoryFailureToStatusResponseAfterAdaptingRequest() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        AtomicBoolean requestAdapterInvoked = new AtomicBoolean(false);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(headers, protoRequest))
+            .thenThrow(new IllegalArgumentException("request headers are invalid"));
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> {
+                requestAdapterInvoked.set(true);
+                return ProxyClientAdminListClientsRequest.newBuilder().build();
+            },
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("request headers are invalid");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        assertThat(requestAdapterInvoked).isTrue();
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
+    public void mapsNullContextFactoryResultToStatusResponseBeforeEndpointCall() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        when(contextFactory.create(headers, protoRequest)).thenReturn(null);
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.INTERNAL_SERVER_ERROR);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("proxyContext is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsMapsMissingRequestAdapterToStatusResponseBeforeCreatingContext() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            null,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("requestAdapter is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+    }
+
+    @Test
+    public void listClientsMapsMissingProtoRequestToStatusResponseBeforeCreatingContext() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        AtomicBoolean requestAdapterInvoked = new AtomicBoolean(false);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            headers,
+            null,
+            ignored -> {
+                requestAdapterInvoked.set(true);
+                return ProxyClientAdminListClientsRequest.newBuilder().build();
+            },
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("protoRequest is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        assertThat(requestAdapterInvoked).isFalse();
+        verify(contextFactory, never()).create(any(), any());
+    }
+
+    @Test
+    public void mapsNullAdaptedRequestToBadRequest() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> null,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage())
+            .contains("requestAdapter result is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+    }
+
+    @Test
+    public void listClientsRejectsInvalidLocalPageTokenBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder()
+                .setPageToken("v2:Y2xpZW50LWE")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("Invalid page token");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsRejectsAllProxiesScopeBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder()
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("LOCAL_PROXY");
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("ALL_PROXIES");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
+    public void describeClientRejectsProxyIdScopeBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminClientView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.describeClient(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminDescribeClientRequest.newBuilder()
+                .setClientId("client-a")
+                .setScope(ProxyClientScope.PROXY_ID)
+                .setProxyId("proxy-a")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("LOCAL_PROXY");
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("PROXY_ID");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).describeClient(any(), any(), any(), any());
+    }
+
+    @Test
+    public void describeClientRejectsMissingClientIdBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminClientView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.describeClient(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminDescribeClientRequest.newBuilder()
+                .setClientId(" ")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("clientId is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).describeClient(any(), any(), any(), any());
+    }
+
+    @Test
+    public void describeClientRejectsOverlongClientIdBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminClientView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        ProxyClientAdminDescribeClientRequest internalRequest =
+            mock(ProxyClientAdminDescribeClientRequest.class);
+        when(internalRequest.getScope()).thenReturn(ProxyClientScope.LOCAL_PROXY);
+        when(internalRequest.getClientId()).thenReturn(StringUtils.repeat("c", 256));
+
+        executor.describeClient(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("clientId length exceeds 255");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).describeClient(any(), any(), any(), any());
+    }
+
+    @Test
+    public void describeClientRejectsReservedClientIdBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminClientView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        ProxyClientAdminDescribeClientRequest internalRequest =
+            mock(ProxyClientAdminDescribeClientRequest.class);
+        when(internalRequest.getScope()).thenReturn(ProxyClientScope.LOCAL_PROXY);
+        when(internalRequest.getClientId()).thenReturn("cp1:client-a");
+
+        executor.describeClient(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage())
+            .contains("clientId must not use reserved page token prefix");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).describeClient(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByGroupRejectsAllProxiesScopeBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClientsByGroup(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsByGroupRequest.newBuilder()
+                .setGroup("group-a")
+                .setScope(ProxyClientScope.ALL_PROXIES)
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("LOCAL_PROXY");
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("ALL_PROXIES");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByGroup(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByGroupRejectsInvalidLocalPageTokenBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClientsByGroup(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsByGroupRequest.newBuilder()
+                .setGroup("group-a")
+                .setPageToken("v2:Y2xpZW50LWE")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("Invalid page token");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByGroup(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByGroupRejectsMissingGroupBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClientsByGroup(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsByGroupRequest.newBuilder()
+                .setGroup(" ")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("group is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByGroup(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByGroupRejectsOverlongGroupBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        ProxyClientAdminListClientsByGroupRequest internalRequest =
+            mock(ProxyClientAdminListClientsByGroupRequest.class);
+        when(internalRequest.getScope()).thenReturn(ProxyClientScope.LOCAL_PROXY);
+        when(internalRequest.getGroup()).thenReturn(StringUtils.repeat("g", 121));
+
+        executor.listClientsByGroup(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage())
+            .contains("group length exceeds group max length: 120");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByGroup(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByTopicRejectsProxyIdScopeBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClientsByTopic(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsByTopicRequest.newBuilder()
+                .setTopic("topic-a")
+                .setScope(ProxyClientScope.PROXY_ID)
+                .setProxyId("proxy-a")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("LOCAL_PROXY");
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("PROXY_ID");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByTopic(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByTopicRejectsInvalidLocalPageTokenBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClientsByTopic(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsByTopicRequest.newBuilder()
+                .setTopic("topic-a")
+                .setPageToken("v2:Y2xpZW50LWE")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("Invalid page token");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByTopic(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByTopicRejectsMissingTopicBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+
+        executor.listClientsByTopic(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsByTopicRequest.newBuilder()
+                .setTopic(" ")
+                .build(),
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage()).contains("topic is required");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByTopic(any(), any(), any(), any());
+    }
+
+    @Test
+    public void listClientsByTopicRejectsOverlongTopicBeforeCreatingContextForPublicEndpoint() {
+        ProxyClientAdminEndpointHandler endpointHandler = spy(new ProxyClientAdminEndpointHandler());
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, endpointHandler);
+        BiFunction<Status, ProxyClientAdminPageView, TestAdminResponse> responseFactory = TestAdminResponse::new;
+        ProxyClientAdminListClientsByTopicRequest internalRequest =
+            mock(ProxyClientAdminListClientsByTopicRequest.class);
+        when(internalRequest.getScope()).thenReturn(ProxyClientScope.LOCAL_PROXY);
+        when(internalRequest.getTopic()).thenReturn(StringUtils.repeat("t", 128));
+
+        executor.listClientsByTopic(
+            headers,
+            protoRequest,
+            ignored -> internalRequest,
+            responseObserver,
+            responseFactory
+        );
+
+        ArgumentCaptor<TestAdminResponse> responseCaptor = ArgumentCaptor.forClass(TestAdminResponse.class);
+        verify(responseObserver).onNext(responseCaptor.capture());
+        verify(responseObserver).onCompleted();
+        assertThat(responseCaptor.getValue().getStatus().getCode()).isEqualTo(Code.BAD_REQUEST);
+        assertThat(responseCaptor.getValue().getStatus().getMessage())
+            .contains("topic length exceeds topic max length 127");
+        assertThat(responseCaptor.getValue().getBody()).isNull();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClientsByTopic(any(), any(), any(), any());
+    }
+
+    @Test
+    public void mapsMissingResponseFactoryToGrpcInternalErrorBeforeCreatingContext() {
+        ProxyClientAdminEndpointExecutor executor =
+            new ProxyClientAdminEndpointExecutor(contextFactory, new ProxyClientAdminEndpointHandler());
+
+        executor.listClients(
+            headers,
+            protoRequest,
+            ignored -> ProxyClientAdminListClientsRequest.newBuilder().build(),
+            responseObserver,
+            null
+        );
+
+        ArgumentCaptor<Throwable> errorCaptor = ArgumentCaptor.forClass(Throwable.class);
+        verify(responseObserver).onError(errorCaptor.capture());
+        assertThat(errorCaptor.getValue()).isInstanceOf(io.grpc.StatusRuntimeException.class);
+        io.grpc.StatusRuntimeException statusRuntimeException =
+            (io.grpc.StatusRuntimeException) errorCaptor.getValue();
+        assertThat(statusRuntimeException.getStatus().getCode()).isEqualTo(io.grpc.Status.Code.INTERNAL);
+        assertThat(statusRuntimeException.getStatus().getDescription()).contains("responseFactory is required");
+        verify(responseObserver, never()).onNext(any());
+        verify(responseObserver, never()).onCompleted();
+        verify(contextFactory, never()).create(any(), any());
+        verify(endpointHandler, never()).listClients(any(), any(), any(), any());
+    }
+
+    @Test
+    public void constructorRejectsMissingDependencies() {
+        assertThatThrownBy(() -> new ProxyClientAdminEndpointExecutor(null, endpointHandler))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("contextFactory is required");
+        assertThatThrownBy(() -> new ProxyClientAdminEndpointExecutor(contextFactory, null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("endpointHandler is required");
+    }
+
+    private static class TestAdminResponse {
+        private final Status status;
+        private final Object body;
+
+        private TestAdminResponse(Status status, Object body) {
+            this.status = status;
+            this.body = body;
+        }
+
+        private Status getStatus() {
+            return status;
+        }
+
+        private Object getBody() {
+            return body;
+        }
+    }
+
+    private static class RecordingMetricsRecorder implements ClientAdminMetricsRecorder {
+        private final List<ClientAdminMetricsContext> contexts = new ArrayList<>();
+
+        @Override
+        public void record(ClientAdminOperation operation, ClientAdminMetricsResult result, long latencyMillis,
+            ProxyClientScope scope) {
+            this.contexts.add(ClientAdminMetricsContext.newBuilder()
+                .setOperation(operation)
+                .setResult(result)
+                .setLatencyMillis(latencyMillis)
+                .setScope(scope)
+                .build());
+        }
+
+        @Override
+        public void record(ClientAdminMetricsContext context) {
+            this.contexts.add(context);
+        }
+    }
+
+    private static class QueuedExecutorService extends AbstractExecutorService {
+        private final Queue<Runnable> tasks = new ArrayDeque<>();
+        private boolean shutdown;
+
+        @Override
+        public void shutdown() {
+            this.shutdown = true;
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            this.shutdown = true;
+            List<Runnable> pendingTasks = new ArrayList<>(this.tasks);
+            this.tasks.clear();
+            return pendingTasks;
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return this.shutdown;
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return this.shutdown && this.tasks.isEmpty();
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) {
+            return this.isTerminated();
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            this.tasks.add(command);
+        }
+
+        private int pendingTaskCount() {
+            return this.tasks.size();
+        }
+
+        private void runNext() {
+            Runnable task = this.tasks.remove();
+            task.run();
+        }
+    }
+
+    private static class MutableDeadlineTicker extends Deadline.Ticker {
+        private final AtomicLong nanos = new AtomicLong();
+
+        @Override
+        public long nanoTime() {
+            return this.nanos.get();
+        }
+
+        private void advance(long duration, TimeUnit unit) {
+            this.nanos.addAndGet(unit.toNanos(duration));
+        }
+    }
+
+    private static void throwUnchecked(InterruptedException interruptedException) {
+        ProxyClientAdminEndpointExecutorTest.<RuntimeException>throwAny(interruptedException);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void throwAny(Throwable throwable) throws T {
+        throw (T) throwable;
+    }
+}

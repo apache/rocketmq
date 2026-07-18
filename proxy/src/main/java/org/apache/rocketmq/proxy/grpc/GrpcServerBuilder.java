@@ -20,6 +20,7 @@ import io.grpc.BindableService;
 import io.grpc.ServerInterceptor;
 import io.grpc.ServerServiceDefinition;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.grpc.netty.shaded.io.netty.channel.EventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
@@ -46,6 +47,10 @@ public class GrpcServerBuilder {
 
     protected TlsCertificateManager tlsCertificateManager;
 
+    protected EventLoopGroup bossEventLoopGroup;
+
+    protected EventLoopGroup workerEventLoopGroup;
+
     public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port,
         TlsCertificateManager tlsCertificateManager) {
         return new GrpcServerBuilder(executor, port, tlsCertificateManager);
@@ -66,13 +71,17 @@ public class GrpcServerBuilder {
         long idleTimeMills = config.getGrpcClientIdleTimeMills();
 
         if (config.isEnableGrpcEpoll()) {
-            serverBuilder.bossEventLoopGroup(new EpollEventLoopGroup(bossLoopNum))
-                .workerEventLoopGroup(new EpollEventLoopGroup(workerLoopNum))
+            this.bossEventLoopGroup = new EpollEventLoopGroup(bossLoopNum);
+            this.workerEventLoopGroup = new EpollEventLoopGroup(workerLoopNum);
+            serverBuilder.bossEventLoopGroup(this.bossEventLoopGroup)
+                .workerEventLoopGroup(this.workerEventLoopGroup)
                 .channelType(EpollServerSocketChannel.class)
                 .executor(executor);
         } else {
-            serverBuilder.bossEventLoopGroup(new NioEventLoopGroup(bossLoopNum))
-                .workerEventLoopGroup(new NioEventLoopGroup(workerLoopNum))
+            this.bossEventLoopGroup = new NioEventLoopGroup(bossLoopNum);
+            this.workerEventLoopGroup = new NioEventLoopGroup(workerLoopNum);
+            serverBuilder.bossEventLoopGroup(this.bossEventLoopGroup)
+                .workerEventLoopGroup(this.workerEventLoopGroup)
                 .channelType(NioServerSocketChannel.class)
                 .executor(executor);
         }
@@ -108,7 +117,8 @@ public class GrpcServerBuilder {
     }
 
     public GrpcServer build() throws Exception {
-        return new GrpcServer(this.serverBuilder.build(), time, unit, tlsCertificateManager);
+        return new GrpcServer(this.serverBuilder.build(), time, unit, tlsCertificateManager,
+            this.bossEventLoopGroup, this.workerEventLoopGroup);
     }
 
     public GrpcServerBuilder configInterceptor() {

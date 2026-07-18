@@ -1,0 +1,481 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.rocketmq.proxy.metrics;
+
+import apache.rocketmq.v2.ClientType;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.metrics.DoubleGaugeBuilder;
+import io.opentelemetry.api.metrics.DoubleHistogramBuilder;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.LongCounterBuilder;
+import io.opentelemetry.api.metrics.LongGaugeBuilder;
+import io.opentelemetry.api.metrics.LongHistogram;
+import io.opentelemetry.api.metrics.LongHistogramBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.api.metrics.ObservableLongGauge;
+import io.opentelemetry.api.metrics.ObservableLongMeasurement;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Consumer;
+import org.apache.rocketmq.common.metrics.NopLongCounter;
+import org.apache.rocketmq.common.metrics.NopLongHistogram;
+import org.apache.rocketmq.proxy.config.InitConfigTest;
+import org.apache.rocketmq.proxy.grpc.v2.DefaultGrpcMessagingActivity;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsContext;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminMetricsResult;
+import org.apache.rocketmq.proxy.service.admin.client.ClientAdminOperation;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientInfo;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientScope;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceOperation;
+import org.apache.rocketmq.proxy.service.admin.client.ProxyClientReadServiceStats;
+import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_INDEX_TOTAL;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_TOTAL;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_CLIENT_TYPE_TOTAL;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.GAUGE_PROXY_UP;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_GROUP;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_PROXY_ID;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.INDEX_TYPE_TOPIC;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_CLIENT_TYPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_FILTERS;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_INDEX_TYPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_OPERATION;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_PAGE_SIZE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_RESULT_SIZE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_SCOPE;
+import static org.apache.rocketmq.proxy.metrics.ProxyMetricsConstant.LABEL_STATUS;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+public class ProxyMetricsManagerTest extends InitConfigTest {
+
+    @Before
+    public void setUp() {
+        ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(null);
+        ProxyMetricsManager.proxyClientAdminRequestsTotal = new NopLongCounter();
+        ProxyMetricsManager.proxyClientAdminRequestLatency = new NopLongHistogram();
+        ProxyMetricsManager.proxyClientReadModelOperationsTotal = new NopLongCounter();
+    }
+
+    @Test
+    public void initMetricsRecordsProxyClientReadModelStats() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTotalCallback =
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTypeCallback =
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientIndexCallback =
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+        Map<ClientType, Long> clientTypeCounts = new HashMap<>();
+        clientTypeCounts.put(ClientType.PRODUCER, 1L);
+        clientTypeCounts.put(ClientType.PUSH_CONSUMER, 2L);
+
+        ProxyMetricsManager.initMetrics(
+            meter,
+            Attributes::builder,
+            () -> new ProxyClientReadServiceStats(3L, 4L, 5L, 6L, clientTypeCounts)
+        );
+
+        ObservableLongMeasurement clientTotalMeasurement = mock(ObservableLongMeasurement.class);
+        clientTotalCallback.getValue().accept(clientTotalMeasurement);
+        verify(clientTotalMeasurement).record(eq(3L), any(Attributes.class));
+
+        ObservableLongMeasurement clientTypeMeasurement = mock(ObservableLongMeasurement.class);
+        clientTypeCallback.getValue().accept(clientTypeMeasurement);
+        verify(clientTypeMeasurement).record(eq(1L), argThat(attributes ->
+            ClientType.PRODUCER.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_CLIENT_TYPE)))));
+        verify(clientTypeMeasurement).record(eq(2L), argThat(attributes ->
+            ClientType.PUSH_CONSUMER.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_CLIENT_TYPE)))));
+
+        ObservableLongMeasurement clientIndexMeasurement = mock(ObservableLongMeasurement.class);
+        clientIndexCallback.getValue().accept(clientIndexMeasurement);
+        verify(clientIndexMeasurement).record(eq(4L), argThat(attributes ->
+            INDEX_TYPE_GROUP.equals(attributes.get(AttributeKey.stringKey(LABEL_INDEX_TYPE)))));
+        verify(clientIndexMeasurement).record(eq(5L), argThat(attributes ->
+            INDEX_TYPE_TOPIC.equals(attributes.get(AttributeKey.stringKey(LABEL_INDEX_TYPE)))));
+        verify(clientIndexMeasurement).record(eq(6L), argThat(attributes ->
+            INDEX_TYPE_PROXY_ID.equals(attributes.get(AttributeKey.stringKey(LABEL_INDEX_TYPE)))));
+    }
+
+    @Test
+    public void initMetricsRecordsProxyClientReadModelOperationCounter() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        LongCounter operationCounter = mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+
+        ProxyMetricsManager.initMetrics(
+            meter,
+            Attributes::builder,
+            () -> new ProxyClientReadServiceStats(0L, 0L, 0L, Collections.emptyMap())
+        );
+
+        ProxyMetricsManager.recordProxyClientReadModelOperation(ProxyClientReadServiceOperation.UPSERT);
+
+        verify(operationCounter).add(eq(1L), argThat(attributes ->
+            ProxyClientReadServiceOperation.UPSERT.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))));
+    }
+
+    @Test
+    public void proxyClientStatsSupplierFailureFallsBackToEmptyStats() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTotalCallback =
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+
+        ProxyMetricsManager.initMetrics(meter, Attributes::builder, () -> {
+            throw new RuntimeException("stats unavailable");
+        });
+
+        ObservableLongMeasurement clientTotalMeasurement = mock(ObservableLongMeasurement.class);
+        clientTotalCallback.getValue().accept(clientTotalMeasurement);
+
+        verify(clientTotalMeasurement).record(eq(0L), any(Attributes.class));
+    }
+
+    @Test
+    public void proxyClientStatsSupplierErrorFallsBackToEmptyStats() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTotalCallback =
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+
+        ProxyMetricsManager.initMetrics(meter, Attributes::builder, () -> {
+            throw new LinkageError("stats linkage unavailable");
+        });
+
+        ObservableLongMeasurement clientTotalMeasurement = mock(ObservableLongMeasurement.class);
+        clientTotalCallback.getValue().accept(clientTotalMeasurement);
+
+        verify(clientTotalMeasurement).record(eq(0L), any(Attributes.class));
+    }
+
+    @Test
+    public void initMetricsRecordsProxyClientAdminRequestMetrics() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        LongCounter requestCounter = mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        LongHistogram requestLatency = mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+
+        ProxyMetricsManager.initMetrics(
+            meter,
+            Attributes::builder,
+            () -> new ProxyClientReadServiceStats(0L, 0L, 0L, Collections.emptyMap())
+        );
+
+        ProxyMetricsManager.recordProxyClientAdminRequest(
+            ClientAdminOperation.DESCRIBE_CLIENT,
+            ClientAdminMetricsResult.NOT_FOUND,
+            12L
+        );
+
+        verify(requestCounter).add(eq(1L), argThat(attributes ->
+            ClientAdminOperation.DESCRIBE_CLIENT.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
+                && ClientAdminMetricsResult.NOT_FOUND.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_RESULT)))));
+        verify(requestLatency).record(eq(12L), argThat(attributes ->
+            ClientAdminOperation.DESCRIBE_CLIENT.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
+                && ClientAdminMetricsResult.NOT_FOUND.name().toLowerCase().equals(
+                attributes.get(AttributeKey.stringKey(LABEL_RESULT)))));
+    }
+
+    @Test
+    public void initMetricsRecordsProxyClientAdminRequestScopeLabel() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        LongCounter requestCounter = mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        LongHistogram requestLatency = mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+
+        ProxyMetricsManager.initMetrics(
+            meter,
+            Attributes::builder,
+            () -> new ProxyClientReadServiceStats(0L, 0L, 0L, Collections.emptyMap())
+        );
+
+        ProxyMetricsManager.recordProxyClientAdminRequest(
+            ClientAdminOperation.LIST_CLIENTS,
+            ClientAdminMetricsResult.OK,
+            12L,
+            ProxyClientScope.ALL_PROXIES
+        );
+
+        verify(requestCounter).add(eq(1L), argThat(attributes ->
+            "all_proxies".equals(attributes.get(AttributeKey.stringKey("scope")))));
+        verify(requestLatency).record(eq(12L), argThat(attributes ->
+            "all_proxies".equals(attributes.get(AttributeKey.stringKey("scope")))));
+    }
+
+    @Test
+    public void initMetricsRecordsProxyClientAdminContestAttributes() {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        LongCounter requestCounter = mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        LongHistogram requestLatency = mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+
+        ProxyMetricsManager.initMetrics(
+            meter,
+            Attributes::builder,
+            () -> new ProxyClientReadServiceStats(0L, 0L, 0L, Collections.emptyMap())
+        );
+
+        ProxyMetricsManager.recordProxyClientAdminRequest(ClientAdminMetricsContext.newBuilder()
+            .setOperation(ClientAdminOperation.LIST_CLIENTS)
+            .setResult(ClientAdminMetricsResult.INTERNAL_ERROR)
+            .setLatencyMillis(12L)
+            .setScope(ProxyClientScope.LOCAL_PROXY)
+            .setStatus("internal_server_error")
+            .setPageSize(100)
+            .setFilters("client_id_prefix,client_language")
+            .setResultSize(3)
+            .build());
+
+        verify(requestCounter).add(eq(1L), argThat(attributes ->
+            "list_clients".equals(attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
+                && "internal_error".equals(attributes.get(AttributeKey.stringKey(LABEL_RESULT)))
+                && "local_proxy".equals(attributes.get(AttributeKey.stringKey(LABEL_SCOPE)))
+                && "internal_server_error".equals(attributes.get(AttributeKey.stringKey(LABEL_STATUS)))
+                && "client_id_prefix,client_language".equals(attributes.get(AttributeKey.stringKey(LABEL_FILTERS)))
+                && Long.valueOf(100L).equals(attributes.get(AttributeKey.longKey(LABEL_PAGE_SIZE)))
+                && Long.valueOf(3L).equals(attributes.get(AttributeKey.longKey(LABEL_RESULT_SIZE)))));
+        verify(requestLatency).record(eq(12L), argThat(attributes ->
+            "internal_server_error".equals(attributes.get(AttributeKey.stringKey(LABEL_STATUS)))
+                && Long.valueOf(100L).equals(attributes.get(AttributeKey.longKey(LABEL_PAGE_SIZE)))
+                && Long.valueOf(3L).equals(attributes.get(AttributeKey.longKey(LABEL_RESULT_SIZE)))));
+    }
+
+    @Test
+    public void proxyClientMetricsLabelsUseRootLocale() {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            Meter meter = mock(Meter.class);
+            mockLongGauge(meter, GAUGE_PROXY_UP);
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+            ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTypeCallback =
+                mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+            mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+            LongCounter requestCounter = mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+            LongHistogram requestLatency = mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+            Map<ClientType, Long> clientTypeCounts = new HashMap<>();
+            clientTypeCounts.put(ClientType.SIMPLE_CONSUMER, 1L);
+
+            ProxyMetricsManager.initMetrics(
+                meter,
+                Attributes::builder,
+                () -> new ProxyClientReadServiceStats(1L, 0L, 0L, clientTypeCounts)
+            );
+
+            ObservableLongMeasurement clientTypeMeasurement = mock(ObservableLongMeasurement.class);
+            clientTypeCallback.getValue().accept(clientTypeMeasurement);
+            verify(clientTypeMeasurement).record(eq(1L), argThat(attributes ->
+                "simple_consumer".equals(attributes.get(AttributeKey.stringKey(LABEL_CLIENT_TYPE)))));
+
+            ProxyMetricsManager.recordProxyClientAdminRequest(
+                ClientAdminOperation.LIST_CLIENTS_BY_TOPIC,
+                ClientAdminMetricsResult.INTERNAL_ERROR,
+                12L
+            );
+
+            verify(requestCounter).add(eq(1L), argThat(attributes ->
+                "list_clients_by_topic".equals(attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
+                    && "internal_error".equals(attributes.get(AttributeKey.stringKey(LABEL_RESULT)))));
+            verify(requestLatency).record(eq(12L), argThat(attributes ->
+                "list_clients_by_topic".equals(attributes.get(AttributeKey.stringKey(LABEL_OPERATION)))
+                    && "internal_error".equals(attributes.get(AttributeKey.stringKey(LABEL_RESULT)))));
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
+
+    @Test
+    public void defaultGrpcMessagingActivityRegistersProxyClientStatsSupplier() throws Exception {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTotalCallback =
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        ProxyRelayService proxyRelayService = mock(ProxyRelayService.class);
+        when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
+        TestDefaultGrpcMessagingActivity activity = new TestDefaultGrpcMessagingActivity(messagingProcessor);
+        try {
+            activity.upsertClient(client("client-a"));
+
+            ProxyMetricsManager.initMetrics(meter, Attributes::builder);
+
+            ObservableLongMeasurement clientTotalMeasurement = mock(ObservableLongMeasurement.class);
+            clientTotalCallback.getValue().accept(clientTotalMeasurement);
+            verify(clientTotalMeasurement).record(eq(1L), any(Attributes.class));
+        } finally {
+            activity.shutdownForTest();
+            ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(null);
+        }
+    }
+
+    @Test
+    public void defaultGrpcMessagingActivityClearsProxyClientStatsSupplierOnShutdown() throws Exception {
+        Meter meter = mock(Meter.class);
+        mockLongGauge(meter, GAUGE_PROXY_UP);
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> clientTotalCallback =
+            mockLongGauge(meter, GAUGE_PROXY_CLIENT_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_TYPE_TOTAL);
+        mockLongGauge(meter, GAUGE_PROXY_CLIENT_INDEX_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_READ_MODEL_OPERATIONS_TOTAL);
+        mockLongCounter(meter, COUNTER_PROXY_CLIENT_ADMIN_REQUESTS_TOTAL);
+        mockLongHistogram(meter, HISTOGRAM_PROXY_CLIENT_ADMIN_REQUEST_LATENCY);
+        MessagingProcessor messagingProcessor = mock(MessagingProcessor.class);
+        ProxyRelayService proxyRelayService = mock(ProxyRelayService.class);
+        when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
+        TestDefaultGrpcMessagingActivity activity = new TestDefaultGrpcMessagingActivity(messagingProcessor);
+        try {
+            activity.upsertClient(client("client-a"));
+            activity.shutdown();
+
+            ProxyMetricsManager.initMetrics(meter, Attributes::builder);
+
+            ObservableLongMeasurement clientTotalMeasurement = mock(ObservableLongMeasurement.class);
+            clientTotalCallback.getValue().accept(clientTotalMeasurement);
+            verify(clientTotalMeasurement).record(eq(0L), any(Attributes.class));
+        } finally {
+            activity.shutdownForTest();
+            ProxyMetricsManager.setProxyClientReadServiceStatsSupplier(null);
+        }
+    }
+
+    private static ArgumentCaptor<Consumer<ObservableLongMeasurement>> mockLongGauge(Meter meter, String name) {
+        DoubleGaugeBuilder doubleGaugeBuilder = mock(DoubleGaugeBuilder.class);
+        LongGaugeBuilder longGaugeBuilder = mock(LongGaugeBuilder.class);
+        ObservableLongGauge observableLongGauge = mock(ObservableLongGauge.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Consumer<ObservableLongMeasurement>> callbackCaptor =
+            ArgumentCaptor.forClass(Consumer.class);
+
+        when(meter.gaugeBuilder(name)).thenReturn(doubleGaugeBuilder);
+        when(doubleGaugeBuilder.setDescription(any(String.class))).thenReturn(doubleGaugeBuilder);
+        when(doubleGaugeBuilder.ofLongs()).thenReturn(longGaugeBuilder);
+        when(longGaugeBuilder.buildWithCallback(callbackCaptor.capture())).thenReturn(observableLongGauge);
+        return callbackCaptor;
+    }
+
+    private static LongCounter mockLongCounter(Meter meter, String name) {
+        LongCounterBuilder longCounterBuilder = mock(LongCounterBuilder.class);
+        LongCounter longCounter = mock(LongCounter.class);
+
+        when(meter.counterBuilder(name)).thenReturn(longCounterBuilder);
+        when(longCounterBuilder.setDescription(any(String.class))).thenReturn(longCounterBuilder);
+        when(longCounterBuilder.build()).thenReturn(longCounter);
+        return longCounter;
+    }
+
+    private static LongHistogram mockLongHistogram(Meter meter, String name) {
+        DoubleHistogramBuilder doubleHistogramBuilder = mock(DoubleHistogramBuilder.class);
+        LongHistogramBuilder longHistogramBuilder = mock(LongHistogramBuilder.class);
+        LongHistogram longHistogram = mock(LongHistogram.class);
+
+        when(meter.histogramBuilder(name)).thenReturn(doubleHistogramBuilder);
+        when(doubleHistogramBuilder.setDescription(any(String.class))).thenReturn(doubleHistogramBuilder);
+        when(doubleHistogramBuilder.setUnit(any(String.class))).thenReturn(doubleHistogramBuilder);
+        when(doubleHistogramBuilder.ofLongs()).thenReturn(longHistogramBuilder);
+        when(longHistogramBuilder.build()).thenReturn(longHistogram);
+        return longHistogram;
+    }
+
+    private static ProxyClientInfo client(String clientId) {
+        return new ProxyClientInfo(
+            clientId,
+            ClientType.PRODUCER,
+            Collections.singleton("group-a"),
+            Collections.singleton("topic-a"),
+            "JAVA",
+            "127.0.0.1:8080",
+            "192.168.0.1:8080",
+            "V5_0_0",
+            100L,
+            200L
+        );
+    }
+
+    private static class TestDefaultGrpcMessagingActivity extends DefaultGrpcMessagingActivity {
+        protected TestDefaultGrpcMessagingActivity(MessagingProcessor messagingProcessor) {
+            super(messagingProcessor);
+        }
+
+        private void upsertClient(ProxyClientInfo clientInfo) {
+            this.proxyClientReadService.upsertClient(clientInfo);
+        }
+
+        private void shutdownForTest() throws Exception {
+            this.grpcChannelManager.shutdown();
+        }
+    }
+}
