@@ -16,16 +16,23 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
+import java.net.InetSocketAddress;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageId;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class DecodeMessageIdCommand implements SubCommand {
+    private static final String MESSAGE_ID_TYPE_UNIQUE = "unique";
+    private static final String MESSAGE_ID_TYPE_OFFSET = "offset";
+
     @Override
     public String commandName() {
         return "decodeMessageId";
@@ -33,13 +40,17 @@ public class DecodeMessageIdCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Decode unique message ID.";
+        return "Decode unique or offset message ID.";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("i", "messageId", true, "unique message ID");
+        Option opt = new Option("i", "messageId", true, "message ID");
         opt.setRequired(true);
+        options.addOption(opt);
+
+        opt = new Option("t", "messageIdType", true, "message ID type, support unique or offset. Default: unique");
+        opt.setRequired(false);
         options.addOption(opt);
         return options;
     }
@@ -48,12 +59,28 @@ public class DecodeMessageIdCommand implements SubCommand {
     public void execute(final CommandLine commandLine, final Options options,
         RPCHook rpcHook) throws SubCommandException {
         String messageId = commandLine.getOptionValue('i').trim();
+        String messageIdType = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : MESSAGE_ID_TYPE_UNIQUE;
 
         try {
-            System.out.printf("IP: %s%n", MessageClientIDSetter.getIPStrFromID(messageId));
-            System.out.printf("Date: %s%n", UtilAll.formatDate(MessageClientIDSetter.getNearlyTimeFromID(messageId), UtilAll.YYYY_MM_DD_HH_MM_SS_SSS));
+            if (MESSAGE_ID_TYPE_UNIQUE.equalsIgnoreCase(messageIdType)) {
+                System.out.printf("IP: %s%n", MessageClientIDSetter.getIPStrFromID(messageId));
+                System.out.printf("Date: %s%n", UtilAll.formatDate(MessageClientIDSetter.getNearlyTimeFromID(messageId), UtilAll.YYYY_MM_DD_HH_MM_SS_SSS));
+            } else if (MESSAGE_ID_TYPE_OFFSET.equalsIgnoreCase(messageIdType)) {
+                MessageId decodedMessageId = MessageDecoder.decodeMessageId(messageId);
+                System.out.printf("StoreHost: %s%n", formatStoreHost(decodedMessageId));
+                System.out.printf("CommitLogOffset: %d%n", decodedMessageId.getOffset());
+            } else {
+                throw new SubCommandException("Unsupported messageIdType: " + messageIdType);
+            }
+        } catch (SubCommandException e) {
+            throw e;
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         }
+    }
+
+    private String formatStoreHost(MessageId messageId) {
+        InetSocketAddress address = (InetSocketAddress) messageId.getAddress();
+        return NetworkUtil.normalizeHostAddress(address.getAddress()) + ":" + address.getPort();
     }
 }
