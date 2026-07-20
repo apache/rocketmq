@@ -163,20 +163,6 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
-    CompletableFuture<PopResult> popLiteMessage(
-        ProxyContext ctx,
-        QueueSelector queueSelector,
-        String consumerGroup,
-        String topic,
-        int maxMsgNums,
-        long invisibleTime,
-        long pollTime,
-        SubscriptionData subscriptionData,
-        PopMessageResultFilter popMessageResultFilter,
-        String attemptId,
-        long timeoutMillis
-    );
-
     default CompletableFuture<AckResult> ackMessage(
         ProxyContext ctx,
         ReceiptHandle handle,

@@ -111,11 +111,11 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             .thenReturn(mock(MessageQueueView.class));
 
         ArgumentCaptor<String> ackMessageIdArgumentCaptor = ArgumentCaptor.forClass(String.class);
-        when(this.messagingProcessor.ackMessage(any(), any(), ackMessageIdArgumentCaptor.capture(), anyString(), anyString(), any(), anyLong()))
+        when(this.messagingProcessor.ackMessage(any(), any(), ackMessageIdArgumentCaptor.capture(), anyString(), anyString(), any()))
             .thenReturn(CompletableFuture.completedFuture(mock(AckResult.class)));
 
         ArgumentCaptor<String> toDLQMessageIdArgumentCaptor = ArgumentCaptor.forClass(String.class);
-        when(this.messagingProcessor.forwardMessageToDeadLetterQueue(any(), any(), toDLQMessageIdArgumentCaptor.capture(), anyString(), anyString(), any(), anyLong()))
+        when(this.messagingProcessor.forwardMessageToDeadLetterQueue(any(), any(), toDLQMessageIdArgumentCaptor.capture(), anyString(), anyString(), any()))
             .thenReturn(CompletableFuture.completedFuture(mock(RemotingCommand.class)));
 
         AddressableMessageQueue messageQueue = mock(AddressableMessageQueue.class);
