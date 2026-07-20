@@ -109,6 +109,14 @@ public class CommitLog implements Swappable {
 
     private final boolean enabledAppendPropCRC;
 
+    // Per-thread reusable scratch buffer for checkMessageAndReturnSize. That method reads
+    // body/topic/properties into this buffer transiently (contents are copied out or CRC'd
+    // before the method returns), so per-thread reuse is safe and avoids allocating a fresh
+    // message-sized byte[] on every dispatched message. Buffers are grow-only up to a cap
+    // derived from maxMessageSize; abnormally large sizes (e.g. corrupt length) fall back to
+    // a transient array to avoid pinning a huge buffer permanently.
+    private final ThreadLocal<byte[]> checkMessageBuffer = ThreadLocal.withInitial(() -> new byte[0]);
+
     public CommitLog(final DefaultMessageStore messageStore) {
         String storePath = messageStore.getMessageStoreConfig().getStorePathCommitLog();
         RunningFlags runningFlags = messageStore.getMessageStoreConfig().isEnableRunningFlagsInFlush()
@@ -432,6 +440,26 @@ public class CommitLog implements Swappable {
         }
     }
 
+    /**
+     * Returns a scratch buffer of at least {@code totalSize} bytes for {@link #checkMessageAndReturnSize}.
+     * The buffer is used purely transiently there (each field is read into it and copied out / CRC'd
+     * before the next use), so a per-thread reusable buffer is safe and removes a per-message byte[]
+     * allocation. Sizes within maxMessageSize (plus header slack) are reused grow-only; larger sizes
+     * (e.g. a corrupt length) return a transient array so an oversized buffer is never pinned.
+     */
+    private byte[] borrowCheckMessageBuffer(final int totalSize) {
+        int reuseCap = this.defaultMessageStore.getMessageStoreConfig().getMaxMessageSize() + (64 * 1024);
+        if (totalSize > reuseCap || totalSize < 0) {
+            return new byte[totalSize];
+        }
+        byte[] buffer = this.checkMessageBuffer.get();
+        if (buffer.length < totalSize) {
+            buffer = new byte[totalSize];
+            this.checkMessageBuffer.set(buffer);
+        }
+        return buffer;
+    }
+
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
         final boolean checkDupInfo) {
         return this.checkMessageAndReturnSize(byteBuffer, checkCRC, checkDupInfo, true);
@@ -475,7 +503,7 @@ public class CommitLog implements Swappable {
 
             MessageVersion messageVersion = MessageVersion.valueOfMagicCode(magicCode);
 
-            byte[] bytesContent = new byte[totalSize];
+            byte[] bytesContent = borrowCheckMessageBuffer(totalSize);
 
             int bodyCRC = byteBuffer.getInt();
 
