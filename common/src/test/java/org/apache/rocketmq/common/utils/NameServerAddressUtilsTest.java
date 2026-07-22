@@ -31,6 +31,7 @@ public class NameServerAddressUtilsTest {
 
     @Test
     public void testValidateInstanceEndpoint() {
+        assertThat(NameServerAddressUtils.validateInstanceEndpoint(null)).isEqualTo(false);
         assertThat(NameServerAddressUtils.validateInstanceEndpoint(endpoint1)).isEqualTo(false);
         assertThat(NameServerAddressUtils.validateInstanceEndpoint(endpoint2)).isEqualTo(false);
         assertThat(NameServerAddressUtils.validateInstanceEndpoint(endpoint3)).isEqualTo(true);
@@ -43,6 +44,8 @@ public class NameServerAddressUtilsTest {
             "MQ_INST_123456789_BXXUzaee");
         assertThat(NameServerAddressUtils.parseInstanceIdFromEndpoint(endpoint4)).isEqualTo(
             "MQ_INST_123456789_BXXUzaee");
+        assertThat(NameServerAddressUtils.parseInstanceIdFromEndpoint(endpoint1)).isNull();
+        assertThat(NameServerAddressUtils.parseInstanceIdFromEndpoint(endpoint2)).isNull();
     }
 
     @Test
