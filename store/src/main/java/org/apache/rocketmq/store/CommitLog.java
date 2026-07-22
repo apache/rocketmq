@@ -445,11 +445,12 @@ public class CommitLog implements Swappable {
      * The buffer is used purely transiently there (each field is read into it and copied out / CRC'd
      * before the next use), so a per-thread reusable buffer is safe and removes a per-message byte[]
      * allocation. Sizes within maxMessageSize (plus header slack) are reused grow-only; larger sizes
-     * (e.g. a corrupt length) return a transient array so an oversized buffer is never pinned.
+     * return a transient array so an oversized buffer is never pinned. A negative (corrupt) totalSize
+     * is rejected by the caller before reaching here.
      */
     private byte[] borrowCheckMessageBuffer(final int totalSize) {
         int reuseCap = this.defaultMessageStore.getMessageStoreConfig().getMaxMessageSize() + (64 * 1024);
-        if (totalSize > reuseCap || totalSize < 0) {
+        if (totalSize > reuseCap) {
             return new byte[totalSize];
         }
         byte[] buffer = this.checkMessageBuffer.get();
@@ -484,7 +485,7 @@ public class CommitLog implements Swappable {
             }
             // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
-            if (byteBuffer.remaining() < totalSize - 4) {
+            if (totalSize < 0 || byteBuffer.remaining() < totalSize - 4) {
                 return new DispatchRequest(-1, false /* fail */);
             }
 
