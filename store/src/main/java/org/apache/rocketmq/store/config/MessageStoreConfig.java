@@ -193,6 +193,13 @@ public class MessageStoreConfig {
     // The maximum size of message body,default is 4M,4M only for body length,not include others.
     private int maxMessageSize = 1024 * 1024 * 4;
 
+    // Upper bound (in bytes) of the per-thread reusable scratch buffer that
+    // CommitLog.checkMessageAndReturnSize keeps for message verification. Messages larger than this
+    // are verified with a transient buffer instead of the reusable one, so raising maxMessageSize
+    // does not make each dispatch/recovery thread retain an oversized buffer for its whole lifetime.
+    // Default 4M + 64K, which matches the previous reuse cap for the default maxMessageSize.
+    private int maxCheckMessageReuseBufferSize = 1024 * 1024 * 4 + 64 * 1024;
+
     // The maximum size of message body can be  set in config;count with maxMsgNums * CQ_STORE_UNIT_SIZE(20 || 46)
     private int maxFilterMessageSize = 16000;
     // Whether check the CRC32 of the records consumed.
@@ -793,6 +800,14 @@ public class MessageStoreConfig {
 
     public void setMaxMessageSize(int maxMessageSize) {
         this.maxMessageSize = maxMessageSize;
+    }
+
+    public int getMaxCheckMessageReuseBufferSize() {
+        return maxCheckMessageReuseBufferSize;
+    }
+
+    public void setMaxCheckMessageReuseBufferSize(int maxCheckMessageReuseBufferSize) {
+        this.maxCheckMessageReuseBufferSize = maxCheckMessageReuseBufferSize;
     }
 
     public int getMaxFilterMessageSize() {

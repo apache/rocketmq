@@ -112,9 +112,9 @@ public class CommitLog implements Swappable {
     // Per-thread reusable scratch buffer for checkMessageAndReturnSize. That method reads
     // body/topic/properties into this buffer transiently (contents are copied out or CRC'd
     // before the method returns), so per-thread reuse is safe and avoids allocating a fresh
-    // message-sized byte[] on every dispatched message. Buffers are grow-only up to a cap
-    // derived from maxMessageSize; abnormally large sizes (e.g. corrupt length) fall back to
-    // a transient array to avoid pinning a huge buffer permanently.
+    // message-sized byte[] on every dispatched message. Buffers are grow-only up to
+    // maxCheckMessageReuseBufferSize; larger sizes (oversized messages or a corrupt length)
+    // fall back to a transient array to avoid pinning a huge buffer permanently.
     private final ThreadLocal<byte[]> checkMessageBuffer = ThreadLocal.withInitial(() -> new byte[0]);
 
     public CommitLog(final DefaultMessageStore messageStore) {
@@ -444,12 +444,13 @@ public class CommitLog implements Swappable {
      * Returns a scratch buffer of at least {@code totalSize} bytes for {@link #checkMessageAndReturnSize}.
      * The buffer is used purely transiently there (each field is read into it and copied out / CRC'd
      * before the next use), so a per-thread reusable buffer is safe and removes a per-message byte[]
-     * allocation. Sizes within maxMessageSize (plus header slack) are reused grow-only; larger sizes
+     * allocation. Sizes within {@code maxCheckMessageReuseBufferSize} are reused grow-only; larger sizes
      * return a transient array so an oversized buffer is never pinned. A negative (corrupt) totalSize
      * is rejected by the caller before reaching here.
      */
-    private byte[] borrowCheckMessageBuffer(final int totalSize) {
-        int reuseCap = this.defaultMessageStore.getMessageStoreConfig().getMaxMessageSize() + (64 * 1024);
+    // Package-private for testing (CheckMessageBufferReuseTest).
+    byte[] borrowCheckMessageBuffer(final int totalSize) {
+        int reuseCap = this.defaultMessageStore.getMessageStoreConfig().getMaxCheckMessageReuseBufferSize();
         if (totalSize > reuseCap) {
             return new byte[totalSize];
         }
