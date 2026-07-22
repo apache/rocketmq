@@ -40,6 +40,7 @@ public class NameServerAddressUtilsTest {
 
     @Test
     public void testParseInstanceIdFromEndpoint() {
+        assertThat(NameServerAddressUtils.parseInstanceIdFromEndpoint(null)).isNull();
         assertThat(NameServerAddressUtils.parseInstanceIdFromEndpoint(endpoint3)).isEqualTo(
             "MQ_INST_123456789_BXXUzaee");
         assertThat(NameServerAddressUtils.parseInstanceIdFromEndpoint(endpoint4)).isEqualTo(
