@@ -16,9 +16,9 @@
  */
 package org.apache.rocketmq.store.dledger;
 
-import io.openmessaging.storage.dledger.AppendFuture;
-import io.openmessaging.storage.dledger.BatchAppendFuture;
 import io.openmessaging.storage.dledger.DLedgerConfig;
+import io.openmessaging.storage.dledger.common.AppendFuture;
+import io.openmessaging.storage.dledger.common.BatchAppendFuture;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
@@ -98,7 +98,7 @@ public class DLedgerCommitLog extends CommitLog {
         dLedgerConfig.setDeleteWhen(defaultMessageStore.getMessageStoreConfig().getDeleteWhen());
         dLedgerConfig.setFileReservedHours(defaultMessageStore.getMessageStoreConfig().getFileReservedTime() + 1);
         dLedgerConfig.setPreferredLeaderId(defaultMessageStore.getMessageStoreConfig().getPreferredLeaderId());
-        dLedgerConfig.setEnableBatchPush(defaultMessageStore.getMessageStoreConfig().isEnableBatchPush());
+        dLedgerConfig.setEnableBatchAppend(defaultMessageStore.getMessageStoreConfig().isEnableBatchPush());
         dLedgerConfig.setDiskSpaceRatioToCheckExpired(defaultMessageStore.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100f);
 
         id = Integer.parseInt(dLedgerConfig.getSelfId().substring(1)) + 1;
@@ -149,13 +149,30 @@ public class DLedgerCommitLog extends CommitLog {
 
     @Override
     public long getMaxOffset() {
-        if (dLedgerFileStore.getCommittedPos() > 0) {
-            return dLedgerFileStore.getCommittedPos();
+        long committedPos = getCommittedPos();
+        if (committedPos > 0) {
+            return committedPos;
         }
         if (dLedgerFileList.getMinOffset() > 0) {
             return dLedgerFileList.getMinOffset();
         }
         return 0;
+    }
+
+    private long getCommittedPos() {
+        long committedIndex = dLedgerServer.getMemberState().getCommittedIndex();
+        if (committedIndex < 0) {
+            return -1;
+        }
+        try {
+            DLedgerEntry committedEntry = dLedgerFileStore.get(committedIndex);
+            if (committedEntry != null) {
+                return committedEntry.getPos() + committedEntry.getSize();
+            }
+        } catch (Throwable t) {
+            log.warn("Failed to get committed dledger entry by index={}", committedIndex, t);
+        }
+        return -1;
     }
 
     @Override
@@ -232,7 +249,7 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     public SelectMmapBufferResult truncate(SelectMmapBufferResult sbr) {
-        long committedPos = dLedgerFileStore.getCommittedPos();
+        long committedPos = getCommittedPos();
         if (sbr == null || sbr.getStartOffset() == committedPos) {
             return null;
         }
@@ -257,7 +274,7 @@ public class DLedgerCommitLog extends CommitLog {
         if (offset < dividedCommitlogOffset) {
             return super.getData(offset, returnFirstOnNotFound);
         }
-        if (offset >= dLedgerFileStore.getCommittedPos()) {
+        if (offset >= getCommittedPos()) {
             return null;
         }
         int mappedFileSize = this.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();
@@ -276,7 +293,7 @@ public class DLedgerCommitLog extends CommitLog {
         if (offset < dividedCommitlogOffset) {
             return super.getData(offset, size, byteBuffer);
         }
-        if (offset >= dLedgerFileStore.getCommittedPos()) {
+        if (offset >= getCommittedPos()) {
             return false;
         }
         int mappedFileSize = this.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();
