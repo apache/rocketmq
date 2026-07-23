@@ -230,6 +230,21 @@ public class IndexStoreFileTest {
     }
 
     @Test
+    public void recoverEndTimestampTest() throws IOException {
+        long beginTimestamp = indexStoreFile.getTimestamp();
+        long endTimestamp = beginTimestamp + 10000L;
+        Assert.assertEquals(AppendResult.SUCCESS, indexStoreFile.putKey(
+            TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, endTimestamp));
+        Assert.assertEquals(endTimestamp, indexStoreFile.getEndTimestamp());
+
+        indexStoreFile.shutdown();
+        indexStoreFile = new IndexStoreFile(storeConfig, beginTimestamp);
+
+        Assert.assertEquals(beginTimestamp, indexStoreFile.getTimestamp());
+        Assert.assertEquals(endTimestamp, indexStoreFile.getEndTimestamp());
+    }
+
+    @Test
     public void doCompactionTest() {
         long timestamp = indexStoreFile.getTimestamp();
         for (int i = 0; i < 10; i++) {
