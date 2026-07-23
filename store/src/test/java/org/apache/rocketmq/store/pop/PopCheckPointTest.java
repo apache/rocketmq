@@ -39,7 +39,7 @@ public class PopCheckPointTest {
         // offset as the smaller one. Long.compare must keep them ordered.
         assertThat(low.compareTo(high)).isNegative();
         assertThat(high.compareTo(low)).isPositive();
-        assertThat(low.compareTo(low)).isZero();
+        assertThat(low.compareTo(build(0))).isZero();
     }
 
     @Test
