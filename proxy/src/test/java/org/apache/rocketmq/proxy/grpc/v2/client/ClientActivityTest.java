@@ -224,18 +224,21 @@ public class ClientActivityTest extends BaseActivityTest {
     @Test
     public void testProducerNotifyClientTermination() throws Throwable {
         ProxyContext context = createContext();
+        String anotherTopic = "anotherTopic";
 
-        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any())).thenReturn(Settings.newBuilder()
+        Settings settings = Settings.newBuilder()
             .setClientType(ClientType.PRODUCER)
             .setPublishing(Publishing.newBuilder()
                 .addTopics(Resource.newBuilder().setName(TOPIC).build())
+                .addTopics(Resource.newBuilder().setName(anotherTopic).build())
                 .build())
-            .build());
+            .build();
+        when(this.grpcClientSettingsManager.removeAndGetClientSettings(any())).thenReturn(settings);
+        ArgumentCaptor<String> topicArgumentCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<ClientChannelInfo> channelInfoArgumentCaptor = ArgumentCaptor.forClass(ClientChannelInfo.class);
-        doNothing().when(this.messagingProcessor).unRegisterProducer(any(), anyString(), channelInfoArgumentCaptor.capture());
         when(this.metadataService.getTopicMessageType(any(), anyString())).thenReturn(TopicMessageType.NORMAL);
 
-        this.sendProducerTelemetry(context);
+        this.sendClientTelemetry(context, settings);
         this.sendProducerHeartbeat(context);
 
         NotifyClientTerminationResponse response = this.clientActivity.notifyClientTermination(
@@ -245,8 +248,12 @@ public class ClientActivityTest extends BaseActivityTest {
         ).get();
 
         assertEquals(Code.OK, response.getStatus().getCode());
-        ClientChannelInfo clientChannelInfo = channelInfoArgumentCaptor.getValue();
-        assertClientChannelInfo(clientChannelInfo, TOPIC);
+        verify(this.messagingProcessor, times(2)).unRegisterProducer(any(), topicArgumentCaptor.capture(),
+            channelInfoArgumentCaptor.capture());
+        assertThat(topicArgumentCaptor.getAllValues()).containsExactly(TOPIC, anotherTopic);
+        assertThat(channelInfoArgumentCaptor.getAllValues().get(0))
+            .isSameAs(channelInfoArgumentCaptor.getAllValues().get(1));
+        assertClientChannelInfo(channelInfoArgumentCaptor.getValue(), TOPIC);
     }
 
     @Test
