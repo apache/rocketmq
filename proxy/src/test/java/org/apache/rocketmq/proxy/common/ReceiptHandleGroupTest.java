@@ -21,12 +21,14 @@ import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.utils.FutureUtils;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +36,7 @@ import org.junit.Test;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -307,6 +310,37 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
         await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertEquals(1, count.get()));
         assertEquals(handle1, removeHandleRef.get().getReceiptHandleStr());
         assertTrue(receiptHandleGroup.isEmpty());
+    }
+
+    @Test
+    public void testExpiredLockCheckedBeforeBlockingWait() throws Exception {
+        long originalTimeoutMs = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
+        long lockTimeoutMs = 50L;
+        ReceiptHandleGroup.HandleData handleData =
+            new ReceiptHandleGroup.HandleData(createMessageReceiptHandle(createHandle(), msgID));
+        Long firstLockTimeMs = null;
+        Long expiredLockTimeMs = null;
+        try {
+            ConfigurationManager.getProxyConfig().setLockTimeoutMsInHandleGroup(lockTimeoutMs);
+            firstLockTimeMs = handleData.lock(lockTimeoutMs);
+            assertNotNull(firstLockTimeMs);
+            Thread.sleep(lockTimeoutMs * 3 + 20);
+
+            long begin = System.nanoTime();
+            expiredLockTimeMs = handleData.lock(TimeUnit.SECONDS.toMillis(1));
+            long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - begin);
+
+            assertNotNull(expiredLockTimeMs);
+            assertTrue("expired lock should be acquired before blocking timeout, elapsedMs=" + elapsedMs,
+                elapsedMs < 300);
+        } finally {
+            if (expiredLockTimeMs != null) {
+                handleData.unlock(expiredLockTimeMs);
+            } else if (firstLockTimeMs != null) {
+                handleData.unlock(firstLockTimeMs);
+            }
+            ConfigurationManager.getProxyConfig().setLockTimeoutMsInHandleGroup(originalTimeoutMs);
+        }
     }
 
     private MessageReceiptHandle createMessageReceiptHandle(String handle, String msgID) {
