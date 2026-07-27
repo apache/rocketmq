@@ -156,16 +156,17 @@ public class ClientActivity extends AbstractMessagingActivity {
             }
 
             switch (clientSettings.getClientType()) {
-                case PRODUCER:
-                    for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
-                        String topicName = topic.getName();
-                        GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
-                        if (channel != null) {
-                            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                case PRODUCER: {
+                    GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
+                    if (channel != null) {
+                        ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
+                        for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
+                            String topicName = topic.getName();
                             this.messagingProcessor.unRegisterProducer(ctx, topicName, clientChannelInfo);
                         }
                     }
                     break;
+                }
                 case PUSH_CONSUMER:
                 case LITE_PUSH_CONSUMER:
                 case SIMPLE_CONSUMER:
