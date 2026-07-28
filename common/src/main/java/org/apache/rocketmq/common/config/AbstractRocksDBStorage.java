@@ -60,13 +60,19 @@ import org.rocksdb.WriteOptions;
 /**
  * Abstract base class for all RocksDB-backed storage in RocketMQ.
  *
- * <p>Provides common CRUD operations ({@code put}, {@code get}, {@code delete},
- * {@code batchPut}, {@code rangeDelete}, {@code iterate}), lifecycle management
- * ({@code start}, {@code shutdown}), automatic recovery on corruption
- * ({@code scheduleReloadRocksdb}), and manual compaction scheduling.
+ * <p>Provides common CRUD operations:
+ * - {@code put},
+ * - {@code get},
+ * - {@code delete},
+ * - {@code batchPut},
+ * - {@code rangeDelete},
+ * - {@code iterate}),
+ * lifecycle management: ({@code start}, {@code shutdown}),
+ * automatic recovery on corruption ({@code scheduleReloadRocksdb}),
+ * and manual compaction scheduling.
  *
- * <p>Subclasses define column families in {@link #postLoad()} and handle
- * their own cleanup in {@link #preShutdown()}.
+ * <p>Subclasses define column families in {@link #postLoad()}
+ * and handle their own cleanup in {@link #preShutdown()}.
  */
 public abstract class AbstractRocksDBStorage {
     protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
