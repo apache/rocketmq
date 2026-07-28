@@ -192,6 +192,18 @@ public class NetworkUtil {
     }
 
     public static SocketAddress string2SocketAddress(final String addr) {
+        if (addr.startsWith("[")) {
+            int end = addr.indexOf(']');
+            if (end > 0 && end + 1 < addr.length() && addr.charAt(end + 1) == ':') {
+                String host = addr.substring(1, end);
+                int scope = host.indexOf('%');
+                if (scope > 0) {
+                    host = host.substring(0, scope);
+                }
+                String port = addr.substring(end + 2);
+                return new InetSocketAddress(host, Integer.parseInt(port));
+            }
+        }
         int split = addr.lastIndexOf(":");
         String host = addr.substring(0, split);
         String port = addr.substring(split + 1);
@@ -201,7 +213,7 @@ public class NetworkUtil {
     public static String socketAddress2String(final SocketAddress addr) {
         StringBuilder sb = new StringBuilder();
         InetSocketAddress inetSocketAddress = (InetSocketAddress) addr;
-        sb.append(inetSocketAddress.getAddress().getHostAddress());
+        sb.append(normalizeHostAddress(inetSocketAddress.getAddress()));
         sb.append(":");
         sb.append(inetSocketAddress.getPort());
         return sb.toString();

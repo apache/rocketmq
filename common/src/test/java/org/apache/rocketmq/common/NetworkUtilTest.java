@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.common;
 
+import java.net.InetSocketAddress;
+
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.junit.Test;
 
@@ -39,5 +41,32 @@ public class NetworkUtilTest {
     public void testConvert2IpStringWithHost() {
         String result = NetworkUtil.convert2IpString("localhost:9876");
         assertThat(result).isEqualTo("127.0.0.1:9876");
+    }
+
+    @Test
+    public void testString2SocketAddressWithBracketedIPv6Scope() {
+        InetSocketAddress result = (InetSocketAddress) NetworkUtil.string2SocketAddress(
+            "[202:202:0:0:0:0:81:1811%enp1s0]:9876");
+
+        assertThat(result.getPort()).isEqualTo(9876);
+        assertThat(result.getAddress()).isNotNull();
+        assertThat(result.getAddress().getHostAddress()).isEqualTo("202:202:0:0:0:0:81:1811");
+    }
+
+    @Test
+    public void testString2SocketAddressWithBracketedIPv6() {
+        InetSocketAddress result = (InetSocketAddress) NetworkUtil.string2SocketAddress(
+            "[202:202:0:0:0:0:81:1811]:9876");
+
+        assertThat(result.getPort()).isEqualTo(9876);
+        assertThat(result.getAddress()).isNotNull();
+        assertThat(result.getAddress().getHostAddress()).isEqualTo("202:202:0:0:0:0:81:1811");
+    }
+
+    @Test
+    public void testConvert2IpStringWithBracketedIPv6Scope() {
+        String result = NetworkUtil.convert2IpString("[202:202:0:0:0:0:81:1811%enp1s0]:9876");
+
+        assertThat(result).isEqualTo("[202:202:0:0:0:0:81:1811]:9876");
     }
 }
