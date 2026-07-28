@@ -587,13 +587,6 @@ public class PopConsumerService extends ServiceThread {
                     return CompletableFuture.completedFuture(!result.getRight());
                 }
                 return CompletableFuture.completedFuture(this.reviveRetry(record, result.getLeft()));
-            })
-            .exceptionally(throwable -> {
-                // Do not let a single failed async read (e.g. a remote read via the escape bridge)
-                // abort the whole revive batch in revive(AtomicLong, int). Treat it as a failed
-                // revive so the record is scheduled for retry instead of throwing out of allOf().join().
-                log.error("PopConsumerService revive failed, will retry, record={}", record, throwable);
-                return false;
             });
     }
 
@@ -628,7 +621,14 @@ public class PopConsumerService extends ServiceThread {
             }
             CompletableFuture<Boolean> future;
             try {
-                future = this.revive(record);
+                // Attach the exception-to-false conversion at this call site only: here a false
+                // result is consumed below and turned into a failureList backoff retry. Other
+                // callers of revive(record) (e.g. the PopConsumerCache callback) do not consume
+                // the result and must keep the original exception semantics.
+                future = this.revive(record).exceptionally(throwable -> {
+                    log.error("PopConsumerService revive failed, will retry, record={}", record, throwable);
+                    return false;
+                });
             } catch (Exception e) {
                 // A synchronous failure from revive(record) (e.g. getMessageAsync throwing before it
                 // returns a future) must not abort the whole batch; treat it as a failed revive so the
