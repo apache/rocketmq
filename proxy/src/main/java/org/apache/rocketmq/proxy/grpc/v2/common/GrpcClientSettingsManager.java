@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.ServiceThread;
@@ -55,16 +56,44 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 
 public class GrpcClientSettingsManager extends ServiceThread implements StartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    protected static final Map<String, Settings> CLIENT_SETTINGS_MAP = new ConcurrentHashMap<>();
+    private static final long UNOWNED_GENERATION = 0;
+    private final Map<String, VersionedSettings> clientSettingsMap = new ConcurrentHashMap<>();
 
     private final MessagingProcessor messagingProcessor;
+
+    private static final class VersionedSettings {
+        private final long generation;
+        private final Settings settings;
+
+        private VersionedSettings(long generation, Settings settings) {
+            this.generation = generation;
+            this.settings = settings;
+        }
+    }
 
     public GrpcClientSettingsManager(MessagingProcessor messagingProcessor) {
         this.messagingProcessor = messagingProcessor;
     }
 
     public Settings getRawClientSettings(String clientId) {
-        return CLIENT_SETTINGS_MAP.get(clientId);
+        VersionedSettings versionedSettings = clientSettingsMap.get(clientId);
+        return versionedSettings == null ? null : versionedSettings.settings;
+    }
+
+    /**
+     * Returns Settings owned by the expected generation. Legacy unowned Settings remain visible to preserve
+     * compatibility with remote registration and callers that have not adopted session ownership.
+     */
+    public Settings getRawClientSettings(String clientId, long expectedGeneration) {
+        VersionedSettings versionedSettings = clientSettingsMap.get(clientId);
+        if (versionedSettings == null) {
+            return null;
+        }
+        if (versionedSettings.generation != UNOWNED_GENERATION
+            && versionedSettings.generation != expectedGeneration) {
+            return null;
+        }
+        return versionedSettings.settings;
     }
 
     public Settings getClientSettings(ProxyContext ctx) {
@@ -186,10 +215,36 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
     }
 
     public void updateClientSettings(ProxyContext ctx, String clientId, Settings settings) {
+        Settings normalizedSettings = normalizeSettings(settings);
+        clientSettingsMap.put(clientId, new VersionedSettings(UNOWNED_GENERATION, normalizedSettings));
+    }
+
+    /**
+     * Updates Settings owned by a local session without allowing an older session to overwrite a replacement.
+     *
+     * @param ctx proxy context
+     * @param clientId client identifier
+     * @param generation positive generation of the owning session
+     * @param settings client Settings
+     */
+    public void updateClientSettings(ProxyContext ctx, String clientId, long generation, Settings settings) {
+        if (generation <= UNOWNED_GENERATION) {
+            throw new IllegalArgumentException("generation must be positive");
+        }
+        Settings normalizedSettings = normalizeSettings(settings);
+        clientSettingsMap.compute(clientId, (clientIdKey, current) -> {
+            if (current == null || current.generation <= generation) {
+                return new VersionedSettings(generation, normalizedSettings);
+            }
+            return current;
+        });
+    }
+
+    private Settings normalizeSettings(Settings settings) {
         if (settings.hasSubscription()) {
             settings = createDefaultConsumerSettingsBuilder().mergeFrom(settings).build();
         }
-        CLIENT_SETTINGS_MAP.put(clientId, settings);
+        return settings;
     }
 
     protected Settings.Builder createDefaultConsumerSettingsBuilder() {
@@ -198,7 +253,25 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
     }
 
     public Settings removeAndGetRawClientSettings(String clientId) {
-        return CLIENT_SETTINGS_MAP.remove(clientId);
+        VersionedSettings versionedSettings = clientSettingsMap.remove(clientId);
+        return versionedSettings == null ? null : versionedSettings.settings;
+    }
+
+    /**
+     * Removes Settings only when the stored owner matches the expected session generation.
+     *
+     * @return removed Settings, or {@code null} when no matching Settings exist
+     */
+    public Settings removeAndGetRawClientSettings(String clientId, long expectedGeneration) {
+        AtomicReference<Settings> removedSettings = new AtomicReference<>();
+        clientSettingsMap.computeIfPresent(clientId, (clientIdKey, current) -> {
+            if (current.generation == expectedGeneration) {
+                removedSettings.set(current.settings);
+                return null;
+            }
+            return current;
+        });
+        return removedSettings.get();
     }
 
     public Settings removeAndGetClientSettings(ProxyContext ctx) {
@@ -266,15 +339,16 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
 
     @Override
     protected void onWaitEnd() {
-        Set<String> clientIdSet = CLIENT_SETTINGS_MAP.keySet();
+        Set<String> clientIdSet = clientSettingsMap.keySet();
         for (String clientId : clientIdSet) {
             try {
-                CLIENT_SETTINGS_MAP.computeIfPresent(clientId, (clientIdKey, settings) -> {
+                clientSettingsMap.computeIfPresent(clientId, (clientIdKey, versionedSettings) -> {
+                    Settings settings = versionedSettings.settings;
                     if (ClientType.PUSH_CONSUMER != settings.getClientType() &&
                         ClientType.SIMPLE_CONSUMER != settings.getClientType() &&
                         ClientType.LITE_PUSH_CONSUMER != settings.getClientType() &&
                         ClientType.LITE_SIMPLE_CONSUMER != settings.getClientType()) {
-                        return settings;
+                        return versionedSettings;
                     }
                     String consumerGroup = settings.getSubscription().getGroup().getName();
                     ConsumerGroupInfo consumerGroupInfo = this.messagingProcessor.getConsumerGroupInfo(
@@ -285,7 +359,7 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
                         log.info("remove unused grpc client settings. group:{}, settings:{}", consumerGroupInfo, settings);
                         return null;
                     }
-                    return settings;
+                    return versionedSettings;
                 });
             } catch (Throwable t) {
                 log.error("check expired grpc client settings failed. clientId:{}", clientId, t);

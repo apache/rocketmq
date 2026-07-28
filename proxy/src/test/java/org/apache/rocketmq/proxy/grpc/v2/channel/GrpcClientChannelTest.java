@@ -38,6 +38,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -52,14 +54,16 @@ public class GrpcClientChannelTest extends InitConfigTest {
 
     private String clientId;
     private GrpcClientChannel grpcClientChannel;
+    private long generation;
 
     @Before
     public void before() throws Throwable {
         super.before();
         this.clientId = RandomStringUtils.randomAlphabetic(10);
+        this.generation = 7;
         this.grpcClientChannel = new GrpcClientChannel(proxyRelayService, grpcClientSettingsManager, grpcChannelManager,
             ProxyContext.create().setRemoteAddress("10.152.39.53:9768").setLocalAddress("11.193.0.1:1210"),
-            this.clientId);
+            this.clientId, generation, System.currentTimeMillis());
     }
 
     @Test
@@ -71,12 +75,13 @@ public class GrpcClientChannelTest extends InitConfigTest {
                     .build())
                 .build())
             .build();
-        when(grpcClientSettingsManager.getRawClientSettings(eq(clientId))).thenReturn(clientSettings);
+        when(grpcClientSettingsManager.getRawClientSettings(eq(clientId), eq(generation))).thenReturn(clientSettings);
 
         RemoteChannel remoteChannel = this.grpcClientChannel.toRemoteChannel();
         assertEquals(ChannelProtocolType.GRPC_V2, remoteChannel.getType());
         assertEquals(clientSettings, GrpcClientChannel.parseChannelExtendAttribute(remoteChannel));
         assertEquals(clientSettings, GrpcClientChannel.parseChannelExtendAttribute(this.grpcClientChannel));
         assertNull(GrpcClientChannel.parseChannelExtendAttribute(mock(RemotingChannel.class)));
+        verify(grpcClientSettingsManager, times(2)).getRawClientSettings(clientId, generation);
     }
 }
