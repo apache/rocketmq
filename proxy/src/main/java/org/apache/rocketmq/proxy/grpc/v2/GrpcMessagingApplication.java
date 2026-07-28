@@ -50,6 +50,7 @@ import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -85,7 +86,10 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     protected ThreadPoolExecutor consumerThreadPoolExecutor;
     protected ThreadPoolExecutor clientManagerThreadPoolExecutor;
     protected ThreadPoolExecutor transactionThreadPoolExecutor;
-
+    private final Object telemetryPermitLock = new Object();
+    private volatile TelemetryPermitPool telemetryPermitPool;
+    private final TelemetryDispatcher.Dependencies telemetryDispatcherDependencies =
+        new ApplicationTelemetryDependencies();
 
     protected GrpcMessagingApplication(GrpcMessagingActivity grpcMessagingActivity, RequestPipeline requestPipeline) {
         this.grpcMessagingActivity = grpcMessagingActivity;
@@ -170,13 +174,17 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     protected <V, T> void addExecutor(ExecutorService executor, ProxyContext context, V request, Runnable runnable,
         StreamObserver<T> responseObserver, Function<Status, T> statusResponseCreator) {
+        prepareRequest(context, request);
+        executor.submit(new GrpcTask<>(runnable, context, request, responseObserver, statusResponseCreator.apply(flowLimitStatus())));
+    }
+
+    protected <V> void prepareRequest(ProxyContext context, V request) {
         if (request instanceof GeneratedMessageV3) {
             requestPipeline.execute(context, GrpcConstants.METADATA.get(Context.current()), (GeneratedMessageV3) request);
             validateContext(context);
         } else {
             log.error("[BUG]grpc request pipe is not been executed");
         }
-        executor.submit(new GrpcTask<>(runnable, context, request, responseObserver, statusResponseCreator.apply(flowLimitStatus())));
     }
 
     protected <V, T> void writeResponse(ProxyContext context, V request, T response, StreamObserver<T> responseObserver,
@@ -193,6 +201,26 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     protected ProxyContext createContext() {
         return ProxyContext.create();
+    }
+
+    protected Semaphore acquireTelemetryEventPermit() {
+        ThreadPoolExecutor currentExecutor = this.clientManagerThreadPoolExecutor;
+        TelemetryPermitPool permitPool = this.telemetryPermitPool;
+        if (permitPool == null || permitPool.executor != currentExecutor) {
+            synchronized (this.telemetryPermitLock) {
+                permitPool = this.telemetryPermitPool;
+                if (permitPool == null || permitPool.executor != currentExecutor) {
+                    long queueCapacity = (long) currentExecutor.getQueue().size()
+                        + currentExecutor.getQueue().remainingCapacity();
+                    long executorCapacity = currentExecutor.getMaximumPoolSize() + queueCapacity;
+                    permitPool = new TelemetryPermitPool(
+                        currentExecutor,
+                        new Semaphore((int) Math.max(1, Math.min(Integer.MAX_VALUE, executorCapacity))));
+                    this.telemetryPermitPool = permitPool;
+                }
+            }
+        }
+        return permitPool.permits.tryAcquire() ? permitPool.permits : null;
     }
 
     protected void validateContext(ProxyContext context) {
@@ -423,33 +451,13 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     @Override
     public StreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
         Function<Status, TelemetryCommand> statusResponseCreator = status -> TelemetryCommand.newBuilder().setStatus(status).build();
-        ContextStreamObserver<TelemetryCommand> responseTelemetryCommand = grpcMessagingActivity.telemetry(responseObserver);
-        return new StreamObserver<TelemetryCommand>() {
-            @Override
-            public void onNext(TelemetryCommand value) {
-                ProxyContext context = createContext();
-                try {
-                    addExecutor(clientManagerThreadPoolExecutor,
-                        context,
-                        value,
-                        () -> responseTelemetryCommand.onNext(context, value),
-                        responseObserver,
-                        statusResponseCreator);
-                } catch (Throwable t) {
-                    writeResponse(context, value, null, responseObserver, t, statusResponseCreator);
-                }
-            }
-
-            @Override
-            public void onError(Throwable t) {
-                responseTelemetryCommand.onError(t);
-            }
-
-            @Override
-            public void onCompleted() {
-                responseTelemetryCommand.onCompleted();
-            }
-        };
+        StreamObserver<TelemetryCommand> serializedResponseObserver =
+            TelemetryDispatcher.serializeResponse(responseObserver);
+        ContextStreamObserver<TelemetryCommand> responseTelemetryCommand =
+            grpcMessagingActivity.telemetry(serializedResponseObserver);
+        return new TelemetryDispatcher(
+            serializedResponseObserver, responseTelemetryCommand, statusResponseCreator,
+            this.telemetryDispatcherDependencies);
     }
 
     @Override
@@ -490,6 +498,53 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         }
     }
 
+    private static final class TelemetryPermitPool {
+        private final ThreadPoolExecutor executor;
+        private final Semaphore permits;
+
+        private TelemetryPermitPool(ThreadPoolExecutor executor, Semaphore permits) {
+            this.executor = executor;
+            this.permits = permits;
+        }
+    }
+
+    private final class ApplicationTelemetryDependencies implements TelemetryDispatcher.Dependencies {
+        @Override
+        public ProxyContext createContext() {
+            return GrpcMessagingApplication.this.createContext();
+        }
+
+        @Override
+        public void prepareRequest(ProxyContext context, TelemetryCommand request) {
+            GrpcMessagingApplication.this.prepareRequest(context, request);
+        }
+
+        @Override
+        public Status flowLimitStatus() {
+            return GrpcMessagingApplication.this.flowLimitStatus();
+        }
+
+        @Override
+        public Status convertExceptionToStatus(Throwable throwable) {
+            return GrpcMessagingApplication.this.convertExceptionToStatus(throwable);
+        }
+
+        @Override
+        public Semaphore acquireEventPermit() {
+            return GrpcMessagingApplication.this.acquireTelemetryEventPermit();
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            GrpcMessagingApplication.this.clientManagerThreadPoolExecutor.execute(command);
+        }
+
+        @Override
+        public void writeResponse(StreamObserver<TelemetryCommand> responseObserver, TelemetryCommand response) {
+            ResponseWriter.getInstance().writeResponse(responseObserver, response);
+        }
+    }
+
     protected class GrpcTaskRejectedExecutionHandler implements RejectedExecutionHandler {
 
         public GrpcTaskRejectedExecutionHandler() {
@@ -498,6 +553,10 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
         @Override
         public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+            if (r instanceof TelemetryDispatcher) {
+                ((TelemetryDispatcher) r).onRejected();
+                return;
+            }
             if (r instanceof GrpcTask) {
                 try {
                     GrpcTask grpcTask = (GrpcTask) r;
