@@ -17,12 +17,11 @@
 
 package org.apache.rocketmq.remoting.protocol;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.alibaba.fastjson2.JSON;
 import org.apache.rocketmq.remoting.protocol.body.BatchAck;
 import org.junit.Test;
 import org.objenesis.ObjenesisStd;
-import org.reflections.Reflections;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -41,34 +40,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class RemotingSerializableCompatTest {
-    
-    @Test
-    public void testCompatibilityCheck() {
-        Reflections reflections = new Reflections("org.apache.rocketmq.remoting.protocol");
-        Set<Class<? extends RemotingSerializable>> subTypes = reflections.getSubTypesOf(RemotingSerializable.class);
-        
-        for (Class<? extends RemotingSerializable> clazz : subTypes) {
-            if (clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers()) || clazz.getSimpleName().endsWith("Test")
-                    || clazz.isAnonymousClass() || clazz.getName().contains("$")) {
-                continue;
-            }
-            try {
-                RemotingSerializable instance;
-                try {
-                    instance = clazz.getDeclaredConstructor().newInstance();
-                } catch (NoSuchMethodException e) {
-                    instance = allocateInstance(clazz);
-                }
-                fillDefaultFields(instance, clazz);
-                assertTrue(checkCompatible(instance, clazz));
-            } catch (Exception e) {
-                System.err.printf("Class %s: incompatible, error: %s\n", clazz.getName(), e.getMessage());
-            }
-        }
-    }
 
     @Test
     public void testCompatibilityCheckWithBitSet() {
@@ -406,19 +379,7 @@ public class RemotingSerializableCompatTest {
                 clazz == Float.class ||
                 clazz == Double.class;
     }
-    
-    private boolean checkCompatible(final Object original, final Class<?> clazz) {
-        String json = com.alibaba.fastjson.JSON.toJSONString(original);
-        Object deserialized;
-        try {
-            deserialized = com.alibaba.fastjson2.JSON.parseObject(json, clazz);
-        } catch (Exception e) {
-            System.err.printf("Deserialization failed for %s: %s\n", clazz.getName(), e.getMessage());
-            return false;
-        }
-        return checkCompatible(original, deserialized, clazz.getSimpleName(), new HashMap<>());
-    }
-    
+
     private <T> T allocateInstance(final Class<T> clazz) {
         return new ObjenesisStd().newInstance(clazz);
     }
