@@ -24,6 +24,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.common.utils.ThreadUtils;
@@ -39,6 +42,8 @@ public class GrpcChannelManager implements StartAndShutdown {
     private final ProxyRelayService proxyRelayService;
     private final GrpcClientSettingsManager grpcClientSettingsManager;
     protected final ConcurrentMap<String, GrpcClientChannel> clientIdChannelMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ClientLifecycleLock> clientIdLifecycleLockMap = new ConcurrentHashMap<>();
+    private final AtomicLong sessionGeneration = new AtomicLong(0);
 
     protected final AtomicLong nonceIdGenerator = new AtomicLong(0);
     protected final ConcurrentMap<String /* nonce */, ResultFuture> resultNonceFutureMap = new ConcurrentHashMap<>();
@@ -61,8 +66,30 @@ public class GrpcChannelManager implements StartAndShutdown {
     }
 
     public GrpcClientChannel createChannel(ProxyContext ctx, String clientId) {
-        return this.clientIdChannelMap.computeIfAbsent(clientId,
-            k -> new GrpcClientChannel(proxyRelayService, grpcClientSettingsManager, this, ctx, clientId));
+        return this.withClientLifecycleLock(clientId, () -> {
+            GrpcClientChannel current = this.clientIdChannelMap.get(clientId);
+            if (current != null) {
+                return current;
+            }
+            GrpcClientChannel created = this.newChannel(ctx, clientId);
+            this.clientIdChannelMap.put(clientId, created);
+            return created;
+        });
+    }
+
+    public GrpcClientChannel openSession(ProxyContext ctx, String clientId) {
+        return this.withClientLifecycleLock(clientId, () -> {
+            GrpcClientChannel opened = this.newChannel(ctx, clientId);
+            this.clientIdChannelMap.put(clientId, opened);
+            return opened;
+        });
+    }
+
+    private GrpcClientChannel newChannel(ProxyContext ctx, String clientId) {
+        long generation = this.sessionGeneration.incrementAndGet();
+        long connectedAtMillis = System.currentTimeMillis();
+        return new GrpcClientChannel(proxyRelayService, grpcClientSettingsManager, this, ctx, clientId,
+            generation, connectedAtMillis);
     }
 
     public GrpcClientChannel getChannel(String clientId) {
@@ -70,7 +97,80 @@ public class GrpcChannelManager implements StartAndShutdown {
     }
 
     public GrpcClientChannel removeChannel(String clientId) {
-        return this.clientIdChannelMap.remove(clientId);
+        return this.withClientLifecycleLock(clientId, () -> this.clientIdChannelMap.remove(clientId));
+    }
+
+    public boolean removeChannel(String clientId, GrpcClientChannel expected) {
+        if (expected == null) {
+            return false;
+        }
+        return this.withClientLifecycleLock(clientId, () ->
+            this.clientIdChannelMap.remove(clientId, expected));
+    }
+
+    public boolean touchChannel(String clientId, GrpcClientChannel expected, long timestamp) {
+        return this.runIfCurrent(clientId, expected, () -> expected.touch(timestamp));
+    }
+
+    /**
+     * Runs an action only while {@code expected} owns the client session. Session replacement for the same client ID
+     * waits for the action, while other client IDs use independent lifecycle locks. The action must not invoke another
+     * lifecycle operation for the same client ID.
+     *
+     * @return whether the expected channel was current and the action ran
+     */
+    public boolean runIfCurrent(String clientId, GrpcClientChannel expected, Runnable action) {
+        if (expected == null) {
+            return false;
+        }
+        return this.withClientLifecycleLock(clientId, () -> {
+            if (this.clientIdChannelMap.get(clientId) != expected) {
+                return false;
+            }
+            action.run();
+            return true;
+        });
+    }
+
+    private <T> T withClientLifecycleLock(String clientId, Supplier<T> action) {
+        ClientLifecycleLock lifecycleLock = this.acquireClientLifecycleLock(clientId);
+        try {
+            return action.get();
+        } finally {
+            this.releaseClientLifecycleLock(clientId, lifecycleLock);
+        }
+    }
+
+    private ClientLifecycleLock acquireClientLifecycleLock(String clientId) {
+        AtomicReference<ClientLifecycleLock> acquiredLock = new AtomicReference<>();
+        this.clientIdLifecycleLockMap.compute(clientId, (key, current) -> {
+            ClientLifecycleLock lifecycleLock = current == null ? new ClientLifecycleLock() : current;
+            lifecycleLock.retain();
+            acquiredLock.set(lifecycleLock);
+            return lifecycleLock;
+        });
+        ClientLifecycleLock lifecycleLock = acquiredLock.get();
+        lifecycleLock.lock();
+        return lifecycleLock;
+    }
+
+    private void releaseClientLifecycleLock(String clientId, ClientLifecycleLock lifecycleLock) {
+        lifecycleLock.unlock();
+        this.clientIdLifecycleLockMap.computeIfPresent(clientId, (key, current) -> {
+            if (current != lifecycleLock) {
+                return current;
+            }
+            return current.release() == 0 ? null : current;
+        });
+    }
+
+    int clientLifecycleLockCount() {
+        return this.clientIdLifecycleLockMap.size();
+    }
+
+    boolean hasQueuedClientLifecycleOperation(String clientId) {
+        ClientLifecycleLock lifecycleLock = this.clientIdLifecycleLockMap.get(clientId);
+        return lifecycleLock != null && lifecycleLock.hasQueuedThreads();
     }
 
     public <T> String addResponseFuture(CompletableFuture<ProxyRelayResult<T>> responseFuture) {
@@ -126,6 +226,31 @@ public class GrpcChannelManager implements StartAndShutdown {
 
         public ResultFuture(CompletableFuture<ProxyRelayResult<T>> future) {
             this.future = future;
+        }
+    }
+
+    private static final class ClientLifecycleLock {
+        private final ReentrantLock lock = new ReentrantLock();
+        private int referenceCount;
+
+        private void retain() {
+            referenceCount++;
+        }
+
+        private int release() {
+            return --referenceCount;
+        }
+
+        private void lock() {
+            lock.lock();
+        }
+
+        private void unlock() {
+            lock.unlock();
+        }
+
+        private boolean hasQueuedThreads() {
+            return lock.hasQueuedThreads();
         }
     }
 }

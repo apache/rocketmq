@@ -33,6 +33,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -68,20 +69,33 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     private final AtomicReference<StreamObserver<TelemetryCommand>> telemetryCommandRef = new AtomicReference<>();
     private final Object telemetryWriteLock = new Object();
     private final String clientId;
+    private final long generation;
+    private final long connectedAtMillis;
+    private final AtomicLong lastActiveAtMillis;
 
     public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcClientSettingsManager grpcClientSettingsManager,
         GrpcChannelManager grpcChannelManager, ProxyContext ctx, String clientId) {
+        this(proxyRelayService, grpcClientSettingsManager, grpcChannelManager, ctx, clientId, 0,
+            System.currentTimeMillis());
+    }
+
+    GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcClientSettingsManager grpcClientSettingsManager,
+        GrpcChannelManager grpcChannelManager, ProxyContext ctx, String clientId, long generation,
+        long connectedAtMillis) {
         super(proxyRelayService, null, new GrpcChannelId(clientId),
             ctx.getRemoteAddress(),
             ctx.getLocalAddress());
         this.grpcChannelManager = grpcChannelManager;
         this.grpcClientSettingsManager = grpcClientSettingsManager;
         this.clientId = clientId;
+        this.generation = generation;
+        this.connectedAtMillis = connectedAtMillis;
+        this.lastActiveAtMillis = new AtomicLong(connectedAtMillis);
     }
 
     @Override
     public String getChannelExtendAttribute() {
-        Settings settings = this.grpcClientSettingsManager.getRawClientSettings(this.clientId);
+        Settings settings = this.grpcClientSettingsManager.getRawClientSettings(this.clientId, this.generation);
         if (settings == null) {
             return null;
         }
@@ -258,6 +272,28 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
 
     public String getClientId() {
         return clientId;
+    }
+
+    public long getGeneration() {
+        return generation;
+    }
+
+    public long getConnectedAtMillis() {
+        return connectedAtMillis;
+    }
+
+    public long getLastActiveAtMillis() {
+        return lastActiveAtMillis.get();
+    }
+
+    void touch(long timestamp) {
+        long currentTimestamp;
+        do {
+            currentTimestamp = this.lastActiveAtMillis.get();
+            if (timestamp <= currentTimestamp) {
+                return;
+            }
+        } while (!this.lastActiveAtMillis.compareAndSet(currentTimestamp, timestamp));
     }
 
     public void writeTelemetryCommand(TelemetryCommand command) {
