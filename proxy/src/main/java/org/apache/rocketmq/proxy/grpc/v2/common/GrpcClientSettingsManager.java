@@ -140,7 +140,7 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
         return settings.toBuilder().setMetric(metric).build();
     }
 
-    protected static Address parseMetricCollectorAddress(String metricCollectorAddress) {
+    private static Address parseMetricCollectorAddress(String metricCollectorAddress) {
         if (StringUtils.isBlank(metricCollectorAddress)) {
             return null;
         }

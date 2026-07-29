@@ -42,8 +42,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -133,7 +135,7 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
 
         Settings settings = this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance());
 
-        assertEquals(true, settings.getMetric().getOn());
+        assertTrue(settings.getMetric().getOn());
         assertEquals("127.0.0.1", settings.getMetric().getEndpoints().getAddresses(0).getHost());
         assertEquals(8081, settings.getMetric().getEndpoints().getAddresses(0).getPort());
     }
@@ -143,16 +145,19 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
         ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.ON.getModeString());
 
         ConfigurationManager.getProxyConfig().setMetricCollectorAddress("");
-        assertEquals(false, this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
+        assertFalse(this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
 
         ConfigurationManager.getProxyConfig().setMetricCollectorAddress("127.0.0.1");
-        assertEquals(false, this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
+        assertFalse(this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
 
         ConfigurationManager.getProxyConfig().setMetricCollectorAddress(":8081");
-        assertEquals(false, this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
+        assertFalse(this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
+
+        ConfigurationManager.getProxyConfig().setMetricCollectorAddress("127.0.0.1: ");
+        assertFalse(this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
 
         ConfigurationManager.getProxyConfig().setMetricCollectorAddress("127.0.0.1:not-a-port");
-        assertEquals(false, this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
+        assertFalse(this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
     }
 
     @Test
