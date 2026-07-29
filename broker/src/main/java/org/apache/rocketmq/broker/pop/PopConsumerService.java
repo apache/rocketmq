@@ -613,11 +613,23 @@ public class PopConsumerService extends ServiceThread {
 
         // could merge read operation here
         for (PopConsumerRecord record : consumerRecords) {
-            try {
-                semaphore.acquire();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
+            while (true) {
+                try {
+                    semaphore.acquire();
+                    break;
+                } catch (InterruptedException e) {
+                    // Shutdown stops this service with the stopped flag and wakeup() rather than
+                    // thread interruption, and ServiceThread.waitForRunning preserves the interrupt
+                    // status. Restoring the flag here would make every later acquire() throw again
+                    // and leave the revive service in a permanent busy loop, so consume incidental
+                    // interrupts and retry. If the service is being stopped (e.g. shutdown(true)),
+                    // abort the batch cleanly: the records are not yet deleted from the store and
+                    // will be reprocessed after the next start.
+                    if (this.isStopped()) {
+                        throw new RuntimeException("PopConsumerService stopped while acquiring the revive semaphore", e);
+                    }
+                    log.warn("PopConsumerService interrupted while acquiring the revive semaphore, retry");
+                }
             }
             CompletableFuture<Boolean> future;
             try {
@@ -644,8 +656,8 @@ public class PopConsumerService extends ServiceThread {
                             Math.min(REWRITE_INTERVALS_IN_SECONDS.length - 1, record.getAttemptTimes())];
                         long nextInvisibleTime = record.getInvisibleTime() + backoffInterval;
                         PopConsumerRecord retryRecord = new PopConsumerRecord(System.currentTimeMillis(),
-                            record.getGroupId(), record.getTopicId(), record.getQueueId(),
-                            record.getRetryFlag(), nextInvisibleTime, record.getOffset(), record.getAttemptId());
+                            record.getGroupId(), record.getTopicId(), record.getQueueId(), record.getRetryFlag(),
+                            nextInvisibleTime, record.getOffset(), record.getAttemptId(), record.isSuspend());
                         retryRecord.setAttemptTimes(record.getAttemptTimes() + 1);
                         failureList.add(retryRecord);
                         log.warn("PopConsumerService revive backoff retry, record={}", retryRecord);
