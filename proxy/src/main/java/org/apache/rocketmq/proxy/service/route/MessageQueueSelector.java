@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -120,8 +121,10 @@ public class MessageQueueSelector {
                 }
 
                 String brokerName = item[0];
-                String brokerAddr = topicRoute.getMasterAddr(brokerName);
-                if (brokerAddr == null) {
+                Optional<String> brokerAddr = topicRoute.getMasterAddr(brokerName);
+                if (!brokerAddr.isPresent()) {
+                    log.warn("skip order topic route item without master broker address. topic:{}, brokerName:{}",
+                        topicRoute.getTopicName(), brokerName);
                     continue;
                 }
 
@@ -136,7 +139,7 @@ public class MessageQueueSelector {
                 for (int i = 0; i < nums; i++) {
                     AddressableMessageQueue mq = new AddressableMessageQueue(
                         new MessageQueue(topicRoute.getTopicName(), brokerName, i),
-                        brokerAddr);
+                        brokerAddr.get());
                     queueSet.add(mq);
                 }
             }
@@ -148,15 +151,15 @@ public class MessageQueueSelector {
 
             for (QueueData qd : qds) {
                 if (PermName.isWriteable(qd.getPerm())) {
-                    String brokerAddr = topicRoute.getMasterAddr(qd.getBrokerName());
-                    if (brokerAddr == null) {
+                    Optional<String> brokerAddr = topicRoute.getMasterAddr(qd.getBrokerName());
+                    if (!brokerAddr.isPresent()) {
                         continue;
                     }
 
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                         AddressableMessageQueue mq = new AddressableMessageQueue(
                             new MessageQueue(topicRoute.getTopicName(), qd.getBrokerName(), i),
-                            brokerAddr);
+                            brokerAddr.get());
                         queueSet.add(mq);
                     }
                 }

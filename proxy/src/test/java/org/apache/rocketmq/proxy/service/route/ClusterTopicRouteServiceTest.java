@@ -32,6 +32,8 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.ProxyException;
+import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
@@ -58,6 +60,7 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
 
     protected static final String BROKER2_NAME = "broker2";
     protected static final String BROKER2_ADDR = "127.0.0.2:10911";
+    protected static final String UNKNOWN_BROKER_NAME = "unknownBroker";
 
     @Before
     public void before() throws Throwable {
@@ -96,6 +99,7 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
         brokerTopicRouteData.setQueueDatas(Lists.newArrayList(queueData, queue2Data));
         when(this.mqClientAPIExt.getTopicRouteInfoFromNameServer(eq(BROKER_NAME), anyLong())).thenReturn(brokerTopicRouteData);
         when(this.mqClientAPIExt.getTopicRouteInfoFromNameServer(eq(BROKER2_NAME), anyLong())).thenReturn(brokerTopicRouteData);
+        when(this.mqClientAPIExt.getTopicRouteInfoFromNameServer(eq(UNKNOWN_BROKER_NAME), anyLong())).thenReturn(brokerTopicRouteData);
     }
 
     @Test
@@ -114,6 +118,16 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
         ProxyContext ctx = ProxyContext.create();
         assertEquals(BROKER_ADDR, topicRouteService.getBrokerAddr(ctx, BROKER_NAME));
         assertEquals(BROKER2_ADDR, topicRouteService.getBrokerAddr(ctx, BROKER2_NAME));
+    }
+
+    @Test
+    public void testGetBrokerAddrThrowsForUnknownBroker() {
+        ProxyContext ctx = ProxyContext.create();
+
+        ProxyException exception = catchThrowableOfType(() ->
+            topicRouteService.getBrokerAddr(ctx, UNKNOWN_BROKER_NAME), ProxyException.class);
+
+        assertEquals(ProxyExceptionCode.INVALID_BROKER_NAME, exception.getCode());
     }
 
     @Test

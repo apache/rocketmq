@@ -22,6 +22,7 @@ import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class MessageQueueSelectorTest extends BaseServiceTest {
@@ -95,5 +96,24 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
             assertEquals(BROKER_NAME, messageQueue.getBrokerName());
             assertEquals(i, messageQueue.getQueueId());
         }
+    }
+
+    @Test
+    public void testGetMasterAddrReturnsEmptyForUnknownBroker() {
+        TopicRouteWrapper topicRouteWrapper = new TopicRouteWrapper(topicRouteData, TOPIC);
+
+        assertFalse(topicRouteWrapper.getMasterAddr("unknownBroker").isPresent());
+    }
+
+    @Test
+    public void testWriteMessageQueueSkipsQueueDataWithoutMasterAddr() {
+        queueData.setPerm(PermName.PERM_WRITE);
+        queueData.setWriteQueueNums(3);
+        queueData.setBrokerName("unknownBroker");
+
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), false);
+
+        assertTrue(messageQueueSelector.getQueues().isEmpty());
+        assertTrue(messageQueueSelector.getBrokerActingQueues().isEmpty());
     }
 }
