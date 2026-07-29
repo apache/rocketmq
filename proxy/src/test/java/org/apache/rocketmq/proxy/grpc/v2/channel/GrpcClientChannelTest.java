@@ -18,7 +18,9 @@
 package org.apache.rocketmq.proxy.grpc.v2.channel;
 
 import apache.rocketmq.v2.Message;
+import apache.rocketmq.v2.NotifyUnsubscribeLiteCommand;
 import apache.rocketmq.v2.Publishing;
+import apache.rocketmq.v2.PrintThreadStackTraceCommand;
 import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
@@ -126,5 +128,39 @@ public class GrpcClientChannelTest extends InitConfigTest {
         assertFalse(summary.contains("secret-body"));
         assertFalse(summary.contains("message"));
         assertFalse(summary.contains("body"));
+    }
+
+    @Test
+    public void testSummarizeTelemetryCommandDiagnosticFields() {
+        assertEquals("null", GrpcClientChannel.summarizeTelemetryCommand(null));
+        assertEquals("COMMAND_NOT_SET", GrpcClientChannel.summarizeTelemetryCommand(TelemetryCommand.getDefaultInstance()));
+
+        TelemetryCommand settingsCommand = TelemetryCommand.newBuilder()
+            .setSettings(Settings.newBuilder()
+                .setPublishing(Publishing.getDefaultInstance())
+                .build())
+            .build();
+        String settingsSummary = GrpcClientChannel.summarizeTelemetryCommand(settingsCommand);
+        assertTrue(settingsSummary.contains("SETTINGS"));
+        assertTrue(settingsSummary.contains("clientType="));
+        assertTrue(settingsSummary.contains("pubSubCase=PUBLISHING"));
+
+        TelemetryCommand threadStackCommand = TelemetryCommand.newBuilder()
+            .setPrintThreadStackTraceCommand(PrintThreadStackTraceCommand.newBuilder()
+                .setNonce("stack-nonce")
+                .build())
+            .build();
+        String threadStackSummary = GrpcClientChannel.summarizeTelemetryCommand(threadStackCommand);
+        assertTrue(threadStackSummary.contains("PRINT_THREAD_STACK_TRACE_COMMAND"));
+        assertTrue(threadStackSummary.contains("stack-nonce"));
+
+        TelemetryCommand liteCommand = TelemetryCommand.newBuilder()
+            .setNotifyUnsubscribeLiteCommand(NotifyUnsubscribeLiteCommand.newBuilder()
+                .setLiteTopic("lite-topic")
+                .build())
+            .build();
+        String liteSummary = GrpcClientChannel.summarizeTelemetryCommand(liteCommand);
+        assertTrue(liteSummary.contains("NOTIFY_UNSUBSCRIBE_LITE_COMMAND"));
+        assertTrue(liteSummary.contains("lite-topic"));
     }
 }
