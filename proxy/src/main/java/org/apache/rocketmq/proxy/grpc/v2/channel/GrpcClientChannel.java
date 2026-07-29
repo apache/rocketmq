@@ -312,7 +312,8 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
                 break;
             case RECOVER_ORPHANED_TRANSACTION_COMMAND:
                 builder.append(", transactionId=")
-                    .append(command.getRecoverOrphanedTransactionCommand().getTransactionId());
+                    .append(command.getRecoverOrphanedTransactionCommand().getTransactionId())
+                    .append(", details omitted");
                 break;
             case NOTIFY_UNSUBSCRIBE_LITE_COMMAND:
                 builder.append(", liteTopic=")
@@ -323,6 +324,7 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
                     .append(", pubSubCase=").append(command.getSettings().getPubSubCase());
                 break;
             default:
+                // Add explicit cases for future commands that carry sensitive payloads.
                 break;
         }
         return builder.toString();
