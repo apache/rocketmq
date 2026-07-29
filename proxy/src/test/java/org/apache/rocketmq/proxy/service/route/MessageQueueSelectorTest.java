@@ -81,4 +81,19 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
         messageQueueSelector.selectOne(false);
         assertEquals(queue, messageQueueSelector.selectOne(false));
     }
+
+    @Test
+    public void testWriteMessageQueueSkipsInvalidOrderTopicConfItems() {
+        topicRouteData.setOrderTopicConf("invalid;:2;" + BROKER_NAME + ":not-a-number;unknownBroker:1;" + BROKER_NAME + ":2");
+
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), false);
+
+        assertEquals(2, messageQueueSelector.getQueues().size());
+        assertEquals(1, messageQueueSelector.getBrokerActingQueues().size());
+        for (int i = 0; i < messageQueueSelector.getQueues().size(); i++) {
+            AddressableMessageQueue messageQueue = messageQueueSelector.getQueues().get(i);
+            assertEquals(BROKER_NAME, messageQueue.getBrokerName());
+            assertEquals(i, messageQueue.getQueueId());
+        }
+    }
 }

@@ -32,14 +32,18 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 
 import static org.apache.rocketmq.proxy.service.route.MessageQueuePenalizer.selectLeastPenaltyWithPriority;
 import static org.apache.rocketmq.proxy.service.route.MessageQueuePriorityProvider.buildPriorityGroups;
 
 public class MessageQueueSelector {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private static final int BROKER_ACTING_QUEUE_ID = -1;
 
     // multiple queues for brokers with queueId : normal
@@ -110,13 +114,25 @@ public class MessageQueueSelector {
             String[] brokers = topicRoute.getOrderTopicConf().split(";");
             for (String broker : brokers) {
                 String[] item = broker.split(":");
+                if (item.length != 2 || StringUtils.isBlank(item[0]) || StringUtils.isBlank(item[1])) {
+                    log.warn("skip invalid order topic route item. topic:{}, item:{}", topicRoute.getTopicName(), broker);
+                    continue;
+                }
+
                 String brokerName = item[0];
                 String brokerAddr = topicRoute.getMasterAddr(brokerName);
                 if (brokerAddr == null) {
                     continue;
                 }
 
-                int nums = Integer.parseInt(item[1]);
+                int nums;
+                try {
+                    nums = Integer.parseInt(item[1]);
+                } catch (NumberFormatException e) {
+                    log.warn("skip order topic route item with invalid queue count. topic:{}, item:{}",
+                        topicRoute.getTopicName(), broker);
+                    continue;
+                }
                 for (int i = 0; i < nums; i++) {
                     AddressableMessageQueue mq = new AddressableMessageQueue(
                         new MessageQueue(topicRoute.getTopicName(), brokerName, i),
