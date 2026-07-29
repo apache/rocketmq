@@ -251,7 +251,7 @@ public class GrpcConverter {
         return systemPropertiesBuilder.build();
     }
 
-    protected Long parseLongMessageProperty(MessageExt messageExt, String propertyName) {
+    private Long parseLongMessageProperty(MessageExt messageExt, String propertyName) {
         String value = messageExt.getProperty(propertyName);
         if (value == null) {
             return null;
