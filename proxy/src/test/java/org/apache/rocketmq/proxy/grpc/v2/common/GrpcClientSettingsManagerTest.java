@@ -31,6 +31,8 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.lite.LiteSubscriptionDTO;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.MetricCollectorMode;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.remoting.protocol.subscription.CustomizedRetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.ExponentialRetryPolicy;
@@ -122,6 +124,35 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
 
         assertNull(this.grpcClientSettingsManager.getClientSettings(context));
         assertNull(this.grpcClientSettingsManager.removeAndGetClientSettings(context));
+    }
+
+    @Test
+    public void testMergeMetricWithValidCollectorAddress() {
+        ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.ON.getModeString());
+        ConfigurationManager.getProxyConfig().setMetricCollectorAddress("127.0.0.1:8081");
+
+        Settings settings = this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance());
+
+        assertEquals(true, settings.getMetric().getOn());
+        assertEquals("127.0.0.1", settings.getMetric().getEndpoints().getAddresses(0).getHost());
+        assertEquals(8081, settings.getMetric().getEndpoints().getAddresses(0).getPort());
+    }
+
+    @Test
+    public void testMergeMetricWithInvalidCollectorAddress() {
+        ConfigurationManager.getProxyConfig().setMetricCollectorMode(MetricCollectorMode.ON.getModeString());
+
+        ConfigurationManager.getProxyConfig().setMetricCollectorAddress("");
+        assertEquals(false, this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
+
+        ConfigurationManager.getProxyConfig().setMetricCollectorAddress("127.0.0.1");
+        assertEquals(false, this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
+
+        ConfigurationManager.getProxyConfig().setMetricCollectorAddress(":8081");
+        assertEquals(false, this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
+
+        ConfigurationManager.getProxyConfig().setMetricCollectorAddress("127.0.0.1:not-a-port");
+        assertEquals(false, this.grpcClientSettingsManager.mergeMetric(Settings.getDefaultInstance()).getMetric().getOn());
     }
 
     @Test

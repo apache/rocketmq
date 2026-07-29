@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -117,10 +118,12 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
         final Metric.Builder metricBuilder = Metric.newBuilder();
         switch (metricCollectorMode) {
             case ON:
-                final String[] split = metricCollectorAddress.split(":");
-                final String host = split[0];
-                final int port = Integer.parseInt(split[1]);
-                Address address = Address.newBuilder().setHost(host).setPort(port).build();
+                Address address = parseMetricCollectorAddress(metricCollectorAddress);
+                if (address == null) {
+                    log.warn("disable client metric collector because metricCollectorAddress is invalid: {}", metricCollectorAddress);
+                    metricBuilder.setOn(false);
+                    break;
+                }
                 final Endpoints endpoints = Endpoints.newBuilder().setScheme(AddressScheme.IPv4)
                     .addAddresses(address).build();
                 metricBuilder.setOn(true).setEndpoints(endpoints);
@@ -135,6 +138,23 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
         }
         Metric metric = metricBuilder.build();
         return settings.toBuilder().setMetric(metric).build();
+    }
+
+    protected static Address parseMetricCollectorAddress(String metricCollectorAddress) {
+        if (StringUtils.isBlank(metricCollectorAddress)) {
+            return null;
+        }
+
+        String[] split = metricCollectorAddress.split(":");
+        if (split.length != 2 || StringUtils.isBlank(split[0]) || StringUtils.isBlank(split[1])) {
+            return null;
+        }
+
+        try {
+            return Address.newBuilder().setHost(split[0]).setPort(Integer.parseInt(split[1])).build();
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     protected static Settings mergeSubscriptionData(Settings settings, SubscriptionGroupConfig groupConfig) {
