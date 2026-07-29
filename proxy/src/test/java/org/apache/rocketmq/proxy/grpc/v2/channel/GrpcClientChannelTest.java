@@ -17,9 +17,13 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.channel;
 
+import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.VerifyMessageCommand;
+import com.google.protobuf.ByteString;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
@@ -35,7 +39,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -78,5 +84,25 @@ public class GrpcClientChannelTest extends InitConfigTest {
         assertEquals(clientSettings, GrpcClientChannel.parseChannelExtendAttribute(remoteChannel));
         assertEquals(clientSettings, GrpcClientChannel.parseChannelExtendAttribute(this.grpcClientChannel));
         assertNull(GrpcClientChannel.parseChannelExtendAttribute(mock(RemotingChannel.class)));
+    }
+
+    @Test
+    public void testSummarizeTelemetryCommandDoesNotIncludeMessagePayload() {
+        TelemetryCommand command = TelemetryCommand.newBuilder()
+            .setVerifyMessageCommand(VerifyMessageCommand.newBuilder()
+                .setNonce("nonce-1")
+                .setMessage(Message.newBuilder()
+                    .setBody(ByteString.copyFromUtf8("secret-body"))
+                    .build())
+                .build())
+            .build();
+
+        String summary = GrpcClientChannel.summarizeTelemetryCommand(command);
+
+        assertTrue(summary.contains("VERIFY_MESSAGE_COMMAND"));
+        assertTrue(summary.contains("nonce-1"));
+        assertFalse(summary.contains("secret-body"));
+        assertFalse(summary.contains("message"));
+        assertFalse(summary.contains("body"));
     }
 }
