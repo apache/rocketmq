@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.remoting.protocol.http2proxy;
 
 import io.netty.channel.Channel;
+import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyTLV;
 import java.net.InetSocketAddress;
@@ -80,11 +81,66 @@ public class HAProxyMessageForwarderTest {
         assertNull(haProxyMessageForwarder.buildHAProxyMessage(inboundChannel));
     }
 
+    @Test
+    public void buildHAProxyMessageReturnsNullWhenLocalChannelPortIsInvalid() throws Exception {
+        Channel inboundChannel = buildChannel(
+            new InetSocketAddress("127.0.0.1", 10911),
+            stringSocketAddress("127.0.0.2:not-a-port")
+        );
+
+        assertNull(haProxyMessageForwarder.buildHAProxyMessage(inboundChannel));
+    }
+
+    @Test
+    public void buildHAProxyMessageWithProxyProtocolAttributes() throws Exception {
+        Channel inboundChannel = buildProxyProtocolChannel("127.0.0.1", "10911", "127.0.0.2", "8081");
+
+        HAProxyMessage haProxyMessage = haProxyMessageForwarder.buildHAProxyMessage(inboundChannel);
+
+        assertNotNull(haProxyMessage);
+        assertEquals("127.0.0.1", haProxyMessage.sourceAddress());
+        assertEquals(10911, haProxyMessage.sourcePort());
+        assertEquals("127.0.0.2", haProxyMessage.destinationAddress());
+        assertEquals(8081, haProxyMessage.destinationPort());
+    }
+
+    @Test
+    public void buildHAProxyMessageReturnsNullWhenProxyProtocolSourcePortIsInvalid() throws Exception {
+        Channel inboundChannel = buildProxyProtocolChannel("127.0.0.1", "not-a-port", "127.0.0.2", "8081");
+
+        assertNull(haProxyMessageForwarder.buildHAProxyMessage(inboundChannel));
+    }
+
+    @Test
+    public void buildHAProxyMessageReturnsNullWhenProxyProtocolDestinationPortIsInvalid() throws Exception {
+        Channel inboundChannel = buildProxyProtocolChannel("127.0.0.1", "10911", "127.0.0.2", "not-a-port");
+
+        assertNull(haProxyMessageForwarder.buildHAProxyMessage(inboundChannel));
+    }
+
+    @Test
+    public void parsePortReturnsNullWhenPortIsOutOfRange() {
+        assertNull(haProxyMessageForwarder.parsePort("-1"));
+        assertNull(haProxyMessageForwarder.parsePort("65536"));
+        assertEquals(Integer.valueOf(0), haProxyMessageForwarder.parsePort("0"));
+        assertEquals(Integer.valueOf(65535), haProxyMessageForwarder.parsePort("65535"));
+    }
+
     private Channel buildChannel(SocketAddress remoteAddress, SocketAddress localAddress) {
         Channel inboundChannel = org.mockito.Mockito.mock(Channel.class);
         when(inboundChannel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)).thenReturn(false);
         when(inboundChannel.remoteAddress()).thenReturn(remoteAddress);
         when(inboundChannel.localAddress()).thenReturn(localAddress);
+        return inboundChannel;
+    }
+
+    private Channel buildProxyProtocolChannel(String sourceAddress, String sourcePort,
+        String destinationAddress, String destinationPort) {
+        Channel inboundChannel = new EmbeddedChannel();
+        inboundChannel.attr(AttributeKeys.PROXY_PROTOCOL_ADDR).set(sourceAddress);
+        inboundChannel.attr(AttributeKeys.PROXY_PROTOCOL_PORT).set(sourcePort);
+        inboundChannel.attr(AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR).set(destinationAddress);
+        inboundChannel.attr(AttributeKeys.PROXY_PROTOCOL_SERVER_PORT).set(destinationPort);
         return inboundChannel;
     }
 

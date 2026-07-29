@@ -153,7 +153,12 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
 
     protected Integer parsePort(String port) {
         try {
-            return Integer.parseInt(port);
+            int parsedPort = Integer.parseInt(port);
+            if (parsedPort < 0 || parsedPort > 65535) {
+                log.warn("HAProxy port out of range. port:{}", port);
+                return null;
+            }
+            return parsedPort;
         } catch (NumberFormatException e) {
             log.warn("parse HAProxy port failed. port:{}", port);
             return null;
