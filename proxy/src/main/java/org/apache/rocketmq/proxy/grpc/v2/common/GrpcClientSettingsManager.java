@@ -236,6 +236,9 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
             && ClientType.LITE_SIMPLE_CONSUMER != settings.getClientType()) {
             return;
         }
+        if (!settings.hasSubscription() || settings.getSubscription().getSubscriptionsCount() == 0) {
+            return;
+        }
         try {
             String topic = settings.getSubscription().getSubscriptions(0).getTopic().getName();
             String group = settings.getSubscription().getGroup().getName();

@@ -157,6 +157,20 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
     }
 
     @Test
+    public void testOfflineClientLiteSubscription_LiteConsumerWithoutSubscriptions() {
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.LITE_PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("testGroup").build())
+                .build())
+            .build();
+
+        grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
+
+        verify(messagingProcessor, never()).syncLiteSubscription(any(), any(), anyLong());
+    }
+
+    @Test
     public void testOfflineClientLiteSubscription_ValidLiteConsumer_Success() {
         Subscription subscription = Subscription.newBuilder()
             .setGroup(Resource.newBuilder().setName("testGroup").build())
