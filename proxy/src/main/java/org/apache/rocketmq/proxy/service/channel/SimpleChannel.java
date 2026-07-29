@@ -90,7 +90,12 @@ public class SimpleChannel extends AbstractChannel {
 
         String[] segments = address.split(":");
         if (2 == segments.length) {
-            return new InetSocketAddress(segments[0], Integer.parseInt(segments[1]));
+            try {
+                return new InetSocketAddress(segments[0], Integer.parseInt(segments[1]));
+            } catch (NumberFormatException e) {
+                log.warn("parse socket address failed. address:{}", address);
+                return null;
+            }
         }
 
         return null;
