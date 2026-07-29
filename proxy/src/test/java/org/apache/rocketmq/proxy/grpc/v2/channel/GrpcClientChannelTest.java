@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.v2.channel;
 
 import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.Publishing;
+import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.TelemetryCommand;
@@ -101,6 +102,27 @@ public class GrpcClientChannelTest extends InitConfigTest {
 
         assertTrue(summary.contains("VERIFY_MESSAGE_COMMAND"));
         assertTrue(summary.contains("nonce-1"));
+        assertFalse(summary.contains("secret-body"));
+        assertFalse(summary.contains("message"));
+        assertFalse(summary.contains("body"));
+    }
+
+    @Test
+    public void testSummarizeRecoverTransactionCommandDoesNotIncludeMessagePayload() {
+        TelemetryCommand command = TelemetryCommand.newBuilder()
+            .setRecoverOrphanedTransactionCommand(RecoverOrphanedTransactionCommand.newBuilder()
+                .setTransactionId("transaction-id")
+                .setMessage(Message.newBuilder()
+                    .setBody(ByteString.copyFromUtf8("secret-body"))
+                    .build())
+                .build())
+            .build();
+
+        String summary = GrpcClientChannel.summarizeTelemetryCommand(command);
+
+        assertTrue(summary.contains("RECOVER_ORPHANED_TRANSACTION_COMMAND"));
+        assertTrue(summary.contains("transaction-id"));
+        assertTrue(summary.contains("details omitted"));
         assertFalse(summary.contains("secret-body"));
         assertFalse(summary.contains("message"));
         assertFalse(summary.contains("body"));
