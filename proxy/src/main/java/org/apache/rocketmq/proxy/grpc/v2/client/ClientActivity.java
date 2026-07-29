@@ -362,9 +362,37 @@ public class ClientActivity extends AbstractMessagingActivity {
             }
         }
         if (exception.getStatus().getCode().equals(io.grpc.Status.Code.INTERNAL)) {
-            log.warn("process client telemetryCommand failed. request:{}", request, t);
+            log.warn("process client telemetryCommand failed. request:{}", summarizeTelemetryCommand(request), t);
         }
         responseObserver.onError(exception);
+    }
+
+    static String summarizeTelemetryCommand(TelemetryCommand request) {
+        if (request == null) {
+            return "null";
+        }
+
+        StringBuilder builder = new StringBuilder(request.getCommandCase().name());
+        if (request.hasStatus()) {
+            builder.append(", statusCode=").append(request.getStatus().getCode());
+        }
+        switch (request.getCommandCase()) {
+            case SETTINGS:
+                builder.append(", clientType=").append(request.getSettings().getClientType())
+                    .append(", pubSubCase=").append(request.getSettings().getPubSubCase());
+                break;
+            case THREAD_STACK_TRACE:
+                builder.append(", nonce=").append(request.getThreadStackTrace().getNonce())
+                    .append(", details omitted");
+                break;
+            case VERIFY_MESSAGE_RESULT:
+                builder.append(", nonce=").append(request.getVerifyMessageResult().getNonce());
+                break;
+            default:
+                // Add explicit cases for future telemetry requests that carry sensitive details.
+                break;
+        }
+        return builder.toString();
     }
 
     protected void processAndWriteClientSettings(ProxyContext ctx, TelemetryCommand request,

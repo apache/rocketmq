@@ -71,6 +71,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -414,6 +415,25 @@ public class ClientActivityTest extends BaseActivityTest {
         ProxyRelayResult<ConsumeMessageDirectlyResult> result = resultArgumentCaptor.getValue();
         assertThat(result.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(result.getResult().getConsumeResult()).isEqualTo(CMResult.CR_SUCCESS);
+    }
+
+    @Test
+    public void testSummarizeTelemetryCommandDoesNotIncludeThreadStackTrace() {
+        TelemetryCommand command = TelemetryCommand.newBuilder()
+            .setThreadStackTrace(ThreadStackTrace.newBuilder()
+                .setNonce("nonce-1")
+                .setThreadStackTrace("secret-stack-trace")
+                .build())
+            .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
+            .build();
+
+        String summary = ClientActivity.summarizeTelemetryCommand(command);
+
+        assertTrue(summary.contains("THREAD_STACK_TRACE"));
+        assertTrue(summary.contains("statusCode=OK"));
+        assertTrue(summary.contains("nonce-1"));
+        assertTrue(summary.contains("details omitted"));
+        assertFalse(summary.contains("secret-stack-trace"));
     }
 
     protected CompletableFuture<TelemetryCommand> sendClientTelemetry(ProxyContext ctx, Settings settings) {
