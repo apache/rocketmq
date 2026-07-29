@@ -25,7 +25,6 @@ import apache.rocketmq.v2.VerifyMessageCommand;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ComparisonChain;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.TextFormat;
 import com.google.protobuf.util.JsonFormat;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -278,22 +277,55 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     public void writeTelemetryCommand(TelemetryCommand command) {
         StreamObserver<TelemetryCommand> observer = this.telemetryCommandRef.get();
         if (observer == null) {
-            log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}", TextFormat.shortDebugString(command), this);
+            log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}",
+                summarizeTelemetryCommand(command), this);
             return;
         }
         synchronized (this.telemetryWriteLock) {
             observer = this.telemetryCommandRef.get();
             if (observer == null) {
-                log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}", TextFormat.shortDebugString(command), this);
+                log.warn("telemetry command observer is null when try to write data. command:{}, channel:{}",
+                    summarizeTelemetryCommand(command), this);
                 return;
             }
             try {
                 observer.onNext(command);
             } catch (StatusRuntimeException | IllegalStateException exception) {
-                log.warn("write telemetry failed. command:{}", command, exception);
+                log.warn("write telemetry failed. command:{}, channel:{}", summarizeTelemetryCommand(command), this, exception);
                 this.clearClientObserver(observer);
             }
         }
+    }
+
+    static String summarizeTelemetryCommand(TelemetryCommand command) {
+        if (command == null) {
+            return "null";
+        }
+
+        StringBuilder builder = new StringBuilder(command.getCommandCase().name());
+        switch (command.getCommandCase()) {
+            case PRINT_THREAD_STACK_TRACE_COMMAND:
+                builder.append(", nonce=").append(command.getPrintThreadStackTraceCommand().getNonce());
+                break;
+            case VERIFY_MESSAGE_COMMAND:
+                builder.append(", nonce=").append(command.getVerifyMessageCommand().getNonce());
+                break;
+            case RECOVER_ORPHANED_TRANSACTION_COMMAND:
+                builder.append(", transactionId=")
+                    .append(command.getRecoverOrphanedTransactionCommand().getTransactionId());
+                break;
+            case NOTIFY_UNSUBSCRIBE_LITE_COMMAND:
+                builder.append(", liteTopic=")
+                    .append(command.getNotifyUnsubscribeLiteCommand().getLiteTopic());
+                break;
+            case SETTINGS:
+                builder.append(", clientType=").append(command.getSettings().getClientType())
+                    .append(", pubSubCase=").append(command.getSettings().getPubSubCase());
+                break;
+            default:
+                break;
+        }
+        return builder.toString();
     }
 
     @Override

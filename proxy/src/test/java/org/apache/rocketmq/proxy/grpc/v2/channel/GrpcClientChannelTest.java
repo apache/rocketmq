@@ -17,12 +17,16 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.channel;
 
+import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import apache.rocketmq.v2.SubscriptionEntry;
+import apache.rocketmq.v2.TelemetryCommand;
+import apache.rocketmq.v2.VerifyMessageCommand;
+import com.google.protobuf.ByteString;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
@@ -114,6 +118,26 @@ public class GrpcClientChannelTest extends InitConfigTest {
         assertTrue(consumerSummary.contains("subscriptionCount=1"));
         assertFalse(consumerSummary.contains("sensitive-subscription-topic"));
         assertFalse(consumerSummary.contains("sensitive-group"));
+    }
+
+    @Test
+    public void testSummarizeTelemetryCommandDoesNotIncludeMessagePayload() {
+        TelemetryCommand command = TelemetryCommand.newBuilder()
+            .setVerifyMessageCommand(VerifyMessageCommand.newBuilder()
+                .setNonce("nonce-1")
+                .setMessage(Message.newBuilder()
+                    .setBody(ByteString.copyFromUtf8("secret-body"))
+                    .build())
+                .build())
+            .build();
+
+        String summary = GrpcClientChannel.summarizeTelemetryCommand(command);
+
+        assertTrue(summary.contains("VERIFY_MESSAGE_COMMAND"));
+        assertTrue(summary.contains("nonce-1"));
+        assertFalse(summary.contains("secret-body"));
+        assertFalse(summary.contains("message"));
+        assertFalse(summary.contains("body"));
     }
 
     @Test
