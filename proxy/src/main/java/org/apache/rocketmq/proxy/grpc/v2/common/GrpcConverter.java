@@ -188,16 +188,14 @@ public class GrpcConverter {
         }
 
         // delivery_timestamp
-        String deliverMsString;
-        long deliverMs;
-        if (messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
-            long delayMs = TimeUnit.SECONDS.toMillis(Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)));
-            deliverMs = System.currentTimeMillis() + delayMs;
+        Long delaySec = parseLongMessageProperty(messageExt, MessageConst.PROPERTY_TIMER_DELAY_SEC);
+        if (delaySec != null) {
+            long delayMs = TimeUnit.SECONDS.toMillis(delaySec);
+            long deliverMs = System.currentTimeMillis() + delayMs;
             systemPropertiesBuilder.setDeliveryTimestamp(Timestamps.fromMillis(deliverMs));
         } else {
-            deliverMsString = messageExt.getProperty(MessageConst.PROPERTY_TIMER_DELIVER_MS);
-            if (deliverMsString != null) {
-                deliverMs = Long.parseLong(deliverMsString);
+            Long deliverMs = parseLongMessageProperty(messageExt, MessageConst.PROPERTY_TIMER_DELIVER_MS);
+            if (deliverMs != null) {
                 systemPropertiesBuilder.setDeliveryTimestamp(Timestamps.fromMillis(deliverMs));
             }
         }
@@ -251,6 +249,21 @@ public class GrpcConverter {
             systemPropertiesBuilder.setDeadLetterQueue(dlq);
         }
         return systemPropertiesBuilder.build();
+    }
+
+    protected Long parseLongMessageProperty(MessageExt messageExt, String propertyName) {
+        String value = messageExt.getProperty(propertyName);
+        if (value == null) {
+            return null;
+        }
+
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            log.warn("ignore invalid long message property. topic:{}, msgId:{}, property:{}, value:{}",
+                messageExt.getTopic(), messageExt.getMsgId(), propertyName, value);
+            return null;
+        }
     }
 
     public Resource buildResource(String resourceNameWithNamespace) {
