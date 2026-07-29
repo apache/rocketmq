@@ -107,23 +107,39 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
                     sourceAddress = attributeValue;
                 }
                 if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_PORT) {
-                    sourcePort = Integer.parseInt(attributeValue);
+                    Integer parsedPort = parsePort(attributeValue);
+                    if (parsedPort == null) {
+                        return null;
+                    }
+                    sourcePort = parsedPort;
                 }
                 if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR) {
                     destinationAddress = attributeValue;
                 }
                 if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_SERVER_PORT) {
-                    destinationPort = Integer.parseInt(attributeValue);
+                    Integer parsedPort = parsePort(attributeValue);
+                    if (parsedPort == null) {
+                        return null;
+                    }
+                    destinationPort = parsedPort;
                 }
             }
         } else {
             String remoteAddr = RemotingHelper.parseChannelRemoteAddr(inboundChannel);
             sourceAddress = StringUtils.substringBeforeLast(remoteAddr, CommonConstants.COLON);
-            sourcePort = Integer.parseInt(StringUtils.substringAfterLast(remoteAddr, CommonConstants.COLON));
+            Integer parsedSourcePort = parsePort(StringUtils.substringAfterLast(remoteAddr, CommonConstants.COLON));
+            if (parsedSourcePort == null) {
+                return null;
+            }
+            sourcePort = parsedSourcePort;
 
             String localAddr = RemotingHelper.parseChannelLocalAddr(inboundChannel);
             destinationAddress = StringUtils.substringBeforeLast(localAddr, CommonConstants.COLON);
-            destinationPort = Integer.parseInt(StringUtils.substringAfterLast(localAddr, CommonConstants.COLON));
+            Integer parsedDestinationPort = parsePort(StringUtils.substringAfterLast(localAddr, CommonConstants.COLON));
+            if (parsedDestinationPort == null) {
+                return null;
+            }
+            destinationPort = parsedDestinationPort;
         }
 
         HAProxyProxiedProtocol proxiedProtocol = AclUtils.isColon(sourceAddress) ? HAProxyProxiedProtocol.TCP6 :
@@ -133,6 +149,15 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
 
         return new HAProxyMessage(HAProxyProtocolVersion.V2, HAProxyCommand.PROXY,
             proxiedProtocol, sourceAddress, destinationAddress, sourcePort, destinationPort, haProxyTLVs);
+    }
+
+    protected Integer parsePort(String port) {
+        try {
+            return Integer.parseInt(port);
+        } catch (NumberFormatException e) {
+            log.warn("parse HAProxy port failed. port:{}", port);
+            return null;
+        }
     }
 
     protected List<HAProxyTLV> buildHAProxyTLV(Channel inboundChannel) throws IllegalAccessException, DecoderException {
