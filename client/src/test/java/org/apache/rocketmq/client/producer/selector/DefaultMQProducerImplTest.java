@@ -29,6 +29,7 @@ import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.RequestCallback;
+import org.apache.rocketmq.client.producer.RequestFutureHolder;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.TransactionListener;
@@ -42,6 +43,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,6 +77,8 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQProducerImplTest {
 
+    private static final String CORRELATION_ID = "correlation-id";
+
     @Mock
     private Message message;
 
@@ -105,6 +109,7 @@ public class DefaultMQProducerImplTest {
 
     @Before
     public void init() throws Exception {
+        RequestFutureHolder.getInstance().getRequestFutureTable().remove(CORRELATION_ID);
         when(mQClientFactory.getTopicRouteTable()).thenReturn(mock(ConcurrentMap.class));
         when(mQClientFactory.getClientId()).thenReturn("client-id");
         when(mQClientFactory.getMQAdminImpl()).thenReturn(mock(MQAdminImpl.class));
@@ -116,7 +121,7 @@ public class DefaultMQProducerImplTest {
         when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mQClientAPIImpl);
         when(mQClientFactory.findBrokerAddressInPublish(or(isNull(), anyString()))).thenReturn(defaultBrokerAddr);
         when(message.getTopic()).thenReturn(defaultTopic);
-        when(message.getProperty(MessageConst.PROPERTY_CORRELATION_ID)).thenReturn("correlation-id");
+        when(message.getProperty(MessageConst.PROPERTY_CORRELATION_ID)).thenReturn(CORRELATION_ID);
         when(message.getBody()).thenReturn(new byte[1]);
         TransactionMQProducer producer = new TransactionMQProducer("test-producer-group");
         producer.setTransactionListener(mock(TransactionListener.class));
@@ -129,15 +134,43 @@ public class DefaultMQProducerImplTest {
         defaultMQProducerImpl.setServiceState(ServiceState.RUNNING);
     }
 
+    @After
+    public void removeRequestFuture() {
+        RequestFutureHolder.getInstance().getRequestFutureTable().remove(CORRELATION_ID);
+    }
+
     @Test
     public void testRequest() throws Exception {
         defaultMQProducerImpl.request(message, messageQueue, requestCallback, defaultTimeout);
+        assertTrue(RequestFutureHolder.getInstance().getRequestFutureTable().containsKey(CORRELATION_ID));
         defaultMQProducerImpl.request(message, queueSelector, 1, requestCallback, defaultTimeout);
+        assertTrue(RequestFutureHolder.getInstance().getRequestFutureTable().containsKey(CORRELATION_ID));
     }
 
-    @Test(expected = MQClientException.class)
-    public void testRequestMQClientExceptionByVoid() throws Exception {
-        defaultMQProducerImpl.request(message, requestCallback, defaultTimeout);
+    @Test
+    public void testRequestCallbackRemovesFutureWhenDefaultSendThrows() {
+        assertThrows(MQClientException.class,
+            () -> defaultMQProducerImpl.request(message, requestCallback, defaultTimeout));
+        assertFalse(RequestFutureHolder.getInstance().getRequestFutureTable().containsKey(CORRELATION_ID));
+    }
+
+    @Test
+    public void testRequestCallbackRemovesFutureWhenSelectorSendThrows() {
+        when(queueSelector.select(any(), any(), any())).thenThrow(new RuntimeException("select failed"));
+
+        assertThrows(MQClientException.class,
+            () -> defaultMQProducerImpl.request(message, queueSelector, 1, requestCallback, defaultTimeout));
+        assertFalse(RequestFutureHolder.getInstance().getRequestFutureTable().containsKey(CORRELATION_ID));
+    }
+
+    @Test
+    public void testRequestCallbackRemovesFutureWhenQueueSendThrows() {
+        when(mQClientFactory.getBrokerNameFromMessageQueue(messageQueue)).thenReturn(defaultBrokerName);
+        when(mQClientFactory.findBrokerAddressInPublish(defaultBrokerName)).thenReturn(null);
+
+        assertThrows(MQClientException.class,
+            () -> defaultMQProducerImpl.request(message, messageQueue, requestCallback, defaultTimeout));
+        assertFalse(RequestFutureHolder.getInstance().getRequestFutureTable().containsKey(CORRELATION_ID));
     }
 
     @Test
