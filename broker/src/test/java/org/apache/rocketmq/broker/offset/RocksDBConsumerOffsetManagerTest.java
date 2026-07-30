@@ -21,9 +21,18 @@ import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
@@ -34,6 +43,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.rocksdb.WriteBatch;
 
 import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,6 +53,7 @@ public class RocksDBConsumerOffsetManagerTest {
     private static final String SKIP_MAC_KEY = "skipMac";
 
     private static final String KEY = "FooBar@FooBarGroup";
+    private static final long TIMEOUT_SECONDS = 10;
 
     private BrokerController brokerController;
 
@@ -152,6 +163,122 @@ public class RocksDBConsumerOffsetManagerTest {
         consumerOffsetManager.getOffsetTable().clear();
         consumerOffsetManager.load();
         Assert.assertTrue(consumerOffsetManager.getOffsetTable().containsKey(key)); // reload from kv
+    }
+
+    @Test
+    public void testConcurrentFirstCommitsPersistAllLmqQueuesPeriodically() throws Exception {
+        brokerConfig.setPersistConsumerOffsetIncrementally(false);
+        String group = UUID.randomUUID().toString();
+        String topic = MixAll.LMQ_PREFIX + UUID.randomUUID();
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        FirstReadBarrierMap offsetTable = new FirstReadBarrierMap(key);
+        consumerOffsetManager.setOffsetTable(offsetTable);
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> firstCommit = executor.submit(
+                () -> consumerOffsetManager.commitOffset("ClientA", group, topic, 0, 100L));
+            Future<?> secondCommit = executor.submit(
+                () -> consumerOffsetManager.commitOffset("ClientB", group, topic, 1, 200L));
+
+            firstCommit.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            secondCommit.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } finally {
+            offsetTable.releaseReaders();
+            executor.shutdownNow();
+            Assert.assertTrue(executor.awaitTermination(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        }
+
+        assertOffsets(offsetTable.get(key));
+        consumerOffsetManager.persist();
+        consumerOffsetManager.stop();
+        consumerOffsetManager.getOffsetTable().clear();
+        Assert.assertTrue(consumerOffsetManager.load());
+        assertOffsets(consumerOffsetManager.getOffsetTable().get(key));
+    }
+
+    @Test
+    public void testIncrementalConcurrentCommitsPersistLatestSnapshot() throws Exception {
+        brokerConfig.setPersistConsumerOffsetIncrementally(true);
+        String group = UUID.randomUUID().toString();
+        String topic = UUID.randomUUID().toString();
+        String key = topic + TOPIC_GROUP_SEPARATOR + group;
+        ConcurrentMap<Integer, Long> offsets = new ConcurrentHashMap<>();
+        ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable = new ConcurrentHashMap<>();
+        offsetTable.put(key, offsets);
+        consumerOffsetManager.setOffsetTable(offsetTable);
+
+        RocksDBConsumerOffsetManager rocksDBConsumerOffsetManager =
+            (RocksDBConsumerOffsetManager) consumerOffsetManager;
+        RocksDBConfigManager realConfigManager = (RocksDBConfigManager) FieldUtils.readDeclaredField(
+            rocksDBConsumerOffsetManager, "rocksDBConfigManager", true);
+        RocksDBConfigManager configManagerSpy = Mockito.spy(realConfigManager);
+        FieldUtils.writeDeclaredField(
+            rocksDBConsumerOffsetManager, "rocksDBConfigManager", configManagerSpy, true);
+
+        CountDownLatch firstBatchReady = new CountDownLatch(1);
+        CountDownLatch releaseFirstBatch = new CountDownLatch(1);
+        CountDownLatch secondBatchWritten = new CountDownLatch(1);
+        AtomicInteger batchWriteCount = new AtomicInteger();
+        Mockito.doAnswer(invocation -> {
+            int batchNumber = batchWriteCount.incrementAndGet();
+            if (batchNumber == 1) {
+                firstBatchReady.countDown();
+                try {
+                    Assert.assertTrue("Timed out waiting to release the first batch",
+                        releaseFirstBatch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(e);
+                }
+            }
+            Object result = invocation.callRealMethod();
+            if (batchNumber == 2) {
+                secondBatchWritten.countDown();
+            }
+            return result;
+        }).when(configManagerSpy).batchPutWithWal(Mockito.any(WriteBatch.class));
+
+        FutureTask<Void> firstCommit = new FutureTask<>(() -> {
+            consumerOffsetManager.commitOffset("ClientA", group, topic, 0, 100L);
+            return null;
+        });
+        FutureTask<Void> secondCommit = new FutureTask<>(() -> {
+            consumerOffsetManager.commitOffset("ClientB", group, topic, 1, 200L);
+            return null;
+        });
+        Thread firstThread = new Thread(firstCommit, "first-incremental-offset-commit");
+        Thread secondThread = new Thread(secondCommit, "second-incremental-offset-commit");
+        boolean secondWriteCompletedBeforeRelease;
+        try {
+            firstThread.start();
+            Assert.assertTrue("First batch was not ready",
+                firstBatchReady.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            secondThread.start();
+            awaitSecondWriteOrBlocked(secondThread, secondBatchWritten);
+            secondWriteCompletedBeforeRelease = secondBatchWritten.getCount() == 0;
+            if (!secondWriteCompletedBeforeRelease) {
+                Assert.assertEquals(Thread.State.BLOCKED, secondThread.getState());
+            }
+
+            releaseFirstBatch.countDown();
+            firstCommit.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            secondCommit.get(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } finally {
+            releaseFirstBatch.countDown();
+            firstThread.interrupt();
+            secondThread.interrupt();
+            firstThread.join(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+            secondThread.join(TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+        }
+
+        Assert.assertEquals(2, batchWriteCount.get());
+        consumerOffsetManager.stop();
+        consumerOffsetManager.getOffsetTable().clear();
+        Assert.assertTrue(consumerOffsetManager.load());
+        assertOffsets(consumerOffsetManager.getOffsetTable().get(key));
+        Assert.assertFalse("Commits for one topic and group must be serialized",
+            secondWriteCompletedBeforeRelease);
     }
 
     @Test
@@ -327,6 +454,58 @@ public class RocksDBConsumerOffsetManagerTest {
         consumerOffsetManager.stop();
         consumerOffsetManager.load();
         Assert.assertEquals(10, consumerOffsetManager.getDataVersion().getCounter().get());
+    }
+
+    private static void awaitSecondWriteOrBlocked(Thread secondThread, CountDownLatch secondBatchWritten)
+        throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
+        while (System.nanoTime() < deadline) {
+            if (secondBatchWritten.await(10, TimeUnit.MILLISECONDS)
+                || secondThread.getState() == Thread.State.BLOCKED) {
+                return;
+            }
+        }
+        Assert.fail("Second commit neither wrote its batch nor blocked on the offset map");
+    }
+
+    private static void assertOffsets(ConcurrentMap<Integer, Long> offsets) {
+        Assert.assertNotNull(offsets);
+        Assert.assertEquals(2, offsets.size());
+        Assert.assertEquals(Long.valueOf(100L), offsets.get(0));
+        Assert.assertEquals(Long.valueOf(200L), offsets.get(1));
+    }
+
+    private static class FirstReadBarrierMap
+        extends ConcurrentHashMap<String, ConcurrentMap<Integer, Long>> {
+        private final String targetKey;
+        private final AtomicInteger targetReads = new AtomicInteger();
+        private final CountDownLatch firstReads = new CountDownLatch(2);
+
+        FirstReadBarrierMap(String targetKey) {
+            this.targetKey = targetKey;
+        }
+
+        @Override
+        public ConcurrentMap<Integer, Long> get(Object key) {
+            ConcurrentMap<Integer, Long> storedValue = super.get(key);
+            if (targetKey.equals(key) && targetReads.getAndIncrement() < 2) {
+                firstReads.countDown();
+                try {
+                    Assert.assertTrue("Timed out waiting for both initial reads",
+                        firstReads.await(TIMEOUT_SECONDS, TimeUnit.SECONDS));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(e);
+                }
+            }
+            return storedValue;
+        }
+
+        void releaseReaders() {
+            while (firstReads.getCount() > 0) {
+                firstReads.countDown();
+            }
+        }
     }
 
     private static void skipMacIfNecessary() {
