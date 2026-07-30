@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
@@ -192,28 +193,45 @@ public class NetworkUtil {
     }
 
     public static SocketAddress string2SocketAddress(final String addr) {
+        if (addr == null) {
+            throw new IllegalArgumentException("Socket address must not be null");
+        }
+
+        String host;
+        int port;
+
         if (addr.startsWith("[")) {
             int end = addr.indexOf(']');
-            if (end > 0 && end + 1 < addr.length() && addr.charAt(end + 1) == ':') {
-                String host = addr.substring(1, end);
-                int scope = host.indexOf('%');
-                if (scope > 0) {
-                    host = host.substring(0, scope);
-                }
-                String port = addr.substring(end + 2);
-                return new InetSocketAddress(host, Integer.parseInt(port));
+            if (end <= 0 || end + 1 >= addr.length() || addr.charAt(end + 1) != ':') {
+                throw new IllegalArgumentException("Invalid socket address: " + addr);
+            }
+
+            host = addr.substring(1, end);
+            port = Integer.parseInt(addr.substring(end + 2));
+        } else {
+            int index = addr.lastIndexOf(':');
+            if (index <= 0 || index == addr.length() - 1) {
+                throw new IllegalArgumentException("Invalid socket address: " + addr);
+            }
+
+            host = addr.substring(0, index);
+            port = Integer.parseInt(addr.substring(index + 1));
+        }
+
+        if (host.indexOf(':') >= 0) {
+            try {
+                return new InetSocketAddress(InetAddress.getByName(host), port);
+            } catch (UnknownHostException e) {
+                throw new IllegalArgumentException("Invalid socket address: " + addr, e);
             }
         }
-        int split = addr.lastIndexOf(":");
-        String host = addr.substring(0, split);
-        String port = addr.substring(split + 1);
-        return new InetSocketAddress(host, Integer.parseInt(port));
+        return new InetSocketAddress(host, port);
     }
 
     public static String socketAddress2String(final SocketAddress addr) {
         StringBuilder sb = new StringBuilder();
         InetSocketAddress inetSocketAddress = (InetSocketAddress) addr;
-        sb.append(normalizeHostAddress(inetSocketAddress.getAddress()));
+        sb.append(inetSocketAddress.getAddress().getHostAddress());
         sb.append(":");
         sb.append(inetSocketAddress.getPort());
         return sb.toString();
