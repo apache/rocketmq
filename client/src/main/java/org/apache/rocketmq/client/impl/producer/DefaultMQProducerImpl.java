@@ -1659,22 +1659,31 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
         long cost = System.currentTimeMillis() - beginTimestamp;
-        this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
-            @Override
-            public void onSuccess(SendResult sendResult) {
-                // Only mark the request as sent here. The user callback must fire when the reply
-                // arrives (processReplyMessage), on timeout (scanExpiredRequest), or on send
-                // failure (requestFail). Invoking it here delivers a premature onSuccess(null)
-                // and, combined with the later reply/timeout callback, causes a double callback.
-                requestResponseFuture.setSendRequestOk(true);
-            }
+        boolean sendInvocationCompleted = false;
+        try {
+            this.sendDefaultImpl(msg, CommunicationMode.ASYNC, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    // Only mark the request as sent here. The user callback must fire when the reply
+                    // arrives (processReplyMessage), on timeout (scanExpiredRequest), or on send
+                    // failure (requestFail). Invoking it here delivers a premature onSuccess(null)
+                    // and, combined with the later reply/timeout callback, causes a double callback.
+                    requestResponseFuture.setSendRequestOk(true);
+                }
 
-            @Override
-            public void onException(Throwable e) {
-                requestResponseFuture.setCause(e);
-                requestFail(correlationId);
+                @Override
+                public void onException(Throwable e) {
+                    requestResponseFuture.setCause(e);
+                    requestFail(correlationId);
+                }
+            }, timeout - cost);
+            sendInvocationCompleted = true;
+        } finally {
+            if (!sendInvocationCompleted) {
+                RequestFutureHolder.getInstance().getRequestFutureTable()
+                    .remove(correlationId, requestResponseFuture);
             }
-        }, timeout - cost);
+        }
     }
 
     public Message request(final Message msg, final MessageQueueSelector selector, final Object arg,
@@ -1720,18 +1729,27 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
         long cost = System.currentTimeMillis() - beginTimestamp;
-        this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
-            @Override
-            public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendRequestOk(true);
-            }
+        boolean sendInvocationCompleted = false;
+        try {
+            this.sendSelectImpl(msg, selector, arg, CommunicationMode.ASYNC, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    requestResponseFuture.setSendRequestOk(true);
+                }
 
-            @Override
-            public void onException(Throwable e) {
-                requestResponseFuture.setCause(e);
-                requestFail(correlationId);
+                @Override
+                public void onException(Throwable e) {
+                    requestResponseFuture.setCause(e);
+                    requestFail(correlationId);
+                }
+            }, timeout - cost);
+            sendInvocationCompleted = true;
+        } finally {
+            if (!sendInvocationCompleted) {
+                RequestFutureHolder.getInstance().getRequestFutureTable()
+                    .remove(correlationId, requestResponseFuture);
             }
-        }, timeout - cost);
+        }
 
     }
 
@@ -1790,18 +1808,27 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         RequestFutureHolder.getInstance().getRequestFutureTable().put(correlationId, requestResponseFuture);
 
         long cost = System.currentTimeMillis() - beginTimestamp;
-        this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
-            @Override
-            public void onSuccess(SendResult sendResult) {
-                requestResponseFuture.setSendRequestOk(true);
-            }
+        boolean sendInvocationCompleted = false;
+        try {
+            this.sendKernelImpl(msg, mq, CommunicationMode.ASYNC, new SendCallback() {
+                @Override
+                public void onSuccess(SendResult sendResult) {
+                    requestResponseFuture.setSendRequestOk(true);
+                }
 
-            @Override
-            public void onException(Throwable e) {
-                requestResponseFuture.setCause(e);
-                requestFail(correlationId);
+                @Override
+                public void onException(Throwable e) {
+                    requestResponseFuture.setCause(e);
+                    requestFail(correlationId);
+                }
+            }, null, timeout - cost);
+            sendInvocationCompleted = true;
+        } finally {
+            if (!sendInvocationCompleted) {
+                RequestFutureHolder.getInstance().getRequestFutureTable()
+                    .remove(correlationId, requestResponseFuture);
             }
-        }, null, timeout - cost);
+        }
     }
 
     private void requestFail(final String correlationId) {
