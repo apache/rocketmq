@@ -238,6 +238,24 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
     }
 
+    static String summarizeHeartbeatMessage(MessageExt msg, HeartbeatSyncerData data) {
+        if (msg == null) {
+            return "msg=null";
+        }
+        StringBuilder summary = new StringBuilder()
+            .append("topic=").append(msg.getTopic())
+            .append(", msgId=").append(msg.getMsgId())
+            .append(", bodySize=").append(msg.getBody() == null ? 0 : msg.getBody().length);
+        if (data != null) {
+            summary.append(", heartbeatType=").append(data.getHeartbeatType())
+                .append(", group=").append(data.getGroup())
+                .append(", clientId=").append(data.getClientId())
+                .append(", subscriptionCount=")
+                .append(data.getSubscriptionDataSet() == null ? 0 : data.getSubscriptionDataSet().size());
+        }
+        return summary.toString();
+    }
+
     private String buildLocalProxyId() {
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         // use local address, remoting port and grpc port to build unique local proxy Id

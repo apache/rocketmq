@@ -23,9 +23,11 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import apache.rocketmq.v2.SubscriptionEntry;
+import com.alibaba.fastjson2.JSON;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
@@ -420,6 +422,53 @@ public class HeartbeatSyncerTest extends InitConfigTest {
 
         heartbeatSyncer.processConsumerGroupEvent(ConsumerGroupEvent.CLIENT_UNREGISTER, consumerGroup, channelInfoArgumentCaptor.getValue());
         assertTrue(heartbeatSyncer.remoteChannelMap.isEmpty());
+    }
+
+    @Test
+    public void testSummarizeHeartbeatMessageDoesNotExposeSubscriptionOrChannelData() throws Exception {
+        SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData("topic", "secret-tag");
+        HeartbeatSyncerData data = new HeartbeatSyncerData(
+            HeartbeatType.REGISTER,
+            "client-secret",
+            LanguageCode.JAVA,
+            5,
+            "consumerGroup",
+            ConsumeType.CONSUME_PASSIVELY,
+            MessageModel.CLUSTERING,
+            ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET,
+            "proxyId",
+            "secret-channel-data"
+        );
+        data.setSubscriptionDataSet(Sets.newHashSet(subscriptionData));
+        MessageExt msg = new MessageExt();
+        msg.setTopic("heartbeatTopic");
+        msg.setMsgId("msgId");
+        msg.setBody(JSON.toJSONString(data).getBytes(StandardCharsets.UTF_8));
+
+        String summary = HeartbeatSyncer.summarizeHeartbeatMessage(msg, data);
+
+        assertTrue(summary.contains("topic=heartbeatTopic"));
+        assertTrue(summary.contains("msgId=msgId"));
+        assertTrue(summary.contains("heartbeatType=REGISTER"));
+        assertTrue(summary.contains("group=consumerGroup"));
+        assertTrue(summary.contains("subscriptionCount=1"));
+        assertFalse(summary.contains("secret-tag"));
+        assertFalse(summary.contains("secret-channel-data"));
+    }
+
+    @Test
+    public void testSummarizeHeartbeatMessageDoesNotExposeUnparsedBody() {
+        MessageExt msg = new MessageExt();
+        msg.setTopic("heartbeatTopic");
+        msg.setMsgId("msgId");
+        msg.setBody("raw-secret-body".getBytes(StandardCharsets.UTF_8));
+
+        String summary = HeartbeatSyncer.summarizeHeartbeatMessage(msg, null);
+
+        assertTrue(summary.contains("topic=heartbeatTopic"));
+        assertTrue(summary.contains("msgId=msgId"));
+        assertTrue(summary.contains("bodySize=15"));
+        assertFalse(summary.contains("raw-secret-body"));
     }
 
     private MessageExt convertFromMessage(Message message) {
