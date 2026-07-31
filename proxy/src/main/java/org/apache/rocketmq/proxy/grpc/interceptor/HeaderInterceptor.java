@@ -66,6 +66,10 @@ public class HeaderInterceptor implements ServerInterceptor {
             GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.CHANNEL_ID, channelId);
         }
 
+        // Detect per-connection SSL state from gRPC transport attributes (RIP-2 §5.2.1)
+        boolean sslEnabled = isSslEnabled(call.getAttributes());
+        GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.SSL_ENABLED, String.valueOf(sslEnabled));
+
         return next.startCall(call, headers);
     }
 
@@ -89,5 +93,18 @@ public class HeaderInterceptor implements ServerInterceptor {
             return null;
         }
         return proxyProtocolAddr + ":" + proxyProtocolPort;
+    }
+
+    /**
+     * Detect whether the gRPC connection uses SSL/TLS by checking the transport SSL session.
+     * A non-null SSLSession indicates TLS is active for this connection.
+     */
+    private boolean isSslEnabled(Attributes attributes) {
+        try {
+            javax.net.ssl.SSLSession sslSession = attributes.get(Grpc.TRANSPORT_ATTR_SSL_SESSION);
+            return sslSession != null;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

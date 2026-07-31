@@ -37,6 +37,19 @@ public class ContextInitPipeline implements RequestPipeline {
             .setClientVersion(getDefaultStringMetadataInfo(headers, GrpcConstants.CLIENT_VERSION))
             .setAction(getDefaultStringMetadataInfo(headers, GrpcConstants.SIMPLE_RPC_NAME))
             .setNamespace(getDefaultStringMetadataInfo(headers, GrpcConstants.NAMESPACE_ID));
+
+        // Extract per-connection SSL state from gRPC metadata (RIP-2 §5.2.1)
+        String sslEnabledStr = getDefaultStringMetadataInfo(headers, GrpcConstants.SSL_ENABLED);
+        if (StringUtils.isNotBlank(sslEnabledStr)) {
+            context.setSslEnabled(Boolean.parseBoolean(sslEnabledStr));
+        }
+
+        // Extract authenticated username from gRPC metadata (RIP-2 §5.2.2)
+        String authUsername = getDefaultStringMetadataInfo(headers, GrpcConstants.AUTHORIZATION_AK);
+        if (StringUtils.isNotBlank(authUsername)) {
+            context.setAuthUsername(authUsername);
+        }
+
         if (ctx.getDeadline() != null) {
             context.setRemainingMs(ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS));
         }
