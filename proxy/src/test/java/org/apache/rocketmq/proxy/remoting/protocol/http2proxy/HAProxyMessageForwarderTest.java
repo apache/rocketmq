@@ -164,6 +164,30 @@ public class HAProxyMessageForwarderTest {
     }
 
     @Test
+    public void channelReadRejectsOutOfRangeProxyProtocolPorts() {
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannel("127.0.0.1", "-1", "127.0.0.2", "8081"));
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannel("127.0.0.1", "65536", "127.0.0.2", "8081"));
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannel("127.0.0.1", "10911", "127.0.0.2", "-1"));
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannel("127.0.0.1", "10911", "127.0.0.2", "65536"));
+    }
+
+    @Test
+    public void channelReadRejectsMissingProxyProtocolAttributes() {
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannelWithoutSourceAddress());
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannelWithoutSourcePort());
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannelWithoutDestinationAddress());
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannelWithoutDestinationPort());
+    }
+
+    @Test
+    public void channelReadRejectsEmptyProxyProtocolAttributes() {
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannel(null, "10911", "127.0.0.2", "8081"));
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannel("127.0.0.1", "", "127.0.0.2", "8081"));
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannel("127.0.0.1", "10911", "", "8081"));
+        assertRejectsMalformedProxyProtocol(buildProxyProtocolChannel("127.0.0.1", "10911", "127.0.0.2", null));
+    }
+
+    @Test
     public void channelReadClosesWhenWriteAndFlushFails() throws Exception {
         assertWriteFailureClosesChannel(new IllegalStateException("write failed"));
     }
