@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
@@ -187,7 +188,8 @@ public class ConsumerProcessor extends AbstractProcessor {
                     fillUniqIDIfNeed(messageExt);
                     String handleString = createHandle(messageExt.getProperty(MessageConst.PROPERTY_POP_CK), messageExt.getCommitLogOffset());
                     if (handleString == null) {
-                        log.error("[BUG] pop message from broker but handle is empty. requestHeader:{}, msg:{}", requestHeader, messageExt);
+                        log.error("[BUG] pop message from broker but handle is empty. requestHeader:{}, msgSummary:{}",
+                            requestHeader, summarizeMessageExt(messageExt));
                         messageExtList.add(messageExt);
                         continue;
                     }
@@ -233,7 +235,8 @@ public class ConsumerProcessor extends AbstractProcessor {
                             break;
                     }
                 } catch (Throwable t) {
-                    log.error("process filterMessage failed. requestHeader:{}, msg:{}", requestHeader, messageExt, t);
+                    log.error("process filterMessage failed. requestHeader:{}, msgSummary:{}",
+                        requestHeader, summarizeMessageExt(messageExt), t);
                     messageExtList.add(messageExt);
                 }
             }
@@ -242,6 +245,19 @@ public class ConsumerProcessor extends AbstractProcessor {
         return popResult;
     }
 
+    static String summarizeMessageExt(MessageExt messageExt) {
+        if (messageExt == null) {
+            return "msg=null";
+        }
+        return "topic=" + messageExt.getTopic()
+            + ", msgId=" + messageExt.getMsgId()
+            + ", queueId=" + messageExt.getQueueId()
+            + ", queueOffset=" + messageExt.getQueueOffset()
+            + ", commitLogOffset=" + messageExt.getCommitLogOffset()
+            + ", bodySize=" + (messageExt.getBody() == null ? 0 : messageExt.getBody().length)
+            + ", propertyKeys=" + (messageExt.getProperties() == null
+                ? "[]" : new TreeSet<>(messageExt.getProperties().keySet()));
+    }
 
     private void fillUniqIDIfNeed(MessageExt messageExt) {
         if (StringUtils.isBlank(MessageClientIDSetter.getUniqID(messageExt))) {

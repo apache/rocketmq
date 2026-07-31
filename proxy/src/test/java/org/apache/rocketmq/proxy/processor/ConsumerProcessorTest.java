@@ -93,6 +93,30 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     }
 
     @Test
+    public void testSummarizeMessageExtDoesNotExposeBodyOrPropertyValues() {
+        MessageExt messageExt = new MessageExt();
+        messageExt.setTopic(TOPIC);
+        messageExt.setMsgId("msgId");
+        messageExt.setQueueId(1);
+        messageExt.setQueueOffset(2L);
+        messageExt.setCommitLogOffset(3L);
+        messageExt.setBody(new byte[] {115, 101, 99, 114, 101, 116});
+        messageExt.putUserProperty("secretKey", "secretValue");
+
+        String summary = ConsumerProcessor.summarizeMessageExt(messageExt);
+
+        assertThat(summary).contains("topic=" + TOPIC);
+        assertThat(summary).contains("msgId=msgId");
+        assertThat(summary).contains("queueId=1");
+        assertThat(summary).contains("queueOffset=2");
+        assertThat(summary).contains("commitLogOffset=3");
+        assertThat(summary).contains("bodySize=6");
+        assertThat(summary).contains("secretKey");
+        assertThat(summary).doesNotContain("secretValue");
+        assertThat(summary).doesNotContain("115, 101, 99, 114, 101, 116");
+    }
+
+    @Test
     public void testPopMessage() throws Throwable {
         final String tag = "tag";
         final long invisibleTime = Duration.ofSeconds(15).toMillis();
