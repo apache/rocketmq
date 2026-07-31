@@ -18,6 +18,7 @@
 package org.apache.rocketmq.proxy.service.channel;
 
 import java.net.InetSocketAddress;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -43,7 +44,28 @@ public class SimpleChannelTest {
         assertNull(new SimpleChannel(null, null).remoteAddress());
         assertNull(new SimpleChannel("", "").remoteAddress());
         assertNull(new SimpleChannel("127.0.0.1", "127.0.0.1").remoteAddress());
-        assertNull(new SimpleChannel("127.0.0.1:not-a-port", "127.0.0.1:not-a-port").remoteAddress());
-        assertNull(new SimpleChannel("127.0.0.1:not-a-port", "127.0.0.1:not-a-port").localAddress());
+        assertInvalidRemoteAndLocalAddress("127.0.0.1:not-a-port");
+        assertInvalidRemoteAndLocalAddress("127.0.0.1:-1");
+        assertInvalidRemoteAndLocalAddress("127.0.0.1:65536");
+        assertInvalidRemoteAndLocalAddress("127.0.0.1:2147483648");
+        assertInvalidRemoteAndLocalAddress("127.0.0.1:");
+        assertInvalidRemoteAndLocalAddress("127.0.0.1: ");
+    }
+
+    @Test
+    public void testChannelManagerConsumesInvalidSocketAddress() {
+        ChannelManager channelManager = new ChannelManager();
+        SimpleChannel channel = channelManager.createChannel(
+            ProxyContext.create()
+                .setRemoteAddress("127.0.0.1:65536")
+                .setLocalAddress("127.0.0.1:-1"));
+
+        assertNull(channel.remoteAddress());
+        assertNull(channel.localAddress());
+    }
+
+    private void assertInvalidRemoteAndLocalAddress(String address) {
+        assertNull(new SimpleChannel(address, address).remoteAddress());
+        assertNull(new SimpleChannel(address, address).localAddress());
     }
 }
