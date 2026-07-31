@@ -156,4 +156,22 @@ public class ProxyContext {
             || ClientType.LITE_SIMPLE_CONSUMER.name().equals(clientType);
     }
 
+    public ProxyContext setSslEnabled(Boolean sslEnabled) {
+        this.withVal(ContextVariable.SSL_ENABLED, sslEnabled);
+        return this;
+    }
+
+    public Boolean isSslEnabled() {
+        return this.getVal(ContextVariable.SSL_ENABLED);
+    }
+
+    public ProxyContext setAuthUsername(String username) {
+        this.withVal(ContextVariable.AUTH_USERNAME, username);
+        return this;
+    }
+
+    public String getAuthUsername() {
+        return this.getVal(ContextVariable.AUTH_USERNAME);
+    }
+
 }

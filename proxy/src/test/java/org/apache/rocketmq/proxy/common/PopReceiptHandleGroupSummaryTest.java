@@ -17,18 +17,22 @@
 
 package org.apache.rocketmq.proxy.common;
 
-public class ContextVariable {
-    public static final String REMOTE_ADDRESS = "remote-address";
-    public static final String LOCAL_ADDRESS = "local-address";
-    public static final String CLIENT_ID = "client-id";
-    public static final String CHANNEL = "channel";
-    public static final String LANGUAGE = "language";
-    public static final String CLIENT_VERSION = "client-version";
-    public static final String REMAINING_MS = "remaining-ms";
-    public static final String ACTION = "action";
-    public static final String PROTOCOL_TYPE = "protocol-type";
-    public static final String NAMESPACE = "namespace";
-    public static final String CLIENT_TYPE = "client-type";
-    public static final String SSL_ENABLED = "ssl-enabled";
-    public static final String AUTH_USERNAME = "auth-username";
+import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+
+public class PopReceiptHandleGroupSummaryTest {
+
+    @Test
+    public void testConstructorAndGetters() {
+        PopReceiptHandleGroupSummary summary = new PopReceiptHandleGroupSummary(
+            "groupA", 50, 40, 100L, 5L, 3);
+
+        assertEquals("groupA", summary.getGroup());
+        assertEquals(50, summary.getTotalHandles());
+        assertEquals(40, summary.getTotalMessages());
+        assertEquals(100L, summary.getTotalRenewTimes());
+        assertEquals(5L, summary.getTotalRenewRetryTimes());
+        assertEquals(3, summary.getExpiredHandles());
+    }
 }

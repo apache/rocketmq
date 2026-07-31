@@ -15,12 +15,26 @@
 # limitations under the License.
 #
 load("//bazel:GenTestRules.bzl", "GenTestRules")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "proxy_admin_proto",
+    srcs = ["src/main/proto/proxy_admin.proto"],
+)
+
+# java_proto_library: native rule in Bazel 6.x; rules_java 7.x does not export it.
+java_proto_library(
+    name = "proxy_admin_java_proto",
+    deps = [":proxy_admin_proto"],
+    visibility = ["//visibility:public"],
+)
 
 java_library(
     name = "proxy",
     srcs = glob(["src/main/java/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
+        ":proxy_admin_java_proto",
         "//auth",
         "//broker",
         "//client",
@@ -80,6 +94,7 @@ java_library(
     deps = [
 	    "//auth",
         ":proxy",
+        ":proxy_admin_java_proto",
         "//:test_deps",
         "//broker",
         "//client",

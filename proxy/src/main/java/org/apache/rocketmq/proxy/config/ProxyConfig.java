@@ -112,6 +112,40 @@ public class ProxyConfig implements ConfigFile {
      * 130M = 4M * 32 messages + 2M attributes
      */
     private int grpcMaxInboundMessageSize = 130 * 1024 * 1024;
+
+    /**
+     * Proxy Admin gRPC configuration (RIP-2)
+     * Admin interface runs on a separate port from the data plane.
+     */
+    private boolean proxyAdminEnabled = true;
+    private Integer proxyAdminServerPort = 8082;
+    private int proxyAdminThreadPoolNums = 4;
+    private int proxyAdminMaxPageSize = 100;
+    /**
+     * Sampling concurrency limit for DescribeClient diagnostic queries (RIP-2 §8.5).
+     * When concurrent DescribeClient requests exceed this value, new requests are rejected.
+     * Default: 8
+     */
+    private int proxyAdminDescribeClientConcurrencyLimit = 8;
+    /**
+     * Sampling rate under medium load (RIP-2 §8.5).
+     * When concurrency is between half the limit and the full limit, this fraction of
+     * DescribeClient requests are accepted. Value between 0.0 and 1.0.
+     * Default: 0.5
+     */
+    private double proxyAdminSamplingRateUnderLoad = 0.5;
+    /**
+     * Maximum heartbeat history records per client (RIP-2 §5.2.2).
+     * Controls memory usage for heartbeat tracking.
+     * Default: 10
+     */
+    private int proxyAdminHeartbeatHistorySize = 10;
+    /**
+     * Sampling threshold for client count (RIP-2 §8.5).
+     * When total client count exceeds this value, diagnostic interfaces may apply sampling.
+     * Default: 100000
+     */
+    private long proxyAdminSamplingThreshold = 100000L;
     /**
      * max message body size, 0 or negative number means no limit for proxy
      */
@@ -481,6 +515,70 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcServerPort(Integer grpcServerPort) {
         this.grpcServerPort = grpcServerPort;
+    }
+
+    public boolean isProxyAdminEnabled() {
+        return proxyAdminEnabled;
+    }
+
+    public void setProxyAdminEnabled(boolean proxyAdminEnabled) {
+        this.proxyAdminEnabled = proxyAdminEnabled;
+    }
+
+    public Integer getProxyAdminServerPort() {
+        return proxyAdminServerPort;
+    }
+
+    public void setProxyAdminServerPort(Integer proxyAdminServerPort) {
+        this.proxyAdminServerPort = proxyAdminServerPort;
+    }
+
+    public int getProxyAdminThreadPoolNums() {
+        return proxyAdminThreadPoolNums;
+    }
+
+    public void setProxyAdminThreadPoolNums(int proxyAdminThreadPoolNums) {
+        this.proxyAdminThreadPoolNums = proxyAdminThreadPoolNums;
+    }
+
+    public int getProxyAdminMaxPageSize() {
+        return proxyAdminMaxPageSize;
+    }
+
+    public void setProxyAdminMaxPageSize(int proxyAdminMaxPageSize) {
+        this.proxyAdminMaxPageSize = proxyAdminMaxPageSize;
+    }
+
+    public int getProxyAdminDescribeClientConcurrencyLimit() {
+        return proxyAdminDescribeClientConcurrencyLimit;
+    }
+
+    public void setProxyAdminDescribeClientConcurrencyLimit(int proxyAdminDescribeClientConcurrencyLimit) {
+        this.proxyAdminDescribeClientConcurrencyLimit = proxyAdminDescribeClientConcurrencyLimit;
+    }
+
+    public double getProxyAdminSamplingRateUnderLoad() {
+        return proxyAdminSamplingRateUnderLoad;
+    }
+
+    public void setProxyAdminSamplingRateUnderLoad(double proxyAdminSamplingRateUnderLoad) {
+        this.proxyAdminSamplingRateUnderLoad = proxyAdminSamplingRateUnderLoad;
+    }
+
+    public int getProxyAdminHeartbeatHistorySize() {
+        return proxyAdminHeartbeatHistorySize;
+    }
+
+    public void setProxyAdminHeartbeatHistorySize(int proxyAdminHeartbeatHistorySize) {
+        this.proxyAdminHeartbeatHistorySize = proxyAdminHeartbeatHistorySize;
+    }
+
+    public long getProxyAdminSamplingThreshold() {
+        return proxyAdminSamplingThreshold;
+    }
+
+    public void setProxyAdminSamplingThreshold(long proxyAdminSamplingThreshold) {
+        this.proxyAdminSamplingThreshold = proxyAdminSamplingThreshold;
     }
 
     public long getGrpcShutdownTimeSeconds() {
