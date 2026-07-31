@@ -101,13 +101,24 @@ public class ProxyMetricsManager implements StartAndShutdown {
         return attributesBuilder;
     }
 
+    private static Meter proxyMeter;
+
     private static void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
+        ProxyMetricsManager.proxyMeter = meter;
         ProxyMetricsManager.attributesBuilderSupplier = attributesBuilderSupplier;
 
         proxyUp = meter.gaugeBuilder(GAUGE_PROXY_UP)
             .setDescription("proxy status")
             .ofLongs()
             .buildWithCallback(measurement -> measurement.record(1, newAttributesBuilder().build()));
+    }
+
+    /**
+     * Get the OpenTelemetry Meter used by ProxyMetricsManager.
+     * Returns null if metrics have not been initialized.
+     */
+    public static Meter getMeter() {
+        return proxyMeter;
     }
 
     public ProxyMetricsManager() {
