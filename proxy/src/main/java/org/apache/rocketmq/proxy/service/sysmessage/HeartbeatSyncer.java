@@ -188,8 +188,9 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
         }
 
         for (MessageExt msg : msgs) {
+            HeartbeatSyncerData data = null;
             try {
-                HeartbeatSyncerData data = JSON.parseObject(new String(msg.getBody(), StandardCharsets.UTF_8), HeartbeatSyncerData.class);
+                data = JSON.parseObject(new String(msg.getBody(), StandardCharsets.UTF_8), HeartbeatSyncerData.class);
                 if (data.getLocalProxyId().equals(localProxyId)) {
                     continue;
                 }
@@ -222,11 +223,29 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                     );
                 }
             } catch (Throwable t) {
-                log.error("heartbeat consume message failed. msg:{}, data:{}", msg, new String(msg.getBody(), StandardCharsets.UTF_8), t);
+                log.error("heartbeat consume message failed. summary:{}", summarizeHeartbeatMessage(msg, data), t);
             }
         }
 
         return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+    }
+
+    static String summarizeHeartbeatMessage(MessageExt msg, HeartbeatSyncerData data) {
+        if (msg == null) {
+            return "msg=null";
+        }
+        StringBuilder summary = new StringBuilder()
+            .append("topic=").append(msg.getTopic())
+            .append(", msgId=").append(msg.getMsgId())
+            .append(", bodySize=").append(msg.getBody() == null ? 0 : msg.getBody().length);
+        if (data != null) {
+            summary.append(", heartbeatType=").append(data.getHeartbeatType())
+                .append(", group=").append(data.getGroup())
+                .append(", clientId=").append(data.getClientId())
+                .append(", subscriptionCount=")
+                .append(data.getSubscriptionDataSet() == null ? 0 : data.getSubscriptionDataSet().size());
+        }
+        return summary.toString();
     }
 
     private String buildLocalProxyId() {
