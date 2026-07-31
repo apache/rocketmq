@@ -17,9 +17,12 @@
 
 package org.apache.rocketmq.proxy.grpc.v2.channel;
 
+import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
+import apache.rocketmq.v2.Subscription;
+import apache.rocketmq.v2.SubscriptionEntry;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
@@ -35,7 +38,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -78,5 +83,42 @@ public class GrpcClientChannelTest extends InitConfigTest {
         assertEquals(clientSettings, GrpcClientChannel.parseChannelExtendAttribute(remoteChannel));
         assertEquals(clientSettings, GrpcClientChannel.parseChannelExtendAttribute(this.grpcClientChannel));
         assertNull(GrpcClientChannel.parseChannelExtendAttribute(mock(RemotingChannel.class)));
+    }
+
+    @Test
+    public void testSummarizeSettingsDoesNotExposeResourceNames() {
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName("sensitive-publish-topic").build())
+                .build())
+            .build();
+        Settings consumerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("sensitive-group").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setTopic(Resource.newBuilder().setName("sensitive-subscription-topic").build())
+                    .build())
+                .build())
+            .build();
+
+        String producerSummary = GrpcClientChannel.summarizeSettings(producerSettings);
+        String consumerSummary = GrpcClientChannel.summarizeSettings(consumerSettings);
+
+        assertTrue(producerSummary.contains("clientType=PRODUCER"));
+        assertTrue(producerSummary.contains("publishingTopicCount=1"));
+        assertFalse(producerSummary.contains("sensitive-publish-topic"));
+
+        assertTrue(consumerSummary.contains("clientType=PUSH_CONSUMER"));
+        assertTrue(consumerSummary.contains("subscriptionCount=1"));
+        assertFalse(consumerSummary.contains("sensitive-subscription-topic"));
+        assertFalse(consumerSummary.contains("sensitive-group"));
+    }
+
+    @Test
+    public void testGetAttributeLength() {
+        assertEquals(0, GrpcClientChannel.getAttributeLength(null));
+        assertEquals(7, GrpcClientChannel.getAttributeLength("invalid"));
     }
 }

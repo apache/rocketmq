@@ -88,7 +88,8 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         try {
             return JsonFormat.printer().print(settings);
         } catch (InvalidProtocolBufferException e) {
-            log.error("convert settings to json data failed. settings:{}", settings, e);
+            log.error("convert settings to json data failed. clientId:{}, settingsSummary:{}",
+                this.clientId, summarizeSettings(settings), e);
         }
         return null;
     }
@@ -106,11 +107,25 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
                 JsonFormat.parser().merge(attr, builder);
                 return builder.build();
             } catch (InvalidProtocolBufferException e) {
-                log.error("convert settings json data to settings failed. data:{}", attr, e);
+                log.error("convert settings json data to settings failed. attrLength:{}", getAttributeLength(attr), e);
                 return null;
             }
         }
         return null;
+    }
+
+    static String summarizeSettings(Settings settings) {
+        if (settings == null) {
+            return "null";
+        }
+        int publishingTopicCount = settings.hasPublishing() ? settings.getPublishing().getTopicsCount() : 0;
+        int subscriptionCount = settings.hasSubscription() ? settings.getSubscription().getSubscriptionsCount() : 0;
+        return String.format("clientType=%s, publishingTopicCount=%d, subscriptionCount=%d",
+            settings.getClientType(), publishingTopicCount, subscriptionCount);
+    }
+
+    static int getAttributeLength(String attr) {
+        return attr == null ? 0 : attr.length();
     }
 
     @Override
