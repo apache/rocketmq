@@ -282,7 +282,8 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
                         consumerGroup
                     );
                     if (consumerGroupInfo == null || consumerGroupInfo.findChannel(clientId) == null) {
-                        log.info("remove unused grpc client settings. group:{}, settings:{}", consumerGroupInfo, settings);
+                        log.info("remove unused grpc client settings. group:{}, clientId:{}, settingsSummary:{}",
+                            consumerGroup, clientId, summarizeClientSettings(settings));
                         return null;
                     }
                     return settings;
@@ -291,5 +292,15 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
                 log.error("check expired grpc client settings failed. clientId:{}", clientId, t);
             }
         }
+    }
+
+    static String summarizeClientSettings(Settings settings) {
+        if (settings == null) {
+            return "null";
+        }
+        int publishingTopicCount = settings.hasPublishing() ? settings.getPublishing().getTopicsCount() : 0;
+        int subscriptionCount = settings.hasSubscription() ? settings.getSubscription().getSubscriptionsCount() : 0;
+        return String.format("clientType=%s, publishingTopicCount=%d, subscriptionCount=%d",
+            settings.getClientType(), publishingTopicCount, subscriptionCount);
     }
 }

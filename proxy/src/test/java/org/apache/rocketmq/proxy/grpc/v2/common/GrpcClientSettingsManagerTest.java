@@ -40,8 +40,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -154,6 +156,37 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
         grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
 
         verify(messagingProcessor, never()).syncLiteSubscription(any(), any(), anyLong());
+    }
+
+    @Test
+    public void testSummarizeClientSettingsDoesNotExposeResourceNames() {
+        Settings producerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PRODUCER)
+            .setPublishing(Publishing.newBuilder()
+                .addTopics(Resource.newBuilder().setName("sensitive-publish-topic").build())
+                .build())
+            .build();
+        Settings consumerSettings = Settings.newBuilder()
+            .setClientType(ClientType.PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("sensitive-group").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setTopic(Resource.newBuilder().setName("sensitive-subscription-topic").build())
+                    .build())
+                .build())
+            .build();
+
+        String producerSummary = GrpcClientSettingsManager.summarizeClientSettings(producerSettings);
+        String consumerSummary = GrpcClientSettingsManager.summarizeClientSettings(consumerSettings);
+
+        assertTrue(producerSummary.contains("clientType=PRODUCER"));
+        assertTrue(producerSummary.contains("publishingTopicCount=1"));
+        assertFalse(producerSummary.contains("sensitive-publish-topic"));
+
+        assertTrue(consumerSummary.contains("clientType=PUSH_CONSUMER"));
+        assertTrue(consumerSummary.contains("subscriptionCount=1"));
+        assertFalse(consumerSummary.contains("sensitive-subscription-topic"));
+        assertFalse(consumerSummary.contains("sensitive-group"));
     }
 
     @Test
