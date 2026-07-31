@@ -104,7 +104,7 @@
         <netty.version>4.1.130.Final</netty.version>
         <netty.tcnative.version>2.0.53.Final</netty.tcnative.version>
         <bcpkix-jdk18on.version>1.83</bcpkix-jdk18on.version>
-        <fastjson.version>1.2.84</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <fastjson2.version>2.0.63</fastjson2.version>
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
