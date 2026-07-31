@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROUP_SEPARATOR;
@@ -44,7 +45,7 @@ import static org.apache.rocketmq.broker.offset.ConsumerOffsetManager.TOPIC_GROU
  */
 public abstract class AbstractLiteLifecycleManager extends ServiceThread {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LITE_LOGGER_NAME);
-    private static final int MAX_INVALID_SCAN_COUNT = 5;
+    static final int MAX_INVALID_SCAN_COUNT = 5;
 
     protected final BrokerController brokerController;
     protected final String brokerName;
@@ -52,7 +53,8 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
     protected MessageStore messageStore;
     protected Map<String, Integer> ttlMap = Collections.emptyMap();
     protected Map<String, Set<String>> subscriberGroupMap = Collections.emptyMap();
-    protected Map<String, Integer> invalidScanCountMap = new ConcurrentHashMap<>();
+    protected Map<String, Integer> offsetInvalidScanCountMap = new ConcurrentHashMap<>();
+    protected Map<String, Integer> storeTimeInvalidScanCountMap = new ConcurrentHashMap<>();
 
     public AbstractLiteLifecycleManager(BrokerController brokerController, LiteSharding liteSharding) {
         this.brokerController = brokerController;
@@ -167,20 +169,19 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
         if (!LiteUtil.isLiteTopicQueue(lmqName)) {
             return false;
         }
-        if (maxOffset <= 0) {
-            int invalidCount = invalidScanCountMap.getOrDefault(lmqName, 0) + 1;
-            LOGGER.warn("unexpected condition, max offset <= 0, {}, {}, scanCount:{}", lmqName, maxOffset, invalidCount);
-            if (invalidCount > MAX_INVALID_SCAN_COUNT) { // check more times in case of  concurrent issue
-                invalidScanCountMap.remove(lmqName);
-                return true;
-            }
-            invalidScanCountMap.put(lmqName, invalidCount);
-            return false;
-        } else {
-            invalidScanCountMap.remove(lmqName);
+        int offsetInvalidCount = trackInvalidCount(lmqName, maxOffset <= 0, offsetInvalidScanCountMap);
+        if (offsetInvalidCount > 0) {
+            // check more times in case of concurrent issue
+            LOGGER.warn("unexpected condition, max offset <= 0, {}, {}, scanCount:{}", lmqName, maxOffset, offsetInvalidCount);
+            return offsetInvalidCount > MAX_INVALID_SCAN_COUNT;
         }
-        long latestStoreTime =
-            this.brokerController.getMessageStore().getMessageStoreTimeStamp(lmqName, 0, maxOffset - 1);
+        long latestStoreTime = messageStore.getMessageStoreTimeStamp(lmqName, 0, maxOffset - 1);
+        int storeTimeInvalidCount = trackInvalidCount(lmqName, latestStoreTime <= 0, storeTimeInvalidScanCountMap);
+        if (storeTimeInvalidCount > 0) {
+            // bypass TTL protection on purpose, but debounce against transient read failures
+            LOGGER.warn("latest store time <= 0, {}, {}, scanCount:{}", lmqName, latestStoreTime, storeTimeInvalidCount);
+            return storeTimeInvalidCount > MAX_INVALID_SCAN_COUNT;
+        }
         long inactiveTime = System.currentTimeMillis() - latestStoreTime;
         if (inactiveTime < brokerController.getBrokerConfig().getMinLiteTTl()) {
             return false;
@@ -196,7 +197,32 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
         if (hasConsumerLag(lmqName, maxOffset, latestStoreTime, parentTopic)) {
             return false;
         }
-        return inactiveTime > minutes * 60 * 1000;
+        return inactiveTime > TimeUnit.MINUTES.toMillis(minutes);
+    }
+
+    /**
+     * Track the invalid state of the given lmq: increase the count when invalid, reset when recovered.
+     * The counter is removed automatically once it exceeds {@link #MAX_INVALID_SCAN_COUNT}.
+     *
+     * @return the current invalid count, 0 means healthy (and the counter has been reset)
+     */
+    private int trackInvalidCount(String lmqName, boolean invalid, Map<String, Integer> invalidCountMap) {
+        if (!invalid) {
+            invalidCountMap.remove(lmqName);
+            return 0;
+        }
+        int invalidCount = invalidCountMap.getOrDefault(lmqName, 0) + 1;
+        if (invalidCount > MAX_INVALID_SCAN_COUNT) {
+            invalidCountMap.remove(lmqName);
+        } else {
+            invalidCountMap.put(lmqName, invalidCount);
+        }
+        return invalidCount;
+    }
+
+    private void removeInvalidCount(String lmqName) {
+        offsetInvalidScanCountMap.remove(lmqName);
+        storeTimeInvalidScanCountMap.remove(lmqName);
     }
 
     public void deleteLmq(String parentTopic, String lmqName) {
@@ -214,6 +240,7 @@ public abstract class AbstractLiteLifecycleManager extends ServiceThread {
             brokerController.getLiteSubscriptionRegistry().cleanSubscription(lmqName, false);
             brokerController.getConsumerOffsetManager().getPullOffsetTable().remove(
                 lmqName + TOPIC_GROUP_SEPARATOR + MixAll.TOOLS_CONSUMER_GROUP);
+            removeInvalidCount(lmqName);
             LOGGER.info("delete lmq finish. {}, sharding:{}", lmqName, sharding);
         } catch (Exception e) {
             LOGGER.error("delete lmq error. {}", lmqName, e);
