@@ -23,6 +23,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class MessageQueueSelectorTest extends BaseServiceTest {
@@ -85,7 +86,9 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
 
     @Test
     public void testWriteMessageQueueSkipsInvalidOrderTopicConfItems() {
-        topicRouteData.setOrderTopicConf("invalid;:2;" + BROKER_NAME + ":not-a-number;unknownBroker:1;" + BROKER_NAME + ":2");
+        topicRouteData.setOrderTopicConf("invalid;:2;" + BROKER_NAME + ":not-a-number;" + BROKER_NAME + ":0;"
+            + BROKER_NAME + ":-1;" + BROKER_NAME + ":2147483647;" + BROKER_NAME + ":2147483648;unknownBroker:1;"
+            + BROKER_NAME + ":2");
 
         MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), false);
 
@@ -102,7 +105,19 @@ public class MessageQueueSelectorTest extends BaseServiceTest {
     public void testGetMasterAddrReturnsEmptyForUnknownBroker() {
         TopicRouteWrapper topicRouteWrapper = new TopicRouteWrapper(topicRouteData, TOPIC);
 
-        assertFalse(topicRouteWrapper.getMasterAddr("unknownBroker").isPresent());
+        assertNull(topicRouteWrapper.getMasterAddr("unknownBroker"));
+        assertFalse(topicRouteWrapper.getOptionalMasterAddr("unknownBroker").isPresent());
+    }
+
+    @Test
+    public void testWriteMessageQueueReturnsEmptyWhenAllOrderTopicConfItemsAreInvalid() {
+        topicRouteData.setOrderTopicConf("invalid;" + BROKER_NAME + ":0;" + BROKER_NAME + ":-1;"
+            + BROKER_NAME + ":2147483647;" + BROKER_NAME + ":2147483648;unknownBroker:1");
+
+        MessageQueueSelector messageQueueSelector = new MessageQueueSelector(new TopicRouteWrapper(topicRouteData, TOPIC), false);
+
+        assertTrue(messageQueueSelector.getQueues().isEmpty());
+        assertTrue(messageQueueSelector.getBrokerActingQueues().isEmpty());
     }
 
     @Test

@@ -46,6 +46,7 @@ import static org.apache.rocketmq.proxy.service.route.MessageQueuePriorityProvid
 public class MessageQueueSelector {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private static final int BROKER_ACTING_QUEUE_ID = -1;
+    private static final int MAX_ORDER_TOPIC_WRITE_QUEUE_COUNT = 1024;
 
     // multiple queues for brokers with queueId : normal
     private final List<AddressableMessageQueue> queues = new ArrayList<>();
@@ -121,22 +122,18 @@ public class MessageQueueSelector {
                 }
 
                 String brokerName = item[0];
-                Optional<String> brokerAddr = topicRoute.getMasterAddr(brokerName);
+                Optional<String> brokerAddr = topicRoute.getOptionalMasterAddr(brokerName);
                 if (!brokerAddr.isPresent()) {
                     log.warn("skip order topic route item without master broker address. topic:{}, brokerName:{}",
                         topicRoute.getTopicName(), brokerName);
                     continue;
                 }
 
-                int nums;
-                try {
-                    nums = Integer.parseInt(item[1]);
-                } catch (NumberFormatException e) {
-                    log.warn("skip order topic route item with invalid queue count. topic:{}, item:{}",
-                        topicRoute.getTopicName(), broker);
+                Optional<Integer> nums = parseOrderTopicQueueCount(topicRoute.getTopicName(), broker);
+                if (!nums.isPresent()) {
                     continue;
                 }
-                for (int i = 0; i < nums; i++) {
+                for (int i = 0; i < nums.get(); i++) {
                     AddressableMessageQueue mq = new AddressableMessageQueue(
                         new MessageQueue(topicRoute.getTopicName(), brokerName, i),
                         brokerAddr.get());
@@ -151,7 +148,7 @@ public class MessageQueueSelector {
 
             for (QueueData qd : qds) {
                 if (PermName.isWriteable(qd.getPerm())) {
-                    Optional<String> brokerAddr = topicRoute.getMasterAddr(qd.getBrokerName());
+                    Optional<String> brokerAddr = topicRoute.getOptionalMasterAddr(qd.getBrokerName());
                     if (!brokerAddr.isPresent()) {
                         continue;
                     }
@@ -167,6 +164,22 @@ public class MessageQueueSelector {
         }
 
         return queueSet.stream().sorted().collect(Collectors.toList());
+    }
+
+    private static Optional<Integer> parseOrderTopicQueueCount(String topicName, String broker) {
+        String[] item = broker.split(":");
+        try {
+            int queueCount = Integer.parseInt(item[1]);
+            if (queueCount < 1 || queueCount > MAX_ORDER_TOPIC_WRITE_QUEUE_COUNT) {
+                log.warn("skip order topic route item with out-of-range queue count. topic:{}, item:{}, min:{}, max:{}",
+                    topicName, broker, 1, MAX_ORDER_TOPIC_WRITE_QUEUE_COUNT);
+                return Optional.empty();
+            }
+            return Optional.of(queueCount);
+        } catch (NumberFormatException e) {
+            log.warn("skip order topic route item with invalid queue count. topic:{}, item:{}", topicName, broker);
+            return Optional.empty();
+        }
     }
 
     private void buildBrokerActingQueues(String topic, List<AddressableMessageQueue> normalQueues) {

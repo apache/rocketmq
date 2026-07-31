@@ -46,7 +46,7 @@ public class ClusterTopicRouteService extends TopicRouteService {
     @Override
     public String getBrokerAddr(ProxyContext ctx, String brokerName) throws Exception {
         TopicRouteWrapper topicRouteWrapper = getAllMessageQueueView(ctx, brokerName).getTopicRouteWrapper();
-        return topicRouteWrapper.getMasterAddr(brokerName)
+        return topicRouteWrapper.getOptionalMasterAddr(brokerName)
             .orElseThrow(() -> new ProxyException(ProxyExceptionCode.INVALID_BROKER_NAME, "cannot find broker " + brokerName));
     }
 
