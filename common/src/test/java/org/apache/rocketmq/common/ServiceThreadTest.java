@@ -161,8 +161,11 @@ public class ServiceThreadTest {
     public void serviceThreadShouldNotLoseWakeupUnderStress() throws Exception {
         final int stressIterations = 10000;
         final int wakerThreads = 4;
-        final long waitTimeoutMs = 20;
-        final long lostWakeupThresholdMs = 18;
+        // A delivered wakeup returns in microseconds while a lost one blocks for the whole
+        // interval. Keep the interval and the threshold far above CI scheduler/GC jitter
+        // (which can easily exceed tens of milliseconds) so the two cases stay distinguishable.
+        final long waitTimeoutMs = 2000;
+        final long lostWakeupThresholdMs = 1000;
 
         StressServiceThread service = new StressServiceThread();
         AtomicInteger activeIteration = new AtomicInteger(-1);
