@@ -34,6 +34,7 @@ import io.netty.channel.ChannelId;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -68,6 +69,31 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     private final AtomicReference<StreamObserver<TelemetryCommand>> telemetryCommandRef = new AtomicReference<>();
     private final Object telemetryWriteLock = new Object();
     private final String clientId;
+    private final long createTime;
+
+    /**
+     * Last measured RTT in milliseconds, estimated from telemetry command round-trip.
+     * A value of -1 means no RTT measurement is available yet.
+     */
+    private volatile long lastRttMs = -1;
+
+    /**
+     * Timestamp (millis) when the proxy last sent a telemetry command to this client.
+     * Used to estimate RTT when the next telemetry command is received.
+     */
+    private volatile long lastTelemetrySendTimeMs = 0;
+
+    /**
+     * Whether this client connection uses SSL/TLS.
+     * Detected from gRPC transport security level at channel creation time.
+     */
+    private volatile boolean sslEnabled = false;
+
+    /**
+     * Authenticated username for this client connection.
+     * Extracted from auth metadata (AUTHORIZATION_AK) at channel creation time.
+     */
+    private volatile String authUsername = null;
 
     public GrpcClientChannel(ProxyRelayService proxyRelayService, GrpcClientSettingsManager grpcClientSettingsManager,
         GrpcChannelManager grpcChannelManager, ProxyContext ctx, String clientId) {
@@ -77,6 +103,68 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
         this.grpcChannelManager = grpcChannelManager;
         this.grpcClientSettingsManager = grpcClientSettingsManager;
         this.clientId = clientId;
+        this.createTime = System.currentTimeMillis();
+        // Detect per-connection SSL state from ProxyContext (RIP-2 §5.2.1)
+        Boolean ssl = ctx.isSslEnabled();
+        if (ssl != null) {
+            this.sslEnabled = ssl;
+        }
+        // Store authenticated username from ProxyContext (RIP-2 §5.2.2)
+        String username = ctx.getAuthUsername();
+        if (StringUtils.isNotBlank(username)) {
+            this.authUsername = username;
+        }
+    }
+
+    public long getCreateTime() {
+        return this.createTime;
+    }
+
+    /**
+     * Get the last measured RTT in milliseconds.
+     * @return RTT in ms, or -1 if no measurement is available
+     */
+    public long getLastRttMs() {
+        return this.lastRttMs;
+    }
+
+    /**
+     * Check whether this client connection uses SSL/TLS.
+     * @return true if SSL/TLS is enabled for this connection
+     */
+    public boolean isSslEnabled() {
+        return this.sslEnabled;
+    }
+
+    /**
+     * Get the authenticated username for this client connection.
+     * @return the username, or null if not available
+     */
+    public String getAuthUsername() {
+        return this.authUsername;
+    }
+
+    /**
+     * Update RTT measurement based on telemetry command round-trip.
+     * Called when a telemetry command is received from the client after
+     * the proxy sent a telemetry command.
+     */
+    public void updateRttMeasurement() {
+        long sendTime = this.lastTelemetrySendTimeMs;
+        if (sendTime > 0) {
+            long now = System.currentTimeMillis();
+            long rtt = now - sendTime;
+            if (rtt > 0) {
+                this.lastRttMs = rtt;
+            }
+        }
+    }
+
+    /**
+     * Record the timestamp when the proxy sends a telemetry command.
+     */
+    public void recordTelemetrySendTime() {
+        this.lastTelemetrySendTimeMs = System.currentTimeMillis();
     }
 
     @Override
@@ -163,6 +251,37 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
 
     protected void clearClientObserver(StreamObserver<TelemetryCommand> future) {
         this.telemetryCommandRef.compareAndSet(future, null);
+    }
+
+    /**
+     * Forcibly close this client channel from the server side.
+     * Sends an error status to the client via the telemetry stream observer,
+     * then clears the observer reference so the channel is marked as inactive.
+     * <p>
+     * After this call:
+     * - The client receives a gRPC error on its telemetry stream
+     * - isOpen()/isActive()/isWritable() return false
+     * - The caller should also remove the channel from GrpcChannelManager
+     *   and clean up settings to complete the disconnection.
+     *
+     * @param reason human-readable reason for the forced disconnection
+     * @return true if the stream was successfully closed, false if already closed
+     */
+    public boolean forceClose(String reason) {
+        StreamObserver<TelemetryCommand> observer = this.telemetryCommandRef.get();
+        if (observer == null) {
+            return false;
+        }
+        try {
+            observer.onError(io.grpc.Status.UNAVAILABLE
+                .withDescription("Connection force closed by admin: " + reason)
+                .asRuntimeException());
+        } catch (Exception e) {
+            log.warn("forceClose: failed to send error to client {}, clearing observer directly", clientId, e);
+        }
+        this.clearClientObserver(observer);
+        log.info("forceClose: client {} disconnected, reason: {}", clientId, reason);
+        return true;
     }
 
     @Override
@@ -274,6 +393,8 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
             }
             try {
                 observer.onNext(command);
+                // Record send time for RTT measurement (RIP-2 §5.2.1)
+                recordTelemetrySendTime();
             } catch (StatusRuntimeException | IllegalStateException exception) {
                 log.warn("write telemetry failed. command:{}", command, exception);
                 this.clearClientObserver(observer);

@@ -60,6 +60,7 @@ import org.apache.rocketmq.proxy.grpc.v2.producer.SendMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.route.RouteActivity;
 import org.apache.rocketmq.proxy.grpc.v2.transaction.EndTransactionActivity;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService;
 
 public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown implements GrpcMessagingActivity {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -95,6 +96,26 @@ public class DefaultGrpcMessagingActivity extends AbstractStartAndShutdown imple
         this.clientActivity = new ClientActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
 
         this.appendStartAndShutdown(this.grpcClientSettingsManager);
+    }
+
+    @Override
+    public GrpcChannelManager getGrpcChannelManager() {
+        return this.grpcChannelManager;
+    }
+
+    @Override
+    public GrpcClientSettingsManager getGrpcClientSettingsManager() {
+        return this.grpcClientSettingsManager;
+    }
+
+    /**
+     * Set the proxy admin client service for heartbeat recording (RIP-2 §5.2.2).
+     * Delegates to ClientActivity to enable telemetry heartbeat tracking.
+     *
+     * @param proxyAdminClientService the admin service
+     */
+    public void setProxyAdminClientService(ProxyAdminClientService proxyAdminClientService) {
+        this.clientActivity.setProxyAdminClientService(proxyAdminClientService);
     }
 
     @Override

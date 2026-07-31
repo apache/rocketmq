@@ -71,7 +71,10 @@ import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService;
 
 public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServiceImplBase implements StartAndShutdown {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -143,6 +146,27 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         this.consumerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
         this.clientManagerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
         this.transactionThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
+    }
+
+    public GrpcChannelManager getGrpcChannelManager() {
+        return this.grpcMessagingActivity.getGrpcChannelManager();
+    }
+
+    public GrpcClientSettingsManager getGrpcClientSettingsManager() {
+        return this.grpcMessagingActivity.getGrpcClientSettingsManager();
+    }
+
+    /**
+     * Set the proxy admin client service for heartbeat recording (RIP-2 §5.2.2).
+     * This enables the telemetry pipeline to record heartbeat events
+     * for the admin client query interface.
+     *
+     * @param proxyAdminClientService the admin service
+     */
+    public void setProxyAdminClientService(ProxyAdminClientService proxyAdminClientService) {
+        if (this.grpcMessagingActivity instanceof DefaultGrpcMessagingActivity) {
+            ((DefaultGrpcMessagingActivity) this.grpcMessagingActivity).setProxyAdminClientService(proxyAdminClientService);
+        }
     }
 
     public static GrpcMessagingApplication create(MessagingProcessor messagingProcessor) {

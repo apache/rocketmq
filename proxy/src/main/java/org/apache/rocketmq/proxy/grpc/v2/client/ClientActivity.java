@@ -68,6 +68,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.service.admin.ProxyAdminClientService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayResult;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -83,11 +84,28 @@ public class ClientActivity extends AbstractMessagingActivity {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
+    /**
+     * Optional admin service for heartbeat recording (RIP-2 §5.2.2).
+     * Set after construction to avoid circular dependency.
+     */
+    private volatile ProxyAdminClientService proxyAdminClientService;
+
     public ClientActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager,
         GrpcChannelManager grpcChannelManager) {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.init();
+    }
+
+    /**
+     * Set the proxy admin client service for heartbeat recording.
+     * This is called after construction to break the circular dependency
+     * between the telemetry pipeline and the admin service.
+     *
+     * @param proxyAdminClientService the admin service
+     */
+    public void setProxyAdminClientService(ProxyAdminClientService proxyAdminClientService) {
+        this.proxyAdminClientService = proxyAdminClientService;
     }
 
     protected void init() {
@@ -130,6 +148,9 @@ public class ClientActivity extends AbstractMessagingActivity {
                     return future;
                 }
             }
+            // Record heartbeat for admin telemetry tracking (RIP-2 §5.2.2)
+            recordHeartbeat(ctx.getClientID());
+
             future.complete(HeartbeatResponse.newBuilder()
                 .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
                 .build());
@@ -283,9 +304,13 @@ public class ClientActivity extends AbstractMessagingActivity {
             public void onNext(ProxyContext ctx, TelemetryCommand request) {
                 this.proxyCtx = ctx;
                 try {
+                    // Update RTT measurement for this client channel (RIP-2 §5.2.1)
+                    updateRttMeasurement(ctx);
                     switch (request.getCommandCase()) {
                         case SETTINGS: {
                             processAndWriteClientSettings(ctx, request, responseObserver);
+                            // Record heartbeat for admin telemetry tracking (RIP-2 §5.2.2)
+                            recordHeartbeat(ctx.getClientID());
                             break;
                         }
                         case THREAD_STACK_TRACE: {
@@ -327,6 +352,42 @@ public class ClientActivity extends AbstractMessagingActivity {
                 return LiteSubscriptionAction.COMPLETE_REMOVE;
         }
         throw new IllegalArgumentException("unknown LiteSubscriptionAction: " + gRpcAction);
+    }
+
+    /**
+     * Record a heartbeat event via the admin service.
+     * Safely handles the case where admin service is not yet initialized.
+     *
+     * @param clientId the client identifier
+     */
+    private void recordHeartbeat(String clientId) {
+        ProxyAdminClientService service = this.proxyAdminClientService;
+        if (service != null && StringUtils.isNotBlank(clientId)) {
+            try {
+                service.recordHeartbeat(clientId);
+            } catch (Throwable t) {
+                log.warn("Failed to record heartbeat for clientId: {}", clientId, t);
+            }
+        }
+    }
+
+    /**
+     * Update RTT measurement for the client channel.
+     * Called when a telemetry command is received from the client,
+     * estimating RTT from the time since the proxy last sent a telemetry command.
+     */
+    private void updateRttMeasurement(ProxyContext ctx) {
+        try {
+            String clientId = ctx.getClientID();
+            if (StringUtils.isNotBlank(clientId)) {
+                GrpcClientChannel channel = this.grpcChannelManager.getChannel(clientId);
+                if (channel != null) {
+                    channel.updateRttMeasurement();
+                }
+            }
+        } catch (Throwable t) {
+            log.debug("Failed to update RTT measurement for clientId: {}", ctx.getClientID(), t);
+        }
     }
 
     private void handleGrpcCancel(ProxyContext ctx, Throwable t) {
