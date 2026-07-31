@@ -33,7 +33,6 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.common.utils.FutureUtils;
-import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
@@ -73,12 +72,12 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
         Channel parent,
         String clientId, Set<SubscriptionData> subscriptionData) {
         super(proxyRelayService, parent, parent.id(),
-            NetworkUtil.socketAddress2String(parent.remoteAddress()),
-            NetworkUtil.socketAddress2String(parent.localAddress()));
+            socketAddress2String(parent.remoteAddress()),
+            socketAddress2String(parent.localAddress()));
         this.remotingProxyOutClient = remotingProxyOutClient;
         this.clientId = clientId;
-        this.remoteAddress = NetworkUtil.socketAddress2String(parent.remoteAddress());
-        this.localAddress = NetworkUtil.socketAddress2String(parent.localAddress());
+        this.remoteAddress = socketAddress2String(parent.remoteAddress());
+        this.localAddress = socketAddress2String(parent.localAddress());
         this.subscriptionData = subscriptionData;
     }
 
