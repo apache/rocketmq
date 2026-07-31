@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.grpc.v2.common;
 import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.CustomizedBackoff;
 import apache.rocketmq.v2.ExponentialBackoff;
+import apache.rocketmq.v2.FilterExpression;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.RetryPolicy;
@@ -40,8 +41,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -200,5 +203,31 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
         grpcClientSettingsManager.offlineClientLiteSubscription(ctx, clientId, settings);
 
         verify(messagingProcessor, times(1)).syncLiteSubscription(any(), any(LiteSubscriptionDTO.class), anyLong());
+    }
+
+    @Test
+    public void testSummarizeLiteSettingsDoesNotLeakSubscriptionDetails() {
+        Settings settings = Settings.newBuilder()
+            .setClientType(ClientType.LITE_PUSH_CONSUMER)
+            .setSubscription(Subscription.newBuilder()
+                .setGroup(Resource.newBuilder().setName("testGroup").build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setTopic(Resource.newBuilder().setName("testTopic").build())
+                    .setExpression(FilterExpression.newBuilder().setExpression("sensitive-filter").build())
+                    .build())
+                .addSubscriptions(SubscriptionEntry.newBuilder()
+                    .setTopic(Resource.newBuilder().setName("otherTopic").build())
+                    .build())
+                .build())
+            .build();
+
+        String summary = GrpcClientSettingsManager.summarizeLiteSettings(settings);
+
+        assertTrue(summary.contains("clientType:LITE_PUSH_CONSUMER"));
+        assertTrue(summary.contains("group:testGroup"));
+        assertTrue(summary.contains("topic:testTopic"));
+        assertTrue(summary.contains("subscriptionCount:2"));
+        assertFalse(summary.contains("sensitive-filter"));
+        assertFalse(summary.contains("otherTopic"));
     }
 }
