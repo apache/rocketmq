@@ -40,8 +40,10 @@ import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
+import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
+import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
@@ -420,4 +422,18 @@ public interface MessagingProcessor extends StartAndShutdown {
         String receiptHandle);
 
     int getUnackedMessageCount(ProxyContext ctx, Channel channel, String group);
+
+    /**
+     * Get the ReceiptHandleManager for POP diagnostics.
+     *
+     * @return the receipt handle manager instance
+     */
+    ReceiptHandleManager getReceiptHandleManager();
+
+    /**
+     * Get the TopicRouteService for route change event subscriptions.
+     *
+     * @return the topic route service instance
+     */
+    TopicRouteService getTopicRouteService();
 }

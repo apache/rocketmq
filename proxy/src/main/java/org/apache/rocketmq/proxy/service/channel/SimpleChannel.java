@@ -204,6 +204,10 @@ public class SimpleChannel extends AbstractChannel {
         return localAddress;
     }
 
+    public long getLastAccessTime() {
+        return lastAccessTime;
+    }
+
     public ChannelHandlerContext getChannelHandlerContext() {
         return channelHandlerContext;
     }

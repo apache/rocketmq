@@ -28,6 +28,7 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.receipt.DefaultReceiptHandleManager;
+import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager;
 
 public class ReceiptHandleProcessor extends AbstractProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -70,6 +71,15 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
 
     public int getUnackedMessageCount(ProxyContext ctx, Channel channel, String group) {
         return receiptHandleManager.getUnackedMessageCount(ctx, channel, group);
+    }
+
+    /**
+     * Get the ReceiptHandleManager for POP diagnostics.
+     *
+     * @return the receipt handle manager instance
+     */
+    public ReceiptHandleManager getReceiptHandleManager() {
+        return receiptHandleManager;
     }
 
 }

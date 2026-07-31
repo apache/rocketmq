@@ -55,8 +55,10 @@ import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.ServiceManagerFactory;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
+import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
+import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
@@ -399,5 +401,15 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     @Override public int getUnackedMessageCount(ProxyContext ctx, Channel channel, String group) {
         return receiptHandleProcessor.getUnackedMessageCount(ctx, channel, group);
+    }
+
+    @Override
+    public ReceiptHandleManager getReceiptHandleManager() {
+        return receiptHandleProcessor.getReceiptHandleManager();
+    }
+
+    @Override
+    public TopicRouteService getTopicRouteService() {
+        return this.serviceManager.getTopicRouteService();
     }
 }

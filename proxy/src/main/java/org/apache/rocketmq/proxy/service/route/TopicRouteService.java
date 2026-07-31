@@ -23,9 +23,12 @@ import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
@@ -51,11 +54,28 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public abstract class TopicRouteService extends AbstractStartAndShutdown {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
+    /**
+     * Listener interface for route refresh events.
+     * Implementations are notified when the Caffeine cache reloads route data for a topic,
+     * enabling detection and propagation of route changes (broker online/offline, queue scaling, etc.).
+     */
+    public interface RouteRefreshListener {
+        /**
+         * Called when a topic's route data has been refreshed in the cache.
+         *
+         * @param topic the topic whose route was refreshed
+         * @param oldView the previous MessageQueueView (may be null if not previously cached)
+         * @param newView the new MessageQueueView (may be WRAPPED_EMPTY_QUEUE if topic was deleted)
+         */
+        void onRouteRefreshed(String topic, MessageQueueView oldView, MessageQueueView newView);
+    }
+
     private final MQFaultStrategy mqFaultStrategy;
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ThreadPoolExecutor cacheRefreshExecutor;
     protected final List<MessageQueuePenalizer<AddressableMessageQueue>> penalizers = new ArrayList<>();
     protected MessageQueuePriorityProvider<AddressableMessageQueue> priorityProvider = new DefaultMessageQueuePriorityProvider();
+    protected final CopyOnWriteArrayList<RouteRefreshListener> routeRefreshListeners = new CopyOnWriteArrayList<>();
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
@@ -91,7 +111,18 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                 public @Nullable MessageQueueView reload(@NonNull String key,
                     @NonNull MessageQueueView oldValue) throws Exception {
                     try {
-                        return load(key);
+                        MessageQueueView newValue = load(key);
+                        // Notify route refresh listeners if the new value differs from old
+                        if (!routeRefreshListeners.isEmpty()) {
+                            for (RouteRefreshListener listener : routeRefreshListeners) {
+                                try {
+                                    listener.onRouteRefreshed(key, oldValue, newValue);
+                                } catch (Exception e) {
+                                    log.warn("Route refresh listener error for topic {}: {}", key, e.getMessage());
+                                }
+                            }
+                        }
+                        return newValue;
                     } catch (Exception e) {
                         log.warn(String.format("reload topic route from namesrv. topic: %s", key), e);
                         return oldValue;
@@ -213,6 +244,47 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     public void addPenalizer(MessageQueuePenalizer<AddressableMessageQueue> penalizer) {
         this.penalizers.add(penalizer);
+    }
+
+    /**
+     * Add a route refresh listener that will be notified when route data is refreshed in the cache.
+     *
+     * @param listener the listener to add
+     */
+    public void addRouteRefreshListener(RouteRefreshListener listener) {
+        this.routeRefreshListeners.add(listener);
+    }
+
+    /**
+     * Get all topic names currently in the route cache.
+     * Topics with empty route data (WRAPPED_EMPTY_QUEUE) are excluded.
+     *
+     * @return set of topic names with valid route data
+     */
+    public Set<String> getAllTopicNames() {
+        Set<String> result = new java.util.HashSet<>();
+        for (Map.Entry<String, MessageQueueView> entry : topicCache.asMap().entrySet()) {
+            MessageQueueView view = entry.getValue();
+            if (view != null && !view.isEmptyCachedQueue()) {
+                result.add(entry.getKey());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get cached MessageQueueView for a topic without triggering a cache load.
+     * Returns null if the topic is not in the cache.
+     *
+     * @param topic the topic name
+     * @return the cached MessageQueueView, or null if not cached
+     */
+    public MessageQueueView getCachedTopicRouteData(String topic) {
+        MessageQueueView view = topicCache.getIfPresent(topic);
+        if (view != null && !view.isEmptyCachedQueue()) {
+            return view;
+        }
+        return null;
     }
 
     @VisibleForTesting
