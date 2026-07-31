@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.rocketmq.broker.BrokerController;
@@ -288,7 +289,8 @@ public class LocalMessageService implements MessageService {
                             int index = sortMap.get(key).indexOf(messageExt.getQueueOffset());
                             Long msgQueueOffset = msgOffsetInfo.get(key).get(index);
                             if (msgQueueOffset != messageExt.getQueueOffset()) {
-                                log.warn("Queue offset [{}] of msg is strange, not equal to the stored in msg, {}", msgQueueOffset, messageExt);
+                                log.warn("Queue offset [{}] of msg is strange, not equal to the stored in msg, msgSummary:{}",
+                                    msgQueueOffset, summarizeMessageExt(messageExt));
                             }
 
                             messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
@@ -310,6 +312,20 @@ public class LocalMessageService implements MessageService {
             }
             return popResult;
         });
+    }
+
+    static String summarizeMessageExt(MessageExt messageExt) {
+        if (messageExt == null) {
+            return "msg=null";
+        }
+        return "topic=" + messageExt.getTopic()
+            + ", msgId=" + messageExt.getMsgId()
+            + ", queueId=" + messageExt.getQueueId()
+            + ", queueOffset=" + messageExt.getQueueOffset()
+            + ", commitLogOffset=" + messageExt.getCommitLogOffset()
+            + ", bodySize=" + (messageExt.getBody() == null ? 0 : messageExt.getBody().length)
+            + ", propertyKeys=" + (messageExt.getProperties() == null
+                ? "[]" : new TreeSet<>(messageExt.getProperties().keySet()));
     }
 
     @Override

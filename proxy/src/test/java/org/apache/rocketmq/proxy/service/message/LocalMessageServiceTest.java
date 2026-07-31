@@ -137,6 +137,30 @@ public class LocalMessageServiceTest extends InitConfigTest {
     }
 
     @Test
+    public void testSummarizeMessageExtDoesNotExposeBodyOrPropertyValues() {
+        MessageExt messageExt = new MessageExt();
+        messageExt.setTopic(topic);
+        messageExt.setMsgId("msgId");
+        messageExt.setQueueId(1);
+        messageExt.setQueueOffset(2L);
+        messageExt.setCommitLogOffset(3L);
+        messageExt.setBody(new byte[] {115, 101, 99, 114, 101, 116});
+        messageExt.putUserProperty("secretKey", "secretValue");
+
+        String summary = LocalMessageService.summarizeMessageExt(messageExt);
+
+        assertThat(summary).contains("topic=" + topic);
+        assertThat(summary).contains("msgId=msgId");
+        assertThat(summary).contains("queueId=1");
+        assertThat(summary).contains("queueOffset=2");
+        assertThat(summary).contains("commitLogOffset=3");
+        assertThat(summary).contains("bodySize=6");
+        assertThat(summary).contains("secretKey");
+        assertThat(summary).doesNotContain("secretValue");
+        assertThat(summary).doesNotContain("115, 101, 99, 114, 101, 116");
+    }
+
+    @Test
     public void testSendMessageWriteAndFlush() throws Exception {
         Message message = new Message(topic, "body".getBytes(StandardCharsets.UTF_8));
         MessageClientIDSetter.setUniqID(message);
